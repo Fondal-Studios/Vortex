@@ -1,6 +1,7 @@
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, project, rotAround, clone } from './math.js';
 import { MONSTERS, G } from './data.js';
 import { collide } from './physics.js';
+import { updateColoso, updateMadre } from './bossmech.js';
 
 /* ───── utilidades de movimiento compartidas ───── */
 const nearest = (targets, pos) => {
@@ -287,7 +288,9 @@ export const AI = {
     if (ph !== m.phase) { m.phase = ph; game.emit({ t: 'phase', n: ph, id: m.id }); }
     const want = v3(a.x + Math.cos(m.t * 0.25) * 12, a.y + Math.sin(m.t * 0.6) * 2, a.z + Math.sin(m.t * 0.25) * 12);
     flyMove(game, m, dt, mul(sub(want, m.pos), 1.5), 3);
-    face(m, sub(p.pos, m.pos));
+    face(m, m.aim ? m.aim : sub(p.pos, m.pos));
+    const mech = updateColoso(game, m, dt); m.vis = m.mech;
+    if (mech.skip) return;
     m.cd -= dt; m.cd2 -= dt; m.sum = (m.sum ?? 6) - dt; m.flipT = (m.flipT ?? 10) - dt;
     if (m.state === 'wind') {
       if ((m.stateT -= dt) <= 0) {
@@ -319,15 +322,14 @@ export const AI = {
     if (ph !== m.phase) { m.phase = ph; game.emit({ t: 'phase', n: ph, id: m.id }); }
     m.vel = v3(); m.pos = clone(game.map.bossAnchor);
     face(m, sub(p.pos, m.pos));
-    const cycle = [0, 7, 6, 5][ph], closed = cycle * 0.55;
-    const c = m.t % cycle, wasOpen = m.open;
-    m.open = c >= closed;
+    updateMadre(game, m, dt);
     m.state = m.open ? 'open' : 'fire';
-    if (m.open && !wasOpen && m.kids < 6) { summon(game, m, 'racimo', ph === 1 ? 3 : 5, 6); }
+    if (m.justOpened && m.kids < 6) { summon(game, m, 'racimo', ph === 1 ? 3 : 5, 6); }
+    if (m.rage > 4) { m.rage = 0; summon(game, m, 'racimo', 2, 6); }
     if (!m.open) { // espirales: brazos que rotan y barren la esfera
       m.cd -= dt;
       if (m.cd <= 0) {
-        m.cd = [0, 0.22, 0.17, 0.13][ph];
+        m.cd = [0, 0.22, 0.17, 0.13][ph] * (m.pressure >= 1 ? 0.7 : 1);
         const arms = ph + 3;
         for (let i = 0; i < arms; i++) {
           const ang = m.t * 1.6 + (i * Math.PI * 2) / arms, el = Math.sin(m.t * 0.9 + i) * 0.9;

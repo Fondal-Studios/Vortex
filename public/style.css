@@ -134,3 +134,26 @@ select, input[type=text], input:not([type]), input[type=range] { font: inherit; 
 .pbox .list { align-items: stretch; } .pbox .item { align-items: center; } .item.sel { flex-direction: row; justify-content: space-between; align-items: center; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; }
 @media (pointer: coarse) { #hero { display: none; } #mainlist { width: 80vw; } .item b { font-size: 22px; } #bdetail { display: none; } #bgrid { grid-template-columns: repeat(4, 1fr); } .card { width: 42vw; } #prompts { display: none; } }
 @media (max-width: 900px) { #hero { display: none; } #bdetail { display: none; } }
+
+/* ───── Director: objetivos, habilidad, avisos ───── */
+#objective{position:absolute;top:84px;left:50%;transform:translateX(-50%);width:min(440px,86vw);padding:10px 14px;background:linear-gradient(180deg,rgba(18,10,40,.78),rgba(10,6,26,.7));border:1px solid rgba(160,130,255,.5);border-radius:12px;backdrop-filter:blur(6px);text-align:center;pointer-events:none}
+#objective.fail{border-color:#ff5a7a}#objective.done{border-color:#7dff9a}
+#objtitle{font-weight:800;letter-spacing:.18em;font-size:13px;color:#ffe27a}
+#objdesc{font-size:12px;opacity:.85;margin:3px 0 7px;line-height:1.35}
+.objbar{height:7px;background:rgba(255,255,255,.12);border-radius:6px;overflow:hidden}
+#objfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#7a5cff,#5cf2ff);transition:width .2s}
+#objtime{font-size:11px;opacity:.7;display:block;margin-top:4px}
+#ability{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);width:170px;text-align:center;font-size:12px;pointer-events:none}
+.abbar{height:6px;background:rgba(255,255,255,.14);border-radius:5px;overflow:hidden;margin:3px 0}
+#abfill{display:block;height:100%;width:100%;background:#5cf2ff}
+#ability.cd #abfill{background:#8a7fb8}#abkey{opacity:.65}
+#bossmech{position:absolute;top:58px;left:50%;transform:translateX(-50%);padding:5px 12px;border-radius:8px;background:rgba(40,10,30,.72);border:1px solid #ff9ae8;font-size:12px;letter-spacing:.06em;text-align:center;pointer-events:none;white-space:nowrap}
+#downed{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;letter-spacing:.14em;color:#ff7a9a;text-shadow:0 0 18px #ff2a5a;background:radial-gradient(ellipse at center,transparent 35%,rgba(120,0,30,.45));pointer-events:none;text-align:center;padding:0 20px}
+#pings{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.ping{position:absolute;transform:translate(-50%,-100%);font-size:11px;font-weight:800;color:#fff;text-shadow:0 0 8px #000;text-align:center;white-space:nowrap}
+.ping::before{content:"◆";display:block;font-size:20px;color:#ffe27a}
+.ping.danger::before{color:#ff5a7a}.ping.obj::before{color:#5cf2ff}
+.tc-btn.tc-ability{right:calc(232px + env(safe-area-inset-right));bottom:calc(40px + env(safe-area-inset-bottom));width:62px;height:62px;font-size:9px;border-color:#5cf2ff}
+.tc-btn.tc-use{right:calc(232px + env(safe-area-inset-right));bottom:calc(110px + env(safe-area-inset-bottom));width:54px;height:54px;font-size:10px;border-color:#7dff9a}
+.tc-btn.tc-ping{right:calc(30px + env(safe-area-inset-right));bottom:calc(160px + env(safe-area-inset-bottom));width:46px;height:46px;font-size:18px;border-color:#ffe27a}
+@media (pointer: coarse){#objective{top:44px;width:min(340px,60vw);padding:6px 10px}#objdesc{font-size:10px;margin:2px 0 4px}#ability{display:none}#bossmech{top:70px;font-size:10px}}

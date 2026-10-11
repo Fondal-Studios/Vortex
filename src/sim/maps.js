@@ -40,12 +40,25 @@ function makeMap1() {
   // Portal de escape desde la isla-techo
   portals.push({ a: v3(lift.x + 10, lift.top + 26 - 4 - 0.9, lift.z), b: v3(0, 0.9, -12), r: 2.2, hue: 0.5 });
 
+  // Puntos de objetivos y puzzles (Director). Todo en coordenadas de mundo.
+  const top = (i) => (i === 0 ? 0 : tops[i - 1]);
+  const plateAt = (k, dx, dz) => { const rg = ring[k]; return v3(rg.x + dx, rg.top + 0.2, rg.z + dz); };
+  const lift2 = lift;
+  const spots = {
+    anchor: v3(0, 0, -9),
+    plates: [v3(-12, 0.2, 6), plateAt(1, -3, 0), plateAt(3, -3, 0), plateAt(4, -3, 0)],
+    core: v3(12, 0.9, 7),
+    altar: v3(lift2.x - 8, lift2.top + 26 - 4 - 0.4, lift2.z),
+    liftPad: v3(lift2.x, lift2.top + 0.9, lift2.z),
+    resonators: (n) => Array.from({ length: n }, (_, k) => { const a = (k / n) * Math.PI * 2 + 0.4; return v3(Math.cos(a) * 15, 0, Math.sin(a) * 15); }),
+    boss: v3(0, 34, 0),
+  };
   const inZone = (z, p) => z.shape === 'sph'
     ? dist(p, z.c) < z.r
     : Math.hypot(p.x - z.c.x, p.z - z.c.z) < z.r && p.y > z.y0 && p.y < z.y1;
   return {
     id: 'm1', name: 'Vacío de Islas', solids, islands, zones, portals,
-    center: v3(0, 10, 0), bounds: 190, voidY: -70, bossAnchor: v3(0, 34, 0),
+    center: v3(0, 10, 0), bounds: 190, voidY: -70, bossAnchor: v3(0, 34, 0), spots, ring, lift: lift2,
     playerSpawn: (i) => v3(((i % 4) - 1.5) * 3, 0.9, 4),
     gravityAt(p) {
       for (const z of zones) {
@@ -101,11 +114,20 @@ function makeMap2() {
     hills.push({ n, r });
     solids.push({ type: 'sph', c: mul(n, R + 3), r });
   }
+  const south = v3(0, -1, 0);
+  const at = (polar, azim, rad = R - 0.9) => { const s = Math.sin(polar); return v3(Math.cos(azim) * s * rad, -Math.cos(polar) * rad, Math.sin(azim) * s * rad); }; // polar 0 = polo sur
+  const spots = {
+    anchor: at(0.22, 1.2),
+    plates: [at(0.75, 0.2), at(0.75, 1.0), at(0.8, 1.8), at(0.85, 2.6)],
+    core: at(0.15, 3.0), altar: at(2.4, 0.5),
+    valves: [at(0.3, 0.0), at(0.3, Math.PI)],   // ~50 u entre ellas
+    resonators: () => [], boss: v3(0, 0, 0),
+  };
   const TIDE = { period: 60, warn: 47, zeroAt: 50, zeroEnd: 59 };
   const phase = (t) => t % TIDE.period;
   return {
     id: 'm2', name: 'Cámara Fractal', solids, hills, zones: [], portals: [],
-    center: C, bounds: R + 6, voidY: -1e9, bossAnchor: v3(0, 0, 0), R, tide: TIDE,
+    center: C, bounds: R + 6, voidY: -1e9, bossAnchor: v3(0, 0, 0), R, tide: TIDE, spots,
     playerSpawn: (i) => mul(norm(v3(((i % 4) - 1.5) * 0.04, -1, 0.05)), R - 0.9),
     zeroG: (t) => phase(t) >= TIDE.zeroAt && phase(t) < TIDE.zeroEnd,
     gravityAt(p, t) {

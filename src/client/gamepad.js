@@ -10,7 +10,7 @@ export class Pad {
     const g = this.gp; if (!g) return null; this.connected = true;
     const b = (i) => (g.buttons[i] ? g.buttons[i].value : 0);
     return { mx: dz(g.axes[0] || 0), mz: -dz(g.axes[1] || 0), dyaw: dz(g.axes[2] || 0) * dt * 3.6, dpitch: -dz(g.axes[3] || 0) * dt * 2.6,
-      fire: b(7) > 0.3 || b(5) > 0.5 && false, jump: b(0) > 0.5, dash: b(10) > 0.5 || b(6) > 0.5, prev: b(4) > 0.5, next: b(5) > 0.5, pause: b(9) > 0.5 };
+      fire: b(7) > 0.3 || b(5) > 0.5 && false, jump: b(0) > 0.5, dash: b(10) > 0.5 || b(6) > 0.5, prev: b(4) > 0.5, next: b(5) > 0.5, pause: b(9) > 0.5, ability: b(2) > 0.5, interact: b(3) > 0.5, ping: b(11) > 0.5 };
   }
   /** Eventos discretos para menús: devuelve lista de 'up'|'down'|'left'|'right'|'ok'|'back' con repetición al mantener. */
   menuEvents(dt) {

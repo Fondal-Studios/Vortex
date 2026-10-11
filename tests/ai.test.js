@@ -87,12 +87,19 @@ test('Coloso (jefe M1): 3 fases por vida, lluvia de orbes, invoca refuerzos, inv
   assert.equal(g.state, 'won');
 });
 
-test('Madre Geoda (jefe M2): se abre/cierra en ciclos (blindada cerrada), lanza espirales, invoca Racimos y es derrotable', () => {
-  const { g, p, b } = bossFight('m2', 'madre'); let opens = 0, closes = 0, was = null, shots = 0, racimos = false; const hp0 = b.hp;
-  run(g, 22, () => { if (was !== null && b.open !== was) b.open ? opens++ : closes++; was = b.open; shots += g.projectiles.filter((q) => q.age < 0.02).length; racimos ||= g.monsters.some((m) => m.kind === 'racimo'); });
-  assert.ok(opens >= 2 && closes >= 2, `ciclos ${opens}/${closes}`); assert.ok(shots > 60); assert.ok(racimos);
+test('Madre Geoda (jefe M2): se purga en las válvulas (sólo entonces se abre), lanza espirales, invoca Racimos y es derrotable', () => {
+  const { g, p, b } = bossFight('m2', 'madre'); let shots = 0, racimos = false, opened = false;
+  p.hp = 1e6; p.shield = 1e6;
+  assert.equal(b.valves.length, 2);
+  // sin tocar las válvulas el jefe se queda cerrado
+  run(g, 6, () => { shots += g.projectiles.filter((q) => q.age < 0.02).length; });
+  assert.ok(!b.open && shots > 20, 'cerrada y disparando');
+  // en solitario hay que pisar ambas válvulas dentro de 9 s
+  for (let i = 0; i < 400 && !b.open; i++) { const v = b.valves[Math.floor(i / 60) % 2]; p.pos = { x: v.pos.x, y: v.pos.y, z: v.pos.z }; p.vel = { x: 0, y: 0, z: 0 }; g.step(1 / 60); }
+  opened = b.open; assert.ok(opened, 'purga abre al jefe');
+  run(g, 3, () => { racimos ||= g.monsters.some((m) => m.kind === 'racimo'); }); assert.ok(racimos);
   b.open = false; const h = b.hp; g.damageMonster(b, 100, p); assert.ok(Math.abs(h - b.hp - 15) < 1e-6, 'cerrada recibe 15%');
-  b.open = true; g.damageMonster(b, 1e9, p); g.step(1 / 60); g.step(1 / 60); assert.equal(g.state, 'won'); void hp0;
+  b.open = true; g.damageMonster(b, 1e9, p); g.step(1 / 60); g.step(1 / 60); assert.equal(g.state, 'won');
 });
 
 test('Obelisco (francotirador): se aleja, traza línea 1.6 s, fija el blanco y dispara un rayo veloz que se puede esquivar', () => {

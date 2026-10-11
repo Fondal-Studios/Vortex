@@ -40,8 +40,9 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
     rooms.set(code, room);
     return room;
   }
-  function join(ws, room, name) {
-    const p = room.game.addPlayer(name);
+  function join(ws, room, name, role) {
+    const p = room.game.addPlayer(name, role);
+    ws.pname = name; ws.role = p ? p.role : role;
     if (!p) return send(ws, { t: 'error', msg: 'sala llena' });
     room.clients.set(ws, p.id);
     ws.room = room;
@@ -55,18 +56,21 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
         if (ws.room) return;
         const map = MAPS[m.map] ? m.map : 'm1';
         const code = String((Math.random() * 9000 + 1000) | 0);
-        join(ws, makeRoom(code, map), String(m.name || 'Pasajero').slice(0, 16));
+        join(ws, makeRoom(code, map), String(m.name || 'Pasajero').slice(0, 16), m.role);
       } else if (m.t === 'join') {
         const room = rooms.get(String(m.room));
         if (!room || ws.room) return send(ws, { t: 'error', msg: 'sala inexistente' });
-        join(ws, room, String(m.name || 'Pasajero').slice(0, 16));
+        join(ws, room, String(m.name || 'Pasajero').slice(0, 16), m.role);
       } else if (m.t === 'in' && ws.room) {
         const pid = ws.room.clients.get(ws);
         if (pid && m.i && typeof m.i === 'object') ws.room.game.setInput(pid, m.i);
+      } else if (m.t === 'role' && ws.room) {
+        const pid = ws.room.clients.get(ws);
+        if (pid) { ws.room.game.setRole(pid, m.role); const p = ws.room.game.players.find((q) => q.id === pid); if (p) ws.role = p.role; }
       } else if (m.t === 'restart' && ws.room && ws.room.game.state !== 'playing') {
         const room = ws.room;
         room.game = new Game({ mapId: room.mapId, seed: (Math.random() * 1e9) | 0, calm: 8 });
-        for (const [c] of room.clients) { const p = room.game.addPlayer(); room.clients.set(c, p.id); send(c, { t: 'welcome', pid: p.id, room: room.code, map: room.mapId, dt: SIM_DT }); }
+        for (const [c] of room.clients) { const p = room.game.addPlayer(c.pname, c.role); room.clients.set(c, p.id); send(c, { t: 'welcome', pid: p.id, room: room.code, map: room.mapId, dt: SIM_DT }); }
       }
     });
     ws.on('close', () => {

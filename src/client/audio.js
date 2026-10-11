@@ -56,6 +56,11 @@ export class Sound {
   pickup() { [0, 4, 7, 12].forEach((s, i) => this.tone({ f: 523 * 2 ** (s / 12), type: 'triangle', dur: 0.12, vol: 0.2, delay: i * 0.05 })); }
   wave() { [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 110 * 2 ** (s / 12), type: 'sawtooth', dur: 0.9, vol: 0.18, att: 0.1, delay: i * 0.12 })); }
   gravity(at) { this.tone({ f: 80, f2: 600, type: 'sine', dur: 0.8, vol: 0.5, at }); this.tone({ f: 600, f2: 80, type: 'triangle', dur: 0.8, vol: 0.3, at, delay: 0.4 }); }
+  ability(at) { this.tone({ f: 330, f2: 880, type: 'sine', dur: 0.4, vol: 0.3, at }); this.tone({ f: 660, f2: 1320, type: 'triangle', dur: 0.3, vol: 0.18, at, delay: 0.08 }); }
+  objective(ok) { (ok ? [0, 4, 7, 12, 16] : [0, -3, -7]).forEach((s, i) => this.tone({ f: 440 * 2 ** (s / 12), type: 'triangle', dur: 0.25, vol: 0.22, delay: i * 0.09 })); }
+  ping() { this.tone({ f: 1100, f2: 1500, type: 'sine', dur: 0.12, vol: 0.2 }); this.tone({ f: 1500, type: 'sine', dur: 0.1, vol: 0.14, delay: 0.1 }); }
+  ray() { this.tone({ f: 120, f2: 900, type: 'sawtooth', dur: 1.6, vol: 0.28, att: 0.8 }); }
+  down() { this.tone({ f: 180, f2: 50, type: 'sawtooth', dur: 0.6, vol: 0.4 }); this.heartbeat(); }
   portal(at) { this.tone({ f: 300, f2: 1500, type: 'sine', dur: 0.35, vol: 0.3, at }); this.tone({ f: 1500, f2: 300, type: 'triangle', dur: 0.35, vol: 0.2, at, delay: 0.1 }); }
   /** Sonidos de interfaz (menús PS5): navegación, confirmar, volver, trofeo. */
   ui(kind) {

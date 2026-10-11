@@ -8,6 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildMonster, COLORS } from './models.js';
 import { Effects } from './effects.js';
+import { ObjectsView } from './objects.js';
 import { buildMap1 } from './env/map1.js';
 import { buildMap2 } from './env/map2.js';
 import { Viewmodels, WEAPON_COLORS as WC } from './weapons-vm.js';
@@ -46,6 +47,7 @@ export class Renderer {
     this.mapRoot = new THREE.Group(); this.scene.add(this.mapRoot);
     this.ents = { mon: new Map(), proj: new Map(), pick: new Map(), ply: new Map() };
     this.entRoot = new THREE.Group(); this.scene.add(this.entRoot);
+    this.objects = new ObjectsView(this.scene, this.fx);
     this.dyn = []; // objetos del mapa con animación
     this.shake = 0; this.camQ = new THREE.Quaternion(); this.camInit = false;
     this.mapId = null; this.t = 0;
@@ -147,6 +149,7 @@ export class Renderer {
     this.syncProjectiles(state, dt);
     this.syncPickups(state);
     this.syncPlayers(state, myId, dt);
+    this.objects.sync(state, dt, state.map);
     this.handleEvents(state, me);
     this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
@@ -308,7 +311,9 @@ export class Renderer {
   /* ───────── eventos → efectos ───────── */
   handleEvents(state, me) {
     const near = (p) => me ? V(p).distanceTo(V(me.pos)) : 99;
+    const bossP = (state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre') || {}).p;
     for (const e of state.events) {
+      this.objects.onEvent(e, this.fx, bossP);
       switch (e.t) {
         case 'shot': {
           const o = V(e.o), col = WEAPON_COLORS[e.w] || 0xffffff;

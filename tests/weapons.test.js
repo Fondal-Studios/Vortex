@@ -74,7 +74,7 @@ test('Nova: proyectil con daño en área y caída por distancia; sin daño propi
 });
 
 test('escudo absorbe primero, después la vida; el escudo se regenera tras la demora', () => {
-  const { g, p } = arena('m1', { hp: 100 });
+  const { g, p } = arena('m1', { hp: 100 }); p.role = 'soporte';
   g.hurtPlayer(p, 60); assert.equal(p.shield, 40); assert.equal(p.hp, 100);
   g.hurtPlayer(p, 60); assert.equal(p.shield, 0); assert.equal(p.hp, 80);
   run(g, PLAYER.shieldDelay - 0.5); assert.equal(p.shield, 0);

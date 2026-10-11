@@ -1,6 +1,6 @@
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
-import { WEAPONS, MONSTERS } from '../sim/data.js';
+import { WEAPONS, MONSTERS, ROLES, ROLE_IDS, FRAGMENTS } from '../sim/data.js';
 import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.js';
 import { Renderer } from './render.js';
 import { Sound } from './audio.js';
@@ -26,13 +26,23 @@ const canvas = $('c');
 const renderer = new Renderer(canvas, { level, pixelRatio: params.get('pr') ? +params.get('pr') : null });
 const sound = new Sound();
 if (CAP) { // no suena nada en vivo: se registra cada sonido con su tiempo virtual para sintetizar la banda sonora
-  window.__evlog = []; for (const m of ['ui', 'chirp', 'train', 'heartbeat', 'shot', 'boom', 'hit', 'voice', 'hurt', 'pickup', 'gravity', 'portal', 'wave', 'init', 'resume', 'startMusic', 'setListener']) sound[m] = (...a) => { if (m !== 'init' && m !== 'resume' && m !== 'setListener' && m !== 'startMusic') window.__evlog.push({ t: window.__capT || 0, m, a: JSON.parse(JSON.stringify(a)) }); };
+  window.__evlog = []; for (const m of ['ui', 'chirp', 'train', 'heartbeat', 'shot', 'boom', 'hit', 'voice', 'hurt', 'pickup', 'gravity', 'portal', 'wave', 'ability', 'objective', 'ping', 'ray', 'purge', 'stagger', 'down', 'init', 'resume', 'startMusic', 'setListener']) sound[m] = (...a) => { if (m !== 'init' && m !== 'resume' && m !== 'setListener' && m !== 'startMusic') window.__evlog.push({ t: window.__capT || 0, m, a: JSON.parse(JSON.stringify(a)) }); };
 }
 const subs = new Story.Subtitles($('sub'), sound);
 const ctrlPref = params.get('input') || (() => { try { return localStorage.getItem('cristal.ctrl.v1') || 'auto'; } catch { return 'auto'; } })();
 const useTouch = () => { const p = $('ctrlsel').value; return p === 'touch' || (p === 'auto' && isTouchDevice()); };
 for (const sel of [$('qsel'), $('qsel2')]) { sel.innerHTML = Object.entries(LEVELS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join(''); sel.value = level; }
 $('ctrlsel').value = ctrlPref;
+const roleSel = $('rolesel');
+roleSel.innerHTML = ROLE_IDS.map((k) => `<option value="${k}">${ROLES[k].name} · ${ROLES[k].ability}</option>`).join('');
+try { const r = localStorage.getItem('cristal.role.v1'); if (ROLE_IDS.includes(r)) roleSel.value = r; } catch { /* ok */ }
+const showRoleDesc = () => { $('roledesc').textContent = ROLES[roleSel.value].desc; };
+showRoleDesc();
+roleSel.addEventListener('change', () => {
+  showRoleDesc(); try { localStorage.setItem('cristal.role.v1', roleSel.value); } catch { /* ok */ }
+  if (session && session.mode === 'coop') session.net.send({ t: 'role', role: roleSel.value });
+});
+const myRole = () => roleSel.value;
 function setQuality(l, { save = true } = {}) { if (!LEVELS[l] || l === level) return; level = l; $('qsel').value = $('qsel2').value = l; if (save) saveQuality(l); renderer.applyQuality(l); }
 $('qsel').addEventListener('change', (e) => setQuality(e.target.value)); $('qsel2').addEventListener('change', (e) => setQuality(e.target.value));
 $('ctrlsel').addEventListener('change', () => { try { localStorage.setItem('cristal.ctrl.v1', $('ctrlsel').value); } catch { /* ok */ } });
@@ -41,7 +51,7 @@ if (params.get('autoq') === '0') auto.enabled = false;
 
 /* ───────── entrada de teclado/ratón ───────── */
 const keys = new Set();
-const mouse = { dx: 0, dy: 0, fire: false };
+const mouse = { dx: 0, dy: 0, fire: false, ping: false };
 const NOLOCK = params.get('nolock') === '1';
 let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), mouseSens = 0.0022;
 addEventListener('keydown', (e) => {
@@ -53,8 +63,8 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyV' && session && !session.intro) renderer.setThird(!renderer.third); // cámara en tercera persona
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
-addEventListener('mousedown', (e) => { if (e.button === 0) mouse.fire = true; if (session && session.intro) skipIntro(); });
-addEventListener('mouseup', (e) => { if (e.button === 0) mouse.fire = false; });
+addEventListener('mousedown', (e) => { if (e.button === 1) { mouse.ping = true; e.preventDefault(); } if (e.button === 0) mouse.fire = true; if (session && session.intro) skipIntro(); });
+addEventListener('mouseup', (e) => { if (e.button === 0) mouse.fire = false; if (e.button === 1) mouse.ping = false; });
 addEventListener('wheel', (e) => { if (session) wantWeapon = (((session.myWeapon || 0) + (e.deltaY > 0 ? 1 : -1)) % 5 + 5) % 5; });
 addEventListener('mousemove', (e) => { if (locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
@@ -76,13 +86,13 @@ function readInput() {
   const SENS = mouseSens;
   const i = {
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), interact: keys.has('KeyE'), ping: keys.has('KeyG') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   mouse.dx = mouse.dy = 0; wantWeapon = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
     i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw; i.dpitch += g.dpitch;
-    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash;
+    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
     if (g.next && !padLatch.next) i.weapon = (((session ? session.myWeapon || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.myWeapon || 0 : 0) - 1) % 5 + 5) % 5;
     padLatch.next = g.next; padLatch.prev = g.prev;
     if (g.pause && !padLatch.pause && session && !session.touch) { document.exitPointerLock && document.exitPointerLock(); }
@@ -111,7 +121,7 @@ function assistAim(inp, state, me, dt) {
 function startSolo(mapId, opts = {}) {
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
   const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4 });
-  const p = game.addPlayer(Story.NAME);
+  const p = game.addPlayer(Story.NAME, myRole());
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
   session = { horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
@@ -125,7 +135,7 @@ async function startCoop(create, code, mapId) {
   net.onError = (m) => { $('menuerr').textContent = m; };
   net.welcomed = (m) => { session.map = m.map; session.pid = m.pid; renderer.camInit = false; session.look = null; session.ended = false; $('end').classList.add('hidden'); };
   session = { mode: 'coop', net, pid: null, map: mapId, ended: false, look: null, touch: useTouch(), intro: null };
-  net.send(create ? { t: 'create', map: mapId, name: Story.NAME } : { t: 'join', room: code, name: Story.NAME });
+  net.send(create ? { t: 'create', map: mapId, name: Story.NAME, role: myRole() } : { t: 'join', room: code, name: Story.NAME, role: myRole() });
   await new Promise((r) => { const t = setInterval(() => { if (net.pid || net.closed) { clearInterval(t); r(); } }, 30); setTimeout(() => { clearInterval(t); r(); }, 2500); });
   if (!net.pid) { session = null; $('menuerr').textContent ||= 'no se pudo entrar a la sala'; return; }
   enter(net.map);
@@ -270,6 +280,19 @@ function audioAndHud(state, me, dt) {
       case 'portal': sound.portal(e.p); trophy('portal', 'Atajo dimensional', 'Cruzá un portal', sound); break;
       case 'blink': sound.voice('espejo', 'blink', e.p); break;
       case 'summon': sound.voice('cuarzo', 'cast', e.p); break;
+      case 'ability': sound.ability(mine ? null : (me ? e.p : null)); if (mine) banner(ROLES[e.role].ability.toUpperCase(), 900); break;
+      case 'objective': objectiveEvent(e); break;
+      case 'ping': sound.ping(); break;
+      case 'pass': sound.pickup(); break;
+      case 'ray': sound.ray(); banner('¡RAYO DEL VACÍO! Parate en un pilar marcado', 2400); break;
+      case 'reflect': sound.boom(e.to); banner('¡REFLEJADO! El Coloso está aturdido', 2200); flash(); break;
+      case 'shield': banner('El Coloso recupera su escudo', 1600); break;
+      case 'purge': sound.gravity(); banner('¡PURGA! La Madre está abierta: ¡disparale!', 2400); flash(); break;
+      case 'gestate': banner('La Madre pone huevos: ¡rompelos antes de que eclosionen!', 2400); break;
+      case 'hatch': sound.boom(e.p); break;
+      case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con G', 2200); break;
+      case 'surge': banner('El Vórtice se enfurece…', 1800); break;
+      case 'tshot': break;
       case 'phase': sound.voice(state.boss && state.boss.name.startsWith('Col') ? 'coloso' : 'madre', 'phase'); banner(`FASE ${e.n}`, 1800); flash(); break;
     }
   }
@@ -281,15 +304,64 @@ function audioAndHud(state, me, dt) {
   $('left').textContent = state.phase === 'intermission' ? `siguiente en ${Math.ceil(state.intermission)}s` : `${state.left} criaturas`;
   const bb = $('bossbar');
   if (state.boss) { bb.classList.remove('hidden'); $('bossname').textContent = state.boss.name; $('bossfill').style.width = `${Math.max(0, 100 * state.boss.hp / state.boss.max)}%`; } else bb.classList.add('hidden');
+  hudDirector(state, me);
   if (me) {
     $('hpfill').style.width = `${me.hp}%`; $('shfill').style.width = `${me.sh}%`; $('hpnum').textContent = `Vida ${me.hp}`; $('shnum').textContent = `Escudo ${me.sh}`;
-    $('score').textContent = `Puntos ${me.score} · Bajas ${me.kills}` + (me.dead ? ' · CAÍDO: un compañero cerca (3 s) te reanima' : '');
+    $('score').textContent = `Puntos ${me.score} · Bajas ${me.kills}` + (me.dead ? ' · CAÍDO: un compañero cerca te reanima' : '');
     WEAPONS.forEach((w, i) => { $('w' + i).classList.toggle('sel', me.w === i); $('a' + i).textContent = me.ammo[i] < 0 ? '∞' : me.ammo[i]; });
     if (state.players.length > 1) {
       const c = $('coop'); c.classList.remove('hidden');
       c.innerHTML = 'Sala ' + (session.net ? session.net.room : '') + '<br>' + state.players.map((p) => `${p.id === me.id ? '▶' : ' '} ${p.name} ${p.id} ${p.dead ? `✖ ${Math.round(p.rv / 3 * 100)}%` : p.hp}`).join('<br>');
     }
   }
+}
+
+/* ───────── HUD del director: objetivo, habilidad, jefe, ping, caído ───────── */
+const OBJ_ICON = { ancla: '⚓', sintonia: '◈', nucleo: '✦' };
+function objectiveEvent(e) {
+  if (e.ph === 'start') { banner(`${e.title}: ${e.desc}`, 5200); sound.objective(true); }
+  else if (e.ph === 'done') {
+    sound.objective(true); trophy('obj', 'Trabajo en equipo', 'Completá un objetivo de oleada', sound);
+    banner('¡OBJETIVO CUMPLIDO! Munición, vida y +25 % de daño del equipo', 3200);
+    if (FRAGMENTS[e.frag] && !(session && session.intro)) later(() => { if (session && !session.ended && !subs.active) subs.play([['H', FRAGMENTS[e.frag], 7]]); }, 2200);
+    const o = $('objective'); o.classList.add('done');
+  } else if (e.ph === 'failed') { sound.hurt(); banner('Objetivo fallido: el Vórtice se enfurece', 2800); }
+}
+function hudDirector(state, me) {
+  const o = state.obj, box = $('objective');
+  if (o && o.state === 'active') {
+    box.classList.remove('hidden', 'done', 'fail');
+    $('objtitle').textContent = `${OBJ_ICON[o.type] || '◆'} ${o.title}`; $('objdesc').textContent = o.desc;
+    $('objfill').style.width = `${Math.round(o.prog * 100)}%`; $('objtime').textContent = `${Math.ceil(o.left)} s`;
+  } else box.classList.add('hidden');
+  const ab = $('ability');
+  if (me && me.role) {
+    const R = ROLES[me.role]; ab.style.display = ''; $('abname').textContent = `${R.name} · ${R.ability}`;
+    $('abfill').style.width = `${Math.round((1 - me.ab) * 100)}%`; ab.classList.toggle('cd', me.ab > 0.01);
+    $('abkey').textContent = me.ab > 0.01 ? `${Math.ceil(me.ab * R.cd)} s` : (session && session.touch ? 'toca HABILIDAD' : 'Q listo');
+  }
+  const dn = $('downed');
+  if (me && me.dead) { dn.classList.remove('hidden'); dn.textContent = me.lost ? 'PERDIDO… esperá la próxima oleada' : `CAÍDO · te desangrás ${Math.ceil(me.bleed)} s · ¡pedí ayuda con G!`; } else dn.classList.add('hidden');
+  const bm = $('bossmech'), b = state.boss;
+  if (b) {
+    let t = '';
+    if (b.name.startsWith('Col')) t = b.stagger > 0 ? `ATURDIDO ${Math.ceil(b.stagger)} s · ¡daño ×2,5!` : b.ray > 0 ? `RAYO en ${Math.ceil(b.ray)} s · ¡a un pilar marcado!` : b.shield ? 'ESCUDO DE RESONANCIA · reflejá el rayo con un pilar' : '';
+    else t = b.pressure >= 1 ? 'PRESIÓN MÁXIMA · ¡purgá las dos válvulas!' : `PRESIÓN ${Math.round(b.pressure * 100)} % · mantené las 2 válvulas a la vez`;
+    bm.textContent = t; bm.classList.toggle('hidden', !t);
+  } else bm.classList.add('hidden');
+  // marcadores de ping proyectados a la pantalla
+  const host = $('pings'), cam = renderer.camera; if (!cam) return;
+  const V3 = cam.position.constructor, lst = state.pings || [];
+  while (host.children.length > lst.length) host.lastChild.remove();
+  while (host.children.length < lst.length) host.appendChild(document.createElement('div'));
+  lst.forEach((q, i) => {
+    const el = host.children[i], v = new V3(q.p[0], q.p[1] + 1.2, q.p[2]), d = me ? Math.hypot(q.p[0] - me.pos[0], q.p[1] - me.pos[1], q.p[2] - me.pos[2]) : 0;
+    v.project(cam);
+    const vis = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
+    el.style.display = vis ? '' : 'none'; el.className = 'ping ' + (q.k === 'enemy' ? 'danger' : q.k === 'obj' ? 'obj' : '');
+    el.style.left = `${(v.x * 0.5 + 0.5) * 100}%`; el.style.top = `${(-v.y * 0.5 + 0.5) * 100}%`;
+    el.textContent = `${q.l ? q.l + ' · ' : ''}${Math.round(d)} m`;
+  });
 }
 
 let flashSeq = 0;

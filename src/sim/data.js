@@ -51,4 +51,34 @@ export const WAVE_PLANS = {
 };
 export const BOSS_OF = { m1: 'coloso', m2: 'madre' };
 
-export const PLAYER = { hp: 100, shield: 100, radius: 0.9, eye: 0.6, speed: 11, dash: 1.7, jump: 11.5, shieldDelay: 3, shieldRate: 35 };
+export const PLAYER = { bleed: 25, hp: 100, shield: 100, radius: 0.9, eye: 0.6, speed: 11, dash: 1.7, jump: 11.5, shieldDelay: 3, shieldRate: 35 };
+
+/* ───────── Director: roles, objetivos y fragmentos de historia ───────── */
+export const ROLES = {
+  vanguardia: { name: 'Vanguardia', ability: 'Cúpula',        cd: 24, desc: 'Escudo de 6 s: destruye proyectiles y reduce 40 % el daño a los de adentro.' },
+  soporte:    { name: 'Soporte',    ability: 'Pulso sanador', cd: 20, desc: 'Cura 40 y repone escudo en radio 12; reanima al instante a quien esté a ≤ 4. Reanima en 1,5 s.' },
+  ingeniero:  { name: 'Ingeniero',  ability: 'Torreta',       cd: 28, desc: 'Torreta automática 22 s. Deja munición al empezar cada oleada.' },
+  explorador: { name: 'Explorador', ability: 'Marca',         cd: 16, desc: 'Marca criaturas en radio 32: +30 % de daño del equipo 9 s; revela camuflados. +8 % velocidad.' },
+};
+export const ROLE_IDS = Object.keys(ROLES);
+
+// Qué objetivo trae cada oleada (además de sobrevivir). Sintonía/Núcleo/Ancla: ver docs/DISENO_DIRECTOR.md
+export const OBJECTIVE_PLAN = {
+  m1: { 2: 'ancla', 4: 'sintonia', 5: 'nucleo', 6: 'ancla' },
+  m2: { 2: 'sintonia', 3: 'ancla', 4: 'nucleo', 6: 'sintonia' },
+};
+export const OBJECTIVE_INFO = {
+  ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Mantené a alguien dentro del círculo para cargarla y cubrila: las criaturas la roen.', limit: 110 },
+  sintonia: { title: 'SINTONÍA', desc: 'Pisá todas las placas a la vez durante 3 s. Solo: cada placa queda viva 10 s tras salir.', limit: 110 },
+  nucleo:   { title: 'NÚCLEO DE MEMORIA', desc: 'Uno lleva el núcleo al altar (lento y sin disparar); el resto lo cubre. Pasalo con E cerca.', limit: 150 },
+};
+// Fragmentos de recuerdo: los cuenta el Heraldo cada vez que se cumple un objetivo (el sentido de la historia)
+export const FRAGMENTS = [
+  'Fragmento 1 — «El Vórtice no mata. Colecciona. Se alimenta de lo que pudiste ser y no fuiste.»',
+  'Fragmento 2 — «Las criaturas son reflejos que aprendieron a tener hambre. Por eso brillan cuando atacan: te están mostrando quién creen que sos.»',
+  'Fragmento 3 — «Yo también esperaba un tren. Un martes, en un andén, con los auriculares puestos.»',
+  'Fragmento 4 — «Los dos corazones sostienen la puerta. Uno mira hacia afuera; el otro, hacia adentro. Hay que romper los dos.»',
+  'Fragmento 5 — «Cada vez que alguien ayuda a otro, el Vórtice pierde un poco de hambre. Por eso te hice cargar el núcleo. No era por el núcleo.»',
+  'Fragmento 6 — «Si llegás al final, no te voy a decir adiós. Los Heraldos no podemos. Pero voy a escuchar el tren.»',
+];
+export const BOSS_MECH = { shield: 0.05, stagger: 2.5, rayCd: [0, 14, 11, 9], rayT: 4, madreClosed: 0.15 };

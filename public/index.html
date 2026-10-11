@@ -28,6 +28,11 @@
   </div>
   <div id="weapons"></div>
   <div id="coop" class="hidden"></div>
+  <div id="objective" class="hidden"><div id="objtitle"></div><div id="objdesc"></div><div class="objbar"><b id="objfill"></b></div><span id="objtime"></span></div>
+  <div id="ability"><span id="abname"></span><div class="abbar"><b id="abfill"></b></div><small id="abkey"></small></div>
+  <div id="bossmech" class="hidden"></div>
+  <div id="downed" class="hidden"></div>
+  <div id="pings"></div>
 </div>
 <div id="touch" class="hidden"></div>
 <div id="rotate" class="hidden"><p>📱↻</p><p>Girá el teléfono en horizontal para jugar</p></div>
@@ -77,7 +82,7 @@
       <div class="or">o unite con el código</div>
       <input id="roomcode" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
       <button id="joinroom" class="btn">Unirse</button>
-      <p class="hint">Si un compañero cae, acercate 3 segundos para reanimarlo.</p>
+      <p class="hint">Elegí tu rol en Opciones. Si un compañero cae, acercate 3 s (E) para reanimarlo: el Soporte lo hace el doble de rápido. Resolvé los objetivos juntos y usá G para señalar.</p>
     </div>
   </section>
   <!-- ═════ BESTIARIO ═════ -->
@@ -92,6 +97,8 @@
     <div class="panel opts">
       <label>Gráficos <select id="qsel"></select></label>
       <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado, ratón y mando</option></select></label>
+      <label>Rol <select id="rolesel"></select></label>
+      <p id="roledesc" class="hint"></p>
       <label>Sensibilidad <input id="sens0" type="range" min="2" max="10" value="5"></label>
       <label>Volumen <input id="vol" type="range" min="0" max="10" value="6"></label>
       <label>Subtítulos <select id="subsel"><option value="1">Sí</option><option value="0">No</option></select></label>
