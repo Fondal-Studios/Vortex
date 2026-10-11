@@ -110,15 +110,38 @@ export class Renderer {
     const root = this.mapRoot;
     const sky = new THREE.Mesh(new THREE.SphereGeometry(1200, 32, 16), skyMaterial({ hue: 0.0, speed: 0.04, iters: cfg().skyIters })); sky.renderOrder = -10; root.add(sky); this.sky = sky;
     // islas: disco con relieve + cono inferior (o superior si cuelga)
+    const rock = (r, th, hang, seed) => { // cilindro + cono de roca con ruido (relieve de acantilado y estalactitas)
+      const g = new THREE.CylinderGeometry(r, r * 0.9, th, cfg().decor ? 48 : 24, cfg().decor ? 5 : 2, true); const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), n = Math.sin(x * 0.9 + seed) * Math.cos(z * 0.8 - seed) * 0.5 + Math.sin(y * 1.7 + x * 0.3) * 0.25; const k = 1 + n * 0.07 * (1 - Math.abs(y) / (th / 2 + 0.01) * 0.2); p.setX(i, x * k); p.setZ(i, z * k); p.setY(i, y + n * 0.12); }
+      g.computeVertexNormals(); return g;
+    };
+    const spire = (r, depth, seed) => { // cono de roca irregular (isla colgante)
+      const g = new THREE.ConeGeometry(r * 0.92, depth, cfg().decor ? 14 : 7, cfg().decor ? 6 : 2, true); const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), n = Math.sin(x * 1.3 + seed + y * 0.5) * Math.cos(z * 1.1 - seed) * 0.5 + 0.0; const k = 1 + n * 0.22; p.setX(i, x * k); p.setZ(i, z * k); p.setY(i, y + n * 0.8); }
+      g.computeVertexNormals(); return g;
+    };
+    const crystalMat = (k) => this.shared('isl' + k, () => crystalMaterial(new THREE.Color().setHSL((k * 0.17 + 0.5) % 1, 0.85, 0.6), { glow: 0.5 }));
     map.islands.forEach((is, k) => {
       const mat = groundMaterial(k * 0.17, new THREE.Vector3(is.x, 0, is.z));
-      const th = is.top - is.y0, body = new THREE.Mesh(new THREE.CylinderGeometry(is.r, is.r * 0.97, th, 40, 1), mat);
+      const th = is.top - is.y0, body = new THREE.Mesh(rock(is.r, th, is.hang, k * 3.1), mat);
       body.position.set(is.x, (is.top + is.y0) / 2, is.z); root.add(body);
-      const depth = is.r * 1.3, cone = new THREE.Mesh(new THREE.ConeGeometry(is.r * 0.97, depth, 7, 1), mat);
+      const cap = new THREE.Mesh(new THREE.CircleGeometry(is.r, cfg().decor ? 48 : 24), mat); cap.rotation.x = is.hang ? Math.PI / 2 : -Math.PI / 2; cap.position.set(is.x, is.hang ? is.y0 + 0.01 : is.top, is.z); root.add(cap);
+      const depth = is.r * 1.5, cone = new THREE.Mesh(spire(is.r, depth, k * 1.7), mat);
       if (is.hang) { cone.position.set(is.x, is.top + depth / 2, is.z); } else { cone.rotation.x = Math.PI; cone.position.set(is.x, is.y0 - depth / 2, is.z); }
       root.add(cone);
       const rim = new THREE.Mesh(new THREE.TorusGeometry(is.r, 0.18, 6, 64), zoneMaterial(new THREE.Color().setHSL((k * 0.17) % 1, 1, 0.6), 0));
       rim.rotation.x = Math.PI / 2; rim.position.set(is.x, is.hang ? is.y0 : is.top, is.z); root.add(rim);
+      if (cfg().decor) { // racimos de cristal y hongos bioluminiscentes en el borde de la isla
+        const geoC = this.shared('cg', () => { const c = new THREE.ConeGeometry(1, 2, 6); c.translate(0, 1, 0); return c; }), geoM = this.shared('mg', () => new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2));
+        const mushM = this.shared('mush' + k, () => new THREE.MeshBasicMaterial({ color: new THREE.Color().setHSL((k * 0.17 + 0.1) % 1, 1, 0.65) }));
+        for (let i = 0; i < 9; i++) {
+          const a = (i / 9) * Math.PI * 2 + k, rr = is.r * (0.78 + 0.18 * Math.sin(i * 3.7 + k)), sgn = is.hang ? -1 : 1, y0 = is.hang ? is.y0 : is.top;
+          const px = is.x + Math.cos(a) * rr, pz = is.z + Math.sin(a) * rr;
+          const cl = new THREE.Group(); for (let j = 0; j < 3; j++) { const c = new THREE.Mesh(geoC, crystalMat(k)); const h = 1.2 + ((i * 7 + j * 3) % 5) * 0.45; c.scale.set(0.28, h, 0.28); c.rotation.set(Math.sin(j * 2 + i) * 0.35, 0, Math.cos(j * 2 + i) * 0.35); c.position.set(Math.cos(j * 2.1) * 0.35, 0, Math.sin(j * 2.1) * 0.35); cl.add(c); }
+          cl.position.set(px, y0, pz); cl.scale.y = sgn; root.add(cl);
+          const m = new THREE.Mesh(geoM, mushM); m.scale.set(0.5, 0.4, 0.5); m.position.set(is.x + Math.cos(a + 0.35) * rr * 0.97, y0, is.z + Math.sin(a + 0.35) * rr * 0.97); m.scale.y *= sgn; root.add(m);
+        }
+      }
     });
     // planetoide
     for (const s of map.solids) if (s.type === 'sph') {
@@ -139,6 +162,12 @@ export class Renderer {
       g.add(ring, disc); g.position.set(end.x, end.y + 1, end.z); g.rotation.y = Math.atan2(end.x, end.z); root.add(g);
       this.dyn.push((dt, t) => { ring.rotation.z = t * 1.5; disc.rotation.z = -t * 2; });
     }
+    { // sol lejano: fuente de brillo para el bloom
+      const sun = new THREE.Mesh(new THREE.SphereGeometry(60, 24, 16), new THREE.MeshBasicMaterial({ color: 0xfff0d0 })); sun.position.set(380, 300, -700); root.add(sun);
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: 0xffd9a0, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 })); halo.scale.setScalar(520); halo.position.copy(sun.position); root.add(halo);
+      this.sun.position.copy(sun.position).normalize();
+    }
+    this.addMotes(root, 220, 38);
     if (!cfg().decor) return;
     // escalas imposibles: formas gigantes, simples, lejanas
     const far = [[0x7d5cff, 'ring'], [0xff5ca8, 'ico'], [0x35e0c2, 'oct'], [0xffc14d, 'ring'], [0x5cb8ff, 'ico']];
@@ -153,6 +182,14 @@ export class Renderer {
       o.position.set(Math.cos(a) * d, ((i * 37) % 120) - 60, Math.sin(a) * d); o.scale.y = 1.6; root.add(o);
       this.dyn.push((dt, t) => { o.rotation.y += dt * 0.3; o.position.y += Math.sin(t + i) * dt * 0.8; });
     }
+  }
+
+  /** Polvo cósmico que flota alrededor de la cámara (sensación de volumen y de gravedad cambiante). */
+  addMotes(root, n, radius) {
+    const pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(radius * Math.cbrt(Math.random())); pos.set([v.x, v.y, v.z], i * 3); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const m = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.18, color: 0xc8d8ff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })); m.frustumCulled = false; root.add(m);
+    this.dyn.push((dt, t) => { m.position.copy(this.camera.position); m.rotation.y = t * 0.02; m.rotation.x = Math.sin(t * 0.1) * 0.1; });
   }
 
   buildMap2(map) {
@@ -179,6 +216,7 @@ export class Renderer {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const dust = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.5, color: 0xffffff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })); root.add(dust);
     this.dyn.push((dt) => { dust.rotation.y += dt * 0.02; });
+    this.addMotes(root, 160, 26); this.sun.position.set(0.2, 1, 0.1);
     this.sky = null;
   }
 

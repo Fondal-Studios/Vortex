@@ -8,11 +8,11 @@ import { bigEye, softDot, clamp, lerp, damp } from './obelisco-lib.js';
 export default function build(kit, color) {
   const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, horn, crystalSpike, jaw, leg, tentacle, Spring } = kit;
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
-  const skin = fleshMaterial({ color: 0x5e2434, vein: 0x240510, spot: color, glow: 0.08, wobble: 0.015, breath: 0.03, spots: 0.5, veins: 0.9, iri: 0.4, rough: 0.4, scale: 2.6 });
-  const musc = fleshMaterial({ color: 0x74303c, vein: 0x300612, spot: color, glow: 0.05, wobble: 0.01, breath: 0.02, spots: 0.0, veins: 1.0, rough: 0.35, scale: 3.4 });
+  const skin = fleshMaterial({ color: 0x5e2434, vein: 0x240510, spot: color, glow: 0.08, wobble: 0.015, breath: 0.03, spots: 0.5, veins: 0.9, iri: 0.4, rough: 0.58, sheen: 0.3, scale: 2.6 });
+  const musc = fleshMaterial({ color: 0x74303c, vein: 0x300612, spot: color, glow: 0.05, wobble: 0.01, breath: 0.02, spots: 0.0, veins: 1.0, rough: 0.55, sheen: 0.3, scale: 3.4 });
   const chit = boneMaterial(0x2d2238, { rough: 0.22 }), chit2 = boneMaterial(0x4a3358, { rough: 0.3 }), hornM = boneMaterial(0xeadfc6, { rough: 0.28 }), claw = boneMaterial(0xf2ead8);
   const crystal = bioCrystalMaterial(color, { glow: 1.0 });
-  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const root = new THREE.Group(), body = new THREE.Group(); body.position.y = 0.08; root.add(body);
   const GY = -1; // suelo
 
   /* ── tronco: abdomen, tórax musculoso, joroba ── */
@@ -20,9 +20,10 @@ export default function build(kit, color) {
   const thx = blob(musc, 0.7, 1, 0.82, 1.1); thx.position.set(0, 0.05, 0.12); body.add(thx);
   const hump = blob(skin, 0.5, 1, 0.55, 1); hump.position.set(0, 0.45, 0.2); body.add(hump);
   // placas de quitina solapadas sobre el lomo + cristales que brotan entre ellas
+  const shell = blob(chit, 0.85, 1, 0.5, 1.5); shell.position.set(0, 0.34, -0.2); body.add(shell);
   const plates = [], zs = [0.62, 0.22, -0.2, -0.62, -1.02];
-  zs.forEach((z, i) => { const p = blob(i % 2 ? chit2 : chit, 1, 0.66 - i * 0.04, 0.11, 0.3); p.position.set(0, 0.62 - Math.abs(z - 0.2) * 0.2 - i * 0.015, z); p.rotation.x = -0.25 + i * 0.08; body.add(p); plates.push(p);
-    if (!LOW || i % 2 === 0) { const c = horn(crystal, 0.07, 0.34 - i * 0.03, 6); c.position.set((i % 2 ? 0.2 : -0.2), 0.7 - i * 0.03, z - 0.12); c.rotation.set(-0.6, 0, (i % 2 ? -0.4 : 0.4)); body.add(c); plates.push(c); c.userData.cry = 1; } });
+  zs.forEach((z, i) => { const p = blob(i % 2 ? chit2 : chit, 1, 0.8 - i * 0.05, 0.1, 0.34); p.position.set(0, 0.74 - Math.abs(z - 0.2) * 0.2 - i * 0.015, z); p.rotation.x = -0.25 + i * 0.08; body.add(p); plates.push(p);
+    if (!LOW || i % 2 === 0) { const c = horn(crystal, 0.07, 0.34 - i * 0.03, 6); c.position.set((i % 2 ? 0.2 : -0.2), 0.82 - i * 0.03, z - 0.12); c.rotation.set(-0.6, 0, (i % 2 ? -0.4 : 0.4)); body.add(c); plates.push(c); c.userData.cry = 1; } });
   const shoulders = [-1, 1].map((s) => { const p = blob(chit, 0.42, 0.6, 0.9, 1.1); p.position.set(s * 0.72, 0.22, 0.45); p.rotation.z = -s * 0.5; body.add(p);
     const sp = horn(hornM, 0.1, 0.4, 5); sp.position.set(s * 0.95, 0.38, 0.5); sp.rotation.z = -s * 1.1; body.add(sp); return p; });
   const flank = [-1, 1].map((s) => { const p = blob(chit2, 0.5, 0.3, 0.55, 1.4); p.position.set(s * 0.62, -0.08, -0.62); body.add(p); return p; });
@@ -31,7 +32,7 @@ export default function build(kit, color) {
 
   /* ── cabeza: cuerno-cristal, ojos, mandíbula, ollares ── */
   const head = new THREE.Group(); head.position.set(0, -0.02, 1.0); body.add(head);
-  const skull = blob(skin, 0.46, 1, 0.82, 1.12); skull.position.set(0, 0, 0.1); head.add(skull);
+  const skull = blob(skin, 0.54, 1, 0.82, 1.12); skull.position.set(0, 0, 0.1); head.add(skull);
   const snout = blob(musc, 0.3, 1, 0.75, 1.1); snout.position.set(0, -0.12, 0.5); head.add(snout);
   const brow = blob(chit, 0.5, 1, 0.22, 0.7); brow.position.set(0, 0.2, 0.2); brow.rotation.x = -0.25; head.add(brow);
   const hornBase = new THREE.Group(); hornBase.position.set(0, 0.08, 0.5); hornBase.rotation.x = 1.15; head.add(hornBase);
@@ -44,15 +45,15 @@ export default function build(kit, color) {
   const eyes = [-1, 1].map((s) => { const e = bigEye({ r: 0.17, iris: 0xffd040, slit: true, quality: level, lidSkin: skin, scleraColor: 0xf0e0c4 }); e.object.position.set(s * 0.36, 0.12, 0.28); e.object.rotation.y = s * 0.7; head.add(e.object); e.rotY = s * 0.7; return e; });
   const mouth = jaw(skin, claw, { w: 0.24, len: 0.3, teeth: LOW ? 3 : 5 }); mouth.object.position.set(0, -0.28, 0.5); mouth.object.rotation.x = 0.1; head.add(mouth.object);
   const mand = [-1, 1].map((s) => { const m = horn(claw, 0.06, 0.38, 5); m.position.set(s * 0.2, -0.3, 0.62); m.rotation.set(1.35, 0, s * 0.45); head.add(m); return m; });
-  const barbs = []; if (!LOW) for (const s of [-1, 1]) { const t = tentacle(skin, { len: 0.8, r0: 0.04, r1: 0.008, hang: true, amp: 0.15, speed: 2.4, freq: 3, phase: s }); t.position.set(s * 0.17, -0.2, 0.7); head.add(t); barbs.push(t); }
+  const barbs = []; if (!LOW) for (const s of [-1, 1]) { const t = tentacle(skin, { len: 0.55, r0: 0.06, r1: 0.01, hang: true, amp: 0.15, speed: 2.4, freq: 3, phase: s }); t.position.set(s * 0.17, -0.2, 0.7); head.add(t); barbs.push(t); }
 
   /* ── patas con IK (cuatro) + muslos que se tensan ── */
   const legs = [], hipsZ = [0.55, -0.62];
   for (let i = 0; i < 4; i++) {
     const side = i % 2 ? 1 : -1, row = i >> 1, hz = hipsZ[row];
-    const l = leg(skin, { upper: 0.78, lower: 0.85, r: 0.21, claw }); l.object.position.set(side * 0.55, -0.12, hz); l.setBend(new THREE.Vector3(side * 0.5, 1, row ? -0.5 : 0.7)); body.add(l.object);
-    const th = blob(musc, 0.3, 0.8, 1.0, 0.95); th.position.set(side * 0.58, -0.22, hz); body.add(th);
-    legs.push({ l, side, row, th, base: new THREE.Vector3(side * 0.28, -0.82, row ? -0.1 : 0.12), ph: (i === 0 || i === 3) ? 0 : Math.PI });
+    const l = leg(skin, { upper: 0.66, lower: 0.7, r: 0.22 }); l.object.position.set(side * 0.55, 0.0, hz); l.setBend(new THREE.Vector3(side * 0.35, 1, row ? -0.9 : 0.9)); body.add(l.object);
+    const th = blob(musc, 0.3, 0.8, 1.0, 0.95); th.position.set(side * 0.6, -0.12, hz); body.add(th);
+    legs.push({ l, side, row, th, base: new THREE.Vector3(side * 0.08, -1.0, row ? -0.05 : 0.1), ph: (i === 0 || i === 3) ? 0 : Math.PI });
   }
 
   /* ── vapor ── */
@@ -105,7 +106,7 @@ export default function build(kit, color) {
     // ─ cuerpo: peso, vaivén, agachado al avisar, estirado al cargar, tambaleo al aturdirse
     const pitchS = sPitch.step(dt, 0), hitK = sHit.step(dt, 0), swayK = sSway.step(dt, 0), tl = sTail.step(dt, 0), yawS = sYaw.step(dt, clamp(Math.atan2(look.x, Math.max(0.2, look.z)), -0.9, 0.9));
     const squat = wind * (0.14 + 0.03 * sx(wt * 14)) + stun * 0.08 + hurtLow * 0.06;
-    body.position.y = -squat + (run > 0.05 ? Math.abs(sx(phase)) * 0.06 * (0.4 + run) : 0) + (breath - 0.5) * 0.02 - hit * 0.04;
+    body.position.y = 0.08 - squat + (run > 0.05 ? Math.abs(sx(phase)) * 0.06 * (0.4 + run) : 0) + (breath - 0.5) * 0.02 - hit * 0.04;
     body.rotation.x = chg * 0.1 + wind * 0.07 + sx(phase * 2) * 0.03 * run + hitK * 0.1 + stun * (sx(t * 1.9) * 0.12) + hurtLow * 0.05;
     body.rotation.z = sx(phase) * 0.05 * run + stun * (sx(t * 2.4) * 0.16 + swayK * 0.2) + (hurtLow ? sx(t * 5) * 0.015 : 0) + hit * 0.06 * sx(t * 40) + wind * sx(wt * 7) * 0.035;
     body.rotation.y = stun * sx(t * 1.3) * 0.22 + sYaw.x * 0.0;

@@ -69,22 +69,34 @@ export function crystalMaterial(color = 0x66ffee, { alpha = 1, glow = 0, hue = 0
   return finish(mat);
 }
 
-/* Suelo/isla: anillos concéntricos psicodélicos + rejilla. */
+/* Isla de roca viva: facetas con luz, grietas que brillan, rejilla de juego y borde iridiscente. */
 export function groundMaterial(hue = 0, center = new THREE.Vector3()) {
   return finish(new THREE.ShaderMaterial({
-    uniforms: { uTime, uHue: { value: hue }, uC: { value: center } },
-    vertexShader: `varying vec3 vWorld; varying vec3 vN; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    uniforms: { uTime, uHue: { value: hue }, uC: { value: center }, uSun: { value: new THREE.Vector3(0.4, 1, 0.3).normalize() } },
+    vertexShader: `varying vec3 vWorld; varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; vV = cameraPosition - w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: `
-      uniform float uTime, uHue; uniform vec3 uC; varying vec3 vWorld; varying vec3 vN; ${PAL}
+      uniform float uTime, uHue; uniform vec3 uC, uSun; varying vec3 vWorld; varying vec3 vN; varying vec3 vV; ${PAL}
+      float h(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+      float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f); return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x), mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x), f.y), mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x), mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x), f.y), f.z); }
       void main(){
+        vec3 fn = normalize(cross(dFdx(vWorld), dFdy(vWorld)));            // normal facetada
+        vec3 V = normalize(vV); if (dot(fn, V) < 0.0) fn = -fn;
         vec3 q = vWorld - uC; float r = length(q.xz);
+        float top = smoothstep(0.55, 0.85, abs(vN.y));
+        float lit = 0.30 + 0.75 * max(dot(fn, uSun), 0.0) + 0.15 * max(dot(fn, -uSun), 0.0);
+        // piel de la superficie: anillos suaves + rejilla de juego
         float rings = sin(r * 0.9 - uTime * 1.2) * 0.5 + 0.5;
         vec2 g = abs(fract(vWorld.xz * 0.2) - 0.5); float grid = smoothstep(0.46, 0.5, max(g.x, g.y));
-        float face = abs(vN.y);
-        vec3 top = pal(fract(r * 0.025 + uHue + rings * 0.15 + uTime * 0.02)) * (0.22 + 0.4 * rings);
-        top += vec3(0.9, 1.0, 1.0) * grid * 0.5;
-        vec3 side = pal(fract(vWorld.y * 0.05 + uHue + 0.3 + uTime * 0.03)) * 0.35;
-        gl_FragColor = vec4(mix(side, top, smoothstep(0.55, 0.85, face)), 1.0);
+        vec3 topC = pal(fract(r * 0.02 + uHue + rings * 0.08 + uTime * 0.01)) * (0.20 + 0.28 * rings) + vec3(0.8, 1.0, 1.0) * grid * 0.35;
+        // roca: grano + grietas luminosas
+        float grain = vn(vWorld * 0.8) * 0.6 + vn(vWorld * 2.6) * 0.4;
+        float crack = 1.0 - smoothstep(0.0, 0.06, abs(vn(vWorld * 0.55 + 3.0) - 0.5));
+        vec3 rock = mix(vec3(0.06, 0.03, 0.12), pal(fract(uHue + 0.55 + grain * 0.2)) * 0.5, grain * 0.7) ;
+        rock += pal(fract(uHue + 0.12 + uTime * 0.03)) * crack * (0.9 + 0.5 * sin(uTime * 2.0 + vWorld.y));
+        vec3 col = mix(rock, topC, top) * lit;
+        float rim = pow(1.0 - abs(dot(fn, V)), 3.0); col += pal(fract(uHue + 0.3)) * rim * 0.45;
+        float edge = smoothstep(0.0, 1.0, clamp((r - 20.0) * 0.12, 0.0, 1.0)) * top * 0.2; col += vec3(0.5, 0.9, 1.0) * edge * 0.3;
+        gl_FragColor = vec4(col, 1.0);
       }`,
   }));
 }
