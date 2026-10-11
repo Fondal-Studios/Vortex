@@ -13,7 +13,7 @@ export default function build(kit, color) {
   const { Spring } = kit;
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
   const R = LOW ? 6 : HI ? 12 : 9, S1 = LOW ? 8 : 14; // lados / tramos
-  const bio = bioMaterial({ glow: 0xff5a1a, vein: 0x12040a, rim: 0x2c1c50, scale: 1.2, bump: 1.0, wet: 0.5, ridge: 70, metal: 0.12, sheen: 0.1, breath: 0.01 });
+  const bio = bioMaterial({ glow: 0xff5a1a, vein: 0x12040a, rim: 0xff7a30, scale: 1.2, bump: 1.0, wet: 0.5, ridge: 70, metal: 0.12, sheen: 0.1, breath: 0.01 });
   const U = bio.userData.u; U.uCrackGlow.value = 0.12; U.uVeinGlow.value = 0.05;
   const ORANGE = new THREE.Color(0xff4a0a), HOT = 0xff6a20;
   const root = new THREE.Group(), body = new THREE.Group(); body.position.y = 0.22; root.add(body);
@@ -24,7 +24,7 @@ export default function build(kit, color) {
   const rzF = prof([[-1.55, 0.1], [-1.4, 0.3], [-0.95, 0.56], [-0.4, 0.62], [0.1, 0.72], [0.6, 0.8], [0.95, 0.68], [1.15, 0.42]]);
   const cyF = prof([[-1.55, -0.12], [-0.5, 0.0], [0.6, 0.08], [1.15, 0.0]]);
   const RY = 0.84;
-  const FLESH = 0x3a1a26, FLESH2 = 0x4e2c36, CHIT = 0x1a1524, BONE = 0x7a6a50;
+  const FLESH = 0x7a2e12, FLESH2 = 0x964420, CHIT = 0x5a200c, BONE = 0x7a6a50;
 
   /* ── CARNE del torso: lomo musculoso con vientre claro ── */
   const parts = [];
@@ -65,7 +65,7 @@ export default function build(kit, color) {
       const y = cyF(Math.min(z, 1.15)) + Math.cos(phi) * rx * RY + 0.18 * Math.sin(v * Math.PI) * 0.6;
       return new V3(Math.sin(phi) * rx * (1 + 0.15 * v), y - 0.1 * v * v, z);
     }, R + 8, 8, { thick: 0.045, inner: true });
-    parts.push(paint(g, CHIT, 1, 0, (p, n, uv) => ({ k: 0.6 + 0.6 * uv[1] + 0.2 * Math.exp(-Math.pow((uv[0] - 0.5) * 6, 2)), g: sstep(0.8, 1, uv[1]) * 0.6, c: 0x2c2240 })));
+    parts.push(paint(g, CHIT, 1, 0, (p, n, uv) => ({ k: 0.6 + 0.6 * uv[1] + 0.2 * Math.exp(-Math.pow((uv[0] - 0.5) * 6, 2)), g: sstep(0.8, 1, uv[1]) * 0.6, c: 0x7a2c12 })));
     const sp = []; const NH = LOW ? 5 : 7; for (let i = 0; i < NH; i++) { const u = (i + 0.5) / NH, phi = (u - 0.5) * 3.2, z = 1.28, rx = 0.45 + 0.34 * 0.8 * (1 - 0.5 * Math.abs(u * 2 - 1)) + 0.02; sp.push({ p: new V3(Math.sin(phi) * rx * 1.12, cyF(1.15) + Math.cos(phi) * rx * RY - 0.1, z - 0.04), d: new V3(Math.sin(phi) * 0.7, 0.2, 1), r: 0.085, h: 0.4 - Math.abs(phi) * 0.09 }); }
     parts.push(spikes(sp, { sides: 5, color: BONE, cls: 2, curve: 0.15 })); }
   // hombreras y ancas: placas abombadas a los lados
@@ -89,7 +89,7 @@ export default function build(kit, color) {
   const head = new THREE.Group(); head.position.set(0, -0.04, 1.14); body.add(head);
   { const hp = [];
     const sk = loft([new V3(0, 0.02, -0.3), new V3(0, 0, 0.2), new V3(0, -0.07, 0.55), new V3(0, -0.14, 0.8)], { seg: 10, radial: R + 2, r: prof([[0, 0.4], [0.4, 0.4], [0.75, 0.25], [1, 0.14]]), ry: () => 0.78, round: [0.1, 0.12] });
-    hp.push(paint(sk, FLESH, 0, 0, (p, n) => ({ cls: n.y > 0.1 ? 1 : 0, c: n.y > 0.1 ? 0x261d33 : FLESH, k: n.y > 0.1 ? 0.8 + 0.4 * p.z : 0.9 })));
+    hp.push(paint(sk, FLESH, 0, 0, (p, n) => ({ cls: n.y > 0.1 ? 1 : 0, c: n.y > 0.1 ? 0x70301a : FLESH, k: n.y > 0.1 ? 0.8 + 0.4 * p.z : 0.9 })));
     // cejas: crestas macizas sobre los ojos
     for (const sd of [-1, 1]) {
       const br = loft([new V3(sd * 0.05, 0.24, 0.62), new V3(sd * 0.2, 0.24, 0.5), new V3(sd * 0.36, 0.2, 0.32), new V3(sd * 0.44, 0.08, 0.14)], { seg: 8, radial: 6, r: prof([[0, 0.07], [0.5, 0.1], [1, 0.05]]), ry: () => 0.8, round: [0.05, 0.2] });
@@ -105,7 +105,7 @@ export default function build(kit, color) {
     const horn = loft(hc, { seg: LOW ? 10 : 20, radial: R, r: (t) => lerp(0.34, 0.015, Math.pow(t, 0.85)) * (1 + 0.05 * Math.sin(t * 60)), ry: () => 0.92, round: [0.04, 0] });
     hp.push(paint(horn, BONE, 2, 0, (p, n, uv) => { const t = uv[1], c = new THREE.Color(0x2e241c).lerp(new THREE.Color(BONE), sstep(0.0, 0.25, t)).lerp(ORANGE, sstep(0.55, 0.8, t)); return { c, cls: 2 + sstep(0.58, 0.78, t), g: sstep(0.5, 1, t) * 0.8, k: 1 }; }));
     // collar de hueso en la base del cuerno
-    hp.push(paint(loft([new V3(0, 0.0, 0.34), new V3(0, 0.12, 0.62)], { seg: 4, radial: R, r: () => 0.36, ry: () => 0.85, round: [0.3, 0.3] }), 0x3a3040, 1, 0, () => ({ k: 0.9 })));
+    hp.push(paint(loft([new V3(0, 0.0, 0.34), new V3(0, 0.12, 0.62)], { seg: 4, radial: R, r: () => 0.36, ry: () => 0.85, round: [0.3, 0.3] }), 0x7a3a20, 1, 0, () => ({ k: 0.9 })));
     mesh(merge(hp), head); head.userData.hornCurve = hc; }
   // mandíbula inferior con dientes (se abre al resollar)
   const jaw = new THREE.Group(); jaw.position.set(0, -0.2, 0.28); head.add(jaw);

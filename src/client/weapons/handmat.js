@@ -4,8 +4,8 @@
 // Sin texturas, sin PointLights. El estilo se cambia en caliente con setHandStyle (sin reconstruir mallas).
 //
 // Atributos por vértice (los pone Kit.put):  color = tono de gris  ·  kind = clase de pieza  ·  aux = coordenada de flujo.
-//   kind 0 piel/guante · 1 placa de cristal · 2 correa/armadura · 3 costura luminosa · 4 manga de tela · 7 pantallita
-//   kind 8..11 = lo mismo que 0..3 pero en el DEDO ÍNDICE (se curva en el vértice con uTrig).
+//   kind 1 placa de cristal · 2 correa/armadura · 3 costura luminosa · 4 manga de tela · 5 piel/guante (malla orgánica: color = (u, v, máscara del tatuaje), aux = flujo) · 6 uña · 7 pantallita
+//   +8 = pieza del DEDO ÍNDICE (se flexiona en el vértice con uTrig; +16·n = falange n). Atributos extra del índice: fw, fj2, fj3, fax.
 import * as THREE from 'three';
 import { OUT } from '../shaders.js';
 
@@ -42,33 +42,35 @@ export const HAND_PRESETS = {
 
 const VERT = `
   attribute vec3 color; attribute float kind; attribute float aux;
+  attribute vec3 fw; attribute vec3 fj2; attribute vec3 fj3; attribute vec3 fax;
   uniform float uTrig, uGlove;
-  varying vec3 vN, vView, vPos, vON, vCol; varying float vKind, vAux;
-  vec3 rotX(vec3 v, float a){ float c = cos(a), s = sin(a); return vec3(v.x, v.y * c - v.z * s, v.y * s + v.z * c); }
+  varying vec3 vN, vView, vPos, vCol; varying float vKind, vAux;
+  vec3 rotA(vec3 p, vec3 c, vec3 a, float t){ vec3 v = p - c; float ct = cos(t), st = sin(t); return c + v * ct + cross(a, v) * st + a * dot(a, v) * (1.0 - ct); }
   void main(){
-    vec3 p = position, n = normal; float k = kind;
-    vPos = position; vON = normal; vCol = color; vAux = aux;
-    if (k > 7.5) {                       // dedo índice: 3 falanges que se curvan (nudillo en el origen, dedo hacia -Z)
-      float d = max(0.0, -p.z), u = clamp(uTrig, 0.0, 1.0);
-      float t0 = -(0.10 + 0.30 * u), t1 = -(0.15 + 0.60 * u), t2 = -(0.10 + 0.45 * u);
-      vec3 J1 = vec3(0.0, 0.0, -0.034), J2 = vec3(0.0, 0.0, -0.06);
-      vec3 q = rotX(p, t0);
-      vec3 J1p = rotX(J1, t0); q = mix(q, J1p + rotX(q - J1p, t1), smoothstep(0.029, 0.039, d));
-      vec3 J2p = J1p + rotX(rotX(J2, t0) - J1p, t1); q = mix(q, J2p + rotX(q - J2p, t2), smoothstep(0.055, 0.065, d));
-      n = rotX(n, t0 + t1 * smoothstep(0.029, 0.039, d) + t2 * smoothstep(0.055, 0.065, d)); p = q; k -= 8.0; vKind = k + 8.0;
-    } else vKind = k;
+    float kk = floor(kind + 0.5), isIdx = mod(floor(kk / 8.0), 2.0), cls = mod(kk, 8.0);
+    vec3 p = position, n = normal;
+    vPos = position; vCol = color; vAux = aux; vKind = cls;
+    if (isIdx > 0.5) {                   // dedo índice: 3 falanges que se flexionan alrededor de su eje (nudillo en el origen de la pieza)
+      float u = clamp(uTrig, 0.0, 1.0), t1 = u * 0.30, t2 = u * 0.62, t3 = u * 0.42; vec3 a = normalize(fax);
+      vec3 p1 = rotA(p, vec3(0.0), a, t1);
+      vec3 p2 = rotA(rotA(p, fj2, a, t2), vec3(0.0), a, t1);
+      vec3 p3 = rotA(rotA(rotA(p, fj3, a, t3), fj2, a, t2), vec3(0.0), a, t1);
+      float ws = 1.0 - fw.x - fw.y - fw.z;
+      p = ws * p + fw.x * p1 + fw.y * p2 + fw.z * p3;
+      vec3 n1 = rotA(n, vec3(0.0), a, t1), n2 = rotA(n, vec3(0.0), a, t1 + t2), n3 = rotA(n, vec3(0.0), a, t1 + t2 + t3);
+      n = normalize(ws * n + fw.x * n1 + fw.y * n2 + fw.z * n3);
+    }
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     vView = mv.xyz; vN = normalize(normalMatrix * n);
     gl_Position = projectionMatrix * mv;
     // en estilo «desnudo» no hay placas, correas, costuras ni pantallita: se colapsan
-    float kk = k > 7.5 ? k - 8.0 : k;
-    if (uGlove > 1.5 && (kk > 0.5 && kk < 3.5 || kk > 6.5)) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    if (uGlove > 1.5 && (cls > 0.5 && cls < 3.5 || cls > 6.5)) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
   }`;
 
 const FRAG = `
   uniform float uTime, uTat, uTatAmt, uGlove, uFire, uUpg;
   uniform vec3 uColor, uAccent, uSkin, uWeap;
-  varying vec3 vN, vView, vPos, vON, vCol; varying float vKind, vAux;
+  varying vec3 vN, vView, vPos, vCol; varying float vKind, vAux;
   float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   vec2 h22(vec2 p){ return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
   float hsh(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -77,25 +79,24 @@ const FRAG = `
                mix(mix(hsh(i+vec3(0,0,1)),hsh(i+vec3(1,0,1)),f.x), mix(hsh(i+vec3(0,1,1)),hsh(i+vec3(1,1,1)),f.x), f.y), f.z); }
   vec3 pal(float t){ return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67))); }
   float seg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / (dot(ba, ba) + 1e-5), 0.0, 1.0); return length(pa - ba * h); }
-  vec2 proj(vec3 p, vec3 n, out float ax){ vec3 a = abs(n); if (a.x > a.y && a.x > a.z) { ax = 0.0; return p.yz; } if (a.y > a.z) { ax = 1.0; return p.xz; } ax = 2.0; return p.xy; }
 
-  // cada tatuaje devuelve vec3(línea 0..1, relleno 0..1, brillo 0..1)
-  vec3 tRunas(vec2 q, float ax, float aa){
-    float S = 0.028; vec2 g = q / S, id = floor(g), f = fract(g);
-    float act = step(h21(id + ax * 17.0), 0.42 + 0.46 * uUpg), d = 9.0;
-    for (int s = 0; s < SEGS; s++) { float fs = float(s); vec2 hh = h22(id + fs * 7.3 + ax * 3.1);
+  // cada tatuaje devuelve vec3(línea 0..1, relleno 0..1, brillo 0..1); q = coordenadas de piel (metros del marco de la mano)
+  vec3 tRunas(vec2 q, float aa){
+    float S = 0.021; vec2 g = q / S, id = floor(g), f = fract(g);
+    float act = step(h21(id), 0.40 + 0.46 * uUpg), d = 9.0;
+    for (int s = 0; s < SEGS; s++) { float fs = float(s); vec2 hh = h22(id + fs * 7.3);
       float ia = floor(hh.x * 9.0), ib = floor(hh.y * 9.0);
       vec2 a = vec2(mod(ia, 3.0), floor(ia / 3.0)) * 0.3 + 0.2, b = vec2(mod(ib, 3.0), floor(ib / 3.0)) * 0.3 + 0.2;
       d = min(d, mix(9.0, seg(f, a, b), step(0.22, h21(id + fs * 3.7)))); }
     d = min(d, mix(9.0, seg(f, vec2(0.5, 0.1), vec2(0.5, 0.9)), step(0.62, h21(id + 9.1))));
-    d = min(d, mix(9.0, abs(length(f - 0.5) - 0.36), step(0.84, h21(id + 4.4))));          // círculo de sello
+    d = min(d, mix(9.0, abs(length(f - 0.5) - 0.36), step(0.84, h21(id + 4.4))));
     float w = 0.05, line = smoothstep(w + aa, w - aa * 0.5, d) * act;
     float ph = h21(id) * 6.28, tw = 0.55 + 0.45 * sin(uTime * 1.4 + ph);
     return vec3(line * tw, 0.0, line * smoothstep(0.7, 1.0, sin(uTime * 2.2 + ph * 2.0)));
   }
-  vec3 tOjos(vec2 q, float ax, float aa){
-    float S = 0.05; vec2 g = q / S, id = floor(g), e = fract(g) - 0.5;
-    float has = step(h21(id + ax * 5.1), 0.36 + 0.4 * uUpg), ph = h21(id) * 20.0;
+  vec3 tOjos(vec2 q, float aa){
+    float S = 0.036; vec2 g = q / S, id = floor(g), e = fract(g) - 0.5;
+    float has = step(h21(id + 5.1), 0.34 + 0.4 * uUpg), ph = h21(id) * 20.0;
     float bl = 1.0 - 0.92 * smoothstep(0.93, 1.0, sin(uTime * 0.8 + ph) * 0.5 + 0.5);
     float w = 0.40, hg = 0.19 * bl, x = clamp(e.x / w, -1.0, 1.0), lid = hg * (1.0 - x * x), ay = abs(e.y);
     float ins = step(abs(e.x), w) * step(ay, lid);
@@ -108,90 +109,106 @@ const FRAG = `
     float fill = iris * (1.0 - pup) * (0.55 + 0.45 * sin(uTime * 3.0 + ph));
     return vec3(line * has * (1.0 - pup * 0.7), fill * has, has * edge * smoothstep(0.7, 1.0, sin(uTime * 1.6 + ph)));
   }
-  vec3 tConst(vec2 q, float ax, float aa){
-    float S = 0.034; vec2 g = q / S, id = floor(g);
-    vec2 sO = id + 0.2 + 0.6 * h22(id + ax), sR = id + vec2(1, 0) + 0.2 + 0.6 * h22(id + vec2(1, 0) + ax), sU = id + vec2(0, 1) + 0.2 + 0.6 * h22(id + vec2(0, 1) + ax);
-    vec2 sL = id - vec2(1, 0) + 0.2 + 0.6 * h22(id - vec2(1, 0) + ax), sD = id - vec2(0, 1) + 0.2 + 0.6 * h22(id - vec2(0, 1) + ax);
-    float reg = step(h21(floor(id / 2.0) + ax * 3.0), 0.55 + 0.4 * uUpg);
+  vec3 tConst(vec2 q, float aa){
+    float S = 0.026; vec2 g = q / S, id = floor(g);
+    vec2 sO = id + 0.2 + 0.6 * h22(id), sR = id + vec2(1, 0) + 0.2 + 0.6 * h22(id + vec2(1, 0)), sU = id + vec2(0, 1) + 0.2 + 0.6 * h22(id + vec2(0, 1));
+    vec2 sL = id - vec2(1, 0) + 0.2 + 0.6 * h22(id - vec2(1, 0)), sD = id - vec2(0, 1) + 0.2 + 0.6 * h22(id - vec2(0, 1));
+    float reg = step(h21(floor(id / 2.0)), 0.6 + 0.35 * uUpg);
     float d = 9.0;
     d = min(d, mix(9.0, seg(g, sO, sR), step(h21(id + 11.0), 0.55)));
     d = min(d, mix(9.0, seg(g, sL, sO), step(h21(id - vec2(1, 0) + 11.0), 0.55)));
     d = min(d, mix(9.0, seg(g, sO, sU), step(h21(id + 23.0), 0.45)));
     d = min(d, mix(9.0, seg(g, sD, sO), step(h21(id - vec2(0, 1) + 23.0), 0.45)));
-    float line = (1.0 - smoothstep(0.045, 0.045 + aa * 2.0, d)) * 0.5 * reg;
+    float line = (1.0 - smoothstep(0.045, 0.045 + aa * 2.0, d)) * 0.55 * reg;
     float st = 0.0, hot = 0.0;
     vec2 ss[5]; ss[0] = sO; ss[1] = sR; ss[2] = sL; ss[3] = sU; ss[4] = sD;
     for (int i = 0; i < STARS; i++) { float dd = length(g - ss[i]), hh = h21(ss[i] * 1.7), tw = 0.5 + 0.5 * sin(uTime * (1.5 + hh * 3.0) + hh * 40.0);
-      float big = step(0.7, hh); st += exp(-dd * dd * (big > 0.5 ? 26.0 : 70.0)) * (0.5 + 0.7 * tw) * (big > 0.5 ? 1.5 : 1.0); hot += exp(-dd * dd * 140.0) * tw; }
+      float big = step(0.7, hh); st += exp(-dd * dd * (big > 0.5 ? 24.0 : 64.0)) * (0.5 + 0.7 * tw) * (big > 0.5 ? 1.5 : 1.0); hot += exp(-dd * dd * 130.0) * tw; }
     return vec3(min(1.0, line + min(st, 1.0) * reg), 0.0, min(1.0, hot * reg));
   }
-  vec3 tVenas(vec3 p, float aa){
-    float n1 = vn(p * 52.0), n2 = vn(p * 110.0 + 7.3);
-    float w1 = 0.016, l1 = 1.0 - smoothstep(w1, w1 + 0.022 + aa, abs(n1 - 0.5));
-    float l2 = (1.0 - smoothstep(0.012, 0.035 + aa, abs(n2 - 0.5))) * step(0.52, vn(p * 19.0 + 3.0)) * 0.8;
-    float m = max(l1, l2) * (0.55 + 0.45 * uUpg + 0.3);
-    float bead = pow(max(0.0, sin(vAux * 26.0 - uTime * 3.0 + n1 * 7.0)), 5.0);
-    float node = smoothstep(0.55, 0.9, vn(p * 210.0)) * m;
+  vec3 tVenas(vec2 q, float aa){
+    vec3 p = vec3(q * 46.0, 1.7), p2 = vec3(q * 98.0 + 5.0, 3.1);
+    float n1 = vn(p + vec3(0.0, 0.0, uTime * 0.05)), n2 = vn(p2);
+    float l1 = 1.0 - smoothstep(0.016, 0.04 + aa, abs(n1 - 0.5));
+    float l2 = (1.0 - smoothstep(0.012, 0.035 + aa, abs(n2 - 0.5))) * step(0.52, vn(vec3(q * 17.0, 2.0))) * 0.8;
+    float m = max(l1, l2) * (0.85 + 0.45 * uUpg);
+    float bead = pow(max(0.0, sin(vAux * 18.0 - uTime * 3.0 + n1 * 7.0)), 5.0);
+    float node = smoothstep(0.55, 0.9, vn(vec3(q * 190.0, 4.0))) * m;
     return vec3(m, 0.0, min(1.0, bead * m + node * 0.6));
   }
 
   void main(){
-    float kd = vKind > 7.5 ? vKind - 8.0 : vKind;
+    float kd = vKind;
     vec3 V = normalize(-vView), N = normalize(vN);
     vec3 Nf = normalize(cross(dFdx(vView), dFdy(vView))); if (dot(Nf, V) < 0.0) Nf = -Nf;
     if (dot(N, V) < -0.02) N = -N;
     vec3 L1 = normalize(vec3(-0.42, 0.8, 0.55)), L2 = normalize(vec3(0.7, 0.1, 0.45)), H = normalize(L1 + V);
     float ndv = clamp(dot(N, V), 0.0, 1.0), fres = pow(1.0 - ndv, 3.0);
-    float dif = dot(N, L1) * 0.5 + 0.5; dif *= dif; float dif2 = max(dot(N, L2), 0.0) * 0.3, hemi = N.y * 0.5 + 0.5;
     float inten = 0.6 + 0.8 * uUpg + 1.7 * uFire;
-    float ax; vec2 q = proj(vPos, vON, ax); float aa = fwidth(q.x) / (uTat < 0.5 ? 0.028 : uTat < 1.5 ? 0.05 : 0.034) * 0.9;
     vec3 col = vec3(0.0);
-    if (kd < 0.5) {                                   // piel / guante
-      float tex = 1.0, spec = 0.12, shin = 18.0; vec3 base;
-      if (uGlove < 0.5) {                             // neopreno táctico con trama de rombos
-        vec2 w = q * 230.0; float al = clamp(1.0 - fwidth(w.x) * 2.5, 0.0, 1.0);
-        float dm = abs(fract(w.x + w.y) - 0.5) + abs(fract(w.x - w.y) - 0.5); tex = 1.0 + (dm - 0.5) * 0.34 * al;
-        base = (vec3(0.085, 0.09, 0.125) + uColor * 0.035) * vCol * tex;
-      } else if (uGlove < 1.5) {                      // guante de cristal oscuro, muy brillante
-        base = (vec3(0.03, 0.05, 0.09) + uColor * 0.16) * vCol; spec = 1.1; shin = 55.0;
-      } else {                                        // piel
-        base = uSkin * vCol * (0.85 + 0.2 * vn(vPos * 90.0)); spec = 0.16; shin = 14.0;
+    if (kd > 4.5 && kd < 5.5) {   // piel / guante sobre la malla orgánica
+      float expo = uGlove > 1.5 ? 1.0 : (uGlove > 0.5 ? 0.0 : smoothstep(1.57, 1.64, vAux));   // yemas al aire en el guante táctico
+      vec2 q = vCol.xy; float aa = fwidth(q.x) / (uTat < 0.5 ? 0.021 : uTat < 1.5 ? 0.036 : 0.026) * 0.9;
+      vec3 Ns = N; float dif0 = dot(N, L1) * 0.5 + 0.5, dif = dif0 * dif0, dif2 = max(dot(N, L2), 0.0) * 0.3, hemi = N.y * 0.5 + 0.5;
+      float spec = 0.12, shin = 18.0; vec3 base;
+      float tex = 1.0;
+      if (uGlove < 0.5) {                             // neopreno táctico: trama de rombos + costuras
+        vec2 w = q * 190.0; float al = clamp(1.0 - fwidth(w.x) * 2.5, 0.0, 1.0);
+        float dm = abs(fract(w.x + w.y) - 0.5) + abs(fract(w.x - w.y) - 0.5); tex = 1.0 + (dm - 0.5) * 0.4 * al;
+        base = (vec3(0.07, 0.075, 0.105) + uColor * 0.03) * tex * (0.8 + 0.4 * vn(vec3(q * 60.0, 0.0)));
+        float cut = smoothstep(1.50, 1.56, vAux) * (1.0 - expo);   // borde del guante con hilo luminoso
+        base = mix(base, base * 0.5, cut);
+      } else if (uGlove < 1.5) {                      // guante de cristal oscuro, muy brillante y facetado
+        Ns = normalize(mix(N, Nf, 0.65)); float d1 = dot(Ns, L1) * 0.5 + 0.5; dif = d1 * d1; hemi = Ns.y * 0.5 + 0.5;
+        base = (vec3(0.03, 0.05, 0.09) + uColor * 0.16); spec = 1.1; shin = 55.0; H = normalize(L1 + V);
+      } else { base = uSkin; }
+      if (expo > 0.01) {                              // piel: poros, venas finas y color de yema
+        vec3 sk0 = mix(uSkin, vec3(dot(uSkin, vec3(0.3, 0.55, 0.15))), 0.3) * 0.82; vec3 sk = sk0 * (0.82 + 0.3 * vn(vec3(q * 150.0, 1.0)));
+        sk = mix(sk, sk * vec3(1.06, 0.82, 0.78), smoothstep(1.6, 2.0, vAux) * 0.6);
+        float vein = (1.0 - smoothstep(0.02, 0.07, abs(vn(vec3(q * 70.0, 5.0)) - 0.5))) * 0.12;
+        sk *= 1.0 - vein * vec3(0.3, 0.55, 0.35) - 0.0;
+        base = mix(base, sk, expo); spec = mix(spec, 0.14, expo); shin = mix(shin, 14.0, expo);
       }
-      float sp = pow(max(dot(N, H), 0.0), shin) * spec;
-      col = base * (0.32 + 0.5 * hemi + 1.1 * dif + dif2) + vec3(sp) + uAccent * fres * (uGlove < 1.5 ? (uGlove < 0.5 ? 0.35 : 1.1) : 0.12);
-      if (uGlove > 1.5) col += uSkin * 0.35 * smoothstep(0.7, 0.0, dif) * vec3(1.0, 0.35, 0.25); // piel: dispersión en la sombra
-      if (uGlove > 0.5 && uGlove < 1.5) { float c = abs(vn(vPos * 70.0 + vec3(0.0, 0.0, uTime * 0.2)) - 0.5); col += pow(clamp(1.0 - c * 4.0, 0.0, 1.0), 3.0) * uColor * 0.45 + pal(fres * 1.5 + vAux * 3.0 + uTime * 0.1) * fres * 0.5; }
+      float sp = pow(max(dot(Ns, H), 0.0), shin) * spec;
+      col = base * (0.32 + 0.5 * hemi + 1.1 * dif + dif2) + vec3(sp) + uAccent * fres * (uGlove < 1.5 ? (uGlove < 0.5 ? 0.35 * (1.0 - expo) + 0.1 * expo : 1.1) : 0.12);
+      float sss = expo * smoothstep(0.7, 0.0, dif) * 0.22;
+      col += uSkin * sss * vec3(1.0, 0.4, 0.3) + expo * uSkin * fres * vec3(0.3, 0.12, 0.09);   // dispersión bajo la piel
+      if (uGlove > 0.5 && uGlove < 1.5) { float c = abs(vn(vec3(q * 80.0, uTime * 0.2)) - 0.5); col += pow(clamp(1.0 - c * 4.0, 0.0, 1.0), 3.0) * uColor * 0.45 + pal(fres * 1.5 + vAux * 0.6 + uTime * 0.1) * fres * 0.5; }
       // — tatuaje
-      vec3 T = vec3(0.0);
       if (uTatAmt > 0.5) {
-        if (uTat < 0.5) T = tRunas(q, ax, aa); else if (uTat < 1.5) T = tOjos(q, ax, aa); else if (uTat < 2.5) T = tConst(q, ax, aa); else T = tVenas(vPos, aa * 0.02);
-        float flow = pow(0.5 + 0.5 * sin(vAux * 20.0 - uTime * 3.2), 5.0);                 // pulso que corre hacia los dedos
+        vec3 T;
+        if (uTat < 0.5) T = tRunas(q, aa); else if (uTat < 1.5) T = tOjos(q, aa); else if (uTat < 2.5) T = tConst(q, aa); else T = tVenas(q, aa * 0.02);
+        T *= vCol.z;
+        float flow = pow(0.5 + 0.5 * sin(vAux * 15.0 - uTime * 3.2), 5.0);                 // pulso que corre hacia los dedos
         float bias = (uGlove > 1.5 ? 1.0 : (uGlove > 0.5 ? 1.35 : 1.0));
-        vec3 tc = mix(uColor, uAccent, clamp(T.z * 0.7 + flow * 0.35 + (uTat > 2.5 ? 0.0 : 0.0), 0.0, 1.0));
-        vec3 fc = mix(uAccent, uColor, 0.5 + 0.5 * sin(uTime * 2.0 + vAux * 10.0));
+        vec3 tc = mix(uColor, uAccent, clamp(T.z * 0.7 + flow * 0.35, 0.0, 1.0));
+        vec3 fc = mix(uAccent, uColor, 0.5 + 0.5 * sin(uTime * 2.0 + vAux * 8.0));
         col += tc * T.x * inten * (1.0 + flow * 0.8) * 1.5 * bias + fc * T.y * inten * 0.9 + vec3(1.0) * T.z * (0.35 + uFire * 0.5);
-        if (uGlove > 1.5) col *= 1.0 - 0.35 * smoothstep(0.0, 1.0, T.x) * 0.0;
       }
-    } else if (kd < 1.5) {                            // placa de cristal facetado
+    } else if (kd > 5.5 && kd < 6.5) {               // uña: lámina pulida con brillo
+      float sp = pow(max(dot(N, H), 0.0), 60.0);
+      col = (uGlove > 1.5 ? vec3(0.78, 0.55, 0.52) : mix(vec3(0.5, 0.4, 0.45), uColor, 0.35)) * (0.5 + 0.9 * (dot(N, L1) * 0.5 + 0.5)) + vec3(sp) * 0.9 + uAccent * fres * 0.7;
+    } else if (kd > 0.5 && kd < 1.5) {                // placa de cristal facetado
       vec3 n = Nf; float face = h21(floor(n.xy * 5.0 + n.z * 11.0)), l = dot(n, L1) * 0.5 + 0.5;
-      vec3 base = mix(uColor, uAccent, face * 0.8);
+      vec3 base = mix(uColor, uAccent, face * 0.7);
       float c = abs(vn(vPos * 90.0 + n * 3.0) - 0.5);
-      col = base * (0.35 + 1.0 * l) * (0.55 + 0.45 * inten * 0.6) + vec3(1.0) * pow(clamp(1.0 - c * 3.5, 0.0, 1.0), 3.0) * 0.6 + pal(face + fres * 0.8 + uTime * 0.1) * fres * 0.6 + vec3(pow(max(dot(n, H), 0.0), 40.0)) * 0.9;
-      col += base * (0.25 + 0.5 * uFire);
-    } else if (kd < 2.5) {                            // correa / armadura oscura
-      vec3 base = vec3(0.1, 0.105, 0.14) * vCol; float sp = pow(max(dot(N, H), 0.0), 36.0) * 0.55;
-      vec2 w = q * 160.0; float al = clamp(1.0 - fwidth(w.x) * 2.0, 0.0, 1.0); base *= 1.0 + (step(0.5, fract(w.x)) - 0.5) * 0.12 * al;
-      col = base * (0.3 + 0.5 * hemi + 1.0 * dif + dif2) + vec3(sp) + uColor * fres * 0.5;
-    } else if (kd < 3.5) {                            // costura luminosa
-      float fl = 0.5 + 0.5 * sin(vAux * 30.0 - uTime * 3.4);
-      vec3 c = mix(uColor, uAccent, fl); col = c * (1.2 + 0.6 * fl + 1.4 * uFire + 0.8 * uUpg) + uWeap * 0.35 * vCol.g;
-    } else if (kd < 5.0) {                            // manga de tela
-      float rib = 0.9 + 0.1 * sin(vAux * 380.0);
-      vec3 base = (vec3(0.045, 0.05, 0.075) + uColor * 0.03) * rib * vCol;
-      col = base * (0.35 + 0.5 * hemi + 1.0 * dif + dif2) + uAccent * fres * 0.25;
+      col = base * (0.2 + 0.8 * l) * (0.6 + 0.4 * inten * 0.6) + vec3(1.0) * pow(clamp(1.0 - c * 3.5, 0.0, 1.0), 3.0) * 0.3 + pal(face + fres * 0.8 + uTime * 0.1) * fres * 0.3 + vec3(pow(max(dot(n, H), 0.0), 40.0)) * 0.75;
+      col += base * (0.18 + 0.5 * uFire);
+    } else if (kd > 1.5 && kd < 2.5) {                // armadura oscura facetada (placas y correas)
+      vec3 Na = normalize(mix(N, Nf, 0.55)); float dif0 = dot(Na, L1) * 0.5 + 0.5, hemi = Na.y * 0.5 + 0.5, dif2 = max(dot(Na, L2), 0.0) * 0.3;
+      vec3 base = (vec3(0.085, 0.09, 0.12) + uColor * 0.035) * vCol.r; float sp = pow(max(dot(Na, H), 0.0), 40.0) * 0.8;
+      col = base * (0.3 + 0.5 * hemi + 1.1 * dif0 * dif0 + dif2) + vec3(sp) + uColor * pow(1.0 - clamp(dot(Na, V), 0.0, 1.0), 2.5) * 0.55;
+    } else if (kd > 2.5 && kd < 3.5) {                // costura luminosa
+      float fl = 0.5 + 0.5 * sin(vAux * 18.0 - uTime * 3.4);
+      vec3 c = mix(uColor, uAccent, fl); col = c * (1.2 + 0.6 * fl + 1.4 * uFire + 0.8 * uUpg) + uWeap * 0.35;
+    } else if (kd > 3.5 && kd < 4.5) {                // manga de tela
+      float dif0 = dot(N, L1) * 0.5 + 0.5, hemi = N.y * 0.5 + 0.5, dif2 = max(dot(N, L2), 0.0) * 0.3;
+      float rib = 0.9 + 0.1 * sin(vPos.y * 380.0 + vPos.x * 90.0);
+      vec3 base = (vec3(0.045, 0.05, 0.075) + uColor * 0.03) * rib;
+      col = base * (0.35 + 0.5 * hemi + 1.0 * dif0 * dif0 + dif2) + uAccent * fres * 0.25;
     } else {                                          // pantallita de muñeca: píxeles que parpadean
       vec3 px = floor(vPos * 260.0); float t = floor(uTime * 4.0);
-      float on = step(0.55, h21(px.xy + px.z * 1.7 + t * 3.1)) * step(0.3, h21(px.xz + 5.0)) ;
+      float on = step(0.55, h21(px.xy + px.z * 1.7 + t * 3.1)) * step(0.3, h21(px.xz + 5.0));
       float bar = step(fract(vAux * 90.0 - uTime * 0.7), 0.5);
       col = vec3(0.01, 0.015, 0.03) + uColor * (0.25 + on * 1.5) * (0.6 + 0.4 * bar) + uAccent * fres * 0.8 + vec3(pow(max(dot(N, H), 0.0), 40.0)) * 0.6;
       col *= 1.0 + uFire;

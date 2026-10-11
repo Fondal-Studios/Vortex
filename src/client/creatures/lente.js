@@ -3,7 +3,7 @@
 // base muscular con 3 patas con garra. Corona de 6 pétalos de biocristal que, al apuntar, convergen en cañón sobre un lente de cristal.
 // AVISO DE DISPARO (st.s === 'aim', 0.6 s): la columna se arquea hacia atrás, los párpados se abren del todo, la pupila se contrae,
 // los pétalos convergen, el lente se enfoca y arde; al soltar el proyectil, retroceso.
-import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, paint, orient, path, place, bendAttr, Rig, skinRigid, skinChain, eye, buildLeg, footTo, boneQuat, gait, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, paint, orient, path, place, bendAttr, Rig, skinRigid, skinChain, eye, buildLeg, footTo, boneQuat, gait, glowSprite, shieldAura, tickAura, Spring, dampTo, tint } from './geoda-bio.js';
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3, R = rng(21);
@@ -15,6 +15,7 @@ export default function build(kit, color) {
   const lensM = crystalMat(color, { glow: 0.5, alpha: 0.32, clear: 1 }); lensM.depthWrite = false;
   const mats = [flesh, bone, lashM, cry, lensM];
 
+  tint({ from: 0.02, to: 0.118, range: 0.08, sat: 1.35, light: 1.25 });
   const rig = new Rig();
   const root = rig.bone(null, [0, 0, 0], 'root'), body = rig.bone(root, [0, 0.5, 0], 'body');
   const SJ = [[0, 0.55, 0], [0, 0.9, -0.14], [0, 1.3, -0.1], [0, 1.7, 0.05], [0, 2.0, 0.22]], stalk = [];
@@ -76,8 +77,9 @@ export default function build(kit, color) {
   const roots = [];
   if (!low) for (let i = 0; i < 2; i++) { const a = 1.8 + i * 3.1, c = Math.cos(a), s = Math.sin(a), J = [[c * 0.3, 0.3, s * 0.3], [c * 0.55, 0.12, s * 0.55], [c * 0.8, 0.05, s * 0.8], [c * 1.0, 0.03, s * 1.0]], bs = []; J.forEach((p, ix) => bs.push(rig.bone(ix ? bs[ix - 1] : body, p, 'rt')));
     const g = tube(J, { rad: (t) => 0.07 * (1 - t) + 0.01, seg: 10, sides: 5 }); paint(g, 0x6a302c); rig.add(flesh, skinChain(g, bs, 0.1)); roots.push({ bs, ph: i * 2 }); }
+  tint(null);
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.78; rootObj.scale.setScalar(K);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); rootObj.position.y = -0.9; /* el centro de la criatura (sim) está a 0.9 r del suelo: los pies del modelo (y=0) deben tocar el piso */ const K = 0.92; rootObj.scale.setScalar(K);
   const glow = glowSprite(color, 2, 0); glow.position.set(0, EC.y, EC.z + 0.8); rootObj.add(glow);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.6); aura.position.y = 1.2; rootObj.add(aura);
   mats.push(disposer(rig, [glow.material, aura.geometry, aura.material, lensGeo]));
@@ -113,10 +115,10 @@ export default function build(kit, color) {
     head.updateMatrix(); boneQuat(head, root, q1); gazeDir(look, (ctx.dist || 8) / K, EC, lh); lh.applyQuaternion(q1.clone().invert());
     const openT = flinch > 0.3 ? 0.35 : stun ? 0.45 : hurt ? 0.65 + 0.2 * Math.sin(t * 5) ** 2 : 0.94 + 0.06 * pe;
     ey.update(dt, lh, { open: openT, dilate: -0.55 * pe + 0.05 * Math.sin(t * 1.5) + (hurt ? 0.3 * Math.sin(t * 9) : 0), glowMul: 0.6 + 1.6 * pe, squint: pe * 0.5, quiver: hurt || stun ? 1 : 0 });
-    lens.scale.set(1, 1, 1 + 0.9 * pe + 0.15 * kick); lensM.emissiveIntensity = 0.15 + 1.0 * pe + 0.1 * Math.sin(t * 6); lensM.opacity = 0.2 + 0.25 * pe;
+    lens.scale.set(1, 1, 1 + 0.9 * pe + 0.15 * kick); lensM.emissiveIntensity = 0.15 + 2.4 * pe + 0.1 * Math.sin(t * 6); lensM.opacity = 0.2 + 0.25 * pe;
     // pétalos: abiertos en reposo, convergen en cañón al apuntar, se abren de golpe al disparar
     petals.forEach((P, i) => { const tg = -0.58 * pe + (kick > 0.05 ? 0.35 * kick : 0) + 0.05 * Math.sin(t * 2.2 + P.i) + (hurt ? 0.08 * Math.sin(t * 15 + P.i) : 0); qq.setFromAxisAngle(P.ax, spPet[i].step(dt, tg)); P.pb.quaternion.copy(qq); });
-    cry.emissiveIntensity = 0.5 + 0.3 * Math.sin(t * 3) + 1.8 * pe; glow.material.opacity = pe * (0.22 + 0.12 * Math.sin(t * 30 * (0.5 + pe))); glow.scale.setScalar(1.2 + 1.6 * pe);
+    cry.emissiveIntensity = 0.5 + 0.3 * Math.sin(t * 3) + 3.2 * pe; glow.material.opacity = pe * (0.75 + 0.2 * Math.sin(t * 30 * (0.5 + pe))) + 0.5 * kick; glow.scale.setScalar(1.6 + 3.4 * pe + 1.5 * kick);
     flesh.userData.u.uVeinGlow.value = 0.5 + 1.8 * pe; flesh.userData.u.uSss.value = 0.3 + 0.7 * pe;
     rootObj.rotation.z = stun ? Math.sin(t * 21) * 0.05 : 0; tickAura(aura, st, t);
   } };

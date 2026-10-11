@@ -6,7 +6,7 @@ import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crys
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3, R = rng(61);
-  const col = new THREE.Color(color), HOT = new THREE.Color(0xff3a22), WHITE = new THREE.Color(0xfff2d8), MEM0 = col.clone().lerp(new THREE.Color(0xffe8f4), 0.5), C = new THREE.Color();
+  const col = new THREE.Color(color), HOT = new THREE.Color(0xff3a22), WHITE = new THREE.Color(0xfff2d8), MEM0 = col.clone().lerp(new THREE.Color(0xffb0c0), 0.1), C = new THREE.Color();
   const memM = bio({ color: MEM0, rough: 0.1, clear: 1, clearRough: 0.04, env: 0.9, tex: 'flesh', tile: 2.2, bump: 0.5, grain: 0.3, seam: 0x601028, seamK: 0.2, vein: 0xb01848, veinK: 0.9, veinGlow: 0.5, sss: 0.9, sssColor: 0xff5070, alpha: 0.46, vcol: true });
   const gasM = bio({ rough: 0.5, tex: 'flesh', tile: 2.5, bump: 0.3, grain: 0.7, vein: 0xff5020, veinK: 0.7, veinGlow: 1.2, glow: 1.0, glowColor: color, sss: 0.5, sssColor: 0xffa060, vcol: true });
   const skin = bio({ rough: 0.4, clear: 0.5, clearRough: 0.25, sheen: 0.2, env: 0.7, tex: 'flesh', tile: 2, bump: 0.8, grain: 0.5, seam: 0x2a0818, seamK: 0.5, vein: color, veinK: 0.3, veinGlow: 0.6, sss: 0.25, sssColor: 0xff3a5c });
@@ -23,8 +23,8 @@ export default function build(kit, color) {
   const bl = [];
   B.forEach((b, i) => {
     const bb = rig.bone(cl, b.c, 'bl'), g = ellipsoid([b.r, b.r * 1.05, b.r], { w: low ? 9 : 16, h: low ? 7 : 12, noise: 0.05, freq: 2, seed: i, pos: b.c.toArray() });
-    paint(g, (p, n) => new THREE.Color(0xffffff).lerp(col, 0.25 + 0.2 * Math.sin(p.y * 12 + i))); rig.add(memM, skinRigid(g, bb));
-    const gg = ellipsoid([b.r * 0.55, b.r * 0.6, b.r * 0.55], { w: low ? 7 : 10, h: low ? 5 : 8, noise: 0.2, freq: 3, seed: i + 9, pos: b.c.toArray() }); paint(gg, (p) => new THREE.Color(0xffd090).lerp(new THREE.Color(0xff7030), Math.abs(Math.sin(p.x * 14 + i)))); rig.add(gasM, skinRigid(gg, bb));
+    paint(g, (p, n) => new THREE.Color(0xffffff).lerp(col, 0.55 + 0.2 * Math.sin(p.y * 12 + i))); rig.add(memM, skinRigid(g, bb));
+    const gg = ellipsoid([b.r * 0.55, b.r * 0.6, b.r * 0.55], { w: low ? 7 : 10, h: low ? 5 : 8, noise: 0.2, freq: 3, seed: i + 9, pos: b.c.toArray() }); paint(gg, (p) => new THREE.Color(0xff9a70).lerp(new THREE.Color(0xff2a48), Math.abs(Math.sin(p.x * 14 + i)))); rig.add(gasM, skinRigid(gg, bb));
     if (i) { const st = tube([[b.c.x * 0.3, 0.8 + (b.c.y - 0.8) * 0.3, b.c.z * 0.3], b.c.clone().multiplyScalar(0.6).add(new V3(0, 0.32, 0)), b.c.clone().lerp(new V3(0, 0.8, 0), 0.0).add(new V3(-b.c.x * 0.4, -(b.c.y - 0.8) * 0.4, -b.c.z * 0.4))], { rad: [0.05, 0.03], seg: 3, sides: 4 }); paint(st, 0xb04060); rig.add(skin, skinRigid(st, bb)); }
     bl.push({ bb, r: b.r, ph: b.ph, c: b.c });
   });
@@ -46,7 +46,7 @@ export default function build(kit, color) {
     const Lg = buildLeg(rig, skin, body, H, K, F, { r0: 0.06, rk: 0.045, r1: 0.012, knuckle: 0.015, seg: low ? 6 : 10, sides: low ? 4 : 6, claw: 0.12, clawCol: 0xf0e4d0, spines: 0, side: s, name: 'r' + i, paintFn: (p) => new THREE.Color(0x7a2840).lerp(new THREE.Color(0xe0a080), smooth(0.3, 0.02, p.y)) });
     legs.push({ Lg, s, row, base: new V3(F.x, 0, F.z) }); }
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.85; rootObj.scale.setScalar(K);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); rootObj.position.y = -0.9; /* el centro de la criatura (sim) está a 0.9 r del suelo: los pies del modelo (y=0) deben tocar el piso */ const K = 1.05; rootObj.scale.setScalar(K);
   const glow = glowSprite(color, 2, 0); glow.position.y = 0.9; rootObj.add(glow);
   const spark = glowSprite(0xffd080, 0.35, 0.8); spark.position.set(-0.08, 2.0, -0.02); rootObj.add(spark);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.3); aura.position.y = 0.9; rootObj.add(aura);

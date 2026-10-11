@@ -109,7 +109,7 @@ export class Viewmodels {
     it.f = Math.max(0, it.f - dt * W.flash.decay);
     const f = it.f, jit = it.auto ? 0.75 + Math.random() * 0.5 : 1; if (it.auto && f > 0.5) it.shape.material.rotation = Math.random() * 6.28;
     it.shape.material.opacity = Math.min(1, f * 1.4); it.shape.scale.setScalar(W.flash.size * 0.4 * (0.55 + 0.6 * f) * jit);
-    it.glow.material.opacity = f * f; it.glow.scale.setScalar(W.flash.size * 0.4 * (0.5 + f) * jit);
+    it.glow.material.opacity = f * f * (W.flash.glow ?? 0.55); it.glow.scale.setScalar(W.flash.size * 0.4 * (0.5 + f) * jit * (W.flash.glow ?? 0.55));
   }
 }
 

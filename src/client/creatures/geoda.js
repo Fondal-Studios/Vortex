@@ -9,24 +9,24 @@ export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3;
   const col = new THREE.Color(color), R = rng(11);
   const RX = 1.1, RY = 0.9, RZ = 1.0, CY = 0.92, HZ = -0.95;
-  const shell = bio({ rough: 0.58, clear: 0.0, clearRough: 0.4, metal: 0.0, env: 0.3, tex: 'chitin', tile: 1.2, bump: 0.7, grain: 0.5, seam: color, seamK: 0.0, seamGlow: 0.0, rv: 0.7 });
-  const flesh = bio({ rough: 0.4, clear: 0.6, clearRough: 0.18, sheen: 0.1, env: 0.6, tex: 'flesh', tile: 1.3, bump: 0.9, grain: 0.45, seam: 0x25040f, seamK: 0.55, vein: color, veinK: 0.28, veinGlow: 0.6, sss: 0.15, sssColor: 0xff3a5a });
+  const shell = bio({ rough: 0.42, clear: 0.5, clearRough: 0.3, metal: 0.1, env: 0.5, tex: 'chitin', tile: 1.2, bump: 0.8, grain: 0.55, seam: color, seamK: 0.0, seamGlow: 0.0, rv: 0.7, lift: 0.14, rim: 0.25, rimColor: 0xb890ff, sssColor: 0xb066ff });
+  const flesh = bio({ rough: 0.4, clear: 0.6, clearRough: 0.18, sheen: 0.1, env: 0.6, tex: 'flesh', tile: 1.3, bump: 0.9, grain: 0.45, seam: 0x2a0630, seamK: 0.55, vein: 0xd9a0ff, veinK: 0.3, veinGlow: 0.7, sss: 0.25, sssColor: 0xff40b0, lift: 0.16 });
   const cry = crystalMat(color, { glow: 0.9, alpha: 0.9 });
   const mats = [shell, flesh, cry];
 
   const rig = new Rig();
   const root = rig.bone(null, [0, 0, 0], 'root'), body = rig.bone(root, [0, CY, 0], 'body');
   const hu = rig.bone(body, [0, CY, HZ], 'hu'), hl = rig.bone(body, [0, CY, HZ], 'hl');
-  const NU = low ? 5 : 7, NL = low ? 4 : 6, bandsU = [], bandsL = [];
+  const NU = low ? 8 : 11, NL = low ? 6 : 8, bandsU = [], bandsL = [];
   for (let i = 0; i < NU; i++) bandsU.push(rig.bone(hu, [0, CY, HZ], 'bu'));
   for (let i = 0; i < NL; i++) bandsL.push(rig.bone(hl, [0, CY, HZ], 'bl'));
 
   // ── bandas del caparazón ──
-  const nb = low ? 8 : hi ? 16 : 12, na = low ? 1 : 2;
-  const shellBase = new THREE.Color(0x0a0716), shellRim = new THREE.Color(0x46385a), flC0 = new THREE.Color(0x45091f), flC1 = new THREE.Color(0x802040), tmp = new THREE.Color();
+  const nb = low ? 14 : hi ? 26 : 20, na = low ? 2 : 3;
+  const shellBase = new THREE.Color(0x2a1658), shellRim = new THREE.Color(0x9a78e8), flC0 = new THREE.Color(0x6a0a50), flC1 = new THREE.Color(0xc8388c), tmp = new THREE.Color();
   function band(sign, k, N, bone, ryK) {
     const a0 = Math.max(k === 0 ? 0.16 : 0, (k / N) * Math.PI), a1 = ((k + 1) / N) * Math.PI, aEnd = Math.min(Math.PI, a1 + 0.07), ry = RY * ryK;
-    const over = 0.1, keel = 0.1 + 0.03 * Math.sin(k * 1.7), thick = 0.12, tone = 0.8 + R() * 0.4;
+    const over = 0.17, keel = 0.1 + 0.03 * Math.sin(k * 1.7), thick = 0.12, tone = (k % 2 ? 0.7 : 1.15) * (0.9 + R() * 0.2);
     const P = (a, b, rad, o) => { const sa = Math.sin(a); o.set(RX * sa * Math.cos(b) * rad, sign * ry * sa * Math.sin(b) * rad + CY, RZ * Math.cos(a) * rad); };
     const v = new V3(), outer = [], inner = [], co = [], ci = [], ids = (i, j) => i * (nb + 1) + j;
     for (let i = 0; i <= na; i++) { const tt = i / na, a = lerp(a0, aEnd, tt); for (let j = 0; j <= nb; j++) {
@@ -40,7 +40,7 @@ export default function build(kit, color) {
     const g1 = new THREE.BufferGeometry(); g1.setAttribute('position', new THREE.Float32BufferAttribute(outer, 3)); g1.setAttribute('color', new THREE.Float32BufferAttribute(co, 3)); g1.setIndex(mk(sign > 0)); g1.computeVertexNormals();
     const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(inner, 3)); g2.setAttribute('color', new THREE.Float32BufferAttribute(ci, 3)); g2.setIndex(mk(sign < 0)); g2.computeVertexNormals();
     // cantos: borde delantero/trasero y laterales (grosor de la placa)
-    const E = [], EC = [], pushQ = (pa, pb, qa, qb, flip) => { const base = E.length / 3; for (const q of [pa, pb, qa, qb]) { E.push(q[0], q[1], q[2]); EC.push(0.2, 0.14, 0.12); } return flip ? [base, base + 2, base + 1, base + 1, base + 2, base + 3] : [base, base + 1, base + 2, base + 1, base + 3, base + 2]; };
+    const E = [], EC = [], pushQ = (pa, pb, qa, qb, flip) => { const base = E.length / 3; for (const q of [pa, pb, qa, qb]) { E.push(q[0], q[1], q[2]); EC.push(0.05, 0.02, 0.1); } return flip ? [base, base + 2, base + 1, base + 1, base + 2, base + 3] : [base, base + 1, base + 2, base + 1, base + 3, base + 2]; };
     const gp = (arr, i, j) => { const o = ids(i, j) * 3; return [arr[o], arr[o + 1], arr[o + 2]]; }, EI = [];
     for (let j = 0; j < nb; j++) { EI.push(...pushQ(gp(outer, 0, j), gp(outer, 0, j + 1), gp(inner, 0, j), gp(inner, 0, j + 1), sign > 0)); EI.push(...pushQ(gp(outer, na, j), gp(outer, na, j + 1), gp(inner, na, j), gp(inner, na, j + 1), sign < 0)); }
     for (let i = 0; i < na; i++) { EI.push(...pushQ(gp(outer, i, 0), gp(outer, i + 1, 0), gp(inner, i, 0), gp(inner, i + 1, 0), sign < 0)); EI.push(...pushQ(gp(outer, i, nb), gp(outer, i + 1, nb), gp(inner, i, nb), gp(inner, i + 1, nb), sign > 0)); }
@@ -49,9 +49,6 @@ export default function build(kit, color) {
     return { a0, a1, sign, ry };
   }
   const infoU = bandsU.map((b, k) => band(1, k, NU, b, 1)), infoL = bandsL.map((b, k) => band(-1, k, NL, b, 0.8));
-  // protuberancia lisa en el polo delantero (tapa la convergencia de las bandas y da "cara" a la coraza)
-  { const mk = (sg, bone, y) => { const g = ellipsoid([0.2, 0.17, 0.15], { w: low ? 8 : 14, h: low ? 6 : 10, noise: 0.1, freq: 3, seed: 90 + sg, pos: [0, CY + y, RZ * 0.985] }); paint(g, (p, n) => new THREE.Color(0x160f26).lerp(new THREE.Color(0x4e4068), smooth(0, 1, n.z) * 0.6)); rig.add(shell, skinRigid(g, bone)); };
-    mk(1, bandsU[0], 0.06); mk(-1, bandsL[0], -0.05); }
   // ── biocristales: nacen de las juntas entre bandas, asimétricos (más en el flanco derecho) y de las grietas ──
   const rimPt = (sign, a, b, ryK, rad = 1.03) => new V3(RX * Math.sin(a) * Math.cos(b) * rad, sign * RY * ryK * Math.sin(a) * Math.sin(b) * rad + CY, RZ * Math.cos(a) * rad);
   infoU.forEach((inf, k) => {
@@ -63,7 +60,7 @@ export default function build(kit, color) {
   });
   infoL.forEach((inf, k) => { if (k === 0 || k % 2) return; const a = inf.a0 + 0.02, b = Math.PI / 2 + (R() - 0.5) * 0.6, p = rimPt(-1, a, b, 0.8, 1.04); crystalCluster(2, 0.04, 0.22, { pos: p, dir: [0, -1, 0.2], seed: 90 + k, c0: 0x2a1060, c1: 0xe6ccff }).forEach((c) => rig.add(cry, skinRigid(c, bandsL[k]))); });
   // cresta dorsal de placas puntiagudas sobre la quilla de cada banda
-  infoU.forEach((inf, k) => { const a = (inf.a0 + inf.a1) / 2 + 0.08, p = rimPt(1, a, Math.PI / 2, 1, 1.1), g = spike(0.13 - Math.abs(k - NU / 2) * 0.012, 0.26 - Math.abs(k - NU / 2) * 0.025, { sides: 4, seg: 2, bend: -0.5, bendDir: [0, 0, 1], pos: p, dir: [0, 1, 0.1], pow: 0.9 }); paint(g, (q) => new THREE.Color(0x2a1c38).lerp(new THREE.Color(0xa88a6a), smooth(0, 0.3, q.y - p.y))); rig.add(shell, skinRigid(g, bandsU[k])); });
+  infoU.forEach((inf, k) => { const a = (inf.a0 + inf.a1) / 2 + 0.08, p = rimPt(1, a, Math.PI / 2, 1, 1.1), g = spike(0.13 - Math.abs(k - NU / 2) * 0.012, 0.26 - Math.abs(k - NU / 2) * 0.025, { sides: 4, seg: 2, bend: -0.5, bendDir: [0, 0, 1], pos: p, dir: [0, 1, 0.1], pow: 0.9 }); paint(g, (q) => new THREE.Color(0x6a4ab8).lerp(new THREE.Color(0xf0e4ff), smooth(0, 0.3, q.y - p.y))); rig.add(shell, skinRigid(g, bandsU[k])); });
   // ── dientes irregulares de nácar y labios en el borde de las valvas ──
   const nT = low ? 4 : 7;
   for (const [sign, bands, infos, ryK] of [[1, bandsU, infoU, 1], [-1, bandsL, infoL, 0.8]]) for (const side of [-1, 1]) for (let i = 0; i < nT; i++) {
@@ -75,28 +72,28 @@ export default function build(kit, color) {
   // labios hinchados del manto a lo largo del borde (arcos de carne)
   for (const [sign, bone, ryK] of [[-1, body, 0.8]]) for (const side of [-1, 1]) {
     const pts = []; for (let i = 0; i <= 8; i++) { const a = 0.15 + (i / 8) * (Math.PI - 0.5); pts.push([RX * Math.sin(a) * side * 0.86, CY - 0.03, RZ * Math.cos(a) * 0.86]); }
-    const g = tube(pts, { rad: (t) => 0.09 * (0.7 + 0.5 * Math.sin(t * Math.PI)), seg: low ? 8 : 16, sides: low ? 5 : 7, ex: [0.8, 1.3] }); paint(g, (p) => new THREE.Color(0x5a1028).lerp(new THREE.Color(0x984058), 0.5 * R()));
+    const g = tube(pts, { rad: (t) => 0.09 * (0.7 + 0.5 * Math.sin(t * Math.PI)), seg: low ? 8 : 16, sides: low ? 5 : 7, ex: [0.8, 1.3] }); paint(g, (p) => new THREE.Color(0x6a1058).lerp(new THREE.Color(0xc0509a), 0.5 * R()));
     rig.add(flesh, skinRigid(g, body));
   }
   // manto: montículo de carne que llena la valva inferior
-  const mantle = ellipsoid([0.95, 0.36, 0.92], { w: low ? 12 : 20, h: low ? 7 : 12, noise: 0.14, freq: 2.2, seed: 8, pos: [0, CY - 0.18, 0.05] }); paint(mantle, (p, n) => new THREE.Color(0x4a0c24).lerp(new THREE.Color(0x8a3048), smooth(0.2, 1, n.y) * 0.6)); rig.add(flesh, skinRigid(mantle, body));
+  const mantle = ellipsoid([0.95, 0.36, 0.92], { w: low ? 12 : 20, h: low ? 7 : 12, noise: 0.14, freq: 2.2, seed: 8, pos: [0, CY - 0.18, 0.05] }); paint(mantle, (p, n) => new THREE.Color(0x680c54).lerp(new THREE.Color(0xd04c9c), smooth(0.2, 1, n.y) * 0.6)); rig.add(flesh, skinRigid(mantle, body));
   // tallo del ojo-núcleo: columna muscular de 3 huesos
   const s1 = rig.bone(body, [0, CY - 0.05, 0.1], 's1'), s2 = rig.bone(s1, [0, CY + 0.28, 0.3], 's2'), s3 = rig.bone(s2, [0, CY + 0.52, 0.5], 's3');
   const stalk = tube([[0, CY - 0.15, 0.05], [0, CY + 0.1, 0.18], [0, CY + 0.3, 0.32], [0, CY + 0.5, 0.48]], { rad: (t) => 0.27 - 0.07 * t, seg: low ? 8 : 14, sides: low ? 6 : 10, bulge: (t) => 1 + 0.08 * Math.sin(t * 20), ex: [1, 1] });
-  paint(stalk, (p, n) => new THREE.Color(0x500e26).lerp(new THREE.Color(0x903450), smooth(0.1, 1, n.y) * 0.4)); rig.add(flesh, skinChain(stalk, [s1, s2, s3], 0.14));
+  paint(stalk, (p, n) => new THREE.Color(0x600c4c).lerp(new THREE.Color(0xc03c90), smooth(0.1, 1, n.y) * 0.4)); rig.add(flesh, skinChain(stalk, [s1, s2, s3], 0.14));
   // ojo-núcleo
-  const core = eye({ r: 0.44, iris: 0xff5a10, iris2: 0x7a1400, sclera: 0xeed4c4, vein: 0xa01820, pupil: 'round', irisR: 0.66, glow: 0.7, lidMat: lidMaterial({ color: 0x9a3048, vein: 0x601020, sssColor: 0xff3050, sss: 0.4, tile: 1.4 }), slant: 0.12, maxYaw: 0.8, maxPitch: 0.6 });
+  const core = eye({ r: 0.44, iris: 0xff5a10, iris2: 0x7a1400, sclera: 0xeed4c4, vein: 0xa01820, pupil: 'round', irisR: 0.66, glow: 0.7, lidMat: lidMaterial({ color: 0x9a2a80, vein: 0x50104a, sssColor: 0xff40b0, sss: 0.4, tile: 1.4 }), slant: 0.12, maxYaw: 0.8, maxPitch: 0.6 });
   rig.attach(s3, core.object, [0, CY + 0.52 + 0.3, 0.6]); mats.push(core.mat, core.lid.material);
   // lengua: 5 tentáculos de 4 huesos con punta luminosa
   const tongue = [], nTen = low ? 3 : 5;
   for (let i = 0; i < nTen; i++) {
     const sx = (i - (nTen - 1) / 2) * 0.3, len = 0.95 + (i % 2) * 0.25, J = [[sx, CY - 0.08, 0.55], [sx * 1.15, CY + 0.08, 0.55 + len * 0.3], [sx * 1.35, CY + 0.15, 0.55 + len * 0.62], [sx * 1.5, CY + 0.1, 0.55 + len]];
     const bs = []; J.forEach((p, ix) => bs.push(rig.bone(ix ? bs[ix - 1] : body, p, 'tg')));
-    const g = tube(J, { rad: (t) => 0.085 * (1 - t * 0.85) + 0.01, seg: low ? 8 : 14, sides: low ? 4 : 6, bulge: (t) => 1 + 0.15 * Math.sin(t * 25), caps: true }); paint(g, (p) => new THREE.Color(0x5a1430).lerp(new THREE.Color(0xff8a40), smooth(0.7, 1.0, (p.z - 0.55) / len)));
+    const g = tube(J, { rad: (t) => 0.085 * (1 - t * 0.85) + 0.01, seg: low ? 8 : 14, sides: low ? 4 : 6, bulge: (t) => 1 + 0.15 * Math.sin(t * 25), caps: true }); paint(g, (p) => new THREE.Color(0x781060).lerp(new THREE.Color(0xff9a50), smooth(0.7, 1.0, (p.z - 0.55) / len)));
     rig.add(flesh, skinChain(g, bs, 0.12)); tongue.push({ bs, sx, ph: i * 1.3, len });
   }
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); rootObj.position.y = -0.9; /* el centro de la criatura (sim) está a 0.9 r del suelo: los pies del modelo (y=0) deben tocar el piso */
   const halo = glowSprite(0xffa040, 1.4, 0); halo.position.set(0, CY + 0.9, 0.6); rootObj.add(halo);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.5); aura.position.y = CY; rootObj.add(aura);
   mats.push(disposer(rig, [halo.material, aura.geometry, aura.material]));

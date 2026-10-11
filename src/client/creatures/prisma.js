@@ -3,7 +3,7 @@
 // OCELOS legibles: anillos oscuro / dorado / magenta con pupila) montadas en un esqueleto de 3 huesos (hombro, codo, punta).
 // Estados: orbit = vuela en círculos / wind = se repliega y brilla (aviso 0.7 s: alas arriba, ocelos y venas arden) /
 // dive = alas pegadas atrás, cuerpo estirado, trompa afuera. st.hp<0.35: ala coja; st.sd aura; st.st aturdida.
-import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, bendAttr, Rig, skinRigid, skinChain, eye, boneQuat, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, bendAttr, Rig, skinRigid, skinChain, eye, boneQuat, glowSprite, shieldAura, tickAura, Spring, dampTo, tint } from './geoda-bio.js';
 import { uTime } from '../shaders.js';
 
 const WING_NOISE = `
@@ -63,6 +63,7 @@ export default function build(kit, color) {
   }
   const wingF = wingMat(0), wingH = wingMat(1); mats.push(wingF, wingH);
 
+  tint({ from: 0.77, to: 0.865, range: 0.09, sat: 1.15, light: 1.7, minS: 0.2 });
   const rig = new Rig();
   const root = rig.bone(null, [0, 0, 0], 'root'), body = rig.bone(root, [0, 0.1, 0.15], 'body');
   const head = rig.bone(body, [0, 0.1, 0.72], 'head');
@@ -136,8 +137,9 @@ export default function build(kit, color) {
   });
   // cristales del lomo
   [[0.42, 0.34, 0.3], [0.1, 0.3, 0.26], [-0.25, 0.25, 0.2]].forEach(([z, y, h], i) => crystalCluster(low ? 1 : 3, 0.04 - i * 0.006, h, { pos: [0, y, z], dir: [0, 1, -0.45], seed: 80 + i, c0: 0x20406a, c1: 0xe0ffff }).forEach((c) => rig.add(cry, skinRigid(c, body))));
+  tint(null);
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.85; rootObj.scale.setScalar(K);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 1.15; rootObj.scale.setScalar(K);
   const halo = glowSprite(color, 3.2, 0.0); halo.position.set(0, 0.1, 0.1); rootObj.add(halo);
   const aura = shieldAura(0xaa88ff, 1.5); rootObj.add(aura);
   mats.push(disposer(rig, [halo.material, aura.geometry, aura.material]));

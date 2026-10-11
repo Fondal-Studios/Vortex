@@ -53,7 +53,8 @@ export class Kit {
     const raw = o.flow ? Float32Array.from(g.attributes.position.array) : null;
     g.applyMatrix4(mm);
     const n = g.attributes.position.count, col = new THREE.Color(o.c ?? 0xffffff), ca = new Float32Array(n * 3), ka = new Float32Array(n).fill(o.k || 0), ua = new Float32Array(n).fill(o.u || 0);
-    for (let i = 0; i < n; i++) { ca[i * 3] = col.r; ca[i * 3 + 1] = col.g; ca[i * 3 + 2] = col.b; }
+    const pre = geo.attributes.color ? (geo.index ? null : geo.attributes.color.array) : null; // brillo por cara de loft()/gem()
+    for (let i = 0; i < n; i++) { const m = pre ? pre[i * 3] : 1; ca[i * 3] = col.r * m; ca[i * 3 + 1] = col.g * m; ca[i * 3 + 2] = col.b * m; }
     if (o.flow) { const [u0, u1, ax, len] = o.flow, pa = g.attributes.position, ai = ax === 'x' ? 0 : ax === 'y' ? 1 : 2; for (let i = 0; i < n; i++) ua[i] = u0 + (u1 - u0) * (pa.array[i * 3 + ai] / len + 0.5); } // 'aux' = coordenada de flujo (manos)
     g.setAttribute('color', new THREE.BufferAttribute(ca, 3)); g.setAttribute('kind', new THREE.BufferAttribute(ka, 1)); g.setAttribute('aux', new THREE.BufferAttribute(ua, 1));
     this.cur[L].push(g); return this;
@@ -90,6 +91,62 @@ export class Kit {
     g.translate(0, 0, -depth / 2); g.rotateY(Math.PI / 2); // u -> -Z, extrusión -> X
     return this.put(L, g, [x, 0, 0], o);
   }
+
+  /**
+   * Casco por secciones: cada estación { z, w, h, x, y, ch } es un rectángulo con las esquinas biseladas (octógono) a esa z.
+   * Une estaciones consecutivas con caras planas; los biseles salen más claros (`o.edge`) y dan el filo de luz de un modelo duro.
+   * o: { c, ch (bisel por defecto), edge (brillo de biseles, 1.4), sides:4 (sin biseles), cap:false (sin tapas), flat:false (sólo caras de arriba claras) }.
+   */
+  loft(L, st, o = {}) {
+    const four = o.sides === 4, N = four ? 4 : 8, edge = o.edge ?? 1.4, pos = [], col = [];
+    const ring = (s) => {
+      const w2 = s.w / 2, h2 = s.h / 2, c = four ? 0 : Math.min(s.ch ?? o.ch ?? 0.006, w2 * 0.95, h2 * 0.95), x = s.x || 0, y = s.y || 0;
+      const p = four ? [[w2, h2], [w2, -h2], [-w2, -h2], [-w2, h2]] : [[w2 - c, h2], [w2, h2 - c], [w2, -h2 + c], [w2 - c, -h2], [-w2 + c, -h2], [-w2, -h2 + c], [-w2, h2 - c], [-w2 + c, h2]];
+      return p.map(([a, b]) => new THREE.Vector3(a + x, b + y, s.z));
+    };
+    const tri = (a, b, c, ctr, m) => { // orienta hacia afuera del eje (ctr)
+      const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)), mid = a.clone().add(b).add(c).multiplyScalar(1 / 3).sub(ctr);
+      if (n.dot(mid) < 0) { const t = b; b = c; c = t; }
+      for (const v of [a, b, c]) { pos.push(v.x, v.y, v.z); col.push(m, m, m); }
+    };
+    const rings = st.map(ring);
+    for (let i = 0; i < rings.length - 1; i++) {
+      const A = rings[i], B = rings[i + 1], ctr = new THREE.Vector3((st[i].x || 0) + (st[i + 1].x || 0), (st[i].y || 0) + (st[i + 1].y || 0), st[i].z + st[i + 1].z).multiplyScalar(0.5);
+      for (let j = 0; j < N; j++) {
+        const j2 = (j + 1) % N, isCh = !four && j % 2 === 0;
+        const m = isCh ? edge : 1;
+        const c2 = ctr.clone(); // el eje local de la sección: se aproxima con el centro del tramo
+        tri(A[j], B[j], B[j2], c2, m); tri(A[j], B[j2], A[j2], c2, m);
+      }
+    }
+    if (o.cap !== false) for (const [r, other] of [[rings[0], st[st.length - 1]], [rings[rings.length - 1], st[0]]]) {
+      const ctr = new THREE.Vector3(other.x || 0, other.y || 0, other.z);
+      for (let j = 1; j < N - 1; j++) tri(r[0], r[j], r[j + 1], ctr, 0.9);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+    return this.put(L, g, o.at || [0, 0, 0], o);
+  }
+  /** Caja con las esquinas biseladas (2 estaciones): barata en Baja (28 tris) y con filo de luz. [w,h,d] centrada en pos; o.ch = bisel. */
+  cbox(L, [w, h, d], pos, o = {}) {
+    const ch = o.ch ?? Math.min(w, h) * 0.22;
+    return this.loft(L, [{ z: d / 2, w, h, ch }, { z: -d / 2, w: o.w1 ?? w, h: o.h1 ?? h, x: o.dx || 0, y: o.dy || 0, ch }], { ...o, ch, at: pos });
+  }
+  /** Cristal facetado: bipirámide alargada de n lados [radio, mitad del largo]; o.tip = fracción de punta (0.35), axis 'z'|'y'|'x'. Siempre plano (caras duras). */
+  gem(L, [r, hl], pos, o = {}) {
+    const n = o.n || 6, t = o.tip ?? 0.4, ax = o.axis || 'z', yM = hl * (1 - t), P = [], C = [];
+    const R = (ang, rr, y) => new THREE.Vector3(Math.cos(ang) * rr, y, Math.sin(ang) * rr);
+    const add = (a, b, c, m) => {
+      const nn = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)); if (nn.dot(a.clone().add(b).add(c)) < 0) { const t = b; b = c; c = t; }
+      for (const v of [a, b, c]) { P.push(v.x, v.y, v.z); C.push(m, m, m); } };
+    for (let i = 0; i < n; i++) {
+      const a0 = (i / n) * Math.PI * 2 + (o.twist || 0), a1 = ((i + 1) / n) * Math.PI * 2 + (o.twist || 0);
+      const b0 = R(a0, r, -yM), b1 = R(a1, r, -yM), c0 = R(a0, r, yM), c1 = R(a1, r, yM), tb = new THREE.Vector3(0, -hl, 0), tt = new THREE.Vector3(0, hl, 0), sh = 0.8 + 0.5 * ((i * 7) % 5) / 4;
+      add(b1, b0, tb, sh * 0.8); add(b0, b1, c1, sh); add(b0, c1, c0, sh * 1.1); add(c0, c1, tt, sh * 1.25);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); g.computeVertexNormals();
+    if (ax === 'z') g.rotateX(-Math.PI / 2); else if (ax === 'x') g.rotateZ(-Math.PI / 2);
+    return this.put(L, g, pos, o);
+  }
   /** Miembro cónico entre dos puntos (dedos, antebrazo, tubos). */
   limb(L, a, b, r0, r1 = r0, o = {}) {
     const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A), len = d.length();
@@ -124,6 +181,7 @@ export class Kit {
 /* ───────────────────────── materiales ───────────────────────── */
 
 const NOISE = `
+  float h3f(vec3 p){ return fract(sin(dot(floor(p * 5.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
   float hsh(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
   float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f);
     return mix(mix(mix(hsh(i),hsh(i+vec3(1,0,0)),f.x), mix(hsh(i+vec3(0,1,0)),hsh(i+vec3(1,1,0)),f.x), f.y),
@@ -157,7 +215,7 @@ function glowMaterial(hex, q) {
           float c = 0.0;
           for (int i = 0; i < LOOPS; i++) { vec3 p = vPos * (34.0 + 15.0 * float(i)) + d * (0.5 + 0.45 * float(i)) + uTime * vec3(0.2, 0.3, -0.5); c += abs(vn(p) - 0.5) * (1.3 - 0.3 * float(i)); }
           float caustic = pow(clamp(1.0 - c * 1.5, 0.0, 1.0), 3.0);
-          col = mix(uColor * 0.7, pal(c * 1.4 + fres * 0.8 + uTime * 0.1 + uHue), 0.45) * (0.8 + ndv * 0.9) + vec3(1.0) * caustic * 0.85 + uColor * fres * 1.3;
+          col = mix(uColor * 0.8, pal(c * 1.4 + fres * 0.8 + uTime * 0.1 + uHue), 0.26) * (0.3 + ndv * 0.85) * (0.7 + 0.6 * h3f(n * 0.9 + 0.5)) + vec3(1.0) * caustic * 0.45 + uColor * fres * 1.0;
         } else if (k < 2.5) {     // luz de estado
           vec3 lc = mix(vec3(1.0, 0.22, 0.32), uColor, smoothstep(0.1, 0.35, uAmmo));
           float pulse = uAmmo < 0.2 ? 0.6 + 0.4 * sin(uTime * 14.0) : 1.0; col = lc * 1.5 * pulse + fres * 0.4;
@@ -178,46 +236,66 @@ function glowMaterial(hex, q) {
 }
 
 
-/** Detalle de superficie sin geometría: juntas de paneles, tonos anodizados distintos, cepillado, desgaste y rayones. */
-function surfaceDetail(mat, hex, strength = 1) {
+/** Detalle de superficie sin geometría: juntas de paneles, cepillado, desgaste, un "estudio" fingido que se refleja en el metal
+ *  (también en Baja, donde no hay mapa de entorno) y el filo iridiscente de Fresnel. */
+function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0) {
   const acc = new THREE.Color(hex).offsetHSL(0.45, 0.05, 0.02).multiplyScalar(0.9);
   mat.onBeforeCompile = (sh) => {
-    sh.uniforms.uAcc = { value: acc };
-    sh.vertexShader = 'varying vec3 vOP; varying vec3 vON;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vOP = position; vON = normal;');
-    sh.fragmentShader = `varying vec3 vOP; varying vec3 vON; uniform vec3 uAcc;
+    sh.uniforms.uAcc = { value: acc }; sh.uniforms.uEnvK = { value: env }; sh.uniforms.uFill = { value: fill };
+    sh.vertexShader = 'attribute float aux; varying vec3 vOP; varying vec3 vON; varying float vDec;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vOP = position; vON = normal; vDec = aux;');
+    sh.fragmentShader = `varying vec3 vOP; varying vec3 vON; varying float vDec; uniform vec3 uAcc; uniform float uEnvK, uFill;
       float h3(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-      float gPanel, gWear;
+      float gPanel, gWear, gEm;
       ` + sh.fragmentShader
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           vec3 an = abs(vON); float ax = an.x > an.y && an.x > an.z ? 0.0 : (an.y > an.z ? 1.0 : 2.0);
           vec2 q = ax < 0.5 ? vOP.yz : (ax < 1.5 ? vOP.xz : vOP.xy);
-          vec2 g = q / 0.075; vec2 id = floor(g); vec2 f = fract(g);
-          float hh = h3(vec3(id, ax + 1.0)); float split = step(0.6, hh);
-          vec2 g2 = g * 2.0; vec2 f2 = mix(f, fract(g2), split);
+          vec2 g = q / 0.11; vec2 id = floor(g); vec2 f = fract(g);
+          float hh = h3(vec3(id, ax + 1.0)); float split = step(0.65, hh);
+          vec2 f2 = mix(f, fract(g * 2.0), split);
           float e = min(min(f2.x, 1.0 - f2.x), min(f2.y, 1.0 - f2.y));
-          gPanel = smoothstep(0.0, 0.05, e);
-          float tone = 0.72 + 0.55 * h3(vec3(id, ax + 7.0 + split));
-          float brushed = 0.94 + 0.06 * sin(q.x * 700.0 + h3(vec3(id, 3.0)) * 6.0);
-          float spk = h3(floor(vOP * vec3(420.0)) + ax); gWear = step(0.987, spk);
+          gPanel = smoothstep(0.0, 0.035, e);
+          float tone = 0.9 + 0.2 * h3(vec3(id, ax + 7.0 + split));
+          float brushed = 0.95 + 0.05 * sin((ax < 0.5 ? vOP.z : vOP.x) * 900.0 + h3(vec3(id, 3.0)) * 6.0);
+          float spk = h3(floor(vOP * vec3(380.0)) + ax); gWear = step(0.996, spk);
           vec3 base = diffuseColor.rgb * tone * brushed;
-          float accent = step(0.945, hh) * ${(0.8 * strength).toFixed(2)};
-          base = mix(base, uAcc, accent);
-          base *= mix(0.2, 1.0, gPanel);
-          base += gWear * 0.12;
+          base *= mix(0.35, 1.0, gPanel);
+          base *= 0.72 + 0.4 * clamp(vON.y * 0.5 + 0.5, 0.0, 1.0);
+          base += gWear * 0.10;
+          // calcomanías procedurales (id en el atributo aux): 1 rayas de aviso · 2 perforado hexagonal · 3 nervaduras · 4 circuito luminoso · 5 runas · 6 rombos
+          gEm = 0.0; float dm = 1.0; int did = int(vDec + 0.5);
+          if (did > 0) {
+            vec2 w = q;
+            if (did == 1) { float st = step(0.5, fract((w.x + w.y) * 46.0)); dm = mix(1.0, 0.18, st); }
+            else if (did == 2) { vec2 hs = vec2(0.0156, 0.027); vec2 a = mod(w, hs) - hs * 0.5, b = mod(w + hs * 0.5, hs) - hs * 0.5; float dd = min(length(a * vec2(1.0, 0.58)), length(b * vec2(1.0, 0.58))); dm = mix(0.08, 1.0, smoothstep(0.0045, 0.0065, dd)); }
+            else if (did == 3) { float f = fract(w.y * 62.0); dm = mix(0.42, 1.08, smoothstep(0.0, 0.4, f) * (1.0 - smoothstep(0.7, 1.0, f))); }
+            else if (did == 4) { vec2 cc = floor(w / 0.022), fc = fract(w / 0.022); float hh2 = h3(vec3(cc, 9.0)); float ln = hh2 > 0.5 ? step(abs(fc.y - 0.5), 0.07) * step(fc.x, 0.95) : step(abs(fc.x - 0.5), 0.07) * step(fc.y, 0.95); float nd = step(length(fc - 0.5), 0.13) * step(0.7, hh2); gEm = max(ln * step(0.3, h3(vec3(cc, 3.0))), nd); dm = 0.75; }
+            else if (did == 5) { vec2 cc = floor(w / vec2(0.011, 0.018)); gEm = step(0.55, h3(vec3(cc, 5.0))) * step(0.12, fract(w.x / 0.011)) * step(0.15, fract(w.y / 0.018)) * 0.9; dm = 0.8; }
+            else if (did == 6) { vec2 f6 = fract(w * 38.0) - 0.5; float dm6 = abs(f6.x) + abs(f6.y); dm = mix(0.55, 1.15, smoothstep(0.2, 0.5, dm6)); }
+            base *= dm;
+          }
           diffuseColor.rgb = base;
         }`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        { float fr = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 3.0);
+        { vec3 nn = normalize(normal), V = normalize(vViewPosition), Rr = reflect(-V, nn);
+          float fr = pow(1.0 - clamp(dot(nn, V), 0.0, 1.0), 3.0);
           vec3 rc = 0.5 + 0.5 * cos(6.28318 * (fr * 0.7 + vOP.z * 1.3 + vec3(0.0, 0.33, 0.67)));
-          totalEmissiveRadiance += mix(uAcc, rc, 0.6) * fr * ${TUNE.rim.toFixed(2)}; }`)
+          totalEmissiveRadiance += mix(uAcc, rc, 0.6) * fr * ${TUNE.rim.toFixed(2)};
+          vec3 grad = mix(vec3(0.02, 0.015, 0.05), vec3(0.36, 0.42, 0.8), smoothstep(-0.45, 0.9, Rr.y));
+          vec3 hi = vec3(1.0, 0.96, 0.9) * pow(max(dot(Rr, normalize(vec3(0.3, 0.85, 0.45))), 0.0), 16.0) * 1.4
+                  + vec3(1.0, 0.35, 0.8) * pow(max(dot(Rr, normalize(vec3(-0.8, 0.15, -0.3))), 0.0), 7.0) * 0.5
+                  + vec3(0.5, 0.7, 1.0) * pow(max(dot(Rr, normalize(vec3(0.75, -0.1, 0.45))), 0.0), 9.0) * 0.18;
+          vec3 tc = diffuseColor.rgb * 2.2 + 0.03; totalEmissiveRadiance += diffuseColor.rgb * uFill;
+          float spec = 0.3 + 0.7 * fr + 0.25 * (1.0 - roughnessFactor);
+          totalEmissiveRadiance += uAcc * gEm * 1.1 + (grad * tc * 0.9 + hi * mix(vec3(1.0), tc, 0.5)) * spec * uEnvK * (gWear > 0.5 ? 1.6 : 1.0) * mix(0.5, 1.0, gPanel); }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = clamp(roughnessFactor + (1.0 - gPanel) * 0.35 + gWear * 0.2, 0.05, 1.0);`);
   };
-  mat.customProgramCacheKey = () => 'wsurf';
+  mat.customProgramCacheKey = () => 'wsurf2';
 }
 
-export const TUNE = { met: 0.7, iri: 0.4, thick: [150, 500], rough: 0.5, cc: 0.0, env: 0.9, rim: 0.3 };
+export const TUNE = { met: 0.6, iri: 0.12, thick: [150, 500], rough: 0.5, cc: 0.0, env: 0.6, rim: 0.3, fake: 1, metLow: 0.7, emi: 1, fill: 0.45 };
 /** Los tres materiales de un arma. body: metal anodizado iridiscente; glove: tela técnica; glow: cristal. */
 export function makeMats(q, hex) {
   let body;
@@ -227,11 +305,11 @@ export function makeMats(q, hex) {
   } else if (q.name === 'medium') {
     body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 1, roughness: 0.4, iridescence: TUNE.iri, iridescenceIOR: 1.9, iridescenceThicknessRange: TUNE.thick, envMapIntensity: TUNE.env });
   } else {
-    body = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.45, roughness: 0.38 });
+    body = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: TUNE.metLow, roughness: 0.4 });
   }
-  surfaceDetail(body, hex);
+  surfaceDetail(body, hex, 1, TUNE.fake * (q.high ? 0.45 : q.name === 'medium' ? 0.7 : 1.0), TUNE.fill * (q.high ? 0 : q.name === 'medium' ? 0.15 : 1));
   const c = new THREE.Color(hex);
-  body.emissive = c.clone().multiplyScalar(q.low ? 0.07 : 0.03); const wc = c.clone();
+  body.emissive = c.clone().multiplyScalar((q.low ? 0.03 : 0.015) * TUNE.emi); const wc = c.clone();
   const glow = glowMaterial(hex, q);
   return {
     body, glove, glow, base: { be: body.emissive.clone() },
@@ -239,7 +317,7 @@ export function makeMats(q, hex) {
     set(t, heat, seq = -9, ammo = 1, boost = 0) {
       HU.uTime.value = t; HU.uFire.value = Math.max(heat * 0.55, boost); HU.uWeap.value.copy(wc);
       const u = glow.uniforms; u.uTime.value = t; u.uHeat.value = heat; u.uSeq.value = seq; u.uAmmo.value = ammo; u.uBoost.value = boost;
-      const k = heat * 0.35 + boost * 0.2; body.emissive.copy(this.base.be); body.emissive.r += c.r * k; body.emissive.g += c.g * k; body.emissive.b += c.b * k;
+      const k = heat * 0.05 + boost * 0.04; body.emissive.copy(this.base.be); body.emissive.r += c.r * k; body.emissive.g += c.g * k; body.emissive.b += c.b * k;
     },
     dispose() { body.dispose(); glow.dispose(); }, // el guante es compartido: no se libera
   };

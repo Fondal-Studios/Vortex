@@ -375,5 +375,8 @@ export function aguja(q, hands) {
 }
 
 import { EXTRA } from './guns2.js';
+import { A1 } from './arm1.js';
+import { A2 } from './arm2.js';
+import { A3 } from './arm3.js';
 import { NEW } from './guns3.js';
-export const BUILD = [haz, prisma, rafaga, nova, aguja, ...EXTRA, ...NEW]; // 25 armas (ids 0..24)
+export const BUILD = [...A1, ...A2, ...A3, ...NEW]; // 25 armas (ids 0..24)

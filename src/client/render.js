@@ -336,23 +336,23 @@ export class Renderer {
   handleEvents(state, me) {
     const near = (p) => me ? V(p).distanceTo(V(me.pos)) : 99;
     const bossP = (state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre' || m.k === 'argos') || {}).p;
+    const C = this.fx.combat; C.frame(this, state, me); // efectos de combate: estelas, estados sobre criaturas, objetos
+    const OWN = new Set(['pulsar', 'arc', 'beam', 'tshot', 'well', 'minePlace', 'skill']); // eventos que ahora dibuja combatfx.js (el dibujo viejo de objects.js se omite)
     for (const e of state.events) {
-      this.objects.onEvent(e, this.fx, bossP);
+      if (!OWN.has(e.t)) this.objects.onEvent(e, this.fx, bossP);
       if (e.t === 'shot') for (const [pid, pe] of this.ents.ply) if (pid === e.pid) pe.shotT = 0.25;
       switch (e.t) {
         case 'shot': {
-          const o = V(e.o), col = WEAPON_COLORS[e.w] || 0xffffff;
+          const col = WEAPON_COLORS[e.w] || 0xffffff, mine = e.pid === (me && me.id);
           { const pe = this.ents.ply.get(e.pid); if (pe) pe.shotT = 0.35; }
-          if (e.pid === (me && me.id)) { this.vm.shoot(); this.muzzle.intensity = 18; this.muzzle.color.setHex(col); }
-          if (e.to) shotEffects(this, e, e.pid === (me && me.id) && this.aim ? this.camera.localToWorld(new THREE.Vector3(0.3, -0.25, -1.2)) : o, WEAPON_IDS);
+          if (mine) { this.vm.shoot(); this.muzzle.intensity = 18; this.muzzle.color.setHex(col); }
+          shotEffects(this, e, mine && this.aim ? this.camera.localToWorld(new THREE.Vector3(0.3, -0.25, -1.2)) : V(e.o), WEAPON_IDS);
           break;
         }
-        case 'hit': this.fx.burst(V(e.p), e.arm ? 0x9999ff : 0xffffff, e.arm ? 3 : 6, 7, 0.4, 0.6); break;
-        case 'kill': { const c = COLORS[e.k] || 0xffffff, boss = e.k === 'coloso' || e.k === 'madre' || e.k === 'argos'; this.fx.shatter(V(e.p), c, { size: boss ? 1.6 : (MONSTER_SIZE[e.k] || 0.5), n: boss ? 24 : 10, speed: boss ? 16 : 9 }); if (boss) { this.shake = 2; this.fx.blast(V(e.p), c, 40, 1.6); } break; }
-        case 'boom': this.fx.blast(V(e.p), 0xffa24a, e.r, 0.6); this.fx.burst(V(e.p), 0xffd080, 30, e.r * 2.5, 0.8, 1); this.shake = Math.max(this.shake, Math.min(1, 12 / (near(e.p) + 4))); break;
-        case 'splat': this.fx.burst(V(e.p), 0xff9ae8, 8, 6, 0.4, 0.6); break;
+        case 'hit': case 'splat': case 'blink': case 'pulsar': case 'arc': case 'beam': case 'tshot': case 'well': case 'minePlace': case 'skill': C.event(e); break;
+        case 'kill': { C.event(e); const boss = e.k === 'coloso' || e.k === 'madre' || e.k === 'argos'; if (boss) this.shake = 2; break; }
+        case 'boom': C.event(e); this.shake = Math.max(this.shake, Math.min(1, 12 / (near(e.p) + 4))); break;
         case 'portal': this.fx.blast(V(e.p), 0x66ffff, 4, 0.5); break;
-        case 'blink': this.fx.burst(V(e.p), 0xcfe9ff, 25, 9, 0.5, 0.8); break;
         case 'summon': this.fx.blast(V(e.p), 0xff7a45, 6, 0.7); break;
         case 'gravity': this.fx.blast(V(e.p), 0x6a7bff, 60, 1.0); break;
         case 'phase': this.shake = 1.5; break;

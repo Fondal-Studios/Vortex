@@ -18,10 +18,10 @@ export default function build(kit, color) {
   const { Spring } = kit;
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
   const R = LOW ? 8 : HI ? 16 : 12;
-  const GOLD = 0xffa21f, TEAL = 0x30c8ff, FLESH = 0x2e1438, FLESH2 = 0x4a2250, CHIT = 0x161024, BONE = 0x8a7a68;
-  const bio = bioMaterial({ glow: 0xff8a20, vein: 0x120620, rim: 0x4a2a80, scale: 0.9, bump: 1.0, wet: 0.5, ridge: 70, sheen: 0.12, metal: 0.14, breath: 0.012 }); const U = bio.userData.u; U.uVeinGlow.value = 0.12; U.uCrackGlow.value = 0.2;
+  const GOLD = 0xffa21f, TEAL = 0x30c8ff, FLESH = 0x5a3010, FLESH2 = 0x7a4616, CHIT = 0x26160a, BONE = 0xa89468;
+  const bio = bioMaterial({ glow: 0xff8a20, vein: 0x120620, rim: 0xffb040, scale: 0.9, bump: 1.0, wet: 0.5, ridge: 70, sheen: 0.12, metal: 0.14, breath: 0.012 }); const U = bio.userData.u; U.uVeinGlow.value = 0.12; U.uCrackGlow.value = 0.2;
   const NT = LOW ? 8 : 14;
-  const bioT = bioMaterial({ glow: 0xff8a20, vein: 0x120620, rim: 0x4a2a80, scale: 2.0, tent: NT, breath: 0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.15;
+  const bioT = bioMaterial({ glow: 0xff8a20, vein: 0x120620, rim: 0xffb040, scale: 2.0, tent: NT, breath: 0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.15;
   const root = new THREE.Group(), rig = new THREE.Group(), body = new THREE.Group(); root.add(rig); rig.add(body);
   const RAD = [0.7, 0.62, 0.78], BS = 1.28;
   const onSurf = (d, k = 1) => { const n = d.clone().normalize(); return { p: new V3(n.x * RAD[0] * k, n.y * RAD[1] * k, n.z * RAD[2] * k), n: new V3(n.x / RAD[0], n.y / RAD[1], n.z / RAD[2]).normalize() }; };

@@ -13,10 +13,10 @@ export default function build(kit, color) {
   const { Spring } = kit;
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
   const R = LOW ? 7 : HI ? 14 : 10;
-  const bio = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x1c4a6a, scale: 1.3, bump: 1.0, wet: 0.6, ridge: 50, sheen: 0.1, breath: 0.012 });
+  const bio = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x40d8ff, scale: 1.3, bump: 1.0, wet: 0.6, ridge: 50, sheen: 0.1, breath: 0.012 });
   const U = bio.userData.u; U.uVeinGlow.value = 0.35; U.uCrackGlow.value = 0.2;
-  const bioT = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x1c4a6a, scale: 1.3, tent: 12, breath: 0.0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.3;
-  const FLESH = 0x2a2236, FLESH2 = 0x433a52, CHIT = 0x101a24, BONE = 0x6a7680, CRY = 0x20d0ff;
+  const bioT = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x40d8ff, scale: 1.3, tent: 12, breath: 0.0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.3;
+  const FLESH = 0x0f4252, FLESH2 = 0x1c6274, CHIT = 0x0c2c3a, BONE = 0x7ca8b0, CRY = 0x20d0ff;
   const root = new THREE.Group(), body = new THREE.Group(); body.scale.setScalar(0.78); body.position.y = -1.0; root.add(body); // origen = centro de la esfera de colisión: el suelo queda en y=-1
   const mesh = (geo, parent, m = bio) => { const o = new THREE.Mesh(geo, m); parent.add(o); return o; };
 

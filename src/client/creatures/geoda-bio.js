@@ -85,13 +85,13 @@ const BUMP_GLSL = `
  */
 export function bio(o = {}) {
   const L = lod(), Cls = L.low ? THREE.MeshStandardMaterial : THREE.MeshPhysicalMaterial;
-  const { color = 0xffffff, rough = 0.5, metal = 0, clear = 0, clearRough = 0.25, sheen = 0, tex = 'plates', tile = 1.6, bump = 1, grain = 0.4, seam = 0x000000, seamK = 0.5, vein = 0x000000, veinK = 0, veinGlow = 0, seamGlow = 0, sss = 0, sssColor = 0xff6a5a, glow = 0, glowColor = 0xffffff, alpha = 1, iri = 0, bend = false, lid = false, vcol = true, texOff = 0, side = null, rv = 0.5, env = 1 } = o;
+  const { color = 0xffffff, rough = 0.5, metal = 0, clear = 0, clearRough = 0.25, sheen = 0, tex = 'plates', tile = 1.6, bump = 1, grain = 0.4, seam = 0x000000, seamK = 0.5, vein = 0x000000, veinK = 0, veinGlow = 0, seamGlow = 0, sss = 0, sssColor = 0xff6a5a, glow = 0, glowColor = 0xffffff, alpha = 1, iri = 0, bend = false, lid = false, vcol = true, texOff = 0, side = null, rv = 0.5, env = 1, lift = 0.2, rim = 0, rimColor = null } = o;
   const m = new Cls({ color, roughness: rough, metalness: metal, vertexColors: vcol, transparent: alpha < 1, opacity: alpha, side: side != null ? side : alpha < 1 ? THREE.DoubleSide : THREE.FrontSide });
   if (alpha < 1) m.depthWrite = false; m.envMapIntensity = env;
-  if (L.low && vcol) m.color.multiplyScalar(1.75);   // en Baja no hay mapa de entorno: se compensa con más albedo
+  if (L.low && vcol) m.color.multiplyScalar(1.75); else if (vcol) m.color.multiplyScalar(0.68);   // con mapa de entorno (Media/Alta) el albedo pintado se aclara: se compensa para que no quede pastel   // en Baja no hay mapa de entorno: se compensa con más albedo
   if (!L.low) { if (clear) { m.clearcoat = clear; m.clearcoatRoughness = clearRough; } if (sheen) { m.sheen = sheen; m.sheenColor = new THREE.Color(sssColor).lerp(new THREE.Color(1, 1, 1), 0.5); m.sheenRoughness = 0.5; } if (iri) { m.iridescence = iri; m.iridescenceIOR = 1.5; m.iridescenceThicknessRange = [180, 620]; } }
-  const u = { uHurt: { value: 0 }, uGlow: { value: glow }, uSss: { value: sss }, uVeinGlow: { value: veinGlow }, uSeamGlow: { value: seamGlow }, uUp: { value: 0.6 }, uLo: { value: 0.4 }, uSl: { value: 0 }, uTime, uAmp: { value: 0.05 }, uSpd: { value: 2.0 } };
-  const un = { uTex: { value: procTex(tex) }, uGrad: { value: procGrad(tex) }, uTile: { value: tile }, uBump: { value: bump * (L.low ? 0.5 : 1) }, uGrain: { value: grain }, uSeam: { value: new THREE.Color(seam) }, uSeamK: { value: seamK }, uVeinC: { value: new THREE.Color(vein) }, uVeinK: { value: veinK }, uSssC: { value: new THREE.Color(sssColor) }, uGlowC: { value: new THREE.Color(glowColor) }, uRV: { value: rv }, uTexOff: { value: texOff } };
+  const u = { uHurt: { value: 0 }, uGlow: { value: glow }, uSss: { value: sss }, uVeinGlow: { value: veinGlow }, uSeamGlow: { value: seamGlow }, uUp: { value: 0.6 }, uLo: { value: 0.4 }, uSl: { value: 0 }, uWound: { value: 0 }, uLift: { value: lift * (L.low ? 1.6 : 0.35) }, uRim: { value: rim }, uTime, uAmp: { value: 0.05 }, uSpd: { value: 2.0 } };
+  const un = { uTex: { value: procTex(tex) }, uGrad: { value: procGrad(tex) }, uTile: { value: tile }, uBump: { value: bump * (L.low ? 0.5 : 1) }, uGrain: { value: grain }, uSeam: { value: new THREE.Color(seam) }, uSeamK: { value: seamK }, uVeinC: { value: new THREE.Color(vein) }, uVeinK: { value: veinK }, uSssC: { value: new THREE.Color(sssColor) }, uGlowC: { value: new THREE.Color(glowColor) }, uRV: { value: rv }, uTexOff: { value: texOff }, uRimC: { value: new THREE.Color(rimColor != null ? rimColor : sssColor) } };
   m.userData.u = u; Object.assign(m.userData, { un });
   m.customProgramCacheKey = () => `bio${bend ? 'b' : ''}${lid ? 'l' : ''}${L.low ? 'L' : ''}`;
   m.onBeforeCompile = (sh) => {
@@ -100,7 +100,7 @@ export function bio(o = {}) {
       .replace('#include <common>', `#include <common>\nvarying vec3 vP; varying vec3 vN; varying vec3 vAx; varying vec3 vAy; varying vec3 vAz; ${bend ? 'attribute float aK; attribute float aPh; uniform float uTime,uAmp,uSpd;' : ''}`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>\nvP = position; vN = normal;\n#ifdef USE_SKINNING\n mat3 skm = mat3(skinMatrix);\n#else\n mat3 skm = mat3(1.0);\n#endif\n mat3 vmm = normalMatrix * skm; vAx = vmm[0]; vAy = vmm[1]; vAz = vmm[2];${bend ? '\n float bw = aK * aK; transformed.x += sin(uTime * uSpd + aK * 3.0 + aPh) * uAmp * bw; transformed.z += cos(uTime * uSpd * 0.8 + aK * 3.7 + aPh) * uAmp * 0.7 * bw;' : ''}`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vP; varying vec3 vN; varying vec3 vAx; varying vec3 vAy; varying vec3 vAz; uniform sampler2D uTex; uniform sampler2D uGrad; uniform float uTime,uTile,uBump,uGrain,uSeamK,uVeinK,uHurt,uGlow,uSss,uVeinGlow,uSeamGlow,uRV,uTexOff,uUp,uLo,uSl; uniform vec3 uSeam,uVeinC,uSssC,uGlowC; ${NOISE_GLSL} ${BUMP_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vP; varying vec3 vN; varying vec3 vAx; varying vec3 vAy; varying vec3 vAz; uniform sampler2D uTex; uniform sampler2D uGrad; uniform float uTime,uTile,uBump,uGrain,uSeamK,uVeinK,uHurt,uGlow,uSss,uVeinGlow,uSeamGlow,uRV,uTexOff,uUp,uLo,uSl,uLift,uRim,uWound; uniform vec3 uSeam,uVeinC,uSssC,uGlowC,uRimC; ${NOISE_GLSL} ${BUMP_GLSL}`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
         float lidE = 1.0;
         ${lid ? `{ vec3 dd = normalize(vP); if (dd.z > -0.15) { float cx = dd.x * dd.x; float up = uUp - 0.55 * cx + uSl * dd.x; float lo = uLo - 0.4 * cx - uSl * 0.5 * dd.x; lidE = min(up - dd.y, dd.y + lo); if (lidE > 0.0) discard; lidE = -lidE; } }` : ''}`)
@@ -109,6 +109,7 @@ export function bio(o = {}) {
         diffuseColor.rgb *= mix(1.0, 0.62 + 0.76 * tx.g, uGrain);
         diffuseColor.rgb = mix(diffuseColor.rgb, uSeam, tx.b * uSeamK);
         diffuseColor.rgb = mix(diffuseColor.rgb, uVeinC, tx.a * uVeinK);
+        diffuseColor.rgb *= 1.0 - 0.32 * uWound;
         ${lid ? 'diffuseColor.rgb *= 0.55 + 0.45 * smoothstep(0.0, 0.05, lidE);' : ''}`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = clamp(roughnessFactor * mix(1.0, 0.55 + 0.9 * tx.g, uRV) * (1.0 - 0.45 * tx.b * uSeamK) + (0.5 * uSeamK * tx.b), 0.04, 1.0);`)
@@ -120,7 +121,7 @@ export function bio(o = {}) {
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         { float nv = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0); float rim = pow(1.0 - nv, 2.4);
           float pl = 0.6 + 0.4 * sin(uTime * 3.0 + vP.y * 5.0 + vP.x * 3.0);
-          totalEmissiveRadiance += uSssC * uSss * rim + uGlowC * uGlow * (0.4 + 0.6 * pl) + uVeinC * uVeinGlow * tx.a * uVeinK * pl * 2.0 + uSeam * uSeamGlow * tx.b * (0.55 + 0.45 * pl) + vec3(1.0, 0.85, 0.7) * uHurt * 0.9; }`);
+          totalEmissiveRadiance += diffuseColor.rgb * uLift * (0.55 + 0.45 * nv) + uRimC * uRim * pow(1.0 - nv, 3.0) + uSssC * uSss * rim + uGlowC * uGlow * (0.4 + 0.6 * pl) + uVeinC * uVeinGlow * tx.a * uVeinK * pl * 2.0 + uSeam * uSeamGlow * tx.b * (0.55 + 0.45 * pl) + vec3(1.0, 0.85, 0.7) * uHurt * 0.9 + vec3(1.0, 0.42, 0.16) * uWound * (tx.b * 0.8 + tx.a * 1.0) * (0.55 + 0.45 * pl) * 1.5; }`);
   };
   return m;
 }
@@ -238,11 +239,16 @@ export function crystalCluster(n, r, h, { pos = [0, 0, 0], dir = [0, 1, 0], seed
   return out;
 }
 /** Color de vértice: valor fijo o función (p,n)→Color/hex. Opción ao(p,n)→0..1 multiplica. */
+let TINT = null; const _hsl = { h: 0, s: 0, l: 0 };
+/** Reasignación de tono para toda la criatura que se está construyendo: los colores pintados cuyo tono cae en torno a `from` (±range)
+ *  se llevan al tono `to`, con más saturación (sat) y luz (light). Se activa con tint({...}) al inicio de build() y tint(null) al final. */
+export const tint = (o) => { TINT = o; };
 export function paint(geo, col, ao = null) {
   const P = geo.attributes.position, N = geo.attributes.normal, c = new Float32Array(P.count * 3), p = new V3(), n = new V3(), t = new THREE.Color();
   for (let i = 0; i < P.count; i++) {
     p.fromBufferAttribute(P, i); if (N) n.fromBufferAttribute(N, i);
     const v = typeof col === 'function' ? col(p, n, i) : col; t.set(v); const k = ao ? ao(p, n, i) : 1;
+    if (TINT) { t.getHSL(_hsl); let dh = _hsl.h - TINT.from; dh -= Math.round(dh); if (Math.abs(dh) < (TINT.range || 0.07) && _hsl.s > (TINT.minS || 0.3)) t.setHSL(TINT.to + dh * (TINT.keep ?? 0.5), Math.min(1, _hsl.s * (TINT.sat || 1)), Math.min(0.95, _hsl.l * (TINT.light || 1))); }
     c[i * 3] = t.r * k; c[i * 3 + 1] = t.g * k; c[i * 3 + 2] = t.b * k;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(c, 3)); return geo;

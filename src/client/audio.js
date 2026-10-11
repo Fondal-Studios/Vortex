@@ -52,6 +52,15 @@ export class Sound {
   }
   hit(at) { this.tone({ f: 900 + Math.random() * 300, f2: 400, type: 'triangle', dur: 0.05, vol: 0.12, at }); }
   boom(at) { this.noise({ dur: 0.7, vol: 0.7, freq: 1800, freq2: 60, at }); this.tone({ f: 90, f2: 25, type: 'sine', dur: 0.6, vol: 0.6, at }); }
+  /** Marcador de impacto (sonido de UI, sin posición): 'hit' golpe normal · 'crit' crítico · 'armor' blindado · 'kill' eliminación. */
+  hitmark(kind = 'hit') {
+    switch (kind) {
+      case 'crit': this.tone({ f: 1500, f2: 2300, type: 'triangle', dur: 0.07, vol: 0.2 }); this.tone({ f: 2300, f2: 3200, type: 'sine', dur: 0.12, vol: 0.16, delay: 0.045 }); this.noise({ dur: 0.05, vol: 0.08, freq: 7000, type: 'highpass' }); break;
+      case 'armor': this.tone({ f: 620, f2: 540, type: 'square', dur: 0.05, vol: 0.1 }); this.noise({ dur: 0.06, vol: 0.12, freq: 3200, q: 6, type: 'bandpass' }); break;
+      case 'kill': this.tone({ f: 190, f2: 70, type: 'sine', dur: 0.18, vol: 0.34 }); this.tone({ f: 1250, f2: 1900, type: 'triangle', dur: 0.1, vol: 0.18, delay: 0.02 }); this.tone({ f: 1900, f2: 2800, type: 'sine', dur: 0.16, vol: 0.14, delay: 0.07 }); break;
+      default: this.tone({ f: 1750, f2: 1250, type: 'triangle', dur: 0.045, vol: 0.14 }); this.noise({ dur: 0.03, vol: 0.05, freq: 6500, type: 'highpass' });
+    }
+  }
   hurt() { this.tone({ f: 200, f2: 70, type: 'sawtooth', dur: 0.25, vol: 0.35 }); this.noise({ dur: 0.15, vol: 0.25, freq: 800 }); }
   pickup() { [0, 4, 7, 12].forEach((s, i) => this.tone({ f: 523 * 2 ** (s / 12), type: 'triangle', dur: 0.12, vol: 0.2, delay: i * 0.05 })); }
   wave() { [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 110 * 2 ** (s / 12), type: 'sawtooth', dur: 0.9, vol: 0.18, att: 0.1, delay: i * 0.12 })); }

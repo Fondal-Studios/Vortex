@@ -27,7 +27,7 @@ export function bioMaterial(o = {}) {
     uTime, uHurt: { value: 0 }, uGlow: { value: o.glowAmt ?? 0 }, uPulse: { value: 0 }, uBreath: { value: o.breath ?? 0.012 },
     uGlowCol: { value: new THREE.Color(o.glow ?? 0xffa040) }, uVein: { value: new THREE.Color(o.vein ?? 0x2a0610) }, uRim: { value: new THREE.Color(o.rim ?? 0x703050) },
     uPS: { value: o.scale ?? 1 }, uBump: { value: o.bump ?? 1 }, uCry: { value: 1 }, uWet: { value: o.wet ?? 0.4 }, uVeinGlow: { value: o.veinGlow ?? 0 }, uCrackGlow: { value: o.crackGlow ?? 0 },
-    uFres: { value: o.fres ?? 0 }, uBell: { value: new THREE.Vector3(0, 1, 0) }, uRadial: { value: o.radial ?? 0 }, uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? 0.55 },
+    uFres: { value: o.fres ?? 0 }, uBell: { value: new THREE.Vector3(0, 1, 0) }, uRadial: { value: o.radial ?? 0 }, uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? 0.55 }, uLift: { value: o.lift ?? (hi ? 0.9 : 0.6) }, uSelf: { value: o.self ?? (hi ? 0.05 : 0.22) }, uRimK: { value: o.rimK ?? 1.0 },
   };
   if (NT) { u.uTA = { value: Array.from({ length: NT }, () => new THREE.Vector4(0.3, 1.5, 0, 1)) }; u.uTB = { value: Array.from({ length: NT }, () => new THREE.Vector4(0, 0, 0, 0)) }; }
   mat.userData.u = u;
@@ -52,7 +52,7 @@ export function bioMaterial(o = {}) {
           transformed += B.xyz * (B.w * w * L) + d * ((A.w - 1.0) * k * L); }` : ''}`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb, uFres, uRadial;
+        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb, uFres, uRadial, uLift, uSelf, uRimK;
         uniform vec3 uGlowCol, uVein, uRim;
         varying vec3 vO; varying vec2 vS; varying vec2 vU; varying float vSc;
         float gFl, gCh, gBo, gCr, gVein, gCrack, gH, gN2, gN3;
@@ -85,7 +85,7 @@ export function bioMaterial(o = {}) {
           vec3 cry = diffuseColor.rgb * 0.22;
           float ann = sin(vU.y * uRidge * 0.6 + n1 * 2.0);
           gH = gFl * (n3 * 0.45 + n2 * 0.35 - vein * 0.6 + ann * 0.12) + gCh * (n3 * 0.4 + n2 * 0.3 - crack * 0.9 + ann * 0.3) + gBo * (rg * 0.55 + n3 * 0.3) + gMb * n3 * 0.3;
-          diffuseColor.rgb = (flesh * (gFl + gMb) + chit * gCh + bone * gBo + cry * gCr) * uAlb;
+          diffuseColor.rgb = pow(max((flesh * (gFl + gMb) + chit * gCh + bone * gBo + cry * gCr) * uAlb, vec3(0.0)), vec3(uLift));
           #ifndef FLAT_SHADED
           if (uFres > 0.0) { float fr0 = 1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))); diffuseColor.a *= clamp(0.35 + uFres * pow(fr0, 2.0) + gVein * 0.5, 0.0, 1.0); }
           #endif
@@ -109,7 +109,8 @@ export function bioMaterial(o = {}) {
         {
           vec3 Vw = normalize(vViewPosition);
           float fres = pow(1.0 - clamp(dot(normal, Vw), 0.0, 1.0), 3.0);
-          totalEmissiveRadiance += uRim * fres * (0.25 * gFl + 0.5 * gCh + 0.2 * gBo);
+          totalEmissiveRadiance += uRim * fres * uRimK * (0.6 * gFl + 0.9 * gCh + 0.5 * gBo);
+          totalEmissiveRadiance += diffuseColor.rgb * uSelf * (1.0 - gCr);
           float flick = 0.75 + 0.25 * sin(uTime * 3.0 + vO.y * 3.0 + vO.x * 2.0);
           totalEmissiveRadiance += uGlowCol * (vS.y * uGlow * flick * (1.0 - gCr) + gVein * uVeinGlow * flick + gCrack * uCrackGlow * flick);
           totalEmissiveRadiance += vColor.rgb * gCr * uCry * (0.35 + vS.y * 1.6) * (0.85 + 0.15 * flick);

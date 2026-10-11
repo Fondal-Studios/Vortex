@@ -7,8 +7,8 @@ const wait = +process.env.WAIT || 3500;
 for (const spec of specs) {
   const pg = await b.newPage({ viewport: { width: +process.env.W || 800, height: +process.env.H || 600 } });
   const errs = []; pg.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errs.push(m.text()); }); pg.on('pageerror', (e) => errs.push('PAGEERR ' + e.message));
-  await pg.goto(`http://localhost:${srv.port}/public/viewer.html?${spec}`);
-  await pg.waitForTimeout(wait);
+  await pg.goto(`http://localhost:${srv.port}/public/gate.html?${spec}`);
+  await pg.waitForFunction(() => window.__ready, null, { timeout: 240000 });
   const name = spec.replace(/[^a-z0-9]+/gi, '_').slice(0, 80);
   await pg.screenshot({ path: `${out}/${name}.jpg`, type: 'jpeg', quality: 85 });
   const info = await pg.evaluate(() => window.__info || null);

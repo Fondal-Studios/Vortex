@@ -3,13 +3,13 @@
 // esqueleto), mandíbulas serradas, antenas que restallan y dos ojos de verdad (iris, pupila vertical, párpados).
 // Cuerpo = 1 malla con esqueleto por material (carne, quitina, cristal) => pocos draw calls.
 // Estados reales: run (zigzag) / leap (salto 7–18 u, mandíbulas abiertas). st.hp<0.35 cojea; st.sd escudada; st.st aturdida.
-import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, Rig, skinRigid, skinChain, eye, legIK, boneMatrix, toLocal, boneQuat, gait, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, Rig, skinRigid, skinChain, eye, legIK, boneMatrix, toLocal, boneQuat, gait, shieldAura, tickAura, glowSprite, Spring, dampTo } from './geoda-bio.js';
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3;
   const col = new THREE.Color(color), R = rng(7);
-  const carap = bio({ rough: 0.5, clear: 0.4, clearRough: 0.3, metal: 0.0, tex: 'plates', tile: 1.4, bump: 0.7, grain: 0.6, seam: color, seamK: 0.2, seamGlow: 0.3, vcol: true });
-  const flesh = bio({ rough: 0.6, clear: 0.15, sheen: 0, tex: 'flesh', tile: 1.6, bump: 0.6, grain: 0.5, seam: 0x180a14, seamK: 0.4, vein: color, veinK: 0.55, veinGlow: 0.7, sss: 0.0, sssColor: 0x30b0a8 });
+  const carap = bio({ rough: 0.5, clear: 0.4, clearRough: 0.3, metal: 0.0, tex: 'plates', tile: 1.4, bump: 0.7, grain: 0.6, seam: color, seamK: 0.2, seamGlow: 0.3, vcol: true, lift: 0.14, rim: 0.2, rimColor: color });
+  const flesh = bio({ rough: 0.6, clear: 0.15, sheen: 0, tex: 'flesh', tile: 1.6, bump: 0.6, grain: 0.5, seam: 0x062a28, seamK: 0.4, vein: color, veinK: 0.55, veinGlow: 0.9, sss: 0.3, sssColor: 0x30ffd0, lift: 0.14, rim: 0.2, rimColor: color });
   const cry = crystalMat(color, { glow: 0.95, alpha: 0.9 });
   const mats = [carap, flesh, cry];
 
@@ -30,10 +30,10 @@ export default function build(kit, color) {
   const segN = low ? 22 : hi ? 40 : 30, sides = low ? 7 : hi ? 12 : 9;
   const ring = (t) => (t > 0.5 ? Math.pow(Math.abs(Math.sin((t - 0.5) / 0.5 * Math.PI * 3.5)), 0.5) : 1);
   const bodyGeo = tube(SP, { rad: rf, seg: segN, sides, ex: [0.92, 1.1], bulge: (t, a) => (t > 0.5 ? 0.82 + 0.18 * ring(t) : 1) * (1 + 0.1 * Math.pow(Math.max(0, Math.cos(a)), 6)) });
-  paint(bodyGeo, (p, n) => { const up = clamp(n.y * 0.5 + 0.5, 0, 1); return new THREE.Color(0x3c1626).lerp(new THREE.Color(0x10181e), smooth(0.2, 0.8, up)); });
+  paint(bodyGeo, (p, n) => { const up = clamp(n.y * 0.5 + 0.5, 0, 1); return new THREE.Color(0x0a4640).lerp(new THREE.Color(0x061e24), smooth(0.2, 0.8, up)); });
   rig.add(flesh, skinChain(bodyGeo, [neck, thorax, body, abd1, abd2, abd3, sting], 0.2));
   // ── placas de quitina superpuestas: pronoto, escudo del tórax y tergitos del abdomen ──
-  const dark = 0x0e1a22, mid = 0x172a33, edge = 0x4a8a90;
+  const dark = 0x082428, mid = 0x0e4044, edge = 0x7affe6;
   const plateOn = (t, w, l, h, o = {}) => { const P = sp.at(t), T = sp.tan(t), up = new V3(0, 1, 0).addScaledVector(T, -T.y).normalize(), q = orient(up, T.clone().negate()); return plate({ w, l, h, nr: low ? 2 : 3, ns: low ? 6 : 9, pow: 1.5, wrap: o.wrap ?? 1.3, curve: o.curve ?? -0.4, keel: o.keel ?? 0.5, pt: 0.3, quat: q, pos: P.clone().addScaledVector(up, rf(t) * (o.in ?? 0.92)), col: o.col ?? mid, col2: edge }); };
   const tergBone = (t) => (t < 0.18 ? thorax : t < 0.42 ? body : t < 0.62 ? abd1 : t < 0.8 ? abd2 : abd3);
   const addPlate = (t, w, l, h, o) => { const g = plateOn(t, w, l, h, o); rig.add(carap, skinChain(g, [neck, thorax, body, abd1, abd2, abd3, sting], 0.2)); };
@@ -41,9 +41,9 @@ export default function build(kit, color) {
   const nAb = low ? 4 : 6; for (let i = 0; i < nAb; i++) { const t = 0.52 + (i / (nAb - 1)) * 0.4; addPlate(t, 0.2 + 0.12 * Math.sin((i / (nAb - 1)) * 3), 0.16, 0.085, { col: i % 2 ? dark : mid, keel: 0.8 }); }
   // ── cabeza ──
   const hw = 0.19;
-  const skull = ellipsoid([hw, 0.16, 0.27], { w: low ? 10 : 16, h: low ? 7 : 12, noise: 0.08, seed: 3, pos: [0, 0.83, 0.97] }); paint(skull, (p, n) => new THREE.Color(0x14242c).lerp(new THREE.Color(0x090f14), smooth(0.2, -0.8, n.y)));
+  const skull = ellipsoid([hw, 0.16, 0.27], { w: low ? 10 : 16, h: low ? 7 : 12, noise: 0.08, seed: 3, pos: [0, 0.83, 0.97] }); paint(skull, (p, n) => new THREE.Color(0x0e3e40).lerp(new THREE.Color(0x061a1c), smooth(0.2, -0.8, n.y)));
   rig.add(carap, skinRigid(skull, head));
-  const face = ellipsoid([0.12, 0.1, 0.13], { w: 10, h: 7, seed: 9, pos: [0, 0.76, 1.15] }); paint(face, 0x1c3038); rig.add(carap, skinRigid(face, head));
+  const face = ellipsoid([0.12, 0.1, 0.13], { w: 10, h: 7, seed: 9, pos: [0, 0.76, 1.15] }); paint(face, 0x14504c); rig.add(carap, skinRigid(face, head));
   const hp = (g) => rig.add(carap, skinRigid(g, head));
   hp(plate({ w: 0.12, l: 0.2, h: 0.08, nr: 3, ns: 8, keel: 1.0, wrap: 1.5, pos: [0, 0.99, 0.93], dir: [0, 1, -0.1], col: dark }));
   for (const s of [-1, 1]) {
@@ -82,9 +82,9 @@ export default function build(kit, color) {
     const L1 = H.distanceTo(K), L2 = K.distanceTo(F), f1 = L1 / (L1 + L2);
     const mid1 = H.clone().lerp(K, 0.5).add(new V3(s * 0.05, 0.06, 0)), mid2 = K.clone().lerp(F, 0.5).add(new V3(s * 0.07, 0.02, 0));
     const g = tube([H, mid1, K, mid2, F], { rad: (t) => (t < f1 ? lerp(0.075, 0.052, t / f1) + 0.022 * Math.exp(-Math.pow((t - f1) / 0.035, 2)) : lerp(0.042, 0.01, Math.pow((t - f1) / (1 - f1), 0.8))), seg: low ? 10 : 16, sides: low ? 5 : 7, ex: [1, 1], caps: false });
-    paint(g, (p) => new THREE.Color(0x101e26).lerp(new THREE.Color(0x5aa8a8), smooth(0.04, 0, p.distanceTo(K))).lerp(new THREE.Color(0x070d12), smooth(0.5, 0.0, p.y)));
+    paint(g, (p) => new THREE.Color(0x0c4040).lerp(new THREE.Color(0xa0ffe8), smooth(0.04, 0, p.distanceTo(K))).lerp(new THREE.Color(0x062424), smooth(0.5, 0.0, p.y)));
     rig.add(carap, skinChain(g, [hb, kb, fb], 0.09));
-    const nS = low ? 1 : 3; for (let i = 0; i < nS; i++) { const t = 0.3 + i * 0.22, c = K.clone().lerp(F, t); const sg = spike(0.014, 0.1 + R() * 0.05, { sides: 3, seg: 1, pos: [c.x + s * 0.03, c.y, c.z], dir: [s * 0.6, 0.4, 0.5 + (i % 2) * 0.3] }); paint(sg, 0x3b8a90); rig.add(carap, skinRigid(sg, kb)); }
+    const nS = low ? 1 : 3; for (let i = 0; i < nS; i++) { const t = 0.3 + i * 0.22, c = K.clone().lerp(F, t); const sg = spike(0.014, 0.1 + R() * 0.05, { sides: 3, seg: 1, pos: [c.x + s * 0.03, c.y, c.z], dir: [s * 0.6, 0.4, 0.5 + (i % 2) * 0.3] }); paint(sg, 0x70ffe0); rig.add(carap, skinRigid(sg, kb)); }
     const kc = crystalCluster(low ? 1 : 2, 0.018, 0.13, { pos: [K.x + s * 0.02, K.y + 0.045, K.z], dir: [s * 0.4, 1, -0.3], seed: 31 + side * 3 + row, c0: 0x0f4f58, c1: 0xe0ffff }); kc.forEach((c) => rig.add(cry, skinRigid(c, hb)));
     legs.push({ hb, kb, fb, par: d.par, s, row, side, base: new V3(d.base[0] * s, 0, d.base[2]), sw: d.sw, ph: (row + side) % 2 ? Math.PI : 0, foot: new V3(), kneeRest: K });
   });
@@ -95,9 +95,10 @@ export default function build(kit, color) {
   for (const s of [-1, 1]) cl(0.17, 2, 0.026, 0.2, thorax, 20 + s, [s * 0.9, 1, -0.2], [s * 0.2, -0.18, 0]);
   rig.add(cry, skinRigid(crystal(0.055, 0.46, { sides: 6, taper: 0.7, tip: 0.35, lean: 0.4, seed: 5, pos: [0, 1.44, -1.52], dir: [0, 0.75, 0.6], c0: 0x0e4a52, c1: 0xffffff }), sting));
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.92; rootObj.scale.setScalar(K);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); rootObj.position.y = -0.9; /* el centro de la criatura (sim) está a 0.9 r del suelo: los pies del modelo (y=0) deben tocar el piso */ const K = 1.25; rootObj.scale.setScalar(K);
+  const halo = glowSprite(color, 3.6, 0.14); halo.position.set(0, 0.95, 0.1); rootObj.add(halo);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.5); aura.position.set(0, 0.8, 0); rootObj.add(aura);
-  mats.push(disposer(rig, [aura.geometry, aura.material]));
+  mats.push(disposer(rig, [aura.geometry, aura.material, halo.material]));
   // estado de animación
   const sHead = new Spring(0, 70, 9), sPit = new Spring(0, 70, 9), sTail = new Spring(0, 55, 5), sBody = new Spring(0, 60, 7), sAnt = ant.map(() => [new Spring(0, 40, 4.5), new Spring(0, 40, 4.5)]);
   let prevHp = 1, flinch = 0, phase = 0, leapK = 0, jawO = 0.1, runK = 0, tic = 2, ticT = 0, stunK = 0, prevLeap = false, land = 0;
@@ -162,5 +163,6 @@ export default function build(kit, color) {
     cry.userData.u.uGlow.value = 0.9; cry.emissiveIntensity = 0.7 + 0.3 * Math.sin(t * 4 + st.id) + 1.2 * leapK + (hurt ? 0.5 * Math.sin(t * 22) ** 2 : 0);
     carap.userData.u.uSeamGlow.value = 0.8 + 0.5 * Math.sin(t * 3) + 1.4 * leapK + (hurt ? 0.8 : 0); flesh.userData.u.uVeinGlow.value = 1.0 + 0.6 * Math.sin(t * 5.5) + leapK;
     rootObj.rotation.z = stun ? Math.sin(t * 31) * 0.03 : 0; tickAura(aura, st, t);
+    halo.material.opacity = 0.13 + 0.07 * Math.sin(t * 3 + st.id) + 0.5 * leapK + (hurt ? 0.12 * Math.sin(t * 22) ** 2 : 0); halo.scale.setScalar(3.4 + 1.8 * leapK);
   } };
 }

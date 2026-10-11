@@ -83,7 +83,7 @@ export default function build(kit, color) {
   { const sp = path(TS); for (let i = 0; i < (low ? 5 : 11); i++) { const t = 0.04 + (i / (low ? 4 : 10)) * 0.92, P = sp.at(t), k = 1 - Math.abs(t - 0.4) * 1.1, h = 0.32 * clamp(k, 0.3, 1) + 0.04, bn = t < 0.4 ? fore : t < 0.72 ? body : hind;
       rig.add(cry, skinRigid(crystal(0.045 * clamp(k, 0.4, 1), h, { sides: 5, taper: 0.7, tip: 0.4, lean: -0.3, seed: 200 + i, pos: [P.x, P.y + 0.42 * (1 - Math.abs(t - 0.4) * 0.5), P.z], dir: [0, 1, -0.45], c0: 0x2a4068, c1: 0xf0ffff }), bn)); } }
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); rootObj.scale.setScalar(1.2); rootObj.position.y = -0.9; /* el centro de la criatura (sim) está a 0.9 r del suelo: los pies del modelo (y=0) deben tocar el piso */
   const glow = glowSprite(0xcfe9ff, 3.5, 0); glow.position.set(0, 1.0, 0); rootObj.add(glow);
   const aura = shieldAura(0x9ad8ff, 1.5); aura.position.y = 0.9; rootObj.add(aura);
   mats.push(disposer(rig, [glow.material, aura.geometry, aura.material]));

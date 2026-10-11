@@ -3,7 +3,7 @@
 // borde con larvas luminosas dentro. Cara en el tallo: dos ojos (pupila horizontal), cejas óseas, labios con dientes irregulares y lengua.
 // INVOCACIÓN (st.s === 'cast', ~1 s): el sombrero se alza y el tallo se arquea, la corona florece, la boca se abre, los sacos se
 // hinchan y arden, las larvas se agitan; al terminar los sacos se desinflan de golpe (suelta 2 astillas).
-import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, place, bendAttr, Rig, skinRigid, skinChain, eye, buildLeg, footTo, boneQuat, gait, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, place, bendAttr, Rig, skinRigid, skinChain, eye, buildLeg, footTo, boneQuat, gait, glowSprite, shieldAura, tickAura, Spring, dampTo, tint } from './geoda-bio.js';
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3, R = rng(41);
@@ -17,6 +17,7 @@ export default function build(kit, color) {
   const cry = crystalMat(color, { glow: 1.0, alpha: 0.9 });
   const mats = [flesh, skirtM, bone, sacM, larvaM, lashM, cry];
 
+  tint({ from: 0.025, to: 0.052, range: 0.07, sat: 1.4, light: 1.35 });
   const rig = new Rig();
   const root = rig.bone(null, [0, 0, 0], 'root'), body = rig.bone(root, [0, 0.5, 0], 'body');
   const SJ = [[0, 0.55, 0], [0, 0.95, 0.02], [0, 1.35, 0]], st = []; SJ.forEach((p, i) => st.push(rig.bone(i ? st[i - 1] : body, p, 'st')));
@@ -70,8 +71,9 @@ export default function build(kit, color) {
   const legs = [];
   for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU + 0.2, c = Math.cos(a), s = Math.sin(a), H = new V3(c * 0.38, 0.5, s * 0.38), K = new V3(c * 0.78, 0.7, s * 0.78), F = new V3(c * 1.0, 0.03, s * 1.0);
     const Lg = buildLeg(rig, flesh, body, H, K, F, { r0: 0.13, rk: 0.1, r1: 0.02, knuckle: 0.03, seg: low ? 8 : 12, sides: low ? 5 : 8, claw: 0.2, clawCol: 0xe8dcc0, spines: 0, side: 1, name: 'c' + i, paintFn: (p) => new THREE.Color(0x6a3028).lerp(new THREE.Color(0xc08868), smooth(0.5, 0.05, p.y)) }); legs.push({ Lg, c, s, base: new V3(c * 1.0, 0, s * 1.0) }); }
+  tint(null);
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.85; rootObj.scale.setScalar(K);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); rootObj.position.y = -0.9; /* el centro de la criatura (sim) está a 0.9 r del suelo: los pies del modelo (y=0) deben tocar el piso */ const K = 0.95; rootObj.scale.setScalar(K);
   const glow = glowSprite(color, 2.6, 0); glow.position.y = 1.7; rootObj.add(glow);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.7); aura.position.y = 1.2; rootObj.add(aura);
   mats.push(disposer(rig, [glow.material, aura.geometry, aura.material]));
@@ -89,7 +91,7 @@ export default function build(kit, color) {
     const arch = spArch.step(dt, -pe * 0.34 - flinch * 0.25 + (hurt ? Math.sin(t * 13) * 0.03 + 0.18 : 0) + (stun ? Math.sin(t * 9) * 0.1 : 0));
     st.forEach((b, i) => { b.rotation.x = arch * (i === 0 ? 0.3 : 0.5) + 0.03 * Math.sin(t * 1.4 + st0(i)); b.rotation.y = i === 2 ? spYaw.step(dt, clamp(lx, -0.8, 0.8)) * 0.3 : 0; b.rotation.z = Math.sin(t * 0.8 + i) * 0.02; });
     const br = Math.sin(t * 1.9 + stt.id); body.scale.set(1 + 0.02 * br + 0.05 * pe, 1 - 0.025 * br, 1 + 0.02 * br + 0.05 * pe);
-    const cr = spCrown.step(dt, pe); cap.rotation.x = -0.1 * cr + (hurt ? 0.1 : 0); cap.position.y = cap.userData.rest.y - st[2].userData.rest.y + 0.18 * cr; cap.scale.set(1 + 0.06 * cr, 1 + 0.3 * cr * 0.5 + 0.02 * br, 1 + 0.06 * cr);
+    const cr = spCrown.step(dt, pe); cap.rotation.x = -0.1 * cr + (hurt ? 0.1 : 0); cap.position.y = cap.userData.rest.y - st[2].userData.rest.y + 0.3 * cr; cap.scale.set(1 + 0.06 * cr, 1 + 0.3 * cr * 0.5 + 0.02 * br, 1 + 0.06 * cr);
     ann.rotation.x = Math.sin(t * 1.3) * 0.04 + 0.1 * pe; ann.scale.set(1 + 0.12 * pe, 1, 1 + 0.12 * pe);
     // corona: cerrada en reposo, florece al invocar
     crown.forEach((C, i) => { const open = 0.1 + 1.0 * Math.max(0, cr) + (hurt ? -0.1 : 0) + 0.05 * Math.sin(t * 2 + i); qq.setFromAxisAngle(C.ax, open * 0.7); C.cb.quaternion.copy(qq); C.cb.scale.setScalar(0.7 + 0.5 * pe); });
@@ -97,12 +99,12 @@ export default function build(kit, color) {
     const jo = spJaw.step(dt, pe * 0.9 + (stun ? 0.5 : 0) + 0.05 * Math.sin(t * 2.2) + (hurt ? 0.2 : 0)); jaw.scale.set(1 + jo * 0.45, 1 + jo * 0.3, 1 + jo * 0.3); tongue.rotation.x = -0.2 + jo * 0.4 + Math.sin(t * 6) * 0.08 * pe; tongue2.rotation.x = Math.sin(t * 7 + 1) * 0.2 * (0.3 + pe);
     // sacos: laten; al invocar se hinchan, arden y las larvas se agitan; al soltar se desinflan de golpe
     const infl = spSac.step(dt, pe + flinch * 0.3);
-    sacs.forEach((S, i) => { const beat = 0.5 + 0.5 * Math.sin(t * (hurt ? 8 : 2.4) + S.ph), k = (1 + 0.24 * infl + 0.05 * beat) * (1 - 0.25 * burst) * (hurt ? 0.85 : 1); S.sb.scale.set(k, k * 1.1, k); S.sb.position.y = S.sb.userData.rest.y - cap.userData.rest.y - 0.04 * infl + Math.sin(t * 1.3 + S.ph) * 0.015 - 0.0;
+    sacs.forEach((S, i) => { const beat = 0.5 + 0.5 * Math.sin(t * (hurt ? 8 : 2.4) + S.ph), k = (1 + 0.46 * infl + 0.05 * beat) * (1 - 0.25 * burst) * (hurt ? 0.85 : 1); S.sb.scale.set(k, k * 1.1, k); S.sb.position.y = S.sb.userData.rest.y - cap.userData.rest.y - 0.04 * infl + Math.sin(t * 1.3 + S.ph) * 0.015 - 0.0;
       const w = 1 + 7 * pe, wob = Math.sin(t * 3 * w + S.ph); S.lb.position.set(Math.sin(t * 1.1 * w + S.ph) * 0.07, Math.sin(t * 0.9 * w + S.ph * 2) * 0.06, Math.cos(t * 1.3 * w + S.ph) * 0.07); S.lb.rotation.set(wob * 0.7, t * w * 0.8 + S.ph, wob * 0.4); });
-    sacM.userData.u.uVeinGlow.value = 0.5 + 0.7 * pe + 0.6 * burst; sacM.userData.u.uSss.value = 0.6 + 0.4 * pe; larvaM.userData.u.uGlow.value = 0.8 + 0.9 * pe + 0.6 * burst; sacM.opacity = 0.5 + 0.12 * pe;
+    sacM.userData.u.uVeinGlow.value = 0.5 + 0.7 * pe + 0.6 * burst; sacM.userData.u.uSss.value = 0.6 + 0.4 * pe; larvaM.userData.u.uGlow.value = 0.8 + 2.2 * pe + 1.0 * burst; sacM.opacity = 0.5 + 0.12 * pe;
     flesh.userData.u.uVeinGlow.value = 0.5 + 0.6 * pe + 0.5 * burst; flesh.userData.u.uSss.value = 0.15 + 0.25 * pe; skirtM.userData.u.uSss.value = 0.5 + 0.3 * pe;
-    cry.emissiveIntensity = 0.6 + 0.25 * Math.sin(t * 3) + 0.6 * pe + 0.5 * burst;
-    glow.material.opacity = (0.2 * pe + 0.32 * burst) * (0.8 + 0.2 * Math.sin(t * 25)); glow.scale.setScalar(2.2 + 1.2 * pe + 1.5 * burst);
+    cry.emissiveIntensity = 0.6 + 0.25 * Math.sin(t * 3) + 1.8 * pe + 1.2 * burst;
+    glow.material.opacity = (0.6 * pe + 0.55 * burst) * (0.8 + 0.2 * Math.sin(t * 25)); glow.scale.setScalar(2.6 + 1.8 * pe + 2.2 * burst);
     // ojos
     st[2].updateMatrix(); boneQuat(st[2], root, q1); q1.invert();
     eyes.forEach((e, k) => { gazeDir(look, (ctx.dist || 8) / K, tmp.set(k ? 0.19 : -0.19, 1.5, 0.3), lh); lh.applyQuaternion(q1); lh.applyQuaternion(e.mount.clone().invert()); e.update(dt, lh, { open: stun ? 0.4 : hurt ? 0.7 : 0.92 + 0.08 * pe, dilate: -0.1 + 0.4 * pe, glowMul: 0.7 + 1.5 * pe, squint: 0, quiver: stun ? 1 : 0 }); });
