@@ -1,10 +1,10 @@
 // ESPEJO — emboscador. Camaleón-mímico de piel espejada: refleja un cielo falso iridiscente que cambia de tono (parches de camaleón),
 // se camufla por opacidad + distorsión (solo queda un destello de borde), ojos-torreta que giran INDEPENDIENTES, lengua que restalla,
 // garras, cola enroscada. Estados: blink = se retuerce y desvanece (0.6 s) / strike = reaparece y ataca (preparación → latigazo → recuperación).
-import { auraShell, ringPool, glowSprite, taperTube, isLow, damp, clamp, lerp, ease, TAU, NOISE } from './prisma-util.js';
+import { soft as blob, bead, leg2 as leg, auraShell, ringPool, glowSprite, taperTube, isLow, damp, clamp, lerp, ease, TAU, NOISE } from './prisma-util.js';
 
 export default function build(kit, color) {
-  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, horn, crystalSpike, eye, jaw, leg, Spring, uTime } = kit;
+  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, horn, crystalSpike, eye, jaw, Spring, uTime } = kit;
   const V = THREE.Vector3, low = isLow();
 
   /* ── piel espejo: reflejo falso (no depende del env del escenario), parches de hue, camuflaje con distorsión ── */
@@ -49,7 +49,7 @@ export default function build(kit, color) {
   const bellyMat = fleshMaterial({ color: 0x9a5a88, vein: 0x4a1040, spot: 0xcfe9ff, spots: 0.5, veins: 0.9, glow: 0.05, rough: 0.5 }); const belly = blob(bellyMat, 0.46, 0.8, 0.55, 1.5); belly.position.set(0, 0.62, -0.05); body.add(belly);
   const pouch = blob(skinInner, 0.2, 1, 0.9, 1.1); pouch.position.set(0, -0.2, 0.22); head.add(pouch);
   const casque = blob(mirror, 0.26, 0.5, 0.9, 1.5); casque.position.set(0, 0.28, -0.08); head.add(casque);
-  for (let i = 0; i < 3; i++) { const c = horn(claw, 0.05 - i * 0.008, 0.28 - i * 0.04); c.position.set(0, 0.42 - i * 0.02, -0.1 - i * 0.2); c.rotation.x = -0.5 - i * 0.2; head.add(c); }
+  for (let i = 0; i < (low ? 1 : 3); i++) { const c = horn(claw, 0.05 - i * 0.008, 0.28 - i * 0.04); c.position.set(0, 0.42 - i * 0.02, -0.1 - i * 0.2); c.rotation.x = -0.5 - i * 0.2; head.add(c); }
   const mouth = jaw(skinInner, claw, { w: 0.13, len: 0.2, teeth: 5 }); mouth.object.position.set(0, -0.12, 0.42); mouth.object.rotation.x = 0.05; head.add(mouth.object);
   // ojos-torreta independientes
   const turrets = [-1, 1].map((sd) => { const g = new THREE.Group(); g.position.set(sd * 0.27, 0.12, 0.12);
@@ -58,7 +58,7 @@ export default function build(kit, color) {
     head.add(g); return { g, e, sd, ax: sd * 0.5, ay: 0, tx: 0, ty: 0, timer: Math.random(), mode: 0, sy: new Spring(0, 120, 12), sx: new Spring(0, 120, 12) }; });
   // lengua: fuste que se estira + maza en la punta
   const tg = new THREE.Group(); tg.position.set(0, -0.1, 0.45); head.add(tg);
-  const tshaft = new THREE.Mesh(new THREE.CylinderGeometry(1, 0.7, 1, 8, 1).translate(0, 0.5, 0).rotateX(Math.PI / 2), skinInner), tclub = blob(skinInner, 0.1, 1, 0.8, 1.1);
+  const tshaft = new THREE.Mesh(new THREE.CylinderGeometry(1, 0.7, 1, 8, 1).translate(0, 0.5, 0).rotateX(Math.PI / 2), skinInner), tclub = bead(skinInner, 0.1);
   tg.add(tshaft, tclub); tshaft.scale.set(0.035, 0.035, 0.001);
   // piernas con cinemática inversa (4) y garras
   const legs = [];
@@ -70,7 +70,7 @@ export default function build(kit, color) {
   const tailG = new THREE.Group(); tailG.add(new THREE.Mesh(taperTube(new THREE.CatmullRomCurve3(spiral), 0.22, 0.03, low ? 6 : 8, low ? 14 : 24), mirror)); body.add(tailG);
   const tailTipC = crystalSpike(crystal, 0.03, 0.12); tailTipC.position.copy(spiral[12]); tailG.add(tailTipC);
   // cresta de esquirlas de espejo a lo largo del lomo
-  const crys = []; for (let i = 0; i < (low ? 5 : 8); i++) { const k = i / 7, c = crystalSpike(crystal, 0.07 - k * 0.03, 0.3 - k * 0.12); c.position.set(0, 1.42 - k * 0.14, 0.7 - k * 1.7); c.rotation.set(-0.35 + k * 0.6, 0, (i % 2 ? 1 : -1) * 0.15); body.add(c); crys.push({ c, h: 0.3 - k * 0.12 }); }
+  const crys = []; for (let i = 0; i < (low ? 3 : 8); i++) { const k = i / (low ? 2.5 : 7), c = crystalSpike(crystal, 0.07 - k * 0.03, 0.3 - k * 0.12); c.position.set(0, 1.42 - k * 0.14, 0.7 - k * 1.7); c.rotation.set(-0.35 + k * 0.6, 0, (i % 2 ? 1 : -1) * 0.15); body.add(c); crys.push({ c, h: 0.3 - k * 0.12 }); }
   const flash = ringPool(root, 2, 0xcfe9ff, { plane: 'xz' }), glow = glowSprite(0xcfe9ff, 3.5, 0); glow.position.set(0, 1.0, 0); root.add(glow);
   const aura = auraShell(0x9ad8ff, 1.5); aura.position.y = 0.9; root.add(aura);
 

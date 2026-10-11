@@ -13,7 +13,7 @@ scene.add(new THREE.HemisphereLight(0xb9c4ff, 0x401a55, 1.3)); const sun = new T
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(1200, 24, 12), skyMaterial({ hue: 0.1 })));
 const k = q.get('k'), e = buildMonster(k), st = { id: 3, s: q.get('s') || 'idle', o: q.get('s') === 'open', hp: P('hp', 1), st: q.get('s') === 'stun' };
 if (q.get('a')) { const a = q.get('a').split(',').map(Number); st.a = a; }
-const sc = P('sc', 1.4); e.object.scale.setScalar(sc); scene.add(e.object); globalThis.__e = e;
+const sc = P('sc', 1.4); e.object.scale.setScalar(sc); scene.add(e.object); globalThis.__e = e; globalThis.__gl = gl;
 cam.position.set(P('cx', 0), P('cy', 0.5), P('cz', 9)); cam.lookAt(0, P('ty', 0), 0);
 let t = 0, last = null;
 const tickOnce = (dt) => {

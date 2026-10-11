@@ -31,32 +31,83 @@
 </div>
 <div id="touch" class="hidden"></div>
 <div id="rotate" class="hidden"><p>📱↻</p><p>Girá el teléfono en horizontal para jugar</p></div>
-<div id="menu">
-  <h1>CRISTAL<br>VÓRTICE</h1>
-  <p class="tag">Sobrevivir entre dimensiones, donde la gravedad es solo una opinión.</p>
-  <div id="story"></div>
-  <div class="row">
-    <button id="campaign" class="primary">▶ Historia (solo)</button>
-  </div>
-  <div class="row">
-    <button data-start="m1">Arena · Vacío de Islas</button>
-    <button data-start="m2">Arena · Cámara Fractal</button>
-  </div>
-  <div class="row opts">
-    <label>Gráficos <select id="qsel"></select></label>
-    <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado y ratón</option></select></label>
-  </div>
-  <div class="row coop">
-    <button id="mkroom">Cooperativo · crear sala</button>
-    <input id="roomcode" placeholder="código" maxlength="4" inputmode="numeric">
-    <button id="joinroom">Unirse</button>
-    <select id="coopmap"><option value="m1">Vacío de Islas</option><option value="m2">Cámara Fractal</option></select>
-  </div>
-  <p class="keys">PC: WASD mover · ratón apuntar · clic disparar · ESPACIO saltar · SHIFT correr · 1–5 armas · ESC pausa<br>iPhone: palanca izquierda · arrastrar derecha para mirar · botones</p>
+<div id="menu" class="ps">
+  <div id="psbg"></div>
+  <!-- ═════ TÍTULO ═════ -->
+  <section id="title" class="screen on" data-screen="title">
+    <div class="logo"><span class="l1">CRISTAL</span><span class="l2">VÓRTICE</span></div>
+    <p class="tagline">Sobrevivir entre dimensiones, donde la gravedad es solo una opinión</p>
+    <button id="pressstart" class="pressstart"><i class="glyph x">✕</i><span id="startlabel">Presioná cualquier botón</span></button>
+    <div class="legal">Un shooter de supervivencia psicodélico · PC · iPhone · 1–4 jugadores</div>
+  </section>
+  <!-- ═════ MENÚ PRINCIPAL ═════ -->
+  <section id="main" class="screen" data-screen="main">
+    <div class="brand"><span>CRISTAL</span><span>VÓRTICE</span></div>
+    <nav id="mainlist" class="list">
+      <button class="item" data-go="story" data-art="historia"><b>Historia</b><small>Un tren, un andén, una luz</small></button>
+      <button class="item" data-go="arenas" data-art="arenas"><b>Arenas</b><small>Directo a la acción</small></button>
+      <button class="item" data-go="coop" data-art="coop"><b>Cooperativo</b><small>Hasta 4 Pasajeros</small></button>
+      <button class="item" data-go="bestiary" data-art="bestiario"><b>Bestiario</b><small>14 organismos del Vórtice</small></button>
+      <button class="item" data-go="options" data-art="opciones"><b>Opciones</b><small>Gráficos · controles · sonido</small></button>
+    </nav>
+    <aside id="hero"><div id="herocard"><img id="heroimg" alt=""><div class="herotxt"><h2 id="herotitle"></h2><p id="herodesc"></p><div id="herochips"></div></div></div></aside>
+  </section>
+  <!-- ═════ HISTORIA ═════ -->
+  <section id="story" class="screen" data-screen="story">
+    <h3 class="stitle">Historia</h3>
+    <div class="cards">
+      <button id="campaign" class="card big" data-art="historia"><img src="/public/art/historia.jpg" alt=""><div><b>Nueva partida</b><small>Cine del tren · El despertar · 2 capítulos y 2 jefes</small></div></button>
+    </div>
+    <p class="storytxt">Te atropella un tren. Despertás en el Vórtice —lo que hay entre vivir y no— con armas en las manos y un bicho extraño que te explica la única regla: sobrevivir a todo para volver al mundo de los vivos.</p>
+  </section>
+  <!-- ═════ ARENAS ═════ -->
+  <section id="arenas" class="screen" data-screen="arenas">
+    <h3 class="stitle">Arenas</h3>
+    <div class="cards">
+      <button class="card" data-start="m1"><img src="/public/art/arena-m1.jpg" alt=""><div><b>Vacío de Islas</b><small>Gravedad rota · portales · tiempo lento<br>Jefe: Coloso Prismático</small></div></button>
+      <button class="card" data-start="m2"><img src="/public/art/arena-m2.jpg" alt=""><div><b>Cámara Fractal</b><small>Una esfera hueca · la marea sin peso<br>Jefe: Madre Geoda</small></div></button>
+    </div>
+  </section>
+  <!-- ═════ COOPERATIVO ═════ -->
+  <section id="coopscr" class="screen" data-screen="coop">
+    <h3 class="stitle">Cooperativo · 2 a 4 jugadores</h3>
+    <div class="panel coop">
+      <label>Mapa <select id="coopmap"><option value="m1">Vacío de Islas</option><option value="m2">Cámara Fractal</option></select></label>
+      <button id="mkroom" class="btn primary">Crear sala</button>
+      <div class="or">o unite con el código</div>
+      <input id="roomcode" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
+      <button id="joinroom" class="btn">Unirse</button>
+      <p class="hint">Si un compañero cae, acercate 3 segundos para reanimarlo.</p>
+    </div>
+  </section>
+  <!-- ═════ BESTIARIO ═════ -->
+  <section id="bestiary" class="screen" data-screen="bestiary">
+    <h3 class="stitle">Bestiario</h3>
+    <div id="bgrid"></div>
+    <div id="bdetail"><iframe id="bview" title="criatura" loading="lazy"></iframe><div class="btxt"><h2 id="bname"></h2><div id="brole"></div><p id="bdesc"></p><dl id="bstats"></dl></div></div>
+  </section>
+  <!-- ═════ OPCIONES ═════ -->
+  <section id="options" class="screen" data-screen="options">
+    <h3 class="stitle">Opciones</h3>
+    <div class="panel opts">
+      <label>Gráficos <select id="qsel"></select></label>
+      <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado, ratón y mando</option></select></label>
+      <label>Sensibilidad <input id="sens0" type="range" min="2" max="10" value="5"></label>
+      <label>Volumen <input id="vol" type="range" min="0" max="10" value="6"></label>
+      <label>Subtítulos <select id="subsel"><option value="1">Sí</option><option value="0">No</option></select></label>
+    </div>
+  </section>
+  <footer id="prompts"><span><i class="glyph x">✕</i> Seleccionar</span><span><i class="glyph o">○</i> Volver</span><span><i class="glyph t">△</i> Navegar</span></footer>
   <p id="menuerr" class="err"></p>
+  <div id="loading" class="hidden"><div class="ltitle">CRISTAL VÓRTICE</div><div class="lbar"><b id="lfill"></b></div><p id="ltip"></p></div>
 </div>
-<div id="pause" class="hidden"><h2>PAUSA</h2><p id="pausehint">Hacé clic para continuar</p><div class="row opts"><label>Gráficos <select id="qsel2"></select></label><label>Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label></div><div class="row"><button id="resume">Continuar</button><button id="quit">Salir al menú</button></div></div>
-<div id="end" class="hidden"><h2 id="endtitle"></h2><pre id="endstats"></pre><button id="again">Jugar de nuevo</button><button id="tomenu">Menú</button></div>
+<div id="trophies"></div>
+<div id="pause" class="hidden ps"><div class="pbox"><h2>PAUSA</h2><p id="pausehint">Hacé clic para continuar</p>
+  <div class="list"><button class="item" id="resume"><b>Continuar</b></button>
+  <label class="item sel">Gráficos <select id="qsel2"></select></label>
+  <label class="item sel">Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label>
+  <button class="item" id="quit"><b>Salir al menú</b></button></div></div></div>
+<div id="end" class="hidden ps"><div class="pbox"><h2 id="endtitle"></h2><pre id="endstats"></pre><div class="list"><button class="item" id="again"><b>Jugar de nuevo</b></button><button class="item" id="tomenu"><b>Menú principal</b></button></div></div></div>
 <script type="module" src="/src/client/main.js"></script>
 </body>
 </html>

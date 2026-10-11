@@ -1,13 +1,13 @@
 // GRAVITÓN — control. Embrión-cefalópodo que flota sin peso: bolsa de carne pálida y translúcida con venas oscuras, un órgano luminoso
 // en el centro que distorsiona el espacio (anillos expansivos), ojos desparejos entrecerrados, pico, tentáculos que "no saben dónde está el suelo".
 // Estado charge (1.3 s): los tentáculos se tensan hacia ARRIBA, el órgano se contrae y brilla, los anillos convergen; al soltar: onda de choque.
-import { auraShell, ringPool, glowSprite, isLow, damp, clamp, lerp, ease, TAU } from './prisma-util.js';
+import { soft as blob, bead, auraShell, ringPool, glowSprite, isLow, damp, clamp, lerp, ease, TAU } from './prisma-util.js';
 
 export default function build(kit, color) {
-  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, crystalSpike, scatterOnSurface, tentacle, eye, jaw, Spring } = kit;
+  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, crystalSpike, scatterOnSurface, tentacle, eye, jaw, Spring } = kit;
   const V = THREE.Vector3, low = isLow();
   const skin = fleshMaterial({ color: 0xa890dc, vein: 0x1c0a40, spot: color, glow: 0.12, wobble: 0.025, breath: 0.035, spots: 0.5, veins: 1.0, scale: 1.7, iri: 0.5, rough: 0.5, sheen: 0.2, alpha: 0.5 });
-  const tskin = fleshMaterial({ color: 0xb7a6dc, vein: 0x2a1450, spot: color, glow: 0.1, wobble: 0.01, breath: 0.02, spots: 0.9, veins: 0.8, scale: 3.0, rough: 0.5, sheen: 0.5 });
+  skin.forceSinglePass = true; const tskin = fleshMaterial({ color: 0xb7a6dc, vein: 0x2a1450, spot: color, glow: 0.1, wobble: 0.01, breath: 0.02, spots: 0.9, veins: 0.8, scale: 3.0, rough: 0.5, sheen: 0.5 });
   const organM = fleshMaterial({ color: 0xffd6ff, vein: 0xff3a9a, spot: 0xffffff, glow: 1.1, wobble: 0.05, breath: 0.05, spots: 0.5, veins: 0.9, scale: 3.0, rough: 0.3 });
   const beak = boneMaterial(0x3a2a55, { rough: 0.3 }), crystal = bioCrystalMaterial(color, { glow: 1.0 });
 
@@ -19,7 +19,7 @@ export default function build(kit, color) {
   // órgano central: núcleo carnoso que late dentro de la bolsa + halo + cascarones de distorsión
   const organ = new THREE.Group(); organ.position.set(0, 0.32, 0); head.add(organ);
   const core = blob(organM, 0.36); organ.add(core);
-  const lobes = [0, 1, 2].map((i) => { const b = blob(organM, 0.17); const a = i * TAU / 3; b.position.set(Math.cos(a) * 0.3, Math.sin(a * 1.3) * 0.15, Math.sin(a) * 0.3); organ.add(b); return b; });
+  const lobes = [0, 1, 2].map((i) => { const b = bead(organM, 0.17); const a = i * TAU / 3; b.position.set(Math.cos(a) * 0.3, Math.sin(a * 1.3) * 0.15, Math.sin(a) * 0.3); organ.add(b); return b; });
   const haloS = glowSprite(color, 2.6, 0.7); organ.add(haloS);
   const lens = auraShell(0xb8c4ff, 1.0); lens.scale.setScalar(0.62); organ.add(lens);
   const ringsH = ringPool(organ, 4, color, { plane: 'xz' }), ringsV = ringPool(organ, 3, 0xe0b0ff, { plane: 'xz' }); ringsV.rings.forEach((r, i) => { r.rotation.set(-Math.PI / 2 + 1.1, 0, i * 1.0); });
@@ -27,14 +27,14 @@ export default function build(kit, color) {
   const eyes = [[0, -0.15, 0.7, 0.2, 'slit'], [-0.38, -0.02, 0.58, 0.085, 'round'], [0.4, -0.3, 0.52, 0.065, 'round']].map(([x, y, z, r, p], i) => { const e = eye({ r, iris: i ? 0xc0d0ff : color, pupil: p, glow: 0.7 }); e.object.position.set(x, y, z); e.object.rotation.y = x * 1.2; head.add(e.object); return { e, ry: x * 1.2 }; });
   const mouth = jaw(skin, beak, { w: 0.17, len: 0.22, teeth: 3 }); mouth.object.position.set(0, -0.52, 0.5); mouth.object.rotation.x = 0.35; head.add(mouth.object);
   // cristales que brotan de la corona de la bolsa
-  const crys = scatterOnSurface(head, low ? 5 : 8, [0.62, 0.95, 0.6], (i) => crystalSpike(crystal, 0.05 + (i % 3) * 0.012, 0.2 + (i % 4) * 0.05), { from: 0.02, to: 0.42, seed: 1.3 }).map((c) => { c.position.y += 0.3; c.userData.h = c.scale.y; return c; });
+  const crys = scatterOnSurface(head, low ? 3 : 8, [0.62, 0.95, 0.6], (i) => crystalSpike(crystal, 0.05 + (i % 3) * 0.012, 0.2 + (i % 4) * 0.05), { from: 0.02, to: 0.42, seed: 1.3 }).map((c) => { c.position.y += 0.3; c.userData.h = c.scale.y; return c; });
   // tentáculos: 6 largos finos + 4 cortos gruesos; cada uno cuelga de un pivote para poder alzarlo
   const tents = [];
   const mk = (i, n, ang, R, len, r0, amp) => { const th = ang + (i / n) * TAU; const piv = new THREE.Group(); piv.rotation.order = 'YXZ'; piv.position.set(Math.sin(th) * R, -0.18, Math.cos(th) * R); piv.rotation.y = th;
     const t = tentacle(tskin, { len, r0, r1: 0.012, hang: true, amp, speed: 0.9 + Math.random() * 0.6, freq: 2.4 + Math.random(), phase: i * 1.7 }); piv.add(t); head.add(piv);
-    const tip = blob(crystal, r0 * 0.5); tip.position.y = -len; t.add(tip); tents.push({ piv, t, th, amp, ph: i * 1.3 + ang, len }); };
-  for (let i = 0; i < 6; i++) mk(i, 6, 0.2, 0.42, 2.5, 0.065, 0.55);
-  for (let i = 0; i < 4; i++) mk(i, 4, 0.9, 0.3, 1.5, 0.1, 0.35);
+    const tip = bead(crystal, r0 * 0.5); tip.position.y = -len; t.add(tip); tents.push({ piv, t, th, amp, ph: i * 1.3 + ang, len }); };
+  for (let i = 0; i < (low ? 5 : 6); i++) mk(i, low ? 5 : 6, 0.2, 0.42, 2.5, 0.065, 0.55);
+  for (let i = 0; i < (low ? 2 : 4); i++) mk(i, low ? 2 : 4, 0.9, 0.3, 1.5, 0.1, 0.35);
   const aura = auraShell(0xb8c4ff, 1.5); aura.position.y = 0.8; root.add(aura);
 
   const mats = [skin, tskin, organM, beak, crystal];

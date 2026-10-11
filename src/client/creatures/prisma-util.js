@@ -130,3 +130,35 @@ export function taperTube(curve, r0, r1, radial = 7, segs = 20, ridge = 0) {
 
 /** Restablece el destello de daño de todos los uniformes compartidos (por si un material no lo expone). */
 export function hurtAll(mats, v) { for (const m of mats) { const u = m.userData && m.userData.u; if (u && u.uHurt) u.uHurt.value = v; } }
+
+/* ───────── geometría ligera (para presupuesto móvil) ───────── */
+const _gc = new Map(); const gcache = (k, f) => { let g = _gc.get(k); if (!g) { g = f(); _gc.set(k, g); } return g; };
+const SEG2 = () => (cfg().humans === 'low' ? [12, 8] : cfg().humans === 'medium' ? [16, 11] : [22, 15]);
+/** Masa blanda (esfera estirable) con menos polígonos que kit.blob. */
+export function soft(mat, r = 1, sx = 1, sy = 1, sz = 1) {
+  const [w, h] = SEG2(); const m = new THREE.Mesh(gcache(`sf${w}`, () => new THREE.SphereGeometry(1, w, h)), mat); m.scale.set(r * sx, r * sy, r * sz); return m;
+}
+/** Cuenta/punta diminuta (96 triángulos). */
+export function bead(mat, r = 0.05) {
+  const m = new THREE.Mesh(gcache('bead', () => new THREE.SphereGeometry(1, 8, 6)), mat); m.scale.setScalar(r); return m;
+}
+/** Pata de 2 huesos con IK (igual que kit.leg pero con rodillas/pies ligeros). */
+export function leg2(mat, { upper = 0.7, lower = 0.8, r = 0.07, claw = null } = {}) {
+  const root = new THREE.Group(), A = new THREE.Group(), B = new THREE.Group(), V3 = THREE.Vector3;
+  const seg = (len, r0) => { const m = new THREE.Mesh(gcache('lseg', () => { const c = new THREE.CylinderGeometry(1, 0.55, 1, 7, 1); c.translate(0, -0.5, 0); return c; }), mat); m.scale.set(r0, len, r0); return m; };
+  A.add(seg(upper, r)); const knee = bead(mat, r * 1.3); knee.position.y = -upper; A.add(knee);
+  B.position.y = -upper; B.add(seg(lower, r * 0.8)); const foot = bead(mat, r * 0.8); foot.position.y = -lower; B.add(foot);
+  if (claw) { const c = new THREE.Mesh(gcache('lclaw', () => { const g = new THREE.ConeGeometry(1, 1, 5); g.translate(0, 0.5, 0); return g; }), claw); c.scale.set(r * 0.6, r * 4, r * 0.6); c.rotation.x = Math.PI; c.position.y = -lower; B.add(c); }
+  A.add(B); root.add(A);
+  const bend = new V3(0, 1, 0), tgt = new V3(), DOWN = new V3(0, -1, 0);
+  function solve(f) {
+    tgt.copy(f); let d = tgt.length(); const max = upper + lower - 1e-3; if (d > max) { tgt.multiplyScalar(max / d); d = max; } d = Math.max(d, Math.abs(upper - lower) + 1e-3);
+    const ang = Math.acos(clamp((upper * upper + d * d - lower * lower) / (2 * upper * d), -1, 1));
+    const dir = tgt.clone().normalize(); const axis = new V3().crossVectors(dir, bend); if (axis.lengthSq() < 1e-6) axis.set(1, 0, 0); axis.normalize();
+    const kneeDir = dir.clone().applyAxisAngle(axis, -ang); A.quaternion.setFromUnitVectors(DOWN, kneeDir);
+    const kneePos = kneeDir.clone().multiplyScalar(upper), lowDir = tgt.clone().sub(kneePos).normalize();
+    const world2 = new THREE.Quaternion().setFromUnitVectors(DOWN, lowDir); B.quaternion.copy(A.quaternion.clone().invert().multiply(world2));
+  }
+  solve(new V3(0, -(upper + lower) * 0.9, 0));
+  return { object: root, setFoot: solve, setBend(v) { bend.copy(v).normalize(); } };
+}

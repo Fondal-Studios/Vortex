@@ -42,10 +42,10 @@ export function bigEye({ r = 0.5, iris = 0xffb020, slit = false, lids = true, li
   const object = new THREE.Group(), ball = new THREE.Group(); object.add(ball);
   const lo = quality === 'low';
   const sclera = fleshMaterial({ color: scleraColor, vein: 0xb0182e, spot: 0xff5a7a, veins: 0.95, rough: 0.2, sheen: 0.4, wobble: 0.004, breath: 0.004, scale: 3.4, glow: 0 });
-  const sph = G(lo ? 'eb0' : 'eb1', () => new THREE.SphereGeometry(1, lo ? 14 : 24, lo ? 10 : 16));
+  const sph = G(lo ? 'eb0' : 'eb1', () => new THREE.SphereGeometry(1, lo ? 12 : 18, lo ? 8 : 12));
   const bm = new THREE.Mesh(sph, sclera); bm.scale.setScalar(r); ball.add(bm);
   // iris: casquete esférico con textura polar
-  const capA = 0.78, cap = G('cap' + lo, () => new THREE.SphereGeometry(1, lo ? 14 : 24, lo ? 4 : 8, 0, Math.PI * 2, 0, capA));
+  const capA = 0.78, cap = G('cap' + lo, () => new THREE.SphereGeometry(1, lo ? 12 : 18, lo ? 3 : 5, 0, Math.PI * 2, 0, capA));
   const tex = irisTexture(iris);
   const irisM = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tex, roughness: 0.3, emissive: new THREE.Color(iris), emissiveMap: tex, emissiveIntensity: 0.6 });
   irisM.userData.u = { uHurt: { value: 0 } };
@@ -121,8 +121,8 @@ export function tubeGeo(points, r = 0.035, seg = 20, rad = 6) { return new THREE
  */
 export function eyeCluster({ max = 24, quality = 'high' } = {}) {
   const lo = quality === 'low';
-  const sph = new THREE.SphereGeometry(1, lo ? 10 : 16, lo ? 8 : 12);
-  const cap = new THREE.SphereGeometry(1.012, lo ? 10 : 16, 3, 0, Math.PI * 2, 0, 0.82); cap.rotateX(Math.PI / 2);
+  const sph = new THREE.SphereGeometry(1, lo ? 8 : 12, lo ? 6 : 9);
+  const cap = new THREE.SphereGeometry(1.012, lo ? 8 : 12, 3, 0, Math.PI * 2, 0, 0.82); cap.rotateX(Math.PI / 2);
   const disc = new THREE.CircleGeometry(1, 14);
   const sclM = fleshMaterial({ color: 0xf2e0d2, vein: 0xa01830, spot: 0xff6a8a, veins: 0.9, rough: 0.22, sheen: 0.3, wobble: 0.0, breath: 0.0, scale: 3 });
   const tex = irisTexture(0xffffff);
@@ -176,4 +176,30 @@ export function maw(skin, boneMat, { w = 0.5, len = 0.5, teeth = 9, tooth = 0.14
   object.add(mk(false), mk(true));
   if (inner) { const m = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), inner); m.scale.set(w * 0.85, len * 0.3, len * 0.8); object.add(m); object.userData.inner = m; }
   return { object, set(open) { up.rotation.x = -open * 0.75; lo.rotation.x = open * 0.55; if (object.userData.inner) object.userData.inner.scale.y = len * (0.1 + 0.55 * open); } };
+}
+
+/* ───────────────────────── piezas baratas ───────────────────────── */
+const _sg = {};
+/** Esfera blanda de baja resolución (w×h segmentos). */
+export function soft(mat, r = 1, sx = 1, sy = 1, sz = 1, w = 16, h = 12) {
+  const k = `${w}x${h}`; const g = _sg[k] || (_sg[k] = new THREE.SphereGeometry(1, w, h)); const m = new THREE.Mesh(g, mat); m.scale.set(r * sx, r * sy, r * sz); return m;
+}
+export function softGeo(w = 12, h = 8) { const k = `${w}x${h}`; return _sg[k] || (_sg[k] = new THREE.SphereGeometry(1, w, h)); }
+
+/** Pata IK de 2 huesos con solo 2 mallas (cápsulas): barata. setFoot(Vector3 local a la cadera). */
+export function legLite(mat, { upper = 0.7, lower = 0.8, r = 0.1 } = {}) {
+  const root = new THREE.Group(), A = new THREE.Group(), B = new THREE.Group();
+  const cap = _sg.cap || (_sg.cap = new THREE.CapsuleGeometry(1, 1, 3, 8));
+  const seg = (len, r0) => { const m = new THREE.Mesh(cap, mat); m.scale.set(r0, (len + r0) / 3, r0); m.position.y = -len / 2; return m; };
+  A.add(seg(upper, r)); B.position.y = -upper; B.add(seg(lower, r * 0.72)); A.add(B); root.add(A);
+  const bend = new THREE.Vector3(0, 1, 0), tgt = new THREE.Vector3(), DOWN = new THREE.Vector3(0, -1, 0), dir = new THREE.Vector3(), axis = new THREE.Vector3(), kd = new THREE.Vector3(), kp = new THREE.Vector3(), ld = new THREE.Vector3(), w2 = new THREE.Quaternion();
+  function solve(foot) {
+    tgt.copy(foot); let d = tgt.length(); const max = upper + lower - 1e-3; if (d > max) { tgt.multiplyScalar(max / d); d = max; } d = Math.max(d, Math.abs(upper - lower) + 1e-3);
+    const ang = Math.acos(clamp((upper * upper + d * d - lower * lower) / (2 * upper * d), -1, 1));
+    dir.copy(tgt).normalize(); axis.crossVectors(dir, bend); if (axis.lengthSq() < 1e-6) axis.set(1, 0, 0); axis.normalize();
+    kd.copy(dir).applyAxisAngle(axis, -ang); A.quaternion.setFromUnitVectors(DOWN, kd);
+    kp.copy(kd).multiplyScalar(upper); ld.copy(tgt).sub(kp).normalize(); w2.setFromUnitVectors(DOWN, ld); B.quaternion.copy(A.quaternion).invert().multiply(w2);
+  }
+  solve(new THREE.Vector3(0, -(upper + lower) * 0.9, 0));
+  return { object: root, setFoot: solve, setBend(v) { bend.copy(v).normalize(); } };
 }

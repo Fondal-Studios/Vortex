@@ -2,15 +2,15 @@
 // que asoma por la abertura: capucha húmeda, ojos que miran, corona de tentáculos y una boca-vórtice con dientes.
 // Estados: charge (0.8 s) = se encoge y la concha arde / pull (2.6 s) = la boca se abre en vórtice, los tentáculos se estiran hacia el jugador
 // y anillos de succión CONVERGEN hacia la boca.
-import { auraShell, ringPool, glowSprite, isLow, damp, clamp, lerp, ease, TAU } from './prisma-util.js';
+import { soft as blob, bead, auraShell, ringPool, glowSprite, isLow, damp, clamp, lerp, ease, TAU } from './prisma-util.js';
 
 export default function build(kit, color) {
-  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, horn, crystalSpike, tentacle, eye, Spring, uTime } = kit;
+  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, horn, crystalSpike, tentacle, eye, Spring, uTime } = kit;
   const V = THREE.Vector3, low = isLow(), Y = new V(0, 1, 0), Z = new V(0, 0, 1);
   const skin = fleshMaterial({ color: 0xc66aa0, vein: 0x5a1048, spot: 0xffe08a, glow: 0.14, wobble: 0.03, breath: 0.035, spots: 0.7, veins: 0.9, iri: 0.5, rough: 0.42, sheen: 0.5 });
   const tskin = fleshMaterial({ color: 0xb85a96, vein: 0x4a0c3c, spot: 0xffe08a, glow: 0.12, wobble: 0.01, breath: 0.02, spots: 1.0, veins: 0.6, scale: 3.4, rough: 0.4 });
   const shellM = bioCrystalMaterial(0x7a52ff, { glow: 0.35 }), glowM = bioCrystalMaterial(0xff7ae0, { glow: 1.2 }), fang = boneMaterial(0xf6ecd8);
-  shellM.side = THREE.DoubleSide; glowM.side = THREE.DoubleSide; glowM.opacity = 0.6; shellM.opacity = 0.62; glowM.depthWrite = false;
+  shellM.forceSinglePass = true; glowM.forceSinglePass = true; shellM.side = THREE.DoubleSide; glowM.side = THREE.DoubleSide; glowM.opacity = 0.6; shellM.opacity = 0.62; glowM.depthWrite = false;
 
   /* ── concha: tubo en espiral logarítmica (se ensancha hasta la abertura) con costillas de cámara ── */
   const Phi = 3.25 * Math.PI, bb = 0.2, Rend = 0.78, cc = 0.5;
@@ -27,8 +27,8 @@ export default function build(kit, color) {
   }
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const shell = new THREE.Group(); shell.position.set(0, 0.5, -0.38); body.add(shell);
-  const sg = shellGeo(1, low ? 40 : 72, low ? 8 : 12);
-  shell.add(new THREE.Mesh(sg, shellM)); const inner = new THREE.Mesh(shellGeo(0.8, low ? 40 : 72, low ? 8 : 10), glowM); shell.add(inner);
+  const sg = shellGeo(1, low ? 36 : 56, low ? 7 : 10);
+  shell.add(new THREE.Mesh(sg, shellM)); const inner = new THREE.Mesh(shellGeo(0.8, low ? 36 : 56, low ? 7 : 8), glowM); shell.add(inner);
   const spikes = []; const NSP = low ? 4 : 7;
   for (let i = 0; i < NSP; i++) { const phi = Phi * (0.45 + 0.5 * i / (NSP - 1)), R = Rend * Math.exp(-bb * (Phi - phi)), rho = R * cc, psi = phi - Phi - Math.PI / 2; const dir = new V(0, Math.sin(psi), Math.cos(psi));
     const c = crystalSpike(shellM, 0.05 * (R / Rend + 0.4), 0.2 * (R / Rend + 0.3)); c.position.set((i % 2 ? 0.1 : -0.1), dir.y * (R + rho * 0.95), dir.z * (R + rho * 0.95)); c.quaternion.setFromUnitVectors(Y, dir); shell.add(c); c.userData.h = c.scale.y; spikes.push(c); }
@@ -56,7 +56,7 @@ export default function build(kit, color) {
   for (let i = 0; i < NTE; i++) { const a = i * TAU / NTE, long = i % 2 === 0, len = long ? 1.9 : 1.2;
     const piv = new THREE.Group(); piv.position.set(Math.cos(a) * 0.42, Math.sin(a) * 0.3 - 0.05, 0.3);
     const t = tentacle(tskin, { len, r0: long ? 0.09 : 0.07, r1: 0.01, hang: false, amp: 0.3, speed: 1.6 + (i % 3) * 0.4, freq: 3, phase: i * 0.9 }); piv.add(t);
-    const tip = blob(shellM, 0.045); tip.position.y = len; t.add(tip); head.add(piv); tents.push({ piv, t, a, len, long }); }
+    const tip = bead(shellM, 0.045); tip.position.y = len; t.add(tip); head.add(piv); tents.push({ piv, t, a, len, long }); }
   const funnel = ringPool(head, 5, color, { plane: 'xy' }), funnel2 = ringPool(head, 3, 0xffd0f2, { plane: 'xy' });
   const aura = auraShell(0xd6c0ff, 1.55); aura.position.y = 0.3; root.add(aura);
 

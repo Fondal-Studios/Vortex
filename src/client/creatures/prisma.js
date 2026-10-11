@@ -1,10 +1,10 @@
 // PRISMA — volador. Mantarraya-polilla de carne y biocristal: cuerpo blando, alas de membrana translúcida con venas y
 // ocelos psicodélicos (dos segmentos con codo que baten con retardo), cola de tentáculos, ojos húmedos que miran.
 // Estados: orbit = vuela en círculos / wind = se repliega y brilla (aviso 0.7 s) / dive = alas pegadas, cuerpo estirado.
-import { glowSprite, auraShell, isLow, isHigh, damp, clamp, lerp, TAU, NOISE } from './prisma-util.js';
+import { soft as blob, bead, glowSprite, auraShell, isLow, isHigh, damp, clamp, lerp, TAU, NOISE } from './prisma-util.js';
 
 export default function build(kit, color) {
-  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, horn, crystalSpike, tentacle, eye, jaw, Spring, uTime } = kit;
+  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, horn, crystalSpike, tentacle, eye, jaw, Spring, uTime } = kit;
   const V = THREE.Vector3, Y = new V(0, 1, 0);
   const col = new THREE.Color(color), low = isLow();
   const skin = fleshMaterial({ color: 0x4a1766, vein: 0x1a0430, spot: color, glow: 0.12, wobble: 0.02, breath: 0.025, spots: 0.7, veins: 0.9, iri: 0.35, rough: 0.45, sheen: 0.35 });
@@ -15,7 +15,7 @@ export default function build(kit, color) {
   /* ── membrana de ala: shader con venas en abanico, ocelos iridiscentes y borde que flamea ── */
   const wu = { uTime, uHurt: { value: 0 }, uWind: { value: 0 }, uC1: { value: new THREE.Color(0x35107a) }, uC2: { value: col.clone() }, uSide: { value: 0 } };
   const wing = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false });
-  wing.userData.u = wu;
+  wing.userData.u = wu; wing.forceSinglePass = true;
   wing.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, wu);
     sh.vertexShader = sh.vertexShader
@@ -67,6 +67,7 @@ export default function build(kit, color) {
       sh.add(place(horn(bone, 0.025, 1, 5), new V(0.02, 0.02, zl(0.02)), new V(0.5 * L, 0.0, zt(0.5) + 0.12), 0.022));
       el.add(place(horn(bone, 0.022, 1, 5), new V(0, 0.0, 0), new V(0.5 * L, 0.0, zt(1) - zl(0.5) + 0.05), 0.018));
     }
+    if (low) { body.add(sh); return { sh, el, side }; }
     const c1 = crystalSpike(crystal, 0.035, 0.17); c1.position.set(0, 0.03, 0); c1.rotation.set(-0.5, 0, -0.2); el.add(c1);
     const c2 = crystalSpike(crystal, 0.025, 0.12); c2.position.set(0.5 * L, 0.03, zl(1) - zl(0.5)); c2.rotation.set(-1.1, 0, -1.2); el.add(c2);
     body.add(sh); return { sh, el, side, c1, c2 };
@@ -77,18 +78,18 @@ export default function build(kit, color) {
   const bel = blob(belly, 0.34, 0.78, 0.5, 1.55); bel.position.set(0, -0.12, 0.02); body.add(bel);
   const head = new THREE.Group(); head.position.set(0, 0.02, 0.88); body.add(head);
   head.add(blob(skin, 0.3, 1, 0.9, 1.05));
-  const eyes = [], eyeDef = [[-0.2, 0.07, 0.2, 0.15, -0.9], [0.2, 0.07, 0.2, 0.15, 0.9], [0, 0.26, 0.17, 0.065, 0]];
+  const eyes = [], eyeDef = [[-0.2, 0.07, 0.2, 0.15, -0.9], [0.2, 0.07, 0.2, 0.15, 0.9], [0, 0.26, 0.17, 0.065, 0]].slice(0, low ? 2 : 3);
   eyeDef.forEach(([x, y, z, r, ry]) => { const e = eye({ r, iris: color, glow: 0.8 }); e.object.position.set(x, y, z); e.object.rotation.y = ry * 0.55; head.add(e.object); eyes.push({ e, ry: ry * 0.55 }); });
   const mouth = jaw(skin, fang, { w: 0.12, len: 0.15, teeth: 4 }); mouth.object.position.set(0, -0.1, 0.26); mouth.object.rotation.x = 0.1; head.add(mouth.object);
-  const ants = [-1, 1].map((sd) => { const a = tentacle(skin, { len: 0.7, r0: 0.03, r1: 0.008, hang: false, amp: 0.1, speed: 3, freq: 4 }); a.position.set(sd * 0.1, 0.24, 0.12); a.rotation.set(Math.PI / 2 - 0.9, 0, -sd * 0.35); head.add(a);
-    const tip = blob(crystal, 0.035); tip.position.set(0, 0.7, 0); a.add(tip); return a; });
+  const ants = (low ? [1] : [-1, 1]).map((sd) => { const a = tentacle(skin, { len: 0.7, r0: 0.03, r1: 0.008, hang: false, amp: 0.1, speed: 3, freq: 4 }); a.position.set(sd * 0.1, 0.24, 0.12); a.rotation.set(Math.PI / 2 - 0.9, 0, -sd * 0.35); head.add(a);
+    const tip = bead(crystal, 0.035); tip.position.set(0, 0.7, 0); a.add(tip); return a; });
   // cola: dos tentáculos finos largos + uno central grueso con cristal en la punta
   const tails = [[-0.1, 0.5, 1.5, 0.05], [0.1, 0.5, 1.5, 0.05], [0, 0.55, 1.8, 0.07]].map(([x, amp, len, r0], i) => {
     const t = tentacle(skin, { len, r0, r1: 0.012, hang: false, amp, speed: 2.1 + i * 0.4, freq: 3.4 }); const g = new THREE.Group(); g.position.set(x, -0.04, -0.95); t.rotation.x = -Math.PI / 2; g.add(t); body.add(g); return { g, t };
   });
   const tailTip = crystalSpike(crystal, 0.05, 0.2); tailTip.position.set(0, 1.8, 0); tailTip.rotation.x = 0; tails[2].t.add(tailTip);
   // cristales que brotan del lomo
-  const crys = [[0, 0.24, 0.25, 0.06, 0.3, -0.3], [-0.1, 0.22, -0.2, 0.04, 0.2, -0.55], [0.1, 0.22, -0.35, 0.04, 0.18, -0.6], [0, 0.2, -0.6, 0.032, 0.15, -0.8]].map(([x, y, z, r, h, rx]) => { const c = crystalSpike(crystal, r, h); c.position.set(x, y, z); c.rotation.set(rx, 0, x * 1.5); body.add(c); return { c, h }; });
+  const crys = [[0, 0.24, 0.25, 0.06, 0.3, -0.3], [-0.1, 0.22, -0.2, 0.04, 0.2, -0.55], [0.1, 0.22, -0.35, 0.04, 0.18, -0.6], [0, 0.2, -0.6, 0.032, 0.15, -0.8]].slice(0, low ? 2 : 4).map(([x, y, z, r, h, rx]) => { const c = crystalSpike(crystal, r, h); c.position.set(x, y, z); c.rotation.set(rx, 0, x * 1.5); body.add(c); return { c, h }; });
   const halo = glowSprite(color, 3.2, 0.0); halo.position.set(0, 0.1, 0.1); body.add(halo);
   const aura = auraShell(0xaa88ff, 1.5); root.add(aura);
 

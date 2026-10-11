@@ -57,6 +57,15 @@ export class Sound {
   wave() { [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 110 * 2 ** (s / 12), type: 'sawtooth', dur: 0.9, vol: 0.18, att: 0.1, delay: i * 0.12 })); }
   gravity(at) { this.tone({ f: 80, f2: 600, type: 'sine', dur: 0.8, vol: 0.5, at }); this.tone({ f: 600, f2: 80, type: 'triangle', dur: 0.8, vol: 0.3, at, delay: 0.4 }); }
   portal(at) { this.tone({ f: 300, f2: 1500, type: 'sine', dur: 0.35, vol: 0.3, at }); this.tone({ f: 1500, f2: 300, type: 'triangle', dur: 0.35, vol: 0.2, at, delay: 0.1 }); }
+  /** Sonidos de interfaz (menús PS5): navegación, confirmar, volver, trofeo. */
+  ui(kind) {
+    if (!this.ctx) return;
+    if (kind === 'tick') this.tone({ f: 1500, f2: 1900, type: 'sine', dur: 0.04, vol: 0.1 });
+    else if (kind === 'ok') { this.tone({ f: 600, f2: 1200, type: 'triangle', dur: 0.12, vol: 0.18 }); this.tone({ f: 1200, type: 'sine', dur: 0.2, vol: 0.1, delay: 0.06 }); }
+    else if (kind === 'back') this.tone({ f: 900, f2: 450, type: 'triangle', dur: 0.12, vol: 0.14 });
+    else if (kind === 'trophy') [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 784 * 2 ** (s / 12), type: 'sine', dur: 0.4, vol: 0.14, delay: i * 0.09 }));
+  }
+  setVolume(v) { if (this.master) this.master.gain.value = 0.9 * v; }
   /** Chirrido del Heraldo al hablar (una nota corta por letra). */
   chirp(n) { const f = 700 + (n * 53) % 500; this.tone({ f, f2: f * (1.2 + (n % 3) * 0.1), type: 'sine', dur: 0.07, vol: 0.12 }); }
   /** Tren: estruendo creciente, bocina y silencio. */

@@ -9,6 +9,8 @@ import { LEVELS, initialQuality, saveQuality, AutoQuality, isTouchDevice, isIOS 
 import { TouchControls } from './touch.js';
 import * as Story from './story.js';
 import { uTime } from './shaders.js';
+import { MenuUI, showLoading, trophy } from './ui.js';
+import { Pad } from './gamepad.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -34,8 +36,9 @@ if (params.get('autoq') === '0') auto.enabled = false;
 const keys = new Set();
 const mouse = { dx: 0, dy: 0, fire: false };
 const NOLOCK = params.get('nolock') === '1';
-let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now();
+let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), mouseSens = 0.0022;
 addEventListener('keydown', (e) => {
+  if (typeof ui !== 'undefined' && !session && ui.handleKey(e)) return;
   keys.add(e.code);
   if (e.code >= 'Digit1' && e.code <= 'Digit5') wantWeapon = +e.code.slice(5) - 1;
   if (e.code === 'Space') e.preventDefault();
@@ -62,14 +65,24 @@ addEventListener('touchstart', () => { sound.init(); sound.resume(); }, { passiv
 
 function readInput() {
   if (session && session.touch) return touch.read();
-  const SENS = 0.0022;
+  const SENS = mouseSens;
   const i = {
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
     dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   mouse.dx = mouse.dy = 0; wantWeapon = -1;
+  const g = pad.read(padDt); // mando (DualSense / Xbox)
+  if (g) {
+    i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw; i.dpitch += g.dpitch;
+    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash;
+    if (g.next && !padLatch.next) i.weapon = (((session ? session.myWeapon || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.myWeapon || 0 : 0) - 1) % 5 + 5) % 5;
+    padLatch.next = g.next; padLatch.prev = g.prev;
+    if (g.pause && !padLatch.pause && session && !session.touch) { document.exitPointerLock && document.exitPointerLock(); }
+    padLatch.pause = g.pause; renderer.firing = renderer.firing || g.fire;
+  }
   return i;
 }
+const padLatch = { next: false, prev: false, pause: false }; let padDt = 0.016;
 
 /** Asistencia de puntería táctil: empuja suavemente la mira hacia la criatura más cercana al centro. */
 function assistAim(inp, state, me, dt) {
@@ -168,8 +181,9 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; // nunca negativo (carga lenta)
   window.__fps = (window.__fps || 60) * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;
-  uTime.value += 0; subs.update(dt);
-  if (!session) { menuSpin(dt); return; }
+  uTime.value += 0; subs.update(dt); padDt = dt;
+  if (!session) { for (const a of pad.menuEvents(dt)) ui.act(a); menuSpin(dt); return; }
+  if (session && !session.touch && (!locked || session.ended) && !session.headless) for (const a of pad.menuEvents(dt)) { if (a === 'ok' && !$('pause').classList.contains('hidden')) lockPointer(); if (a === 'back' && !$('end').classList.contains('hidden')) location.reload(); }
   auto.tick(dt, level);
   let state = null;
   if (session.mode === 'solo') {
@@ -234,17 +248,17 @@ function audioAndHud(state, me, dt) {
     switch (e.t) {
       case 'shot': sound.shot(e.w, mine ? null : e.o); break;
       case 'hit': sound.hit(e.p); break;
-      case 'kill': sound.voice(e.k, 'die', e.p); break;
+      case 'kill': sound.voice(e.k, 'die', e.p); trophy('first', 'Primer contacto', 'Derrotá a tu primera criatura', sound); if (e.k === 'coloso') trophy('b1', 'Corazón roto', 'Derrotá al Coloso Prismático', sound); if (e.k === 'madre') trophy('b2', 'El último latido', 'Derrotá a la Madre Geoda', sound); if (e.k === 'geoda') trophy('geoda', 'Paciencia', 'Derrotá una Geoda', sound); break;
       case 'boom': sound.boom(e.p); break;
-      case 'hurt': if (mine) { sound.hurt(); const v = $('vignette'); v.classList.add('hurt'); setTimeout(() => v.classList.remove('hurt'), 120); if (navigator.vibrate) navigator.vibrate(30); } break;
+      case 'hurt': if (mine) { sound.hurt(); const v = $('vignette'); v.classList.add('hurt'); setTimeout(() => v.classList.remove('hurt'), 120); if (navigator.vibrate) navigator.vibrate(30); pad.rumble(120, 0.6); } break;
       case 'pickup': if (mine) sound.pickup(); break;
-      case 'revive': sound.pickup(); banner(mine ? '¡Te reanimaron!' : 'Compañero reanimado', 1800); break;
+      case 'revive': trophy('rev', 'Mano amiga', 'Reanimá a un compañero', sound); sound.pickup(); banner(mine ? '¡Te reanimaron!' : 'Compañero reanimado', 1800); break;
       case 'wave': if (!session.intro) { sound.wave(); banner(e.boss ? '¡EL CORAZÓN DEL VÓRTICE!' : `OLEADA ${e.n}`, 2500); } break;
-      case 'clear': banner('Oleada superada', 2200); break;
-      case 'gravity': sound.gravity(e.p); if (me && me.flip) banner('¡LA GRAVEDAD SE INVIERTE!', 1500); flash(); break;
+      case 'clear': banner('Oleada superada', 2200); if (e.wave >= 3) trophy('w3', 'Resistente', 'Superá 3 oleadas', sound); break;
+      case 'gravity': sound.gravity(e.p); trophy('flip', 'Cabeza abajo', 'Sentí la gravedad invertida', sound); if (me && me.flip) banner('¡LA GRAVEDAD SE INVIERTE!', 1500); flash(); break;
       case 'pull': sound.gravity(e.p); break;
       case 'heal': sound.pickup(); break;
-      case 'portal': sound.portal(e.p); break;
+      case 'portal': sound.portal(e.p); trophy('portal', 'Atajo dimensional', 'Cruzá un portal', sound); break;
       case 'blink': sound.voice('espejo', 'blink', e.p); break;
       case 'summon': sound.voice('cuarzo', 'cast', e.p); break;
       case 'phase': sound.voice(state.boss && state.boss.name.startsWith('Col') ? 'coloso' : 'madre', 'phase'); banner(`FASE ${e.n}`, 1800); flash(); break;
@@ -281,7 +295,7 @@ function endGame(state, me) {
     renderer.setGuide(true); subs.play(Story.INTERLUDE, () => { renderer.setGuide(false); startSolo('m2', { campaign: 'm2' }); });
     return;
   }
-  if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); showEnd(true, stats, 'VOLVISTE AL MUNDO DE LOS VIVOS'); }); return; }
+  if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', 'De vuelta al andén', 'Completá la historia', sound); showEnd(true, stats, 'VOLVISTE AL MUNDO DE LOS VIVOS'); }); return; }
   if (!won) { subs.play(Story.DEFEAT, () => showEnd(false, stats)); return; }
   showEnd(true, stats);
 }
@@ -298,15 +312,21 @@ function menuSpin(dt) {
   renderer.render({ map: renderer.mapId, players: [], monsters: [], projectiles: [], pickups: [], events: [], fx: {} }, dt, 0, null);
 }
 
-/* ───────── menú ───────── */
-$('story') && ($('story').textContent = 'Un tren, un andén, una luz. Despertás en el Vórtice —lo que hay entre vivir y no— con armas en las manos y un bicho extraño que te explica la única regla: sobrevivir a todo para volver al mundo de los vivos. Solo o hasta 4 en cooperativo.');
-$('campaign').addEventListener('click', () => startSolo('m1', { campaign: 'm1' }));
-document.querySelectorAll('[data-start]').forEach((b) => b.addEventListener('click', () => startSolo(b.dataset.start, { intro: false })));
+/* ───────── menú (estilo PS5) ───────── */
+const pad = new Pad();
+const loadAnd = (fn) => (params.get('cap') ? fn() : showLoading(1900, fn));
+const ui = new MenuUI({ sound, actions: {
+  story: () => loadAnd(() => startSolo('m1', { campaign: 'm1' })),
+  arena: (m) => loadAnd(() => startSolo(m, { intro: false })),
+} });
 $('mkroom').addEventListener('click', () => startCoop(true, null, $('coopmap').value));
 $('joinroom').addEventListener('click', () => startCoop(false, $('roomcode').value.trim()));
-$('pause').addEventListener('click', (e) => { if (e.target.id === 'quit' || e.target.closest('.opts')) return; if (session && session.touch) return; lockPointer(); });
+$('pause').addEventListener('click', (e) => { if (e.target.closest('.item.sel') || e.target.id === 'quit') return; if (session && session.touch) return; lockPointer(); });
 $('resume').addEventListener('click', () => { if (session && session.touch) pauseTouch(false); else lockPointer(); });
-$('sens').addEventListener('input', (e) => touch.setSens(0.0009 * +e.target.value));
+$('sens').addEventListener('input', (e) => { touch.setSens(0.0009 * +e.target.value); mouseSens = 0.00044 * +e.target.value; });
+$('sens0').addEventListener('input', (e) => { touch.setSens(0.0009 * +e.target.value); mouseSens = 0.00044 * +e.target.value; });
+$('vol').addEventListener('input', (e) => sound.setVolume(+e.target.value / 10));
+$('subsel').addEventListener('change', (e) => { $('sub').style.display = e.target.value === '1' ? '' : 'none'; });
 $('quit').addEventListener('click', () => location.reload());
 $('tomenu').addEventListener('click', () => location.reload());
 $('again').addEventListener('click', () => {
@@ -320,8 +340,8 @@ if (params.get('auto')) {
   startSolo(params.get('auto'), { bot: params.get('bot') === '1', wave: +params.get('wave') || 0, god: params.get('god') === '1', horde: params.get('horde') === '1', seed: +params.get('seed') || 7, skill: +params.get('skill') || 1.2, difficulty: +params.get('difficulty') || 1, intro: false });
   window.__session = session; window.__renderer = renderer;
 }
-window.__api = { get session() { return session; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
-requestAnimationFrame(frame);
+window.__api = { ui, pad, get session() { return session; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
+window.__frame = frame; window.__ui = ui; if (!params.get('cap')) requestAnimationFrame(frame);
 
 // En un sitio estático (sin servidor) el cooperativo no está disponible: se avisa y se deshabilita.
 fetch('health').then((r) => { if (!r.ok) throw new Error('sin servidor'); }).catch(() => {
