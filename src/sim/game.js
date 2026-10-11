@@ -18,14 +18,14 @@ export class Game {
     this.mapId = mapId;
     this.rng = makeRng(seed);
     this.difficulty = difficulty;
-    this.tick = 0; this.time = 0;
+    this.tick = 0; this.time = 0; this.dt = 1 / 60;
     this.players = []; this.monsters = []; this.projectiles = []; this.pickups = [];
     this.events = [];
     this.nextId = 1;
     this.state = 'playing'; // playing | won | lost
     this.wave = 0; this.waveTotal = WAVE_PLANS[mapId].length + 1;
     this.phase = 'intermission'; this.phaseT = 4; // arranca con 4s de calma
-    this.queue = []; this.spawnT = 0;
+    this.queue = []; this.spawnT = 0; this.spawnGap = 1.5;
     this.boss = null;
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
   }
@@ -52,7 +52,7 @@ export class Game {
     if (!p) return;
     const i = p.input;
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
-    i.dyaw += +inp.dyaw || 0; i.dpitch += +inp.dpitch || 0; // acumulativo hasta el próximo step
+    i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -3, 3); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -3, 3); // acumulativo hasta el próximo step; acotado contra entradas hostiles
     i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
   }
@@ -63,7 +63,7 @@ export class Game {
 
   /* ─────────── paso principal ─────────── */
   step(dt) {
-    this.tick++; this.time += dt;
+    this.tick++; this.time += dt; this.dt = dt;
     if (this.state !== 'playing') return;
     this.updateWaves(dt);
     for (const p of this.players) this.updatePlayer(p, dt);
@@ -89,7 +89,7 @@ export class Game {
     const cap = Math.min(LIMITS.monsters - 12, 44 + 10 * (this.players.length - 1));
     if (this.queue.length && this.spawnT <= 0 && this.monsters.length < cap) {
       this.spawnFromQueue();
-      this.spawnT = Math.max(0.45, 1.9 - 0.12 * this.wave);
+      this.spawnT = this.spawnGap;
     }
     if (!this.queue.length && !this.monsters.some((m) => !m.dead)) {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
@@ -128,6 +128,7 @@ export class Game {
     const boss = isBoss ? this.queue.shift() : null;
     for (let i = this.queue.length - 1; i > 0; i--) { const j = Math.floor(this.rng.next() * (i + 1)); [this.queue[i], this.queue[j]] = [this.queue[j], this.queue[i]]; }
     if (boss) this.queue.unshift(boss);
+    this.spawnGap = Math.min(Math.max(0.45, 1.9 - 0.12 * n), Math.max(0.16, 42 / Math.max(1, this.queue.length))); // la oleada dura ~40 s sin importar el tamaño
     this.emit({ t: 'wave', n, boss: isBoss });
   }
 
@@ -266,7 +267,7 @@ export class Game {
     if (w.per > 0 && p.ammo[p.weapon] < w.per) { // sin munición → Haz
       p.weapon = 0; return;
     }
-    p.cd = w.rate;
+    p.cd = Math.max(p.cd, -this.dt) + w.rate; // arrastra el sobrante: la cadencia no se redondea al tick
     if (w.per > 0) p.ammo[p.weapon] -= w.per;
     const origin = this.eyePos(p);
     const base = this.aimDir(p);
@@ -337,7 +338,11 @@ export class Game {
     if (m.parent) { const par = this.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); }
     this.emit({ t: 'kill', id: m.id, k: m.kind, p: a3(m.pos) });
     if (m.kind === 'racimo') this.explode(m.pos, 5.5, 22, 40, null);
-    if (m.def.boss) { this.boss = m; return; }
+    if (m.def.boss) { // al caer el corazón del vórtice todo lo demás se hace añicos
+      this.queue = [];
+      for (const o of this.monsters) if (!o.dead && o !== m) { o.dead = true; this.emit({ t: 'kill', id: o.id, k: o.kind, p: a3(o.pos) }); }
+      return;
+    }
     const lowHp = this.players.some((p) => !p.dead && p.hp < 55);
     if (this.rng.next() < (lowHp ? 0.3 : 0.18)) {
       if (lowHp && this.rng.next() < 0.6) this.dropPickup('hp', m.pos);

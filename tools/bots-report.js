@@ -1,6 +1,6 @@
 import { Game } from '../src/sim/game.js';
 import { makeBot } from '../src/sim/bot.js';
-export function playMatch({ mapId, seed, players = 1, skill = +process.env.SKILL || 1, maxSeconds = 1500, dt = 1 / 30, difficulty = 1 }) {
+export function playMatch({ mapId, seed, players = 1, skill = +process.env.SKILL || 1, maxSeconds = 1500, dt = 1 / 60, difficulty = 1 }) {
   const g = new Game({ mapId, seed, difficulty });
   const bots = [];
   for (let i = 0; i < players; i++) { const p = g.addPlayer('bot' + i); bots.push([p.id, makeBot(g, p.id, { seed: seed + i, skill })]); }
@@ -10,7 +10,7 @@ export function playMatch({ mapId, seed, players = 1, skill = +process.env.SKILL
     for (const [id, think] of bots) g.setInput(id, think(dt));
     g.step(dt);
     if (!(g.wave in waveAt)) waveAt[g.wave] = +g.time.toFixed(1);
-    const left = g.queue.length + g.monsters.length;
+    const left = g.queue.length + g.monsters.length + (g.boss && !g.boss.dead ? Math.round(g.boss.hp / 20) : 0);
     if (left !== lastLeft || g.phase === 'intermission') { lastLeft = left; lastProgress = g.time; }
     maxStall = Math.max(maxStall, g.time - lastProgress);
     for (const p of g.players) if (!Number.isFinite(p.pos.x)) throw new Error('NaN en jugador');
