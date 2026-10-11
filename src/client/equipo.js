@@ -1,0 +1,13 @@
+// Equipo del jugador: personaje + 4 armas elegidas (el Haz va siempre en la ranura 1). Se guarda en el navegador.
+import { CHARACTER_IDS, WEAPONS } from '../sim/data.js';
+const KEY = 'cristal.equipo.v1';
+export const Equipo = { char: 'egida', slots: [0, 1, 2, 3, 4] };
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && CHARACTER_IDS.includes(s.char)) { Equipo.char = s.char; if (Array.isArray(s.slots) && s.slots.length === 5) Equipo.slots = s.slots.map((w) => (w >= 0 && w < WEAPONS.length ? w : 0)); } } catch { /* sin almacenamiento */ }
+export function saveEquipo() { try { localStorage.setItem(KEY, JSON.stringify(Equipo)); } catch { /* ok */ } }
+/** Pone el arma `id` en la ranura `slot` (1..4); si ya estaba en otra ranura, se intercambian. La ranura 0 es siempre el Haz. */
+export function assignWeapon(slot, id) {
+  if (slot < 1 || slot > 4 || id === 0) return false;
+  const j = Equipo.slots.indexOf(id), old = Equipo.slots[slot];
+  if (j > 0) Equipo.slots[j] = old;
+  Equipo.slots[slot] = id; saveEquipo(); return true;
+}

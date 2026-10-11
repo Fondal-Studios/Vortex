@@ -81,6 +81,20 @@ const BUILD = {
     g.userData = { egg, halo };
     return g;
   },
+  well(o) {
+    const g = new THREE.Group();
+    const core = new THREE.Mesh(GEO.sph, new THREE.MeshBasicMaterial({ color: 0x000000 })); core.scale.setScalar(1.1); g.add(core);
+    const ring = new THREE.Mesh(GEO.ring, add(0xb98cff, 0.9)); ring.scale.setScalar(3); g.add(ring); const ring2 = new THREE.Mesh(GEO.ring, add(0x66ffee, 0.7)); ring2.scale.setScalar(5); ring2.rotation.x = 1.2; g.add(ring2);
+    g.userData = { ring, ring2 }; return g;
+  },
+  ojo(o) {
+    const g = new THREE.Group();
+    const ball = new THREE.Mesh(GEO.sph, new THREE.MeshStandardMaterial({ color: 0xf6efe8, emissive: 0x552222, emissiveIntensity: 0.4, roughness: 0.25 })); ball.scale.setScalar(1.7); g.add(ball);
+    const iris = new THREE.Mesh(GEO.disc, add(0xff3a6a, 0.95)); iris.scale.setScalar(0.9); iris.position.z = 1.62; g.add(iris);
+    const pupil = new THREE.Mesh(GEO.disc, new THREE.MeshBasicMaterial({ color: 0x000000 })); pupil.scale.set(0.3, 0.6, 1); pupil.position.z = 1.64; g.add(pupil);
+    const halo = new THREE.Mesh(GEO.sph, add(0xff3a3a, 0.14)); halo.scale.setScalar(3); g.add(halo);
+    g.userData = { ball, iris, pupil, halo, look: true }; return g;
+  },
   dome(o) {
     const g = new THREE.Group();
     const d = new THREE.Mesh(GEO.sph, add(0x66ffee, 0.12)); d.scale.setScalar(o.r); g.add(d);
@@ -114,8 +128,8 @@ export class ObjectsView {
     m.position.copy(A).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(Y, d.normalize()); m.scale.set(width, l, width);
     this.tracers.push({ m, life, max: life });
   }
-  sync(state, dt, map) {
-    this.t += dt;
+  sync(state, dt, map, cam) {
+    this.t += dt; this.cam = cam || null;
     const seen = new Set(), objs = state.objs || [];
     for (const o of objs) {
       seen.add(o.id);
@@ -126,7 +140,7 @@ export class ObjectsView {
       }
       const g = it.g, u = g.userData, pos = V(o.p);
       g.position.copy(pos);
-      const up = o.t === 'dome' || o.t === 'core' ? Y : upAt(map, o.p); g.quaternion.setFromUnitVectors(Y, up);
+      const up = o.t === 'dome' || o.t === 'core' || o.t === 'well' || o.t === 'ojo' ? Y : upAt(map, o.p); g.quaternion.setFromUnitVectors(Y, up);
       this.animate(it, o, u, up);
     }
     for (const [id, it] of this.items) if (!seen.has(id)) { this.root.remove(it.g); it.g.traverse((x) => { if (x.material) x.material.dispose && x.material.dispose(); }); this.items.delete(id); }
@@ -194,6 +208,8 @@ export class ObjectsView {
         const life = Math.min(1, (o.l || 6) / 6); u.d.material.opacity = 0.06 + 0.1 * life; u.w.rotation.y = t * 0.3; u.w.material.opacity = 0.15 + 0.15 * life;
         break;
       }
+      case 'well': { u.ring.rotation.z = t * 5; u.ring2.rotation.z = -t * 4; u.ring.scale.setScalar(3 + Math.sin(t * 6) * 0.4); break; }
+      case 'ojo': { const k = o.mx ? o.hp / o.mx : 1; u.halo.material.opacity = 0.1 + 0.12 * Math.sin(t * 5 + o.id) + (1 - k) * 0.1; u.iris.material.color.setHex(k < 0.4 ? 0xffd24a : 0xff3a6a); if (this.cam) it.g.lookAt(this.cam); break; }
       case 'turret': { u.head.rotation.y = t * 2; u.head.material.opacity = 0.7 + pulse * 0.3; break; }
       default: break;
     }
@@ -208,6 +224,12 @@ export class ObjectsView {
     else if (e.t === 'purge') fx.blast(V(pos || [0, 0, 0]), 0xff9ae8, 60, 1.2);
     else if (e.t === 'sacbreak' || e.t === 'hatch') { fx.burst(V(e.p), 0xff5aa8, 22, 8, 0.7, 0.8); fx.blast(V(e.p), 0xff5aa8, 5, 0.5); }
     else if (e.t === 'ping') fx.blast(V(e.p), 0xffe27a, 3, 0.6);
+    else if (e.t === 'beam') this.beam(e.o, e.to, e.c === 'heal' ? 0x7dff9a : 0xffffff, 0.35, e.c === 'rail' ? 0.18 : 0.3);
+    else if (e.t === 'arc') this.beam(e.o, e.to, 0xb8e6ff, 0.18, 0.07);
+    else if (e.t === 'gazefire') this.beam(e.from, e.to, 0xff3a5a, 0.5, 0.9);
+    else if (e.t === 'ojobreak') { fx.burst(V(e.p), 0xff3a5a, 30, 10, 0.8, 0.9); fx.blast(V(e.p), 0xff3a5a, 6, 0.6); }
+    else if (e.t === 'skill') { fx.blast(V(e.p), 0x66ffee, 5, 0.4); }
+    else if (e.t === 'well') { fx.blast(V(e.p), 0xb98cff, 8, 0.5); }
     else if (e.t === 'stagger') { fx.blast(V(pos || [0, 0, 0]), 0xffffff, 40, 1.0); }
   }
 }

@@ -124,6 +124,7 @@ export function spikes(items, { sides = 5, color = 0xffffff, cls = 2, glow = 0, 
   const cone = coneGeo(sides, curve), out = [];
   for (const it of items) {
     const g = aimY(cone, it.p, it.d, [it.r, it.h, it.r]);
+    g.attributes.uv.array.fill(0);
     paint(g, it.c ?? color, it.cls ?? cls, it.glow ?? glow, tipGlow ? (p) => ({ g: clamp((p.clone().sub(it.p).dot(it.d.clone().normalize()) / it.h), 0, 1) * tipGlow }) : null); out.push(g);
   }
   return merge(out);
@@ -198,4 +199,31 @@ export function domePlate(w, l, h, { nu = 8, nv = 7, thick = 0.03, droop = 0.35,
     const hh = h * (Math.pow(1 - r2, 0.55) * (1 - droop) + (1 - r2) * droop) + h * ridge * Math.exp(-X * X * 7) * (1 - r2);
     return new V3(X * w * (1 - taper * (Z * 0.5 + 0.5) * 0.5), hh, Z * l);
   }, nu, nv, { thick, inner });
+}
+
+/**
+ * Geometrías de una pata (lado derecho +x y espejo): muslo musculoso con placa externa, rodilla acorazada, tibia con tendón, pie con garras.
+ * Devuelve { uR, lR, uL, lL } (cuelgan hacia -y desde la cadera). pal = { flesh, chit, bone }.
+ */
+export function legGeometry({ upper = 0.7, lower = 0.8, rUp = [0.2, 0.26, 0.18, 0.1], rLo = [0.1, 0.12, 0.08, 0.045], radial = 8, seg = 8, pal = {}, claws = 3, spur = true } = {}) {
+  const FL = pal.flesh ?? 0x3a1a26, CH = pal.chit ?? 0x1a1524, BO = pal.bone ?? 0x7a6a50, UP = upper, LO = lower;
+  const up = [], lo = [];
+  const thigh = loft(line([0, 0, 0], [0, -UP, 0]), { seg, radial, r: prof([[0, rUp[0]], [0.28, rUp[1]], [0.62, rUp[2]], [1, rUp[3]]]), ry: () => 0.9, round: [0.2, 0.0], mod: (t, a) => 1 + 0.07 * Math.sin(a * 3 + t * 5) * (1 - t) });
+  up.push(paint(thigh, FL, 0, 0, (p, n) => ({ k: 0.8 + 0.3 * n.x })));
+  const gp = domePlate(rUp[1] * 0.55, UP * 0.5, rUp[1] * 0.5, { ridge: 0.5, thick: 0.03, nu: 6, nv: 6 });
+  up.push(paint(aimY(gp, new V3(rUp[1] * 0.65, -UP * 0.42, 0.0), new V3(1, 0.15, 0.0)), CH, 1, 0, (p, n, uv) => ({ k: 0.55 + 0.7 * Math.max(0, p.x * 3), g: sstep(0.8, 1, Math.max(Math.abs(uv[0] * 2 - 1), Math.abs(uv[1] * 2 - 1))) * 0.5 })));
+  up.push(place(paint(blobGeo(rUp[3] * 1.2, rUp[3] * 1.2, rUp[3] * 1.3, 10, 8), CH, 1, 0, (p) => ({ k: 0.7 + 0.5 * p.y })), [0, -UP, 0]));
+  if (spur) up.push(spikes([{ p: new V3(0.06, -UP, -rUp[3]), d: new V3(0.4, 0.2, -1), r: rUp[3] * 0.5, h: rUp[3] * 2.4 }, { p: new V3(rUp[3], -UP * 0.6, -0.08), d: new V3(1, 0.3, -0.6), r: rUp[3] * 0.35, h: rUp[3] * 1.6 }], { sides: 5, color: BO, cls: 2, curve: -0.2 }));
+  const shin = loft(line([0, 0, 0], [0, -LO, 0]), { seg, radial, r: prof([[0, rLo[0]], [0.16, rLo[1]], [0.45, rLo[2]], [1, rLo[3]]]), ry: () => 0.95 });
+  lo.push(paint(shin, FL, 0, 0, (p, n) => ({ k: 0.8 + 0.3 * n.x })));
+  const sg = domePlate(rLo[2] * 0.8, LO * 0.38, rLo[2] * 0.7, { ridge: 0.6, thick: 0.02, nu: 5, nv: 6 });
+  lo.push(paint(aimY(sg, new V3(0.0, -LO * 0.4, rLo[2] * 0.75), new V3(0, 0.1, 1)), CH, 1, 0, (p) => ({ k: 0.7 + 0.5 * Math.max(0, p.y * 4) })));
+  lo.push(paint(loft([new V3(0, -0.05, -rLo[1]), new V3(0, -LO * 0.5, -rLo[2] * 0.75), new V3(0, -LO + 0.06, -rLo[3] * 0.7)], { seg: 6, radial: 5, r: () => rLo[3] * 0.4, round: [0.2, 0.2] }), 0xb08a80, 0, 0, () => ({ k: 1.1 })));
+  lo.push(paint(place(blobGeo(rLo[1], rLo[1] * 0.6, rLo[1] * 1.4, 10, 7), [0, -LO, rLo[1] * 0.4]), 0x2a1822, 1, 0, () => ({ k: 0.9 })));
+  const cl = []; const ch = rLo[3] * 4;
+  for (let i = 0; i < claws; i++) { const a = claws === 1 ? 0 : (i / (claws - 1) - 0.5) * 1.2; cl.push({ p: new V3(Math.sin(a) * rLo[3] * 1.4, -LO, rLo[3] * 2), d: new V3(Math.sin(a) * 0.9, -0.5, 0.9), r: rLo[3] * 0.8, h: ch }); }
+  cl.push({ p: new V3(0, -LO + 0.04, -rLo[3] * 2), d: new V3(0, -0.2, -1), r: rLo[3] * 0.5, h: ch * 0.55 });
+  lo.push(spikes(cl, { sides: 5, color: BO, cls: 2, curve: 0.15 }));
+  const mu = merge(up), ml = merge(lo);
+  return { uR: mu, lR: ml, uL: mirrorX(mu), lL: mirrorX(ml) };
 }

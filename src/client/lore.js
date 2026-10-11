@@ -16,6 +16,7 @@ const TEXT = {
   ariete: ['Escarabajo-rinoceronte acorazado. Patea 1 s, embiste en línea recta y queda aturdido.', 'Hacete a un lado; aturdido recibe ×1,5.'],
   espiral: ['Nautilo de concha en espiral. Carga y arrastra a los jugadores durante 2,6 s.', 'Resistí moviéndote lejos de él.'],
   coloso: ['Jefe del Vacío de Islas: leviatán-ojo flotante. 3 fases: anillos de orbes, refuerzos y pulsos de gravedad.', 'Su núcleo siempre es vulnerable. Usá la Aguja.'],
+  argos: ['Jefe del Laberinto Celestial: un ojo gigante rodeado de ojos menores. Mientras queden ojos orbitando, está blindado; su Mirada avisa 2,5 s y los muros la frenan.', 'Rompé todos los ojos orbitales y atacá aturdido (×2,5). Cuando carga la mirada, cubrite tras un muro.'],
   madre: ['Jefe de la Cámara Fractal: flor-útero. Cerrada dispara espirales; abierta pare Racimos.', 'Castigá la ventana abierta.'],
 };
 export const BESTIARY = Object.keys(MONSTERS).map((k) => {
@@ -25,6 +26,8 @@ export const BESTIARY = Object.keys(MONSTERS).map((k) => {
 
 export const TIPS = [
   'Cuando una criatura brilla, está por atacar: ese es tu aviso.',
+  'Tras cada oleada elegís una mejora: el arma cambia de aspecto en tu mano.',
+  'En el Laberinto Celestial los muros frenan balas y rayos: usalos de refugio.',
   'La Geoda solo es vulnerable cuando se abre. Esperá y disparale.',
   'Los círculos verdes invierten la gravedad: caés hacia arriba.',
   'Las burbujas ámbar frenan el tiempo de las criaturas que entran.',

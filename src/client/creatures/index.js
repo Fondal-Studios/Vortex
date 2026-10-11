@@ -3,6 +3,6 @@
 import astilla from './astilla.js'; import geoda from './geoda.js'; import prisma from './prisma.js'; import lente from './lente.js';
 import cuarzo from './cuarzo.js'; import espejo from './espejo.js'; import racimo from './racimo.js'; import graviton from './graviton.js';
 import obelisco from './obelisco.js'; import aurora from './aurora.js'; import ariete from './ariete.js'; import espiral from './espiral.js';
-import coloso from './coloso.js'; import madre from './madre.js';
-const ALL = { astilla, geoda, prisma, lente, cuarzo, espejo, racimo, graviton, obelisco, aurora, ariete, espiral, coloso, madre };
+import coloso from './coloso.js'; import madre from './madre.js'; import argos from './argos.js';
+const ALL = { astilla, geoda, prisma, lente, cuarzo, espejo, racimo, graviton, obelisco, aurora, ariete, espiral, coloso, madre, argos };
 export const ORGANISMS = Object.fromEntries(Object.entries(ALL).filter(([, v]) => typeof v === 'function'));

@@ -1,6 +1,7 @@
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
-import { WEAPONS, MONSTERS, ROLES, ROLE_IDS, FRAGMENTS } from '../sim/data.js';
+import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS } from '../sim/data.js';
+import { Equipo } from './equipo.js';
 import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.js';
 import { Renderer } from './render.js';
 import { Sound } from './audio.js';
@@ -33,16 +34,7 @@ const ctrlPref = params.get('input') || (() => { try { return localStorage.getIt
 const useTouch = () => { const p = $('ctrlsel').value; return p === 'touch' || (p === 'auto' && isTouchDevice()); };
 for (const sel of [$('qsel'), $('qsel2')]) { sel.innerHTML = Object.entries(LEVELS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join(''); sel.value = level; }
 $('ctrlsel').value = ctrlPref;
-const roleSel = $('rolesel');
-roleSel.innerHTML = ROLE_IDS.map((k) => `<option value="${k}">${ROLES[k].name} · ${ROLES[k].ability}</option>`).join('');
-try { const r = localStorage.getItem('cristal.role.v1'); if (ROLE_IDS.includes(r)) roleSel.value = r; } catch { /* ok */ }
-const showRoleDesc = () => { $('roledesc').textContent = ROLES[roleSel.value].desc; };
-showRoleDesc();
-roleSel.addEventListener('change', () => {
-  showRoleDesc(); try { localStorage.setItem('cristal.role.v1', roleSel.value); } catch { /* ok */ }
-  if (session && session.mode === 'coop') session.net.send({ t: 'role', role: roleSel.value });
-});
-const myRole = () => roleSel.value;
+const myChar = () => Equipo.char;
 function setQuality(l, { save = true } = {}) { if (!LEVELS[l] || l === level) return; level = l; $('qsel').value = $('qsel2').value = l; if (save) saveQuality(l); renderer.applyQuality(l); }
 $('qsel').addEventListener('change', (e) => setQuality(e.target.value)); $('qsel2').addEventListener('change', (e) => setQuality(e.target.value));
 $('ctrlsel').addEventListener('change', () => { try { localStorage.setItem('cristal.ctrl.v1', $('ctrlsel').value); } catch { /* ok */ } });
@@ -51,21 +43,23 @@ if (params.get('autoq') === '0') auto.enabled = false;
 
 /* ───────── entrada de teclado/ratón ───────── */
 const keys = new Set();
-const mouse = { dx: 0, dy: 0, fire: false, ping: false };
+const mouse = { dx: 0, dy: 0, fire: false, ping: false, esp: false }; let pickReq = -1;
 const NOLOCK = params.get('nolock') === '1';
 let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), mouseSens = 0.0022;
 addEventListener('keydown', (e) => {
   if (typeof ui !== 'undefined' && !session && ui.handleKey(e)) return;
   keys.add(e.code);
-  if (e.code >= 'Digit1' && e.code <= 'Digit5') wantWeapon = +e.code.slice(5) - 1;
+  if (e.code >= 'Digit1' && e.code <= 'Digit5') { const n = +e.code.slice(5) - 1; if (cardsOpen && n < 3) pickReq = n; else wantWeapon = n; }
   if (e.code === 'Space') e.preventDefault();
   if ((e.code === 'Enter' || e.code === 'Escape') && session && session.intro) skipIntro();
   if (e.code === 'KeyV' && session && !session.intro) renderer.setThird(!renderer.third); // cámara en tercera persona
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
-addEventListener('mousedown', (e) => { if (e.button === 1) { mouse.ping = true; e.preventDefault(); } if (e.button === 0) mouse.fire = true; if (session && session.intro) skipIntro(); });
-addEventListener('mouseup', (e) => { if (e.button === 0) mouse.fire = false; if (e.button === 1) mouse.ping = false; });
-addEventListener('wheel', (e) => { if (session) wantWeapon = (((session.myWeapon || 0) + (e.deltaY > 0 ? 1 : -1)) % 5 + 5) % 5; });
+addEventListener('mousedown', (e) => { if (e.button === 1) { mouse.ping = true; e.preventDefault(); } if (e.button === 0) mouse.fire = true; if (e.button === 2) { mouse.esp = true; e.preventDefault(); } if (session && session.intro) skipIntro(); });
+addEventListener('mouseup', (e) => { if (e.button === 0) mouse.fire = false; if (e.button === 1) mouse.ping = false; if (e.button === 2) mouse.esp = false; });
+addEventListener('contextmenu', (e) => { if (session) e.preventDefault(); });
+let cardsOpen = false;
+addEventListener('wheel', (e) => { if (session) wantWeapon = (((session.mySlot || 0) + (e.deltaY > 0 ? 1 : -1)) % 5 + 5) % 5; });
 addEventListener('mousemove', (e) => { if (locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
   if (NOLOCK) return; locked = document.pointerLockElement === canvas;
@@ -75,7 +69,7 @@ const lockPointer = () => { try { canvas.requestPointerLock(); } catch { /* sin 
 
 const touch = new TouchControls($('touch'), {
   onPause: () => pauseTouch(true),
-  onWeapon: (d) => { const w = (((session ? session.myWeapon || 0 : 0) + d) % 5 + 5) % 5; return w; },
+  onWeapon: (d) => { const w = (((session ? session.mySlot || 0 : 0) + d) % 5 + 5) % 5; return w; },
 });
 let tapSkip = 0;
 $('touch').addEventListener('pointerdown', () => { if (session && session.intro) skipIntro(); }, true);
@@ -86,21 +80,22 @@ function readInput() {
   const SENS = mouseSens;
   const i = {
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), interact: keys.has('KeyE'), ping: keys.has('KeyG') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), esp: mouse.esp, pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyG') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
-  mouse.dx = mouse.dy = 0; wantWeapon = -1;
+  mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
     i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw; i.dpitch += g.dpitch;
-    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
-    if (g.next && !padLatch.next) i.weapon = (((session ? session.myWeapon || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.myWeapon || 0 : 0) - 1) % 5 + 5) % 5;
-    padLatch.next = g.next; padLatch.prev = g.prev;
+    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.mov = i.mov || g.mov; i.esp = i.esp || g.esp; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
+    if (g.next && !padLatch.next) i.weapon = (((session ? session.mySlot || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.mySlot || 0 : 0) - 1) % 5 + 5) % 5;
+    if (cardsOpen) { if (g.next && !padLatch.next) pickReq = 1; if (g.prev && !padLatch.prev) pickReq = 0; if (g.jump && !padLatch.jump) pickReq = 2; if (pickReq >= 0) i.pick = pickReq; }
+    padLatch.next = g.next; padLatch.prev = g.prev; padLatch.jump = g.jump;
     if (g.pause && !padLatch.pause && session && !session.touch) { document.exitPointerLock && document.exitPointerLock(); }
     padLatch.pause = g.pause; renderer.firing = renderer.firing || g.fire;
   }
   return i;
 }
-const padLatch = { next: false, prev: false, pause: false }; let padDt = 0.016;
+const padLatch = { next: false, prev: false, pause: false, jump: false }; let padDt = 0.016;
 
 /** Asistencia de puntería táctil: empuja suavemente la mira hacia la criatura más cercana al centro. */
 function assistAim(inp, state, me, dt) {
@@ -121,7 +116,7 @@ function assistAim(inp, state, me, dt) {
 function startSolo(mapId, opts = {}) {
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
   const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4 });
-  const p = game.addPlayer(Story.NAME, myRole());
+  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots });
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
   session = { horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
@@ -135,7 +130,7 @@ async function startCoop(create, code, mapId) {
   net.onError = (m) => { $('menuerr').textContent = m; };
   net.welcomed = (m) => { session.map = m.map; session.pid = m.pid; renderer.camInit = false; session.look = null; session.ended = false; $('end').classList.add('hidden'); };
   session = { mode: 'coop', net, pid: null, map: mapId, ended: false, look: null, touch: useTouch(), intro: null };
-  net.send(create ? { t: 'create', map: mapId, name: Story.NAME, role: myRole() } : { t: 'join', room: code, name: Story.NAME, role: myRole() });
+  net.send(create ? { t: 'create', map: mapId, name: Story.NAME, char: Equipo.char, slots: Equipo.slots } : { t: 'join', room: code, name: Story.NAME, char: Equipo.char, slots: Equipo.slots });
   await new Promise((r) => { const t = setInterval(() => { if (net.pid || net.closed) { clearInterval(t); r(); } }, 30); setTimeout(() => { clearInterval(t); r(); }, 2500); });
   if (!net.pid) { session = null; $('menuerr').textContent ||= 'no se pudo entrar a la sala'; return; }
   enter(net.map);
@@ -177,8 +172,18 @@ function finishIntro() {
 }
 
 function buildWeaponHud() {
-  $('weapons').innerHTML = WEAPONS.map((w, i) => `<div id="w${i}" data-w="${i}">${i + 1} · ${w.name} <span id="a${i}"></span></div>`).join('');
-  $('weapons').querySelectorAll('div').forEach((d) => d.addEventListener('pointerdown', (e) => { if (session && session.touch) { wantWeapon = +d.dataset.w; touch.weapon = wantWeapon; e.stopPropagation(); } }));
+  $('weapons').innerHTML = ''; session.slotKey = '';
+}
+/** Barra de armas: 5 ranuras con el arma elegida, munición y pips de mejora (se reconstruye sólo si cambian). */
+function updateWeaponHud(me) {
+  const key = me.sl.join(',') + '|' + JSON.stringify(me.up);
+  if (session.slotKey !== key) {
+    session.slotKey = key;
+    $('weapons').innerHTML = me.sl.map((w, i) => { const u = me.up[i], pips = u ? '▮'.repeat(u[0]) + '▮'.repeat(u[1]) + '▮'.repeat(u[2]) : ''; return `<div id="w${i}" data-i="${i}">${i + 1} · ${WEAPONS[w].name} <span id="a${i}"></span><i class="pips">${pips}${u && u[3] ? ' ◆' : ''}</i></div>`; }).join('');
+    $('weapons').querySelectorAll('div').forEach((d) => d.addEventListener('pointerdown', (e) => { if (session && session.touch) { wantWeapon = +d.dataset.i; touch.weapon = wantWeapon; e.stopPropagation(); } }));
+  }
+  me.sl.forEach((w, i) => { $('w' + i).classList.toggle('sel', me.w === w); $('a' + i).textContent = me.ammo[w] < 0 ? '∞' : me.ammo[w]; });
+  session.mySlot = Math.max(0, me.sl.indexOf(me.w));
 }
 let bannerTimer = 0;
 function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 60); b.classList.add('on'); bannerSeq++; const my = bannerSeq; later(() => { if (my === bannerSeq) b.classList.remove('on'); }, ms); }
@@ -238,10 +243,11 @@ function frame(now) {
   }
   const me = state.players.find((p) => p.id === session.pid) || state.players[0];
   if (params.get('look') === 'boss' && me) {
-    const b = state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre');
+    const b = state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre' || m.k === 'argos');
     if (b) { const up = v3(...me.up), d = norm(v3(b.p[0] - me.pos[0], b.p[1] - me.pos[1], b.p[2] - me.pos[2])), h = norm(project(d, up), v3(...me.h)); session.look = { h: [h.x, h.y, h.z], pitch: Math.asin(Math.max(-1, Math.min(1, d.x * up.x + d.y * up.y + d.z * up.z))) }; }
   }
   session.myWeapon = me ? me.w : 0;
+  if (me && renderer.vm && renderer.vm.setUpgrades) me.sl.forEach((w, i) => { const u = me.up[i]; renderer.vm.setUpgrades(w, u ? { dmg: u[0], rate: u[1], mag: u[2], mod: u[3] || null } : { dmg: 0, rate: 0, mag: 0, mod: null }); });
   renderer.guideTalk = subs.talking;
   renderer.firing = !!(session.touch ? touch.fire : mouse.fire);
   renderer.render(state, dt, session.pid, session.look);
@@ -293,6 +299,11 @@ function audioAndHud(state, me, dt) {
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con G', 2200); break;
       case 'surge': banner('El Vórtice se enfurece…', 1800); break;
       case 'tshot': break;
+      case 'skill': if (mine) { sound.ability(); } break;
+      case 'upgrade': if (mine) { sound.pickup(); banner('¡Arma mejorada!', 1400); } break;
+      case 'gaze': sound.ray(); banner('¡ARGOS TE MIRA! Cubrite detrás de un muro', 2200); break;
+      case 'ojobreak': sound.boom(e.p); break;
+      case 'well': sound.gravity(e.p); break;
       case 'phase': sound.voice(state.boss && state.boss.name.startsWith('Col') ? 'coloso' : 'madre', 'phase'); banner(`FASE ${e.n}`, 1800); flash(); break;
     }
   }
@@ -308,7 +319,7 @@ function audioAndHud(state, me, dt) {
   if (me) {
     $('hpfill').style.width = `${me.hp}%`; $('shfill').style.width = `${me.sh}%`; $('hpnum').textContent = `Vida ${me.hp}`; $('shnum').textContent = `Escudo ${me.sh}`;
     $('score').textContent = `Puntos ${me.score} · Bajas ${me.kills}` + (me.dead ? ' · CAÍDO: un compañero cerca te reanima' : '');
-    WEAPONS.forEach((w, i) => { $('w' + i).classList.toggle('sel', me.w === i); $('a' + i).textContent = me.ammo[i] < 0 ? '∞' : me.ammo[i]; });
+    updateWeaponHud(me);
     if (state.players.length > 1) {
       const c = $('coop'); c.classList.remove('hidden');
       c.innerHTML = 'Sala ' + (session.net ? session.net.room : '') + '<br>' + state.players.map((p) => `${p.id === me.id ? '▶' : ' '} ${p.name} ${p.id} ${p.dead ? `✖ ${Math.round(p.rv / 3 * 100)}%` : p.hp}`).join('<br>');
@@ -334,6 +345,27 @@ function hudDirector(state, me) {
     $('objtitle').textContent = `${OBJ_ICON[o.type] || '◆'} ${o.title}`; $('objdesc').textContent = o.desc;
     $('objfill').style.width = `${Math.round(o.prog * 100)}%`; $('objtime').textContent = `${Math.ceil(o.left)} s`;
   } else box.classList.add('hidden');
+  // habilidades del personaje (desplazamiento + especial) y tarjetas de mejora
+  const C = me && CHARACTERS[me.char];
+  $('skills').style.display = C ? '' : 'none';
+  if (C) {
+    const touchUI = !!(session && session.touch), set = (id, name, k, key) => { const el = $(id); el.classList.toggle('cd', k > 0.01); el.querySelector('span').textContent = name + (k > 0.01 ? ` ${Math.ceil(k * (id === 'skm' ? C.mov.cd : C.esp.cd))} s` : ''); el.querySelector('i').style.transform = `scaleX(${1 - k})`; el.querySelector('b').textContent = key; };
+    set('skm', C.mov.name, me.mv, touchUI ? '' : 'F'); set('ske', C.esp.name, me.es, touchUI ? '' : 'CLIC DER');
+  }
+  const wantCards = !!(me && me.cards && me.cards.length && state.phase === 'intermission');
+  if (wantCards !== cardsOpen) { cardsOpen = wantCards; $('cards').classList.toggle('hidden', !wantCards); session.cardKey = ''; }
+  if (wantCards) {
+    const key = JSON.stringify(me.cards) + me.sl.join(',');
+    if (session.cardKey !== key) {
+      session.cardKey = key; const WC = ['#66ffee', '#ff9bd8', '#ffe066', '#ff7a45', '#b9a4ff', '#7dfcff', '#ffd23f', '#ff9a3c', '#9dff5a', '#ff66c4', '#ffb35c', '#8a7fff', '#e8f6ff', '#7dff9a', '#ff5a7a'];
+      $('cardlist').innerHTML = me.cards.map((c, i) => {
+        const [w, k, mod] = c, W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.up[idx] || [0, 0, 0, null], isMod = k === 'mod', lvl = isMod ? '' : `NIVEL ${(u[{ dmg: 0, rate: 1, mag: 2 }[k]] || 0) + 1}`;
+        return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${W.name}</div><div class="un">${isMod ? WEAPON_MODS[mod].name : UPGRADE_KINDS[k].name}</div><div class="ud">${isMod ? WEAPON_MODS[mod].desc : UPGRADE_KINDS[k].desc}</div><div class="lv">${isMod ? '★ ESPECIAL' : lvl}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
+      }).join('');
+      $('cardlist').querySelectorAll('.ucard').forEach((b) => b.addEventListener('pointerdown', () => { pickReq = +b.dataset.i; }));
+      $('cardhint').textContent = 'El arma mejorada se ve distinta en tu mano. Si no elegís, se aplica la primera.';
+    }
+  }
   const ab = $('ability');
   if (me && me.role) {
     const R = ROLES[me.role]; ab.style.display = ''; $('abname').textContent = `${R.name} · ${R.ability}`;
@@ -345,7 +377,8 @@ function hudDirector(state, me) {
   const bm = $('bossmech'), b = state.boss;
   if (b) {
     let t = '';
-    if (b.name.startsWith('Col')) t = b.stagger > 0 ? `ATURDIDO ${Math.ceil(b.stagger)} s · ¡daño ×2,5!` : b.ray > 0 ? `RAYO en ${Math.ceil(b.ray)} s · ¡a un pilar marcado!` : b.shield ? 'ESCUDO DE RESONANCIA · reflejá el rayo con un pilar' : '';
+    if (b.name.startsWith('Argos')) t = b.stagger > 0 ? `ATURDIDO ${Math.ceil(b.stagger)} s · ¡daño ×2,5!` : b.gaze > 0 ? `¡MIRADA en ${Math.ceil(b.gaze)} s! Escondete detrás de un muro` : b.eyes > 0 ? `${b.eyes} OJOS protegen a Argos · destruílos (puntos débiles)` : '';
+    else if (b.name.startsWith('Col')) t = b.stagger > 0 ? `ATURDIDO ${Math.ceil(b.stagger)} s · ¡daño ×2,5!` : b.ray > 0 ? `RAYO en ${Math.ceil(b.ray)} s · ¡a un pilar marcado!` : b.shield ? 'ESCUDO DE RESONANCIA · reflejá el rayo con un pilar' : '';
     else t = b.pressure >= 1 ? 'PRESIÓN MÁXIMA · ¡purgá las dos válvulas!' : `PRESIÓN ${Math.round(b.pressure * 100)} % · mantené las 2 válvulas a la vez`;
     bm.textContent = t; bm.classList.toggle('hidden', !t);
   } else bm.classList.add('hidden');

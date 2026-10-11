@@ -13,9 +13,9 @@ export default function build(kit, color) {
   const { Spring } = kit;
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
   const R = LOW ? 6 : HI ? 12 : 9, S1 = LOW ? 8 : 14; // lados / tramos
-  const bio = bioMaterial({ glow: 0xff5a1a, vein: 0x12040a, rim: 0x5a3a8a, scale: 1.2, bump: 1.0, wet: 0.5, ridge: 70, metal: 0.12, sheen: 0.1, breath: 0.01 });
+  const bio = bioMaterial({ glow: 0xff5a1a, vein: 0x12040a, rim: 0x2c1c50, scale: 1.2, bump: 1.0, wet: 0.5, ridge: 70, metal: 0.12, sheen: 0.1, breath: 0.01 });
   const U = bio.userData.u; U.uCrackGlow.value = 0.12; U.uVeinGlow.value = 0.05;
-  const ORANGE = new THREE.Color(color), HOT = 0xff6a20;
+  const ORANGE = new THREE.Color(0xff4a0a), HOT = 0xff6a20;
   const root = new THREE.Group(), body = new THREE.Group(); body.position.y = 0.22; root.add(body);
   const mesh = (geo, parent) => { const m = new THREE.Mesh(geo, bio); parent.add(m); return m; };
 
@@ -24,7 +24,7 @@ export default function build(kit, color) {
   const rzF = prof([[-1.55, 0.1], [-1.4, 0.3], [-0.95, 0.56], [-0.4, 0.62], [0.1, 0.72], [0.6, 0.8], [0.95, 0.68], [1.15, 0.42]]);
   const cyF = prof([[-1.55, -0.12], [-0.5, 0.0], [0.6, 0.08], [1.15, 0.0]]);
   const RY = 0.84;
-  const FLESH = 0x3a1a26, FLESH2 = 0x4e2c36, CHIT = 0x1a1524, BONE = 0x9a8868;
+  const FLESH = 0x3a1a26, FLESH2 = 0x4e2c36, CHIT = 0x1a1524, BONE = 0x7a6a50;
 
   /* ── CARNE del torso: lomo musculoso con vientre claro ── */
   const parts = [];
@@ -55,7 +55,7 @@ export default function build(kit, color) {
     sp.push({ p: new V3(0, cyF(zr) + rr * RY * 0.98, zr), d: new V3(0, 1, -0.9), r: 0.07 - i * 0.006, h: 0.3 - i * 0.025 });
     for (const sd of [-1, 1]) { const ph = sd * 0.62; sp.push({ p: new V3(Math.sin(ph) * rr, cyF(zr) + Math.cos(ph) * rr * RY, zr), d: new V3(Math.sin(ph) * 0.9, 0.7, -0.8), r: 0.05 - i * 0.004, h: 0.2 - i * 0.015 }); }
     parts.push(spikes(sp, { sides: 5, color: BONE, cls: 2, curve: -0.25 }));
-    if (i % 2 === 0) parts.push(crystals([{ p: new V3(0, cyF(zc - hl) + (rzF(zc - hl) + 0.06) * RY, zc - hl), d: new V3(0, 1, -0.7), r: 0.06, h: 0.34 - i * 0.03, c: color }], { sides: 5 }));
+    if (i % 2 === 0) parts.push(crystals([{ p: new V3(0, cyF(zc - hl) + (rzF(zc - hl) + 0.06) * RY, zc - hl), d: new V3(0, 1, -0.7), r: 0.06, h: 0.34 - i * 0.03, c: 0xff4a0a }], { sides: 5 }));
   });
   // capucha del cuello (pronotum): domo grande que cae por delante sobre la cabeza, con borde serrado
   { const g = patch((u, v) => {
@@ -82,7 +82,7 @@ export default function build(kit, color) {
     const pts = [new V3(0, 0, 0.0), new V3(0, 0.02, -0.4), new V3(0, 0.14, -0.8), new V3(0, 0.36, -1.1)];
     tp.push(paint(loft(pts, { seg: 10, radial: R, r: (t) => lerp(0.2, 0.05, Math.pow(t, 0.8)), ry: () => 0.9, round: [0.1, 0.1] }), FLESH, 0, 0, (p, n) => ({ k: 0.8 + 0.3 * n.y })));
     for (let i = 0; i < 3; i++) { const t = 0.22 + i * 0.25, pt = pts[1].clone().lerp(pts[3], (i + 0.4) / 3 * 0.9); const pl = domePlate(0.2 - i * 0.04, 0.17, 0.1 + 0.02 * (2 - i), { thick: 0.02, ridge: 0.6 }); tp.push(paint(aimY(pl, new V3(pt.x, pt.y + (0.17 - i * 0.04) * 0.9, pt.z), new V3(0, 1, 0.25 - i * 0.2)), CHIT, 1, 0, (p, n, uv) => ({ k: 0.9 + 0.4 * p.y, g: 0.4 * sstep(0.7, 1, uv[1]) }))); }
-    tp.push(crystals([{ p: new V3(0, 0.34, -1.05), d: new V3(0, 0.55, -1), r: 0.1, h: 0.5, c: color }, { p: new V3(0.05, 0.3, -1.0), d: new V3(0.8, 0.4, -0.6), r: 0.06, h: 0.28, c: color }, { p: new V3(-0.05, 0.3, -1.0), d: new V3(-0.8, 0.4, -0.6), r: 0.06, h: 0.28, c: color }], { sides: 5 }));
+    tp.push(crystals([{ p: new V3(0, 0.34, -1.05), d: new V3(0, 0.55, -1), r: 0.1, h: 0.5, c: 0xff4a0a }, { p: new V3(0.05, 0.3, -1.0), d: new V3(0.8, 0.4, -0.6), r: 0.06, h: 0.28, c: 0xff4a0a }, { p: new V3(-0.05, 0.3, -1.0), d: new V3(-0.8, 0.4, -0.6), r: 0.06, h: 0.28, c: 0xff4a0a }], { sides: 5 }));
     mesh(merge(tp), tail); }
 
   /* ── CABEZA: cráneo, cejas pesadas, cuerno de hueso→cristal, colmillos, mandíbula ── */
@@ -118,7 +118,7 @@ export default function build(kit, color) {
     mesh(merge(jp), jaw); }
   // ojos hundidos bajo la ceja
   const EC = eyeCluster({ max: 2, quality: level, iris: 0xffffff, sclera: 0x9a8a70 }); head.add(EC.object);
-  for (const sd of [-1, 1]) EC.add({ p: new V3(sd * 0.34, 0.1, 0.38), n: new V3(sd * 0.7, 0.1, 0.6), r: 0.14, tint: 0xffb02a, slit: true, lag: 12 });
+  for (const sd of [-1, 1]) EC.add({ p: new V3(sd * 0.34, 0.1, 0.38), n: new V3(sd * 0.7, 0.1, 0.6), r: 0.14, tint: 0xc07a14, slit: true, lag: 12 });
 
   /* ── PATAS (4): muslo musculoso, rodilla acorazada, tibia con tendón, pie con garras ── */
   const UP = 0.72, LO = 0.78;
@@ -158,7 +158,7 @@ export default function build(kit, color) {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(vpos, 3)); g.setAttribute('color', new THREE.BufferAttribute(vcol, 3));
     vap = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.5, map: softDot(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })); vap.frustumCulled = false; root.add(vap);
   }
-  const birdG = merge([crystalGeo(new V3(0, 0, -0.12), new V3(0, 0, 1), 0.05, 0.3, color, { sides: 4 }), crystalGeo(new V3(-0.02, 0, 0), new V3(-1, 0.2, -0.3), 0.04, 0.2, color, { sides: 4 }), crystalGeo(new V3(0.02, 0, 0), new V3(1, 0.2, -0.3), 0.04, 0.2, color, { sides: 4 })]);
+  const birdG = merge([crystalGeo(new V3(0, 0, -0.12), new V3(0, 0, 1), 0.05, 0.3, 0xff4a0a, { sides: 4 }), crystalGeo(new V3(-0.02, 0, 0), new V3(-1, 0.2, -0.3), 0.04, 0.2, 0xff4a0a, { sides: 4 }), crystalGeo(new V3(0.02, 0, 0), new V3(1, 0.2, -0.3), 0.04, 0.2, 0xff4a0a, { sides: 4 })]);
   const birds = []; for (let i = 0; i < 4; i++) { const g = new THREE.Group(); const m = new THREE.Mesh(birdG, bio); g.add(m); g.visible = false; head.add(g); birds.push({ g, m, ph: i / 4 * 6.28 }); }
 
   const mats = [bio, ...EC.mats];
@@ -212,7 +212,7 @@ export default function build(kit, color) {
     U.uCry.value = 0.7 + heat * 1.6 + 0.2 * sx(t * 5) + hit * 0.6; U.uPulse.value = wind * 0.6 + hurtLow * 0.2; U.uGlowCol.value.setHex(0xff5a1a).lerp(ORANGE, 0.0);
     halo.material.opacity = clamp(heat * 0.55, 0, 0.6) * (0.8 + 0.2 * sx(t * (12 + wind * 30))); halo.scale.setScalar(0.9 + heat * 0.9);
     // ─ ojos: entrecerrados y amenazantes
-    EC.update(dt, stun > 0.3 ? eyeDir.set(sx(t * 3) * 0.9, Math.cos(t * 2.4) * 0.6, 1) : look, { open: clamp(0.8 - wind * 0.25 - chg * 0.3 - stun * 0.4 - hurtLow * 0.15, 0.15, 1), dilate: 1 - heat * 0.5 + stun * 0.5, glow: 0.7 + heat * 1.8, jitter: 0.3 + stun * 2, blinkRate: 1 + stun * 2 + hurtLow, maxAng: 0.9, track: 1 + heat });
+    EC.update(dt, stun > 0.3 ? eyeDir.set(sx(t * 3) * 0.9, Math.cos(t * 2.4) * 0.6, 1) : look, { open: clamp(0.8 - wind * 0.25 - chg * 0.3 - stun * 0.4 - hurtLow * 0.15, 0.15, 1), dilate: 1 - heat * 0.5 + stun * 0.5, glow: 0.25 + heat * 0.9, jitter: 0.3 + stun * 2, blinkRate: 1 + stun * 2 + hurtLow, maxAng: 0.9, track: 1 + heat });
     // ─ cola
     tail.rotation.x = tl * 0.4 - run * 0.15 + sx(t * 1.3) * 0.05 + wind * 0.3; tail.rotation.y = sx(phase) * 0.18 * run + sx(t * 0.9 + id) * 0.12 + stun * sx(t * 2) * 0.4;
     if (hit > 0.9) sTail.v += 4;

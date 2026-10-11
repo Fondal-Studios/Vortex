@@ -19,8 +19,8 @@ const guard = (src) => src.replace('#include <opaque_fragment>', `#include <opaq
 
 export function bioMaterial(o = {}) {
   const lvl = cfg().humans, hi = lvl !== 'low', Cls = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
-  const mat = new Cls({ vertexColors: true, roughness: 0.5, metalness: 0, side: o.double ? THREE.DoubleSide : THREE.FrontSide, envMapIntensity: o.env ?? 0.35 });
-  if (hi) { mat.clearcoat = o.coat ?? 0.45; mat.clearcoatRoughness = 0.25; mat.sheen = o.sheen ?? 0.12; mat.sheenColor = new THREE.Color(o.rim ?? 0x805060); mat.sheenRoughness = 0.5; }
+  const mat = new Cls({ vertexColors: true, roughness: 0.5, metalness: 0, side: o.double ? THREE.DoubleSide : THREE.FrontSide, envMapIntensity: o.env ?? 0.2 });
+  if (hi) { mat.specularIntensity = o.spec ?? 0.45; mat.clearcoat = o.coat ?? 0.45; mat.clearcoatRoughness = 0.25; mat.sheen = o.sheen ?? 0.12; mat.sheenColor = new THREE.Color(o.rim ?? 0x805060); mat.sheenRoughness = 0.5; }
   if (o.alpha != null && o.alpha < 1) { mat.transparent = true; mat.opacity = o.alpha; mat.depthWrite = o.depthWrite ?? true; }
   const NT = o.tent || 0;
   const u = {
@@ -124,8 +124,8 @@ export function bioMaterial(o = {}) {
 // Mira hacia +z local; el iris/pupila se pintan en coordenadas de la esfera, así que girar la malla = mover la mirada.
 export function eyeMaterial({ iris = 0xffb020, sclera = 0xd8c8b8, pupil = 'round', glow = 0.6, irisR = 0.46, instanced = false } = {}) {
   const hi = cfg().humans !== 'low', Cls = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
-  const mat = new Cls({ color: 0xffffff, roughness: 0.3, metalness: 0 });
-  if (hi) { mat.clearcoat = 1; mat.clearcoatRoughness = 0.1; }
+  const mat = new Cls({ color: 0xffffff, roughness: 0.55, metalness: 0 });
+  if (hi) { mat.clearcoat = 0.6; mat.clearcoatRoughness = 0.2; mat.specularIntensity = 0.5; }
   const u = { uTime, uHurt: { value: 0 }, uIris: { value: new THREE.Color(iris) }, uScl: { value: new THREE.Color(sclera) }, uPup: { value: 0.5 }, uIrisR: { value: irisR }, uSlit: { value: pupil === 'slit' ? 1 : pupil === 'goat' ? 2 : 0 }, uGlow: { value: glow }, uSeed: { value: Math.random() * 9 } };
   mat.userData.u = u;
   const key = 'eye' + (instanced ? 'i' : '') + (hi ? 'h' : 'l');
@@ -156,13 +156,13 @@ export function eyeMaterial({ iris = 0xffb020, sclera = 0xd8c8b8, pupil = 'round
         }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         float irisK, pupK; vec3 eyeC = eyeCol(irisK, pupK);
-        #ifdef USE_INSTANCING_COLOR
-          eyeC = mix(eyeC, eyeC * vColor * 1.6, irisK);
+        #ifdef USE_COLOR
+          eyeC = mix(eyeC, eyeC * vColor.rgb * 1.5, irisK);
         #endif
         diffuseColor.rgb = eyeC * (1.0 - pupK) + vec3(0.004, 0.0, 0.006) * pupK;`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         totalEmissiveRadiance += diffuseColor.rgb * irisK * (1.0 - pupK) * uGlow * 0.55;
-        { float cl = smoothstep(0.93, 0.985, dot(normal, normalize(vec3(-0.45, 0.6, 0.66)))); totalEmissiveRadiance += vec3(1.0, 0.97, 0.92) * cl * 0.9; }
+        { float cl = smoothstep(0.965, 0.99, dot(normal, normalize(vec3(-0.45, 0.6, 0.66)))); totalEmissiveRadiance += vec3(1.0, 0.97, 0.92) * cl * 0.45 * (1.0 - pupK); }
         totalEmissiveRadiance += vec3(1.0, 0.85, 0.7) * uHurt * 0.6;`);
     sh.fragmentShader = guard(sh.fragmentShader);
   };

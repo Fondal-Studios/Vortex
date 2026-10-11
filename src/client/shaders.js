@@ -155,7 +155,7 @@ export function shellMaterial(hue = 0.3, iters = 5) {
         float vein = smoothstep(0.95, 0.998, v1) + 0.5 * smoothstep(0.965, 0.998, v2) * smoothstep(0.45, 0.7, body) + 0.10 * smoothstep(0.75, 0.99, v1);
         float crys = smoothstep(0.50, 0.62, fbm(p * 1.1 + 21.0));
         float hgt = body + pust * 0.55 + vein * 0.30 - crys * 0.15;
-        vec3 N = bumpN(-dir, vP, hgt, 1.5);
+        vec3 N = bumpN(-dir, vP, hgt, 3.0);
         vec3 L = -dir;
         float beat = heart(uTime), sweep = exp(-pow((lat * 5.0 - fract(uTime / 1.55) * 6.5 + 0.8) * 0.9, 2.0));
         float mott = 0.55 + 0.9 * fbm(p * 0.7 + t * 2.0);                       // la luz del núcleo pasa entre manchas de bruma
@@ -166,7 +166,8 @@ export function shellMaterial(hue = 0.3, iters = 5) {
         vec3 alb = mix(flesh, glass, crys);
         float gloss = mix(0.45, 1.0, max(crys, pust));
         vec3 H = normalize(L + V); float spec = pow(max(dot(N, H), 0.0), mix(24.0, 120.0, gloss)) * gloss;
-        vec3 col = alb * (0.07 + 0.62 * dif) + vec3(1.0, 0.8, 0.7) * spec * 0.28;
+        float ao = 0.55 + 0.75 * smoothstep(0.2, 1.1, hgt);                          // grietas más oscuras, relieves más claros
+        vec3 col = alb * ao * (0.12 + 0.80 * dif) + vec3(1.0, 0.8, 0.7) * spec * 0.28;
         float fl = step(0.985, hash13(floor(q * 90.0))) * crys * (0.5 + 0.5 * sin(uTime * 3.0 + dot(floor(q * 90.0), vec3(1.0, 2.0, 3.0))));
         col += vec3(0.7, 1.0, 1.0) * fl * 0.9;                                    // destellos de cristal
         float thin = pust * 0.7 + (1.0 - body) * 0.25;
@@ -176,7 +177,7 @@ export function shellMaterial(hue = 0.3, iters = 5) {
         col += vec3(0.08, 0.5, 0.7) * uTide * (0.06 + 0.1 * crys) * (0.5 + 0.5 * sin(uTime * 2.0 + body * 20.0));
         col = mix(col, vec3(1.0, 0.25, 0.4) * (0.35 + 0.35 * sin(uTime * 8.0)), uWarn * 0.28);
         col = mix(col, vec3(0.16, 0.05, 0.20), 1.0 - exp(-dist * 0.0045)); // bruma de esporas: lo lejano se aleja
-        gl_FragColor = vec4(col * 0.62, 1.0);
+        gl_FragColor = vec4(col * 0.8, 1.0);
       }`,
   }));
 }

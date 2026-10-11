@@ -1,25 +1,28 @@
 // Interfaz de acceso estilo PlayStation 5: título → menú principal con tarjetas → sub-pantallas. Teclado, ratón, táctil y mando.
 import { BESTIARY, TIPS } from './lore.js';
+import { CHARACTERS, CHARACTER_IDS, ROLES, WEAPONS } from '../sim/data.js';
+import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
 
 const $ = (id) => document.getElementById(id);
 const HERO = {
   story: ['Historia', 'Te atropella un tren y despertás en el Vórtice con armas en las manos. Un bicho extraño te explica la única regla: sobrevivir a todo para volver al mundo de los vivos.', ['Solo', '2 capítulos', '2 jefes']],
   arenas: ['Arenas', 'Salteá la historia y andá directo a la acción en cualquiera de los dos mapas, con oleadas progresivas y un jefe cada uno.', ['Solo', 'Oleadas', 'Jefes']],
   coop: ['Cooperativo', 'Creá una sala o unite con un código. Hasta 4 Pasajeros, hordas que escalan con el grupo y reanimación entre compañeros.', ['1–4 jugadores', 'Wi-Fi / LAN']],
-  bestiary: ['Bestiario', 'Catorce organismos mitad carne, mitad cristal. Girá cada criatura en 3D y leé sus patrones, avisos y debilidades.', ['12 criaturas', '2 jefes']],
+  bestiary: ['Bestiario', 'Quince organismos mitad carne, mitad cristal. Girá cada criatura en 3D y leé sus patrones, avisos y debilidades.', ['12 criaturas', '3 jefes']],
+  loadout: ['Equipo', 'Elegí entre 6 personajes, cada uno con un desplazamiento y un disparo especial propios, y armá tu arsenal con 14 armas. Tras cada oleada mejorás las armas que elegiste.', ['6 personajes', '15 armas', 'Mejoras']],
   options: ['Opciones', 'Calidad gráfica (Baja para iPhone), controles, sensibilidad, volumen y subtítulos.', ['PC', 'iPhone', 'Mando']],
 };
-const ART = { story: '/public/art/historia.jpg', arenas: '/public/art/arena-m1.jpg', coop: '/public/art/coop.jpg', bestiary: '/public/art/bestiario.jpg', options: '/public/art/opciones.jpg' };
+const ART = { story: '/public/art/historia.jpg', arenas: '/public/art/arena-m1.jpg', coop: '/public/art/coop.jpg', loadout: '/public/art/opciones.jpg', bestiary: '/public/art/bestiario.jpg', options: '/public/art/opciones.jpg' };
 
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); this.bindEvents(); this.buildBestiary(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); this.show('title'); this.updateStartLabel();
   }
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { title: '#pressstart', main: '#mainlist .item', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', options: '#options .panel label' }[name];
+    const q = { title: '#pressstart', main: '#mainlist .item', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', options: '#options .panel label' }[name];
     return [...this.root.querySelectorAll(q)];
   }
   show(name, push = true) {
@@ -29,6 +32,7 @@ export class MenuUI {
     this.idx = name === 'bestiary' ? 0 : 0; this.focus(this.idx, true);
     $('prompts').style.opacity = name === 'title' ? 0 : 1;
     if (name === 'bestiary') this.selectBeast(0);
+    if (name === 'loadout') this.renderLoadout();
   }
   back() { if (this.screen === 'title') return; const prev = this.stack.pop(); this.sound.ui('back'); this.show(prev || 'main', false); }
   focus(i, silent = false) {
@@ -47,6 +51,33 @@ export class MenuUI {
     const b = BESTIARY[i]; if (!b) return; $('bname').textContent = b.name; $('brole').textContent = b.role + (b.boss ? ' · jefe' : '');
     $('bdesc').textContent = b.desc; $('bstats').innerHTML = `<dt>Vida</dt><dd>${b.hp}</dd><dt>Tipo</dt><dd>${b.fly ? 'volador' : 'terrestre'}</dd><dt>Consejo</dt><dd>${b.tip}</dd>`;
     const f = $('bview'), src = `/public/viewer.html?k=${b.kind}&turn=1&embed=1&big=1&q=${window.__api && window.__api.level === 'low' ? 'low' : 'medium'}`; if (f.dataset.k !== b.kind) { f.dataset.k = b.kind; f.src = new URL(src, location.href).href.replace(location.origin + '/public/', location.href.replace(/[^/]*$/, '') + 'public/'); }
+  }
+  /* ───── equipo: personajes y armas ───── */
+  buildLoadout() {
+    const hex = (c) => '#' + c.toString(16).padStart(6, '0'), WC = ['#66ffee', '#ff9bd8', '#ffe066', '#ff7a45', '#b9a4ff', '#7dfcff', '#ffd23f', '#ff9a3c', '#9dff5a', '#ff66c4', '#ffb35c', '#8a7fff', '#e8f6ff', '#7dff9a', '#ff5a7a'];
+    this.wcol = WC; this.cur = Equipo.slots.length > 1 ? 1 : 1;
+    $('chlist').innerHTML = CHARACTER_IDS.map((id) => { const c = CHARACTERS[id]; return `<button class="chcard" data-ch="${id}" style="--c:${hex(c.color)}"><i>${c.name[0]}</i><div><b>${c.name}</b><small>${ROLES[c.role].name} · ${c.mov.name} + ${c.esp.name}</small></div></button>`; }).join('');
+    $('chlist').querySelectorAll('.chcard').forEach((b) => b.addEventListener('click', () => { Equipo.char = b.dataset.ch; saveEquipo(); this.sound.ui('ok'); this.renderLoadout(); }));
+    $('wlist').innerHTML = WEAPONS.map((w, i) => i === 0 ? '' : `<button class="wcell" data-w="${i}" style="--c:${WC[i % WC.length]}"><b>${w.name}</b></button>`).join('');
+    $('wlist').querySelectorAll('.wcell').forEach((b) => {
+      b.addEventListener('click', () => { assignWeapon(this.cur, +b.dataset.w); this.sound.ui('ok'); this.renderLoadout(); });
+      b.addEventListener('mouseenter', () => { $('wdesc').textContent = WEAPONS[+b.dataset.w].desc || ''; });
+    });
+  }
+  renderLoadout() {
+    const C = CHARACTERS[Equipo.char], col = '#' + C.color.toString(16).padStart(6, '0'); this.root.querySelector('#loadout').style.setProperty('--c', col);
+    $('chname').textContent = C.name; $('chrole').textContent = `${ROLES[C.role].name} — ${ROLES[C.role].ability} (Q)`; $('chdesc').textContent = C.desc;
+    $('skmov').innerHTML = `<b>F · ${C.mov.name}</b>${C.mov.desc}<br><em>recarga ${C.mov.cd} s</em>`;
+    $('skesp').innerHTML = `<b>Clic der. · ${C.esp.name}</b>${C.esp.desc}<br><em>recarga ${C.esp.cd} s</em>`;
+    $('sktac').innerHTML = `<b>Q · ${ROLES[C.role].ability}</b>${ROLES[C.role].desc.split('.')[0]}<br><em>recarga ${ROLES[C.role].cd} s</em>`;
+    $('chlist').querySelectorAll('.chcard').forEach((b) => b.classList.toggle('sel', b.dataset.ch === Equipo.char));
+    $('slotbar').innerHTML = Equipo.slots.map((w, i) => `<button class="slot ${i === 0 ? 'fix' : ''} ${i === this.cur ? 'cur' : ''}" data-s="${i}" style="border-color:${this.wcol[w % this.wcol.length]}"><span>${i + 1}</span><b>${WEAPONS[w].name}</b></button>`).join('');
+    $('slotbar').querySelectorAll('.slot').forEach((b) => b.addEventListener('click', () => { if (+b.dataset.s > 0) { this.cur = +b.dataset.s; this.renderLoadout(); } }));
+    $('wlist').querySelectorAll('.wcell').forEach((b) => b.classList.toggle('in', Equipo.slots.includes(+b.dataset.w)));
+    // vista previa 3D del avatar (liviana: sólo si no es táctil)
+    const f = $('chview'), K = `p=${C.preset || 'jugador' + (1 + CHARACTER_IDS.indexOf(Equipo.char) % 4)}&role=${C.role}`;
+    if (f.dataset.k !== K && !matchMedia('(pointer: coarse)').matches) { f.dataset.k = K; f.src = new URL(`public/humans.html?set=solo&${K}&cam=full&q=low&turn=1`, location.href.replace(/[^/]*$/, '')).href; }
+    $('wdesc').textContent = '';
   }
   /* ───── entrada ───── */
   bindEvents() {

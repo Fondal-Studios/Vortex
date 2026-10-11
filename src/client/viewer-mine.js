@@ -23,7 +23,7 @@ const st = { id: 1, s: q.get('s') || 'idle', o: q.get('s') === 'open', c: false,
 if (q.get('dbgmat')) { const [k, v] = q.get('dbgmat').split(':'); e.object.traverse((o) => { if (o.material && o.material.userData.u && o.material.userData.u[k]) o.material.userData.u[k].value = +v; }); }
 e.object.scale.setScalar(+q.get('sc') || (big ? 1.6 : 1.4)); scene.add(e.object);
 const az = (+q.get('az') || 0) * Math.PI / 180, el = (+q.get('el') || 8) * Math.PI / 180, dist = +q.get('dist') || (big ? 18 : 5), cy = +q.get('cy') || 0;
-cam.position.set(Math.sin(az) * Math.cos(el) * dist, Math.sin(el) * dist + 0.5, Math.cos(az) * Math.cos(el) * dist); cam.lookAt(0, cy, 0);
+cam.position.set(Math.sin(az) * Math.cos(el) * dist + (+q.get('tx') || 0), Math.sin(el) * dist + 0.5, Math.cos(az) * Math.cos(el) * dist + (+q.get('tz') || 0)); cam.lookAt(+q.get('tx') || 0, cy, +q.get('tz') || 0);
 const steps = +q.get('steps') || 90, sp = +q.get('v') || 0; let t = 0; const dt = 1 / 30;
 e.object.rotation.y = (+q.get('ry') || 0) * Math.PI / 180;
 for (let i = 0; i < steps; i++) { t += dt; uTime.value = t; e.object.updateMatrixWorld(); const look = cam.position.clone(); e.object.worldToLocal(look); e.tick(dt, st, t, { look: look.normalize(), speed: sp, dist: 10 }); }

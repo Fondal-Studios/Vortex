@@ -136,9 +136,9 @@ function enjambre(q, hands) {
       bezel(k, [-0.0385, 0.04, 0.09], [0, -Math.PI / 2 + 0.3, 0], 0.07, 0.04);
       const gh = stdGrip(k, -0.012); let pivot = null; if (hands) { pivot = rightHand(k, gh, hex); supportHand(k, [0, 0.0, -0.32], 0.05, hex); }
       k.part('cluster', [0, 0.05, -0.4]);
-      for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5 + 0.3, x = Math.cos(a) * 0.045, y = 0.05 + Math.sin(a) * 0.045; k.cyl('b', [0.02, 0.02, 0.42], [x, y, -0.5], { c: i % 2 ? GUN : B, seg: 10 }); k.cyl('l', [0.013, 0.013, 0.008], [x, y, -0.71], { k: 1, seg: 8 }); k.tor('l', [0.021, 0.0025], [x, y, -0.6], { k: 0, seg: 10 }); }
-      k.limb('l', [0, 0.05, -0.3], [0, 0.05, -0.7], 0.012, 0.012, { k: 0 });
-      for (const z of [-0.3, -0.5, -0.66]) k.cyl('b', [0.07, 0.07, 0.02], [0, 0.05, z], { c: GUN, seg: 5 });
+      for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5 + 0.3, x = Math.cos(a) * 0.045, y = 0.05 + Math.sin(a) * 0.045; k.cyl('b', [0.02, 0.02, 0.52], [x, y, -0.43], { c: i % 2 ? GUN : B, seg: 10 }); k.cyl('l', [0.013, 0.013, 0.008], [x, y, -0.695], { k: 1, seg: 8 }); k.tor('l', [0.021, 0.0025], [x, y, -0.6], { k: 0, seg: 10 }); }
+      k.limb('l', [0, 0.05, -0.17], [0, 0.05, -0.69], 0.012, 0.012, { k: 0 });
+      for (const z of [-0.2, -0.45, -0.66]) k.cyl('b', [0.07, 0.07, 0.02], [0, 0.05, z], { c: GUN, seg: 5 });
       return { gh, pivot, screen: { pos: [-0.0395, 0.04, 0.09], rot: [0, -Math.PI / 2 + 0.3, 0], scale: 1.25 } };
     },
     anim(P, st, dt) { st.rot = damp(st.rot, st.n * Math.PI * 2 / 5, 8, dt); P.cluster.rotation.z = st.rot; },

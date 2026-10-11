@@ -15,10 +15,12 @@ import { Viewmodels, WEAPON_COLORS as WC } from './weapons-vm.js';
 import { kit } from './organism.js';
 import heraldo from './creatures/heraldo.js';
 import { cfg, LEVELS, setCurrent } from './quality.js';
+import { CHARACTERS, WEAPONS } from '../sim/data.js';
+const WEAPONS_MAX = WEAPONS.map((w) => w.max);
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const MONSTER_SIZE = { astilla: 0.35, racimo: 0.35, geoda: 0.9, ariete: 0.8, obelisco: 0.6, cuarzo: 0.55 };
-const WEAPON_COLORS = [0x66ffee, 0xff9bd8, 0xffe066, 0xff7a45, 0xb9a4ff];
+const WEAPON_COLORS = [0x66ffee, 0xff9bd8, 0xffe066, 0xff7a45, 0xb9a4ff, 0x7dfcff, 0xffd23f, 0xff9a3c, 0x9dff5a, 0xff66c4, 0xffb35c, 0x8a7fff, 0xe8f6ff, 0x7dff9a, 0xff5a7a];
 const PLAYER_COLORS = [0x66ffee, 0xff66c4, 0xffd23f, 0x9dff5a];
 
 function haloTexture() {
@@ -110,10 +112,21 @@ export class Renderer {
     for (const c of [...this.mapRoot.children]) { this.mapRoot.remove(c); c.traverse((o) => { o.geometry && o.geometry.dispose(); o.material && o.material.dispose && o.material.dispose(); }); }
     for (const m of Object.values(this.ents)) { for (const o of m.values()) this.entRoot.remove(o.object || o); m.clear(); }
     this.dyn = [];
-    const warm = mapId === 'm2';
-    this.hemi.color.setHex(warm ? 0xffb0d8 : 0xaab8ff); this.hemi.groundColor.setHex(warm ? 0x3a0a2a : 0x1a0f3a); this.sun.color.setHex(warm ? 0xffd2c0 : 0xe8f0ff); this.rim.color.setHex(warm ? 0x66ffd8 : 0xff66c4);
+    const warm = mapId === 'm2', dream = mapId === 'm3';
+    this.hemi.color.setHex(warm ? 0xffb0d8 : dream ? 0xd0b8ff : 0xaab8ff); this.hemi.groundColor.setHex(warm ? 0x3a0a2a : dream ? 0x2a1050 : 0x1a0f3a); this.sun.color.setHex(warm ? 0xffd2c0 : 0xe8f0ff); this.rim.color.setHex(warm ? 0x66ffd8 : 0xff66c4);
     this.sunDir = null; // el entorno fija la dirección del sol; luego las sombras la siguen
-    (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
+    if (mapId === 'm3') this.loadMap3(MAPS.m3); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
+    import('./env/eyes.js').then((m) => { if (this.mapId === mapId && m.addCosmicEyes) m.addCosmicEyes(this, this.mapRoot, { map: mapId, count: cfg().decor ? (this.level === 'low' ? 12 : 48) : 8 }); }).catch(() => { /* aún sin ojos cósmicos */ });
+  }
+  /** Laberinto Celestial: usa env/map3.js si existe; si no, un laberinto básico de cajas. */
+  loadMap3(map) {
+    const mapId = 'm3';
+    import('./env/map3.js').then((m) => { if (this.mapId === mapId) m.buildMap3(this, map); }).catch(() => {
+      if (this.mapId !== mapId) return;
+      const wallM = new THREE.MeshStandardMaterial({ color: 0x6a4fd8, emissive: 0x2a1580, emissiveIntensity: 0.6, roughness: 0.3, metalness: 0.2 }), floorM = new THREE.MeshStandardMaterial({ color: 0x2a2060, roughness: 0.6 });
+      for (const b of map.solids) { const m = new THREE.Mesh(new THREE.BoxGeometry(b.h.x * 2, b.h.y * 2, b.h.z * 2), b.wall ? wallM : floorM); m.position.set(b.c.x, b.c.y, b.c.z); this.mapRoot.add(m); }
+      this.sun.position.set(40, 90, 30); this.sunDir = this.sun.position.clone().normalize();
+    });
   }
 
   /* ───────── narrativa: el Heraldo y el despertar ───────── */
@@ -149,7 +162,7 @@ export class Renderer {
     this.syncProjectiles(state, dt);
     this.syncPickups(state);
     this.syncPlayers(state, myId, dt);
-    this.objects.sync(state, dt, state.map);
+    this.objects.sync(state, dt, state.map, this.camera.position);
     this.handleEvents(state, me);
     this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
@@ -179,7 +192,9 @@ export class Renderer {
     if (this.sun.castShadow) { this.sunDir = this.sunDir || this.sun.position.clone().normalize(); this.sun.target.position.copy(V(me.pos)); this.sun.position.copy(this.sun.target.position).addScaledVector(this.sunDir, 90); this.sun.target.updateMatrixWorld(); }
     this.vm.setWeapon(me.w);
     const lk = look && look.delta ? look.delta : [0, 0];
-    this.vm.update(dt, { firing: !!this.firing, hidden: me.dead, look: lk });
+    const pm = this.prevMe, spd = pm ? Math.hypot(me.pos[0] - pm[0], me.pos[1] - pm[1], me.pos[2] - pm[2]) / Math.max(dt, 1e-3) : 0; this.prevMe = me.pos; this.vmSpd = (this.vmSpd || 0) + (Math.min(spd, 20) - (this.vmSpd || 0)) * Math.min(1, 8 * dt);
+    const am = me.ammo ? me.ammo[me.w] : -1, wmax = WEAPONS_MAX[me.w];
+    this.vm.update(dt, { firing: !!this.firing, hidden: me.dead, look: lk, speed: this.vmSpd, ammo: am < 0 ? Infinity : am, maxAmmo: wmax == null || !isFinite(wmax) ? Infinity : wmax });
   }
 
   /* ───────── sincronización de entidades ───────── */
@@ -206,13 +221,14 @@ export class Renderer {
         this.entRoot.add(e.object); this.ents.mon.set(m.id, e);
         e.object.position.set(...m.p);
       }
-      const o = e.object, scale = m.r * (m.k === 'coloso' || m.k === 'madre' ? 1.15 : 1) * Math.min(1, 0.2 + (this.t - e.born) * 3);
+      const o = e.object, scale = m.r * (m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 1.15 : 1) * (m.el ? 1.22 : 1) * Math.min(1, 0.2 + (this.t - e.born) * 3);
+      if (m.el && !e.elite) { e.elite = true; const sp = new THREE.Sprite(this.halo_(0xff3a5a)); sp.scale.setScalar(3.4); sp.material.opacity = 0.55; sp.name = 'elite'; e.object.add(sp); }
       o.position.lerp(V(m.p), 0.6); o.scale.setScalar(scale);
       this.orient(o, m.u, m.f);
-      const boss = m.k === 'coloso' || m.k === 'madre'; this.tmpV.copy(this.camera.position).sub(o.position); const far = !boss && (this.tmpV.length() > cfg().lod + m.r * 2 || !full.has(m.id));
+      const boss = m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'; this.tmpV.copy(this.camera.position).sub(o.position); const far = !boss && (this.tmpV.length() > cfg().lod + m.r * 2 || !full.has(m.id));
       if (far !== e.far) { e.far = far; e.object.children[0].visible = !far; e.proxy.visible = far; }
       if (far) { e.proxy.scale.setScalar(0.9); continue; }
-      const hv = m.h ? 0.7 : 0;
+      const hv = m.h ? 0.7 : 0; if (kit.setWound) kit.setWound(e.mats, Math.max(0, Math.min(1, 1 - m.hp / m.mh)));
       for (const mat of e.mats) { const uh = (mat.userData && mat.userData.u && mat.userData.u.uHurt) || (mat.uniforms && mat.uniforms.uHurt); if (uh) uh.value = hv; }
       this.tmpV.set(this.camera.position.x, this.camera.position.y, this.camera.position.z); o.updateMatrixWorld(); o.worldToLocal(this.tmpV);
       const spd = e.prev ? Math.hypot(m.p[0] - e.prev[0], m.p[1] - e.prev[1], m.p[2] - e.prev[2]) / Math.max(dt, 1e-3) : 0; e.prev = m.p; e.spd += ((spd / Math.max(1, m.r * 6)) - e.spd) * Math.min(1, 6 * dt);
@@ -236,16 +252,16 @@ export class Renderer {
       seen.add(p.id);
       let e = this.ents.proj.get(p.id);
       if (!e) {
-        const col = p.k === 'nova' ? 0xff9a3c : p.k === 'orb' ? 0xff4fd8 : p.k === 'beam' ? 0x66f0ff : 0xffe066;
+        const col = p.k === 'nova' ? 0xff9a3c : p.k === 'orb' ? 0xff4fd8 : p.k === 'beam' ? 0x66f0ff : p.k === 'swarm' ? 0xff66c4 : p.k === 'lanza' ? 0xb8f6ff : 0xffe066;
         const g = new THREE.Group(), key = `${p.k}${p.r}`;
-        const geo = this.shared('pg' + key, () => { const q = p.k === 'beam' ? new THREE.CylinderGeometry(0.1, 0.1, 2.6, 5) : new THREE.OctahedronGeometry(p.r * 1.1, 0); if (p.k === 'beam') q.rotateX(Math.PI / 2); return q; });
+        const geo = this.shared('pg' + key, () => { const long = p.k === 'beam' || p.k === 'lanza', q = p.k === 'beam' ? new THREE.CylinderGeometry(0.1, 0.1, 2.6, 5) : p.k === 'lanza' ? new THREE.ConeGeometry(0.25, 3.2, 6) : new THREE.OctahedronGeometry(p.r * 1.1, 0); if (long) q.rotateX(p.k === 'lanza' ? -Math.PI / 2 : Math.PI / 2); return q; });
         g.add(new THREE.Mesh(geo, this.shared('pm' + col, () => new THREE.MeshBasicMaterial({ color: col }))));
         const sp = new THREE.Sprite(this.halo_(col)); sp.scale.setScalar(p.r * 5); g.add(sp);
         e = g; e.userData.col = col; e.position.set(...p.p); this.entRoot.add(g); this.ents.proj.set(p.id, g);
       }
       e.position.set(...p.p);
-      if (p.k === 'beam') e.lookAt(e.position.clone().add(V(p.v))); else e.rotation.y += 0.2;
-      if (p.k === 'nova' && Math.random() < 0.8) this.fx.burst(e.position, 0xffa040, 1, 2, 0.4, 0.5);
+      if (p.k === 'beam' || p.k === 'lanza') e.lookAt(e.position.clone().add(V(p.v))); else e.rotation.y += 0.2;
+      if ((p.k === 'nova' || p.k === 'swarm') && Math.random() < 0.8) this.fx.burst(e.position, 0xffa040, 1, 2, 0.4, 0.5);
     }
     for (const [id, g] of this.ents.proj) if (!seen.has(id)) { this.entRoot.remove(g); this.ents.proj.delete(id); }
   }
@@ -286,9 +302,9 @@ export class Renderer {
       const self = p.id === myId; if (self && !this.third) continue;
       seen.add(p.id);
       let e = this.ents.ply.get(p.id);
-      const col = PLAYER_COLORS[(p.id - 1) % 4];
+      const ch = CHARACTERS[p.char], col = ch ? ch.color : PLAYER_COLORS[(p.id - 1) % 4];
       if (!e) { e = { object: new THREE.Group(), human: null, simple: null, prev: p.pos, spd: 0, col, shotT: 0 }; e.simple = this.simpleAvatar(col); e.object.add(e.simple); this.entRoot.add(e.object); this.ents.ply.set(p.id, e); }
-      if (!e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
+      if (!e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, { preset: ch && ch.preset ? ch.preset : (ch ? undefined : (self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1))), seed: ch && !ch.preset ? ch.seed : undefined, color: ch ? ch.color : col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
       const dv = [p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]], spd = Math.hypot(...dv) / Math.max(dt, 1e-3); e.prev = p.pos;
       const hv = V(p.h), rv = new THREE.Vector3().crossVectors(hv, V(p.up)), dvv = V(dv), dl = dvv.length() || 1; e.moveDir = { x: dvv.dot(rv) / dl, z: dvv.dot(hv) / dl }; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
       const base = V(p.pos).addScaledVector(V(p.up), e.human ? -0.9 : 0);
@@ -312,7 +328,7 @@ export class Renderer {
   /* ───────── eventos → efectos ───────── */
   handleEvents(state, me) {
     const near = (p) => me ? V(p).distanceTo(V(me.pos)) : 99;
-    const bossP = (state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre') || {}).p;
+    const bossP = (state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre' || m.k === 'argos') || {}).p;
     for (const e of state.events) {
       this.objects.onEvent(e, this.fx, bossP);
       if (e.t === 'shot') for (const [pid, pe] of this.ents.ply) if (pid === e.pid) pe.shotT = 0.25;
