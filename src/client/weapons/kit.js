@@ -74,7 +74,7 @@ export class Kit {
     });
     return this.put(L, geo, pos, o);
   }
-  sph(L, r, pos, o = {}) { const sg = Math.max(5, Math.round(this.q.seg * 0.75)); return this.put(L, cached(`sp${r},${sg}`, () => new THREE.SphereGeometry(r, sg, Math.max(4, sg >> 1))), pos, o); }
+  sph(L, r, pos, o = {}) { const sg = o.seg || Math.max(5, Math.round(this.q.seg * 0.75)); return this.put(L, cached(`sp${r},${sg}`, () => new THREE.SphereGeometry(r, sg, Math.max(4, sg >> 1))), pos, o); }
   poly(L, kind, r, pos, o = {}) { // 'oct' | 'ico' | 'tet' (cristales)
     const mk = { oct: () => new THREE.OctahedronGeometry(r, 0), ico: () => new THREE.IcosahedronGeometry(r, 0), tet: () => new THREE.TetrahedronGeometry(r, 0) }[kind];
     return this.put(L, cached(`po${kind}${r}`, mk), pos, o);

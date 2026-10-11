@@ -51,11 +51,11 @@ const VERT = `
     if (k > 7.5) {                       // dedo índice: 3 falanges que se curvan (nudillo en el origen, dedo hacia -Z)
       float d = max(0.0, -p.z), u = clamp(uTrig, 0.0, 1.0);
       float t0 = -(0.10 + 0.30 * u), t1 = -(0.15 + 0.60 * u), t2 = -(0.10 + 0.45 * u);
-      vec3 J1 = vec3(0.0, 0.0, -0.05), J2 = vec3(0.0, 0.0, -0.088);
+      vec3 J1 = vec3(0.0, 0.0, -0.034), J2 = vec3(0.0, 0.0, -0.06);
       vec3 q = rotX(p, t0);
-      vec3 J1p = rotX(J1, t0); q = mix(q, J1p + rotX(q - J1p, t1), smoothstep(0.045, 0.055, d));
-      vec3 J2p = J1p + rotX(rotX(J2, t0) - J1p, t1); q = mix(q, J2p + rotX(q - J2p, t2), smoothstep(0.083, 0.093, d));
-      n = rotX(n, t0 + t1 * smoothstep(0.045, 0.055, d) + t2 * smoothstep(0.083, 0.093, d)); p = q; k -= 8.0; vKind = k + 8.0;
+      vec3 J1p = rotX(J1, t0); q = mix(q, J1p + rotX(q - J1p, t1), smoothstep(0.029, 0.039, d));
+      vec3 J2p = J1p + rotX(rotX(J2, t0) - J1p, t1); q = mix(q, J2p + rotX(q - J2p, t2), smoothstep(0.055, 0.065, d));
+      n = rotX(n, t0 + t1 * smoothstep(0.029, 0.039, d) + t2 * smoothstep(0.055, 0.065, d)); p = q; k -= 8.0; vKind = k + 8.0;
     } else vKind = k;
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     vView = mv.xyz; vN = normalize(normalMatrix * n);
@@ -81,7 +81,7 @@ const FRAG = `
 
   // cada tatuaje devuelve vec3(línea 0..1, relleno 0..1, brillo 0..1)
   vec3 tRunas(vec2 q, float ax, float aa){
-    float S = 0.04; vec2 g = q / S, id = floor(g), f = fract(g);
+    float S = 0.028; vec2 g = q / S, id = floor(g), f = fract(g);
     float act = step(h21(id + ax * 17.0), 0.42 + 0.46 * uUpg), d = 9.0;
     for (int s = 0; s < SEGS; s++) { float fs = float(s); vec2 hh = h22(id + fs * 7.3 + ax * 3.1);
       float ia = floor(hh.x * 9.0), ib = floor(hh.y * 9.0);
@@ -94,7 +94,7 @@ const FRAG = `
     return vec3(line * tw, 0.0, line * smoothstep(0.7, 1.0, sin(uTime * 2.2 + ph * 2.0)));
   }
   vec3 tOjos(vec2 q, float ax, float aa){
-    float S = 0.078; vec2 g = q / S, id = floor(g), e = fract(g) - 0.5;
+    float S = 0.05; vec2 g = q / S, id = floor(g), e = fract(g) - 0.5;
     float has = step(h21(id + ax * 5.1), 0.36 + 0.4 * uUpg), ph = h21(id) * 20.0;
     float bl = 1.0 - 0.92 * smoothstep(0.93, 1.0, sin(uTime * 0.8 + ph) * 0.5 + 0.5);
     float w = 0.40, hg = 0.19 * bl, x = clamp(e.x / w, -1.0, 1.0), lid = hg * (1.0 - x * x), ay = abs(e.y);
@@ -109,7 +109,7 @@ const FRAG = `
     return vec3(line * has * (1.0 - pup * 0.7), fill * has, has * edge * smoothstep(0.7, 1.0, sin(uTime * 1.6 + ph)));
   }
   vec3 tConst(vec2 q, float ax, float aa){
-    float S = 0.052; vec2 g = q / S, id = floor(g);
+    float S = 0.034; vec2 g = q / S, id = floor(g);
     vec2 sO = id + 0.2 + 0.6 * h22(id + ax), sR = id + vec2(1, 0) + 0.2 + 0.6 * h22(id + vec2(1, 0) + ax), sU = id + vec2(0, 1) + 0.2 + 0.6 * h22(id + vec2(0, 1) + ax);
     vec2 sL = id - vec2(1, 0) + 0.2 + 0.6 * h22(id - vec2(1, 0) + ax), sD = id - vec2(0, 1) + 0.2 + 0.6 * h22(id - vec2(0, 1) + ax);
     float reg = step(h21(floor(id / 2.0) + ax * 3.0), 0.55 + 0.4 * uUpg);
@@ -118,20 +118,20 @@ const FRAG = `
     d = min(d, mix(9.0, seg(g, sL, sO), step(h21(id - vec2(1, 0) + 11.0), 0.55)));
     d = min(d, mix(9.0, seg(g, sO, sU), step(h21(id + 23.0), 0.45)));
     d = min(d, mix(9.0, seg(g, sD, sO), step(h21(id - vec2(0, 1) + 23.0), 0.45)));
-    float line = (1.0 - smoothstep(0.03, 0.03 + aa * 2.0, d)) * 0.55 * reg;
+    float line = (1.0 - smoothstep(0.045, 0.045 + aa * 2.0, d)) * 0.5 * reg;
     float st = 0.0, hot = 0.0;
     vec2 ss[5]; ss[0] = sO; ss[1] = sR; ss[2] = sL; ss[3] = sU; ss[4] = sD;
     for (int i = 0; i < STARS; i++) { float dd = length(g - ss[i]), hh = h21(ss[i] * 1.7), tw = 0.5 + 0.5 * sin(uTime * (1.5 + hh * 3.0) + hh * 40.0);
-      float big = step(0.7, hh); st += exp(-dd * dd * (big > 0.5 ? 120.0 : 420.0)) * (0.5 + 0.7 * tw) * (big > 0.5 ? 1.4 : 0.9); hot += exp(-dd * dd * 900.0) * tw; }
+      float big = step(0.7, hh); st += exp(-dd * dd * (big > 0.5 ? 26.0 : 70.0)) * (0.5 + 0.7 * tw) * (big > 0.5 ? 1.5 : 1.0); hot += exp(-dd * dd * 140.0) * tw; }
     return vec3(min(1.0, line + min(st, 1.0) * reg), 0.0, min(1.0, hot * reg));
   }
   vec3 tVenas(vec3 p, float aa){
-    float n1 = vn(p * 38.0), n2 = vn(p * 83.0 + 7.3);
-    float w1 = 0.028, l1 = 1.0 - smoothstep(w1, w1 + 0.03 + aa, abs(n1 - 0.5));
-    float l2 = (1.0 - smoothstep(0.02, 0.05 + aa, abs(n2 - 0.5))) * step(0.52, vn(p * 19.0 + 3.0)) * 0.8;
+    float n1 = vn(p * 52.0), n2 = vn(p * 110.0 + 7.3);
+    float w1 = 0.016, l1 = 1.0 - smoothstep(w1, w1 + 0.022 + aa, abs(n1 - 0.5));
+    float l2 = (1.0 - smoothstep(0.012, 0.035 + aa, abs(n2 - 0.5))) * step(0.52, vn(p * 19.0 + 3.0)) * 0.8;
     float m = max(l1, l2) * (0.55 + 0.45 * uUpg + 0.3);
     float bead = pow(max(0.0, sin(vAux * 26.0 - uTime * 3.0 + n1 * 7.0)), 5.0);
-    float node = smoothstep(0.55, 0.9, vn(p * 150.0)) * m;
+    float node = smoothstep(0.55, 0.9, vn(p * 210.0)) * m;
     return vec3(m, 0.0, min(1.0, bead * m + node * 0.6));
   }
 
@@ -144,7 +144,7 @@ const FRAG = `
     float ndv = clamp(dot(N, V), 0.0, 1.0), fres = pow(1.0 - ndv, 3.0);
     float dif = dot(N, L1) * 0.5 + 0.5; dif *= dif; float dif2 = max(dot(N, L2), 0.0) * 0.3, hemi = N.y * 0.5 + 0.5;
     float inten = 0.6 + 0.8 * uUpg + 1.7 * uFire;
-    float ax; vec2 q = proj(vPos, vON, ax); float aa = fwidth(q.x) / 0.04 * 0.9;
+    float ax; vec2 q = proj(vPos, vON, ax); float aa = fwidth(q.x) / (uTat < 0.5 ? 0.028 : uTat < 1.5 ? 0.05 : 0.034) * 0.9;
     vec3 col = vec3(0.0);
     if (kd < 0.5) {                                   // piel / guante
       float tex = 1.0, spec = 0.12, shin = 18.0; vec3 base;

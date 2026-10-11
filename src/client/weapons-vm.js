@@ -104,7 +104,7 @@ export class Viewmodels {
       v.rot[2] + kr - sx * 0.035 + Math.sin(ph) * 0.016 * b + lowTilt * 0.6, 'YXZ');
     it.rig.scale.set(v.scale, v.scale, v.scale * (v.zs || 1)); it.rig.updateMatrix();
     const u = this.upg[this.cur]; HU.uUpg.value = u ? Math.min(1, ((u.dmg | 0) + (u.rate | 0) + (u.mag | 0) + (u.mod ? 1 : 0)) / 15) : 0; // el tatuaje crece con las mejoras del arma
-    W.update(dt, this.t, firing);
+    W.update(dt, this.t, firing, it.ctx);
     // fogonazo: destello con forma propia + halo
     it.f = Math.max(0, it.f - dt * W.flash.decay);
     const f = it.f, jit = it.auto ? 0.75 + Math.random() * 0.5 : 1; if (it.auto && f > 0.5) it.shape.material.rotation = Math.random() * 6.28;

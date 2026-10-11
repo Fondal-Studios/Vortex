@@ -5,8 +5,9 @@ import * as THREE from 'three';
 import { Kit, makeMats, AmmoScreen, tint } from './kit.js';
 import { rightHand, triggerFinger, supportHand, trigCurl, bindTrigger } from './hands.js';
 
-export const WEAPON_COLORS = [0x66ffee, 0xff8fd0, 0xffd34a, 0xff7a45, 0xa98bff, 0x5fd0ff, 0xff4fd8, 0xffa030, 0xc8ff4a, 0xff5a5a, 0x7aa8ff, 0xb050ff, 0x40ffc0, 0x6aff6a, 0x9060ff];
-export const WEAPON_LABELS = ['HAZ', 'PRISMA', 'RÁFAGA', 'NOVA', 'AGUJA', 'PULSO', 'GEMELAS', 'SOLAR', 'FRACTAL', 'ENJAMBRE', 'COMETA', 'VÓRTICE', 'LANZA', 'CETRO', 'ECLIPSE'];
+export const WEAPON_COLORS = [0x66ffee, 0xff8fd0, 0xffd34a, 0xff7a45, 0xa98bff, 0x5fd0ff, 0xff4fd8, 0xffa030, 0xc8ff4a, 0xff5a5a, 0x7aa8ff, 0xb050ff, 0x40ffc0, 0x6aff6a, 0x9060ff,
+  0x66aaff, 0x9fe8ff, 0x7dff4a, 0xff7a1a, 0xffd23f, 0xff5a7a, 0xb98cff, 0x66ffcc, 0xe8d8ff, 0xff66c4]; // 15..24: voltaico, glaciar, plaga, brasa, mina, sierra, pulsar, dardos, requiem, quimera
+export const WEAPON_LABELS = ['HAZ', 'PRISMA', 'RÁFAGA', 'NOVA', 'AGUJA', 'PULSO', 'GEMELAS', 'SOLAR', 'FRACTAL', 'ENJAMBRE', 'COMETA', 'VÓRTICE', 'LANZA', 'CETRO', 'ECLIPSE', 'VOLTAICO', 'GLACIAR', 'PLAGA', 'BRASA', 'MINA', 'SIERRA', 'PULSAR', 'DARDOS', 'REQUIEM', 'QUIMERA'];
 
 export const DARK = 0x16121f, GUN = 0x2a2540, STEEL = 0x9aa0c4, PALE = 0xd5d9ff;
 export const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -374,4 +375,5 @@ export function aguja(q, hands) {
 }
 
 import { EXTRA } from './guns2.js';
-export const BUILD = [haz, prisma, rafaga, nova, aguja, ...EXTRA];
+import { NEW } from './guns3.js';
+export const BUILD = [haz, prisma, rafaga, nova, aguja, ...EXTRA, ...NEW]; // 25 armas (ids 0..24)

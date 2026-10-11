@@ -17,7 +17,7 @@ export function forearm(k, wrist, dir, len, r0, r1) {
   const up = V(0, 1, 0).sub(d.clone().multiplyScalar(d.y)).normalize(), side = V().crossVectors(up, d).normalize();
   const rr = (t) => r0 + (r1 - r0) * Math.min(1, t / len), qB = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(side.clone().negate(), up, d.clone().negate()));
   const off = (t, h, s = 0) => at(t).map((x, i) => x + up.getComponent(i) * (rr(t) + h) + side.getComponent(i) * s);
-  const tD = Math.min(len, 0.1), tA = Math.min(len, 0.26);
+  const tA = Math.min(len, 0.2);
   // guantelete (piel/neoprene) hasta mitad del antebrazo, con flujo del tatuaje hacia la mano
   k.limb('g', at(-0.012), at(tA), r0, rr(tA), { c: gr(0.95), k: SK, seg: 9, flow: [0.0, -tA] });
   // muñequera: correa + hebilla
@@ -29,7 +29,7 @@ export function forearm(k, wrist, dir, len, r0, r1) {
   for (const sg of [-1, 1]) k.box('g', [0.0035, 0.0045, 0.04], off(0.092, 0.0065, sg * 0.0185), { c: gr(1), k: LM, q: qB, rad: 0.0012 });
   if (len > 0.14) {
     // brazalete: dos placas laterales + vientre, abierto por el dorso
-    const t0 = 0.125, t1 = tA, tm = (t0 + t1) / 2, l = t1 - t0, R = rr(tm);
+    const t0 = 0.125, t1 = Math.min(tA, 0.2), tm = (t0 + t1) / 2, l = t1 - t0, R = rr(tm);
     for (const sg of [-1, 1]) {
       k.box('g', [0.007, R * 1.05, l], at(tm).map((x, i) => x + side.getComponent(i) * (R + 0.002) * sg - up.getComponent(i) * R * 0.2), { c: gr(0.8), k: AR, q: qB, rad: 0.003 });
       k.box('g', [0.0028, 0.0028, l * 0.98], at(tm).map((x, i) => x + side.getComponent(i) * (R + 0.0058) * sg + up.getComponent(i) * R * 0.28), { c: gr(1), k: LM, q: qB, rad: 0.001, flow: [0.0, -l, 'z', l] });
@@ -39,7 +39,7 @@ export function forearm(k, wrist, dir, len, r0, r1) {
     k.poly('g', 'oct', 0.011, off(0.145, 0.014), { k: CR, s: [1, 0.6, 1.9], q: qB });
   }
   if (len > tA) { // manga acampanada con aro luminoso
-    k.limb('g', at(tA - 0.012), at(len), rr(tA) * 1.16, rr(len) * 1.34, { c: gr(1), k: SL, seg: 10, flow: [-tA, -len] });
+    k.limb('g', at(tA - 0.012), at(len), rr(tA) * 1.14, rr(len) * 1.2, { c: gr(1), k: SL, seg: 10, flow: [-tA, -len] });
     k.tor('g', [rr(tA) * 1.17, 0.0028], at(tA - 0.004), { q: new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), d), k: LM, seg: 14, c: gr(1) });
   }
 }
@@ -52,13 +52,16 @@ export function forearm(k, wrist, dir, len, r0, r1) {
 export function rightHand(k, g, hex, { arm = true } = {}) {
   const { zc, top, d, hw } = g, x1 = hw + 0.013, zF = zc - d / 2, zR = zc + d / 2, zW = zR + 0.07;
   const fz = (z0, z1) => [zW - z0, zW - z1]; // flujo por z: u crece hacia el frente
-  // talón y palma
-  k.box('g', [0.04, 0.118, d + 0.05], [hw + 0.02, top - 0.052, zc + 0.004], { c: gr(0.85), k: SK, rad: 0.014, flow: [...fz(zF - 0.02, zR + 0.03), 'z', d + 0.05] });
-  k.box('g', [hw * 2 + 0.034, 0.05, 0.056], [0.004, top - 0.062, zR + 0.03], { c: gr(0.6), k: SK, rad: 0.02, u: 0.0 });
-  // dorso: losa inclinada hacia la cámara + placa de cristal + cresta de nudillos
-  k.box('g', [0.05, 0.03, d + 0.07], [hw + 0.026, top - 0.012, zc + 0.012], { c: gr(1), k: SK, r: [0, 0, 0.28], rad: 0.012, flow: [...fz(zF - 0.03, zR + 0.05), 'z', d + 0.07] });
-  k.poly('g', 'oct', 0.03, [hw + 0.03, top + 0.0, zc + 0.012], { k: CR, s: [1.0, 0.3, 1.5], r: [0, 0, 0.28] });
-  for (let i = 0; i < 4; i++) k.poly('g', 'oct', 0.0105, [hw + 0.021 + 0.007 * (i % 2), top - 0.002 - i * 0.0, zF + 0.012 - 0.0 + i * 0.0 - (i - 1.5) * 0.0], { k: CR, s: [0.8, 0.8, 1.2], r: [0, 0, 0.3] });
+  // palma: tres cápsulas verticales contra el costado derecho de la empuñadura + núcleo + talón hacia la muñeca
+  const cap = (z, r, y0 = 0.1, y1 = 0.016, u0 = 0.0, u1 = 0.07) => k.limb('g', [hw + 0.016, top - y0, z], [hw + 0.016, top - y1, z], r, r * 0.92, { c: gr(0.9), k: SK, seg: 8, flow: [u0, u1] });
+  cap(zR - 0.004, 0.022); cap(zc, 0.02); cap(zF + 0.016, 0.018, 0.1, 0.012, 0.05, 0.1);
+  k.box('g', [0.03, 0.1, d - 0.01], [hw + 0.014, top - 0.058, zc], { c: gr(0.8), k: SK, rad: 0.01, flow: [...fz(zF, zR), 'z', d - 0.01] });
+  k.limb("g", [hw + 0.02, top - 0.05, zR - 0.004], [hw + 0.026, top - 0.055, zR + 0.05], 0.027, 0.0245, { c: gr(0.9), k: SK, seg: 9, flow: [0.0, -0.01] });
+  k.limb('g', [hw + 0.006, top - 0.03, zR + 0.012], [-hw - 0.014, top - 0.026, zR + 0.012], 0.021, 0.019, { c: gr(0.7), k: SK, seg: 8, flow: [0.02, 0.05] }); // almohadilla entre pulgar e índice
+  // dorso: elipsoide arqueado inclinado hacia la cámara + placa de cristal + cresta de nudillos
+  k.sph('g', 0.03, [hw + 0.025, top - 0.016, zc + 0.014], { c: gr(1), k: SK, s: [1.0, 0.62, 2.6], r: [0, 0, 0.28], seg: Math.max(7, k.q.seg), flow: [...fz(zF - 0.03, zR + 0.05), 'z', 0.06] });
+  k.poly('g', 'oct', 0.024, [hw + 0.03, top + 0.001, zc + 0.012], { k: CR, s: [0.9, 0.3, 1.3], r: [0, 0, 0.28] });
+  for (let i = 0; i < 4; i++) k.poly('g', 'oct', 0.0105, [hw + 0.021 + 0.007 * (i % 2), top - 0.002, zF + 0.012], { k: CR, s: [0.8, 0.8, 1.2], r: [0, 0, 0.3] });
   k.box('g', [0.008, 0.07, 0.018], [hw + 0.047, top - 0.044, zF + 0.012], { c: gr(0.8), k: AR, r: [0, 0, 0.1], rad: 0.003 }); // barra de nudillos
   // dedos medio, anular y meñique: 3 falanges con nudillos de cristal y uñas facetadas
   const lens = [1.0, 0.96, 0.82];
@@ -83,22 +86,22 @@ export function rightHand(k, g, hex, { arm = true } = {}) {
   k.poly('g', 'oct', 0.011, [th3[0], th3[1] + 0.011, th3[2] - 0.006], { k: CR, s: [0.9, 0.4, 1.6] });
   k.poly('g', 'oct', 0.012, [th2[0] + 0.001, th2[1] + 0.012, th2[2] + 0.012], { k: CR, s: [0.9, 0.4, 1.7] });
   k.box('g', [0.014, 0.006, 0.05], [th1[0] - 0.0, th1[1] + 0.017, (th1[2] + th2[2]) / 2 + 0.02], { c: gr(0.8), k: AR, r: [0.05, 0, 0.1], rad: 0.002 });
-  if (arm) forearm(k, [hw + 0.03, top - 0.06, zR + 0.06], [0.3, -0.45, 1], 0.34, 0.024, 0.031);
-  return [x1, top - 0.027, zR - 0.006];
+  if (arm) forearm(k, [hw + 0.03, top - 0.06, zR + 0.06], [0.3, -0.85, 0.7], 0.27, 0.023, 0.027);
+  return [x1, top - 0.034, zF + 0.026];
 }
 
-/** Dedo índice: pieza con pivote en el nudillo (`k.part('trigger', pivot)` antes). Mide ≈0.125 hacia -Z y se curva solo en el shader:
+/** Dedo índice: pieza con pivote en el nudillo (`k.part('trigger', pivot)` antes). Cruza el guardamonte hacia el gatillo (≈0.08 de largo) y se curva solo en el shader:
  *  pasar `P.trigger.userData.curl = 0..1` con trigCurl(). `reach` queda por compatibilidad. */
 export function triggerFinger(k, g, pivot, reach) { // eslint-disable-line no-unused-vars
   const IK = 8; // kind del índice = 8 + clase
-  k.at(pivot, [0, 0.17, 0], () => {
-    const r = 0.0125, P0 = [0, 0, 0], P1 = [0, 0, -0.05], P2 = [0, 0, -0.088], P3 = [0, 0, -0.122];
-    k.limb('g', P0, P1, r, r * 0.94, { c: gr(1), k: IK + SK, flow: [0.085, 0.135] }); k.limb('g', P1, P2, r * 0.94, r * 0.88, { c: gr(1), k: IK + SK, flow: [0.135, 0.175] });
-    k.limb('g', P2, P3, r * 0.88, r * 0.78, { c: gr(1), k: IK + SK, flow: [0.175, 0.21] });
-    k.sph('g', r * 1.03, P0, { c: gr(0.85), k: IK + SK, u: 0.085 }); k.sph('g', r * 0.97, P1, { c: gr(0.85), k: IK + SK, u: 0.135 }); k.sph('g', r * 0.9, P2, { c: gr(0.85), k: IK + SK, u: 0.175 }); k.sph('g', r * 0.78, P3, { c: gr(1), k: IK + SK, u: 0.21 });
-    k.poly('g', 'oct', 0.0105, [0, r * 0.9, -0.025], { k: IK + CR, s: [1, 0.5, 1.5] }); k.poly('g', 'oct', 0.0085, [0, r * 0.82, -0.073], { k: IK + CR, s: [1, 0.5, 1.3] });
-    k.poly('g', 'tet', 0.009, [0, r * 0.7, -0.124], { k: IK + CR, s: [0.8, 0.5, 1.6], r: [0.3, 0, 0] });
-    k.box('g', [0.02, 0.006, 0.014], [0, r * 0.95, -0.0], { c: gr(0.8), k: IK + AR, rad: 0.002 });
+  k.at(pivot, [0, 0.62, 0], () => { // el dedo cruza hacia el gatillo (hacia -X)
+    const r = 0.0125, P0 = [0, 0, 0], P1 = [0, 0, -0.034], P2 = [0, 0, -0.06], P3 = [0, 0, -0.082];
+    k.limb('g', P0, P1, r, r * 0.94, { c: gr(1), k: IK + SK, flow: [0.085, 0.12] }); k.limb('g', P1, P2, r * 0.94, r * 0.88, { c: gr(1), k: IK + SK, flow: [0.12, 0.15] });
+    k.limb('g', P2, P3, r * 0.88, r * 0.78, { c: gr(1), k: IK + SK, flow: [0.15, 0.18] });
+    k.sph('g', r * 0.94, P1, { c: gr(0.85), k: IK + SK, u: 0.12 }); k.sph('g', r * 0.88, P2, { c: gr(0.85), k: IK + SK, u: 0.15 }); k.sph('g', r * 0.78, P3, { c: gr(1), k: IK + SK, u: 0.18 });
+    k.poly('g', 'oct', 0.0095, [0, r * 0.9, -0.018], { k: IK + CR, s: [1, 0.5, 1.5] }); k.poly('g', 'oct', 0.008, [0, r * 0.82, -0.047], { k: IK + CR, s: [1, 0.5, 1.3] });
+    k.poly('g', 'tet', 0.0085, [0, r * 0.7, -0.086], { k: IK + CR, s: [0.8, 0.5, 1.6], r: [0.3, 0, 0] });
+    k.box('g', [0.02, 0.006, 0.012], [0, r * 0.95, -0.002], { c: gr(0.8), k: IK + AR, rad: 0.002 });
   });
   return g.top;
 }
@@ -139,6 +142,6 @@ export function supportHand(k, c, R, hex, { axis = 'z', arm = true, spread = 1, 
     k.limb('g', t0, t1, 0.0168, 0.0148, { c: gr(1), k: SK, ball: true, flow: [0.02, 0.1] }); k.limb('g', t1, t2, 0.0148, 0.0128, { c: gr(1), k: SK, ball: true, flow: [0.1, 0.16] });
     k.poly('g', 'oct', 0.011, [t2[0], t2[1] + 0.009, t2[2] - 0.004], { k: CR, s: [0.9, 0.4, 1.6] });
     k.poly('g', 'oct', 0.011, [t1[0], t1[1] + 0.014, t1[2] + 0.02], { k: CR, s: [0.9, 0.4, 1.6] });
-    if (arm) forearm(k, [Math.cos(pa) * (Rf + 0.025), Math.sin(pa) * (Rf + 0.025), 0.06], [-0.34 * flip, -0.3, 1], 0.34, 0.025, 0.032);
+    if (arm) forearm(k, [Math.cos(pa) * (Rf + 0.025), Math.sin(pa) * (Rf + 0.025), 0.06], [-0.4 * flip, -0.75, 0.8], 0.27, 0.024, 0.028);
   });
 }

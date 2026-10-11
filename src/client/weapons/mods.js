@@ -10,6 +10,9 @@ const ANCH = [
   { r: 0.045, top: 0.075, side: 0.028, rz: 0.0 }, { r: 0.058, top: 0.1, side: 0.034, rz: 0.0 }, { r: 0.062, top: 0.098, side: 0.038, rz: 0.0 }, { r: 0.085, top: 0.14, side: 0.075, rz: 0.0 }, { r: 0.058, top: 0.1, side: 0.036, rz: 0.0 },
   { r: 0.05, top: 0.075, side: 0.028, rz: 0.0 }, { r: 0.07, top: 0.09, side: 0.046, rz: 0.0 }, { r: 0.1, top: 0.14, side: 0.04, rz: 0.0 }, { r: 0.05, top: 0.08, side: 0.034, rz: 0.0 }, { r: 0.08, top: 0.1, side: 0.04, rz: 0.0 },
   { r: 0.07, top: 0.1, side: 0.044, rz: 0.0 }, { r: 0.09, top: 0.1, side: 0.04, rz: 0.0 }, { r: 0.056, top: 0.1, side: 0.036, rz: 0.0 }, { r: 0.04, top: 0.065, side: 0.028, rz: 0.0 }, { r: 0.09, top: 0.105, side: 0.06, rz: 0.0 },
+  // 15..24: voltaico, glaciar, plaga, brasa, mina, sierra, pulsar, dardos, requiem, quimera
+  { r: 0.07, top: 0.09, side: 0.04, rz: 0.0 }, { r: 0.075, top: 0.2, side: 0.056, rz: 0.0 }, { r: 0.05, top: 0.095, side: 0.045, rz: 0.0 }, { r: 0.095, top: 0.19, side: 0.062, rz: 0.0 }, { r: 0.07, top: 0.1, side: 0.04, rz: 0.0 },
+  { r: 0.13, top: 0.1, side: 0.04, rz: 0.0 }, { r: 0.075, top: 0.1, side: 0.04, rz: 0.0 }, { r: 0.08, top: 0.12, side: 0.04, rz: 0.0 }, { r: 0.04, top: 0.14, side: 0.034, rz: 0.0 }, { r: 0.07, top: 0.19, side: 0.05, rz: 0.0 },
 ];
 const RED = 0xff4a20, ORANGE = 0xff9a30, CYAN = 0x40f0ff, YELLOW = 0xffe060, VIOLET = 0xc070ff;
 

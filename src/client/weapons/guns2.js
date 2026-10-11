@@ -5,8 +5,8 @@ import { Kit, makeMats, AmmoScreen } from './kit.js';
 import { rightHand, triggerFinger, supportHand, trigCurl, bindTrigger } from './hands.js';
 import { DARK, GUN, STEEL, PALE, clamp, damp, easeOut, Spring, newGun, finalize, addParts, placeScreen, bezel, screw, vents } from './guns.js';
 
-const VIEW_L = { pos: [0.27, -0.27, -0.7], scale: 0.95, zs: 0.55, rot: [-0.02, 0.28, -0.05] };
-const VIEW_S = { pos: [0.27, -0.26, -0.62], scale: 1.1, zs: 0.7, rot: [-0.02, 0.26, -0.04] };
+const VIEW_L = { pos: [0.19, -0.2, -0.56], scale: 1.25, zs: 0.55, rot: [-0.03, 0.4, -0.05] };
+const VIEW_S = { pos: [0.2, -0.2, -0.54], scale: 1.4, zs: 0.7, rot: [-0.03, 0.36, -0.04] };
 
 /** Empuñadura + guardamonte + gatillo estándar; devuelve las medidas para la mano. */
 function stdGrip(k, top, { z = 0, len = 0.17, trig = true } = {}) {
@@ -28,7 +28,8 @@ function make(index, q, hands, S) {
   if (info.screen) placeScreen(G, P[info.screen.on || 'main'], info.screen.pos, info.screen.rot, info.screen.scale || 1.2);
   const W = {
     group, muzzle: S.muzzle, eject: S.eject || null, flash: S.flash, recoil: S.recoil, view: S.view,
-    update(dt, t, firing) {
+    update(dt, t, firing, ctx) {
+      if (ctx) st.ctx = ctx;
       st.t = t; st.kick.step(dt); st.t0 += dt; G.heat = Math.max(0, G.heat - dt * (S.cool ?? 0.4)); G.boost = Math.max(0, G.boost - dt * (S.bdec ?? 6));
       st.curl = Math.max(st.curl - dt * 8, firing ? 0.3 : 0); st.pulse = Math.max(0, st.pulse - dt * 3);
       trigCurl(P, st.curl);
@@ -255,4 +256,5 @@ function eclipse(q, hands) {
   });
 }
 
+export { make, stdGrip, gem, burst, VIEW_L, VIEW_S };
 export const EXTRA = [pulso, gemelas, solar, fractal, enjambre, cometa, vortice, lanza, cetro, eclipse];

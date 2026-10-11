@@ -248,6 +248,7 @@ function frame(now) {
     if (b) { const up = v3(...me.up), d = norm(v3(b.p[0] - me.pos[0], b.p[1] - me.pos[1], b.p[2] - me.pos[2])), h = norm(project(d, up), v3(...me.h)); session.look = { h: [h.x, h.y, h.z], pitch: Math.asin(Math.max(-1, Math.min(1, d.x * up.x + d.y * up.y + d.z * up.z))) }; }
   }
   session.myWeapon = me ? me.w : 0;
+  if (me && me.char && session.handChar !== me.char && renderer.vm && renderer.vm.setHandStyle) { session.handChar = me.char; try { renderer.vm.setHandStyle(me.char); } catch { /* estilo de mano no disponible */ } }
   if (me && renderer.vm && renderer.vm.setUpgrades) me.sl.forEach((w, i) => { const u = me.up[i]; renderer.vm.setUpgrades(w, u ? { dmg: u[0], rate: u[1], mag: u[2], mod: u[3] || null } : { dmg: 0, rate: 0, mag: 0, mod: null }); });
   renderer.guideTalk = subs.talking;
   renderer.firing = !!(session.touch ? touch.fire : mouse.fire);
