@@ -171,7 +171,7 @@ export function wallMaterial(U, { full = true } = {}) {
         #endif
         float fl = 0.55 + 0.45 * sin(t * 1.3 + vnoise(vWP * 0.2) * TAU);
         vec3 veinC = mix(zc, irid, 0.35);
-        vec3 col = body + veinC * vein * fl * 0.85 + zc * foot * 0.22;
+        vec3 col = body + veinC * vein * fl * 0.85 + zc * foot * 0.22; gl_FragColor = vec4(col,1.0); return;
         // luz del sol (sombra aproximada con el suelo al pie del muro) y destellos
         float sunF = mix(texture2D(uBake, (vWP.xz + n0.xz * 1.6 + 80.0) / 160.0).g, 1.0, smoothstep(2.0, 12.0, vWP.y));
         float ndl = max(dot(n, uSunL), 0.0);
@@ -193,7 +193,7 @@ export function wallMaterial(U, { full = true } = {}) {
             vec2 gq = (gf - 0.5) * 1.35 + 0.5;
             float g = rune(gq, hash21(gid + gh * 31.0), 0.045, 0.035 + faa);
             float pl = 0.6 + 0.4 * sin(t * 1.4 + gh * 40.0);
-            col += vec3(1.0,0.0,0.0) * 1.0 * step(0.001, g);
+            col += mix(zc, vec3(1.0), 0.25) * g * pl * 1.5;
             col += zc * 0.06 * pl;
           }
         }
