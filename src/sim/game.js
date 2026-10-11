@@ -40,7 +40,7 @@ export class Game {
     const p = {
       id: this.nextId++, name, pos, vel: v3(), up, heading: norm(project(v3(0, 0, -1), up), v3(1, 0, 0)), pitch: 0,
       hp: PLAYER.hp, shield: PLAYER.shield, dead: false, weapon: 0, ammo: WEAPONS.map((w) => w.start),
-      cd: 0, lastHurt: -99, flipUntil: 0, portalCd: 0, grounded: false, kills: 0, score: 0, respawnAt: 0,
+      cd: 0, ext: v3(), reviveT: 0, lastHurt: -99, flipUntil: 0, portalCd: 0, grounded: false, kills: 0, score: 0, respawnAt: 0,
       input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1 },
     };
     this.players.push(p);
@@ -112,7 +112,7 @@ export class Game {
     const types = plan[Math.min(n, plan.length) - 1];
     let budget = (8 + 8 * n + 1.3 * n * n) * (1 + 0.6 * (n_pl - 1)) * this.difficulty;
     if (isBoss) { budget *= 0.45; this.queue.push(BOSS_OF[this.mapId]); }
-    const cap = { geoda: 1 + Math.floor(n / 2), graviton: 1 + Math.floor(n / 3), cuarzo: 1 + Math.floor(n / 3), espejo: 2 + n };
+    const cap = { geoda: 1 + Math.floor(n / 2), graviton: 1 + Math.floor(n / 3), cuarzo: 1 + Math.floor(n / 3), espejo: 2 + n, obelisco: 1 + Math.floor(n / 3), aurora: 1 + Math.floor(n / 3), espiral: 1 + Math.floor(n / 4), ariete: 1 + Math.floor(n / 2) };
     const counts = {};
     const weights = types.map((t) => 1 / MONSTERS[t].cost);
     const minCost = Math.min(...types.map((t) => MONSTERS[t].cost));
@@ -173,6 +173,18 @@ export class Game {
     p.heading = norm(project(p.heading, p.up), v3(1, 0, 0));
   }
 
+  /** Un compañero vivo cerca (3,5 u) durante 3 s reanima al caído en el lugar. */
+  updateRevive(p, dt) {
+    const helper = this.players.some((q) => !q.dead && q !== p && dist(q.pos, p.pos) < 3.5);
+    p.reviveT = helper ? p.reviveT + dt : Math.max(0, p.reviveT - dt * 0.5);
+    if (p.reviveT >= 3) {
+      p.dead = false; p.hp = 50; p.shield = 0; p.reviveT = 0; p.lastHurt = this.time; p.vel = v3(); p.ext = v3();
+      this.emit({ t: 'revive', pid: p.id, p: a3(p.pos) });
+    }
+  }
+  /** Empuje externo (embestidas, atracción): se suma a la velocidad y decae. */
+  push(p, v) { p.ext = add(p.ext, v); }
+
   gravityFor(ent, flipUntil = 0) {
     const g = this.map.gravityAt(ent.pos, this.time);
     if (this.time < flipUntil) return len(g) > 0.1 ? mul(g, -1) : mul(ent.up, G);
@@ -181,7 +193,7 @@ export class Game {
 
   updatePlayer(p, dt) {
     const inp = p.input;
-    if (p.dead) { inp.dyaw = inp.dpitch = 0; return; }
+    if (p.dead) { inp.dyaw = inp.dpitch = 0; this.updateRevive(p, dt); return; }
     const g = this.gravityFor(p, p.flipUntil);
     const zero = len(g) < 0.5;
     if (!zero) p.up = norm(mul(g, -1));
@@ -212,8 +224,9 @@ export class Game {
     }
     // integrar en 2 subpasos y colisionar
     p.grounded = false;
+    p.ext = mul(p.ext, Math.max(0, 1 - 4 * dt));
     for (let s = 0; s < 2; s++) {
-      p.pos = madd(p.pos, p.vel, dt / 2);
+      p.pos = madd(madd(p.pos, p.vel, dt / 2), p.ext, dt / 2);
       const c = collide(this.map, p.pos, p.vel, PLAYER.radius, up);
       if (c && c.d > 0.55) p.grounded = true;
     }
@@ -325,6 +338,8 @@ export class Game {
     if (m.kind === 'geoda') mul_ = m.open ? 1 : 0.2;
     if (m.kind === 'madre') mul_ = m.open ? 1 : 0.15;
     if (m.kind === 'espejo') { m.cloak = false; m.reveal = 2.2; }
+    if (m.stun) mul_ *= 1.5;
+    if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
     if (by) by.score += 0;
     this.emit({ t: 'hit', id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1 });
@@ -410,23 +425,17 @@ export class Game {
       const ts = pr.owner === 'm' ? this.map.timeScaleAt(pr.pos) : 1;
       pr.age += dt; pr.life -= dt;
       if (pr.accel) pr.vel = madd(pr.vel, norm(pr.vel), pr.accel * dt * ts);
-      pr.pos = madd(pr.pos, pr.vel, dt * ts);
-      let dead = pr.life <= 0 || !finite(pr.pos) || this.map.outOfBounds(pr.pos);
-      if (!dead && blocked(this.map, pr.pos)) { dead = true; if (pr.splash) this.explode(pr.pos, pr.splash, 0, pr.dmg, this.players.find((q) => q.id === pr.pid), false); else this.emit({ t: 'splat', p: a3(pr.pos) }); }
-      else if (!dead && pr.owner === 'p') {
-        for (const m of this.monsters) {
-          if (m.dead) continue;
-          if (dist(m.pos, pr.pos) < m.r + pr.r) {
-            this.explode(pr.pos, pr.splash, 0, pr.dmg, this.players.find((q) => q.id === pr.pid), false);
-            dead = true; break;
-          }
-        }
-        if (pr.life <= 0 && pr.splash && !dead) dead = true;
-      } else if (!dead && pr.owner === 'm') {
-        for (const p of this.players) if (!p.dead && dist(p.pos, pr.pos) < PLAYER.radius + pr.r) {
-          this.hurtPlayer(p, pr.dmg); dead = true; this.emit({ t: 'splat', p: a3(pr.pos) }); break;
-        }
+      const n = Math.max(1, Math.ceil((len(pr.vel) * dt * ts) / 0.9)); // proyectiles rápidos: sub-pasos para no atravesar
+      let dead = false, hitP = null;
+      for (let k = 0; k < n && !dead; k++) {
+        pr.pos = madd(pr.pos, pr.vel, (dt * ts) / n);
+        if (blocked(this.map, pr.pos)) { dead = true; hitP = 'solid'; }
+        else if (pr.owner === 'm') { for (const p of this.players) if (!p.dead && dist(p.pos, pr.pos) < PLAYER.radius + pr.r) { this.hurtPlayer(p, pr.dmg); dead = true; hitP = 'player'; this.emit({ t: 'splat', p: a3(pr.pos) }); break; } }
+        else { for (const m of this.monsters) if (!m.dead && dist(m.pos, pr.pos) < m.r + pr.r) { dead = true; hitP = 'monster'; break; } }
       }
+      dead = dead || pr.life <= 0 || !finite(pr.pos) || this.map.outOfBounds(pr.pos);
+      if (hitP === 'monster') this.explode(pr.pos, pr.splash, 0, pr.dmg, this.players.find((q) => q.id === pr.pid), false);
+      else if (hitP === 'solid') { dead = true; if (pr.splash) this.explode(pr.pos, pr.splash, 0, pr.dmg, this.players.find((q) => q.id === pr.pid), false); else this.emit({ t: 'splat', p: a3(pr.pos) }); }
       if (!dead) keep.push(pr);
     }
     this.projectiles = keep;
@@ -468,11 +477,11 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil,
+        dead: p.dead, rv: r2(p.reviveT), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
-        s: m.state, o: !!m.open, c: !!m.cloak, h: m.hurt > 0, t: r2(m.t),
+        s: m.state, o: !!m.open, c: !!m.cloak, h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0), st: !!m.stun,
       })),
       projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),

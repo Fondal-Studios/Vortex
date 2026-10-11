@@ -9,7 +9,7 @@ import { Game } from '../src/sim/game.js';
 import { MAPS } from '../src/sim/maps.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml' };
 export const SIM_DT = 1 / 60, SNAP_EVERY = 3; // 60 Hz de simulación, 20 Hz de snapshots
 
 function resolveFile(url) {
@@ -17,7 +17,7 @@ function resolveFile(url) {
   if (p === '/') p = '/public/index.html';
   if (p.startsWith('/vendor/three/')) return path.join(ROOT, 'node_modules/three/build', p.slice('/vendor/three/'.length));
   if (p.startsWith('/vendor/three-addons/')) return path.join(ROOT, 'node_modules/three/examples/jsm', p.slice('/vendor/three-addons/'.length));
-  if (p.startsWith('/public/') || p.startsWith('/src/')) return path.join(ROOT, p);
+  if (p.startsWith('/public/') || p.startsWith('/src/') || p.startsWith('/assets/')) return path.join(ROOT, p);
   if (/^\/[\w.-]+\.(html|css|js)$/.test(p)) return path.join(ROOT, 'public', p);
   return null;
 }

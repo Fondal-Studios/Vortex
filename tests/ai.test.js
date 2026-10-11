@@ -9,9 +9,9 @@ const spawn = (g, p, kind, d, lift = 0) => g.spawnMonster(kind, ahead(p, d, lift
 const watch = (g, secs, fn) => run(g, secs, (t) => fn && fn(t));
 const events = (g, store) => () => { for (const e of g.drainEvents()) store.push(e); };
 
-test('bestiario: 8 criaturas + 2 jefes, cada una con IA propia y rol distinto', () => {
+test('bestiario: 12 criaturas + 2 jefes, cada una con IA propia y rol distinto', () => {
   const kinds = Object.keys(MONSTERS);
-  assert.equal(kinds.filter((k) => !MONSTERS[k].boss).length, 8); assert.equal(kinds.filter((k) => MONSTERS[k].boss).length, 2);
+  assert.equal(kinds.filter((k) => !MONSTERS[k].boss).length, 12); assert.equal(kinds.filter((k) => MONSTERS[k].boss).length, 2);
   assert.equal(new Set(kinds.map((k) => MONSTERS[k].role)).size, kinds.length - 1 /* ambos jefes comparten rol */);
   for (const k of kinds) { assert.equal(typeof AI[MONSTERS[k].ai], 'function', k); assert.ok(MONSTERS[k].hp > 0 && MONSTERS[k].r > 0); }
 });
@@ -93,4 +93,44 @@ test('Madre Geoda (jefe M2): se abre/cierra en ciclos (blindada cerrada), lanza 
   assert.ok(opens >= 2 && closes >= 2, `ciclos ${opens}/${closes}`); assert.ok(shots > 60); assert.ok(racimos);
   b.open = false; const h = b.hp; g.damageMonster(b, 100, p); assert.ok(Math.abs(h - b.hp - 15) < 1e-6, 'cerrada recibe 15%');
   b.open = true; g.damageMonster(b, 1e9, p); g.step(1 / 60); g.step(1 / 60); assert.equal(g.state, 'won'); void hp0;
+});
+
+test('Obelisco (francotirador): se aleja, traza línea 1.6 s, fija el blanco y dispara un rayo veloz que se puede esquivar', () => {
+  const { g, p } = arena(); const m = spawn(g, p, 'obelisco', 20); let charged = 0, ray = null, lockSeen = false;
+  watch(g, 12, () => { if (m.state === 'charge') { charged++; lockSeen ||= !!m.aim; } ray ||= g.projectiles.find((q) => q.kind === 'ray'); });
+  assert.ok(dist(m.pos, p.pos) > 30, 'se planta lejos'); assert.ok(charged > 60 * 1.2 && lockSeen, 'telegrafía >1 s');
+  assert.ok(ray && len(ray.vel) > 100, 'rayo veloz');
+  // esquivable: un jugador que se mueve de lado durante la carga no es alcanzado
+  const t = arena(); const o = spawn(t.g, t.p, 'obelisco', 45); t.p.hp = 1000; t.p.shield = 0; let hits = 0;
+  run(t.g, 8, (time) => { t.g.setInput(t.p.id, { mx: Math.sin(time * 4) > 0 ? 1 : -1 }); }); for (const e of t.g.drainEvents()) if (e.t === 'hurt') hits++;
+  assert.ok(hits <= 2, `un jugador que se mueve recibe pocos impactos (${hits})`); void o;
+});
+
+test('Aurora (sanadora): cura 30 % y escuda (daño ×0.5) a las criaturas cercanas', () => {
+  const { g, p } = arena(); const a = spawn(g, p, 'aurora', 20, 6); const v = spawn(g, p, 'geoda', 22); v.hp = v.maxhp * 0.3; v.cd = 1e9;
+  const ev = []; const drain = events(g, ev); let healed = false, shielded = false; const hp0 = v.hp;
+  watch(g, 10, () => { drain(); if (ev.some((e) => e.t === 'heal') && !healed) { healed = true; shielded = g.time < v.shieldUntil; } });
+  assert.ok(healed && v.hp > hp0, 'curó'); assert.ok(shielded, 'escudó');
+  const h = v.hp; v.shieldUntil = g.time + 5; v.open = true; g.damageMonster(v, 100, p); assert.ok(Math.abs(h - v.hp - 50) < 1e-6, 'daño ×0.5 con escudo'); void a;
+});
+
+test('Ariete (embestidor): avisa 1 s, carga en línea recta, empuja al jugador y queda aturdido (×1.5 de daño)', () => {
+  const { g, p } = arena(); const m = spawn(g, p, 'ariete', 18); let wind = 0, stun = false, pushed = false, sh0 = p.shield; const st = [];
+  watch(g, 8, () => { st.push(m.state); if (m.state === 'wind') wind++; if (m.state === 'stun') stun = true; if (len(p.ext) > 3) pushed = true; });
+  assert.ok(wind >= 55, `aviso ${wind} ticks`); assert.ok(st.includes('charge')); assert.ok(stun, 'aturdido tras embestir'); assert.ok(p.shield < sh0 && pushed, 'daño + empuje');
+  m.stun = true; const h = m.hp; g.damageMonster(m, 100, p); assert.ok(Math.abs(h - m.hp - 150) < 1e-6);
+});
+
+test('Espiral (atractor): carga y arrastra al jugador hacia sí durante ~2.6 s', () => {
+  const { g, p } = arena(); const m = spawn(g, p, 'espiral', 25, 8); const d0 = dist(p.pos, m.pos); let pulled = false, minD = d0;
+  watch(g, 10, () => { if (m.state === 'pull') pulled = true; minD = Math.min(minD, dist(p.pos, m.pos)); });
+  assert.ok(pulled && minD < d0 - 6, `acercó al jugador: ${d0.toFixed(1)} → ${minD.toFixed(1)}`);
+});
+
+test('Coop: un compañero cerca reanima al caído en 3 s (50 de vida, en el lugar)', () => {
+  const { g, p } = arena('m1', { hp: 100 }); const q = g.addPlayer('b'); q.pos = { x: p.pos.x + 20, y: p.pos.y, z: p.pos.z };
+  g.hurtPlayer(q, 1e4); assert.ok(q.dead); run(g, 2); assert.ok(q.dead, 'aún no: lejos');
+  q.pos = { ...q.pos }; p.pos = { x: q.pos.x - 2, y: q.pos.y, z: q.pos.z }; run(g, 2.5); assert.ok(q.dead, '2.5 s no alcanza'); run(g, 1);
+  assert.ok(!q.dead && q.hp === 50, 'revivió');
+  const ev = g.drainEvents(); assert.ok(ev.some((e) => e.t === 'revive'));
 });

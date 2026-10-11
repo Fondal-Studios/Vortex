@@ -199,6 +199,87 @@ export const AI = {
     if (m.cd <= 0 && d < 80) { m.state = 'charge'; m.stateT = 1.3; }
   },
 
+  // 9) Francotirador: se planta lejos, **traza una línea láser 1.6 s** (fija el blanco los últimos 0.4 s) y dispara un rayo veloz
+  sniper(game, m, dt, targets) {
+    const p = nearest(targets, m.pos), to = sub(p.pos, m.pos), d = len(to), dir = norm(to);
+    const wish = m.state === 'charge' ? v3() : d < 34 ? mul(dir, -1) : d > 60 ? dir : v3();
+    groundMove(game, m, dt, wish, sp(m), 6);
+    face(m, project(dir, m.up));
+    m.cd -= dt;
+    if (m.state === 'charge') {
+      if (m.stateT > 0.4) m.aim = dir; // sigue al jugador y luego se "fija"
+      if ((m.stateT -= dt) <= 0) {
+        shoot(game, m, madd(m.pos, m.up, 1.4), m.aim, 110, 28 * dmgMul(game), 'ray', 0.5, 1.6);
+        m.state = 'idle'; m.cd = m.hp < m.maxhp * 0.5 ? 3.2 : 4.4; m.aim = null;
+      }
+    } else if (m.cd <= 0 && d < 95) { m.state = 'charge'; m.stateT = 1.6; m.aim = dir; }
+  },
+
+  // 10) Sanadora: flota lejos; cada 5 s canaliza 0.9 s y cura 30 % + escuda (daño ×0.5, 4 s) a las criaturas cercanas
+  healer(game, m, dt, targets) {
+    const p = nearest(targets, m.pos), dir = norm(sub(p.pos, m.pos));
+    m.cd -= dt;
+    if (m.state === 'cast') {
+      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); m.pos = madd(m.pos, m.vel, dt);
+      if ((m.stateT -= dt) <= 0) {
+        for (const o of game.monsters) if (!o.dead && o !== m && !o.def.boss && dist(o.pos, m.pos) < 16) { o.hp = Math.min(o.maxhp, o.hp + o.maxhp * 0.3); o.shieldUntil = game.time + 4; }
+        game.emit({ t: 'heal', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] });
+        m.state = 'idle'; m.cd = 5;
+      }
+      return;
+    }
+    const ang = m.t * 0.5 + m.id, side = norm(cross(p.up, v3(Math.cos(ang), 0.3, Math.sin(ang))), v3(1, 0, 0));
+    // se queda detrás y encima de sus aliados (centroide), lejos del jugador
+    let cx = 0, cy = 0, cz = 0, n = 0;
+    for (const o of game.monsters) if (!o.dead && o !== m && !o.def.boss) { cx += o.pos.x; cy += o.pos.y; cz += o.pos.z; n++; }
+    const want = n ? madd(madd(v3(cx / n, cy / n, cz / n), p.up, 7), mul(dir, -1), 9) : madd(madd(p.pos, p.up, 12), side, 30);
+    flyMove(game, m, dt, mul(sub(want, m.pos), 0.8), 2);
+    face(m, dir);
+    if (m.cd <= 0 && game.monsters.some((o) => o !== m && !o.dead && !o.def.boss && dist(o.pos, m.pos) < 16)) { m.state = 'cast'; m.stateT = 0.9; }
+  },
+
+  // 11) Embestidor: avisa 1 s (patea y brilla), carga en línea recta a gran velocidad y queda **aturdido** (recibe ×1.5)
+  charger(game, m, dt, targets) {
+    const p = nearest(targets, m.pos), to = sub(p.pos, m.pos), d = len(to), dir = norm(to);
+    m.cd -= dt; m.open = false; m.stun = false;
+    if (m.state === 'wind') {
+      groundMove(game, m, dt, v3(), 0, 10); face(m, project(m.aim, m.up));
+      if ((m.stateT -= dt) <= 0) { m.state = 'charge'; m.stateT = 1.3; }
+    } else if (m.state === 'charge') {
+      groundMove(game, m, dt, m.aim, 28, 20); face(m, project(m.aim, m.up));
+      m.stateT -= dt;
+      if (d < m.r + 1.6) { game.hurtPlayer(p, 30 * dmgMul(game)); game.push(p, madd(mul(norm(project(m.aim, p.up)), 20), p.up, 6)); game.emit({ t: 'bite', id: m.id }); m.state = 'stun'; m.stateT = 1.8; }
+      else if (m.stateT <= 0 || (m.grounded && len(project(m.vel, m.up)) < 4 && m.stateT < 1)) { m.state = 'stun'; m.stateT = 1.6; }
+    } else if (m.state === 'stun') {
+      m.stun = true; groundMove(game, m, dt, v3(), 0, 10);
+      if ((m.stateT -= dt) <= 0) { m.state = 'idle'; m.cd = 2.5; }
+    } else {
+      groundMove(game, m, dt, dir, sp(m), 8); face(m, project(dir, m.up));
+      if (m.cd <= 0 && d < 40 && d > 8) { m.state = 'wind'; m.stateT = 1.0; m.aim = project(dir, m.up); }
+    }
+  },
+
+  // 12) Atractor: carga 0.8 s y **arrastra a los jugadores** hacia él durante 2.6 s (hay que resistir moviéndose lejos)
+  attractor(game, m, dt, targets) {
+    const p = nearest(targets, m.pos), dir = norm(sub(p.pos, m.pos));
+    m.cd -= dt;
+    if (m.state === 'charge') {
+      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); m.pos = madd(m.pos, m.vel, dt);
+      if ((m.stateT -= dt) <= 0) { m.state = 'pull'; m.stateT = 2.6; game.emit({ t: 'pull', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] }); }
+      return;
+    }
+    if (m.state === 'pull') {
+      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); m.pos = madd(m.pos, m.vel, dt);
+      for (const q of targets) { const dd = dist(q.pos, m.pos); if (dd < 50 && dd > 2) game.push(q, mul(norm(sub(m.pos, q.pos)), 55 * dt)); }
+      if ((m.stateT -= dt) <= 0) { m.state = 'idle'; m.cd = 8; }
+      return;
+    }
+    const ang = m.t * 0.35 + m.id, side = norm(cross(p.up, v3(Math.cos(ang), 0.2, Math.sin(ang))), v3(1, 0, 0));
+    flyMove(game, m, dt, mul(sub(madd(madd(p.pos, p.up, 10), side, 24), m.pos), 0.8), 2);
+    face(m, dir);
+    if (m.cd <= 0 && dist(p.pos, m.pos) < 60) { m.state = 'charge'; m.stateT = 0.8; }
+  },
+
   // ───── jefes ─────
   coloso(game, m, dt, targets) {
     const a = game.map.bossAnchor, p = nearest(targets, m.pos);
