@@ -1,5 +1,6 @@
+import { OUT } from '../shaders.js';
 // Fragmentos GLSL compartidos por el Mapa 3 (Laberinto Celestial): colores de zona, runas, bruma.
-// Sólo cadenas de texto. Los colores están en valores "de pantalla" (finish() los linealiza si hay bloom).
+// Casi todo son cadenas de texto. Los colores están en valores "de pantalla" (finish() los linealiza si hay bloom).
 
 /** Colores por esquina para orientarse. Esquina de aparición (-x,+z) = ÁMBAR; (+x,+z) = CIAN; (-x,-z) = MAGENTA; (+x,-z) = LIMA; centro = VIOLETA. */
 export const ZONES = /* glsl */`
@@ -37,3 +38,7 @@ float rune(vec2 q, float h, float w, float aa){
 }
 `;
 
+
+/** Ganancia de salida: con bloom + ACES (Media/Alta) los colores "de pantalla" salen más brillantes que sin post-proceso,
+ *  así que los materiales de este mapa se atenúan para verse igual de bien en las tres calidades. Leer al crear el material. */
+export const gain = (post = 0.5, none = 1.0) => (OUT.linear ? post : none).toFixed(3);

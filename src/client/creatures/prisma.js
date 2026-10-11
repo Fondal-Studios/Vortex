@@ -3,7 +3,7 @@
 // OCELOS legibles: anillos oscuro / dorado / magenta con pupila) montadas en un esqueleto de 3 huesos (hombro, codo, punta).
 // Estados: orbit = vuela en círculos / wind = se repliega y brilla (aviso 0.7 s: alas arriba, ocelos y venas arden) /
 // dive = alas pegadas atrás, cuerpo estirado, trompa afuera. st.hp<0.35: ala coja; st.sd aura; st.st aturdida.
-import { THREE, TAU, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, bendAttr, Rig, skinRigid, skinChain, eye, boneQuat, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, bendAttr, Rig, skinRigid, skinChain, eye, boneQuat, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
 import { uTime } from '../shaders.js';
 
 const WING_NOISE = `
@@ -57,7 +57,7 @@ export default function build(kit, color) {
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
           float fres = pow(1.0 - abs(dot(normal, normalize(vViewPosition))), 2.0);
           diffuseColor.a = clamp(0.26 + 0.26 * (1.0 - v) + vv * 0.6 + (c1 + c2 + c3 + c4) * 0.6 + fres * 0.3, 0.0, 0.97) * (1.0 - smoothstep(0.93, 1.0, v) * 0.45);
-          totalEmissiveRadiance += uC2 * (vv * (0.35 + uWind * 2.6) * (0.6 + 0.4 * sin(uTime * 3.0 - s * 8.0)) + (c3 * 0.9 + c2 * 0.5) * (0.5 + uWind * 2.2)) + irid * fres * 0.4 + vec3(1.0, 0.85, 0.7) * uHurt * 0.9;`);
+          totalEmissiveRadiance += uC2 * (vv * (0.35 + uWind * 1.6) * (0.6 + 0.4 * sin(uTime * 3.0 - s * 8.0)) + (c3 * 0.9 + c2 * 0.5) * (0.5 + uWind * 1.4)) + irid * fres * 0.4 + vec3(1.0, 0.85, 0.7) * uHurt * 0.9;`);
     };
     return m;
   }
@@ -137,14 +137,16 @@ export default function build(kit, color) {
   // cristales del lomo
   [[0.42, 0.34, 0.3], [0.1, 0.3, 0.26], [-0.25, 0.25, 0.2]].forEach(([z, y, h], i) => crystalCluster(low ? 1 : 3, 0.04 - i * 0.006, h, { pos: [0, y, z], dir: [0, 1, -0.45], seed: 80 + i, c0: 0x20406a, c1: 0xe0ffff }).forEach((c) => rig.add(cry, skinRigid(c, body))));
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.85; rootObj.scale.setScalar(K);
   const halo = glowSprite(color, 3.2, 0.0); halo.position.set(0, 0.1, 0.1); rootObj.add(halo);
   const aura = shieldAura(0xaa88ff, 1.5); rootObj.add(aura);
+  mats.push(disposer(rig, [halo.material, aura.geometry, aura.material]));
   const wl = new Spring(0, 70, 8), wr = new Spring(0, 70, 8), tailS = new Spring(0, 45, 5), headY = new Spring(0, 90, 10), headX = new Spring(0, 90, 10);
-  let phase = Math.random() * 6, windK = 0, diveK = 0, prK = 0; const tmp = new V3(), look = new V3(0, 0, 1), q1 = new THREE.Quaternion(), lh = new V3();
+  let prevHp = 1, flinch = 0, phase = Math.random() * 6, windK = 0, diveK = 0, prK = 0; const tmp = new V3(), look = new V3(0, 0, 1), q1 = new THREE.Quaternion(), lh = new V3();
   return { root: rootObj, mats, tick(dt, st, t, ctx = {}) {
     dt = Math.min(Math.max(dt, 0.001), 0.05); const speed = Math.min(1.5, ctx.speed || 0);
     if (ctx.look) look.copy(ctx.look);
+    if (st.hp != null) { if (st.hp < prevHp - 0.004) flinch = 1; prevHp = st.hp; } flinch = Math.max(0, flinch - dt * 4.5);
     const wind = st.s === 'wind', dive = st.s === 'dive', hurt = (st.hp ?? 1) < 0.35, stun = !!st.st;
     windK = dampTo(windK, wind ? 1 : 0, 12, dt); diveK = dampTo(diveK, dive ? 1 : 0, 9, dt); const tense = Math.max(windK, diveK);
     phase += dt * TAU * (1.5 + speed * 1.4) * (stun ? 0.4 : hurt ? 0.75 : 1) * (1 - 0.9 * tense) + (hurt ? Math.sin(t * 9) * dt * 1.5 : 0);
@@ -158,13 +160,13 @@ export default function build(kit, color) {
     wingF.userData.u.uWind.value = wingH.userData.u.uWind.value = windK;
     // cuerpo: banqueo, rebote con cada aleteo, estiramiento en la picada, repliegue en el aviso
     const bob = Math.sin(phase) * 0.07 * (1 - tense);
-    body.position.y = body.userData.rest.y + bob; body.rotation.z = Math.sin(t * 0.55 + st.id) * 0.16 * (1 - tense) + (hurt ? Math.sin(t * 3.1) * 0.14 : 0); body.rotation.x = diveK * 0.34 - windK * 0.28 + Math.cos(phase) * 0.04;
+    body.position.y = body.userData.rest.y + bob - flinch * 0.08; body.rotation.z = Math.sin(t * 0.55 + st.id) * 0.16 * (1 - tense) + (hurt ? Math.sin(t * 3.1) * 0.14 : 0); body.rotation.x = diveK * 0.34 - windK * 0.28 + Math.cos(phase) * 0.04 + flinch * 0.25;
     const br = 1 + Math.sin(t * 2.3 + st.id) * 0.025; body.scale.set(lerp(1, 0.8, diveK) * (1 - 0.06 * windK) * br, lerp(1, 0.82, diveK) * (1 - 0.05 * windK) * br, lerp(1, 1.3, diveK) * (1 + 0.04 * windK));
     const lx = Math.atan2(look.x, Math.max(0.2, look.z)), ly = Math.asin(clamp(look.y, -1, 1));
     head.rotation.y = headY.step(dt, clamp(lx, -0.9, 0.9) * 0.7); head.rotation.x = headX.step(dt, -clamp(ly, -0.6, 0.6) * 0.5 + diveK * 0.1);
     // ojos
     head.updateMatrix(); boneQuat(head, root, q1); q1.invert();
-    eyes.forEach((e, k) => { gazeDir(look, ctx.dist, tmp.set(k ? 0.15 : -0.15, 0.25, 0.97), lh); lh.applyQuaternion(q1); lh.applyQuaternion(e.mount.clone().invert()); e.update(dt, lh, { open: stun ? 0.4 : hurt ? 0.7 : dive ? 1 : 0.92, dilate: dive ? -0.4 : wind ? 0.5 : 0, glowMul: 1 + windK * 2.2, squint: diveK * 0.6, quiver: stun ? 1 : 0 }); });
+    eyes.forEach((e, k) => { gazeDir(look, (ctx.dist || 8) / K, tmp.set(k ? 0.15 : -0.15, 0.25, 0.97), lh); lh.applyQuaternion(q1); lh.applyQuaternion(e.mount.clone().invert()); e.update(dt, lh, { open: stun ? 0.4 : hurt ? 0.7 : dive ? 1 : 0.92, dilate: dive ? -0.4 : wind ? 0.5 : 0, glowMul: 1 + windK * 2.2, squint: diveK * 0.6, quiver: stun ? 1 : 0 }); });
     // trompa: enrollada en reposo, se desenrolla al picar
     prK = dampTo(prK, dive ? 1 : wind ? 0.4 : 0, 12, dt);
     pb.forEach((b, i) => { const curl = (1 - prK) * (i === 0 ? 1.0 : 1.5) + (dive ? Math.sin(t * 20) * 0.04 : 0); b.rotation.x = -curl; });
@@ -174,9 +176,9 @@ export default function build(kit, color) {
     ab.forEach((b, i) => { b.rotation.x = tp * 0.3 + (hurt ? 0.05 : 0); b.rotation.y = Math.sin(t * 1.3 + i * 0.8) * 0.12 * (1 - diveK); });
     tails.forEach((T) => T.bs.forEach((b, i) => { const a = lerp(0.3, 0.6, windK) * (1 - 0.8 * diveK) * (1 + 0.2 * T.k); b.rotation.y = Math.sin(t * (2.1 + T.k * 0.4 + windK * 5) + i * 1.0 + T.k) * a * 0.5; b.rotation.x = Math.cos(t * 1.7 + i * 0.9 + T.k) * a * 0.3 + windK * 0.3; }));
     const pulse = 0.9 + 0.4 * Math.sin(t * 6);
-    cry.emissiveIntensity = pulse * 0.8 + windK * 2.6;
-    skin.userData.u.uVeinGlow.value = 0.7 + windK * 2.2 + diveK * 0.5; skin.userData.u.uSss.value = 0.4 + windK * 0.8; bone.userData.u.uSeamGlow.value = 0.3 + windK * 1.5;
-    halo.material.opacity = windK * 0.75 + diveK * 0.15; halo.scale.setScalar(2.6 + windK * 1.6 + Math.sin(t * 30) * 0.12 * windK);
+    cry.emissiveIntensity = pulse * 0.8 + windK * 1.8;
+    skin.userData.u.uVeinGlow.value = 0.7 + windK * 1.3 + diveK * 0.4; skin.userData.u.uSss.value = 0.25 + windK * 0.4; bone.userData.u.uSeamGlow.value = 0.3 + windK * 0.9;
+    halo.material.opacity = windK * 0.5 + diveK * 0.12; halo.scale.setScalar(2.6 + windK * 1.6 + Math.sin(t * 30) * 0.12 * windK);
     rootObj.rotation.z = stun ? Math.sin(t * 21) * 0.05 : 0; tickAura(aura, st, t);
   } };
 }

@@ -116,7 +116,11 @@ export class Renderer {
     this.hemi.color.setHex(warm ? 0xffb0d8 : dream ? 0xd0b8ff : 0xaab8ff); this.hemi.groundColor.setHex(warm ? 0x3a0a2a : dream ? 0x2a1050 : 0x1a0f3a); this.sun.color.setHex(warm ? 0xffd2c0 : 0xe8f0ff); this.rim.color.setHex(warm ? 0x66ffd8 : 0xff66c4);
     this.sunDir = null; // el entorno fija la dirección del sol; luego las sombras la siguen
     if (mapId === 'm3') this.loadMap3(MAPS.m3); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
-    import('./env/eyes.js').then((m) => { if (this.mapId === mapId && m.addCosmicEyes) m.addCosmicEyes(this, this.mapRoot, { map: mapId, count: cfg().decor ? (this.level === 'low' ? 12 : 48) : 8 }); }).catch(() => { /* aún sin ojos cósmicos */ });
+    if (mapId !== 'm3') import('./env/eyes.js').then((m) => {
+      if (this.mapId !== mapId || !m.addCosmicEyes) return; const q = cfg().decor;
+      if (mapId === 'm1') m.addCosmicEyes(this, this.mapRoot, { mode: 'sky', count: q ? 40 : 12, radius: 1000, minR: 450, size: 2.6, y0: -150, y1: 700 });
+      else m.addCosmicEyes(this, this.mapRoot, { mode: 'shell', shellR: MAPS.m2.R, count: q ? 46 : 12 });
+    }).catch(() => { /* sin ojos cósmicos */ });
   }
   /** Laberinto Celestial: usa env/map3.js si existe; si no, un laberinto básico de cajas. */
   loadMap3(map) {

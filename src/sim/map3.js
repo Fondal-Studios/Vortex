@@ -50,7 +50,7 @@ export function makeMap3() {
   const cellC = (i, j, y = 0.9) => v3(maze.X(i) + CELL / 2, y, maze.Z(j) + CELL / 2);
   const portals = [
     { a: cellC(0, 0, 0.9), b: cellC(N - 1, N - 1, 0.9), r: 2.2, hue: 0.55 },
-    { a: cellC(N - 1, 0, 0.9), b: cellC(0, N - 1, 0.9), r: 2.2, hue: 0.8 },
+    { a: cellC(N - 1, 0, 0.9), b: cellC(1, N - 3, 0.9), r: 2.2, hue: 0.8 },
   ].map((p) => ({ ...p, a: add(p.a, v3(3, 0, 3)), b: add(p.b, v3(-3, 0, -3)) }));
   const c = Math.floor(N / 2);
   const spots = {

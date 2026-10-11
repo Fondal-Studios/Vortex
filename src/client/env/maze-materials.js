@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { uTime, finish } from '../shaders.js';
 import { NOISE } from './glsl.js';
-import { ZONES, RUNES } from './maze-glsl.js';
+import { ZONES, RUNES, gain } from './maze-glsl.js';
 
 // Materiales (shaders) del Mapa 3 · Laberinto Celestial. Todos escriben color "de pantalla" y pasan por finish().
 // Uniformes compartidos: uTime (reloj), uBake/uPass (mapas horneados del laberinto), uSunL (dirección del sol).
@@ -38,7 +38,7 @@ export function floorMaterial(U, { full = true } = {}) {
           vec2 tg = th > 0.5 ? vec2(1.0 - tf.x, tf.y) : tf;
           float arc = min(abs(length(tg) - 0.5), abs(length(tg - 1.0) - 0.5)) * 4.0;
           float groove = ln(arc, 0.07, 0.04 + aa);
-          vec3 alb = vec3(0.050, 0.042, 0.105) * (0.75 + 0.5 * th) + zc * 0.018;
+          vec3 alb = vec3(0.085, 0.072, 0.17) * (0.75 + 0.5 * th) + zc * 0.025;
           alb *= 0.85 + 0.3 * vnoise(vec3(p * 0.9, 1.0));
           alb = mix(alb, vec3(0.012, 0.010, 0.03), seam * 0.8 + groove * 0.5);
           vec3 emi = zc * groove * (0.14 + 0.10 * sin(t * 0.9 + th * TAU)) * 0.9 + zc * seam * 0.05;
@@ -97,8 +97,8 @@ export function floorMaterial(U, { full = true } = {}) {
           vec3 R = reflect(-V, n);
           float fr = pow(1.0 - max(dot(n, V), 0.0), 4.0);
           vec3 sky = mix(vec3(0.10, 0.07, 0.24), vec3(0.34, 0.30, 0.72), clamp(R.y, 0.0, 1.0)) + zc * 0.12;
-          vec3 amb = vec3(0.30, 0.26, 0.62) * ao;
-          col = alb * (amb * 1.5 + vec3(1.0, 0.80, 0.62) * ndl * sunV * 2.6);
+          vec3 amb = vec3(0.36, 0.30, 0.70) * ao;
+          col = alb * (amb * 1.5 + vec3(1.0, 0.80, 0.62) * ndl * sunV * 1.9);
           col += sky * (0.07 + 0.55 * fr) * ao;
           col += vec3(1.0, 0.85, 0.7) * pow(max(dot(R, uSunL), 0.0), 60.0) * sunV * 0.7;
           col += emi * (0.75 + 0.25 * ao);
@@ -111,7 +111,7 @@ export function floorMaterial(U, { full = true } = {}) {
           vec3 pp = vWP * vec3(0.5, 0.35, 0.5);
           float w = vnoise(pp * 0.6) * 3.0, st = abs(sin(yy * 1.7 + w));
           float cr = fbm(pp * 1.7 + 3.0);
-          vec3 alb = mix(vec3(0.045, 0.035, 0.10), vec3(0.11, 0.06, 0.17), st) * (0.5 + cr);
+          vec3 alb = mix(vec3(0.09, 0.07, 0.19), vec3(0.22, 0.12, 0.32), st) * (0.5 + cr);
           float vn = abs(vnoise(vWP * 0.33 + vec3(0.0, -t * 0.25, 0.0)) - 0.5) * 2.0;
           float vein = 1.0 - smoothstep(0.0, 0.09, vn);
           float fade = smoothstep(-34.0, -1.0, yy);
@@ -119,11 +119,11 @@ export function floorMaterial(U, { full = true } = {}) {
           float ndl = max(dot(n, uSunL), 0.0);
           col = alb * (vec3(0.4, 0.34, 0.7) + vec3(1.0, 0.8, 0.6) * ndl * 1.4) + emi;
           float fr = pow(1.0 - max(dot(n, V), 0.0), 3.0);
-          col += zc * fr * 0.18;
+          col += zc * fr * 0.22 + zc * 0.07 * smoothstep(-8.0, 0.0, yy);
           col = mix(col, zoneCol(p) * 0.06 + vec3(0.03, 0.02, 0.08), smoothstep(-8.0, -48.0, yy)); // se pierde en la niebla del vacío
         }
         col = mix(col, hazeCol(-V), 1.0 - exp(-dist * dist * ${HAZE_D.toFixed(7)}));
-        gl_FragColor = vec4(col, 1.0);
+        gl_FragColor = vec4(col * ${gain(0.68)}, 1.0);
       }`,
   }));
 }
@@ -159,9 +159,9 @@ export function wallMaterial(U, { full = true } = {}) {
         float faa = max(length(fwidth(fq)), 0.002);
         float facetLine = 1.0 - smoothstep(0.0, 0.025 + faa, fe);
         float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0);
-        vec3 irid = 0.5 + 0.5 * cos(TAU * (vec3(0.0, 0.33, 0.67) + dot(n, V) * 1.1 + fh * 0.5 + t * 0.02 + vWP.y * 0.02));
+        vec3 irid = mix(zc, 0.5 + 0.5 * cos(TAU * (vec3(0.0, 0.33, 0.67) + dot(n, V) * 1.1 + fh * 0.5 + t * 0.02 + vWP.y * 0.02)), 0.5);
         // cuerpo oscuro con tinte de zona + vetas internas en dos capas (la segunda con paralaje = profundidad)
-        vec3 body = zc * 0.07 + irid * 0.05;
+        vec3 body = zc * 0.045 + irid * 0.03 + vec3(0.012, 0.01, 0.03);
         float foot = exp(-vWP.y * 0.22);
         float v1 = abs(vnoise(vWP * 0.17 + vec3(0.0, -t * 0.20, 0.0)) - 0.5) * 2.0;
         float vein = 1.0 - smoothstep(0.0, 0.11, v1);
@@ -171,16 +171,16 @@ export function wallMaterial(U, { full = true } = {}) {
         #endif
         float fl = 0.55 + 0.45 * sin(t * 1.3 + vnoise(vWP * 0.2) * TAU);
         vec3 veinC = mix(zc, irid, 0.35);
-        vec3 col = body + veinC * vein * fl * 0.85 + zc * foot * 0.22;
+        vec3 col = body + veinC * vein * fl * 1.0 + zc * foot * 0.20;
         // luz del sol (sombra aproximada con el suelo al pie del muro) y destellos
         float sunF = mix(texture2D(uBake, (vWP.xz + n0.xz * 1.6 + 80.0) / 160.0).g, 1.0, smoothstep(2.0, 12.0, vWP.y));
         float ndl = max(dot(n, uSunL), 0.0);
-        col += (vec3(0.07, 0.06, 0.16) + mix(vec3(0.8, 0.6, 0.5), irid, 0.5) * ndl * sunF * 0.55) * (0.5 + 0.5 * fh);
+        col += (vec3(0.03, 0.025, 0.07) + mix(vec3(0.8, 0.6, 0.5), irid, 0.5) * ndl * sunF * 0.28) * (0.4 + 0.6 * fh);
         vec3 R = reflect(-V, n);
         vec3 sky = mix(vec3(0.08, 0.05, 0.2), vec3(0.45, 0.4, 0.95), clamp(R.y * 0.5 + 0.5, 0.0, 1.0));
-        col += sky * fres * 0.75 + irid * fres * 0.35;
+        col += sky * fres * 0.38 + irid * fres * 0.30;
         col += vec3(1.0, 0.9, 0.85) * pow(max(dot(R, uSunL), 0.0), 40.0) * sunF * 1.3;
-        col += zc * facetLine * 0.16 * (0.4 + 0.6 * fh);
+        col += zc * facetLine * 0.30 * (0.4 + 0.6 * fh);
         // vetas de brillo propio en cada faceta (destellan al azar)
         col += irid * pow(max(sin(t * 0.8 + fh * 60.0), 0.0), 18.0) * 0.45 * step(0.6, fh);
         if (side) {
@@ -188,7 +188,7 @@ export function wallMaterial(U, { full = true } = {}) {
           float trim = (1.0 - smoothstep(0.0, 0.05 + aaU, abs(uv.y - 1.1) - 0.04)) + (1.0 - smoothstep(0.0, 0.05 + aaU, abs(uv.y - 10.6) - 0.04));
           col += zc * trim * 0.9;
           vec2 gc = vec2(uv.x / 3.4, (uv.y - 3.6) / 3.2); vec2 gid = floor(gc), gf = fract(gc);
-          float gh = hash21(gid * 1.37 + vec2(n0.x * 5.1 + n0.z * 9.7, vSize.x * 0.013 + vSize.z * 0.017));
+          float gh = hash21(gid * 1.37 + vec2(floor(n0.x + 0.5) * 5.1 + floor(n0.z + 0.5) * 9.7, floor(vSize.x * 0.5 + 0.25) * 0.013 + floor(vSize.z * 0.5 + 0.25) * 0.017));
           if (gid.y >= 0.0 && gid.y < 2.0 && gh > 0.58) {
             vec2 gq = (gf - 0.5) * 1.35 + 0.5;
             float g = rune(gq, hash21(gid + gh * 31.0), 0.045, 0.035 + faa);
@@ -212,7 +212,7 @@ export function wallMaterial(U, { full = true } = {}) {
         // resplandor de la base y bruma baja
         col = mix(col, zc * 0.25 + vec3(0.05, 0.04, 0.10), exp(-vWP.y * 0.45) * 0.30);
         col = mix(col, hazeCol(-V), 1.0 - exp(-dist * dist * ${HAZE_D.toFixed(7)}));
-        gl_FragColor = vec4(col, 1.0);
+        gl_FragColor = vec4(col * ${gain(0.5)}, 1.0);
       }`,
   }));
 }

@@ -208,3 +208,40 @@ export function debrisGeo(detail = 2, seed = 3) {
     const k = 0.62 + n * 0.7 - c; p.setXYZ(i, x * k, y * k * 0.75, z * k); }
   g.computeVertexNormals(); return g;
 }
+
+/* ───────── bruma: parches de niebla (billboards instanciados, aditivos, se desvanecen cerca de la cámara) ───────── */
+export function mistMat({ alpha = 0.1, near = 10, far = 500 } = {}) {
+  return finish(new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, defines: { FBM_OCT: 2 },
+    uniforms: { uTime, uAlpha: { value: alpha }, uNear: { value: near }, uFar: { value: far } },
+    vertexShader: `uniform float uTime, uNear, uFar; varying vec2 vUv; varying vec3 vC; varying float vA; varying float vPh;
+      void main(){ vUv = uv; vec3 c = vec3(0.0); float sc = 1.0; vC = vec3(1.0); vPh = 0.0;
+        #ifdef USE_INSTANCING
+          c = instanceMatrix[3].xyz; sc = length(instanceMatrix[0].xyz); vPh = fract(sin(dot(c, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+        #endif
+        #ifdef USE_INSTANCING_COLOR
+          vC = instanceColor;
+        #endif
+        vec4 mv = viewMatrix * modelMatrix * vec4(c, 1.0); float d = -mv.z;
+        vA = smoothstep(uNear, uNear * 3.0, d) * (1.0 - smoothstep(uFar * 0.6, uFar, d));
+        float a = vPh * 6.2832 + uTime * 0.03 * (vPh - 0.5); vec2 o = (uv - 0.5) * 2.0 * sc; mv.xy += mat2(cos(a), -sin(a), sin(a), cos(a)) * o;
+        gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform float uTime, uAlpha; varying vec2 vUv; varying vec3 vC; varying float vA; varying float vPh; ${NOISE}
+      void main(){ vec2 p = (vUv - 0.5) * 2.0; float r = length(p); float n = fbm(vec3(vUv * 3.0, vPh * 10.0 + uTime * 0.04));
+        float a = pow(smoothstep(1.0, 0.0, r), 2.0) * (0.35 + 1.0 * n); gl_FragColor = vec4(vC, a * uAlpha * vA); }`,
+  }));
+}
+export function mistLayer(r, list, { alpha = 0.1, near = 10, far = 500 } = {}) { // list: [{p: Vector3, s: size, col: 0xRRGGBB}]
+  if (!list.length) return null;
+  const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mistMat({ alpha, near, far }), list.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+  list.forEach((o, i) => { m.compose(o.p, q, s.setScalar(o.s)); im.setMatrixAt(i, m); im.setColorAt(i, dc(o.col)); });
+  im.instanceMatrix.needsUpdate = true; im.instanceColor.needsUpdate = true; im.frustumCulled = false; im.renderOrder = 2; r.mapRoot.add(im); return im;
+}
+
+/** Estalactita de roca (cono irregular, base en y=0, punta en y=1). */
+export function spikeGeo(seed = 7) {
+  let g = new THREE.ConeGeometry(0.5, 1, 7, 6, true); g.translate(0, 0.5, 0); g.deleteAttribute('uv'); g.deleteAttribute('normal'); g = mergeVertices(g, 1e-4);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), n = fbm3(x * 3 + seed, y * 4, z * 3 + seed, 3) - 0.5, k = 1 + n * 0.9; p.setXYZ(i, x * k + n * 0.15, y, z * k); }
+  g.computeVertexNormals(); return g;
+}

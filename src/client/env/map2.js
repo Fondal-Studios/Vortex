@@ -3,7 +3,7 @@ import { cfg } from '../quality.js';
 import { shellMaterial, uTide, uTime } from '../shaders.js';
 import { addMotes } from './common.js';
 import { rng } from './noise.js';
-import { trackPx, crystalGeo, crystalMat, mushroomGeo, mushroomMat, rootGeo, rootMat, particleMat, particleGeo, debrisGeo, softTex, raysTex, dc } from './props.js';
+import { trackPx, crystalGeo, crystalMat, mushroomGeo, mushroomMat, rootGeo, rootMat, mistLayer, particleMat, particleGeo, debrisGeo, softTex, raysTex, dc } from './props.js';
 import { rockPBR } from './rock.js';
 import { hillGeometry, hillMat, medusaGeo, medusaMat, veilGeo, veilMat, heart } from './flesh.js';
 import { shaftMat } from './sky.js';
@@ -67,6 +67,9 @@ export function buildMap2(r, map) {
   for (let i = 0; i < nj; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(26 + rd() * 44); jl.push({ pos: v, s: 1.4 + rd() * 2.2, col: [0x5ff0ff, 0xff6ad0, 0xa890ff, 0xb6ff7a][i % 4], tilt: new THREE.Vector3().randomDirection() }); }
   inst(medusaGeo(), medusaMat(), jl, (im, i, it) => { orient(im, i, it.pos, it.tilt.clone().lerp(it.pos.clone().normalize().negate(), 0.7).normalize(), it.s, it.s, it.s); im.setColorAt(i, dc(it.col)); });
 
+  // niebla de esporas: jirones cálidos y fríos que dan profundidad a la cámara
+  { const ml = []; for (let j = 0; j < (deco ? 70 : 24); j++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(16 + rd() * 62); ml.push({ p: v, s: 14 + rd() * 26, col: [0xd0407a, 0x30b8c8, 0x7a46d0, 0xff8a50][j % 4] }); }
+    mistLayer(r, ml, { alpha: 0.07, near: 8, far: 200 }); }
   // esporas (siempre) y motas brillantes (sólo se encienden con la marea)
   const sp = new THREE.Points(particleGeo(deco ? 800 : 220, () => { const v = new THREE.Vector3().randomDirection().multiplyScalar(80 * Math.cbrt(rd())); return [v.x, v.y, v.z]; }, 4), particleMat({ color: 0xb8ffd8, size: 0.34, mode: 1, amp: 5, alpha: 0.7 })); sp.frustumCulled = false; root.add(sp);
   let motes = null;
@@ -75,7 +78,7 @@ export function buildMap2(r, map) {
   // escombros de cristal y roca que flotan (con la marea giran y brillan)
   const fl = [];
   if (deco) {
-    const nd = 24, dm = new THREE.InstancedMesh(debrisGeo(2, 5), rockPBR({ envMap: r.envTex, attr: false, accent: 0xff6aa8, haze: HAZE, hazeDens: HD, octaves: 3 }), nd); dm.frustumCulled = false; if (q.shadows) { dm.castShadow = true; dm.receiveShadow = true; }
+    const nd = 24, dm = new THREE.InstancedMesh(debrisGeo(2, 5), rockPBR({ tint: [1.6, 0.7, 1.3], envMap: r.envTex, attr: false, accent: 0xff6aa8, haze: HAZE, hazeDens: HD, octaves: 3 }), nd); dm.frustumCulled = false; if (q.shadows) { dm.castShadow = true; dm.receiveShadow = true; }
     for (let i = 0; i < nd; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(20 + rd() * 52); fl.push({ mesh: dm, i, p: v, s: 0.8 + rd() * rd() * 4, ax: new THREE.Vector3(rd() - 0.5, rd(), rd() - 0.5).normalize(), sp: (rd() - 0.5) * 0.4, ph: rd() * 6.28 }); } root.add(dm);
     const nc = 16, cm = new THREE.InstancedMesh(crystalGeo(), crystalMat({ haze: HAZE, hazeDens: HD, core: true, glow: 1.2 }), nc); cm.frustumCulled = false;
     for (let i = 0; i < nc; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(22 + rd() * 50); fl.push({ mesh: cm, i, p: v, s: 1.2 + rd() * 2.2, sy: 1.8 + rd() * 1.6, ax: new THREE.Vector3(rd() - 0.5, 1, rd() - 0.5).normalize(), sp: (rd() - 0.5) * 0.5, ph: rd() * 6.28, crys: true }); cm.setColorAt(i, colorOf(i)); }

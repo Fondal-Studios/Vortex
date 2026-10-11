@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { cfg } from '../quality.js';
-import { uTime, finish } from '../shaders.js';
+import { uTime, finish, OUT } from '../shaders.js';
+const OUT_LINEAR = () => !!OUT.linear;
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { NOISE } from './glsl.js';
 import { HAZE_D } from './maze-materials.js';
+import { gain } from './maze-glsl.js';
 import { rng } from './noise.js';
 import { dc, crystalGeo, crystalMat, debrisGeo, particleGeo, particleMat } from './props.js';
 
@@ -44,15 +46,15 @@ export function ruinMaterial() {
         vec3 L = normalize(vec3(0.55, 0.62, -0.45));
         float dif = max(dot(n, L), 0.0), fr = pow(1.0 - max(dot(n, V), 0.0), 2.5);
         float g = vnoise(vWP * 0.5 + vPh * 10.0), g2 = vnoise(vWP * 2.2);
-        vec3 stone = mix(vec3(0.05, 0.045, 0.09), vec3(0.15, 0.12, 0.20), g) * (0.6 + 0.6 * g2);
-        vec3 col = stone * (0.5 + dif * 1.5) + vec3(0.06, 0.05, 0.14);
+        vec3 stone = mix(vec3(0.16, 0.13, 0.26), vec3(0.38, 0.30, 0.50), g) * (0.6 + 0.6 * g2);
+        vec3 col = stone * (0.7 + dif * 1.8) + vec3(0.12, 0.09, 0.26) + vC * 0.09;
         float cr = abs(vnoise(vWP * 0.8 + vec3(0.0, -uTime * 0.2, 0.0)) - 0.5) * 2.0;
         float crack = 1.0 - smoothstep(0.0, 0.10, cr);
         col += vC * crack * (0.6 + 0.5 * sin(uTime * 1.2 + vPh * 6.28)) * 1.1;
-        col += vC * fr * 0.30 * (0.5 + 0.5 * n.y);
+        col += vC * fr * 0.55 * (0.5 + 0.5 * n.y);
         col += vec3(1.0, 0.9, 0.8) * pow(max(dot(reflect(-V, n), L), 0.0), 30.0) * 0.25;
-        col = mix(col, vec3(0.08, 0.06, 0.18) + vC * 0.05, 1.0 - exp(-dist * dist * ${(HAZE_D * 1.4).toFixed(7)}));
-        gl_FragColor = vec4(col, 1.0);
+        col = mix(col, vec3(0.20, 0.14, 0.36) + vC * 0.06, 1.0 - exp(-dist * dist * ${(HAZE_D * 1.4).toFixed(7)}));
+        gl_FragColor = vec4(col * ${gain(0.55)}, 1.0);
       }`,
   }));
 }
@@ -81,7 +83,7 @@ function vineMaterial() {
         float pulse = pow(0.5 + 0.5 * sin(t * 9.0 - uTime * 2.2 + vPh * 40.0), 3.0);
         float leaf = step(0.0, sin(t * 38.0 + vPh * 20.0)) * smoothstep(0.35, 0.9, e) * 0.35;
         float d = length(cameraPosition - vWP);
-        gl_FragColor = vec4(vC * (0.5 + 1.8 * pulse + leaf) * (0.8 + 0.4 * sin(vPh * 30.0 + uTime)), (core + leaf) * 0.85 * (1.0 - smoothstep(60.0, 140.0, d)));
+        gl_FragColor = vec4(vC * ${gain(0.6)} * (0.5 + 1.8 * pulse + leaf) * (0.8 + 0.4 * sin(vPh * 30.0 + uTime)), (core + leaf) * 0.85 * (1.0 - smoothstep(60.0, 140.0, d)));
       }`,
   }));
 }
@@ -104,7 +106,7 @@ function lanternMaterials() {
     fragmentShader: `uniform float uTime; varying vec3 vC; varying vec3 vN; varying vec3 vV; varying float vPh;
       void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6);
         float fl = 0.8 + 0.2 * sin(uTime * 3.0 + vPh * 30.0);
-        gl_FragColor = vec4(mix(vC * 1.5 * fl, vec3(1.0, 0.97, 0.9), 0.55 - f * 0.45), 1.0); }`,
+        gl_FragColor = vec4(mix(vC * 1.5 * fl, vec3(1.0, 0.97, 0.9), 0.55 - f * 0.45) * ${gain(0.6)}, 1.0); }`,
   }));
   const glow = finish(new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -120,7 +122,7 @@ function lanternMaterials() {
         vec3 rt = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]), up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
         vec3 w = c + (rt * position.x + up * position.y) * uSize * (0.9 + 0.15 * sin(uTime * 2.0 + vPh * 20.0));
         gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0); }`,
-    fragmentShader: `varying vec2 vUv; varying vec3 vC; void main(){ float r = length(vUv - 0.5) * 2.0; float a = pow(max(1.0 - r, 0.0), 2.4); gl_FragColor = vec4(vC * (0.9 + a), a * 0.55); }`,
+    fragmentShader: `varying vec2 vUv; varying vec3 vC; void main(){ float r = length(vUv - 0.5) * 2.0; float a = pow(max(1.0 - r, 0.0), 2.4); gl_FragColor = vec4(vC * (0.9 + a) * ${gain(0.6)}, a * 0.55); }`,
   }));
   return { body, glow };
 }
@@ -150,7 +152,7 @@ function butterflyMaterial() {
     fragmentShader: `uniform float uTime; varying vec3 vC; varying vec2 vP; varying float vPh;
       void main(){ float r = length(vP * vec2(1.0, 0.9)); float a = smoothstep(1.1, 0.2, r);
         float spot = smoothstep(0.55, 0.45, length(vP - vec2(0.55, 0.25)));
-        gl_FragColor = vec4(vC * (1.0 + spot * 1.2 + (1.0 - r) * 0.5), a * 0.85); }`,
+        gl_FragColor = vec4(vC * (1.0 + spot * 1.2 + (1.0 - r) * 0.5) * ${gain(0.6)}, a * 0.85); }`,
   }));
 }
 function butterflyGeo() { // dos alas triangulares-romboidales; aWing = ±1 (lado)
@@ -173,8 +175,8 @@ function portalMaterials() {
       void main(){
         float seg = smoothstep(0.35, 0.65, sin(vUv.x * 6.2832 * 18.0 - uTime * 2.5) * 0.5 + 0.5);
         float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.5);
-        vec3 col = vC * (0.45 + 1.4 * seg) * (0.6 + 0.8 * f) + vec3(0.9) * f * 0.3;
-        gl_FragColor = vec4(col, 1.0);
+        vec3 col = vC * (0.7 + 1.2 * seg) * (0.6 + 0.8 * f) + vec3(0.9) * f * 0.2;
+        gl_FragColor = vec4(col * ${gain(0.6)}, 1.0);
       }`,
   }));
   const disc = finish(new THREE.ShaderMaterial({
@@ -196,12 +198,12 @@ function portalMaterials() {
           float sw = a * 2.0 + 5.5 * log(r + 0.08) - uTime * 3.0;
           float arms = 0.5 + 0.5 * sin(sw * 1.5), arms2 = 0.5 + 0.5 * sin(a * 3.0 - 7.0 * r + uTime * 2.2);
           float core = exp(-r * 3.2), rip = 0.5 + 0.5 * sin(r * 26.0 - uTime * 5.0);
-          vec3 col = vC * (0.25 + 0.9 * arms * (1.0 - r * 0.5) + 0.5 * arms2 * r) + vec3(1.0, 0.95, 0.9) * core * 0.7 + vC * rip * 0.18 * (1.0 - r);
-          gl_FragColor = vec4(col, smoothstep(1.0, 0.80, r) * (0.50 + 0.45 * arms + core * 0.4));
+          vec3 col = vC * (0.25 + 0.9 * arms * (1.0 - r * 0.5) + 0.5 * arms2 * r) + vec3(1.0, 0.95, 0.9) * core * 0.35 + vC * rip * 0.18 * (1.0 - r);
+          gl_FragColor = vec4(col * 0.5 * ${gain(0.55)}, smoothstep(1.0, 0.80, r) * (0.18 + 0.28 * arms + core * 0.15));
         } else {
           float ring = smoothstep(0.08, 0.0, abs(fract(r * 2.2 + uTime * 0.5) - 0.5) - 0.40) * smoothstep(1.0, 0.3, r);
           float edge = smoothstep(0.06, 0.0, abs(r - 0.9)), tick = smoothstep(0.55, 0.6, sin(a * 24.0 + uTime) * 0.5 + 0.5) * smoothstep(0.04, 0.0, abs(r - 0.72));
-          gl_FragColor = vec4(vC * (0.6 + 1.2 * ring + 1.4 * edge + tick), (0.07 * smoothstep(1.0, 0.0, r) + 0.30 * ring + 0.5 * edge + 0.4 * tick) * smoothstep(1.0, 0.92, r));
+          gl_FragColor = vec4(vC * ${gain(0.6)} * (0.6 + 1.2 * ring + 1.4 * edge + tick), (0.07 * smoothstep(1.0, 0.0, r) + 0.30 * ring + 0.5 * edge + 0.4 * tick) * smoothstep(1.0, 0.92, r));
         }
       }`,
   }));
@@ -321,7 +323,7 @@ export function buildMazeProps(r, root, map, { sunDir }) {
   });
 
   // cristales: una sola malla para todos
-  inst(crystalGeo(), crystalMat({ haze: 0x180f38, hazeDens: HAZE_D, sun: sunDir.toArray(), glow: 1.15 }), cr, (m, i, it) => { place(m, i, it.pos, it.up, it.w, it.h, it.w, i * 1.7); m.setColorAt(i, it.col); });
+  inst(crystalGeo(), crystalMat({ haze: 0x180f38, hazeDens: HAZE_D, sun: sunDir.toArray(), glow: OUT_LINEAR() ? 0.55 : 1.15 }), cr, (m, i, it) => { place(m, i, it.pos, it.up, it.w, it.h, it.w, i * 1.7); m.setColorAt(i, it.col); });
 
   /* ── enredaderas: cuelgan de los muros (caras que miran a un pasillo) y del borde de la losa ── */
   const vines = [];
@@ -349,8 +351,8 @@ export function buildMazeProps(r, root, map, { sunDir }) {
   const bm = inst(butterflyGeo(), butterflyMaterial(), bf, (m, i, it) => { _m.setPosition(it.pos); m.setMatrixAt(i, _m); _c.copy(it.col); m.setColorAt(i, _c); }); if (bm) bm.renderOrder = 6;
 
   // luciérnagas (puntos a la deriva), una cálida y una fría
-  const mk = (n, col, size, seed) => { const g = particleGeo(n, (k, rr) => [rnd(-72, 72), rr() * 10 + 0.4, rnd(-72, 72)], seed); const pt = new THREE.Points(g, particleMat({ color: col, size, mode: 1, amp: 2.6, alpha: 0.9 })); pt.frustumCulled = false; root.add(pt); };
-  mk(lvl(80, 200, 340), 0xffe2a0, 0.26, 21); if (deco) mk(lvl(0, 120, 220), 0x9fe8ff, 0.22, 33);
+  const mk = (n, col, size, seed) => { const g = particleGeo(n, (k, rr) => [rnd(-72, 72), rr() * 10 + 0.4, rnd(-72, 72)], seed); const pt = new THREE.Points(g, particleMat({ color: col, size, mode: 1, amp: 2.6, alpha: OUT_LINEAR() ? 0.5 : 0.85 })); pt.frustumCulled = false; root.add(pt); };
+  mk(lvl(80, 200, 340), 0xffe2a0, 0.12, 21); if (deco) mk(lvl(0, 120, 220), 0x9fe8ff, 0.10, 33);
 
   /* ── portales ── */
   buildPortals(r, root, map, { zcol, deco });
@@ -372,7 +374,7 @@ function buildPortals(r, root, map, { zcol, deco }) {
   const pg = new THREE.CircleGeometry(1, deco ? 40 : 20); pg.rotateX(-Math.PI / 2); pg.setAttribute('aKind', new THREE.BufferAttribute(new Float32Array(pg.attributes.position.count).fill(1), 1)); pg.deleteAttribute('normal');
   mkI(pg, mats.disc, (m, i, e) => { _m.compose(_p.set(e.pos.x, 0.06, e.pos.z), _q.identity(), _s.set(e.rad * 1.9, 1, e.rad * 1.9)); m.setMatrixAt(i, _m); m.setColorAt(i, e.col); }, 3);
   if (deco) { // chispas en espiral hacia cada portal
-    ends.forEach((e) => { const g = particleGeo(26, () => [0, 0, 0], 11); const pt = new THREE.Points(g, particleMat({ color: 0xffffff, size: 0.2, mode: 2, speed: 0.4, amp: e.rad * 1.4, height: 0.8, alpha: 0.95 }));
+    ends.forEach((e) => { const g = particleGeo(26, () => [0, 0, 0], 11); const pt = new THREE.Points(g, particleMat({ color: 0xffffff, size: 0.11, mode: 2, speed: 0.4, amp: e.rad * 1.4, height: 0.8, alpha: 0.8 }));
       pt.material.uniforms.uColor.value.copy(e.col).multiplyScalar(1.4); pt.position.copy(e.pos); pt.rotation.y = e.yaw; pt.frustumCulled = false; root.add(pt); });
   }
   void zcol;

@@ -27,7 +27,7 @@ export function bioMaterial(o = {}) {
     uTime, uHurt: { value: 0 }, uGlow: { value: o.glowAmt ?? 0 }, uPulse: { value: 0 }, uBreath: { value: o.breath ?? 0.012 },
     uGlowCol: { value: new THREE.Color(o.glow ?? 0xffa040) }, uVein: { value: new THREE.Color(o.vein ?? 0x2a0610) }, uRim: { value: new THREE.Color(o.rim ?? 0x703050) },
     uPS: { value: o.scale ?? 1 }, uBump: { value: o.bump ?? 1 }, uCry: { value: 1 }, uWet: { value: o.wet ?? 0.4 }, uVeinGlow: { value: o.veinGlow ?? 0 }, uCrackGlow: { value: o.crackGlow ?? 0 },
-    uFres: { value: o.fres ?? 0 }, uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? 0.55 },
+    uFres: { value: o.fres ?? 0 }, uBell: { value: new THREE.Vector3(0, 1, 0) }, uRadial: { value: o.radial ?? 0 }, uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? 0.55 },
   };
   if (NT) { u.uTA = { value: Array.from({ length: NT }, () => new THREE.Vector4(0.3, 1.5, 0, 1)) }; u.uTB = { value: Array.from({ length: NT }, () => new THREE.Vector4(0, 0, 0, 0)) }; }
   mat.userData.u = u;
@@ -38,12 +38,13 @@ export function bioMaterial(o = {}) {
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
         attribute vec2 aS; varying vec3 vO; varying vec2 vS; varying vec2 vU; varying float vSc;
-        uniform float uTime, uBreath, uPulse;
+        uniform float uTime, uBreath, uPulse; uniform vec3 uBell;
         ${NT ? `attribute vec4 aT; attribute vec3 aD; uniform vec4 uTA[${NT}]; uniform vec4 uTB[${NT}];` : ''}`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vO = position; vS = aS; vU = uv; vSc = length(modelMatrix[0].xyz);
         { float fl = 1.0 - step(0.5, aS.x);
           transformed += normal * fl * (sin(uTime * 2.1 + dot(position, vec3(1.7, 0.9, 1.3)) * 2.0) * uBreath + uPulse * 0.03 * sin(uTime * 19.0 + position.y * 5.0)); }
+        { float mbr = step(3.5, aS.x); float f = clamp(1.0 - position.y / max(uBell.y, 0.001), 0.0, 1.0); transformed.xz *= 1.0 - uBell.x * 0.3 * f * f * mbr; transformed.y *= 1.0 + uBell.x * 0.12 * mbr; }
         ${NT ? `{ int id = int(aT.x + 0.5); vec4 A = uTA[id]; vec4 B = uTB[id]; float k = aT.y, L = aT.w, w = k * k;
           vec3 d = normalize(aD); vec3 s1 = normalize(cross(d, abs(d.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0))); vec3 s2 = cross(d, s1);
           float tt = uTime * A.y;
@@ -51,7 +52,7 @@ export function bioMaterial(o = {}) {
           transformed += B.xyz * (B.w * w * L) + d * ((A.w - 1.0) * k * L); }` : ''}`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb, uFres;
+        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb, uFres, uRadial;
         uniform vec3 uGlowCol, uVein, uRim;
         varying vec3 vO; varying vec2 vS; varying vec2 vU; varying float vSc;
         float gFl, gCh, gBo, gCr, gVein, gCrack, gH, gN2, gN3;
@@ -70,6 +71,7 @@ export function bioMaterial(o = {}) {
           float vein = (1.0 - smoothstep(0.012, 0.055, abs(vn(q * 4.1 + 2.0) - 0.5))) * smoothstep(0.25, 0.6, n1 + 0.2 * n2);
           float vein2 = (1.0 - smoothstep(0.01, 0.04, abs(vn(q * 9.5 + 6.0) - 0.5))) * 0.6;
           gVein = max(vein, vein2) * (gFl + gMb);
+          if (uRadial > 0.5) { float cn = pow(abs(sin(atan(vO.z, vO.x + 1e-5) * uRadial * 0.5 + 0.7 * vn(vO * 3.0))), 28.0) * (gFl + gMb) * smoothstep(0.98, 0.5, vU.y); gVein = max(gVein * 0.35, cn); }
           vec3 flesh = diffuseColor.rgb * (0.72 + 0.55 * n1 + 0.15 * n3);
           flesh = mix(flesh, uVein, clamp(gVein, 0.0, 1.0) * 0.6);
           float crack = 1.0 - smoothstep(0.006, 0.03, abs(vn(q * 5.3 + 7.0) - 0.5));

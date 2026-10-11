@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { cfg } from '../quality.js';
-import { skyMaterial } from '../shaders.js';
+import { skyMaterial, uTide } from '../shaders.js';
 import { addMotes } from './common.js';
 import { buildIslands } from './islands.js';
 import { trackPx } from './props.js';
@@ -8,7 +8,7 @@ import { buildSkyFx } from './sky.js';
 import { buildZones } from './zones.js';
 
 // Entorno del Mapa 1 · Vacío de Islas. `r` es el Renderer (r.mapRoot, r.shared(), r.dyn, r.sun, r.halo, r.camera…).
-const SUN_POS = new THREE.Vector3(380, 300, -700);
+const SUN_POS = new THREE.Vector3(-600, 380, -330); // a la izquierda del frente inicial: se ve al girar, no ciega al arrancar
 export const M1 = { haze: 0x35277a, hazeDens: 0.000014 };
 
 export function buildMap1(r, map) {
@@ -16,7 +16,7 @@ export function buildMap1(r, map) {
   // luces de este mapa (el renderer sólo cambia los colores; las intensidades las fijamos acá)
   r.hemi.intensity = 1.1; r.sun.intensity = 2.2; r.rim.intensity = 1.0; r.scene.environmentIntensity = 0.55;
   r.sun.position.copy(sunDir);
-  trackPx(r);
+  trackPx(r); uTide.value = 0;
 
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1200, 48, 24), skyMaterial({ hue: 0.0, speed: 0.04, iters: q.skyIters, sun: sunDir.toArray() })); sky.renderOrder = -10; sky.frustumCulled = false; root.add(sky); r.sky = sky;
   buildSkyFx(r, map, { sunPos: SUN_POS, haze: M1.haze, hazeDens: M1.hazeDens });

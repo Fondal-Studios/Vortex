@@ -112,7 +112,7 @@ export function mistMaterial({ y, alpha = 0.3, seed = 0 }) {
         float edge = 1.0 - smoothstep(66.0, 80.0, max(abs(vWP.x), abs(vWP.z)));
         vec3 zc = zoneCol(vWP.xz);
         float fade = smoothstep(2.0, 12.0, dist) * (1.0 - smoothstep(60.0, 150.0, dist));
-        gl_FragColor = vec4(zc * 0.55 + vec3(0.22, 0.17, 0.4), dens * uAlpha * eye * edge * fade);
+        gl_FragColor = vec4(zc * 0.40 + vec3(0.12, 0.09, 0.26), dens * uAlpha * eye * edge * fade);
       }`,
   }));
 }
@@ -156,7 +156,7 @@ export function buildMazeSky(r, root) {
 
   if (full) { // bruma baja entre los muros (dos velos)
     const mp = new THREE.PlaneGeometry(150, 150); mp.rotateX(-Math.PI / 2);
-    [[0.35, 0.34, 3], [3.4, 0.22, 9]].forEach(([y, a, seed], i) => { const m = new THREE.Mesh(mp, mistMaterial({ y, alpha: a, seed })); m.position.y = y; m.renderOrder = 2 + i; root.add(m); });
+    [[0.35, 0.20, 3], [3.4, 0.09, 9]].forEach(([y, a, seed], i) => { const m = new THREE.Mesh(mp, mistMaterial({ y, alpha: a, seed })); m.position.y = y; m.renderOrder = 2 + i; root.add(m); });
   }
 
   // planetas lejanos (esferas con bandas); uno con anillo

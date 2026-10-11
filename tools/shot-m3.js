@@ -4,7 +4,7 @@ import { launch } from './browser.js';
 import { startServer } from '../server/server.js';
 fs.mkdirSync('shots', { recursive: true });
 const srv = await startServer({ port: 0 }); const b = await launch(); const base = `http://localhost:${srv.port}`; const errors = [];
-const SC = [['m3-oleada3', '&wave=3'], ['m3-argos', '&wave=7&look=boss']];
+const SC = [['m3-oleada3', '&wave=3'], ['m3-argos', '&wave=7']];
 for (const [name, q] of SC) {
   const pg = await b.newPage({ viewport: { width: 1280, height: 720 } });
   pg.on('console', (m) => { if (m.type() === 'error') errors.push(`${name}: ${m.text()}`); }); pg.on('pageerror', (e) => errors.push(`${name}: PAGEERR ${e.message}`));

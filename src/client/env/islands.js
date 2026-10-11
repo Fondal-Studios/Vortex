@@ -3,7 +3,7 @@ import { cfg } from '../quality.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { rng, fbm3, vnoise3 } from './noise.js';
 import { rockPBR, rockLite } from './rock.js';
-import { crystalGeo, crystalMat, mushroomGeo, mushroomMat, rootGeo, rootMat, fallMat, dc, debrisGeo } from './props.js';
+import { crystalGeo, crystalMat, mushroomGeo, mushroomMat, rootGeo, rootMat, fallMat, dc, debrisGeo, spikeGeo, mistLayer } from './props.js';
 
 // Islas del Mapa 1: roca modelada (acantilados, estratos, estalactitas), placa jugable con borde luminoso,
 // y decorado instanciado (cristales, hongos, raíces, cascadas de luz, escombros flotantes).
@@ -123,6 +123,15 @@ export function buildIslands(r, map, { haze, hazeDens, sun }) {
     im.instanceMatrix.needsUpdate = true; im.instanceColor.needsUpdate = true; root.add(im);
   }
   if (!q.decor) return { P };
+  const rmat = rockPBR({ envMap: r.envTex, attr: false, accent: 0x66b4ff, haze, hazeDens, octaves: 3 });
+  { // estalactitas de roca bajo la panza (colgando hacia el vacío)
+    const sp = [], sr2 = rng(515);
+    map.islands.forEach((is, k) => { const p = P[k], n = Math.round(6 + is.r * 0.45), szk = Math.max(0.8, is.r / 20);
+      for (let j = 0; j < n; j++) { const th = sr2() * 6.283, s = p.thick + 0.5 + sr2() * p.depth * 0.55, pt = p.point(th, s), nn = p.normal(th, s), d = nn.clone().multiplyScalar(0.45).add(new THREE.Vector3(0, p.dirY, 0)).normalize();
+        sp.push({ pos: pt.addScaledVector(nn, -0.3), dir: d, w: (0.5 + sr2() * 1.2) * szk, h: (2 + sr2() * 6) * szk }); } });
+    const im = new THREE.InstancedMesh(spikeGeo(), rmat, sp.length); im.frustumCulled = false; if (q.shadows) { im.castShadow = true; im.receiveShadow = true; }
+    sp.forEach((c, i) => place(im, i, c.pos, c.dir, c.w, c.h, c.w)); im.instanceMatrix.needsUpdate = true; root.add(im);
+  }
 
   // cascadas de luz y polvo que caen al vacío
   const wr = rng(99), pl = new THREE.PlaneGeometry(1, 1);
@@ -135,8 +144,15 @@ export function buildIslands(r, map, { haze, hazeDens, sun }) {
     }
   });
 
+  // bruma pegada a las islas y jirones en el vacío (profundidad atmosférica)
+  { const mr = rng(808), ml = [];
+    map.islands.forEach((is, k) => { const n = 5 + Math.round(is.r / 5); for (let j = 0; j < n; j++) { const a = mr() * 6.283, rr = is.r * (0.5 + mr() * 0.9), dy = is.hang ? is.top + 2 + mr() * is.r * 0.5 : is.y0 - 1 - mr() * is.r * 0.7;
+      ml.push({ p: new THREE.Vector3(is.x + Math.cos(a) * rr, dy, is.z + Math.sin(a) * rr), s: 7 + mr() * 9 + is.r * 0.25, col: ACCENTS[k % ACCENTS.length] }); } });
+    for (let j = 0; j < 36; j++) { const a = mr() * 6.283, d = 40 + mr() * 150; ml.push({ p: new THREE.Vector3(Math.cos(a) * d, -50 + mr() * 70, Math.sin(a) * d), s: 25 + mr() * 40, col: [0x6a4cff, 0x2fd0c0, 0xd24fb0][j % 3] }); }
+    mistLayer(r, ml, { alpha: 0.045, near: 16, far: 360 }); }
+
   // escombros de roca y cristales flotantes (mecen y giran: se actualizan a mano, son pocos)
-  const nd = 34, dmesh = new THREE.InstancedMesh(debrisGeo(2, 3), rockPBR({ envMap: r.envTex, attr: false, accent: 0x66b4ff, haze, hazeDens, octaves: 3 }), nd), fl = [];
+  const nd = 34, dmesh = new THREE.InstancedMesh(debrisGeo(2, 3), rmat, nd), fl = [];
   dmesh.frustumCulled = false; if (q.shadows) { dmesh.castShadow = true; dmesh.receiveShadow = true; }
   const dr = rng(2024);
   for (let i = 0; i < nd; i++) {

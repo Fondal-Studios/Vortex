@@ -196,3 +196,23 @@ export function ringBank(parent, n, { color = 0xffffff, thick = 0.9, seg = 56 } 
     C.copy(c == null ? base : (c.isColor ? c : C.set(c))).multiplyScalar(clamp(a, 0, 3)); im.setColorAt(i, C); },
     flush() { im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; } };
 }
+
+/* ───────────────────────── boca con dientes (material bio, 2 mallas) ───────────────────────── */
+import { merge as mergeG, spikes as spikesG, flipFaces } from './obelisco-geo.js';
+/** Boca de dos mandíbulas (cada una: concha + forro de encía brillante + dientes) con el material bio. set(open 0–1). */
+export function mawBio(mat, { w = 0.4, len = 0.35, teeth = 9, tooth = 0.12, flesh = 0x3a1426, shell = 1, gum = 0x9a2040, bone = 0xd8ccb0, gumGlow = 0.6, seg = 18 } = {}) {
+  const object = new THREE.Group(), up = new THREE.Group(), lo = new THREE.Group();
+  const hemi = new THREE.SphereGeometry(1, seg, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+  const jaw = (flip) => {
+    const sg = flip ? -1 : 1, parts = [];
+    const sh = hemi.clone(); sh.applyMatrix4(new THREE.Matrix4().makeScale(w, len * 0.55 * sg, len)); if (flip) { const ix = sh.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i]; ix[i] = ix[i + 2]; ix[i + 2] = t; } sh.computeVertexNormals(); }
+    parts.push(paint(sh, flesh, shell, 0, (p, n) => ({ k: 0.8 + 0.4 * Math.abs(n.y) })));
+    const li = hemi.clone(); li.applyMatrix4(new THREE.Matrix4().makeScale(w * 0.9, len * 0.5 * sg, len * 0.92)); if (!flip) { const ix = li.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i]; ix[i] = ix[i + 2]; ix[i + 2] = t; } } li.computeVertexNormals();
+    parts.push(paint(li, gum, 0, gumGlow, (p, n) => ({ k: 0.7 + 0.6 * Math.abs(p.y) })));
+    const items = []; for (let i = 0; i < teeth; i++) { const a = (i / (teeth - 1) - 0.5) * 2.5, big = (i % 2 ? 0.7 : 1) * (1 - Math.abs(a) * 0.25); items.push({ p: new THREE.Vector3(Math.sin(a) * w * 0.97, 0, Math.cos(a) * len * 0.97), d: new THREE.Vector3(-Math.sin(a) * 0.15, flip ? 1 : -1, -Math.cos(a) * 0.2), r: tooth * 0.45 * big, h: tooth * 2.2 * big }); }
+    parts.push(spikesG(items, { sides: 5, color: bone, cls: 2, curve: 0.1 }));
+    const m = new THREE.Mesh(mergeG(parts), mat); (flip ? lo : up).add(m); return m;
+  };
+  jaw(false); jaw(true); object.add(up, lo);
+  return { object, up, lo, set(open) { up.rotation.x = -open * 0.75; lo.rotation.x = open * 0.55; } };
+}

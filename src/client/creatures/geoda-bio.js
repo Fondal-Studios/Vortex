@@ -38,23 +38,24 @@ function voronoi(c, jit, x, y, seed) {   // devuelve [F1, F2, idCelda] en un tor
 export const procGrad = (kind) => { procTex(kind); return gradCache.get(kind + (lod().hi ? 'H' : '')); };
 export function procTex(kind = 'plates') {
   const ck = kind + (lod().hi ? 'H' : ''); if (texCache.has(ck)) return texCache.get(ck);
-  const P = { plates: { c: 4, jit: 0.9, seam: 0.05, vc: 4, nz: 0.5 }, scales: { c: 13, jit: 0.45, seam: 0.16, vc: 7, nz: 0.3 }, skin: { c: 5, jit: 1, seam: 0.5, vc: 4, nz: 0.9 }, fine: { c: 10, jit: 1, seam: 0.05, vc: 6, nz: 1.0 }, shell: { c: 4, jit: 0.8, seam: 0.07, vc: 3, nz: 0.4 }, flesh: { c: 3, jit: 1, seam: 0.0, vc: 3, nz: 1 } }[kind] || {};
-  const N = lod().hi ? 512 : 256, data = new Uint8Array(N * N * 4), tn = (x, y, f, s) => { // ruido teselable
+  const P = { plates: { c: 4, jit: 0.9, seam: 0.05, vc: 4, nz: 0.5 }, scales: { c: 13, jit: 0.45, seam: 0.16, vc: 7, nz: 0.3 }, skin: { c: 5, jit: 1, seam: 0.5, vc: 4, nz: 0.9 }, fine: { c: 10, jit: 1, seam: 0.05, vc: 6, nz: 1.0 }, shell: { c: 4, jit: 0.8, seam: 0.07, vc: 3, nz: 0.4 }, flesh: { c: 3, jit: 1, seam: 0.0, vc: 3, nz: 1 }, chitin: { c: 3, jit: 1, seam: 0.0, vc: 3, nz: 1 } }[kind] || {};
+  const N = (kind === 'flesh' || kind === 'skin' || kind === 'fine' || kind === 'chitin') ? 128 : 256, data = new Uint8Array(N * N * 4), tn = (x, y, f, s) => { // ruido teselable
     const xs = x * f, ys = y * f, xi = Math.floor(xs), yi = Math.floor(ys), fx = xs - xi, fy = ys - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), m = Math.round(f);
     const h = (a, b) => hash3(((a % m) + m) % m, ((b % m) + m) % m, s);
     return (h(xi, yi) * (1 - u) + h(xi + 1, yi) * u) * (1 - v) + (h(xi, yi + 1) * (1 - u) + h(xi + 1, yi + 1) * u) * v;
   };
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    const u = x / N, v = y / N, [f1, f2, id] = voronoi(P.c, P.jit, u, v, 3), d = f2 - f1;
+    const u = x / N, v = y / N, [f1, f2, id] = (kind === 'flesh' || kind === 'chitin') ? [0.3, 0.5, 0.5] : voronoi(P.c, P.jit, u, v, 3), d = f2 - f1;
     const seam = 1 - smooth(0, P.seam, d), fn = tn(u, v, 8, 9) * 0.5 + tn(u, v, 16, 11) * 0.3 + tn(u, v, 32, 13) * 0.2;
     let h = (1 - seam) * (0.55 + 0.45 * (1 - clamp(f1 * 1.5, 0, 1)));
     if (kind === 'scales') h = (1 - seam) * (0.35 + 0.65 * clamp((v * P.c - Math.floor(v * P.c)) * 1.0 + (hash3(Math.floor(u * P.c), 0, 3) - 0.5) * 0.2, 0, 1));
     h = clamp(h * (1 - P.nz * 0.25) + fn * P.nz * 0.35, 0, 1);
     let seamV = seam, idV = id;
     if (kind === 'flesh') { const n1 = tn(u, v, 4, 41), n2 = tn(u, v, 8, 43), n3 = tn(u, v, 16, 47), r = 1 - Math.abs(2 * tn(u, v, 6, 51) - 1), r2 = 1 - Math.abs(2 * tn(u, v, 12, 53) - 1); h = clamp(n1 * 0.45 + n2 * 0.3 + n3 * 0.25, 0, 1); seamV = clamp(smooth(0.8, 0.97, r) * 0.9 + smooth(0.86, 0.98, r2) * 0.5, 0, 1); idV = n2 * 0.6 + n3 * 0.4; }
+    if (kind === 'chitin') { const n1 = tn(u, v, 4, 61), n2 = tn(u, v, 8, 63), n3 = tn(u, v, 16, 67), rg = 0.5 + 0.5 * Math.sin((u * 6 + n1 * 1.5) * Math.PI * 2); h = clamp(n1 * 0.35 + n2 * 0.3 + n3 * 0.15 + rg * 0.2, 0, 1); idV = n2 * 0.6 + n3 * 0.4; seamV = 0; }
     const [g1, g2] = voronoi(P.vc, 1, u + 0.31, v + 0.17, 21), vd = g2 - g1, wob = (tn(u, v, 12, 31) - 0.5) * 0.18;
-    const vein = 1 - smooth(0.0, kind === 'flesh' ? 0.035 : 0.055, Math.abs(vd + wob));
-    const o = (y * N + x) * 4; data[o] = h * 255; data[o + 1] = (kind === 'flesh' ? idV : 0.55 * idV + 0.45 * fn) * 255; data[o + 2] = seamV * 255; data[o + 3] = vein * 255;
+    const vein = kind === 'chitin' ? 0 : 1 - smooth(0.0, kind === 'flesh' ? 0.035 : 0.055, Math.abs(vd + wob));
+    const o = (y * N + x) * 4; data[o] = h * 255; data[o + 1] = ((kind === 'flesh' || kind === 'chitin') ? idV : 0.55 * idV + 0.45 * fn) * 255; data[o + 2] = seamV * 255; data[o + 3] = vein * 255;
   }
   { const gd = new Uint8Array(N * N * 4), H = (x, y) => data[((((y % N) + N) % N) * N + (((x % N) + N) % N)) * 4];
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const du = (H(x + 1, y) - H(x - 1, y)) / 255 * 0.5 * N, dv = (H(x, y + 1) - H(x, y - 1)) / 255 * 0.5 * N, o = (y * N + x) * 4; gd[o] = clamp(0.5 + du / 24, 0, 1) * 255; gd[o + 1] = clamp(0.5 + dv / 24, 0, 1) * 255; gd[o + 2] = 0; gd[o + 3] = 255; }
@@ -87,6 +88,7 @@ export function bio(o = {}) {
   const { color = 0xffffff, rough = 0.5, metal = 0, clear = 0, clearRough = 0.25, sheen = 0, tex = 'plates', tile = 1.6, bump = 1, grain = 0.4, seam = 0x000000, seamK = 0.5, vein = 0x000000, veinK = 0, veinGlow = 0, seamGlow = 0, sss = 0, sssColor = 0xff6a5a, glow = 0, glowColor = 0xffffff, alpha = 1, iri = 0, bend = false, lid = false, vcol = true, texOff = 0, side = null, rv = 0.5, env = 1 } = o;
   const m = new Cls({ color, roughness: rough, metalness: metal, vertexColors: vcol, transparent: alpha < 1, opacity: alpha, side: side != null ? side : alpha < 1 ? THREE.DoubleSide : THREE.FrontSide });
   if (alpha < 1) m.depthWrite = false; m.envMapIntensity = env;
+  if (L.low && vcol) m.color.multiplyScalar(1.75);   // en Baja no hay mapa de entorno: se compensa con más albedo
   if (!L.low) { if (clear) { m.clearcoat = clear; m.clearcoatRoughness = clearRough; } if (sheen) { m.sheen = sheen; m.sheenColor = new THREE.Color(sssColor).lerp(new THREE.Color(1, 1, 1), 0.5); m.sheenRoughness = 0.5; } if (iri) { m.iridescence = iri; m.iridescenceIOR = 1.5; m.iridescenceThicknessRange = [180, 620]; } }
   const u = { uHurt: { value: 0 }, uGlow: { value: glow }, uSss: { value: sss }, uVeinGlow: { value: veinGlow }, uSeamGlow: { value: seamGlow }, uUp: { value: 0.6 }, uLo: { value: 0.4 }, uSl: { value: 0 }, uTime, uAmp: { value: 0.05 }, uSpd: { value: 2.0 } };
   const un = { uTex: { value: procTex(tex) }, uGrad: { value: procGrad(tex) }, uTile: { value: tile }, uBump: { value: bump * (L.low ? 0.5 : 1) }, uGrain: { value: grain }, uSeam: { value: new THREE.Color(seam) }, uSeamK: { value: seamK }, uVeinC: { value: new THREE.Color(vein) }, uVeinK: { value: veinK }, uSssC: { value: new THREE.Color(sssColor) }, uGlowC: { value: new THREE.Color(glowColor) }, uRV: { value: rv }, uTexOff: { value: texOff } };
@@ -256,18 +258,23 @@ export function skinRigid(geo, bone) {
 }
 /** Pesos a lo largo de una cadena de huesos (columna, pata, cola, tallo): cada hueso manda entre su articulación y la siguiente, con mezcla suave de ±blend. */
 export function skinChain(geo, bones, blend = 0.12, { tail = true } = {}) {
-  const n = geo.attributes.position.count, P = geo.attributes.position, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4), J = bones.map((b) => b.userData.rest), p = new V3();
-  const cum = [0]; for (let i = 1; i < J.length; i++) cum.push(cum[i - 1] + J[i].distanceTo(J[i - 1]));
-  const segDir = []; for (let i = 0; i < J.length; i++) { const a = J[i], b = i < J.length - 1 ? J[i + 1] : null; segDir.push(b ? b.clone().sub(a).normalize() : segDir[i - 1].clone()); }
+  const n = geo.attributes.position.count, P = geo.attributes.position.array, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4), J = bones.map((b) => b.userData.rest), nj = J.length;
+  const cum = [0]; for (let i = 1; i < nj; i++) cum.push(cum[i - 1] + J[i].distanceTo(J[i - 1]));
+  const dir = [], len = [];
+  for (let i = 0; i < nj; i++) { if (i < nj - 1) { const d = J[i + 1].clone().sub(J[i]); len.push(d.length()); dir.push(d.normalize()); } else { len.push(0); dir.push(dir[i - 1].clone()); } }
+  const t = new Array(nj + 1), w = new Array(nj);
   for (let v = 0; v < n; v++) {
-    p.fromBufferAttribute(P, v);
-    // proyección sobre la polilínea: busca el segmento más cercano
-    let best = 1e9, c = 0; for (let i = 0; i < J.length - 1; i++) { const a = J[i], d = segDir[i], len = cum[i + 1] - cum[i], s = clamp(p.clone().sub(a).dot(d), 0, len), dd = a.clone().addScaledVector(d, s).distanceToSquared(p); if (dd < best) { best = dd; c = cum[i] + s; } }
-    if (tail && J.length > 1) { const i = J.length - 1, s = p.clone().sub(J[i]).dot(segDir[i]); if (s > 0) { const dd = J[i].clone().addScaledVector(segDir[i], s).distanceToSquared(p); if (dd < best) { best = dd; c = cum[i] + s; } } }
-    const t = [1]; for (let j = 1; j < J.length; j++) t.push(smooth(cum[j] - blend, cum[j] + blend, c)); t.push(0);
-    const w = []; for (let j = 0; j < J.length; j++) w.push(t[j] * (1 - t[j + 1]));
-    const ord = w.map((x, i) => [x, i]).sort((a, b) => b[0] - a[0]).slice(0, 4); const sum = ord.reduce((s, o) => s + o[0], 0) || 1;
-    for (let k = 0; k < 4; k++) { const o = ord[k] || [0, 0]; si[v * 4 + k] = bones[o[1]].userData.idx; sw[v * 4 + k] = o[0] / sum; }
+    const px = P[v * 3], py = P[v * 3 + 1], pz = P[v * 3 + 2];
+    let best = 1e9, c = 0;
+    for (let i = 0; i < nj - 1; i++) { const a = J[i], d = dir[i], rx = px - a.x, ry = py - a.y, rz = pz - a.z, s = clamp(rx * d.x + ry * d.y + rz * d.z, 0, len[i]), qx = rx - d.x * s, qy = ry - d.y * s, qz = rz - d.z * s, dd = qx * qx + qy * qy + qz * qz; if (dd < best) { best = dd; c = cum[i] + s; } }
+    if (tail && nj > 1) { const i = nj - 1, a = J[i], d = dir[i], rx = px - a.x, ry = py - a.y, rz = pz - a.z, s = rx * d.x + ry * d.y + rz * d.z; if (s > 0) { const qx = rx - d.x * s, qy = ry - d.y * s, qz = rz - d.z * s, dd = qx * qx + qy * qy + qz * qz; if (dd < best) { best = dd; c = cum[i] + s; } } }
+    t[0] = 1; for (let j = 1; j < nj; j++) t[j] = smooth(cum[j] - blend, cum[j] + blend, c); t[nj] = 0;
+    let k = 0; for (let j = 0; j < nj; j++) { w[j] = t[j] * (1 - t[j + 1]); }
+    // los 4 pesos mayores
+    let used = 0, sum = 0; const idx = [-1, -1, -1, -1], ww = [0, 0, 0, 0];
+    for (let j = 0; j < nj; j++) { if (w[j] <= 1e-3) continue; let m = used < 4 ? used : 3; if (used >= 4 && w[j] <= ww[3]) continue; while (m > 0 && ww[m - 1] < w[j]) { ww[m] = ww[m - 1]; idx[m] = idx[m - 1]; m--; } ww[m] = w[j]; idx[m] = j; if (used < 4) used++; }
+    for (let q = 0; q < 4; q++) sum += ww[q]; if (sum <= 0) { idx[0] = 0; ww[0] = 1; sum = 1; }
+    for (let q = 0; q < 4; q++) { si[v * 4 + q] = idx[q] >= 0 ? bones[idx[q]].userData.idx : bones[0].userData.idx; sw[v * 4 + q] = idx[q] >= 0 ? ww[q] / sum : 0; }
   }
   geo.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4)); return geo;
 }
@@ -318,6 +325,8 @@ export class Rig {
 }
 /** Dirección (en espacio de la raíz) desde un punto del cuerpo hacia la cámara: look*dist - pos. */
 export function gazeDir(look, dist, pos, out = new V3()) { return out.copy(look).multiplyScalar(dist || 8).sub(pos).normalize(); }
+/** Pseudo-material para la lista `mats`: al morir la criatura, render.js llama dispose() de cada uno => libera geometrías, esqueleto y sprites. */
+export function disposer(rig, extras = []) { return { userData: {}, dispose() { (rig.meshes || []).forEach((m) => m.geometry && m.geometry.dispose()); if (rig.skeleton) rig.skeleton.dispose(); extras.forEach((x) => x && x.dispose && x.dispose()); } }; }
 /** Rotación de un hueso relativa a la raíz (para orientar ojos hacia el jugador). */
 const _q = new THREE.Quaternion();
 export function boneQuat(bone, rootBone, out = new THREE.Quaternion()) { out.identity(); let b = bone; const chain = []; while (b && b !== rootBone.parent) { chain.push(b); b = b.parent; } for (let i = chain.length - 1; i >= 0; i--) out.multiply(chain[i].quaternion); return out; }

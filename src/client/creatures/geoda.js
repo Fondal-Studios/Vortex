@@ -3,13 +3,13 @@
 // se abre ~2 s: la valva superior se alza, las bandas se abren en abanico y enseña un interior de carne húmeda: labios, dientes
 // irregulares de nácar, lengua de tentáculos y un ojo-núcleo ardiente sobre un tallo muscular (la debilidad).
 // st.s: 'roll' (cerrada) / 'open' (st.o). st.hp<0.35 la coraza se agrieta y tirita; st.sd aura; st.st aturdida.
-import { THREE, TAU, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, crystalCluster, paint, path, Rig, skinRigid, skinChain, eye, boneQuat, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, orient, crystalCluster, paint, path, Rig, skinRigid, skinChain, eye, boneQuat, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3;
   const col = new THREE.Color(color), R = rng(11);
   const RX = 1.1, RY = 0.9, RZ = 1.0, CY = 0.92, HZ = -0.95;
-  const shell = bio({ rough: 0.55, clear: 0.25, clearRough: 0.35, metal: 0.0, env: 0.55, tex: 'fine', tile: 1.4, bump: 0.45, grain: 0.5, seam: color, seamK: 0.0, seamGlow: 0.0, rv: 0.7 });
+  const shell = bio({ rough: 0.58, clear: 0.0, clearRough: 0.4, metal: 0.0, env: 0.3, tex: 'chitin', tile: 1.2, bump: 0.7, grain: 0.5, seam: color, seamK: 0.0, seamGlow: 0.0, rv: 0.7 });
   const flesh = bio({ rough: 0.4, clear: 0.6, clearRough: 0.18, sheen: 0.1, env: 0.6, tex: 'flesh', tile: 1.3, bump: 0.9, grain: 0.45, seam: 0x25040f, seamK: 0.55, vein: color, veinK: 0.28, veinGlow: 0.6, sss: 0.15, sssColor: 0xff3a5a });
   const cry = crystalMat(color, { glow: 0.9, alpha: 0.9 });
   const mats = [shell, flesh, cry];
@@ -23,9 +23,9 @@ export default function build(kit, color) {
 
   // ── bandas del caparazón ──
   const nb = low ? 8 : hi ? 16 : 12, na = low ? 1 : 2;
-  const shellBase = new THREE.Color(0x130c26), shellRim = new THREE.Color(0x5a4876), flC0 = new THREE.Color(0x6a1430), flC1 = new THREE.Color(0xa83a58), tmp = new THREE.Color();
+  const shellBase = new THREE.Color(0x0a0716), shellRim = new THREE.Color(0x46385a), flC0 = new THREE.Color(0x45091f), flC1 = new THREE.Color(0x802040), tmp = new THREE.Color();
   function band(sign, k, N, bone, ryK) {
-    const a0 = (k / N) * Math.PI, a1 = ((k + 1) / N) * Math.PI, aEnd = Math.min(Math.PI, a1 + 0.07), ry = RY * ryK;
+    const a0 = Math.max(k === 0 ? 0.16 : 0, (k / N) * Math.PI), a1 = ((k + 1) / N) * Math.PI, aEnd = Math.min(Math.PI, a1 + 0.07), ry = RY * ryK;
     const over = 0.1, keel = 0.1 + 0.03 * Math.sin(k * 1.7), thick = 0.12, tone = 0.8 + R() * 0.4;
     const P = (a, b, rad, o) => { const sa = Math.sin(a); o.set(RX * sa * Math.cos(b) * rad, sign * ry * sa * Math.sin(b) * rad + CY, RZ * Math.cos(a) * rad); };
     const v = new V3(), outer = [], inner = [], co = [], ci = [], ids = (i, j) => i * (nb + 1) + j;
@@ -49,6 +49,9 @@ export default function build(kit, color) {
     return { a0, a1, sign, ry };
   }
   const infoU = bandsU.map((b, k) => band(1, k, NU, b, 1)), infoL = bandsL.map((b, k) => band(-1, k, NL, b, 0.8));
+  // protuberancia lisa en el polo delantero (tapa la convergencia de las bandas y da "cara" a la coraza)
+  { const mk = (sg, bone, y) => { const g = ellipsoid([0.2, 0.17, 0.15], { w: low ? 8 : 14, h: low ? 6 : 10, noise: 0.1, freq: 3, seed: 90 + sg, pos: [0, CY + y, RZ * 0.985] }); paint(g, (p, n) => new THREE.Color(0x160f26).lerp(new THREE.Color(0x4e4068), smooth(0, 1, n.z) * 0.6)); rig.add(shell, skinRigid(g, bone)); };
+    mk(1, bandsU[0], 0.06); mk(-1, bandsL[0], -0.05); }
   // ── biocristales: nacen de las juntas entre bandas, asimétricos (más en el flanco derecho) y de las grietas ──
   const rimPt = (sign, a, b, ryK, rad = 1.03) => new V3(RX * Math.sin(a) * Math.cos(b) * rad, sign * RY * ryK * Math.sin(a) * Math.sin(b) * rad + CY, RZ * Math.cos(a) * rad);
   infoU.forEach((inf, k) => {
@@ -72,15 +75,15 @@ export default function build(kit, color) {
   // labios hinchados del manto a lo largo del borde (arcos de carne)
   for (const [sign, bone, ryK] of [[-1, body, 0.8]]) for (const side of [-1, 1]) {
     const pts = []; for (let i = 0; i <= 8; i++) { const a = 0.15 + (i / 8) * (Math.PI - 0.5); pts.push([RX * Math.sin(a) * side * 0.86, CY - 0.03, RZ * Math.cos(a) * 0.86]); }
-    const g = tube(pts, { rad: (t) => 0.09 * (0.7 + 0.5 * Math.sin(t * Math.PI)), seg: low ? 8 : 16, sides: low ? 5 : 7, ex: [0.8, 1.3] }); paint(g, (p) => new THREE.Color(0x8a2040).lerp(new THREE.Color(0xc05a70), 0.5 * R()));
+    const g = tube(pts, { rad: (t) => 0.09 * (0.7 + 0.5 * Math.sin(t * Math.PI)), seg: low ? 8 : 16, sides: low ? 5 : 7, ex: [0.8, 1.3] }); paint(g, (p) => new THREE.Color(0x5a1028).lerp(new THREE.Color(0x984058), 0.5 * R()));
     rig.add(flesh, skinRigid(g, body));
   }
   // manto: montículo de carne que llena la valva inferior
-  const mantle = ellipsoid([0.95, 0.36, 0.92], { w: low ? 12 : 20, h: low ? 7 : 12, noise: 0.14, freq: 2.2, seed: 8, pos: [0, CY - 0.18, 0.05] }); paint(mantle, (p, n) => new THREE.Color(0x70183a).lerp(new THREE.Color(0xb04a60), smooth(0.2, 1, n.y) * 0.6)); rig.add(flesh, skinRigid(mantle, body));
+  const mantle = ellipsoid([0.95, 0.36, 0.92], { w: low ? 12 : 20, h: low ? 7 : 12, noise: 0.14, freq: 2.2, seed: 8, pos: [0, CY - 0.18, 0.05] }); paint(mantle, (p, n) => new THREE.Color(0x4a0c24).lerp(new THREE.Color(0x8a3048), smooth(0.2, 1, n.y) * 0.6)); rig.add(flesh, skinRigid(mantle, body));
   // tallo del ojo-núcleo: columna muscular de 3 huesos
   const s1 = rig.bone(body, [0, CY - 0.05, 0.1], 's1'), s2 = rig.bone(s1, [0, CY + 0.28, 0.3], 's2'), s3 = rig.bone(s2, [0, CY + 0.52, 0.5], 's3');
   const stalk = tube([[0, CY - 0.15, 0.05], [0, CY + 0.1, 0.18], [0, CY + 0.3, 0.32], [0, CY + 0.5, 0.48]], { rad: (t) => 0.27 - 0.07 * t, seg: low ? 8 : 14, sides: low ? 6 : 10, bulge: (t) => 1 + 0.08 * Math.sin(t * 20), ex: [1, 1] });
-  paint(stalk, (p, n) => new THREE.Color(0x7a1a3a).lerp(new THREE.Color(0xc05468), smooth(0.1, 1, n.y) * 0.4)); rig.add(flesh, skinChain(stalk, [s1, s2, s3], 0.14));
+  paint(stalk, (p, n) => new THREE.Color(0x500e26).lerp(new THREE.Color(0x903450), smooth(0.1, 1, n.y) * 0.4)); rig.add(flesh, skinChain(stalk, [s1, s2, s3], 0.14));
   // ojo-núcleo
   const core = eye({ r: 0.44, iris: 0xff5a10, iris2: 0x7a1400, sclera: 0xeed4c4, vein: 0xa01820, pupil: 'round', irisR: 0.66, glow: 0.7, lidMat: lidMaterial({ color: 0x9a3048, vein: 0x601020, sssColor: 0xff3050, sss: 0.4, tile: 1.4 }), slant: 0.12, maxYaw: 0.8, maxPitch: 0.6 });
   rig.attach(s3, core.object, [0, CY + 0.52 + 0.3, 0.6]); mats.push(core.mat, core.lid.material);
@@ -89,22 +92,24 @@ export default function build(kit, color) {
   for (let i = 0; i < nTen; i++) {
     const sx = (i - (nTen - 1) / 2) * 0.3, len = 0.95 + (i % 2) * 0.25, J = [[sx, CY - 0.08, 0.55], [sx * 1.15, CY + 0.08, 0.55 + len * 0.3], [sx * 1.35, CY + 0.15, 0.55 + len * 0.62], [sx * 1.5, CY + 0.1, 0.55 + len]];
     const bs = []; J.forEach((p, ix) => bs.push(rig.bone(ix ? bs[ix - 1] : body, p, 'tg')));
-    const g = tube(J, { rad: (t) => 0.085 * (1 - t * 0.85) + 0.01, seg: low ? 8 : 14, sides: low ? 4 : 6, bulge: (t) => 1 + 0.15 * Math.sin(t * 25), caps: true }); paint(g, (p) => new THREE.Color(0x8a2444).lerp(new THREE.Color(0xff8a40), smooth(0.7, 1.0, (p.z - 0.55) / len)));
+    const g = tube(J, { rad: (t) => 0.085 * (1 - t * 0.85) + 0.01, seg: low ? 8 : 14, sides: low ? 4 : 6, bulge: (t) => 1 + 0.15 * Math.sin(t * 25), caps: true }); paint(g, (p) => new THREE.Color(0x5a1430).lerp(new THREE.Color(0xff8a40), smooth(0.7, 1.0, (p.z - 0.55) / len)));
     rig.add(flesh, skinChain(g, bs, 0.12)); tongue.push({ bs, sx, ph: i * 1.3, len });
   }
   // ── ensamblaje ──
   const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group);
   const halo = glowSprite(0xffa040, 1.4, 0); halo.position.set(0, CY + 0.9, 0.6); rootObj.add(halo);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.5); aura.position.y = CY; rootObj.add(aura);
+  mats.push(disposer(rig, [halo.material, aura.geometry, aura.material]));
 
   const sOpen = new Spring(0, 55, 7.5), sWob = new Spring(0, 70, 6), sShake = new Spring(0, 90, 5), sPit = new Spring(0, 40, 6), sYaw = new Spring(0, 40, 6);
-  const tmp0 = new V3(); let roll = 0, glowT = 0, prevOpen = false, snap = 0, rattle = 0; const q1 = new THREE.Quaternion(), lh = new V3(), tv = new V3(), look = new V3(0, 0.3, 1);
+  const tmp0 = new V3(); let prevHp = 1, flinch = 0, roll = 0, glowT = 0, prevOpen = false, snap = 0, rattle = 0; const q1 = new THREE.Quaternion(), lh = new V3(), tv = new V3(), look = new V3(0, 0.3, 1);
 
   return { root: rootObj, mats, tick(dt, st, t, ctx = {}) {
     dt = Math.min(dt, 0.05);
     const open = !!(st.o || st.s === 'open'), speed = Math.min(1.6, ctx.speed || 0), hurt = st.hp != null && st.hp < 0.35, stun = !!st.st;
     if (ctx.look) look.copy(ctx.look);
-    if (open && !prevOpen) { snap = 1; rattle = 1; } prevOpen = open; snap = Math.max(0, snap - dt * 2.5); rattle = Math.max(0, rattle - dt * 2);
+    if (st.hp != null) { if (st.hp < prevHp - 0.004) flinch = 1; prevHp = st.hp; } flinch = Math.max(0, flinch - dt * 4.5);
+    if (flinch > 0.9) rattle = Math.max(rattle, 0.7); if (open && !prevOpen) { snap = 1; rattle = 1; } prevOpen = open; snap = Math.max(0, snap - dt * 2.5); rattle = Math.max(0, rattle - dt * 2);
     const o = Math.max(0, sOpen.step(dt, open ? 1 : 0)), oc = Math.min(1.1, o), oe = clamp(o, 0, 1);
     // valvas: la superior se alza y las bandas se abren en abanico; la inferior baja un poco
     hu.rotation.x = -oc * 1.12; hl.rotation.x = oc * 0.3;
@@ -116,7 +121,7 @@ export default function build(kit, color) {
     const wob = sWob.step(dt, open ? 0 : Math.sin(roll * 2) * 0.05);
     body.rotation.x = roll + wob; body.rotation.z = Math.sin(t * 1.1 + st.id) * 0.03 * (1 - oc) + (hurt ? Math.sin(t * 17) * 0.04 : 0);
     body.position.y = body.userData.rest.y + (open ? 0.02 : Math.abs(Math.sin(roll * 2)) * 0.05 * speed) + Math.sin(t * 2.2 + st.id) * 0.015 - 0.04 * snap;
-    const shk = sShake.step(dt, stun ? Math.sin(t * 40) * 0.08 : 0); rootObj.position.x = shk; rootObj.rotation.z = stun ? Math.sin(t * 31) * 0.05 : 0;
+    const shk = sShake.step(dt, stun ? Math.sin(t * 40) * 0.08 : 0); rootObj.position.x = shk + flinch * Math.sin(t * 60) * 0.03; rootObj.rotation.z = stun ? Math.sin(t * 31) * 0.05 : 0;
     tickAura(aura, st, t);
     // interior: latido; el ojo se asoma y arde (retraído al cerrar para caber dentro del caparazón)
     const beat = 0.5 + 0.5 * Math.sin(t * (hurt ? 9 : 5.2)), pul = oc * (0.6 + 0.4 * beat);

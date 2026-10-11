@@ -52,7 +52,7 @@ export function merge(list) { const l = list.filter(Boolean).map(prep); const ou
 /**
  * Tubo a lo largo de una curva. r(t) radio; ry(t) razón de aplastado; mod(t, a) ondulación (costillas/músculo); round=[a,b] redondeo de los extremos.
  */
-export function loft(pts, { seg = 14, radial = 10, r = () => 0.1, ry = () => 1, mod = null, round = [0.0, 0.0], closedStart = true, twist = 0 } = {}) {
+export function loft(pts, { seg = 14, radial = 10, r = () => 0.1, ry = () => 1, mod = null, round = [0.0, 0.0], closedStart = true, twist = 0, rot0 = 0 } = {}) {
   const curve = Array.isArray(pts) ? new THREE.CatmullRomCurve3(pts, false, "centripetal") : pts;
   const fr = curve.computeFrenetFrames(seg, false);
   const pos = [], uv = [], idx = [];
@@ -62,7 +62,7 @@ export function loft(pts, { seg = 14, radial = 10, r = () => 0.1, ry = () => 1, 
     if (round[1] > 0 && t > 1 - round[1]) rr *= Math.sqrt(Math.max(0, 1 - Math.pow(1 - (1 - t) / round[1], 2)));
     const N = fr.normals[i], B = fr.binormals[i];
     for (let j = 0; j <= radial; j++) {
-      const a = (j / radial) * Math.PI * 2 + twist * t, m = mod ? mod(t, a) : 1, ca = Math.cos(a), sa = Math.sin(a);
+      const a = (j / radial) * Math.PI * 2 + twist * t + rot0, m = mod ? mod(t, a) : 1, ca = Math.cos(a), sa = Math.sin(a);
       pos.push(P.x + (N.x * ca + B.x * sa * k) * rr * m, P.y + (N.y * ca + B.y * sa * k) * rr * m, P.z + (N.z * ca + B.z * sa * k) * rr * m);
       uv.push(j / radial, t);
     }
@@ -150,7 +150,7 @@ export function tentacleBundle(specs, { seg = 14, radial = 6, color = 0x884466, 
   specs.forEach((s, id) => {
     const pts = []; const n = 6; const d = s.d.clone().normalize(), sag = s.sag || new V3(0, 0, 0);
     for (let i = 0; i <= n; i++) { const k = i / n; pts.push(s.p.clone().addScaledVector(d, k * s.len).addScaledVector(sag, k * k * s.len)); }
-    const g = loft(pts, { seg, radial, r: (t) => lerp(s.r0, s.r1, Math.pow(t, 0.8)) * (1 + 0.18 * Math.sin(t * 22 + id)) * (t > 0.92 ? Math.max(0.05, (1 - t) / 0.08 * 0.6 + 0.4) : 1), round: [0.05, 0.0] });
+    const g = loft(pts, { seg, radial, r: (t) => lerp(s.r0, s.r1, Math.pow(t, 0.8)) * (s.flat ? 1 : (1 + 0.18 * Math.sin(t * 22 + id))) * (t > 0.92 ? Math.max(0.05, (1 - t) / 0.08 * 0.6 + 0.4) : 1), ry: () => s.flat ? 1 / s.flat : 1, rot0: s.rot0 ?? 0, round: [0.05, 0.0], mod: s.ruffle ? (t, a) => 1 + s.ruffle * Math.sin(t * 40 + id) * t : null });
     prep(g); const P = g.attributes.position, n0 = P.count, T = new Float32Array(n0 * 4), D = new Float32Array(n0 * 3);
     for (let i = 0; i < n0; i++) { const k = Math.floor(i / (radial + 1)) / seg; T[i * 4] = id; T[i * 4 + 1] = k; T[i * 4 + 2] = s.ph ?? id * 1.7; T[i * 4 + 3] = s.len; D[i * 3] = d.x; D[i * 3 + 1] = d.y; D[i * 3 + 2] = d.z; }
     g.setAttribute('aT', new THREE.BufferAttribute(T, 4)); g.setAttribute('aD', new THREE.BufferAttribute(D, 3));
@@ -227,3 +227,6 @@ export function legGeometry({ upper = 0.7, lower = 0.8, rUp = [0.2, 0.26, 0.18, 
   const mu = merge(up), ml = merge(lo);
   return { uR: mu, lR: ml, uL: mirrorX(mu), lL: mirrorX(ml) };
 }
+
+/** Invierte el orden de los triángulos y las normales (para ver el INTERIOR de una forma). */
+export function flipFaces(g) { const c = g.clone(); const ix = c.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i]; ix[i] = ix[i + 2]; ix[i + 2] = t; } c.index.needsUpdate = true; const n = c.attributes.normal; for (let i = 0; i < n.count; i++) n.setXYZ(i, -n.getX(i), -n.getY(i), -n.getZ(i)); return c; }

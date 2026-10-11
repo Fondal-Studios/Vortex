@@ -2,7 +2,7 @@
 // unidas por tallos carnosos a un núcleo; un ojo de verdad en un esfínter de carne, una mecha-filamento con la punta encendida y
 // 4 patas finas con IK que corren sin parar. Cuanto más cerca está el jugador (ctx.dist) más se hincha, tiembla, se enrojece y
 // parpadea más rápido: "a punto de estallar". (st.s === 'fuse' fuerza la urgencia máxima, para pruebas.)
-import { THREE, TAU, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, crystal, paint, bendAttr, Rig, skinRigid, skinChain, eye, buildLeg, footTo, boneQuat, gait, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, crystal, paint, bendAttr, Rig, skinRigid, skinChain, eye, buildLeg, footTo, boneQuat, gait, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3, R = rng(61);
@@ -46,21 +46,23 @@ export default function build(kit, color) {
     const Lg = buildLeg(rig, skin, body, H, K, F, { r0: 0.06, rk: 0.045, r1: 0.012, knuckle: 0.015, seg: low ? 6 : 10, sides: low ? 4 : 6, claw: 0.12, clawCol: 0xf0e4d0, spines: 0, side: s, name: 'r' + i, paintFn: (p) => new THREE.Color(0x7a2840).lerp(new THREE.Color(0xe0a080), smooth(0.3, 0.02, p.y)) });
     legs.push({ Lg, s, row, base: new V3(F.x, 0, F.z) }); }
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.85; rootObj.scale.setScalar(K);
   const glow = glowSprite(color, 2, 0); glow.position.y = 0.9; rootObj.add(glow);
   const spark = glowSprite(0xffd080, 0.35, 0.8); spark.position.set(-0.08, 2.0, -0.02); rootObj.add(spark);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.3); aura.position.y = 0.9; rootObj.add(aura);
-  const spJit = new Spring(0, 200, 12); let phase = 0, fuse = 0, strobe = 0; const tmp = new V3(0, 0, 1), look = new V3(0, 0, 1), q1 = new THREE.Quaternion(), lh = new V3(), cache = new Map(), bend = new V3();
+  mats.push(disposer(rig, [glow.material, spark.material, aura.geometry, aura.material]));
+  const spJit = new Spring(0, 200, 12); let prevHp = 1, flinch = 0, phase = 0, fuse = 0, strobe = 0; const tmp = new V3(0, 0, 1), look = new V3(0, 0, 1), q1 = new THREE.Quaternion(), lh = new V3(), cache = new Map(), bend = new V3();
   return { root: rootObj, mats, tick(dt, st, t, ctx = {}) {
     dt = Math.min(dt, 0.05);
     const speed = Math.min(1.6, Math.max(0.35, ctx.speed || 0)), hurt = st.hp != null && st.hp < 0.35, stun = !!st.st;
     if (ctx.look) look.copy(ctx.look);
+    if (st.hp != null) { if (st.hp < prevHp - 0.004) flinch = 1; prevHp = st.hp; } flinch = Math.max(0, flinch - dt * 4.5);
     // urgencia: 0 lejos … 1 a punto de estallar (ctx.dist en unidades de mundo)
     const d = ctx.dist == null ? 40 : ctx.dist, target = st.s === 'fuse' ? 1 : THREE.MathUtils.clamp(1 - (d - 5) / 22, 0, 1);
     fuse += (target - fuse) * Math.min(1, 5 * dt); const u = fuse * fuse * (3 - 2 * fuse) * 0.4 + fuse * 0.6;
     const freq = 2.4 + 16 * u + (hurt ? 3 : 0); strobe += dt * freq * TAU; const beat = 0.5 + 0.5 * Math.sin(strobe), flash = u > 0.55 ? (Math.sin(strobe * 0.5) > 0 ? 1 : 0) * (u - 0.4) : 0;
     // vejigas: laten a su aire, se hinchan con la urgencia y se agitan; una está flácida si está herida
-    const infl = 1 + 0.3 * u;
+    const infl = 1 + 0.3 * u + 0.12 * flinch;
     bl.forEach((b, i) => { const p = Math.sin(strobe + b.ph), k = infl * (1 + (0.05 + 0.1 * u) * p) * (hurt && i === 3 ? 0.55 : 1), rp = b.c.clone().sub(cl.userData.rest); b.bb.scale.set(k, k * (1 - 0.06 * p), k);
       b.bb.position.set(rp.x * (1 + (infl - 1) * 0.6) + (u > 0.3 ? Math.sin(t * 40 + b.ph) * 0.012 * u : 0), rp.y * (1 + (infl - 1) * 0.6) + (u > 0.3 ? Math.cos(t * 37 + b.ph) * 0.012 * u : 0), rp.z * (1 + (infl - 1) * 0.6)); });
     // color del gas: del color propio al rojo caliente y a blanco en el flash
@@ -77,7 +79,7 @@ export default function build(kit, color) {
     spark.material.opacity = 0.6 + 0.4 * Math.sin(t * 30) * (0.5 + u); spark.scale.setScalar(0.3 + 0.35 * u + 0.12 * Math.sin(t * 37));
     spark.position.set(-0.08 + Math.sin(t * 3) * 0.08 * (1 + u), 2.0 + Math.sin(t * 2) * 0.03, -0.02 + Math.cos(t * 2.4) * 0.07 * (1 + u));
     // ojo: mira, se abre de par en par cuando se acerca
-    cl.updateMatrix(); eb.updateMatrix(); boneQuat(eb, root, q1); gazeDir(look, ctx.dist, tmp.set(0, 1.6, 0.5), lh); lh.applyQuaternion(q1.invert());
+    cl.updateMatrix(); eb.updateMatrix(); boneQuat(eb, root, q1); gazeDir(look, (ctx.dist || 8) / K, tmp.set(0, 1.6, 0.5), lh); lh.applyQuaternion(q1.invert());
     eb.scale.setScalar(1 + 0.25 * u);
     e.update(dt, lh, { open: stun ? 0.45 : hurt ? 0.7 : 0.95, dilate: 0.5 * u - 0.1, glowMul: 0.6 + 1.6 * u, quiver: u > 0.5 || hurt ? 1 : 0 });
     // patitas: más rápidas con la urgencia

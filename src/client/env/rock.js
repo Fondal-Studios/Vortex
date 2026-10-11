@@ -10,9 +10,9 @@ import { dc } from './props.js';
 
 const lin = (c) => new THREE.Color(c).convertSRGBToLinear();
 
-export function rockPBR({ envMap = null, attr = true, accent = 0x66ffe0, haze = 0x2a2060, hazeDens = 0.0000028, octaves = 4, bump = 0.22, metal = 0.05 } = {}) {
+export function rockPBR({ tint = [1, 1, 1], envMap = null, attr = true, accent = 0x66ffe0, haze = 0x2a2060, hazeDens = 0.0000028, octaves = 4, bump = 0.22, metal = 0.05 } = {}) {
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: metal, envMap, envMapIntensity: 0.22 }); // envMap propio: así envMapIntensity sí cuenta (scene.environment usa otra escala)
-  const uni = { uTime, uAccent: { value: new THREE.Color(accent) }, uHaze: { value: lin(haze) }, uHazeD: { value: hazeDens }, uBump: { value: bump } };
+  const uni = { uTime, uAccent: { value: new THREE.Color(accent) }, uHaze: { value: lin(haze) }, uHazeD: { value: hazeDens }, uBump: { value: bump }, uTint: { value: new THREE.Vector3(...tint) } };
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uni);
     sh.vertexShader = sh.vertexShader
@@ -29,14 +29,14 @@ export function rockPBR({ envMap = null, attr = true, accent = 0x66ffe0, haze = 
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         #define FBM_OCT ${octaves}
-        uniform float uTime; uniform vec3 uAccent, uHaze; uniform float uHazeD, uBump;
+        uniform float uTime; uniform vec3 uAccent, uHaze; uniform float uHazeD, uBump; uniform vec3 uTint;
         varying vec3 vWP; varying vec3 vWN; ${attr ? 'varying vec3 vAcc; varying vec4 vIsl;' : ''}
         ${NOISE} ${BUMP} ${HAZE} ${SURF}`)
       .replace('#include <map_fragment>', `
         vec3 rkEmi; float rkRough, rkH;
         { vec3 acc = ${attr ? 'vAcc' : 'uAccent'}; vec4 isl = ${attr ? 'vIsl' : 'vec4(0.0, 0.0, 1.0, 0.0)'}; vec3 alb;
           surfShade(vWP, normalize(vWN), acc, isl, uTime, alb, rkEmi, rkRough, rkH);
-          diffuseColor.rgb = alb; }`)
+          diffuseColor.rgb = alb * uTint; }`)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = rkRough;')
       .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n normal = bumpN(normal, -vViewPosition, rkH, uBump);')
       .replace('#include <aomap_fragment>', '#include <aomap_fragment>\n reflectedLight.directSpecular *= 0.28; reflectedLight.indirectSpecular *= 0.6;')
@@ -70,7 +70,7 @@ export function rockLite({ attr = true, accent = 0x66ffe0, haze = 0x2a2060, haze
       ${NOISE} ${BUMP} ${HAZE} ${SURF}
       void main(){
         vec3 N = normalize(vWN), V = cameraPosition - vWP; float dist = length(V); V /= dist;
-        vec3 acc = ATTR == 1 ? vAcc : uAccent, alb, emi; float rough, h;
+        vec3 acc = pow(ATTR == 1 ? vAcc : uAccent, vec3(2.2)), alb, emi; float rough, h;
         surfShade(vWP, N, acc, vIsl, uTime, alb, emi, rough, h);
         N = bumpN(N, vWP, h, 0.10);
         float dif = max(dot(N, uSun), 0.0), hem = N.y * 0.5 + 0.5;
@@ -78,6 +78,7 @@ export function rockLite({ attr = true, accent = 0x66ffe0, haze = 0x2a2060, haze
         vec3 H = normalize(uSun + V); float spec = pow(max(dot(N, H), 0.0), mix(60.0, 8.0, rough)) * (1.0 - rough) * 1.2;
         vec3 col = alb * (vec3(1.0, 0.92, 0.82) * dif * 1.7 + amb) + emi + vec3(1.0, 0.95, 0.9) * spec * dif;
         col += acc * pow(1.0 - max(dot(N, V), 0.0), 3.0) * 0.12;
+        col = pow(max(col, vec3(0.0)), vec3(0.4545));          // en Baja no hay post-proceso: la luz se calcula en lineal y se pasa a pantalla acá
         col = hazeMix(col, dist, uHaze, uHazeD);
         gl_FragColor = vec4(col, 1.0);
       }`,

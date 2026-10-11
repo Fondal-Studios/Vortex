@@ -68,7 +68,7 @@ function eyeMaterial({ haze, hazeDens, far }) {
         // — párpados: parpadeo periódico + «sueño» (cada tanto se cierran del todo y se abren después)
         float cyc = 3.5 + vPh * 6.0, ph = fract((t + vPh * 57.0) / cyc);
         float blink = 1.0 - sin(clamp(ph / 0.09, 0.0, 1.0) * PI);
-        float sleep = smoothstep(-0.25, 0.30, sin(t * 0.05 + vPh * 71.0));
+        float sleep = smoothstep(-0.85, -0.45, sin(t * 0.05 + vPh * 71.0));
         float open = blink * sleep * (0.9 + 0.1 * sin(t * 0.6 + vPh * 9.0));
         float x = p.x / 0.9, prof = pow(max(1.0 - x * x, 0.0), 0.72);
         float up = open * 0.50 * prof, lo = open * 0.34 * prof;
@@ -110,6 +110,7 @@ function eyeMaterial({ haze, hazeDens, far }) {
         float rays = pow(0.5 + 0.5 * sin(atan(p.y, p.x) * 22.0 + vPh * 10.0), 3.0) * exp(-max(length(p * vec2(0.8, 1.6)) - 0.5, 0.0) * 3.2) * (1.0 - inEye);
         float halo = exp(-length(p * vec2(0.9, 1.5)) * 2.3);
         vec3 glow = vC * (lid * 1.6 + rays * 0.35 + halo * 0.30 * (0.3 + 0.7 * open)) + vec3(1.0) * lid * 0.25;
+        glow *= smoothstep(1.7, 1.15, abs(p.x)) * smoothstep(1.2, 0.75, abs(p.y));   // el resplandor se apaga antes del borde del cartel
         float al = inEye;
         vec3 rgb = col * inEye + glow;
         // — lejanía: se desvanece con la niebla y la distancia
@@ -143,7 +144,7 @@ export function addCosmicEyes(r, root, opts = {}) {
     // — incrustados en la cara interior del cascarón, mirando hacia adentro (a escala visible)
     for (let i = 0; i < count; i++) {
       let d; for (let k = 0; k < 20; k++) { d = rdir(); if (d.y < -0.93) continue; break; }  // sin ojos justo bajo los pies al aparecer
-      const big = rd() < 0.25, s = (big ? 11 + rd() * 9 : 3.5 + rd() * 5) * size;
+      const big = rd() < 0.25, s = (big ? 15 + rd() * 15 : 5.5 + rd() * 6) * size;
       const pos = C.clone().addScaledVector(d, shellR - 0.35);
       push(pos, facing(pos, C.clone(), rd() * 6.28), s, col(), type(), 0);
     }
@@ -181,7 +182,7 @@ export function addCosmicEyes(r, root, opts = {}) {
   }
 
   // — malla instanciada única
-  const geo = new THREE.PlaneGeometry(2.4, 1.6); geo.deleteAttribute('normal'); geo.deleteAttribute('uv');
+  const geo = new THREE.PlaneGeometry(3.4, 2.4); geo.deleteAttribute('normal'); geo.deleteAttribute('uv');
   const n = list.length;
   geo.setAttribute('aType', new THREE.InstancedBufferAttribute(new Float32Array(list.map((e) => e.type)), 1));
   geo.setAttribute('aPh', new THREE.InstancedBufferAttribute(new Float32Array(list.map((e) => e.ph)), 1));

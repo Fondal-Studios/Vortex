@@ -62,7 +62,7 @@ function ghostMat(col, haze, hazeDens) {
         float irid = fract(dot(n, vec3(0.3, 0.5, 0.2)) * 1.2 + fr * 0.8 + uTime * 0.03);
         vec3 pal = 0.5 + 0.5 * cos(6.2832 * (irid + vec3(0.0, 0.33, 0.67)));
         vec3 col = uCol * (0.05 + 0.18 * max(dot(n, normalize(vec3(0.4, 0.7, -0.5))), 0.0)) + mix(uCol, pal, 0.5) * fr * 0.55;
-        col = mix(col, uHaze, 1.0 - exp(-dist * dist * uHD));
+        col = mix(col, uHaze, min(0.5, 1.0 - exp(-dist * dist * uHD)));
         gl_FragColor = vec4(col, 1.0);
       }`,
   }));
@@ -146,8 +146,8 @@ export function buildSkyFx(r, map, { sunPos, haze, hazeDens }) {
   // destellos de lente con oclusión por las islas (muestreo del rayo cámara→sol)
   const glare = new THREE.Group(); root.add(glare);
   const mk = (tex, col, base, order = 20) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: col, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true, opacity: 0 })); m.renderOrder = order; m.frustumCulled = false; m.userData = { base }; glare.add(m); return m; };
-  const rays = mk(r.shared('env.rays', raysTex), 0xffd9a0, 0.34), halo = mk(r.shared('env.soft', softTex), 0xffc890, 0.32), streak = mk(r.shared('env.streak', streakTex), 0x9fd8ff, 0.3), ghosts = [];
-  const gt = r.shared('env.ring', ringTex), gdef = [[0.55, 0.10, 0xff9a60, 0.16], [0.9, 0.06, 0x7ad0ff, 0.22], [1.35, 0.14, 0xa078ff, 0.10], [1.8, 0.05, 0xffd070, 0.20], [-0.35, 0.08, 0x70ffd0, 0.12]];
+  const rays = mk(r.shared('env.rays', raysTex), 0xffd9a0, 0.26), halo = mk(r.shared('env.soft', softTex), 0xffc890, 0.22), streak = mk(r.shared('env.streak', streakTex), 0x9fd8ff, 0.3), ghosts = [];
+  const gt = r.shared('env.ring', ringTex), gdef = [[0.55, 0.10, 0xff9a60, 0.08], [0.9, 0.06, 0x7ad0ff, 0.11], [1.35, 0.14, 0xa078ff, 0.05], [1.8, 0.05, 0xffd070, 0.10], [-0.35, 0.08, 0x70ffd0, 0.06]];
   for (const [k, sz, col, o] of gdef) { const m = mk(gt, col, o); m.userData.k = k; m.userData.sz = sz; ghosts.push(m); }
   const ndc = new THREE.Vector3(), tmp = new THREE.Vector3(), cd = new THREE.Vector3(), sunW = new THREE.Vector3(); let vis = 0;
   const place = (m, x, y, size, d = 5) => { tmp.set(x, y, 0.5).unproject(r.camera); tmp.sub(r.camera.position).normalize(); m.position.copy(r.camera.position).addScaledVector(tmp, d); const wh = 2 * d * Math.tan(THREE.MathUtils.degToRad(r.camera.fov / 2)); m.scale.set(size * wh, size * wh, 1); };
@@ -169,16 +169,16 @@ export function buildSkyFx(r, map, { sunPos, haze, hazeDens }) {
     glare.visible = vis > 0.01; if (!glare.visible) return;
     const fade = Math.min(1, vis * 1.3);
     for (const m of glare.children) m.material.opacity = m.userData.base * fade;
-    place(halo, ndc.x, ndc.y, 0.9, 5); place(rays, ndc.x, ndc.y, 1.9, 5); rays.material.rotation = t * 0.02 + ndc.x * 0.6; place(streak, ndc.x, ndc.y, 2.6, 5); streak.scale.y *= 0.09;
+    place(halo, ndc.x, ndc.y, 0.9, 5); place(rays, ndc.x, ndc.y, 1.4, 5); rays.material.rotation = t * 0.02 + ndc.x * 0.6; place(streak, ndc.x, ndc.y, 2.6, 5); streak.scale.y *= 0.09;
     for (const g of ghosts) place(g, ndc.x * -g.userData.k + 0.0, ndc.y * -g.userData.k, g.userData.sz * 1.1, 5);
   });
 
   // rayos de luz volumétricos fingidos (conos aditivos entre las islas)
   if (q.decor) {
     const pg = new THREE.PlaneGeometry(1, 1), sr = rng(31);
-    for (let i = 0; i < 7; i++) {
-      const m = new THREE.Mesh(pg, shaftMat(i % 2 ? 0xffd0a0 : 0xffe4c0)), a = i / 7 * Math.PI * 2 + 0.4, d = 20 + sr() * 70;
-      const u = m.material.uniforms; u.uAxis.value.copy(sunDir); u.uCenter.value.set(Math.cos(a) * d, 25 + sr() * 30, Math.sin(a) * d); u.uLen.value = 260; u.uWid.value = 8 + sr() * 14; u.uPh.value = sr() * 10; u.uK.value = 0.6 + sr() * 0.8;
+    for (let i = 0; i < 5; i++) {
+      const m = new THREE.Mesh(pg, shaftMat(i % 2 ? 0xffd0a0 : 0xffe4c0)), a = i / 5 * Math.PI * 2 + 0.4, d = 20 + sr() * 70;
+      const u = m.material.uniforms; u.uAxis.value.copy(sunDir); u.uCenter.value.set(Math.cos(a) * d, 25 + sr() * 30, Math.sin(a) * d); u.uLen.value = 260; u.uWid.value = 8 + sr() * 14; u.uPh.value = sr() * 10; u.uK.value = 0.4 + sr() * 0.6;
       m.scale.set(1, 1, 1); m.frustumCulled = false; m.renderOrder = 3; root.add(m);
     }
   }

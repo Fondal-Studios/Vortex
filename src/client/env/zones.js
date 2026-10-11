@@ -113,12 +113,12 @@ function cloudShellMat(sun) {
     vertexShader: `varying vec3 vL; varying vec3 vN; void main(){ vL = position; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `uniform float uTime; uniform vec3 uSun; varying vec3 vL; varying vec3 vN; ${NOISE}
       void main(){ vec3 p = normalize(vL); float c = smoothstep(0.58, 0.80, fbm(p * 3.2 + vec3(0.0, uTime * 0.01, 0.0)) + 0.2 * fbm(p * 8.0));
-        float dif = clamp(dot(normalize(vN), uSun) * 1.2 + 0.15, 0.0, 1.0); gl_FragColor = vec4(mix(vec3(0.25, 0.25, 0.4), vec3(1.0, 0.92, 0.95), dif), c * 0.6); }` }));
+        float dif = clamp(dot(normalize(vN), uSun) * 1.2 + 0.15, 0.0, 1.0); gl_FragColor = vec4(mix(vec3(0.25, 0.25, 0.4), vec3(1.0, 0.92, 0.95), dif), c * 0.4); }` }));
 }
 const atmoMat = () => finish(new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.BackSide,
-  uniforms: { uSun: { value: new THREE.Vector3(0.4, 1, -0.5).normalize() } },
+  uniforms: { uIn: { value: 1 } },
   vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = -mv.xyz; gl_Position = projectionMatrix * mv; }`,
-  fragmentShader: `varying vec3 vN; varying vec3 vV; void main(){ float f = pow(max(dot(-normalize(vN), normalize(vV)), 0.0), 2.5); gl_FragColor = vec4(vec3(0.25, 0.6, 1.0) * f * 1.1, f * 0.55); }` }));
+  fragmentShader: `uniform float uIn; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(max(dot(-normalize(vN), normalize(vV)), 0.0), 2.5); gl_FragColor = vec4(vec3(0.25, 0.6, 1.0) * f * 0.9, f * 0.45 * uIn); }` }));
 
 function buildPlanetoid(r, map, sun) {
   const root = r.mapRoot, q = cfg();
@@ -126,6 +126,7 @@ function buildPlanetoid(r, map, sun) {
     const g = new THREE.Group(); g.position.set(s.c.x, s.c.y, s.c.z); root.add(g);
     const pl = new THREE.Mesh(new THREE.SphereGeometry(s.r, q.decor ? 64 : 32, q.decor ? 48 : 20), planetMat(sun, q.decor ? 4 : 3)); g.add(pl);
     const atm = new THREE.Mesh(new THREE.SphereGeometry(s.r * 1.16, 40, 24), atmoMat()); g.add(atm);
+    r.dyn.push(() => { const d = r.camera.position.distanceTo(g.position); atm.material.uniforms.uIn.value = THREE.MathUtils.smoothstep(d, s.r * 1.02, s.r * 1.3); }); // desde adentro de la atmósfera no vela la pantalla
     let cl = null; if (q.decor) { cl = new THREE.Mesh(new THREE.SphereGeometry(s.r * 1.035, 40, 28), cloudShellMat(sun)); g.add(cl); }
     if (q.decor) { // anillo tenue (no estorba: es traslúcido y está dentro del pozo de gravedad)
       const rg = new THREE.Mesh(new THREE.RingGeometry(s.r * 1.45, s.r * 2.05, 90, 1), finish(new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,

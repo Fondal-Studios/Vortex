@@ -3,7 +3,7 @@
 // base muscular con 3 patas con garra. Corona de 6 pétalos de biocristal que, al apuntar, convergen en cañón sobre un lente de cristal.
 // AVISO DE DISPARO (st.s === 'aim', 0.6 s): la columna se arquea hacia atrás, los párpados se abren del todo, la pupila se contrae,
 // los pétalos convergen, el lente se enfoca y arde; al soltar el proyectil, retroceso.
-import { THREE, TAU, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, paint, orient, path, place, bendAttr, Rig, skinRigid, skinChain, eye, buildLeg, footTo, boneQuat, gait, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, paint, orient, path, place, bendAttr, Rig, skinRigid, skinChain, eye, buildLeg, footTo, boneQuat, gait, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3, R = rng(21);
@@ -23,13 +23,13 @@ export default function build(kit, color) {
   const EC = new V3(0, 2.28, 0.58), ER = 0.52;
   // ── bulbo muscular + collar de placas ──
   const bulb = ellipsoid([0.55, 0.4, 0.55], { w: low ? 12 : 20, h: low ? 8 : 14, noise: 0.14, freq: 2, seed: 4, pos: [0, 0.48, 0] });
-  paint(bulb, (p, n) => new THREE.Color(0x5a2a2a).lerp(new THREE.Color(0x9a5a50), smooth(-0.2, 0.9, n.y))); rig.add(flesh, skinRigid(bulb, body));
+  paint(bulb, (p, n) => new THREE.Color(0x401a1a).lerp(new THREE.Color(0x84483c), smooth(-0.2, 0.9, n.y))); rig.add(flesh, skinRigid(bulb, body));
   for (let i = 0; i < (low ? 4 : 6); i++) { const a = (i / (low ? 4 : 6)) * TAU + 0.3, n = new V3(Math.cos(a), 0.6, Math.sin(a)).normalize(); const g = plate({ w: 0.15, l: 0.2, h: 0.07, nr: 2, ns: 7, wrap: 1.5, keel: 0.6, quat: orient(n, new V3(-Math.cos(a), 0.2, -Math.sin(a))), pos: [Math.cos(a) * 0.4, 0.68, Math.sin(a) * 0.4], col: 0x3a2a24, col2: 0x9a8260 }); rig.add(bone, skinRigid(g, body)); }
   // ── columna: tubo carnoso continuo con anillos musculares + vértebras de hueso visibles, tendones y espolones ──
   const SP = [[0, 0.5, 0], ...SJ.map((p) => p), [0, 2.15, 0.34]], sp = path(SP), RAD = [0.28, 0.23, 0.19, 0.16, 0.14, 0.14, 0.16];
   const rf = (t) => { const f = t * (RAD.length - 1), i = Math.min(RAD.length - 2, Math.floor(f)); return lerp(RAD[i], RAD[i + 1], smooth(0, 1, f - i)); };
   const stGeo = tube(SP, { rad: rf, seg: low ? 18 : 30, sides: low ? 7 : 11, bulge: (t, a) => (1 + 0.05 * Math.sin(t * TAU * 7)) * (1 + 0.05 * Math.cos(a * 3)), caps: false });
-  paint(stGeo, (p, n) => new THREE.Color(0x6e3430).lerp(new THREE.Color(0xb86a58), smooth(0.0, 0.9, n.z * 0.5 + 0.5) * 0.7));
+  paint(stGeo, (p, n) => new THREE.Color(0x4e1e1c).lerp(new THREE.Color(0x9a5444), smooth(0.0, 0.9, n.z * 0.5 + 0.5) * 0.7));
   rig.add(flesh, skinChain(stGeo, [body, ...stalk, head].slice(1, 6), 0.16));
   const nV = low ? 3 : 5;
   for (let i = 0; i < nV; i++) {
@@ -41,10 +41,10 @@ export default function build(kit, color) {
   }
   for (const s of [-1, 1]) {   // tendones tensos a los lados
     const pts = SP.map((p, i) => [p[0] + s * rf(i / (SP.length - 1)) * 0.86, p[1], p[2] + 0.04]);
-    const g = tube(pts, { rad: (t) => 0.034 * (1 - t * 0.3), seg: low ? 12 : 22, sides: 4, caps: false }); paint(g, 0xc89a8a); rig.add(flesh, skinChain(g, stalk, 0.16));
+    const g = tube(pts, { rad: (t) => 0.034 * (1 - t * 0.3), seg: low ? 12 : 22, sides: 4, caps: false }); paint(g, 0x9a5a50); rig.add(flesh, skinChain(g, stalk, 0.16));
   }
   // ── cuenca, ceja, pestañas ──
-  const socket = ellipsoid([0.6, 0.54, 0.48], { w: low ? 12 : 18, h: low ? 8 : 12, noise: 0.1, freq: 2.4, seed: 6, pos: [0, EC.y - 0.02, EC.z - 0.2] }); paint(socket, (p, n) => new THREE.Color(0x5a2c2c).lerp(new THREE.Color(0x9a5a50), smooth(0, 1, n.y * 0.5 + 0.5))); rig.add(flesh, skinRigid(socket, head));
+  const socket = ellipsoid([0.6, 0.54, 0.48], { w: low ? 12 : 18, h: low ? 8 : 12, noise: 0.1, freq: 2.4, seed: 6, pos: [0, EC.y - 0.02, EC.z - 0.2] }); paint(socket, (p, n) => new THREE.Color(0x401c1c).lerp(new THREE.Color(0x84483c), smooth(0, 1, n.y * 0.5 + 0.5))); rig.add(flesh, skinRigid(socket, head));
   const brow = plate({ w: 0.46, l: 0.2, h: 0.1, nr: 3, ns: 10, keel: 0.5, wrap: 1.4, curve: -0.9, quat: orient(new V3(0, 1, 0.5), new V3(0, -0.3, 1)), pos: [0, EC.y + 0.5, EC.z + 0.05], col: 0x3a2a24, col2: 0xa89068 }); rig.add(bone, skinRigid(brow, head));
   for (const s of [-1, 1]) rig.add(bone, skinRigid(spike(0.06, 0.28, { sides: 5, seg: 3, bend: 0.4, bendDir: [s, 0.3, 0], pos: [s * 0.5, EC.y + 0.36, EC.z - 0.05], dir: [s * 0.8, 0.8, 0.1] }), head));
   for (let i = 0; i < (low ? 3 : 5); i++) { const a = Math.PI * (0.15 + i * 0.175), n = new V3(Math.cos(a) * 0.9, Math.sin(a), -0.55).normalize(), pp = new V3(Math.cos(a) * 0.6, EC.y - 0.02 + Math.sin(a) * 0.6, EC.z - 0.34); rig.add(bone, skinRigid(plate({ w: 0.24, l: 0.3, h: 0.1, nr: 2, ns: 8, wrap: 1.2, keel: 0.6, quat: orient(n, new V3(-Math.cos(a), 0.4, 0.2)), pos: pp.toArray(), col: 0x3a2a24, col2: 0xb09a74 }), head)); rig.add(bone, skinRigid(spike(0.04, 0.2 - Math.abs(i - 2) * 0.03, { sides: 4, seg: 2, bend: 0.4, bendDir: [0, 0, -1], pos: [pp.x * 1.05, pp.y + 0.05, pp.z - 0.08], dir: [n.x, n.y, n.z - 0.3] }), head)); }
@@ -69,7 +69,7 @@ export default function build(kit, color) {
   for (let i = 0; i < 3; i++) {
     const a = 0.6 + (i / 3) * TAU, c = Math.cos(a), s = Math.sin(a);
     const H = new V3(c * 0.36, 0.5, s * 0.36), K = new V3(c * 0.78, 0.74, s * 0.78), F = new V3(c * 1.02, 0.03, s * 1.02);
-    const Lg = buildLeg(rig, flesh, body, H, K, F, { r0: 0.11, rk: 0.085, r1: 0.014, knuckle: 0.03, seg: low ? 8 : 14, sides: low ? 5 : 8, claw: 0.2, clawCol: 0xe8dcc0, spines: low ? 0 : 2, spineCol: 0xc8b898, side: 1, name: 'l' + i, paintFn: (p) => new THREE.Color(0x6a302c).lerp(new THREE.Color(0xc09070), smooth(0.5, 0.05, p.y)).lerp(new THREE.Color(0xe0d0b0), smooth(0.06, 0.02, p.y) * 0.8) });
+    const Lg = buildLeg(rig, flesh, body, H, K, F, { r0: 0.11, rk: 0.085, r1: 0.014, knuckle: 0.03, seg: low ? 8 : 14, sides: low ? 5 : 8, claw: 0.2, clawCol: 0xe8dcc0, spines: low ? 0 : 2, spineCol: 0xc8b898, side: 1, name: 'l' + i, paintFn: (p) => new THREE.Color(0x4a1c1a).lerp(new THREE.Color(0x9a6a50), smooth(0.5, 0.05, p.y)).lerp(new THREE.Color(0xe0d0b0), smooth(0.06, 0.02, p.y) * 0.8) });
     legs.push({ Lg, a, base: new V3(c * 1.02, 0, s * 1.02), c, s });
   }
   // raíces colgantes que reptan
@@ -77,21 +77,24 @@ export default function build(kit, color) {
   if (!low) for (let i = 0; i < 2; i++) { const a = 1.8 + i * 3.1, c = Math.cos(a), s = Math.sin(a), J = [[c * 0.3, 0.3, s * 0.3], [c * 0.55, 0.12, s * 0.55], [c * 0.8, 0.05, s * 0.8], [c * 1.0, 0.03, s * 1.0]], bs = []; J.forEach((p, ix) => bs.push(rig.bone(ix ? bs[ix - 1] : body, p, 'rt')));
     const g = tube(J, { rad: (t) => 0.07 * (1 - t) + 0.01, seg: 10, sides: 5 }); paint(g, 0x6a302c); rig.add(flesh, skinChain(g, bs, 0.1)); roots.push({ bs, ph: i * 2 }); }
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.78; rootObj.scale.setScalar(K);
   const glow = glowSprite(color, 2, 0); glow.position.set(0, EC.y, EC.z + 0.8); rootObj.add(glow);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.6); aura.position.y = 1.2; rootObj.add(aura);
+  mats.push(disposer(rig, [glow.material, aura.geometry, aura.material, lensGeo]));
   const spYaw = new Spring(0, 70, 8), spPit = new Spring(0, 70, 8), spKick = new Spring(0, 120, 7), spS = stalk.map((_, i) => new Spring(0, 38 + i * 4, 4.5 + i * 0.3)), spPet = petals.map(() => new Spring(0, 90, 7));
-  let phase = 0, aimTime = 0, wasAim = false, kick = 0, tw = 0; const tmp = new V3(0, 0, 1), look = new V3(0, 0, 1), q1 = new THREE.Quaternion(), lh = new V3(), qq = new THREE.Quaternion(), cache = new Map(), bend = new V3();
+  let prevHp = 1, flinch = 0, phase = 0, aimTime = 0, wasAim = false, kick = 0, tw = 0; const tmp = new V3(0, 0, 1), look = new V3(0, 0, 1), q1 = new THREE.Quaternion(), lh = new V3(), qq = new THREE.Quaternion(), cache = new Map(), bend = new V3();
 
   return { root: rootObj, mats, tick(dt, st, t, ctx = {}) {
     dt = Math.min(dt, 0.05);
     const aim = st.s === 'aim', speed = Math.min(1.5, ctx.speed || 0), hurt = st.hp != null && st.hp < 0.35, stun = !!st.st;
     if (ctx.look) look.copy(ctx.look); if (aim) aimTime += dt; else aimTime = 0;
+    if (st.hp != null) { if (st.hp < prevHp - 0.004) flinch = 1; prevHp = st.hp; } flinch = Math.max(0, flinch - dt * 4.5);
+
     const p = aim ? Math.min(1, aimTime / 0.6) : 0, pe = p * p * (3 - 2 * p);
     if (wasAim && !aim) kick = 1; wasAim = aim; kick = Math.max(0, kick - dt * 3);
     const lx = Math.atan2(look.x, Math.max(0.15, look.z)), ly = Math.asin(clamp(look.y, -1, 1));
     // columna: vaivén + arqueo hacia atrás al apuntar + retroceso al disparar + temblor si está herida
-    const sway = Math.sin(t * 1.3 + st.id), jit = hurt ? Math.sin(t * 19 + st.id) * 0.06 : 0, arch = -pe * 0.5 + spKick.step(dt, kick * -0.5);
+    const sway = Math.sin(t * 1.3 + st.id) - flinch * 2.2, jit = hurt ? Math.sin(t * 19 + st.id) * 0.06 : 0, arch = -pe * 0.5 + spKick.step(dt, kick * -0.5);
     stalk.forEach((b, i) => { const tg = sway * 0.06 * (i + 1) / 5 + arch * (i === 0 ? 0.25 : 1) * 0.36 + jit * (i / 5) + (stun ? Math.sin(t * 8 + i) * 0.14 : 0) + (hurt ? 0.1 * (i + 1) / 5 : 0); b.rotation.x = spS[i].step(dt, tg); b.rotation.z = Math.sin(t * 0.9 + i * 0.7 + st.id) * 0.05 * (1 + speed) + (hurt ? 0.04 * Math.sin(t * 11 + i) : 0); });
     let chain = 0; stalk.forEach((b) => { chain += b.rotation.x; });
     head.rotation.y = spYaw.step(dt, clamp(lx, -1.0, 1.0)) * 0.7; head.rotation.x = spPit.step(dt, -clamp(ly, -0.5, 0.5) * 0.5 - chain * 0.8 + 0.04 + (hurt ? 0.18 : 0));
@@ -107,8 +110,8 @@ export default function build(kit, color) {
     roots.forEach((R2, k) => R2.bs.forEach((b, i) => { b.rotation.y = Math.sin(t * (1.1 + k * 0.3) + R2.ph + i * 0.8) * 0.3; b.rotation.x = Math.cos(t * 0.9 + R2.ph + i) * 0.1; }));
     body.position.y = body.userData.rest.y + Math.abs(Math.sin(phase * 0.5)) * 0.04 * speed + Math.sin(t * 2.0 + st.id) * 0.012 - (hurt ? 0.05 : 0); body.rotation.z = Math.sin(phase * 0.5) * 0.04 * speed;
     // ojo: gira para mirar al jugador; párpados (apertura total al apuntar, caído si herida/aturdida); pupila; lente
-    head.updateMatrix(); boneQuat(head, root, q1); gazeDir(look, ctx.dist, EC, lh); lh.applyQuaternion(q1.clone().invert());
-    const openT = stun ? 0.45 : hurt ? 0.65 + 0.2 * Math.sin(t * 5) ** 2 : 0.94 + 0.06 * pe;
+    head.updateMatrix(); boneQuat(head, root, q1); gazeDir(look, (ctx.dist || 8) / K, EC, lh); lh.applyQuaternion(q1.clone().invert());
+    const openT = flinch > 0.3 ? 0.35 : stun ? 0.45 : hurt ? 0.65 + 0.2 * Math.sin(t * 5) ** 2 : 0.94 + 0.06 * pe;
     ey.update(dt, lh, { open: openT, dilate: -0.55 * pe + 0.05 * Math.sin(t * 1.5) + (hurt ? 0.3 * Math.sin(t * 9) : 0), glowMul: 0.6 + 1.6 * pe, squint: pe * 0.5, quiver: hurt || stun ? 1 : 0 });
     lens.scale.set(1, 1, 1 + 0.9 * pe + 0.15 * kick); lensM.emissiveIntensity = 0.15 + 1.0 * pe + 0.1 * Math.sin(t * 6); lensM.opacity = 0.2 + 0.25 * pe;
     // pétalos: abiertos en reposo, convergen en cañón al apuntar, se abren de golpe al disparar

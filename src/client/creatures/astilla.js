@@ -3,7 +3,7 @@
 // esqueleto), mandíbulas serradas, antenas que restallan y dos ojos de verdad (iris, pupila vertical, párpados).
 // Cuerpo = 1 malla con esqueleto por material (carne, quitina, cristal) => pocos draw calls.
 // Estados reales: run (zigzag) / leap (salto 7–18 u, mandíbulas abiertas). st.hp<0.35 cojea; st.sd escudada; st.st aturdida.
-import { THREE, TAU, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, Rig, skinRigid, skinChain, eye, legIK, boneMatrix, toLocal, boneQuat, gait, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, disposer, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, Rig, skinRigid, skinChain, eye, legIK, boneMatrix, toLocal, boneQuat, gait, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3;
@@ -95,17 +95,19 @@ export default function build(kit, color) {
   for (const s of [-1, 1]) cl(0.17, 2, 0.026, 0.2, thorax, 20 + s, [s * 0.9, 1, -0.2], [s * 0.2, -0.18, 0]);
   rig.add(cry, skinRigid(crystal(0.055, 0.46, { sides: 6, taper: 0.7, tip: 0.35, lean: 0.4, seed: 5, pos: [0, 1.44, -1.52], dir: [0, 0.75, 0.6], c0: 0x0e4a52, c1: 0xffffff }), sting));
   // ── ensamblaje ──
-  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group);
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 0.92; rootObj.scale.setScalar(K);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.5); aura.position.set(0, 0.8, 0); rootObj.add(aura);
+  mats.push(disposer(rig, [aura.geometry, aura.material]));
   // estado de animación
   const sHead = new Spring(0, 70, 9), sPit = new Spring(0, 70, 9), sTail = new Spring(0, 55, 5), sBody = new Spring(0, 60, 7), sAnt = ant.map(() => [new Spring(0, 40, 4.5), new Spring(0, 40, 4.5)]);
-  let phase = 0, leapK = 0, jawO = 0.1, runK = 0, tic = 2, ticT = 0, stunK = 0, prevLeap = false, land = 0;
+  let prevHp = 1, flinch = 0, phase = 0, leapK = 0, jawO = 0.1, runK = 0, tic = 2, ticT = 0, stunK = 0, prevLeap = false, land = 0;
   const tmp = new V3(), tgt = new V3(), pm = new THREE.Matrix4(), q1 = new THREE.Quaternion(), look = new V3(0, 0, 1), lh = new V3();
   const bend = new V3();
   return { root: rootObj, mats, tick(dt, st, t, ctx = {}) {
     dt = Math.min(dt, 0.05);
     const speed = Math.min(1.6, ctx.speed || 0), leap = st.s === 'leap', hurt = st.hp != null && st.hp < 0.35, stun = !!st.st;
     if (ctx.look) look.copy(ctx.look);
+    if (st.hp != null) { if (st.hp < prevHp - 0.004) flinch = 1; prevHp = st.hp; } flinch = Math.max(0, flinch - dt * 4.5);
     leapK = dampTo(leapK, leap ? 1 : 0, leap ? 14 : 7, dt); stunK = dampTo(stunK, stun ? 1 : 0, 8, dt); runK = dampTo(runK, Math.min(1, speed * 1.2), 6, dt);
     if (prevLeap && !leap) land = 1; prevLeap = leap; land = Math.max(0, land - dt * 4);
     phase += dt * (stun ? 0 : (5 + speed * 12) * (hurt ? 0.7 : 1));
@@ -114,9 +116,9 @@ export default function build(kit, color) {
     // cuerpo: rebote de la marcha, inclinación al correr, agachado antes del salto; cojea si herida
     const bob = Math.abs(Math.sin(phase)) * 0.045 * (0.3 + runK), breath = Math.sin(t * 2.4 + st.id) * 0.012;
     const crouch = 0.1 * runK + 0.14 * land + (hurt ? 0.07 : 0) + stunK * 0.08;
-    body.position.y = body.userData.rest.y - crouch + bob + breath + leapK * 0.22;
+    body.position.y = body.userData.rest.y - crouch + bob + breath + leapK * 0.22 - flinch * 0.07;
     body.rotation.x = -0.05 * runK - leapK * 0.42 + (hurt ? 0.08 : 0) + land * 0.1 + sBody.step(dt, Math.sin(phase * 2) * 0.03 * runK);
-    body.rotation.z = Math.sin(phase) * 0.05 * runK + (hurt ? Math.sin(t * 2) * 0.05 + 0.1 : 0) + (stun ? Math.sin(t * 28) * 0.05 : 0);
+    body.rotation.z = Math.sin(phase) * 0.05 * runK + flinch * Math.sin(t * 50) * 0.08 + (hurt ? Math.sin(t * 2) * 0.05 + 0.1 : 0) + (stun ? Math.sin(t * 28) * 0.05 : 0);
     thorax.scale.set(1 + Math.sin(t * 2.4 + st.id) * 0.015, 1 + Math.sin(t * 2.4 + st.id) * 0.02, 1);      // respiración
     // cabeza: sigue al jugador con retardo + escanea (tics) / baja al correr
     const lx = Math.atan2(look.x, Math.max(0.25, look.z)), ly = Math.asin(clamp(look.y, -1, 1));
@@ -128,7 +130,7 @@ export default function build(kit, color) {
     abd1.rotation.x = tl * 0.5 + Math.sin(t * 1.3 + st.id) * 0.03; abd2.rotation.x = tl * 0.7 + 0.08 + Math.sin(t * 1.6 + 1 + st.id) * 0.05; abd3.rotation.x = tl * 0.9 + 0.1 + Math.sin(t * 1.9 + 2) * 0.07;
     abd1.rotation.y = abd2.rotation.y = abd3.rotation.y = Math.sin(phase) * 0.12 * runK;
     // mandíbulas y palpos
-    const jt = leap ? 1 : stun ? 0.55 : 0.12 + 0.2 * runK + Math.max(0, Math.sin(ticT * 12)) * ticT * 0.5 + (hurt ? 0.25 : 0);
+    const jt = flinch > 0.2 ? 0.9 : leap ? 1 : stun ? 0.55 : 0.12 + 0.2 * runK + Math.max(0, Math.sin(ticT * 12)) * ticT * 0.5 + (hurt ? 0.25 : 0);
     jawO = dampTo(jawO, jt, leap ? 20 : 9, dt);
     jaw.forEach((jb, k) => { const s = k ? 1 : -1; jb.rotation.y = s * (-0.08 - jawO * 0.5 + Math.sin(t * 18 + k) * 0.05 * (runK + ticT)); jb.rotation.z = s * -jawO * 0.15; });
     palp.forEach((pb, k) => { pb.rotation.x = Math.sin(t * 9 + k * 2) * 0.35 * (0.3 + runK) + jawO * 0.3; pb.rotation.y = (k ? 1 : -1) * jawO * 0.25; });
@@ -137,7 +139,7 @@ export default function build(kit, color) {
       const a = sAnt[k][0].step(dt, tw + sw), b = sAnt[k][1].step(dt, tw * 1.5 + sw * 1.2 - sBody.v * 0.4);
       ch[0].rotation.set(0.1 + a * 0.5 - ly * 0.1, s * 0.06 + a * 0.5, 0); ch[1].rotation.set(b * 0.8 + 0.05, b * 0.7, 0); ch[2].rotation.set(b * 1.1, b * 0.6, 0); });
     // ojos: miran al jugador (globo gira), se achican al saltar
-    head.updateMatrix(); boneQuat(head, root, q1); gazeDir(look, ctx.dist, tmp.set(0, 0.85, 1.0), lh); lh.applyQuaternion(q1.clone().invert());
+    head.updateMatrix(); boneQuat(head, root, q1); gazeDir(look, (ctx.dist || 8) / K, tmp.set(0, 0.85, 1.0), lh); lh.applyQuaternion(q1.clone().invert());
     eyes.forEach((e, k) => { tmp.copy(lh).applyQuaternion(e.mount.clone().invert()); e.update(dt, tmp, { open: stun ? 0.4 : leap ? 1.0 : hurt ? 0.7 : 0.9, dilate: leap ? 0.5 : -0.1 * runK, glowMul: 0.7 + 0.8 * leapK, squint: runK * 0.5, quiver: stun ? 1 : 0 }); });
     oce.forEach((e) => { tmp.copy(lh); e.update(dt, tmp, { glowMul: 1 + leapK }); });
     // patas: marcha de trípodes (IK). Salto: patas delanteras al frente, traseras estiradas. Cojera: pata trasera izquierda arrastra.
