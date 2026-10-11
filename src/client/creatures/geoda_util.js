@@ -43,3 +43,11 @@ export function fixEye(e) {
   const ball = e.object.children[0], look = e.object.children[1]; if (!ball || !look) return e;
   const r = ball.scale.x; look.children[0].position.z = r * 1.02; look.children[1].position.z = r * 1.035; return e;
 }
+
+let slimGeo = null;
+/** Workaround del kit: leg() usa blob() (muy denso en 'high') para rodillas y pies; los cambia por esferas de poca resolución. */
+export function slimLeg(l) {
+  if (!slimGeo) slimGeo = new THREE.SphereGeometry(1, 9, 6);
+  l.object.traverse((o) => { if (o.isMesh && o.geometry && o.geometry.type === 'SphereGeometry') o.geometry = slimGeo; });
+  return l;
+}

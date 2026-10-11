@@ -147,8 +147,8 @@ export function eye({ r = 0.2, iris = 0xffc23a, pupil = 'round', glow = 0.5 } = 
   const dark = new THREE.MeshBasicMaterial({ color: 0x050205 });
   const ball = new THREE.Mesh(eyeGeo(), sclera); ball.scale.setScalar(r);
   const look = new THREE.Group(); // rota hacia el objetivo
-  const irisMesh = new THREE.Mesh(cache('iris', () => new THREE.CircleGeometry(1, 20)), irisM); irisMesh.scale.setScalar(r * 0.62); irisMesh.position.z = r * 0.93;
-  const pup = new THREE.Mesh(cache('pupil', () => new THREE.CircleGeometry(1, 16)), dark); pup.position.z = r * 0.94; pup.position.z += 0.001;
+  const irisMesh = new THREE.Mesh(cache('iris', () => new THREE.CircleGeometry(1, 20)), irisM); irisMesh.scale.setScalar(r * 0.62); irisMesh.position.z = r * 1.02;
+  const pup = new THREE.Mesh(cache('pupil', () => new THREE.CircleGeometry(1, 16)), dark); pup.position.z = r * 1.035;
   pup.scale.set(pupil === 'slit' ? r * 0.12 : r * 0.3, r * 0.3 * (pupil === 'slit' ? 2.6 : 1), 1);
   look.add(irisMesh, pup); g.add(ball, look);
   const lid = new THREE.Mesh(cache('lid', () => new THREE.SphereGeometry(1, 14, 8, 0, TAU, 0, Math.PI / 2)), new THREE.MeshStandardMaterial({ color: 0x3a1420, roughness: 0.6 })); lid.scale.setScalar(r * 1.04); lid.rotation.x = -Math.PI / 2 + 0.3; g.add(lid);
@@ -159,7 +159,7 @@ export function eye({ r = 0.2, iris = 0xffc23a, pupil = 'round', glow = 0.5 } = 
       if (lookLocal) { tmp.copy(lookLocal).normalize(); const ax = Math.atan2(tmp.x, tmp.z), ay = Math.asin(THREE.MathUtils.clamp(tmp.y, -1, 1)); look.rotation.set(-THREE.MathUtils.clamp(ay, -0.7, 0.7) * 0.55, THREE.MathUtils.clamp(ax, -0.9, 0.9) * 0.55, 0); }
       blinkT -= dt; if (blinkT <= 0) { blink = 1; blinkT = 2 + Math.random() * 4; } blink = Math.max(0, blink - dt * 7);
       lid.rotation.x = -Math.PI / 2 + 0.3 + (1 - Math.abs(blink * 2 - 1)) * 1.1;
-      pup.scale.x = (pupil === 'slit' ? r * 0.12 : r * 0.3) * (1 + dilate); irisM.emissiveIntensity = glow * glowMul;
+      pup.scale.x = (pupil === 'slit' ? r * 0.12 : r * 0.3) * (1 + dilate); if (pupil !== 'slit') pup.scale.y = r * 0.3 * (1 + dilate); irisM.emissiveIntensity = glow * glowMul;
     },
   };
 }

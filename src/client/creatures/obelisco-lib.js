@@ -96,3 +96,84 @@ export function softDot() {
   gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   return (G.dot = new THREE.CanvasTexture(c));
 }
+
+/* ───────────────────────── geometría fusionada y racimos ───────────────────────── */
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _s = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+
+/** Fusiona geometrías con matriz → UNA malla (1 draw call). parts: [{ g, m }] */
+export function mergeParts(parts) {
+  const list = parts.map(({ g, m }) => { const c = g.clone(); if (c.index === null) c.setIndex([...Array(c.attributes.position.count).keys()]); c.deleteAttribute('uv2'); c.applyMatrix4(m); return c; });
+  const out = mergeGeometries(list, false); list.forEach((c) => c.dispose()); return out;
+}
+/** Racimo de puntas (conos/prismas): items { p:Vector3 base, d:Vector3 dirección, r, h }; base en p, punta en p + d*h. */
+export function spikeGeometry(items, sides = 5) {
+  const cone = new THREE.ConeGeometry(1, 1, sides, 1); cone.translate(0, 0.5, 0);
+  return mergeParts(items.map((it) => { _q.setFromUnitVectors(_up, _v.copy(it.d).normalize()); _m.compose(it.p, _q, _s.set(it.r, it.h, it.r)); return { g: cone, m: _m.clone() }; }));
+}
+/** Costilla: tubo a lo largo de una curva. */
+export function tubeGeo(points, r = 0.035, seg = 20, rad = 6) { return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), seg, r, rad, false); }
+
+/* ───────────────────────── enjambre de ojos (3 draw calls para decenas de ojos) ───────────────────────── */
+/**
+ * Muchos ojos con iris, pupila y parpadeo individual en InstancedMesh. add({p, n, r, tint, slit}); update(dt, look, opts).
+ * `look` está en el espacio local del padre; cada ojo limita su giro respecto a su normal `n`.
+ */
+export function eyeCluster({ max = 24, quality = 'high' } = {}) {
+  const lo = quality === 'low';
+  const sph = new THREE.SphereGeometry(1, lo ? 10 : 16, lo ? 8 : 12);
+  const cap = new THREE.SphereGeometry(1.012, lo ? 10 : 16, 3, 0, Math.PI * 2, 0, 0.82); cap.rotateX(Math.PI / 2);
+  const disc = new THREE.CircleGeometry(1, 14);
+  const sclM = fleshMaterial({ color: 0xf2e0d2, vein: 0xa01830, spot: 0xff6a8a, veins: 0.9, rough: 0.22, sheen: 0.3, wobble: 0.0, breath: 0.0, scale: 3 });
+  const tex = irisTexture(0xffffff);
+  const irisM = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tex, roughness: 0.25 }); const gl = { value: 0.6 };
+  irisM.onBeforeCompile = (sh) => { sh.uniforms.uIG = gl; sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uIG;').replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * uIG;'); };
+  irisM.userData.u = { uHurt: { value: 0 } };
+  const pupM = new THREE.MeshBasicMaterial({ color: 0x020002 });
+  const A = new THREE.InstancedMesh(sph, sclM, max), B = new THREE.InstancedMesh(cap, irisM, max), C = new THREE.InstancedMesh(disc, pupM, max);
+  for (const o of [A, B, C]) { o.frustumCulled = false; o.instanceMatrix.setUsage(THREE.DynamicDrawUsage); }
+  B.setColorAt(0, new THREE.Color(1, 1, 1));
+  const eyes = []; const M = new THREE.Matrix4(), P = new THREE.Vector3(), Qq = new THREE.Quaternion(), S = new THREE.Vector3(), D = new THREE.Vector3(), T = new THREE.Vector3();
+  const object = new THREE.Group(); object.add(A, B, C);
+  return {
+    object, mats: [sclM, irisM], sclera: sclM, count: () => eyes.length,
+    add({ p, n, r = 0.1, tint = 0xffffff, slit = false, lag = 8 + rnd() * 8 }) {
+      const i = eyes.length; if (i >= max) return -1; const nn = n.clone().normalize();
+      eyes.push({ p: p.clone(), n: nn, r, cur: nn.clone(), blinkT: 1 + rnd() * 5, blink: 0, sacT: rnd(), sx: 0, sy: 0, slit, lag, scale: 1 });
+      B.setColorAt(i, new THREE.Color(tint)); B.instanceColor.needsUpdate = true; A.count = B.count = C.count = eyes.length; return i;
+    },
+    setScale(i, s) { if (eyes[i]) eyes[i].scale = s; },
+    update(dt, look, { open = 1, dilate = 1, glow = 0.6, maxAng = 1.15, jitter = 1, blinkRate = 1, track = 1 } = {}) {
+      gl.value = glow;
+      for (let i = 0; i < eyes.length; i++) {
+        const e = eyes[i];
+        e.sacT -= dt; if (e.sacT <= 0) { e.sacT = 0.3 + rnd() * 1.5; e.sx = (rnd() - 0.5) * 0.35 * jitter; e.sy = (rnd() - 0.5) * 0.3 * jitter; }
+        D.copy(look).normalize(); D.x += e.sx; D.y += e.sy; D.normalize();
+        const ang = Math.acos(clamp(D.dot(e.n), -1, 1));
+        if (ang > maxAng) { T.copy(D).addScaledVector(e.n, -D.dot(e.n)); if (T.lengthSq() < 1e-6) T.set(e.n.y, e.n.z, e.n.x); T.normalize(); D.copy(e.n).multiplyScalar(Math.cos(maxAng)).addScaledVector(T, Math.sin(maxAng)); }
+        const k = 1 - Math.exp(-e.lag * track * dt); e.cur.lerp(D, k).normalize();
+        e.blinkT -= dt * blinkRate; if (e.blinkT <= 0) { e.blink = 1; e.blinkT = 2 + rnd() * 5; } e.blink = Math.max(0, e.blink - dt * 6);
+        const bl = Math.sin(Math.min(1, e.blink) * Math.PI), op = clamp(open * (1 - bl), 0.04, 1);
+        Qq.setFromUnitVectors(Z, e.cur); const r = e.r * e.scale;
+        S.set(r, r * (0.25 + 0.75 * op), r); M.compose(e.p, Qq, S); A.setMatrixAt(i, M); B.setMatrixAt(i, M);
+        const pr = r * (e.slit ? 0.14 : 0.3) * dilate; P.copy(e.cur).multiplyScalar(r * 1.03).add(e.p); S.set(pr, pr * (e.slit ? 3.0 : 1) * (0.3 + 0.7 * op), 1); M.compose(P, Qq, S); C.setMatrixAt(i, M);
+      }
+      A.instanceMatrix.needsUpdate = B.instanceMatrix.needsUpdate = C.instanceMatrix.needsUpdate = true;
+    },
+  };
+}
+
+/* ───────────────────────── boca grande con dientes fusionados ───────────────────────── */
+/** Boca de dos mitades. set(open 0–1). Dientes fusionados: 4 draw calls + interior. */
+export function maw(skin, boneMat, { w = 0.5, len = 0.5, teeth = 9, tooth = 0.14, inner = null } = {}) {
+  const object = new THREE.Group(), up = new THREE.Group(), lo = new THREE.Group();
+  const hemi = new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+  const mk = (flip) => {
+    const grp = flip ? lo : up, sh = new THREE.Mesh(hemi, skin); sh.scale.set(w, len * 0.55 * (flip ? -1 : 1), len); grp.add(sh);
+    const items = []; for (let i = 0; i < teeth; i++) { const a = (i / (teeth - 1) - 0.5) * 2.5, big = (i % 2 ? 0.7 : 1) * (1 - Math.abs(a) * 0.25); items.push({ p: new THREE.Vector3(Math.sin(a) * w * 0.97, 0, Math.cos(a) * len * 0.97), d: new THREE.Vector3(-Math.sin(a) * 0.15, flip ? 1 : -1, -Math.cos(a) * 0.2), r: tooth * 0.45 * big, h: tooth * 2.2 * big }); }
+    const t = new THREE.Mesh(spikeGeometry(items, 5), boneMat); grp.add(t); return grp;
+  };
+  object.add(mk(false), mk(true));
+  if (inner) { const m = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), inner); m.scale.set(w * 0.85, len * 0.3, len * 0.8); object.add(m); object.userData.inner = m; }
+  return { object, set(open) { up.rotation.x = -open * 0.75; lo.rotation.x = open * 0.55; if (object.userData.inner) object.userData.inner.scale.y = len * (0.1 + 0.55 * open); } };
+}
