@@ -54,7 +54,7 @@ export function rightHand(k, g, hex, { arm = true } = {}) {
   const fz = (z0, z1) => [zW - z0, zW - z1]; // flujo por z: u crece hacia el frente
   // talón y palma
   k.box('g', [0.04, 0.118, d + 0.05], [hw + 0.02, top - 0.052, zc + 0.004], { c: gr(0.85), k: SK, rad: 0.014, flow: [...fz(zF - 0.02, zR + 0.03), 'z', d + 0.05] });
-  k.box('g', [hw * 2 + 0.03, 0.07, 0.05], [0, top - 0.042, zR + 0.024], { c: gr(0.7), k: SK, rad: 0.012, u: 0.0 });
+  k.box('g', [hw * 2 + 0.034, 0.05, 0.056], [0.004, top - 0.062, zR + 0.03], { c: gr(0.6), k: SK, rad: 0.02, u: 0.0 });
   // dorso: losa inclinada hacia la cámara + placa de cristal + cresta de nudillos
   k.box('g', [0.05, 0.03, d + 0.07], [hw + 0.026, top - 0.012, zc + 0.012], { c: gr(1), k: SK, r: [0, 0, 0.28], rad: 0.012, flow: [...fz(zF - 0.03, zR + 0.05), 'z', d + 0.07] });
   k.poly('g', 'oct', 0.03, [hw + 0.03, top + 0.0, zc + 0.012], { k: CR, s: [1.0, 0.3, 1.5], r: [0, 0, 0.28] });
@@ -68,7 +68,7 @@ export function rightHand(k, g, hex, { arm = true } = {}) {
     const u0 = 0.075, u1 = u0 + 0.04, u2 = u1 + 0.04, u3 = u2 + 0.03;
     k.limb('g', A, B, r, r * 0.95, { c: gr(1), k: SK, flow: [u0, u1] }); k.limb('g', B, C, r * 0.95, r * 0.9, { c: gr(1), k: SK, flow: [u1, u2] });
     k.limb('g', C, D, r * 0.9, r * 0.8, { c: gr(1), k: SK, flow: [u2, u3] });
-    k.sph('g', r * 1.02, B, { c: gr(0.85), k: SK, u: u1 }); k.sph('g', r * 0.97, C, { c: gr(0.85), k: SK, u: u2 }); k.sph('g', r * 0.84, D, { c: gr(1), k: SK, u: u3 });
+    k.sph('g', r * 0.95, B, { c: gr(0.85), k: SK, u: u1 }); k.sph('g', r * 0.9, C, { c: gr(0.85), k: SK, u: u2 }); k.sph('g', r * 0.8, D, { c: gr(1), k: SK, u: u3 });
     k.poly('g', 'oct', 0.0085, [(B[0] + C[0]) / 2 + 0.006, y + r * 0.75, zF - 0.012], { k: CR, s: [1.5, 0.45, 1], r: [0, 0, 0] }); // placa de la falange media
     k.poly('g', 'tet', 0.0085, [D[0] - 0.003, y + r * 0.85, D[2] - 0.004], { k: CR, s: [0.8, 0.5, 1.6], r: [0.3, 0, 0] });        // uña
     k.poly('g', 'oct', 0.0095, [A[0] + 0.004, y + 0.001, A[2] - 0.004], { k: CR, s: [0.6, 1, 1] });                             // nudillo
@@ -79,7 +79,7 @@ export function rightHand(k, g, hex, { arm = true } = {}) {
   const m0 = [-hw - 0.006, top - 0.018, zR + 0.0], th1 = [-hw - 0.022, top + 0.004, zc + d * 0.08], th2 = [-hw - 0.028, top + 0.013, zc - d * 0.32], th3 = [-hw - 0.027, top + 0.018, zF - 0.032];
   k.sph('g', 0.023, [-hw - 0.012, top - 0.026, zR - 0.004], { c: gr(0.85), k: SK, u: 0.0 }); // montículo del pulgar
   k.limb('g', m0, th1, 0.0178, 0.0155, { c: gr(1), k: SK, flow: [0.02, 0.06] }); k.limb('g', th1, th2, 0.0155, 0.0138, { c: gr(1), k: SK, flow: [0.06, 0.1] }); k.limb('g', th2, th3, 0.0138, 0.0122, { c: gr(1), k: SK, flow: [0.1, 0.13] });
-  k.sph('g', 0.0155, th1, { c: gr(0.85), k: SK, u: 0.06 }); k.sph('g', 0.0138, th2, { c: gr(0.85), k: SK, u: 0.1 }); k.sph('g', 0.0122, th3, { c: gr(1), k: SK, u: 0.13 });
+  k.sph('g', 0.0152, th1, { c: gr(0.85), k: SK, u: 0.06 }); k.sph('g', 0.0136, th2, { c: gr(0.85), k: SK, u: 0.1 }); k.sph('g', 0.0121, th3, { c: gr(1), k: SK, u: 0.13 });
   k.poly('g', 'oct', 0.011, [th3[0], th3[1] + 0.011, th3[2] - 0.006], { k: CR, s: [0.9, 0.4, 1.6] });
   k.poly('g', 'oct', 0.012, [th2[0] + 0.001, th2[1] + 0.012, th2[2] + 0.012], { k: CR, s: [0.9, 0.4, 1.7] });
   k.box('g', [0.014, 0.006, 0.05], [th1[0] - 0.0, th1[1] + 0.017, (th1[2] + th2[2]) / 2 + 0.02], { c: gr(0.8), k: AR, r: [0.05, 0, 0.1], rad: 0.002 });
