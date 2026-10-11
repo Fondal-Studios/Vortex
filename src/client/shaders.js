@@ -116,56 +116,67 @@ export function crystalMaterial(color = 0x66ffee, { alpha = 1, glow = 0, hue = 0
   return finish(mat);
 }
 
-/* Isla de roca viva: facetas con luz, grietas que brillan, rejilla de juego y borde iridiscente. */
-export function groundMaterial(hue = 0, center = new THREE.Vector3()) {
+/* Isla de roca viva (versión suelta, sin atributos): estratos, grietas luminosas, musgo y placa jugable. El Mapa 1 usa
+   env/rock.js (PBR o liviano, todas las islas en una malla); esto queda para quien quiera una isla por su cuenta. */
+export function groundMaterial(hue = 0, center = new THREE.Vector3(), radius = 20) {
   return finish(new THREE.ShaderMaterial({
-    uniforms: { uTime, uHue: { value: hue }, uC: { value: center }, uSun: { value: new THREE.Vector3(0.4, 1, 0.3).normalize() } },
-    vertexShader: `varying vec3 vWorld; varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; vV = cameraPosition - w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `
-      uniform float uTime, uHue; uniform vec3 uC, uSun; varying vec3 vWorld; varying vec3 vN; varying vec3 vV; ${PAL}
-      float h(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-      float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f); return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x), mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x), f.y), mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x), mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x), f.y), f.z); }
+    defines: { FBM_OCT: 3 },
+    uniforms: { uTime, uAcc: { value: new THREE.Color().setHSL(hue, 0.9, 0.6) }, uIsl: { value: new THREE.Vector4(center.x, center.z, radius, 0) }, uSun: { value: new THREE.Vector3(0.4, 1, 0.3).normalize() } },
+    vertexShader: `varying vec3 vWP; varying vec3 vWN; void main(){ vWN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vWP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform float uTime; uniform vec3 uAcc, uSun; uniform vec4 uIsl; varying vec3 vWP; varying vec3 vWN; ${NOISE} ${BUMP} ${SURF}
       void main(){
-        vec3 fn = normalize(cross(dFdx(vWorld), dFdy(vWorld)));            // normal facetada
-        vec3 V = normalize(vV); if (dot(fn, V) < 0.0) fn = -fn;
-        vec3 q = vWorld - uC; float r = length(q.xz);
-        float top = smoothstep(0.55, 0.85, abs(vN.y));
-        float lit = 0.30 + 0.75 * max(dot(fn, uSun), 0.0) + 0.15 * max(dot(fn, -uSun), 0.0);
-        // piel de la superficie: anillos suaves + rejilla de juego
-        float rings = sin(r * 0.9 - uTime * 1.2) * 0.5 + 0.5;
-        vec2 g = abs(fract(vWorld.xz * 0.2) - 0.5); float grid = smoothstep(0.46, 0.5, max(g.x, g.y));
-        vec3 topC = pal(fract(r * 0.02 + uHue + rings * 0.08 + uTime * 0.01)) * (0.20 + 0.28 * rings) + vec3(0.8, 1.0, 1.0) * grid * 0.35;
-        // roca: grano + grietas luminosas
-        float grain = vn(vWorld * 0.8) * 0.6 + vn(vWorld * 2.6) * 0.4;
-        float crack = 1.0 - smoothstep(0.0, 0.06, abs(vn(vWorld * 0.55 + 3.0) - 0.5));
-        vec3 rock = mix(vec3(0.06, 0.03, 0.12), pal(fract(uHue + 0.55 + grain * 0.2)) * 0.5, grain * 0.7) ;
-        rock += pal(fract(uHue + 0.12 + uTime * 0.03)) * crack * (0.9 + 0.5 * sin(uTime * 2.0 + vWorld.y));
-        vec3 col = mix(rock, topC, top) * lit;
-        float rim = pow(1.0 - abs(dot(fn, V)), 3.0); col += pal(fract(uHue + 0.3)) * rim * 0.45;
-        float edge = smoothstep(0.0, 1.0, clamp((r - 20.0) * 0.12, 0.0, 1.0)) * top * 0.2; col += vec3(0.5, 0.9, 1.0) * edge * 0.3;
-        gl_FragColor = vec4(col, 1.0);
+        vec3 N = normalize(vWN), alb, emi; float rough, h; surfShade(vWP, N, uAcc, uIsl, uTime, alb, emi, rough, h);
+        N = bumpN(N, vWP, h, 0.2);
+        float dif = max(dot(N, uSun), 0.0), hem = N.y * 0.5 + 0.5;
+        gl_FragColor = vec4(alb * (vec3(1.0, 0.92, 0.82) * dif * 1.5 + mix(vec3(0.1, 0.07, 0.2), vec3(0.3, 0.36, 0.6), hem)) + emi, 1.0);
       }`,
   }));
 }
 
-/* Cascarón interior del Mapa 2: superficie orgánica, respira. */
+/* Cascarón interior del Mapa 2: tejido vivo con venas que laten desde el centro, pústulas, parches de cristal,
+   brillo subsuperficial fingido y luz que viene del núcleo. Respira (uWarn: aviso de marea; uTide: cero-G). */
+export const uTide = { value: 0 }; // 0 normal · 1 marea de cero-G (lo mueve env/map2.js)
 export function shellMaterial(hue = 0.3, iters = 5) {
   return finish(new THREE.ShaderMaterial({
-    side: THREE.BackSide, defines: { ITERS: iters },
-    uniforms: { uTime, uHue: { value: hue }, uWarn: { value: 0 } },
+    side: THREE.BackSide, defines: { FBM_OCT: Math.max(2, Math.min(4, iters - 1)) },
+    uniforms: { uTime, uHue: { value: hue }, uWarn: { value: 0 }, uTide },
     vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `
-      uniform float uTime, uHue, uWarn; varying vec3 vP; ${PAL}
+      uniform float uTime, uHue, uWarn, uTide; varying vec3 vP; ${NOISE} ${BUMP}
+      float heart(float t){ float ph = fract(t / 1.55); return exp(-pow(ph * 10.0, 2.0)) + 0.65 * exp(-pow((ph - 0.27) * 10.0, 2.0)); }
       void main(){
-        vec3 p = vP * 0.05; float t = uTime * 0.15;
-        float f = 0.0, amp = 1.0;
-        for (int i = 0; i < ITERS; i++) { p = vec3(p.y + sin(p.z * 1.7 + t), p.z + sin(p.x * 1.9 - t), p.x + sin(p.y * 1.3 + t)); f += amp * (0.5 + 0.5 * sin(p.x * 3.0 + p.y * 2.0)); amp *= 0.55; p *= 1.7; }
-        float cells = abs(sin(f * 4.0 + uTime * 0.4));
-        vec3 col = pal(fract(f * 0.35 + uHue + uTime * 0.02)) * (0.10 + 0.30 * cells);
-        col = mix(col, vec3(0.04, 0.02, 0.10), 0.35);
-        float edge = smoothstep(0.94, 1.0, cells); col += vec3(0.6, 0.9, 1.0) * edge * 0.18;
-        col = mix(col, vec3(1.0, 0.3, 0.5) * (0.4 + 0.4 * sin(uTime * 8.0)), uWarn * 0.35);
-        gl_FragColor = vec4(col, 1.0);
+        vec3 dir = normalize(vP), V = normalize(cameraPosition - vP); float dist = length(cameraPosition - vP);
+        float lat = acos(clamp(dir.y, -1.0, 1.0)) / 3.14159;
+        vec3 p = vP * 0.05; float t = uTime * 0.03;
+        vec3 w = vec3(vnoise(p * 1.5 + t), vnoise(p * 1.5 + 7.0 - t), vnoise(p * 1.5 + 13.0)) - 0.5;
+        vec3 q = p + w * 0.9;
+        float body = fbm(q * 2.0 + 3.0), pust = smoothstep(0.58, 0.80, vnoise(q * 5.0));
+        float v1 = 1.0 - abs(2.0 * vnoise(q * 2.0 + 5.0) - 1.0), v2 = 1.0 - abs(2.0 * vnoise(q * 4.6 + 9.0) - 1.0);
+        float vein = smoothstep(0.95, 0.998, v1) + 0.5 * smoothstep(0.965, 0.998, v2) * smoothstep(0.45, 0.7, body) + 0.10 * smoothstep(0.75, 0.99, v1);
+        float crys = smoothstep(0.50, 0.62, fbm(p * 1.1 + 21.0));
+        float hgt = body + pust * 0.55 + vein * 0.30 - crys * 0.15;
+        vec3 N = bumpN(-dir, vP, hgt, 1.5);
+        vec3 L = -dir;
+        float beat = heart(uTime), sweep = exp(-pow((lat * 5.0 - fract(uTime / 1.55) * 6.5 + 0.8) * 0.9, 2.0));
+        float mott = 0.55 + 0.9 * fbm(p * 0.7 + t * 2.0);                       // la luz del núcleo pasa entre manchas de bruma
+        float dif = max(dot(N, L), 0.0) * mott;
+        vec3 flesh = mix(vec3(0.16, 0.03, 0.09), vec3(0.46, 0.12, 0.20), body);
+        flesh = mix(flesh, vec3(0.80, 0.40, 0.45), pust * 0.5);
+        vec3 glass = mix(vec3(0.04, 0.22, 0.34), vec3(0.15, 0.55, 0.65), vnoise(q * 12.0));
+        vec3 alb = mix(flesh, glass, crys);
+        float gloss = mix(0.45, 1.0, max(crys, pust));
+        vec3 H = normalize(L + V); float spec = pow(max(dot(N, H), 0.0), mix(24.0, 120.0, gloss)) * gloss;
+        vec3 col = alb * (0.07 + 0.62 * dif) + vec3(1.0, 0.8, 0.7) * spec * 0.28;
+        float fl = step(0.985, hash13(floor(q * 90.0))) * crys * (0.5 + 0.5 * sin(uTime * 3.0 + dot(floor(q * 90.0), vec3(1.0, 2.0, 3.0))));
+        col += vec3(0.7, 1.0, 1.0) * fl * 0.9;                                    // destellos de cristal
+        float thin = pust * 0.7 + (1.0 - body) * 0.25;
+        col += vec3(1.0, 0.28, 0.20) * thin * (0.05 + 0.20 * beat) * (1.0 - crys);   // subsuperficial
+        vec3 veinC = mix(vec3(1.0, 0.30, 0.42), vec3(0.3, 0.9, 1.0), crys);
+        col += veinC * vein * (0.14 + 0.55 * beat + 0.7 * sweep + 0.4 * uTide);
+        col += vec3(0.08, 0.5, 0.7) * uTide * (0.06 + 0.1 * crys) * (0.5 + 0.5 * sin(uTime * 2.0 + body * 20.0));
+        col = mix(col, vec3(1.0, 0.25, 0.4) * (0.35 + 0.35 * sin(uTime * 8.0)), uWarn * 0.28);
+        col = mix(col, vec3(0.16, 0.05, 0.20), 1.0 - exp(-dist * 0.0045)); // bruma de esporas: lo lejano se aleja
+        gl_FragColor = vec4(col * 0.62, 1.0);
       }`,
   }));
 }
@@ -193,12 +204,12 @@ export function zoneMaterial(color, mode = 0) {
           float band = pow(sin(vW.y * 0.7 - uTime * 3.2) * 0.5 + 0.5, 4.0);
           float ends = smoothstep(0.0, 0.04, vUv.y) * smoothstep(1.0, 0.82, vUv.y);
           col = uColor * (0.30 + 1.1 * st + 0.5 * band) + vec3(0.5, 0.8, 0.7) * f * 0.4;
-          al = (0.05 + 0.40 * f) * (0.4 + 0.9 * st) * ends + band * 0.04 * ends;
+          al = (0.03 + 0.24 * f) * (0.4 + 0.9 * st) * ends + band * 0.02 * ends;
         } else if (uMode > 5.5) {                    // almohadilla
           vec2 p = (vUv - 0.5) * 2.0; float r = length(p);
           float ring = smoothstep(0.07, 0.0, abs(fract(r * 2.0 - uTime * 0.35) - 0.5) - 0.38) * smoothstep(1.0, 0.2, r);
           float edge = smoothstep(0.06, 0.0, abs(r - 0.92)), disc = smoothstep(1.0, 0.0, r);
-          col = uColor * (0.5 + 1.4 * ring + 1.6 * edge); al = (0.10 * disc + 0.35 * ring + 0.55 * edge) * smoothstep(1.0, 0.9, r);
+          col = uColor * (0.4 + 0.9 * ring + 1.0 * edge); al = (0.06 * disc + 0.22 * ring + 0.32 * edge) * smoothstep(1.0, 0.9, r);
         } else if (uMode > 4.5) {                    // pozo de gravedad
           vec3 nd = normalize(vP); float ang = atan(nd.z, nd.x);
           float sw = 0.5 + 0.5 * sin(ang * 3.0 + nd.y * 6.0 - uTime * 1.4 + vnoise(nd * 4.0) * 4.0);
@@ -211,7 +222,7 @@ export function zoneMaterial(color, mode = 0) {
           vec3 nd = normalize(vP); float ang = atan(nd.z, nd.x);
           float rip = sin(nd.y * 11.0 - uTime * 0.9 + vnoise(nd * 3.0 + uTime * 0.1) * 3.0) * 0.5 + 0.5;
           float eq = smoothstep(0.10, 0.0, abs(nd.y));
-          float tick = smoothstep(0.90, 1.0, cos(ang * 24.0 - uTime * 0.25)) * smoothstep(0.22, 0.02, abs(nd.y)) + smoothstep(0.035, 0.0, abs(nd.y)) * 0.6;
+          float tick = smoothstep(0.93, 1.0, cos(ang * 24.0 - uTime * 0.25)) * smoothstep(0.10, 0.0, abs(nd.y)) * 0.6 + smoothstep(0.02, 0.0, abs(nd.y)) * 0.5;
           col = uColor * (0.35 + 0.9 * rip * f + 1.5 * tick); al = 0.04 + 0.30 * f + tick * 0.5 + eq * 0.04;
         } else {
           float band = uMode < 0.5 ? 0.5 : sin((vW.x + vW.z) * 0.6 + vW.y * 0.5 + uTime * 2.0) * 0.5 + 0.5;

@@ -1,5 +1,7 @@
 import { v3, add, sub, mul, dot, cross, len, dist, norm, project, makeRng } from './math.js';
 import { WEAPONS } from './data.js';
+import { blocked } from './physics.js';
+import { M3 } from './map3.js';
 
 /**
  * Jugador automático para pruebas de partida completa. Tiene límites "humanos":
@@ -7,8 +9,37 @@ import { WEAPONS } from './data.js';
  */
 /* ───── objetivos y mecánicas de jefe: a dónde debería ir el bot ───── */
 const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+/** Línea de tiro libre (sin muros ni suelo) entre dos puntos. */
+function los(game, a, b) {
+  if (!game.map.walls) return true;
+  const d = sub(b, a), l = len(d); if (l < 1) return true; const n = mul(d, 1 / l);
+  for (let t = 1.5; t < l; t += 1.5) if (blocked(game.map, add(a, mul(n, t)))) return false;
+  return true;
+}
+/** Laberinto (mapa 3): siguiente punto de ruta por celdas (búsqueda en anchura) hacia `target`. */
+function mazeStep(game, from, target) {
+  const mz = game.map.maze, { N, CELL } = M3, half = mz.half;
+  const cell = (p) => [Math.max(0, Math.min(N - 1, Math.floor((p.x + half) / CELL))), Math.max(0, Math.min(N - 1, Math.floor((p.z + half) / CELL)))];
+  const [sx, sz] = cell(from), [tx, tz] = cell(target);
+  if (sx === tx && sz === tz) return target;
+  const prev = new Map(), key = (x, z) => x * 64 + z; prev.set(key(sx, sz), null);
+  const q = [[sx, sz]];
+  while (q.length) {
+    const [x, z] = q.shift(); if (x === tx && z === tz) break;
+    const nb = [];
+    if (x > 0 && !mz.vw[x][z]) nb.push([x - 1, z]); if (x < N - 1 && !mz.vw[x + 1][z]) nb.push([x + 1, z]);
+    if (z > 0 && !mz.hw[x][z]) nb.push([x, z - 1]); if (z < N - 1 && !mz.hw[x][z + 1]) nb.push([x, z + 1]);
+    for (const [a, b] of nb) if (!prev.has(key(a, b))) { prev.set(key(a, b), [x, z]); q.push([a, b]); }
+  }
+  let cur = [tx, tz]; if (!prev.has(key(tx, tz))) return target;
+  let p = prev.get(key(cur[0], cur[1]));
+  while (p && !(p[0] === sx && p[1] === sz)) { cur = p; p = prev.get(key(cur[0], cur[1])); }
+  return v3(mz.X(cur[0]) + CELL / 2, from.y, mz.Z(cur[1]) + CELL / 2);
+}
+
 /** Siguiente punto de ruta hacia `target`; en M1 usa los portales para cambiar de isla. */
 function routeTo(game, p, target) {
+  if (game.map.maze) return mazeStep(game, p.pos, target);
   if (game.mapId !== 'm1') return target;
   const map = game.map, here = map.islandAt(p.pos), there = map.islandAt(target);
   if (here === there) return target;
@@ -64,7 +95,7 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
   let strafe = 1, strafeT = 0, jumpT = 0;
   return function think(dt) {
     const p = game.players.find((q) => q.id === pid);
-    const inp = { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1 };
+    const inp = { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, pick: p && p.cards && p.cards.length ? 0 : -1 };
     if (!p || p.dead) return inp;
     const mons = game.monsters.filter((m) => !m.dead);
     const right = cross(p.heading, p.up);
@@ -83,6 +114,7 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
       if (m.kind === 'geoda') sc += m.open ? -12 : 30;
       if (m.kind === 'espejo' && m.cloak) sc += 40;
       if (m.def.boss && m.kind === 'madre' && !m.open) sc += 60;
+      if (game.map.walls && !los(game, eye, m.pos)) sc += 45;
       if (sc < best) { best = sc; tgt = m; }
     }
 
@@ -114,10 +146,14 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
       inp.dyaw = -Math.max(-maxTurn, Math.min(maxTurn, yawErr));
       inp.dpitch = Math.max(-maxTurn, Math.min(maxTurn, pitchErr));
       const armored = (tgt.kind === 'geoda' || tgt.kind === 'madre') && !tgt.open;
-      inp.fire = !armored && Math.abs(yawErr) < 0.07 && Math.abs(pitchErr) < 0.07 && d < (WEAPONS[w].range || 140) * 0.8;
+      const clear = los(game, eye, tgt.pos);
+      inp.fire = clear && !armored && Math.abs(yawErr) < 0.07 && Math.abs(pitchErr) < 0.07 && d < (WEAPONS[w].range || 140) * 0.8;
     }
 
     const task = taskFor(game, p);
+    if (game.map.maze && tgt && !los(game, eye, tgt.pos) && !task) { // detrás de un muro: ir a buscarla por el laberinto
+      const gp = mazeStep(game, p.pos, tgt.pos); wishMove = add(wishMove, mul(norm(project(sub(gp, p.pos), p.up), p.heading), 4));
+    }
     if (task && task.carry) inp.fire = false;
     // movimiento: estrafear, retroceder ante cuerpo a cuerpo, buscar botiquines, no salirse de la isla
     strafeT -= dt; if (strafeT <= 0) { strafe = -strafe; strafeT = 0.8 + rng.next() * 1.4; }

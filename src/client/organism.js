@@ -7,20 +7,17 @@
 // La API anterior sigue intacta; todo lo nuevo es opcional. Guía de uso: ver el informe / comentarios de cada archivo.
 import * as THREE from 'three';
 import { uTime, crystalMaterial } from './shaders.js';
-import { fleshMaterial, chitinMaterial, membraneMaterial, gooMaterial, furMaterial, boneMaterial, bioCrystalMaterial, lidMaterial, setHurt, setWound, setBeat } from './organism-skin.js';
+import { fleshMaterial, chitinMaterial, membraneMaterial, gooMaterial, furMaterial, boneMaterial, bioCrystalMaterial, lidMaterial, furShells, setHurt, setWound, setBeat } from './organism-skin.js';
 import { eye } from './organism-eye.js';
 import { blob, capsule, horn, crystalSpike, scatterOnSurface, tentacle, jaw, leg, crestRow, teeth, ribs, sac, scar, scarOn, mergeStatic, Spring, lodOf } from './organism-parts.js';
 
 export { crystalMaterial };
 export const TAU = Math.PI * 2;
-export { fleshMaterial, chitinMaterial, membraneMaterial, gooMaterial, furMaterial, boneMaterial, bioCrystalMaterial, lidMaterial, setHurt, setWound, setBeat };
+export { fleshMaterial, chitinMaterial, membraneMaterial, gooMaterial, furMaterial, boneMaterial, bioCrystalMaterial, lidMaterial, furShells, setHurt, setWound, setBeat };
 export { eye };
 export { blob, capsule, horn, crystalSpike, scatterOnSurface, tentacle, jaw, leg, crestRow, teeth, ribs, sac, scar, scarOn, mergeStatic, Spring, lodOf };
-// ── TEMPORAL (comparar antes/después con ?kit=old) ──
-const OLD = typeof location !== 'undefined' && new URLSearchParams(location.search).get('kit') === 'old';
-const OM = OLD ? await import('./organism-old.js') : null;
-export const kit = OLD ? OM.kit : {
-  fleshMaterial, chitinMaterial, membraneMaterial, gooMaterial, furMaterial, boneMaterial, bioCrystalMaterial, lidMaterial,
+export const kit = {
+  fleshMaterial, chitinMaterial, membraneMaterial, gooMaterial, furMaterial, boneMaterial, bioCrystalMaterial, lidMaterial, furShells,
   blob, capsule, horn, crystalSpike, scatterOnSurface, tentacle, eye, jaw, leg, crestRow, teeth, ribs, sac, scar, scarOn, mergeStatic,
   Spring, setHurt, setWound, setBeat, THREE, TAU, uTime,
 };

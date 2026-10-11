@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { uTime, finish } from '../shaders.js';
+import { uTime, finish, uTide } from '../shaders.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { NOISE } from './glsl.js';
 import { rng, fbm3 } from './noise.js';
@@ -18,9 +18,9 @@ export function crystalGeo() {
   const pts = [new THREE.Vector2(0.0, 0), new THREE.Vector2(0.5, 0.0), new THREE.Vector2(0.5, 0.68), new THREE.Vector2(0.0, 1.0)];
   const g = new THREE.LatheGeometry(pts, 6).toNonIndexed(); g.deleteAttribute('uv'); g.computeVertexNormals(); return g;
 }
-export function crystalMat({ haze = 0x2a2060, hazeDens = 0.0000028, sun = [0.4, 1, -0.5], glow = 1 } = {}) {
+export function crystalMat({ haze = 0x2a2060, hazeDens = 0.0000028, sun = [0.4, 1, -0.5], glow = 1, core = false } = {}) {
   return finish(new THREE.ShaderMaterial({
-    uniforms: { uTime, uSun: { value: new THREE.Vector3(...sun).normalize() }, uHaze: { value: dc(haze) }, uHazeD: { value: hazeDens }, uGlow: { value: glow } },
+    uniforms: { uTime, uTide, uSun: { value: new THREE.Vector3(...sun).normalize() }, uHaze: { value: dc(haze) }, uHazeD: { value: hazeDens }, uGlow: { value: glow }, uCore: { value: core ? 1 : 0 } },
     vertexShader: `varying vec3 vWP; varying vec3 vC; varying float vY; varying float vPh;
       void main(){ vec4 p4 = vec4(position, 1.0); vY = position.y; vC = vec3(0.4, 1.0, 0.9); vPh = 0.0;
         #ifdef USE_INSTANCING
@@ -30,17 +30,18 @@ export function crystalMat({ haze = 0x2a2060, hazeDens = 0.0000028, sun = [0.4, 
           vC = instanceColor;
         #endif
         vec4 w = modelMatrix * p4; vWP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform float uTime, uHazeD, uGlow; uniform vec3 uSun, uHaze; varying vec3 vWP; varying vec3 vC; varying float vY; varying float vPh;
+    fragmentShader: `uniform float uTime, uHazeD, uGlow, uTide, uCore; uniform vec3 uSun, uHaze; varying vec3 vWP; varying vec3 vC; varying float vY; varying float vPh;
       void main(){
         vec3 n = normalize(cross(dFdx(vWP), dFdy(vWP))); vec3 V = cameraPosition - vWP; float dist = length(V); V /= dist;
         if (dot(n, V) < 0.0) n = -n;
         float fr = pow(1.0 - clamp(dot(n, V), 0.0, 1.0), 2.5);
-        float dif = max(dot(n, uSun), 0.0);
+        vec3 Ls = uCore > 0.5 ? normalize(-vWP) : uSun;
+        float dif = max(dot(n, Ls), 0.0);
         float pulse = 0.75 + 0.25 * sin(uTime * 1.7 + vPh * 6.2831);
         vec3 col = vC * (0.10 + 0.55 * dif);                                     // cuerpo: oscuro, saturado
-        col += vC * (0.55 + 1.5 * smoothstep(0.1, 1.0, vY)) * pulse * 0.75 * uGlow; // luz interior que sube a la punta
+        col += vC * (0.55 + 1.5 * smoothstep(0.1, 1.0, vY)) * pulse * 0.75 * uGlow * (1.0 + uTide * 0.7); // luz interior que sube a la punta
         col = mix(col, vec3(0.75, 0.95, 1.0) * 1.1, fr * 0.55);                  // borde de vidrio
-        vec3 R = reflect(-V, n); col += vec3(1.0) * pow(max(dot(R, uSun), 0.0), 40.0) * 1.5; // destello
+        vec3 R = reflect(-V, n); col += vec3(1.0) * pow(max(dot(R, Ls), 0.0), 40.0) * 1.5; // destello
         float f = 1.0 - exp(-dist * dist * uHazeD); col = mix(col, uHaze, f);
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -56,7 +57,7 @@ export function mushroomGeo() {
 }
 export function mushroomMat({ haze = 0x2a2060, hazeDens = 0.0000028 } = {}) {
   return finish(new THREE.ShaderMaterial({
-    uniforms: { uTime, uHaze: { value: dc(haze) }, uHazeD: { value: hazeDens } },
+    uniforms: { uTime, uTide, uHaze: { value: dc(haze) }, uHazeD: { value: hazeDens } },
     vertexShader: `attribute float aPart; varying vec3 vWP; varying vec3 vC; varying float vPart; varying float vPh; varying vec3 vN;
       void main(){ vec4 p4 = vec4(position, 1.0); vec3 n = normal; vC = vec3(0.4, 1.0, 0.8); vPh = 0.0; vPart = aPart;
         #ifdef USE_INSTANCING
@@ -66,12 +67,12 @@ export function mushroomMat({ haze = 0x2a2060, hazeDens = 0.0000028 } = {}) {
           vC = instanceColor;
         #endif
         vN = normalize(mat3(modelMatrix) * n); vec4 w = modelMatrix * p4; vWP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform float uTime, uHazeD; uniform vec3 uHaze; varying vec3 vWP; varying vec3 vC; varying float vPart; varying float vPh; varying vec3 vN;
+    fragmentShader: `uniform float uTime, uHazeD, uTide; uniform vec3 uHaze; varying vec3 vWP; varying vec3 vC; varying float vPart; varying float vPh; varying vec3 vN;
       void main(){
         vec3 V = cameraPosition - vWP; float dist = length(V); V /= dist; vec3 n = normalize(vN);
         float pulse = 0.7 + 0.3 * sin(uTime * 1.3 + vPh * 6.2831);
         float fr = pow(1.0 - clamp(dot(n, V), 0.0, 1.0), 2.0);
-        vec3 col = mix(vec3(0.10, 0.09, 0.12) + vC * 0.05, vC * (0.9 + 0.8 * fr) * pulse * 1.3, vPart);
+        vec3 col = mix(vec3(0.10, 0.09, 0.12) + vC * 0.05, vC * (0.9 + 0.8 * fr) * pulse * 1.3 * (1.0 + uTide * 0.7), vPart);
         col += vC * fr * 0.4 * vPart;
         float f = 1.0 - exp(-dist * dist * uHazeD); col = mix(col, uHaze, f);
         gl_FragColor = vec4(col, 1.0);
@@ -83,11 +84,11 @@ export function mushroomMat({ haze = 0x2a2060, hazeDens = 0.0000028 } = {}) {
 export function rootGeo() {
   const g = new THREE.ConeGeometry(0.03, 1, 5, 10, true); g.rotateX(Math.PI); g.translate(0, -0.5, 0); g.deleteAttribute('uv'); return g;
 }
-export function rootMat({ haze = 0x2a2060, hazeDens = 0.0000028 } = {}) {
+export function rootMat({ haze = 0x2a2060, hazeDens = 0.0000028, lo = [0.07, 0.04, 0.05], hi = [0.16, 0.10, 0.09] } = {}) {
   return finish(new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
-    uniforms: { uTime, uHaze: { value: dc(haze) }, uHazeD: { value: hazeDens } },
-    vertexShader: `uniform float uTime; varying vec3 vWP; varying vec3 vC; varying float vT; varying float vPh;
+    uniforms: { uTime, uTide, uLo: { value: new THREE.Vector3(...lo) }, uHi: { value: new THREE.Vector3(...hi) }, uHaze: { value: dc(haze) }, uHazeD: { value: hazeDens } },
+    vertexShader: `uniform float uTime, uTide; varying vec3 vWP; varying vec3 vC; varying float vT; varying float vPh;
       void main(){ vec3 p = position; float t = clamp(-p.y, 0.0, 1.0); vT = t; vC = vec3(0.4, 1.0, 0.8); vPh = 0.0;
         float ph = 0.0;
         #ifdef USE_INSTANCING
@@ -103,11 +104,11 @@ export function rootMat({ haze = 0x2a2060, hazeDens = 0.0000028 } = {}) {
           vC = instanceColor;
         #endif
         vec4 w = modelMatrix * p4; vWP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform float uTime, uHazeD; uniform vec3 uHaze; varying vec3 vWP; varying vec3 vC; varying float vT; varying float vPh;
+    fragmentShader: `uniform float uTime, uHazeD, uTide; uniform vec3 uHaze, uLo, uHi; varying vec3 vWP; varying vec3 vC; varying float vT; varying float vPh;
       void main(){
         float dist = length(cameraPosition - vWP);
-        vec3 col = mix(vec3(0.07, 0.04, 0.05), vec3(0.16, 0.10, 0.09), vT);
-        float tip = smoothstep(0.62, 1.0, vT); col += vC * tip * (1.0 + 0.7 * sin(uTime * 1.6 + vPh * 6.28)) * 1.4;
+        vec3 col = mix(uLo, uHi, vT);
+        float tip = smoothstep(0.62, 1.0, vT); col += vC * tip * (1.0 + 0.7 * sin(uTime * 1.6 + vPh * 6.28)) * 1.4 * (1.0 + uTide * 0.7);
         float f = 1.0 - exp(-dist * dist * uHazeD); col = mix(col, uHaze, f);
         gl_FragColor = vec4(col, 1.0);
       }`,

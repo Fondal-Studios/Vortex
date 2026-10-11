@@ -3,13 +3,13 @@
 // esqueleto), mandíbulas serradas, antenas que restallan y dos ojos de verdad (iris, pupila vertical, párpados).
 // Cuerpo = 1 malla con esqueleto por material (carne, quitina, cristal) => pocos draw calls.
 // Estados reales: run (zigzag) / leap (salto 7–18 u, mandíbulas abiertas). st.hp<0.35 cojea; st.sd escudada; st.st aturdida.
-import { THREE, TAU, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, Rig, skinRigid, skinChain, eye, legIK, boneMatrix, toLocal, boneQuat, gait, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
+import { THREE, TAU, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, plate, crystal, crystalCluster, paint, orient, path, Rig, skinRigid, skinChain, eye, legIK, boneMatrix, toLocal, boneQuat, gait, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
 
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3;
   const col = new THREE.Color(color), R = rng(7);
   const carap = bio({ rough: 0.5, clear: 0.4, clearRough: 0.3, metal: 0.0, tex: 'plates', tile: 1.4, bump: 0.7, grain: 0.6, seam: color, seamK: 0.2, seamGlow: 0.3, vcol: true });
-  const flesh = bio({ rough: 0.6, clear: 0.15, sheen: 0, tex: 'skin', tile: 1.6, bump: 0.6, grain: 0.5, seam: 0x180a14, seamK: 0.4, vein: color, veinK: 0.55, veinGlow: 0.7, sss: 0.0, sssColor: 0x30b0a8 });
+  const flesh = bio({ rough: 0.6, clear: 0.15, sheen: 0, tex: 'flesh', tile: 1.6, bump: 0.6, grain: 0.5, seam: 0x180a14, seamK: 0.4, vein: color, veinK: 0.55, veinGlow: 0.7, sss: 0.0, sssColor: 0x30b0a8 });
   const cry = crystalMat(color, { glow: 0.95, alpha: 0.9 });
   const mats = [carap, flesh, cry];
 
@@ -137,7 +137,7 @@ export default function build(kit, color) {
       const a = sAnt[k][0].step(dt, tw + sw), b = sAnt[k][1].step(dt, tw * 1.5 + sw * 1.2 - sBody.v * 0.4);
       ch[0].rotation.set(0.1 + a * 0.5 - ly * 0.1, s * 0.06 + a * 0.5, 0); ch[1].rotation.set(b * 0.8 + 0.05, b * 0.7, 0); ch[2].rotation.set(b * 1.1, b * 0.6, 0); });
     // ojos: miran al jugador (globo gira), se achican al saltar
-    head.updateMatrix(); boneQuat(head, root, q1); lh.copy(look).applyQuaternion(q1.clone().invert());
+    head.updateMatrix(); boneQuat(head, root, q1); gazeDir(look, ctx.dist, tmp.set(0, 0.85, 1.0), lh); lh.applyQuaternion(q1.clone().invert());
     eyes.forEach((e, k) => { tmp.copy(lh).applyQuaternion(e.mount.clone().invert()); e.update(dt, tmp, { open: stun ? 0.4 : leap ? 1.0 : hurt ? 0.7 : 0.9, dilate: leap ? 0.5 : -0.1 * runK, glowMul: 0.7 + 0.8 * leapK, squint: runK * 0.5, quiver: stun ? 1 : 0 }); });
     oce.forEach((e) => { tmp.copy(lh); e.update(dt, tmp, { glowMul: 1 + leapK }); });
     // patas: marcha de trípodes (IK). Salto: patas delanteras al frente, traseras estiradas. Cojera: pata trasera izquierda arrastra.

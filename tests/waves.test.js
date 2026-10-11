@@ -43,7 +43,8 @@ test('ciclo de oleada: calma inicial → spawn en goteo → oleada limpia → re
   // matar todo hasta limpiar
   for (let i = 0; i < 6000 && g.phase === 'wave'; i++) { for (const m of g.monsters) g.damageMonster(m, 1e9, p); g.step(1 / 60); for (const e of g.drainEvents()) ev.push(e); }
   assert.equal(g.phase, 'intermission'); assert.ok(ev.some((e) => e.t === 'clear' && e.wave === 1));
-  run(g, 8, () => { }); assert.equal(g.wave, 2);
+  assert.equal(p.cards.length, 3, 'tres tarjetas de mejora'); run(g, 8, () => { }); assert.equal(g.wave, 1, 'espera la elección (hasta 12 s)');
+  g.setInput(p.id, { pick: 1 }); run(g, 6, () => { }); assert.equal(g.wave, 2, 'tras elegir, sigue');
 });
 
 test('victoria: matar al jefe de la oleada final termina la partida en "won"; perder a todos en "lost"', () => {

@@ -1,7 +1,7 @@
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, project, rotAround, clone } from './math.js';
 import { MONSTERS, G } from './data.js';
 import { collide } from './physics.js';
-import { updateColoso, updateMadre } from './bossmech.js';
+import { updateColoso, updateMadre, updateArgos } from './bossmech.js';
 
 /* ───── utilidades de movimiento compartidas ───── */
 const nearest = (targets, pos) => {
@@ -29,7 +29,7 @@ function groundMove(game, m, dt, wish, speed, accel = 10) {
   m.grounded = false;
   for (let s = 0; s < 2; s++) {
     m.pos = madd(m.pos, m.vel, dt / 2);
-    const c = collide(game.map, m.pos, m.vel, m.r * 0.9, up);
+    const c = collide(game.map.mapM || game.map, m.pos, m.vel, m.r * 0.9, up);
     if (c && c.d > 0.55) m.grounded = true;
   }
 }
@@ -37,7 +37,7 @@ function groundMove(game, m, dt, wish, speed, accel = 10) {
 function flyMove(game, m, dt, desired, accel = 3) {
   m.vel = madd(m.vel, sub(desired, m.vel), Math.min(1, accel * dt));
   m.pos = madd(m.pos, m.vel, dt);
-  collide(game.map, m.pos, m.vel, m.r * 0.8, null);
+  collide(game.map.mapM || game.map, m.pos, m.vel, m.r * 0.8, null);
   const g = game.map.gravityAt(m.pos, game.time);
   if (len(g) > 0.5) m.up = norm(mul(g, -1));
 }
@@ -314,6 +314,19 @@ export const AI = {
     }
     if (ph >= 2 && m.sum <= 0 && m.kids < 6) { m.sum = 15; const ref = p; for (let i = 0; i < 4; i++) game.spawnMonster('astilla', game.map.spawnGround(game.rng, ref.pos), { parent: m.id }) && m.kids++; game.spawnMonster('prisma', game.map.spawnAir(game.rng, ref.pos, ref.up), { parent: m.id }) && m.kids++; }
     if (ph === 3 && m.flipT <= 0) { m.flipT = 12; pulseGravity(game, m, 200, 3); }
+  },
+
+  argos(game, m, dt, targets) {
+    const a = game.map.bossAnchor, p = nearest(targets, m.pos);
+    const ph = m.hp > m.maxhp * 0.66 ? 1 : m.hp > m.maxhp * 0.33 ? 2 : 3;
+    if (ph !== m.phase) { m.phase = ph; game.emit({ t: 'phase', n: ph, id: m.id }); }
+    flyMove(game, m, dt, mul(sub(v3(a.x + Math.cos(m.t * 0.2) * 6, a.y + Math.sin(m.t * 0.5) * 2, a.z + Math.sin(m.t * 0.2) * 6), m.pos), 1.5), 3);
+    face(m, m.gaze ? m.gaze.dir : sub(p.pos, m.pos));
+    const mech = updateArgos(game, m, dt); m.vis = m.mech;
+    if (mech.skip) return;
+    m.cd -= dt; m.sum -= dt;
+    if (m.cd <= 0) { m.cd = [0, 3.2, 2.6, 2.0][ph]; const n = 8 + 3 * ph, off = m.t; for (let i = 0; i < n; i++) { const ang = off + (i * Math.PI * 2) / n; shoot(game, m, m.pos, v3(Math.cos(ang) * 0.9, -0.35, Math.sin(ang) * 0.9), 15, 9 * dmgMul(game), 'orb', 0.9, 8); } }
+    if (m.sum <= 0 && m.kids < 6) { m.sum = [0, 14, 11, 9][ph]; for (let i = 0; i < 3; i++) game.spawnMonster('prisma', game.map.spawnAir(game.rng, p.pos, p.up), { parent: m.id }) && m.kids++; game.spawnMonster('astilla', game.map.spawnGround(game.rng, p.pos), { parent: m.id }) && m.kids++; }
   },
 
   madre(game, m, dt, targets) {

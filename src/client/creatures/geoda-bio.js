@@ -24,7 +24,7 @@ const v3 = (p) => (p && p.isVector3 ? p : new V3(p[0], p[1], p[2]));
 
 /* ═════════════════════════ TEXTURAS PROCEDURALES (DataTexture, triplanar) ═════════════════════════
  * Canal R = altura (celdas con centro alto y junturas hundidas), G = tono por celda, B = juntura, A = red de venas. */
-const texCache = new Map();
+const texCache = new Map(), gradCache = new Map();
 function voronoi(c, jit, x, y, seed) {   // devuelve [F1, F2, idCelda] en un toro (teselable)
   const px = x * c, py = y * c, ix = Math.floor(px), iy = Math.floor(py); let f1 = 9, f2 = 9, id = 0;
   for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
@@ -35,10 +35,11 @@ function voronoi(c, jit, x, y, seed) {   // devuelve [F1, F2, idCelda] en un tor
   }
   return [f1, f2, id];
 }
+export const procGrad = (kind) => { procTex(kind); return gradCache.get(kind + (lod().hi ? 'H' : '')); };
 export function procTex(kind = 'plates') {
-  if (texCache.has(kind)) return texCache.get(kind);
-  const P = { plates: { c: 4, jit: 0.9, seam: 0.05, vc: 4, nz: 0.5 }, scales: { c: 13, jit: 0.45, seam: 0.16, vc: 7, nz: 0.3 }, skin: { c: 5, jit: 1, seam: 0.5, vc: 4, nz: 0.9 }, fine: { c: 10, jit: 1, seam: 0.05, vc: 6, nz: 1.0 }, shell: { c: 4, jit: 0.8, seam: 0.07, vc: 3, nz: 0.4 } }[kind] || {};
-  const N = 256, data = new Uint8Array(N * N * 4), tn = (x, y, f, s) => { // ruido teselable
+  const ck = kind + (lod().hi ? 'H' : ''); if (texCache.has(ck)) return texCache.get(ck);
+  const P = { plates: { c: 4, jit: 0.9, seam: 0.05, vc: 4, nz: 0.5 }, scales: { c: 13, jit: 0.45, seam: 0.16, vc: 7, nz: 0.3 }, skin: { c: 5, jit: 1, seam: 0.5, vc: 4, nz: 0.9 }, fine: { c: 10, jit: 1, seam: 0.05, vc: 6, nz: 1.0 }, shell: { c: 4, jit: 0.8, seam: 0.07, vc: 3, nz: 0.4 }, flesh: { c: 3, jit: 1, seam: 0.0, vc: 3, nz: 1 } }[kind] || {};
+  const N = lod().hi ? 512 : 256, data = new Uint8Array(N * N * 4), tn = (x, y, f, s) => { // ruido teselable
     const xs = x * f, ys = y * f, xi = Math.floor(xs), yi = Math.floor(ys), fx = xs - xi, fy = ys - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), m = Math.round(f);
     const h = (a, b) => hash3(((a % m) + m) % m, ((b % m) + m) % m, s);
     return (h(xi, yi) * (1 - u) + h(xi + 1, yi) * u) * (1 - v) + (h(xi, yi + 1) * (1 - u) + h(xi + 1, yi + 1) * u) * v;
@@ -49,12 +50,17 @@ export function procTex(kind = 'plates') {
     let h = (1 - seam) * (0.55 + 0.45 * (1 - clamp(f1 * 1.5, 0, 1)));
     if (kind === 'scales') h = (1 - seam) * (0.35 + 0.65 * clamp((v * P.c - Math.floor(v * P.c)) * 1.0 + (hash3(Math.floor(u * P.c), 0, 3) - 0.5) * 0.2, 0, 1));
     h = clamp(h * (1 - P.nz * 0.25) + fn * P.nz * 0.35, 0, 1);
+    let seamV = seam, idV = id;
+    if (kind === 'flesh') { const n1 = tn(u, v, 4, 41), n2 = tn(u, v, 8, 43), n3 = tn(u, v, 16, 47), r = 1 - Math.abs(2 * tn(u, v, 6, 51) - 1), r2 = 1 - Math.abs(2 * tn(u, v, 12, 53) - 1); h = clamp(n1 * 0.45 + n2 * 0.3 + n3 * 0.25, 0, 1); seamV = clamp(smooth(0.8, 0.97, r) * 0.9 + smooth(0.86, 0.98, r2) * 0.5, 0, 1); idV = n2 * 0.6 + n3 * 0.4; }
     const [g1, g2] = voronoi(P.vc, 1, u + 0.31, v + 0.17, 21), vd = g2 - g1, wob = (tn(u, v, 12, 31) - 0.5) * 0.18;
-    const vein = 1 - smooth(0.0, 0.055, Math.abs(vd + wob));
-    const o = (y * N + x) * 4; data[o] = h * 255; data[o + 1] = (0.55 * id + 0.45 * fn) * 255; data[o + 2] = seam * 255; data[o + 3] = vein * 255;
+    const vein = 1 - smooth(0.0, kind === 'flesh' ? 0.035 : 0.055, Math.abs(vd + wob));
+    const o = (y * N + x) * 4; data[o] = h * 255; data[o + 1] = (kind === 'flesh' ? idV : 0.55 * idV + 0.45 * fn) * 255; data[o + 2] = seamV * 255; data[o + 3] = vein * 255;
   }
+  { const gd = new Uint8Array(N * N * 4), H = (x, y) => data[((((y % N) + N) % N) * N + (((x % N) + N) % N)) * 4];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const du = (H(x + 1, y) - H(x - 1, y)) / 255 * 0.5 * N, dv = (H(x, y + 1) - H(x, y - 1)) / 255 * 0.5 * N, o = (y * N + x) * 4; gd[o] = clamp(0.5 + du / 24, 0, 1) * 255; gd[o + 1] = clamp(0.5 + dv / 24, 0, 1) * 255; gd[o + 2] = 0; gd[o + 3] = 255; }
+    const gt = new THREE.DataTexture(gd, N, N, THREE.RGBAFormat); gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.magFilter = THREE.LinearFilter; gt.minFilter = THREE.LinearMipmapLinearFilter; gt.generateMipmaps = true; gt.anisotropy = 4; gt.needsUpdate = true; gradCache.set(ck, gt); }
   const t = new THREE.DataTexture(data, N, N, THREE.RGBAFormat); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 4; t.needsUpdate = true;
-  texCache.set(kind, t); return t;
+  texCache.set(ck, t); return t;
 }
 
 /* ═════════════════════════ MATERIALES ═════════════════════════ */
@@ -78,26 +84,26 @@ const BUMP_GLSL = `
  */
 export function bio(o = {}) {
   const L = lod(), Cls = L.low ? THREE.MeshStandardMaterial : THREE.MeshPhysicalMaterial;
-  const { color = 0xffffff, rough = 0.5, metal = 0, clear = 0, clearRough = 0.25, sheen = 0, tex = 'plates', tile = 1.6, bump = 1, grain = 0.4, seam = 0x000000, seamK = 0.5, vein = 0x000000, veinK = 0, veinGlow = 0, seamGlow = 0, sss = 0, sssColor = 0xff6a5a, glow = 0, glowColor = 0xffffff, alpha = 1, iri = 0, bend = false, lid = false, vcol = true, texOff = 0, side = null, rv = 0.5 } = o;
+  const { color = 0xffffff, rough = 0.5, metal = 0, clear = 0, clearRough = 0.25, sheen = 0, tex = 'plates', tile = 1.6, bump = 1, grain = 0.4, seam = 0x000000, seamK = 0.5, vein = 0x000000, veinK = 0, veinGlow = 0, seamGlow = 0, sss = 0, sssColor = 0xff6a5a, glow = 0, glowColor = 0xffffff, alpha = 1, iri = 0, bend = false, lid = false, vcol = true, texOff = 0, side = null, rv = 0.5, env = 1 } = o;
   const m = new Cls({ color, roughness: rough, metalness: metal, vertexColors: vcol, transparent: alpha < 1, opacity: alpha, side: side != null ? side : alpha < 1 ? THREE.DoubleSide : THREE.FrontSide });
-  if (alpha < 1) m.depthWrite = false;
+  if (alpha < 1) m.depthWrite = false; m.envMapIntensity = env;
   if (!L.low) { if (clear) { m.clearcoat = clear; m.clearcoatRoughness = clearRough; } if (sheen) { m.sheen = sheen; m.sheenColor = new THREE.Color(sssColor).lerp(new THREE.Color(1, 1, 1), 0.5); m.sheenRoughness = 0.5; } if (iri) { m.iridescence = iri; m.iridescenceIOR = 1.5; m.iridescenceThicknessRange = [180, 620]; } }
   const u = { uHurt: { value: 0 }, uGlow: { value: glow }, uSss: { value: sss }, uVeinGlow: { value: veinGlow }, uSeamGlow: { value: seamGlow }, uUp: { value: 0.6 }, uLo: { value: 0.4 }, uSl: { value: 0 }, uTime, uAmp: { value: 0.05 }, uSpd: { value: 2.0 } };
-  const un = { uTex: { value: procTex(tex) }, uTile: { value: tile }, uBump: { value: bump * (L.low ? 0.5 : 1) }, uGrain: { value: grain }, uSeam: { value: new THREE.Color(seam) }, uSeamK: { value: seamK }, uVeinC: { value: new THREE.Color(vein) }, uVeinK: { value: veinK }, uSssC: { value: new THREE.Color(sssColor) }, uGlowC: { value: new THREE.Color(glowColor) }, uRV: { value: rv }, uTexOff: { value: texOff } };
+  const un = { uTex: { value: procTex(tex) }, uGrad: { value: procGrad(tex) }, uTile: { value: tile }, uBump: { value: bump * (L.low ? 0.5 : 1) }, uGrain: { value: grain }, uSeam: { value: new THREE.Color(seam) }, uSeamK: { value: seamK }, uVeinC: { value: new THREE.Color(vein) }, uVeinK: { value: veinK }, uSssC: { value: new THREE.Color(sssColor) }, uGlowC: { value: new THREE.Color(glowColor) }, uRV: { value: rv }, uTexOff: { value: texOff } };
   m.userData.u = u; Object.assign(m.userData, { un });
   m.customProgramCacheKey = () => `bio${bend ? 'b' : ''}${lid ? 'l' : ''}${L.low ? 'L' : ''}`;
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, u, un);
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vP; varying vec3 vN; ${bend ? 'attribute float aK; attribute float aPh; uniform float uTime,uAmp,uSpd;' : ''}`)
-      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvP = position; vN = normal;${bend ? '\n float bw = aK * aK; transformed.x += sin(uTime * uSpd + aK * 3.0 + aPh) * uAmp * bw; transformed.z += cos(uTime * uSpd * 0.8 + aK * 3.7 + aPh) * uAmp * 0.7 * bw;' : ''}`);
+      .replace('#include <common>', `#include <common>\nvarying vec3 vP; varying vec3 vN; varying vec3 vAx; varying vec3 vAy; varying vec3 vAz; ${bend ? 'attribute float aK; attribute float aPh; uniform float uTime,uAmp,uSpd;' : ''}`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvP = position; vN = normal;\n#ifdef USE_SKINNING\n mat3 skm = mat3(skinMatrix);\n#else\n mat3 skm = mat3(1.0);\n#endif\n mat3 vmm = normalMatrix * skm; vAx = vmm[0]; vAy = vmm[1]; vAz = vmm[2];${bend ? '\n float bw = aK * aK; transformed.x += sin(uTime * uSpd + aK * 3.0 + aPh) * uAmp * bw; transformed.z += cos(uTime * uSpd * 0.8 + aK * 3.7 + aPh) * uAmp * 0.7 * bw;' : ''}`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vP; varying vec3 vN; uniform sampler2D uTex; uniform float uTime,uTile,uBump,uGrain,uSeamK,uVeinK,uHurt,uGlow,uSss,uVeinGlow,uSeamGlow,uRV,uTexOff,uUp,uLo,uSl; uniform vec3 uSeam,uVeinC,uSssC,uGlowC; ${NOISE_GLSL} ${BUMP_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vP; varying vec3 vN; varying vec3 vAx; varying vec3 vAy; varying vec3 vAz; uniform sampler2D uTex; uniform sampler2D uGrad; uniform float uTime,uTile,uBump,uGrain,uSeamK,uVeinK,uHurt,uGlow,uSss,uVeinGlow,uSeamGlow,uRV,uTexOff,uUp,uLo,uSl; uniform vec3 uSeam,uVeinC,uSssC,uGlowC; ${NOISE_GLSL} ${BUMP_GLSL}`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
         float lidE = 1.0;
         ${lid ? `{ vec3 dd = normalize(vP); if (dd.z > -0.15) { float cx = dd.x * dd.x; float up = uUp - 0.55 * cx + uSl * dd.x; float lo = uLo - 0.4 * cx - uSl * 0.5 * dd.x; lidE = min(up - dd.y, dd.y + lo); if (lidE > 0.0) discard; lidE = -lidE; } }` : ''}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
-        vec3 nO = normalize(vN); vec4 tx = triTex(uTex, vP * uTile + uTexOff, nO);
+        vec3 nO = normalize(vN); vec3 pp = vP * uTile + uTexOff; vec4 tx = triTex(uTex, pp, nO);
         diffuseColor.rgb *= mix(1.0, 0.62 + 0.76 * tx.g, uGrain);
         diffuseColor.rgb = mix(diffuseColor.rgb, uSeam, tx.b * uSeamK);
         diffuseColor.rgb = mix(diffuseColor.rgb, uVeinC, tx.a * uVeinK);
@@ -105,7 +111,10 @@ export function bio(o = {}) {
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = clamp(roughnessFactor * mix(1.0, 0.55 + 0.9 * tx.g, uRV) * (1.0 - 0.45 * tx.b * uSeamK) + (0.5 * uSeamK * tx.b), 0.04, 1.0);`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-        { float hh = (tx.r - 0.5) * uBump * 0.03 * uTile + (tx.g - 0.5) * uBump * 0.01; vec2 dh = vec2(dFdx(hh), dFdy(hh)) * 28.0 * uBump / max(uTile, 0.2); normal = perturbN(-vViewPosition, normal, dh, faceDirection); }`)
+        { vec3 wts = pow(abs(nO), vec3(5.0)); wts /= (wts.x + wts.y + wts.z + 1e-4);
+          vec2 gx = (texture2D(uGrad, pp.yz).rg * 2.0 - 1.0) * 12.0, gy = (texture2D(uGrad, pp.xz).rg * 2.0 - 1.0) * 12.0, gz = (texture2D(uGrad, pp.xy).rg * 2.0 - 1.0) * 12.0;
+          vec3 g = vec3(0.0, gx) * wts.x + vec3(gy.x, 0.0, gy.y) * wts.y + vec3(gz.x, gz.y, 0.0) * wts.z; g *= uBump * uTile * 0.045; g -= nO * dot(g, nO);
+          normal = normalize(normal - (g.x * vAx + g.y * vAy + g.z * vAz)); }`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         { float nv = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0); float rim = pow(1.0 - nv, 2.4);
           float pl = 0.6 + 0.4 * sin(uTime * 3.0 + vP.y * 5.0 + vP.x * 3.0);
@@ -307,6 +316,8 @@ export class Rig {
   /** Cuelga un objeto de un hueso, colocándolo en `pos` (coordenadas de reposo del modelo). */
   attach(bone, obj, pos) { obj.position.copy(v3(pos)).sub(bone.userData.rest); bone.add(obj); return obj; }
 }
+/** Dirección (en espacio de la raíz) desde un punto del cuerpo hacia la cámara: look*dist - pos. */
+export function gazeDir(look, dist, pos, out = new V3()) { return out.copy(look).multiplyScalar(dist || 8).sub(pos).normalize(); }
 /** Rotación de un hueso relativa a la raíz (para orientar ojos hacia el jugador). */
 const _q = new THREE.Quaternion();
 export function boneQuat(bone, rootBone, out = new THREE.Quaternion()) { out.identity(); let b = bone; const chain = []; while (b && b !== rootBone.parent) { chain.push(b); b = b.parent; } for (let i = chain.length - 1; i >= 0; i--) out.multiply(chain[i].quaternion); return out; }
@@ -328,6 +339,27 @@ export function legIK(hip, knee, foot, target, bend = new V3(0, 1, 0)) {
 }
 /** Marcha: devuelve [avance(-1..1), elevación(0..1)] para una fase ph∈R (stance 60%, swing 40%). */
 export function gait(ph, swing = 0.4) { const f = ((ph / TAU) % 1 + 1) % 1; if (f < swing) { const k = f / swing, e = k * k * (3 - 2 * k); return [-1 + 2 * e, Math.sin(k * Math.PI)]; } return [1 - 2 * (f - swing) / (1 - swing), 0]; }
+
+
+/* ═════════════════════════ PATAS REUTILIZABLES ═════════════════════════ */
+/** Construye una pata de 2 huesos (cadera→rodilla→pie) con tubo afinado, nudillo, espinas y garra, ya skinneada. */
+export function buildLeg(rig, mat, parent, H, K, F, { r0 = 0.08, rk = 0.06, r1 = 0.012, knuckle = 0.022, seg = 14, sides = 7, paintFn = null, spines = 3, spineLen = 0.12, spineCol = 0x6a8a90, claw = 0, clawCol = 0xe8dcc0, bow = 0.06, side = 1, name = '' } = {}) {
+  const hb = rig.bone(parent, H, 'hip' + name), kb = rig.bone(hb, K, 'knee' + name), fb = rig.bone(kb, F, 'foot' + name);
+  const L1 = H.distanceTo(K), L2 = K.distanceTo(F), f1 = L1 / (L1 + L2);
+  const m1 = H.clone().lerp(K, 0.5).add(new V3(side * bow, bow, 0)), m2 = K.clone().lerp(F, 0.5).add(new V3(side * bow * 1.2, 0.02, 0));
+  const g = tube([H, m1, K, m2, F], { rad: (t) => (t < f1 ? lerp(r0, rk, t / f1) + knuckle * Math.exp(-Math.pow((t - f1) / 0.035, 2)) : lerp(rk * 0.8, r1, Math.pow((t - f1) / (1 - f1), 0.8))), seg, sides, caps: false });
+  if (paintFn) paint(g, paintFn); skinChain(g, [hb, kb, fb], 0.09); rig.add(mat, g);
+  const R = rng(name.length * 13 + 5);
+  for (let i = 0; i < spines; i++) { const t = 0.3 + i * (0.5 / Math.max(1, spines)), c = K.clone().lerp(F, t), sg = spike(0.014, spineLen * (0.7 + R() * 0.6), { sides: 3, seg: 1, pos: [c.x + side * 0.03, c.y, c.z], dir: [side * 0.6, 0.4, 0.5 + (i % 2) * 0.3] }); paint(sg, spineCol); skinRigid(sg, kb); rig.add(mat, sg); }
+  if (claw) { const cg = spike(r1 * 1.6, claw, { sides: 4, seg: 2, bend: 0.4, bendDir: [0, 0, 1], pos: [F.x, F.y + 0.02, F.z], dir: [0, -1, 0.3] }); paint(cg, clawCol); skinRigid(cg, kb); rig.add(mat, cg); }
+  return { hb, kb, fb, par: parent, side, L1, L2 };
+}
+const _pm = new THREE.Matrix4(), _lp = new V3();
+/** Lleva el pie de la pata a `target` (espacio de la raíz). cache: Map(par→Matrix4) por tick. */
+export function footTo(Lg, rootBone, target, bend, cache) {
+  let m = cache && cache.get(Lg.par); if (!m) { m = boneMatrix(Lg.par, rootBone, new THREE.Matrix4()); if (cache) cache.set(Lg.par, m); }
+  toLocal(Lg.par, rootBone, target, _lp, m); legIK(Lg.hb, Lg.kb, Lg.fb, _lp, bend);
+}
 
 /* ═════════════════════════ OJOS REALISTAS ═════════════════════════ */
 let eyeGeoCache = null;
@@ -385,13 +417,13 @@ export function eye(o = {}) {
       blinkT -= dt; if (blinkT <= 0) { blink = 1; blinkT = 2 + Math.random() * 4.5; } blink = Math.max(0, blink - dt * 6);
       const bl = Math.sin(Math.min(1, blink) * Math.PI), tgt = open * (1 - bl);
       openV += ((tgt - openS) * 260 - openV * 24) * dt; openS = clamp(openS + openV * dt, 0, 1.1);
-      if (lm) { const u = lm.userData.u, s = clamp(openS, 0, 1.05); u.uUp.value = -0.12 + 0.82 * s; u.uLo.value = -0.12 + 0.5 * s * (1 - squint * 0.6); u.uSl.value = slant; }
+      if (lm) { const u = lm.userData.u, s = clamp(openS, 0, 1.05); u.uUp.value = -0.1 + 0.98 * s; u.uLo.value = -0.1 + 0.8 * s * (1 - squint * 0.5); u.uSl.value = slant; }
       const k = Math.max(0.12, 1 + dilate); mat.userData.u.uPup.value.copy(pup0).multiplyScalar(k); mat.userData.u.uGlow.value = (o.glow != null ? o.glow : 0.35) * glowMul;
     },
   };
 }
 /** Material de párpado/piel: carne húmeda con venas (versión con recorte). */
-export const lidMaterial = (o = {}) => bio({ color: 0x7a3a46, rough: 0.4, clear: 0.4, sheen: 0, tex: 'skin', tile: 1.2, bump: 0.8, seam: 0x2a0810, seamK: 0.5, vein: 0x4a0a18, veinK: 0.35, sss: 0.15, sssColor: 0xff5040, lid: true, vcol: false, side: THREE.DoubleSide, ...o });
+export const lidMaterial = (o = {}) => bio({ color: 0x7a3a46, rough: 0.4, clear: 0.4, sheen: 0, tex: 'flesh', tile: 1.2, bump: 0.8, seam: 0x2a0810, seamK: 0.5, vein: 0x4a0a18, veinK: 0.35, sss: 0.15, sssColor: 0xff5040, lid: true, vcol: false, side: THREE.DoubleSide, ...o });
 
 /* ═════════════════════════ EXTRAS ═════════════════════════ */
 let haloTex = null;

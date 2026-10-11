@@ -81,7 +81,7 @@ export const line = (p0, p1) => new THREE.LineCurve3(new V3(...p0), new V3(...p1
 
 /* ───────────── superficie paramétrica con grosor (placas de armadura) ───────────── */
 /** fn(u,v) → V3 con u,v∈[0,1]. thick>0 añade el borde (faldón) hacia dentro. */
-export function patch(fn, nu = 8, nv = 6, { thick = 0.03, flipY = false } = {}) {
+export function patch(fn, nu = 8, nv = 6, { thick = 0.03, flipY = false, inner = false } = {}) {
   const pos = [], uv = [], idx = [];
   for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) { const p = fn(i / nu, j / nv); pos.push(p.x, p.y, p.z); uv.push(i / nu, j / nv); }
   const W = nu + 1;
@@ -97,6 +97,12 @@ export function patch(fn, nu = 8, nv = 6, { thick = 0.03, flipY = false } = {}) 
     }
     const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); out.setAttribute('uv', new THREE.Float32BufferAttribute(su, 2)); out.setIndex(si);
     // normales: las del parche arriba (suaves) y planas en los faldones
+    if (inner) { // cara interior (se ve desde abajo): copia desplazada hacia dentro con el orden invertido
+      const b0 = sp.length / 3; for (let k = 0; k < P.count; k++) sp.push(P.getX(k) - N.getX(k) * thick, P.getY(k) - N.getY(k) * thick, P.getZ(k) - N.getZ(k) * thick);
+      su.push(...Array.from(g.attributes.uv.array)); const gi = g.index.array; for (let k = 0; k < gi.length; k += 3) si.push(b0 + gi[k], b0 + gi[k + 2], b0 + gi[k + 1]);
+      out.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); out.setAttribute('uv', new THREE.Float32BufferAttribute(su, 2)); out.setIndex(si);
+      out.computeVertexNormals(); const on2 = out.attributes.normal; for (let k = 0; k < P.count; k++) { on2.setXYZ(k, N.getX(k), N.getY(k), N.getZ(k)); on2.setXYZ(b0 + k, -N.getX(k), -N.getY(k), -N.getZ(k)); } return out;
+    }
     out.computeVertexNormals(); const on = out.attributes.normal; for (let k = 0; k < P.count; k++) on.setXYZ(k, N.getX(k), N.getY(k), N.getZ(k));
     g = out;
   }
@@ -186,10 +192,10 @@ export const prof = (keys) => (t) => {
  * Placa abombada de armadura (domo elíptico con borde caído y cresta opcional), centrada en el origen con la cúpula hacia +y.
  * w = ancho (x), l = largo (z), h = altura. Se coloca con aimY()/place().
  */
-export function domePlate(w, l, h, { nu = 8, nv = 7, thick = 0.03, droop = 0.35, ridge = 0, taper = 0 } = {}) {
+export function domePlate(w, l, h, { nu = 8, nv = 7, thick = 0.03, droop = 0.35, ridge = 0, taper = 0, inner = false } = {}) {
   return patch((u, v) => {
     const x = (u - 0.5) * 2, z = (v - 0.5) * 2, X = x * Math.sqrt(1 - z * z / 2), Z = z * Math.sqrt(1 - x * x / 2), r2 = Math.min(1, X * X + Z * Z);
     const hh = h * (Math.pow(1 - r2, 0.55) * (1 - droop) + (1 - r2) * droop) + h * ridge * Math.exp(-X * X * 7) * (1 - r2);
     return new V3(X * w * (1 - taper * (Z * 0.5 + 0.5) * 0.5), hh, Z * l);
-  }, nu, nv, { thick });
+  }, nu, nv, { thick, inner });
 }

@@ -13,7 +13,7 @@ export default function build(kit, color) {
   const { Spring } = kit;
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
   const R = LOW ? 6 : HI ? 12 : 9, S1 = LOW ? 8 : 14; // lados / tramos
-  const bio = bioMaterial({ glow: 0xff5a1a, vein: 0x12040a, rim: 0x5a3a8a, scale: 1.2, bump: 1.0, wet: 0.5, ridge: 70, metal: 0.3, sheen: 0.4, breath: 0.01 });
+  const bio = bioMaterial({ glow: 0xff5a1a, vein: 0x12040a, rim: 0x5a3a8a, scale: 1.2, bump: 1.0, wet: 0.5, ridge: 70, metal: 0.12, sheen: 0.1, breath: 0.01 });
   const U = bio.userData.u; U.uCrackGlow.value = 0.12; U.uVeinGlow.value = 0.05;
   const ORANGE = new THREE.Color(color), HOT = 0xff6a20;
   const root = new THREE.Group(), body = new THREE.Group(); body.position.y = 0.22; root.add(body);
@@ -24,7 +24,7 @@ export default function build(kit, color) {
   const rzF = prof([[-1.55, 0.1], [-1.4, 0.3], [-0.95, 0.56], [-0.4, 0.62], [0.1, 0.72], [0.6, 0.8], [0.95, 0.68], [1.15, 0.42]]);
   const cyF = prof([[-1.55, -0.12], [-0.5, 0.0], [0.6, 0.08], [1.15, 0.0]]);
   const RY = 0.84;
-  const FLESH = 0x4a1c2c, FLESH2 = 0x6a3040, CHIT = 0x1f1a2c, BONE = 0xd6c7a6;
+  const FLESH = 0x3a1a26, FLESH2 = 0x4e2c36, CHIT = 0x1a1524, BONE = 0x9a8868;
 
   /* ── CARNE del torso: lomo musculoso con vientre claro ── */
   const parts = [];
@@ -59,18 +59,18 @@ export default function build(kit, color) {
   });
   // capucha del cuello (pronotum): domo grande que cae por delante sobre la cabeza, con borde serrado
   { const g = patch((u, v) => {
-      const phi = (u - 0.5) * 2 * 2.0, z = 0.55 + v * 0.95, edge = Math.abs(u * 2 - 1);
+      const phi = (u - 0.5) * 2 * 2.0, z = 0.5 + v * 0.8, edge = Math.abs(u * 2 - 1);
       const off = (0.1 + 0.34 * Math.pow(v, 1.2) * (1 - 0.5 * edge) - 0.05 * Math.pow(Math.max(0, v - 0.7) * 3.3, 2) * 0.0) * (1 - 0.7 * sstep(0.8, 1, edge));
       const rx = Math.max(rzF(Math.min(z, 1.15)), 0.45) + off + 0.02 * Math.sin(u * 40) * v;
       const y = cyF(Math.min(z, 1.15)) + Math.cos(phi) * rx * RY + 0.18 * Math.sin(v * Math.PI) * 0.6;
       return new V3(Math.sin(phi) * rx * (1 + 0.15 * v), y - 0.1 * v * v, z);
-    }, R + 8, 8, { thick: 0.045 });
+    }, R + 8, 8, { thick: 0.045, inner: true });
     parts.push(paint(g, CHIT, 1, 0, (p, n, uv) => ({ k: 0.6 + 0.6 * uv[1] + 0.2 * Math.exp(-Math.pow((uv[0] - 0.5) * 6, 2)), g: sstep(0.8, 1, uv[1]) * 0.6, c: 0x2c2240 })));
-    const sp = []; for (let i = 0; i < (LOW ? 5 : 9); i++) { const u = (i + 0.5) / (LOW ? 5 : 9), phi = (u - 0.5) * 4.0, z = 1.5, rx = 0.45 + 0.34 * 0.88 * (1 - 0.5 * Math.abs(u * 2 - 1)) + 0.02; sp.push({ p: new V3(Math.sin(phi) * rx * 1.12, cyF(1.15) + Math.cos(phi) * rx * RY - 0.12, z - 0.04), d: new V3(Math.sin(phi) * 0.6, 0.15, 1), r: 0.07, h: 0.34 - Math.abs(phi) * 0.07 }); }
+    const sp = []; const NH = LOW ? 5 : 7; for (let i = 0; i < NH; i++) { const u = (i + 0.5) / NH, phi = (u - 0.5) * 3.2, z = 1.28, rx = 0.45 + 0.34 * 0.8 * (1 - 0.5 * Math.abs(u * 2 - 1)) + 0.02; sp.push({ p: new V3(Math.sin(phi) * rx * 1.12, cyF(1.15) + Math.cos(phi) * rx * RY - 0.1, z - 0.04), d: new V3(Math.sin(phi) * 0.7, 0.2, 1), r: 0.085, h: 0.4 - Math.abs(phi) * 0.09 }); }
     parts.push(spikes(sp, { sides: 5, color: BONE, cls: 2, curve: 0.15 })); }
   // hombreras y ancas: placas abombadas a los lados
   for (const sd of [-1, 1]) {
-    const sh = domePlate(0.3, 0.42, 0.2, { ridge: 0.6, thick: 0.04 }); parts.push(paint(aimY(sh, new V3(sd * 0.7, 0.2, 0.5), new V3(sd * 0.85, 0.65, 0.1), [1, 1, 1]), CHIT, 1, 0, (p, n, uv) => ({ k: 0.6 + 0.6 * Math.max(0, p.y), g: sstep(0.8, 1, Math.max(Math.abs(uv[0] * 2 - 1), Math.abs(uv[1] * 2 - 1))) * 0.5 })));
+    const sh = domePlate(0.3, 0.42, 0.2, { ridge: 0.6, thick: 0.04, inner: true }); parts.push(paint(aimY(sh, new V3(sd * 0.7, 0.2, 0.5), new V3(sd * 0.85, 0.65, 0.1), [1, 1, 1]), CHIT, 1, 0, (p, n, uv) => ({ k: 0.6 + 0.6 * Math.max(0, p.y), g: sstep(0.8, 1, Math.max(Math.abs(uv[0] * 2 - 1), Math.abs(uv[1] * 2 - 1))) * 0.5 })));
     const hp = domePlate(0.26, 0.4, 0.17, { ridge: 0.4, thick: 0.04 }); parts.push(paint(aimY(hp, new V3(sd * 0.66, 0.1, -0.7), new V3(sd * 0.9, 0.5, -0.1)), CHIT, 1, 0, (p, n, uv) => ({ k: 0.6 + 0.5 * Math.max(0, p.y), g: sstep(0.8, 1, Math.max(Math.abs(uv[0] * 2 - 1), Math.abs(uv[1] * 2 - 1))) * 0.5 })));
     parts.push(spikes([{ p: new V3(sd * 0.92, 0.4, 0.52), d: new V3(sd * 1, 0.5, 0.1), r: 0.1, h: 0.44 }, { p: new V3(sd * 0.9, 0.34, 0.2), d: new V3(sd * 1, 0.5, -0.2), r: 0.08, h: 0.32 }, { p: new V3(sd * 0.86, 0.2, -0.7), d: new V3(sd * 1, 0.4, -0.5), r: 0.08, h: 0.3 }], { sides: 5, color: BONE, cls: 2, curve: -0.2 }));
   }
@@ -86,7 +86,7 @@ export default function build(kit, color) {
     mesh(merge(tp), tail); }
 
   /* ── CABEZA: cráneo, cejas pesadas, cuerno de hueso→cristal, colmillos, mandíbula ── */
-  const head = new THREE.Group(); head.position.set(0, -0.02, 1.0); body.add(head);
+  const head = new THREE.Group(); head.position.set(0, -0.04, 1.14); body.add(head);
   { const hp = [];
     const sk = loft([new V3(0, 0.02, -0.3), new V3(0, 0, 0.2), new V3(0, -0.07, 0.55), new V3(0, -0.14, 0.8)], { seg: 10, radial: R + 2, r: prof([[0, 0.4], [0.4, 0.4], [0.75, 0.25], [1, 0.14]]), ry: () => 0.78, round: [0.1, 0.12] });
     hp.push(paint(sk, FLESH, 0, 0, (p, n) => ({ cls: n.y > 0.1 ? 1 : 0, c: n.y > 0.1 ? 0x261d33 : FLESH, k: n.y > 0.1 ? 0.8 + 0.4 * p.z : 0.9 })));
@@ -101,9 +101,9 @@ export default function build(kit, color) {
       hp.push(paint(loft([new V3(sd * 0.2, -0.17, 0.62), new V3(sd * 0.26, -0.3, 0.8), new V3(sd * 0.18, -0.34, 1.05)], { seg: 8, radial: 6, r: (t) => lerp(0.07, 0.008, t), round: [0.1, 0] }), BONE, 2, 0));
     }
     // CUERNO: base ósea ancha, anillos de crecimiento, curva hacia delante y arriba; la punta se vuelve cristal
-    const hc = new THREE.CatmullRomCurve3([new V3(0, 0.05, 0.4), new V3(0, 0.22, 0.85), new V3(0, 0.44, 1.35), new V3(0, 0.78, 1.8), new V3(0, 1.08, 2.05)], false, 'centripetal');
-    const horn = loft(hc, { seg: LOW ? 10 : 20, radial: R, r: (t) => lerp(0.27, 0.012, Math.pow(t, 0.72)) * (1 + 0.05 * Math.sin(t * 60)), ry: () => 0.92, round: [0.04, 0] });
-    hp.push(paint(horn, BONE, 2, 0, (p, n, uv) => { const t = uv[1], c = new THREE.Color(0x4a3a30).lerp(new THREE.Color(BONE), sstep(0.0, 0.3, t)).lerp(ORANGE, sstep(0.55, 0.8, t)); return { c, cls: 2 + sstep(0.58, 0.78, t), g: sstep(0.5, 1, t) * 0.8, k: 1 }; }));
+    const hc = new THREE.CatmullRomCurve3([new V3(0, 0.05, 0.4), new V3(0, 0.2, 0.8), new V3(0, 0.4, 1.2), new V3(0, 0.72, 1.55), new V3(0, 1.02, 1.74)], false, 'centripetal');
+    const horn = loft(hc, { seg: LOW ? 10 : 20, radial: R, r: (t) => lerp(0.34, 0.015, Math.pow(t, 0.85)) * (1 + 0.05 * Math.sin(t * 60)), ry: () => 0.92, round: [0.04, 0] });
+    hp.push(paint(horn, BONE, 2, 0, (p, n, uv) => { const t = uv[1], c = new THREE.Color(0x2e241c).lerp(new THREE.Color(BONE), sstep(0.0, 0.25, t)).lerp(ORANGE, sstep(0.55, 0.8, t)); return { c, cls: 2 + sstep(0.58, 0.78, t), g: sstep(0.5, 1, t) * 0.8, k: 1 }; }));
     // collar de hueso en la base del cuerno
     hp.push(paint(loft([new V3(0, 0.0, 0.34), new V3(0, 0.12, 0.62)], { seg: 4, radial: R, r: () => 0.36, ry: () => 0.85, round: [0.3, 0.3] }), 0x3a3040, 1, 0, () => ({ k: 0.9 })));
     mesh(merge(hp), head); head.userData.hornCurve = hc; }
@@ -125,13 +125,13 @@ export default function build(kit, color) {
   const legGeo = (() => {
     // (lado derecho, +x). El muslo mira hacia abajo (-y); la placa externa está en +x.
     const up = [], lo = [];
-    const thigh = loft(line([0, 0, 0], [0, -UP, 0]), { seg: 10, radial: R, r: prof([[0, 0.2], [0.28, 0.265], [0.62, 0.19], [1, 0.115]]), ry: () => 0.9, round: [0.2, 0.0], mod: (t, a) => 1 + 0.07 * Math.sin(a * 3 + t * 5) * (1 - t) });
+    const thigh = loft(line([0, 0, 0], [0, -UP, 0]), { seg: 10, radial: R, r: prof([[0, 0.25], [0.28, 0.32], [0.62, 0.22], [1, 0.13]]), ry: () => 0.9, round: [0.2, 0.0], mod: (t, a) => 1 + 0.07 * Math.sin(a * 3 + t * 5) * (1 - t) });
     up.push(paint(thigh, FLESH, 0, 0, (p, n) => ({ k: 0.8 + 0.3 * n.x, g: 0.0 })));
     const gp = domePlate(0.15, 0.36, 0.13, { ridge: 0.5, thick: 0.03, nu: 6, nv: 6 }); up.push(paint(aimY(gp, new V3(0.17, -UP * 0.42, 0.0), new V3(1, 0.15, 0.0)), CHIT, 1, 0, (p, n, uv) => ({ k: 0.55 + 0.7 * Math.max(0, p.x * 3), g: sstep(0.8, 1, Math.max(Math.abs(uv[0] * 2 - 1), Math.abs(uv[1] * 2 - 1))) * 0.5 })));
     up.push(paint(blobGeo(0.15, 0.15, 0.17, 10, 8), CHIT, 1, 0, (p) => ({ k: 0.7 + 0.5 * p.y })));
     up[up.length - 1] = place(up[up.length - 1], [0, -UP, 0]);
     up.push(spikes([{ p: new V3(0.06, -UP, -0.14), d: new V3(0.4, 0.2, -1), r: 0.06, h: 0.3 }, { p: new V3(0.12, -UP * 0.6, -0.08), d: new V3(1, 0.3, -0.6), r: 0.04, h: 0.2 }], { sides: 5, color: BONE, cls: 2, curve: -0.2 }));
-    const shin = loft(line([0, 0, 0], [0, -LO, 0]), { seg: 10, radial: R, r: prof([[0, 0.115], [0.16, 0.13], [0.45, 0.085], [1, 0.05]]), ry: () => 0.95, round: [0.0, 0.0] });
+    const shin = loft(line([0, 0, 0], [0, -LO, 0]), { seg: 10, radial: R, r: prof([[0, 0.13], [0.16, 0.165], [0.45, 0.105], [1, 0.06]]), ry: () => 0.95, round: [0.0, 0.0] });
     lo.push(paint(shin, FLESH, 0, 0, (p, n) => ({ k: 0.8 + 0.3 * n.x })));
     const sg = domePlate(0.08, 0.3, 0.07, { ridge: 0.6, thick: 0.02, nu: 5, nv: 6 }); lo.push(paint(aimY(sg, new V3(0.0, -LO * 0.4, 0.075), new V3(0, 0.1, 1)), CHIT, 1, 0, (p, n, uv) => ({ k: 0.7 + 0.5 * Math.max(0, p.y * 4), g: 0.0 })));
     // tendón: tubo claro por detrás de la tibia
@@ -145,7 +145,7 @@ export default function build(kit, color) {
   for (let i = 0; i < 4; i++) {
     const side = i % 2 ? 1 : -1, row = i >> 1, hz = hipsZ[row];
     const l = ikLeg(bio, side > 0 ? legGeo.uR : legGeo.uL, bio, side > 0 ? legGeo.lR : legGeo.lL, { upper: UP, lower: LO });
-    l.object.position.set(side * 0.55, 0.0, hz); l.setBend(new V3(side * 0.35, 1, row ? -0.9 : 0.9)); body.add(l.object);
+    l.object.position.set(side * 0.6, 0.0, hz); l.setBend(new V3(side * 0.35, 1, row ? -0.9 : 0.9)); body.add(l.object);
     legs.push({ l, side, row, base: new V3(side * 0.08, -1.22, row ? -0.05 : 0.1), ph: (i === 0 || i === 3) ? 0 : Math.PI });
   }
 
@@ -205,7 +205,7 @@ export default function build(kit, color) {
     // ─ cabeza: pesada, sigue al jugador con retardo; baja para embestir; cae mareada
     head.rotation.x = lerp(0.02 + hurtLow * 0.12, 0.42, wind) + chg * 0.22 + stun * (0.28 + sx(t * 1.9 + 1) * 0.14) + pitchS + hitK * 0.2 - Math.max(0, Math.sin(phase * 2)) * 0.05 * run;
     head.rotation.y = yawS * 0.5 * (1 - heat * 0.8) + stun * sx(t * 1.6) * 0.5 + sx(t * 0.8 + id) * 0.04;
-    head.position.set(0, -0.02 - wind * 0.1 - stun * 0.12, 1.0 + chg * 0.06);
+    head.position.set(0, -0.04 - wind * 0.1 - stun * 0.12, 1.14 + chg * 0.06);
     jaw.rotation.x = clamp(0.1 + breath * 0.1 + wind * (0.35 + 0.25 * sx(wt * 20)) + chg * 0.55 + stun * 0.35 + hurtLow * 0.15 + hit * 0.4, 0, 1) * 0.6;
     // ─ materiales: las juntas del caparazón, las venas y el cuerno se ponen al rojo
     U.uGlow.value = heat * 1.1 + hit * 0.5; U.uCrackGlow.value = 0.1 + heat * 1.6 + hurtLow * 0.4; U.uVeinGlow.value = 0.05 + heat * 0.8 + hurtLow * 0.3 + (wind > 0.1 ? 0.2 * sx(wt * 14) : 0);

@@ -5,8 +5,9 @@ import { cfg } from './quality.js';
 import { qualityOf } from './weapons/kit.js';
 import { BUILD, WEAPON_COLORS } from './weapons/guns.js';
 import { VMFx, flashTexture } from './weapons/fx.js';
+import { applyUpgrades } from './weapons/mods.js';
 
-export { WEAPON_COLORS };
+export { WEAPON_COLORS, applyUpgrades };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const smooth = (x) => x * x * (3 - 2 * x);
@@ -23,7 +24,7 @@ export class Viewmodels {
     this.root = new THREE.Group(); camera.add(this.root);
     this.q = qualityOf(cfg().humans); this.fx = new VMFx(this.root, haloTexture, this.q);
     this.items = []; this.cur = -1; this.pending = -1; this.low = 1; this.phase = 'in'; this.t = 0;
-    this.sx = 0; this.sy = 0; this.bobPhase = 0; this.bobAmp = 0; this.lastSx = 0; this.ammo = {}; this.hidden = false;
+    this.upg = {}; this.sx = 0; this.sy = 0; this.bobPhase = 0; this.bobAmp = 0; this.lastSx = 0; this.ammo = {}; this.hidden = false;
   }
   /** Reconstruye las armas con otro nivel de calidad ('low' | 'medium' | 'high'). */
   setQuality(name) {
@@ -33,7 +34,7 @@ export class Viewmodels {
   }
   _ensure(i) {
     let it = this.items[i]; if (it) return it;
-    const W = BUILD[i](this.q, true), rig = new THREE.Group(); rig.add(W.group);
+    const W = BUILD[i](this.q, true), rig = new THREE.Group(); rig.add(W.group); W.group.userData.index = i; W.group.userData.muzzle = W.muzzle; if (this.upg[i]) applyUpgrades(W.group, this.upg[i]);
     const hex = WEAPON_COLORS[i], shape = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTexture(W.flash.shape), color: new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.55), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: hex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
     for (const s of [glow, shape]) { s.position.set(...W.muzzle); s.renderOrder = 10; rig.add(s); }
@@ -50,6 +51,8 @@ export class Viewmodels {
     if (this.ammo.n !== undefined) W.setAmmo(this.ammo.n, this.ammo.max);
     this.items[i] = it; return it;
   }
+  /** Mejoras visibles de un arma: upg = { dmg:0-5, rate:0-5, mag:0-4, mod:null|'perfora'|'explosiva'|'cadena'|'vampirica' }. Se recuerdan por arma. */
+  setUpgrades(weaponId, upg) { this.upg[weaponId] = upg ? { ...upg } : null; const it = this.items[weaponId]; if (it) applyUpgrades(it.W.group, upg || {}); }
   setAmmo(n, max) { this.ammo = { n, max }; const it = this.items[this.cur]; if (it) it.W.setAmmo(n, max); }
   setWeapon(i) {
     if (!(i >= 0 && i < BUILD.length)) return;
@@ -108,7 +111,7 @@ export class Viewmodels {
  *  group.userData: muzzle [x,y,z] · tick(dt,t,firing) · shoot() · setAmmo(n,max) · dispose(). `hands:true` agrega guantes (no suele hacer falta). */
 export function createWeaponModel(index = 0, { quality = 'high', hands = false } = {}) {
   const i = ((index % BUILD.length) + BUILD.length) % BUILD.length, W = BUILD[i](qualityOf(quality), !!hands), g = W.group;
-  g.userData.muzzle = W.muzzle; g.userData.tick = (dt, t, firing) => W.update(Math.min(dt, 0.1), t, !!firing);
+  g.userData.index = i; g.userData.muzzle = W.muzzle; g.userData.tick = (dt, t, firing) => W.update(Math.min(dt, 0.1), t, !!firing);
   g.userData.shoot = () => W.fire(null); g.userData.setAmmo = W.setAmmo; g.userData.dispose = W.dispose; g.userData.eject = W.eject; g.userData.weapon = W;
   return g;
 }

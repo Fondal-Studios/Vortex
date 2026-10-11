@@ -13,16 +13,16 @@ export function forearm(k, wrist, dir, len, r0, r1, hex) {
   const rr = (t) => r0 + (r1 - r0) * (t / len), qBasis = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(side.clone().negate(), up, d.clone().negate()));
   const off = (t, h) => at(t).map((x, i) => x + up.getComponent(i) * (rr(t) + h));
   k.limb('g', wrist, at(len), r0, r1, { c: GLOVE, seg: 9 });
-  k.limb('b', at(-0.01), at(0.055), r0 * 1.14, r0 * 1.2, { c: 0xaab0d8, seg: 9 });                                 // muñequera pulida
+  k.limb('b', at(-0.01), at(0.055), r0 * 1.14, r0 * 1.2, { c: 0x585e82, seg: 9 });                                 // muñequera pulida
   k.limb('g', at(0.055), at(0.09), r0 * 1.16, r0 * 1.12, { c: GLOVE2, seg: 9 });
-  for (const [t0, t1, m] of [[0.1, 0.27, 1], [0.3, len * 0.6, 0.85], [len * 0.63, len * 0.97, 0.7]]) {
+  for (const [t0, t1, m] of [[0.1, 0.27, 1], [0.3, 0.55, 0.85], [0.58, 0.9, 0.7]]) {
     if (t0 >= len) continue; const tm = (t0 + t1) / 2, l = t1 - t0;
-    k.box('b', [rr(tm) * 1.55, 0.013, l], off(tm, 0.0035), { c: tint(hex, 0.55 * m), q: qBasis, rad: 0.004 });          // placa dorsal
-    k.box('b', [0.006, rr(tm) * 0.8, l * 0.9], at(tm).map((x, i) => x + side.getComponent(i) * (rr(tm) + 0.002) - up.getComponent(i) * 0.002), { c: tint(hex, 0.4 * m), q: qBasis, rad: 0.002 });
-    k.box('b', [0.006, rr(tm) * 0.8, l * 0.9], at(tm).map((x, i) => x - side.getComponent(i) * (rr(tm) + 0.002) - up.getComponent(i) * 0.002), { c: tint(hex, 0.4 * m), q: qBasis, rad: 0.002 });
+    k.box('b', [rr(tm) * 1.25, 0.012, l], off(tm, 0.0035), { c: tint(hex, 0.3 * m), q: qBasis, rad: 0.004 });          // placa dorsal
+    k.box('b', [0.006, rr(tm) * 0.8, l * 0.9], at(tm).map((x, i) => x + side.getComponent(i) * (rr(tm) + 0.002) - up.getComponent(i) * 0.002), { c: tint(hex, 0.24 * m), q: qBasis, rad: 0.002 });
+    k.box('b', [0.006, rr(tm) * 0.8, l * 0.9], at(tm).map((x, i) => x - side.getComponent(i) * (rr(tm) + 0.002) - up.getComponent(i) * 0.002), { c: tint(hex, 0.24 * m), q: qBasis, rad: 0.002 });
   }
   k.box('l', [0.006, 0.005, 0.2], off(0.2, 0.0105), { k: 0, c: 0x666666, q: qBasis, rad: 0.001 });                      // hilo de cristal
-  k.poly('l', 'oct', 0.012, off(0.36, 0.02), { k: 1, s: [1, 0.8, 1.6], q: qBasis });
+  k.poly('l', 'oct', 0.011, off(0.36, 0.02), { k: 1, c: 0x777777, s: [1, 0.8, 1.6], q: qBasis });
   if (k.q.detail) k.tor('l', [rr(0.062) * 1.2, 0.0035], at(0.062), { q: new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), d), c: 0x666666, k: 0, seg: 16 });
 }
 
@@ -32,7 +32,7 @@ export function forearm(k, wrist, dir, len, r0, r1, hex) {
  * Devuelve el pivote del índice.
  */
 export function rightHand(k, g, hex, { arm = true } = {}) {
-  const { zc, top, d, hw } = g, r = 0.0135, x1 = hw + 0.013, zF = zc - d / 2, zR = zc + d / 2, plate = tint(hex, 0.5);
+  const { zc, top, d, hw } = g, r = 0.0135, x1 = hw + 0.013, zF = zc - d / 2, zR = zc + d / 2, plate = tint(hex, 0.3);
   // palma y talón de la mano
   k.box('g', [0.036, 0.118, d + 0.05], [hw + 0.02, top - 0.052, zc + 0.004], { c: GLOVE, rad: 0.014 });
   k.box('g', [hw * 2 + 0.03, 0.07, 0.05], [0, top - 0.042, zR + 0.024], { c: GLOVE2, rad: 0.012 });
@@ -53,7 +53,7 @@ export function rightHand(k, g, hex, { arm = true } = {}) {
   // dorso de la mano: placa iridiscente + gema
   k.box('b', [0.02, 0.07, d + 0.03], [hw + 0.04, top - 0.052, zc - 0.002], { c: plate, rad: 0.008 });
   if (k.q.detail) k.poly('l', 'oct', 0.009, [hw + 0.052, top - 0.052, zc - 0.002], { k: 1, s: [0.7, 1.2, 1.2] });
-  if (arm) forearm(k, [hw + 0.03, top - 0.06, zR + 0.06], [0.32, -0.3, 1], 0.5, 0.03, 0.04, hex);
+  if (arm) forearm(k, [hw + 0.03, top - 0.06, zR + 0.06], [0.32, -0.3, 1], 0.95, 0.03, 0.05, hex);
   return [x1, top - 0.027, zR - 0.006];
 }
 
@@ -72,7 +72,7 @@ export function triggerFinger(k, g, pivot, reach) {
  * Los dedos pasan por debajo y suben por la derecha; el pulgar queda encima, a la izquierda.
  */
 export function supportHand(k, c, R, hex, { axis = 'z', arm = true, spread = 1, flip = 1 } = {}) {
-  const rot = axis === 'y' ? new THREE.Euler(Math.PI / 2, 0, 0) : new THREE.Euler(0, 0, 0), plate = tint(hex, 0.5), Rf = R + 0.012, r = 0.0125;
+  const rot = axis === 'y' ? new THREE.Euler(Math.PI / 2, 0, 0) : new THREE.Euler(0, 0, 0), plate = tint(hex, 0.3), Rf = R + 0.012, r = 0.0125;
   const a0 = THREE.MathUtils.degToRad(-128), a1 = THREE.MathUtils.degToRad(35);
   k.at(c, [rot.x, rot.y, rot.z], () => {
     for (let i = 0; i < 4; i++) {
@@ -90,7 +90,7 @@ export function supportHand(k, c, R, hex, { axis = 'z', arm = true, spread = 1, 
     k.limb('g', t0, t1, 0.0165, 0.0145, { c: GLOVE, ball: true }); k.limb('g', t1, t2, 0.0145, 0.0125, { c: GLOVE, ball: true });
     k.box('l', [0.013, 0.004, 0.013], [t2[0], t2[1] + 0.009, t2[2] - 0.004], { k: 1, c: 0xffffff, rad: 0.001 });
     if (arm) { // antebrazo hacia atrás-abajo-izquierda (en el marco local; se corrige por eje)
-      forearm(k, [Math.cos(pa) * (Rf + 0.025), Math.sin(pa) * (Rf + 0.025), 0.06], [-0.34 * flip, -0.2, 1], 0.5, 0.031, 0.04, hex);
+      forearm(k, [Math.cos(pa) * (Rf + 0.025), Math.sin(pa) * (Rf + 0.025), 0.06], [-0.34 * flip, -0.2, 1], 0.95, 0.031, 0.05, hex);
     }
   });
 }

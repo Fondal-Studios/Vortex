@@ -214,13 +214,13 @@ function surfaceDetail(mat, hex, strength = 1) {
   mat.customProgramCacheKey = () => 'wsurf';
 }
 
-export const TUNE = { iri: 0.4, thick: [150, 500], rough: 0.34, cc: 0.3, env: 1.3, rim: 0.45 };
+export const TUNE = { met: 0.7, iri: 0.4, thick: [150, 500], rough: 0.5, cc: 0.0, env: 0.9, rim: 0.3 };
 /** Los tres materiales de un arma. body: metal anodizado iridiscente; glove: tela técnica; glow: cristal. */
 export function makeMats(q, hex) {
   let body, glove;
   if (q.high) {
-    body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 1, roughness: TUNE.rough, clearcoat: TUNE.cc, clearcoatRoughness: 0.07, iridescence: TUNE.iri, iridescenceIOR: 1.9, iridescenceThicknessRange: TUNE.thick, envMapIntensity: TUNE.env });
-    glove = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 0.1, roughness: 0.62, sheen: 0.7, sheenColor: new THREE.Color(hex).multiplyScalar(0.3), sheenRoughness: 0.6, envMapIntensity: 0.45 });
+    body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: TUNE.met, roughness: TUNE.rough, clearcoat: TUNE.cc, clearcoatRoughness: 0.07, iridescence: TUNE.iri, iridescenceIOR: 1.9, iridescenceThicknessRange: TUNE.thick, envMapIntensity: TUNE.env });
+    glove = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 0.1, roughness: 0.62, sheen: 0.3, sheenColor: new THREE.Color(hex).multiplyScalar(0.2), sheenRoughness: 0.6, envMapIntensity: 0.45 });
   } else if (q.name === 'medium') {
     body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 1, roughness: 0.4, iridescence: TUNE.iri, iridescenceIOR: 1.9, iridescenceThicknessRange: TUNE.thick, envMapIntensity: TUNE.env });
     glove = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.1, roughness: 0.7, envMapIntensity: 0.45 });

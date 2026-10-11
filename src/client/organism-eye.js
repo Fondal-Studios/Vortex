@@ -14,11 +14,11 @@ const clamp = THREE.MathUtils.clamp;
 
 const KINDS = {
   //            iris(ang) pupila-forma   párpado sup.  ojo-compuesto
-  normal:   { irisAng: 0.52, pupil: 'round', cover: 0.62 },
-  predator: { irisAng: 0.66, pupil: 'slit', cover: 0.42 },
+  normal:   { irisAng: 0.52, pupil: 'round', cover: 0.68 },
+  predator: { irisAng: 0.66, pupil: 'slit', cover: 0.52 },
   cyclops:  { irisAng: 0.72, pupil: 'round', cover: 0.7 },
-  insect:   { irisAng: 0.0, pupil: 'round', cover: 0.9, compound: 9 },
-  compound: { irisAng: 0.0, pupil: 'round', cover: 0.9, compound: 16 },
+  insect:   { irisAng: 0.0, pupil: 'round', cover: 0.9, compound: 6 },
+  compound: { irisAng: 0.0, pupil: 'round', cover: 0.9, compound: 10 },
 };
 
 const SEGS = () => (isLow() ? [14, 10] : cfg().humans === 'medium' ? [20, 14] : [28, 20]);
@@ -38,8 +38,9 @@ function sclera(color, vein, kind, lowQ) {
       .replace('#include <common>', `#include <common>\nvarying vec3 vObj; uniform float uTime,uHurt,uGlow,uVeinK,uIrisAng,uDil; uniform vec3 uVeinC,uLook,uCol; ${NOISE_GLSL}`)
       .replace('#include <color_fragment>', comp ? `#include <color_fragment>
         vec3 d = normalize(vObj); float cellN = ${KINDS[kind].compound}.0 * 1.0;
-        vec3 q = d * cellN * 2.0; vec3 cid = floor(q + 0.5); vec3 cf = q - cid;
-        float hsh = h31(cid + 3.1); float fac = 1.0 - smoothstep(0.25, 0.62, length(cf));
+        vec3 q = d * cellN; vec3 c1 = floor(q + 0.5), c2 = floor(q) + 0.5; vec3 f1 = q - c1, f2 = q - c2;
+        float l1 = dot(f1, f1), l2 = dot(f2, f2); vec3 cid = l1 < l2 ? c1 : c2; vec3 cf = l1 < l2 ? f1 : f2;
+        float hsh = h31(cid + 3.1); float fac = 1.0 - smoothstep(0.18, 0.5, length(cf));
         float ps = smoothstep(0.82, 0.97, dot(d, normalize(uLook)));                  // pseudopupila: la mancha oscura que sigue al que mira
         vec3 fc = mix(uCol * 0.35, uCol * 1.15, fac);
         fc = mix(fc, fc * (0.6 + 0.8 * vec3(hsh, fract(hsh * 7.3), fract(hsh * 3.7))), 0.55);
@@ -48,8 +49,8 @@ function sclera(color, vein, kind, lowQ) {
         vec3 d = normalize(vObj);
         float side = 1.0 - smoothstep(0.1, 0.85, d.z);
         float v1 = abs(vn(d * 7.0) - 0.5), v2 = abs(vn(d * 15.0 + 4.0) - 0.5);
-        float vein = max(1.0 - smoothstep(0.0, 0.03, v1), (1.0 - smoothstep(0.0, 0.02, v2)) * 0.8) * (0.2 + 0.8 * side) * uVeinK;
-        diffuseColor.rgb = mix(diffuseColor.rgb, uVeinC, vein * 0.75);
+        float vein = max(1.0 - smoothstep(0.0, 0.045, v1), (1.0 - smoothstep(0.0, 0.03, v2)) * 0.85) * (0.3 + 0.7 * side) * uVeinK;
+        diffuseColor.rgb = mix(diffuseColor.rgb, uVeinC, vein * 0.9); diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.0, 0.86, 0.72), smoothstep(0.3, 1.0, side) * 0.5);
         diffuseColor.rgb *= 0.88 + 0.2 * vn(d * 3.0 + 2.0);
         diffuseColor.rgb *= 1.0 - 0.45 * smoothstep(0.55, 0.95, abs(d.y));              // oclusión de párpados
         float ang = acos(clamp(d.z, -1.0, 1.0)); diffuseColor.rgb *= 0.55 + 0.45 * smoothstep(uIrisAng * 0.92, uIrisAng * 1.4, ang);   // limbo`)
@@ -61,7 +62,7 @@ function sclera(color, vein, kind, lowQ) {
 
 function irisMaterial(color, lowQ) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.32, metalness: 0, emissive: new Col(color), emissiveIntensity: 0.5 });
-  const u = { uHurt: { value: 0 }, uGlow: { value: 0.5 }, uCol: { value: new Col(color) }, uCapR: { value: 1 }, uIrisAng: { value: 0.5 }, uPup: { value: new THREE.Vector2(0.3, 0.3) }, uTime, uMode: { value: 0 }, uRing: { value: new Col(color).multiplyScalar(0.35) }, uSeed: { value: Math.random() * 20 } };
+  const u = { uHurt: { value: 0 }, uGlow: { value: 0.5 }, uCol: { value: new Col(color) }, uCapR: { value: 1 }, uIrisAng: { value: 0.5 }, uPup: { value: new THREE.Vector2(0.3, 0.3) }, uTime, uMode: { value: 0 }, uRing: { value: new Col(color).multiplyScalar(0.35) }, uSeed: { value: Math.random() * 20 }, uCatch: { value: 0 } };
   m.userData.u = u;
   m.polygonOffset = true; m.polygonOffsetFactor = -2; m.polygonOffsetUnits = -2;
   m.customProgramCacheKey = () => `org-iris-${lowQ ? 'L' : 'H'}`;
@@ -71,7 +72,7 @@ function irisMaterial(color, lowQ) {
       .replace('#include <common>', '#include <common>\nuniform float uCapR; varying vec3 vDir;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvDir = normalize(position); transformed = vDir * uCapR;');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vDir; uniform float uTime,uHurt,uGlow,uIrisAng,uMode,uSeed; uniform vec2 uPup; uniform vec3 uCol,uRing; ${NOISE_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vDir; uniform float uTime,uHurt,uGlow,uIrisAng,uMode,uSeed,uCatch; uniform vec2 uPup; uniform vec3 uCol,uRing; ${NOISE_GLSL}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         vec3 dn = normalize(vDir); float ang = acos(clamp(dn.z, -1.0, 1.0));
         vec2 q = dn.xy / max(sin(uIrisAng), 0.05); float rr = length(q);                     // 0 centro .. 1 borde del iris
@@ -95,7 +96,9 @@ function irisMaterial(color, lowQ) {
         ic += uCol * 0.5 * smoothstep(1.0, 1.35, pe) * (1.0 - smoothstep(1.35, 1.8, pe)) * 0.3;   // halo cálido junto a la pupila
         diffuseColor.rgb = ic; float irisMask = 1.0 - pm;`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        totalEmissiveRadiance = diffuseColor.rgb * uGlow * 0.9 * irisMask * (0.55 + 0.9 * fib) + vec3(1.0, 0.85, 0.7) * uHurt * 0.8 * irisMask;`);
+        vec3 Vi = normalize(vViewPosition); vec3 Ri = reflect(-Vi, normal);
+        float catchW = smoothstep(0.93, 0.975, dot(Ri, normalize(vec3(-0.38, 0.62, 0.69)))) * uCatch;
+        totalEmissiveRadiance = diffuseColor.rgb * uGlow * 0.9 * irisMask * (0.55 + 0.9 * fib) + vec3(1.0, 0.85, 0.7) * uHurt * 0.8 * irisMask + vec3(catchW * 0.9);`);
   };
   return registerMat(m, true);
 }
@@ -107,10 +110,10 @@ function corneaMaterial() {
     sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', `
       // sólo el reflejo húmedo: especular real (sol + entorno) + un reflejo de ventana fijo que le da vida siempre
       vec3 Vc = normalize(vViewPosition); vec3 Rc = reflect(-Vc, normal);
-      float win = smoothstep(0.945, 0.975, dot(Rc, normalize(vec3(-0.38, 0.62, 0.69)))) + 0.5 * smoothstep(0.96, 0.985, dot(Rc, normalize(vec3(0.5, -0.35, 0.8))));
+      float win = smoothstep(0.955, 0.985, dot(Rc, normalize(vec3(-0.38, 0.62, 0.69))));
       float fr = pow(1.0 - clamp(dot(normal, Vc), 0.0, 1.0), 3.0);
       vec3 spec = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
-      gl_FragColor = vec4(spec + vec3(win * 0.85 + fr * 0.06), 1.0);`);
+      gl_FragColor = vec4(spec + vec3(win * 0.7 + fr * 0.05), 1.0);`);
   };
   return registerMat(m, true);
 }
@@ -124,6 +127,7 @@ function corneaMaterial() {
 export function eye({ r = 0.2, iris = 0xffc23a, pupil, glow = 0.5, kind = 'normal', sclera: sclCol = 0xe3cdbd, vein = 0xb0182e, lidSkin = null, lids = true, follow = 0.55, lag = 0.5 } = {}) {
   const K = KINDS[kind] || KINDS.normal; const lowQ = isLow(); pupil = pupil || K.pupil; const compound = !!K.compound;
   const g = new THREE.Group();
+  const small = r < 0.1, useCornea = !lowQ && !small, useLower = !lowQ && r >= 0.14, useUpper = lids && r >= 0.06;
   const sclM = sclera(sclCol, vein, kind, lowQ), irisM = irisMaterial(iris, lowQ), corM = corneaMaterial();
   sclM.userData.u.uIrisAng.value = K.irisAng || 0.5; sclM.userData.u.uCol.value.set(iris);
   const [sw, sh2] = SEGS();
@@ -140,16 +144,15 @@ export function eye({ r = 0.2, iris = 0xffc23a, pupil, glow = 0.5, kind = 'norma
   pupH.scale.set(r * baseP[0], r * baseP[1], 1);
   const cornea = new THREE.Mesh(cache(`eyecor${sw}`, () => { const c = new THREE.SphereGeometry(1, sw + 6, Math.max(6, sh2 - 3), 0, TAU, 0, compound ? 1.7 : 1.0); c.rotateX(Math.PI / 2); c.scale(1, 1, 1.0); return c; }), corM);
   cornea.scale.set(r * 1.03, r * 1.03, r * 1.03 * (compound ? 1 : 1.1)); cornea.renderOrder = 2;
-  look.add(irisH, pupH, cornea);
+  look.add(irisH, pupH); if (useCornea) look.add(cornea);
   g.add(ball, look);
   // párpados: superior e inferior (medias cáscaras de carne)
   const lidG = new THREE.Group(); const lidMat = lidSkin || lidMaterial();
   const lidGeo = cache(`eyelid${sw}`, () => new THREE.SphereGeometry(1, sw, Math.max(5, sh2 >> 1), 0, TAU, 0, Math.PI / 2));
   const up = new THREE.Mesh(lidGeo, lidMat), lo = new THREE.Mesh(lidGeo, lidMat);
-  up.scale.setScalar(r * 1.05); lo.scale.set(r * 1.045, -r * 1.045, r * 1.045); lidG.add(up, lo); g.add(lidG);
-  if (!lids) lidG.visible = false;
+  up.scale.setScalar(r * 1.035); lo.scale.set(r * 1.03, -r * 1.03, r * 1.03); if (useUpper) lidG.add(up); if (useUpper && useLower) lidG.add(lo); g.add(lidG);
   const mats = [sclM, irisM];
-  const U = irisM.userData.u; U.uMode.value = pupil === 'slit' ? 1 : 0;
+  const U = irisM.userData.u; U.uMode.value = pupil === 'slit' ? 1 : 0; U.uCatch.value = useCornea ? 0 : 1;
 
   // ── estado de vida ──
   let blinkT = 1 + Math.random() * 3, blink = 0, blink2 = 0, blinkSpd = 1;
@@ -174,8 +177,8 @@ export function eye({ r = 0.2, iris = 0xffc23a, pupil, glow = 0.5, kind = 'norma
       const pb = 1 - blink; const closeK = blink <= 0 ? 0 : pb < 0.35 ? pb / 0.35 : 1 - (pb - 0.35) / 0.65;   // cae rápido, sube lento
       openS += (open - openS) * Math.min(1, dt * 10);
       const ap = clamp(openS, 0, 1);
-      const eU = THREE.MathUtils.lerp(-0.1, 0.18 + baseOpen, ap) - closeK * (0.18 + baseOpen + 0.1) + gy * -0.35;     // elevación del borde del párpado superior
-      const eL = THREE.MathUtils.lerp(0.05, -0.38, ap) + closeK * 0.3 + gy * -0.15 - 0.05 * (1 - ap);                   // y del inferior
+      const eU = THREE.MathUtils.lerp(-0.1, 0.3 + baseOpen, ap) - closeK * (0.3 + baseOpen + 0.1) + gy * -0.35;     // elevación del borde del párpado superior
+      const eL = THREE.MathUtils.lerp(0.05, -0.95, ap) + closeK * 0.3 + gy * -0.15 - 0.05 * (1 - ap);                   // y del inferior
       up.rotation.x = -clamp(eU, -0.3, 1.2); lo.rotation.x = -clamp(eL, -0.9, 0.3);
       // pupila: dilatación + hippus (pulso lento y natural) + modo de forma
       hip += dt; const wob = 1 + 0.05 * Math.sin(hip * 2.3) + 0.03 * Math.sin(hip * 5.1);

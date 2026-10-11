@@ -9,10 +9,10 @@ const spawn = (g, p, kind, d, lift = 0) => g.spawnMonster(kind, ahead(p, d, lift
 const watch = (g, secs, fn) => run(g, secs, (t) => fn && fn(t));
 const events = (g, store) => () => { for (const e of g.drainEvents()) store.push(e); };
 
-test('bestiario: 12 criaturas + 2 jefes, cada una con IA propia y rol distinto', () => {
+test('bestiario: 12 criaturas + 3 jefes, cada una con IA propia y rol distinto', () => {
   const kinds = Object.keys(MONSTERS);
-  assert.equal(kinds.filter((k) => !MONSTERS[k].boss).length, 12); assert.equal(kinds.filter((k) => MONSTERS[k].boss).length, 2);
-  assert.equal(new Set(kinds.map((k) => MONSTERS[k].role)).size, kinds.length - 1 /* ambos jefes comparten rol */);
+  assert.equal(kinds.filter((k) => !MONSTERS[k].boss).length, 12); assert.equal(kinds.filter((k) => MONSTERS[k].boss).length, 3);
+  assert.equal(new Set(kinds.map((k) => MONSTERS[k].role)).size, kinds.length - 2 /* los jefes comparten rol */);
   for (const k of kinds) { assert.equal(typeof AI[MONSTERS[k].ai], 'function', k); assert.ok(MONSTERS[k].hp > 0 && MONSTERS[k].r > 0); }
 });
 

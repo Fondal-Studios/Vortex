@@ -9,7 +9,55 @@ export const WEAPONS = [
   { id: 'rafaga', name: 'Ráfaga', kind: 'hitscan', dmg: 11,  rate: 0.085, pellets: 1, spread: 0.022, range: 220, max: 360, start: 150, per: 1 },
   { id: 'nova',   name: 'Nova',   kind: 'projectile', dmg: 100, rate: 1.0, splash: 8, speed: 58, max: 32, start: 10, per: 1 },
   { id: 'aguja',  name: 'Aguja',  kind: 'hitscan', dmg: 170, rate: 1.4, pellets: 1, spread: 0, range: 420, pierce: true, max: 28, start: 10, per: 1 },
+  // ── armas nuevas (se eligen en el equipo antes de jugar; mejoran por oleada). `desc` = una línea para el menú ──
+  { id: 'pulso',    name: 'Pulso',    kind: 'hitscan', dmg: 40, rate: 0.34, pellets: 1, spread: 0.003, range: 260, max: 120, start: 60, per: 1, desc: 'Pistola de pulso: semiautomática, precisa y estable.' },
+  { id: 'gemelas',  name: 'Gemelas',  kind: 'hitscan', dmg: 8,  rate: 0.07, pellets: 2, spread: 0.04, range: 120, max: 400, start: 200, per: 1, desc: 'Dos cañones en ráfaga loca: mucho volumen de fuego.' },
+  { id: 'solar',    name: 'Solar',    kind: 'hitscan', dmg: 4.5, rate: 0.045, pellets: 2, spread: 0.05, range: 24, max: 500, start: 220, per: 1, desc: 'Lanzallamas de luz: derrite todo lo que está cerca.' },
+  { id: 'fractal',  name: 'Fractal',  kind: 'hitscan', dmg: 30, rate: 0.5, pellets: 1, spread: 0.004, range: 160, chain: 3, max: 80, start: 40, per: 1, desc: 'Un arco de energía que salta a 3 criaturas más.' },
+  { id: 'enjambre', name: 'Enjambre', kind: 'swarm', dmg: 26, rate: 1.1, count: 5, splash: 3, speed: 30, max: 60, start: 30, per: 5, desc: 'Cinco micro-misiles que buscan su blanco.' },
+  { id: 'cometa',   name: 'Cometa',   kind: 'projectile', dmg: 120, rate: 0.9, splash: 5, speed: 34, homing: 2.2, max: 24, start: 8, per: 1, desc: 'Proyectil lento y teledirigido con gran explosión.' },
+  { id: 'vortice',  name: 'Vórtice',  kind: 'projectile', dmg: 20, rate: 1.8, splash: 7, speed: 38, well: 3, max: 12, start: 4, per: 1, desc: 'Abre un pozo de gravedad: junta a todos y estalla.' },
+  { id: 'lanza',    name: 'Lanza',    kind: 'projectile', dmg: 150, rate: 1.0, splash: 0, speed: 110, pierce: true, max: 30, start: 12, per: 1, desc: 'Lanza de cristal que atraviesa filas enteras.' },
+  { id: 'cetro',    name: 'Cetro Vital', kind: 'hitscan', dmg: 16, rate: 0.16, pellets: 1, spread: 0.01, range: 90, lifesteal: 0.1, max: 300, start: 100, per: 1, desc: 'Cada impacto te devuelve vida.' },
+  { id: 'eclipse',  name: 'Eclipse',  kind: 'hitscan', dmg: 11, rate: 1.2, pellets: 14, spread: 0.1, range: 40, knock: 9, max: 40, start: 16, per: 1, desc: 'Escopeta pesada: empuja y destroza de cerca.' },
 ];
+
+/* ───────── Personajes: cada uno con 2 habilidades propias (desplazamiento + disparo especial) y un rol de equipo ───────── */
+export const CHARACTERS = {
+  egida:  { name: 'Égida',  role: 'vanguardia', preset: 'jugador1', seed: null, color: 0x66ffee, desc: 'Tanque de choque. Aguanta, abre camino y empuja.',
+    mov: { id: 'embestida',     name: 'Embestida',      cd: 7,  desc: 'Se lanza hacia adelante y arrolla lo que toca.' },
+    esp: { id: 'onda',          name: 'Onda de choque', cd: 12, desc: 'Cono de energía: daño fuerte y empuje.' } },
+  lumen:  { name: 'Lumen',  role: 'soporte', preset: 'jugador2', seed: null, color: 0xff66c4, desc: 'Sanadora de cristal. Mantiene vivo al equipo.',
+    mov: { id: 'paso',          name: 'Paso de luz',    cd: 6,  desc: 'Teletransporte corto hacia donde mirás.' },
+    esp: { id: 'rayo',          name: 'Rayo sanador',   cd: 10, desc: 'Haz que atraviesa: daña criaturas y cura aliados.' } },
+  forja:  { name: 'Forja',  role: 'ingeniero', preset: 'jugador3', seed: null, color: 0xffd23f, desc: 'Artillera. Explosivos y torretas.',
+    mov: { id: 'propulsor',     name: 'Propulsor',      cd: 8,  desc: 'Impulso hacia arriba y adelante (saltás sobre todo).' },
+    esp: { id: 'cohete',        name: 'Cohete de racimo', cd: 14, desc: 'Gran explosión que lanza esquirlas.' } },
+  vigia:  { name: 'Vigía',  role: 'explorador', preset: 'jugador4', seed: null, color: 0x9dff5a, desc: 'Cazadora veloz. Marca y elimina objetivos clave.',
+    mov: { id: 'deslizamiento', name: 'Deslizamiento',  cd: 6,  desc: 'Carrera relámpago hacia donde se mueve.' },
+    esp: { id: 'riel',          name: 'Tiro marcador',  cd: 11, desc: 'Rayo perforante que además marca (+30 % de daño).' } },
+  nova:   { name: 'Nova',   role: 'explorador', preset: null, seed: 'nova-7', color: 0xff9a3c, desc: 'Fuego de saturación y saltos imposibles.',
+    mov: { id: 'salto',         name: 'Salto cuántico', cd: 9,  desc: 'Salto altísimo, ideal para la gravedad rota.' },
+    esp: { id: 'rafaga',        name: 'Ráfaga total',   cd: 9,  desc: '14 disparos de golpe en abanico.' } },
+  umbra:  { name: 'Umbra',  role: 'soporte', preset: null, seed: 'umbra-3', color: 0xb98cff, desc: 'Controla el espacio. Fase y singularidades.',
+    mov: { id: 'fase',          name: 'Fase',           cd: 8,  desc: 'Salto hacia atrás con 1 s de invulnerabilidad.' },
+    esp: { id: 'singularidad',  name: 'Singularidad',   cd: 16, desc: 'Un agujero que arrastra a las criaturas y estalla.' } },
+};
+export const CHARACTER_IDS = Object.keys(CHARACTERS);
+
+/* ───────── Mejoras de armas: tras cada oleada se ofrecen 3 tarjetas; cada nivel se ve en el modelo del arma ───────── */
+export const UPGRADE_KINDS = {
+  dmg:  { name: 'Más daño',          desc: '+22 % de daño por nivel', max: 5 },
+  rate: { name: 'Más cadencia',      desc: '+14 % de cadencia por nivel', max: 5 },
+  mag:  { name: 'Más munición',      desc: '+30 % de munición máxima y recarga por nivel', max: 4 },
+};
+export const WEAPON_MODS = {
+  perfora:  { name: 'Perforante',  desc: 'Los disparos atraviesan criaturas.' },
+  explosiva:{ name: 'Explosiva',   desc: 'Cada impacto explota en área pequeña.' },
+  cadena:   { name: 'Cadena',      desc: 'El daño salta a 2 criaturas cercanas.' },
+  vampirica:{ name: 'Vampírica',   desc: 'Cada baja te cura 6 de vida.' },
+};
+export const WAVE_SCALE = { hp: 0.1, speed: 0.018, elite: 0.12 }; // por oleada; élites desde la oleada 3
 
 // Bestiario: criaturas de cristal. `ai` mapea a src/sim/ai.js
 export const MONSTERS = {
@@ -27,6 +75,7 @@ export const MONSTERS = {
   espiral:  { name: 'Espiral',  role: 'atractor',     ai: 'attractor', hp: 120, speed: 4,   r: 1.5, cost: 4.5, score: 65,  fly: true },
   // jefes de mapa
   coloso:   { name: 'Coloso Prismático', role: 'jefe', ai: 'coloso', hp: 3000, speed: 0, r: 7.5, cost: 0, score: 2000, fly: true, boss: true },
+  argos:    { name: 'Argos, el Ojo Primordial', role: 'jefe', ai: 'argos', hp: 3400, speed: 0, r: 6.5, cost: 0, score: 3000, fly: true, boss: true },
   madre:    { name: 'Madre Geoda',       role: 'jefe', ai: 'madre',  hp: 3200, speed: 0, r: 7.0, cost: 0, score: 2500, fly: true, boss: true },
 };
 
@@ -40,6 +89,14 @@ export const WAVE_PLANS = {
     ['astilla', 'prisma', 'racimo', 'lente', 'geoda', 'ariete', 'espejo', 'cuarzo', 'obelisco'],
     ['astilla', 'prisma', 'racimo', 'lente', 'geoda', 'ariete', 'espejo', 'cuarzo', 'obelisco', 'graviton', 'aurora', 'espiral'],
   ],
+  m3: [
+    ['astilla', 'prisma'],
+    ['astilla', 'prisma', 'lente', 'racimo'],
+    ['astilla', 'prisma', 'lente', 'racimo', 'espejo', 'ariete'],
+    ['astilla', 'prisma', 'lente', 'racimo', 'espejo', 'ariete', 'obelisco', 'cuarzo'],
+    ['astilla', 'prisma', 'lente', 'racimo', 'espejo', 'ariete', 'obelisco', 'cuarzo', 'geoda', 'aurora'],
+    ['astilla', 'prisma', 'lente', 'racimo', 'espejo', 'ariete', 'obelisco', 'cuarzo', 'geoda', 'aurora', 'graviton', 'espiral'],
+  ],
   m2: [
     ['astilla', 'racimo'],
     ['astilla', 'racimo', 'lente', 'espejo'],
@@ -49,7 +106,7 @@ export const WAVE_PLANS = {
     ['astilla', 'racimo', 'lente', 'espejo', 'geoda', 'obelisco', 'prisma', 'cuarzo', 'ariete', 'graviton', 'aurora', 'espiral'],
   ],
 };
-export const BOSS_OF = { m1: 'coloso', m2: 'madre' };
+export const BOSS_OF = { m1: 'coloso', m2: 'madre', m3: 'argos' };
 
 export const PLAYER = { bleed: 25, hp: 100, shield: 100, radius: 0.9, eye: 0.6, speed: 11, dash: 1.7, jump: 11.5, shieldDelay: 3, shieldRate: 35 };
 
@@ -66,6 +123,7 @@ export const ROLE_IDS = Object.keys(ROLES);
 export const OBJECTIVE_PLAN = {
   m1: { 2: 'ancla', 4: 'sintonia', 5: 'nucleo', 6: 'ancla' },
   m2: { 2: 'sintonia', 3: 'ancla', 4: 'nucleo', 6: 'sintonia' },
+  m3: { 2: 'ancla', 3: 'sintonia', 5: 'nucleo', 6: 'ancla' },
 };
 export const OBJECTIVE_INFO = {
   ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Mantené a alguien dentro del círculo para cargarla y cubrila: las criaturas la roen.', limit: 110 },

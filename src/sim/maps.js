@@ -155,5 +155,6 @@ function makeMap2() {
   };
 }
 
-export const MAPS = { m1: makeMap1(), m2: makeMap2() };
+import { makeMap3 } from './map3.js';
+export const MAPS = { m1: makeMap1(), m2: makeMap2(), m3: makeMap3() };
 export const MAP_IDS = Object.keys(MAPS);

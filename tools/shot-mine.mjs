@@ -7,7 +7,7 @@ const errs = []; pg.on('console', (m) => { if (['error', 'warning'].includes(m.t
 for (let i = 2; i < process.argv.length; i += 2) {
   await pg.goto(`http://localhost:${srv.port}/public/viewer-mine.html?${process.argv[i + 1]}`);
   await pg.waitForFunction(() => window.__viewerReady, null, { timeout: 120000 }).catch(() => {});
-  await pg.waitForTimeout(300);
+  await pg.waitForTimeout(800);
   console.log(process.argv[i], JSON.stringify(await pg.evaluate(() => window.__info)));
   await pg.screenshot({ path: process.argv[i], type: 'jpeg', quality: 82 });
 }

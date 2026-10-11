@@ -14,17 +14,20 @@ const NOISE = `
     return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x), mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x), f.y),
                mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x), mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x), f.y), f.z); }`;
 
+const guard = (src) => src.replace('#include <opaque_fragment>', `#include <opaque_fragment>
+        { vec3 gc = gl_FragColor.rgb; if (!(gc.x == gc.x && gc.y == gc.y && gc.z == gc.z)) gc = vec3(0.0); gl_FragColor.rgb = min(gc, vec3(200.0)); }`);
+
 export function bioMaterial(o = {}) {
   const lvl = cfg().humans, hi = lvl !== 'low', Cls = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
-  const mat = new Cls({ vertexColors: true, roughness: 0.5, metalness: 0, side: o.double ? THREE.DoubleSide : THREE.FrontSide });
-  if (hi) { mat.clearcoat = o.coat ?? 0.45; mat.clearcoatRoughness = 0.25; mat.sheen = o.sheen ?? 0.5; mat.sheenColor = new THREE.Color(o.rim ?? 0x805060); mat.sheenRoughness = 0.5; }
+  const mat = new Cls({ vertexColors: true, roughness: 0.5, metalness: 0, side: o.double ? THREE.DoubleSide : THREE.FrontSide, envMapIntensity: o.env ?? 0.35 });
+  if (hi) { mat.clearcoat = o.coat ?? 0.45; mat.clearcoatRoughness = 0.25; mat.sheen = o.sheen ?? 0.12; mat.sheenColor = new THREE.Color(o.rim ?? 0x805060); mat.sheenRoughness = 0.5; }
   if (o.alpha != null && o.alpha < 1) { mat.transparent = true; mat.opacity = o.alpha; mat.depthWrite = o.depthWrite ?? true; }
   const NT = o.tent || 0;
   const u = {
     uTime, uHurt: { value: 0 }, uGlow: { value: o.glowAmt ?? 0 }, uPulse: { value: 0 }, uBreath: { value: o.breath ?? 0.012 },
     uGlowCol: { value: new THREE.Color(o.glow ?? 0xffa040) }, uVein: { value: new THREE.Color(o.vein ?? 0x2a0610) }, uRim: { value: new THREE.Color(o.rim ?? 0x703050) },
     uPS: { value: o.scale ?? 1 }, uBump: { value: o.bump ?? 1 }, uCry: { value: 1 }, uWet: { value: o.wet ?? 0.4 }, uVeinGlow: { value: o.veinGlow ?? 0 }, uCrackGlow: { value: o.crackGlow ?? 0 },
-    uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.22 },
+    uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? 0.55 },
   };
   if (NT) { u.uTA = { value: Array.from({ length: NT }, () => new THREE.Vector4(0.3, 1.5, 0, 1)) }; u.uTB = { value: Array.from({ length: NT }, () => new THREE.Vector4(0, 0, 0, 0)) }; }
   mat.userData.u = u;
@@ -48,7 +51,7 @@ export function bioMaterial(o = {}) {
           transformed += B.xyz * (B.w * w * L) + d * ((A.w - 1.0) * k * L); }` : ''}`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal;
+        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb;
         uniform vec3 uGlowCol, uVein, uRim;
         varying vec3 vO; varying vec2 vS; varying vec2 vU; varying float vSc;
         float gFl, gCh, gBo, gCr, gVein, gCrack, gH, gN2, gN3;
@@ -62,7 +65,7 @@ export function bioMaterial(o = {}) {
           gCr = smoothstep(2.4, 2.6, cls) * (1.0 - smoothstep(3.4, 3.6, cls));
           float gMb = smoothstep(3.4, 3.6, cls);
           vec3 q = vO * uPS;
-          float n1 = vn(q * 2.7), n2 = vn(q * 9.0 + 4.0), n3 = vn(q * ${hi ? '31.0' : '19.0'} + 9.0);
+          float n1 = vn(q * 2.7), n2 = vn(q * 7.0 + 4.0), n3 = vn(q * ${hi ? '17.0' : '11.0'} + 9.0);
           gN2 = n2; gN3 = n3;
           float vein = (1.0 - smoothstep(0.012, 0.055, abs(vn(q * 4.1 + 2.0) - 0.5))) * smoothstep(0.25, 0.6, n1 + 0.2 * n2);
           float vein2 = (1.0 - smoothstep(0.01, 0.04, abs(vn(q * 9.5 + 6.0) - 0.5))) * 0.6;
@@ -78,11 +81,12 @@ export function bioMaterial(o = {}) {
           vec3 bone = diffuseColor.rgb * (0.6 + 0.32 * rgs + 0.3 * n2);
           bone = mix(bone, bone * vec3(0.78, 0.6, 0.5), smoothstep(0.55, 0.9, n1) * 0.6);
           vec3 cry = diffuseColor.rgb * 0.22;
-          gH = gFl * (n3 * 0.55 + n2 * 0.45 - vein * 0.6) + gCh * (n3 * 0.5 + n2 * 0.5 - crack * 0.9) + gBo * (rg * 0.55 + n3 * 0.3) + gMb * n3 * 0.3;
-          diffuseColor.rgb = (flesh * (gFl + gMb) + chit * gCh + bone * gBo + cry * gCr);
+          float ann = sin(vU.y * uRidge * 0.6 + n1 * 2.0);
+          gH = gFl * (n3 * 0.45 + n2 * 0.35 - vein * 0.6 + ann * 0.12) + gCh * (n3 * 0.4 + n2 * 0.3 - crack * 0.9 + ann * 0.3) + gBo * (rg * 0.55 + n3 * 0.3) + gMb * n3 * 0.3;
+          diffuseColor.rgb = (flesh * (gFl + gMb) + chit * gCh + bone * gBo + cry * gCr) * uAlb;
         }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = clamp(gFl * (0.62 - uWet * 0.3 * gN2) + gCh * (0.2 + 0.28 * gN3) + gBo * (0.5 - 0.12 * gN2) + gCr * 0.16 + (1.0 - gFl - gCh - gBo - gCr) * 0.2, 0.14, 1.0);`)
+        roughnessFactor = clamp(gFl * (0.62 - uWet * 0.3 * gN2) + gCh * (0.34 + 0.3 * gN3) + gBo * (0.5 - 0.12 * gN2) + gCr * 0.16 + (1.0 - gFl - gCh - gBo - gCr) * 0.2, 0.14, 1.0);`)
       .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
         metalnessFactor = gCh * uMetal + gCr * 0.5;`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
@@ -90,17 +94,17 @@ export function bioMaterial(o = {}) {
           vec3 fdx = dFdx(vViewPosition), fdy = dFdy(vViewPosition);
           vec3 fcr = cross(fdx, fdy); normal = normalize(mix(normal, fcr * inversesqrt(max(dot(fcr, fcr), 1e-20)), gCr));
           float bs = uBump * (gFl * 0.42 + gCh * 0.9 + gBo * 0.8);
-          float fade = 1.0 / (1.0 + length(fwidth(vO)) * uPS * 38.0);
+          float fade = 1.0 / (1.0 + length(fwidth(vO)) * uPS * 90.0);
           vec3 dpx = dFdx(-vViewPosition), dpy = dFdy(-vViewPosition);
           float dhx = dFdx(gH), dhy = dFdy(gH);
           vec3 r1 = cross(dpy, normal), r2 = cross(normal, dpx); float det = dot(dpx, r1);
-          if (abs(det) > 1e-12) { vec3 grad = (dhx * r1 + dhy * r2) / det; normal = normalize(normal - clamp(bs * 0.016 * fade * vSc, 0.0, 1.0) * grad); }
+          if (abs(det) > 1e-9) { vec3 grad = (dhx * r1 + dhy * r2) / det; if (all(lessThan(abs(grad), vec3(1e5)))) { vec3 nn = normal - clamp(bs * 0.016 * fade * vSc, 0.0, 1.0) * grad; if (dot(nn, nn) > 1e-6) normal = normalize(nn); } }
         }`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         {
           vec3 Vw = normalize(vViewPosition);
           float fres = pow(1.0 - clamp(dot(normal, Vw), 0.0, 1.0), 3.0);
-          totalEmissiveRadiance += uRim * fres * (0.45 * gFl + 0.8 * gCh + 0.35 * gBo);
+          totalEmissiveRadiance += uRim * fres * (0.25 * gFl + 0.5 * gCh + 0.2 * gBo);
           float flick = 0.75 + 0.25 * sin(uTime * 3.0 + vO.y * 3.0 + vO.x * 2.0);
           totalEmissiveRadiance += uGlowCol * (vS.y * uGlow * flick * (1.0 - gCr) + gVein * uVeinGlow * flick + gCrack * uCrackGlow * flick);
           totalEmissiveRadiance += vColor.rgb * gCr * uCry * (0.35 + vS.y * 1.6) * (0.85 + 0.15 * flick);
@@ -108,8 +112,9 @@ export function bioMaterial(o = {}) {
         }`);
     if (hi) sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
         #ifdef USE_CLEARCOAT
-          material.clearcoat *= (0.4 * gFl + 1.0 * gCh + 0.3 * gBo + 1.0 * gCr);
+          material.clearcoat *= (0.4 * gFl + 0.3 * gCh + 0.3 * gBo + 1.0 * gCr);
         #endif`);
+    sh.fragmentShader = guard(sh.fragmentShader);
   };
   return mat;
 }
@@ -159,6 +164,7 @@ export function eyeMaterial({ iris = 0xffb020, sclera = 0xd8c8b8, pupil = 'round
         totalEmissiveRadiance += diffuseColor.rgb * irisK * (1.0 - pupK) * uGlow * 0.55;
         { float cl = smoothstep(0.93, 0.985, dot(normal, normalize(vec3(-0.45, 0.6, 0.66)))); totalEmissiveRadiance += vec3(1.0, 0.97, 0.92) * cl * 0.9; }
         totalEmissiveRadiance += vec3(1.0, 0.85, 0.7) * uHurt * 0.6;`);
+    sh.fragmentShader = guard(sh.fragmentShader);
   };
   return mat;
 }

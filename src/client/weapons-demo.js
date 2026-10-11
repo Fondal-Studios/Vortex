@@ -8,7 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { skyMaterial, uTime, OUT } from './shaders.js';
 import { setCurrent, LEVELS, cfg } from './quality.js';
-import { Viewmodels, createWeaponModel } from './weapons-vm.js';
+import { Viewmodels, createWeaponModel, applyUpgrades } from './weapons-vm.js';
 import { TUNE } from './weapons/kit.js';
 
 const P = new URLSearchParams(location.search), Q = LEVELS[P.get('q')] ? P.get('q') : 'high', W = +(P.get('w') ?? 0), view = P.get('view') || 'fp';
@@ -28,22 +28,24 @@ const resize = () => { gl.setSize(innerWidth, innerHeight, false); cam.aspect = 
 resize(); addEventListener('resize', resize);
 
 let vm = null, model = null; const speed = +(P.get('speed') || 0), holdFire = P.get('fire') === '1';
-if (view === 'fp') { vm = new Viewmodels(cam, halo); vm.setWeapon(W); vm.setAmmo(W === 0 ? Infinity : [0, 20, 150, 10, 10][W], [0, 48, 360, 32, 28][W]); }
+function parseUpg(s) { const [dmg, rate, mag, mod] = s.split(','); return { dmg: +dmg, rate: +rate, mag: +mag, mod: mod || null }; }
+if (view === 'fp') { vm = new Viewmodels(cam, halo); vm.setWeapon(W); vm.setAmmo(W === 0 ? Infinity : 20, 48); if (P.get('upg')) vm.setUpgrades(W, parseUpg(P.get('upg'))); vm.setWeapon(W); }
 else {
-  model = createWeaponModel(W, { quality: Q, hands: P.get('h') !== '0' }); scene.add(model);
-  const d = +(P.get('d') || [1.0, 1.6, 1.5, 1.4, 2.3][W]), a = THREE.MathUtils.degToRad(+(P.get('a') ?? -50)), e = THREE.MathUtils.degToRad(+(P.get('e') ?? 18));
-  const cx = [0.0, -0.1, -0.1, -0.08, -0.4][W]; cam.position.set(Math.sin(a) * Math.cos(e) * d, 0.05 + Math.sin(e) * d, cx + Math.cos(a) * Math.cos(e) * d); cam.lookAt(0, 0.02, cx);
+  model = createWeaponModel(W, { quality: Q, hands: P.get('h') !== '0' }); scene.add(model); if (P.get('upg')) applyUpgrades(model, parseUpg(P.get('upg')));
+  const d = +(P.get('d') || [1.0, 1.6, 1.5, 1.4, 2.3, 1.0, 1.2, 1.3, 1.9, 1.7, 1.7, 1.6, 2.6, 2.3, 1.7][W]), a = THREE.MathUtils.degToRad(+(P.get('a') ?? -50)), e = THREE.MathUtils.degToRad(+(P.get('e') ?? 18));
+  const cx = [0.0, -0.1, -0.1, -0.08, -0.4, -0.03, -0.1, -0.1, -0.25, -0.2, -0.2, -0.2, -0.5, -0.4, -0.15][W]; cam.position.set(Math.sin(a) * Math.cos(e) * d, 0.05 + Math.sin(e) * d, cx + Math.cos(a) * Math.cos(e) * d); cam.lookAt(0, 0.02, cx);
 }
+const hide = P.get('hide'); const applyHide = () => { if (hide) scene.traverse((o) => { if (o.isMesh && o.name && o.name.endsWith('.' + hide)) o.visible = false; }); cam.traverse((o) => { if (o.isMesh && o.name && hide && o.name.endsWith('.' + hide)) o.visible = false; }); };
 let t = 0, last = performance.now(), shotT = 0;
 function step(dt, doShoot = false, render = true) {
-  t += dt; uTime.value = t;
+  t += dt; applyHide(); uTime.value = t;
   if (vm) {
     if (doShoot) vm.shoot();
     vm.update(dt, { firing: holdFire, hidden: false, look: [0, 0], speed });
   } else if (model) { if (P.get('turn') === '1') model.rotation.y = t * 0.5; if (doShoot) model.userData.shoot(); model.userData.tick(dt, t, holdFire); }
   if (render) gl.info.reset(); if (render) (composer || { render: () => gl.render(scene, cam) }).render();
 }
-const RATE = [0.26, 0.8, 0.085, 1.0, 1.4];
+const RATE = [0.26, 0.8, 0.085, 1.0, 1.4, 0.34, 0.07, 0.045, 0.5, 1.1, 0.9, 1.8, 1.0, 0.16, 1.2];
 function loop(now) { requestAnimationFrame(loop); const dt = Math.min(0.1, (now - last) / 1000); last = now; shotT -= dt; let s = false; if (holdFire && shotT <= 0) { s = true; shotT = RATE[W]; } step(dt, s); }
 if (P.get('cap') === '1') {
   // modo captura: window.__step(n, dt, [cuadros en que se dispara]) avanza el reloj a mano y dibuja el último cuadro

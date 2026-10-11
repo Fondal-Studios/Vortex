@@ -5,44 +5,44 @@ import * as THREE from 'three';
 import { Kit, makeMats, AmmoScreen, tint } from './kit.js';
 import { rightHand, triggerFinger, supportHand } from './hands.js';
 
-export const WEAPON_COLORS = [0x66ffee, 0xff8fd0, 0xffd34a, 0xff7a45, 0xa98bff];
-export const WEAPON_LABELS = ['HAZ', 'PRISMA', 'RÁFAGA', 'NOVA', 'AGUJA'];
+export const WEAPON_COLORS = [0x66ffee, 0xff8fd0, 0xffd34a, 0xff7a45, 0xa98bff, 0x5fd0ff, 0xff4fd8, 0xffa030, 0xc8ff4a, 0xff5a5a, 0x7aa8ff, 0xb050ff, 0x40ffc0, 0x6aff6a, 0x9060ff];
+export const WEAPON_LABELS = ['HAZ', 'PRISMA', 'RÁFAGA', 'NOVA', 'AGUJA', 'PULSO', 'GEMELAS', 'SOLAR', 'FRACTAL', 'ENJAMBRE', 'COMETA', 'VÓRTICE', 'LANZA', 'CETRO', 'ECLIPSE'];
 
-const DARK = 0x16121f, GUN = 0x2a2540, STEEL = 0x9aa0c4, PALE = 0xd5d9ff;
-const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
-const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
-const easeOut = (x) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
-const easeInOut = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+export const DARK = 0x16121f, GUN = 0x2a2540, STEEL = 0x9aa0c4, PALE = 0xd5d9ff;
+export const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+export const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
+export const easeOut = (x) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+export const easeInOut = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
 
 /** Resorte amortiguado (para culatazos y correderas), con subpasos estables. */
-class Spring {
+export class Spring {
   constructor(k, c) { this.x = 0; this.v = 0; this.k = k; this.c = c; }
   step(dt) { let n = Math.max(1, Math.ceil(dt / 0.006)); const h = dt / n; while (n--) { this.v += (-this.k * this.x - this.c * this.v) * h; this.x += this.v * h; } return this.x; }
 }
 
 /** Color anodizado saturado: mismo tono, saturación alta y luminosidad fija (en sRGB). */
-function vivid(hex, l) { const hsl = {}; new THREE.Color(hex).getHSL(hsl, THREE.SRGBColorSpace); return new THREE.Color().setHSL(hsl.h, 0.95, l, THREE.SRGBColorSpace).getHex(); }
-function newGun(index, q) {
+export function vivid(hex, l) { const hsl = {}; new THREE.Color(hex).getHSL(hsl, THREE.SRGBColorSpace); return new THREE.Color().setHSL(hsl.h, 0.95, l, THREE.SRGBColorSpace).getHex(); }
+export function newGun(index, q) {
   const hex = WEAPON_COLORS[index], k = new Kit(q), mats = makeMats(q, hex), scr = new AmmoScreen(hex, WEAPON_LABELS[index]);
-  return { hex, k, mats, scr, B: vivid(hex, 0.46), B2: vivid(hex, 0.3), A: vivid(new THREE.Color(hex).offsetHSL(0.5, 0, 0).getHex(), 0.4), q, heat: 0, boost: 0, ammo: 1 };
+  return { hex, k, mats, scr, B: vivid(hex, 0.36), B2: vivid(hex, 0.24), A: vivid(new THREE.Color(hex).offsetHSL(0.5, 0, 0).getHex(), 0.4), q, heat: 0, boost: 0, ammo: 1 };
 }
 /** Ranuras de ventilación. */
-function vents(k, n, [x, y, z], [w, h, d], step, c = DARK, axis = 'z') {
+export function vents(k, n, [x, y, z], [w, h, d], step, c = DARK, axis = 'z') {
   for (let i = 0; i < n; i++) { const o = i * step; k.box('b', [w, h, d], axis === 'z' ? [x, y, z - o] : [x, y - o, z], { c, rad: 0.0015 }); }
 }
-const screw = (k, pos, axis = 'x', r = 0.0045) => k.cyl('b', [r, r, 0.004], pos, { axis, seg: 6, c: STEEL });
+export const screw = (k, pos, axis = 'x', r = 0.0045) => k.cyl('b', [r, r, 0.004], pos, { axis, seg: 6, c: STEEL });
 /** Pantalla en una cara: posición, normal inclinada. */
-function placeScreen(G, parent, pos, rot, scale = 1) {
+export function placeScreen(G, parent, pos, rot, scale = 1) {
   const m = G.scr.mesh; m.position.set(...pos); m.rotation.set(...rot); m.scale.setScalar(scale); parent.add(m);
 }
 /** Marco oscuro para la pantalla. */
-function bezel(k, pos, rot, w, h) { k.box('b', [w, h, 0.006], pos, { c: DARK, r: rot, rad: 0.002 }); }
-function finalize(G, W) {
+export function bezel(k, pos, rot, w, h) { k.box('b', [w, h, 0.006], pos, { c: DARK, r: rot, rad: 0.002 }); }
+export function finalize(G, W) {
   W.setAmmo = (n, max) => { G.scr.set(n, max); G.ammo = Number.isFinite(n) && Number.isFinite(max) && max > 0 ? clamp(n / max, 0, 1) : 1; };
   W.dispose = () => { G.mats.dispose(); G.scr.dispose(); W.group.traverse((o) => { if (o.isMesh && o.geometry && o !== G.scr.mesh) o.geometry.dispose(); }); };
   W.mats = G.mats; W.G = G; return W;
 }
-function addParts(G, group, names) {
+export function addParts(G, group, names) {
   const out = {}; for (const n of names) { out[n] = G.k.build(n, G.mats); group.add(out[n]); out[n].userData.base = out[n].position.clone(); } return out;
 }
 
@@ -87,7 +87,7 @@ export function haz(q, hands) {
   const sl = new Spring(1100, 44), curl = { v: 0 }; let ringW = 3, ringA = 0;
   const W = {
     group, muzzle: [0, 0.03, -0.52], eject: [0.03, 0.07, 0.02], flash: { shape: 'star', size: 0.5, decay: 13 },
-    recoil: { z: 0.07, y: 0.012, pitch: 0.2, roll: 0.025, k: 210, c: 17 }, view: { pos: [0.3, -0.19, -0.5], scale: 0.78, zs: 0.8, rot: [0.0, 0.04, 0] },
+    recoil: { z: 0.07, y: 0.012, pitch: 0.2, roll: 0.025, k: 210, c: 17 }, view: { pos: [0.27, -0.26, -0.62], scale: 1.15, zs: 0.7, rot: [-0.02, 0.28, -0.05] },
     update(dt, t, firing) {
       sl.step(dt); P.slide.position.z = P.slide.userData.base.z + clamp(sl.x, -0.01, 0.06);
       G.heat = Math.max(0, G.heat - dt * 0.55); G.boost = Math.max(0, G.boost - dt * 7);
@@ -151,7 +151,7 @@ export function prisma(q, hands) {
   let pumpT = -1, fanW = 2, fanA = 0, curl = 0, ejectDone = true; const kick = new Spring(180, 15);
   const W = {
     group, muzzle: [0, 0.03, -0.74], eject: [0.034, 0.05, 0.0], flash: { shape: 'fan', size: 1.0, decay: 9 },
-    recoil: { z: 0.17, y: 0.035, pitch: 0.4, roll: 0.045, k: 120, c: 11 }, view: { pos: [0.31, -0.2, -0.5], scale: 0.62, zs: 0.6, rot: [0.02, 0.0, 0] },
+    recoil: { z: 0.17, y: 0.035, pitch: 0.4, roll: 0.045, k: 120, c: 11 }, view: { pos: [0.27, -0.27, -0.7], scale: 1.0, zs: 0.55, rot: [-0.02, 0.28, -0.05] },
     update(dt, t, firing) {
       kick.step(dt);
       let off = 0;
@@ -217,7 +217,7 @@ export function rafaga(q, hands) {
   let w = 0, ang = 0, curl = 0, shake = 0, wd = 0, sinceShot = 9; const sx = new Spring(400, 20);
   const W = {
     group, muzzle: [0, 0.045, -0.77], eject: [0.037, 0.045, 0.02], flash: { shape: 'jet', size: 0.5, decay: 26 },
-    recoil: { z: 0.026, y: 0.004, pitch: 0.045, roll: 0.012, k: 300, c: 22 }, view: { pos: [0.3, -0.2, -0.5], scale: 0.62, zs: 0.65, rot: [0.02, 0.0, 0] },
+    recoil: { z: 0.026, y: 0.004, pitch: 0.045, roll: 0.012, k: 300, c: 22 }, view: { pos: [0.27, -0.27, -0.7], scale: 1.0, zs: 0.55, rot: [-0.02, 0.28, -0.05] },
     update(dt, t, firing) {
       sinceShot += dt; const spin = firing || sinceShot < 0.18;
       w = damp(w, spin ? 42 : 0, spin ? 5 : 1.4, dt); ang += w * dt; P.barrels.rotation.z = -ang; wd = damp(wd, w * 0.25, 4, dt); P.drum.rotation.x += wd * dt;
@@ -279,7 +279,7 @@ export function nova(q, hands) {
   let cageW = 1.2, rocketT = 9, curl = 0, steam = 0, coreP = 0; const kick = new Spring(120, 9);
   const W = {
     group, muzzle: [0, 0.07, -0.68], eject: null, flash: { shape: 'ball', size: 1.5, decay: 5.5 },
-    recoil: { z: 0.2, y: 0.045, pitch: 0.5, roll: 0.05, k: 90, c: 9 }, view: { pos: [0.3, -0.24, -0.5], scale: 0.6, zs: 0.6, rot: [0.02, 0.0, 0] },
+    recoil: { z: 0.2, y: 0.045, pitch: 0.5, roll: 0.05, k: 90, c: 9 }, view: { pos: [0.27, -0.3, -0.7], scale: 0.95, zs: 0.55, rot: [-0.02, 0.28, -0.05] },
     update(dt, t, firing) {
       kick.step(dt); cageW = damp(cageW, firing ? 7 : 1.2, 3, dt); P.cage.rotation.y += cageW * dt; P.cage.rotation.x += cageW * 0.4 * dt;
       coreP = damp(coreP, firing ? 1 : 0, 5, dt); const s = 1 + 0.06 * Math.sin(t * 7) + coreP * 0.18 - G.boost * 0.2; P.core.scale.setScalar(s); P.core.rotation.set(t * 1.7, t * 2.3, 0);
@@ -348,7 +348,7 @@ export function aguja(q, hands) {
   let seq = 9, seqSpeed = 0, charge = 0, dischargeT = 9, curl = 0, spark = 0; const kick = new Spring(150, 12), open = new Spring(500, 24);
   const W = {
     group, muzzle: [0, 0.05, -1.3], eject: null, flash: { shape: 'ring', size: 1.0, decay: 8 },
-    recoil: { z: 0.1, y: 0.015, pitch: 0.22, roll: 0.02, k: 140, c: 14 }, view: { pos: [0.3, -0.2, -0.45], scale: 0.52, zs: 0.5, rot: [0.02, 0.0, 0] },
+    recoil: { z: 0.1, y: 0.015, pitch: 0.22, roll: 0.02, k: 140, c: 14 }, view: { pos: [0.27, -0.27, -0.7], scale: 0.9, zs: 0.5, rot: [-0.02, 0.28, -0.05] },
     update(dt, t, firing) {
       kick.step(dt); open.step(dt); dischargeT += dt;
       charge = damp(charge, firing ? 1 : 0, firing ? 2.4 : 3, dt);
@@ -373,4 +373,5 @@ export function aguja(q, hands) {
   return finalize(G, W);
 }
 
-export const BUILD = [haz, prisma, rafaga, nova, aguja];
+import { EXTRA } from './guns2.js';
+export const BUILD = [haz, prisma, rafaga, nova, aguja, ...EXTRA];

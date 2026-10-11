@@ -32,7 +32,7 @@ function cloudMat({ c1, c2, scale = 0.006, speed = 0.01, alpha = 0.8, sun, oct =
 }
 
 /* ───────── rayo de luz (cinta que mira a la cámara alrededor de su eje) ───────── */
-function shaftMat(color) {
+export function shaftMat(color) {
   return finish(new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     uniforms: { uTime, uColor: { value: dc(color) }, uAxis: { value: new THREE.Vector3(0, 1, 0) }, uCenter: { value: new THREE.Vector3() }, uLen: { value: 200 }, uWid: { value: 14 }, uPh: { value: 0 }, uK: { value: 1 } },
@@ -44,7 +44,7 @@ function shaftMat(color) {
         float x = abs(vUv.x - 0.5) * 2.0, core = pow(1.0 - x, 2.0);
         float s = vnoise(vec3(vUv.x * 7.0 + uPh, vUv.y * 1.5 - uTime * 0.05, uPh)) * 0.6 + 0.4;
         float e = smoothstep(0.0, 0.25, vUv.y) * smoothstep(1.0, 0.55, vUv.y);
-        gl_FragColor = vec4(uColor, core * s * e * 0.10 * uK);
+        gl_FragColor = vec4(uColor, core * s * e * 0.07 * uK);
       }`,
   }));
 }
@@ -77,13 +77,13 @@ function ringMat(haze) {
     fragmentShader: `uniform float uTime; uniform vec3 uSun, uHaze; varying vec2 vUv; varying vec3 vWP; varying vec3 vN; ${NOISE}
       void main(){
         vec3 V = normalize(cameraPosition - vWP); vec3 n = normalize(vN); if (dot(n, V) < 0.0) n = -n;
-        vec2 g = vec2(vUv.x * 260.0, vUv.y * 8.0);
-        float panel = vnoise(vec3(floor(g), 3.0)), seam = smoothstep(0.92, 1.0, max(fract(g.x), fract(g.y)));
-        vec3 col = vec3(0.045, 0.055, 0.085) * (0.5 + panel) * (1.0 - 0.5 * seam);
-        float band = smoothstep(0.35, 0.5, vUv.y) * smoothstep(0.65, 0.5, vUv.y);
-        float city = step(0.78, hash13(vec3(floor(vec2(vUv.x * 700.0, vUv.y * 24.0)), 1.0))) * smoothstep(0.06, 0.3, vnoise(vec3(vUv.x * 40.0, vUv.y * 3.0, 9.0)));
-        col += vec3(1.0, 0.75, 0.45) * city * (0.5 + 0.5 * sin(uTime * 0.7 + panel * 20.0)) * 0.9;
-        col += vec3(0.1, 0.5, 0.9) * band * 0.18 + vec3(0.2, 0.7, 1.0) * smoothstep(0.02, 0.0, abs(vUv.y - 0.5)) * 0.9;
+        float panel = vnoise(vec3(vUv.x * 120.0, vUv.y * 6.0, 3.0)), lng = vnoise(vec3(vUv.x * 6.0, vUv.y * 30.0, 8.0));
+        vec3 col = vec3(0.05, 0.06, 0.09) * (0.55 + 0.7 * panel) * (0.7 + 0.5 * lng);
+        col *= 0.55 + 0.9 * smoothstep(0.0, 0.5, vUv.y) * smoothstep(1.0, 0.5, vUv.y);        // más claro en el centro de la cinta, oscuro en los bordes
+        float strip = smoothstep(0.012, 0.0, abs(vUv.y - 0.30)) + smoothstep(0.012, 0.0, abs(vUv.y - 0.70));
+        float dashes = smoothstep(0.35, 0.6, sin(vUv.x * 900.0) * 0.5 + 0.5);
+        col += vec3(1.0, 0.72, 0.4) * strip * (0.4 + 0.6 * dashes) * 0.8;
+        col += vec3(0.2, 0.7, 1.0) * smoothstep(0.02, 0.0, abs(vUv.y - 0.5)) * 0.9 + vec3(0.1, 0.4, 0.8) * smoothstep(0.1, 0.0, abs(vUv.y - 0.5)) * 0.2;
         col += vec3(1.0, 0.8, 0.6) * pow(max(dot(reflect(-V, n), uSun), 0.0), 20.0) * 0.5;
         float dist = length(cameraPosition - vWP); col = mix(col, uHaze, 0.35);
         gl_FragColor = vec4(col, 1.0);
@@ -140,14 +140,14 @@ export function buildSkyFx(r, map, { sunPos, haze, hazeDens }) {
     r.dyn.push((dt) => { o.rotation.x += dt * 0.02 * (i + 1); o.rotation.y += dt * 0.015; });
   });
   if (q.decor) { // megaestructura anular: un arco colosal cruzando el cielo
-    const ring = new THREE.Mesh(new THREE.CylinderGeometry(1000, 1000, 80, 160, 1, true, 0, 2.6), ringMat(haze)); ring.position.set(-120, -300, -260); ring.rotation.set(0.95, 0.4, 0.28); ring.frustumCulled = false; far.add(ring);
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(1000, 1000, 170, 160, 1, true, 0, 2.6), ringMat(haze)); ring.position.set(-120, -300, -260); ring.rotation.set(0.95, 0.4, 0.28); ring.frustumCulled = false; far.add(ring);
   }
 
   // destellos de lente con oclusión por las islas (muestreo del rayo cámara→sol)
   const glare = new THREE.Group(); root.add(glare);
   const mk = (tex, col, base, order = 20) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: col, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true, opacity: 0 })); m.renderOrder = order; m.frustumCulled = false; m.userData = { base }; glare.add(m); return m; };
-  const rays = mk(raysTex(), 0xffd9a0, 0.55), halo = mk(softTex(), 0xffc890, 0.5), streak = mk(streakTex(), 0x9fd8ff, 0.5), ghosts = [];
-  const gt = ringTex(), gdef = [[0.55, 0.16, 0xff9a60, 0.4], [0.9, 0.09, 0x7ad0ff, 0.5], [1.35, 0.22, 0xa078ff, 0.28], [1.8, 0.07, 0xffd070, 0.45], [-0.35, 0.12, 0x70ffd0, 0.3]];
+  const rays = mk(r.shared('env.rays', raysTex), 0xffd9a0, 0.55), halo = mk(r.shared('env.soft', softTex), 0xffc890, 0.5), streak = mk(r.shared('env.streak', streakTex), 0x9fd8ff, 0.5), ghosts = [];
+  const gt = r.shared('env.ring', ringTex), gdef = [[0.55, 0.16, 0xff9a60, 0.4], [0.9, 0.09, 0x7ad0ff, 0.5], [1.35, 0.22, 0xa078ff, 0.28], [1.8, 0.07, 0xffd070, 0.45], [-0.35, 0.12, 0x70ffd0, 0.3]];
   for (const [k, sz, col, o] of gdef) { const m = mk(gt, col, o); m.userData.k = k; m.userData.sz = sz; ghosts.push(m); }
   const ndc = new THREE.Vector3(), tmp = new THREE.Vector3(), cd = new THREE.Vector3(), sunW = new THREE.Vector3(); let vis = 0;
   const place = (m, x, y, size, d = 5) => { tmp.set(x, y, 0.5).unproject(r.camera); tmp.sub(r.camera.position).normalize(); m.position.copy(r.camera.position).addScaledVector(tmp, d); const wh = 2 * d * Math.tan(THREE.MathUtils.degToRad(r.camera.fov / 2)); m.scale.set(size * wh, size * wh, 1); };

@@ -34,7 +34,7 @@ const FRAG_PARS = `
   varying vec3 vObj; varying float vScl;
   ${NOISE_GLSL}
   float hbeat(float k){ float ph = (uTime * uBeat + uPhase * 0.159) * 6.2832 - k; return pow(0.5 + 0.5 * sin(ph), 5.0) + 0.45 * pow(0.5 + 0.5 * sin(ph - 1.25), 5.0); }
-  float fadeF(float f, float fp){ return 1.0 - smoothstep(0.2, 0.55, fp * f); }
+  float fadeF(float f, float fp){ return 1.0 - smoothstep(0.05, 0.2, fp * f); }
   // octava de relieve en unidades de mundo: ridged (arrugas) o valor (grano); amplitud ~ pendiente constante
   float oct(vec3 Pw, float f, float fp, float ridge){ f *= uMicro; float n = vn(Pw * f); float x = n * 2.0 - 1.0; float v = ridge > 0.5 ? 1.0 - sqrt(x * x + 0.04) : n; return v * (0.11 / f) * fadeF(f, fp); }
 `;
@@ -91,10 +91,10 @@ const MID = {
     ${VEINS(low)}
     ${SPOTS}
     pore = smoothstep(0.66, 0.85, vn(Pw * 46.0 * uMicro)) * fadeF(46.0 * uMicro, fp);
-    diffuseColor.rgb *= 1.0 - 0.14 * pore;
+    diffuseColor.rgb *= 1.0 - 0.09 * pore;
     ${WOUND(low)}
     diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.55 + uBlood * 0.35, thin * 0.3 * uSSS);
-    hh += oct(Pw, 3.2, fp, 0.0) * 1.2 + ${low ? 'oct(Pw, 22.0, fp, 0.0) * 0.6' : 'oct(Pw, 15.0, fp, 1.0) * 0.55 + oct(Pw, 46.0, fp, 0.0) * 0.6 + oct(Pw, 120.0, fp, 0.0) * 0.45'};`,
+    hh += oct(Pw, 3.2, fp, 0.0) * 1.2 + ${low ? 'oct(Pw, 22.0, fp, 0.0) * 0.6' : 'oct(Pw, 15.0, fp, 1.0) * 0.55 + oct(Pw, 46.0, fp, 0.0) * 0.45 + oct(Pw, 110.0, fp, 0.0) * 0.3'};`,
   chitin: (low) => `
     // placas: surcos finos entre placas + bandas de crecimiento (capas) + iridiscencia de película delgada
     float g1 = abs(vn(Po * uScale * 1.6) - 0.5); float groove = 1.0 - smoothstep(0.0, 0.05, g1);
@@ -109,7 +109,7 @@ const MID = {
     ${SPOTS.replace('uSpots', 'uSpots')}
     ${VEINS(low).replace(/uVeins \* 0\.55/g, 'uVeins * 0.18').replace(/uVeins \* 0\.5/g, 'uVeins * 0.15')}
     pore = smoothstep(0.68, 0.86, vn(Pw * 60.0 * uMicro)) * fadeF(60.0 * uMicro, fp);
-    diffuseColor.rgb *= 1.0 - 0.1 * pore;
+    diffuseColor.rgb *= 1.0 - 0.06 * pore;
     ${WOUND(low)}
     hh += (band * 0.35 - gv) * 0.012 + oct(Pw, ${low ? '30.0' : '38.0'}, fp, 0.0) * 0.5;`,
   lid: (low) => `
@@ -233,10 +233,8 @@ function bio(kind, o = {}, base = {}) {
   const low = isLow(), hi = !low;
   const Cls = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
   const translucent = (o.alpha ?? 1) < 1 || kind === 'membrane' || kind === 'goo' && (o.alpha ?? 1) < 1;
-  const mat = new Cls({ color: o.color ?? 0xff8a7a, roughness: o.rough ?? 0.42, metalness: 0, transparent: translucent, opacity: (kind === 'membrane' || kind === 'goo') ? 1 : (o.alpha ?? 1), side: kind === 'membrane' ? THREE.DoubleSide : THREE.FrontSide, flatShading: !!o.flat, ...base });
+  const mat = new Cls({ color: o.color ?? 0xff8a7a, roughness: o.rough ?? 0.42, metalness: 0, transparent: translucent, opacity: (kind === 'membrane' || kind === 'goo') ? 1 : (o.alpha ?? 1), side: (kind === 'membrane' || (kind === 'flesh' && (o.alpha ?? 1) < 1)) ? THREE.DoubleSide : THREE.FrontSide, flatShading: !!o.flat, ...base });
   const u = makeUniforms(o); mat.userData.u = u; mat.userData.kind = kind;
-  const DBG = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('dbg') || '' : '';  // DEBUG TEMPORAL
-  if (DBG.includes('nov')) u.uVeins.value = 0; if (DBG.includes('nos')) u.uSSS.value = 0; if (DBG.includes('nob')) u.uBump.value = 0; if (DBG.includes('nosp')) u.uSpots.value = 0;
   const anim = kind !== 'bone' && kind !== 'crystal' && kind !== 'lid';
   const key = `org-${kind}-${low ? 'L' : 'H'}-${o.flat ? 'f' : 's'}`;
   mat.customProgramCacheKey = () => key;
@@ -340,8 +338,35 @@ function expand(mats) {
   return [...out];
 }
 /** Material de párpado de carne con borde húmedo (para eye()). */
-export function lidMaterial(color = 0x7a3a3a, vein = 0x5a1020) { return bio('lid', { color, vein, veins: 0.6, rough: 0.5, wobble: 0, breath: 0, sss: 0.9, scale: 3 }); }
+export function lidMaterial(color = 0xb8706a, vein = 0x7a1a28) { return bio('lid', { color, vein, veins: 0.6, rough: 0.5, wobble: 0, breath: 0, sss: 0.9, scale: 3 }); }
 /** Heridas visibles: w ∈ [0,1] (usa 1 - st.hp). Aparecen moretones, carne viva, grietas y ícor brillante. */
 export function setWound(mats, w) { for (const m of expand(mats)) { const u = m && m.userData && m.userData.u; if (u && u.uWound) u.uWound.value = w; } }
 /** Latido: velocidad de los latidos (Hz) para todas las pieles. */
 export function setBeat(mats, hz) { for (const m of mats) { const u = m && m.userData && m.userData.u; if (u && u.uBeat) u.uBeat.value = hz; } }
+
+/**
+ * Pelo largo por capas («shells»): agrega `layers` copias infladas de `mesh` (comparten geometría) con hebras que se afinan hacia la punta.
+ * Sólo en calidad media/alta (en baja no hace nada y devuelve []). Cada capa es 1 draw call: úsalo en piezas pequeñas (cola, melena).
+ */
+export function furShells(mesh, { layers = 4, length = 0.05, color = 0x8a6a50, tip = null, density = 60 } = {}) {
+  if (isLow()) return [];
+  const out = [];
+  for (let i = 1; i <= layers; i++) {
+    const k = i / layers;
+    const m = new THREE.MeshStandardMaterial({ color: new Col(color).lerp(new Col(tip ?? color).multiplyScalar(1.25), k), roughness: 0.9, side: THREE.FrontSide });
+    const u = { uShell: { value: k }, uLenF: { value: length }, uDens: { value: density }, uTime, uHurt: { value: 0 } };
+    m.userData.u = u;
+    m.customProgramCacheKey = () => 'org-furshell';
+    m.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, u);
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>\nuniform float uShell,uLenF,uTime; varying vec3 vObj; varying float vScl;`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>\nvObj = position; vScl = length(modelMatrix[0].xyz); transformed += normal * uShell * uLenF / max(vScl, 1e-3) + vec3(sin(uTime * 1.3 + position.y * 5.0), 0.0, cos(uTime * 1.1 + position.x * 5.0)) * 0.004 * uShell / max(vScl, 1e-3);`);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nuniform float uShell,uHurt,uDens; varying vec3 vObj; varying float vScl; ${NOISE_GLSL}`)
+        .replace('#include <color_fragment>', `#include <color_fragment>\nfloat strand = vn(vObj * vScl * uDens); if (strand < 0.18 + uShell * 0.7) discard; diffuseColor.rgb *= 0.55 + 0.6 * uShell;`)
+        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\ntotalEmissiveRadiance += vec3(1.0, 0.85, 0.7) * uHurt * 0.5;`);
+    };
+    registerMat(m);
+    const l = new THREE.Mesh(mesh.geometry, m); l.renderOrder = 1; mesh.add(l); out.push(l);
+  }
+  return out;
+}

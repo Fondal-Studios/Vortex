@@ -91,16 +91,16 @@ function planetMat(sun, oct) {
         vec3 p = normalize(vL), n = normalize(vN), V = normalize(cameraPosition - vWP);
         float h = fbm(p * 2.4 + 3.0) + 0.25 * fbm(p * 7.0), sea = 0.52;
         float land = smoothstep(sea - 0.005, sea + 0.012, h);
-        float pole = smoothstep(0.72, 0.9, abs(p.y) + (h - 0.5) * 0.4);
-        vec3 ocean = mix(vec3(0.02, 0.08, 0.20), vec3(0.05, 0.38, 0.50), smoothstep(sea - 0.12, sea, h));
-        vec3 low = vec3(0.07, 0.30, 0.16), high = vec3(0.45, 0.33, 0.18), rock = vec3(0.30, 0.28, 0.32);
+        float pole = smoothstep(0.84, 0.97, abs(p.y) + (h - 0.5) * 0.4);
+        vec3 ocean = mix(vec3(0.02, 0.10, 0.28), vec3(0.06, 0.52, 0.62), smoothstep(sea - 0.12, sea, h));
+        vec3 low = vec3(0.10, 0.46, 0.20), high = vec3(0.62, 0.44, 0.20), rock = vec3(0.36, 0.30, 0.42);
         vec3 ter = mix(mix(low, high, smoothstep(sea, sea + 0.12, h)), rock, smoothstep(sea + 0.16, sea + 0.26, h));
         vec3 alb = mix(ocean, ter, land); alb = mix(alb, vec3(0.85, 0.92, 1.0), pole);
         vec3 nb = bumpN(n, vWP, h * 3.0 * land, 0.15);
         float dif = clamp(dot(nb, uSun) * 1.1 + 0.08, 0.0, 1.0), night = 1.0 - smoothstep(-0.1, 0.25, dot(n, uSun));
         vec3 H = normalize(uSun + V); float spec = pow(max(dot(n, H), 0.0), 60.0) * (1.0 - land) * 0.8;
         float veins = (1.0 - smoothstep(0.0, 0.05, abs(vnoise(p * 9.0 + 2.0) - 0.5) * 2.0)) * land * (1.0 - pole);
-        vec3 col = alb * (0.03 + 0.95 * dif) + spec * vec3(1.0, 0.95, 0.85);
+        vec3 col = alb * (0.16 + 0.95 * dif) + spec * vec3(1.0, 0.95, 0.85);
         col += vec3(0.1, 1.0, 0.8) * veins * night * (0.6 + 0.4 * sin(uTime * 1.3 + p.x * 8.0));
         col += vec3(0.25, 0.55, 1.0) * pow(1.0 - max(dot(n, V), 0.0), 3.0) * (0.15 + 0.7 * dif);
         gl_FragColor = vec4(col, 1.0);
@@ -112,8 +112,8 @@ function cloudShellMat(sun) {
     uniforms: { uTime, uSun: { value: new THREE.Vector3(...sun).normalize() } },
     vertexShader: `varying vec3 vL; varying vec3 vN; void main(){ vL = position; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `uniform float uTime; uniform vec3 uSun; varying vec3 vL; varying vec3 vN; ${NOISE}
-      void main(){ vec3 p = normalize(vL); float c = smoothstep(0.50, 0.72, fbm(p * 3.2 + vec3(0.0, uTime * 0.01, 0.0)) + 0.2 * fbm(p * 8.0));
-        float dif = clamp(dot(normalize(vN), uSun) * 1.2 + 0.15, 0.0, 1.0); gl_FragColor = vec4(mix(vec3(0.25, 0.25, 0.4), vec3(1.0, 0.92, 0.95), dif), c * 0.8); }` }));
+      void main(){ vec3 p = normalize(vL); float c = smoothstep(0.58, 0.80, fbm(p * 3.2 + vec3(0.0, uTime * 0.01, 0.0)) + 0.2 * fbm(p * 8.0));
+        float dif = clamp(dot(normalize(vN), uSun) * 1.2 + 0.15, 0.0, 1.0); gl_FragColor = vec4(mix(vec3(0.25, 0.25, 0.4), vec3(1.0, 0.92, 0.95), dif), c * 0.6); }` }));
 }
 const atmoMat = () => finish(new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.BackSide,
   uniforms: { uSun: { value: new THREE.Vector3(0.4, 1, -0.5).normalize() } },
@@ -159,11 +159,9 @@ function buildZoneFx(r, map) {
       const pad = new THREE.Mesh(new THREE.CircleGeometry(z.r * 1.7, 48), zoneMaterial(col, 6)); pad.rotation.x = -Math.PI / 2; pad.position.set(z.c.x, z.c.y + 0.05, z.c.z); pad.renderOrder = 3; root.add(pad);
       const hang = map.islands.find((is) => is.hang && Math.hypot(is.x - z.c.x, is.z - z.c.z) < 1);
       if (hang) { const pad2 = new THREE.Mesh(new THREE.CircleGeometry(z.r * 1.7, 48), zoneMaterial(col, 6)); pad2.rotation.x = Math.PI / 2; pad2.position.set(z.c.x, hang.y0 - 0.06, z.c.z); pad2.renderOrder = 3; root.add(pad2); }
-      const n = deco ? 170 : 50, pts = new THREE.Points(particleGeo(n, (i, rd) => { const a = rd() * 6.283, rr = Math.sqrt(rd()) * (z.r - 0.5); return [Math.cos(a) * rr, 0, Math.sin(a) * rr]; }, 21), particleMat({ color: 0xa8ffe0, size: 0.28, mode: 0, speed: 0.2, height: hang ? hang.y0 - z.y0 : h * 0.6, amp: 0.8, alpha: 0.9 }));
+      const n = deco ? 170 : 50, pts = new THREE.Points(particleGeo(n, (i, rd) => { const a = rd() * 6.283, rr = Math.sqrt(rd()) * (z.r - 0.5); return [Math.cos(a) * rr, 0, Math.sin(a) * rr]; }, 21), particleMat({ color: 0xa8ffe0, size: 0.24, mode: 0, speed: 0.2, height: hang ? hang.y0 - z.y0 : h * 0.6, amp: 0.8, alpha: 0.5 }));
       pts.position.set(z.c.x, z.y0, z.c.z); pts.frustumCulled = false; root.add(pts);
-      if (deco) { // haz central tenue
-        const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, hang ? hang.y0 - z.y0 : h * 0.6, 8, 1, true), zoneMaterial(0x9affe0, 1)); beam.position.set(z.c.x, z.y0 + (hang ? hang.y0 - z.y0 : h * 0.6) / 2, z.c.z); root.add(beam);
-      }
+
     } else if (z.kind === 'zero') {
       const sh = new THREE.Mesh(new THREE.SphereGeometry(z.r, 40, 28), zoneMaterial(0xd8b8ff, 4)); sh.position.copy(C); sh.renderOrder = 3; root.add(sh);
       const pts = new THREE.Points(particleGeo(deco ? 100 : 30, (i, rd) => { const v = new THREE.Vector3().randomDirection().multiplyScalar(Math.cbrt(rd()) * (z.r - 1.5)); return [v.x, v.y, v.z]; }, 5), particleMat({ color: 0xe0ccff, size: 0.22, mode: 1, amp: 2.4, alpha: 0.9 }));

@@ -1,5 +1,6 @@
 // Mecánicas independientes de los jefes: Coloso = reflejar el Rayo del Vacío; Madre = purgar válvulas + romper huevos.
-import { dist, clone, norm, sub, clamp, madd } from './math.js';
+import { dist, clone, norm, sub, clamp, madd, v3, dot } from './math.js';
+import { blocked } from './physics.js';
 import { BOSS_MECH } from './data.js';
 
 /* ───────── Coloso Prismático ───────── */
@@ -82,3 +83,40 @@ function layEggs(g, m) {
   g.emit({ t: 'gestate', id: m.id });
 }
 export function bossDeath(g) { for (const o of [...g.objects]) if (o.boss || o.type === 'sac') g.removeObject(o); }
+
+/* ───────── Argos, el Ojo Primordial (Mapa 3) ─────────
+   Escudo mientras queden OJOS orbitando. Cuando caen todos queda aturdido ×2,5. Su MIRADA (rayo avisado 2,5 s) la frenan los muros del laberinto. */
+export function initArgos(g, m) {
+  m.shield = true; m.stagger = 0; m.gazeCd = 8; m.gaze = null; m.eyesAlive = 0; m.orbit = 0; m.sum = 10;
+  m.eyes = g.map.spots.eyes(Math.min(8, 5 + g.players.length)).map((p) => g.addObject('ojo', p, { hp: 240, maxhp: 240, hostile: true, r: 1.7, boss: true, parent: m.id }));
+}
+function respawnEyes(g, m) {
+  m.eyes = g.map.spots.eyes(Math.min(8, 5 + g.players.length)).map((p) => g.addObject('ojo', p, { hp: 240, maxhp: 240, hostile: true, r: 1.7, boss: true, parent: m.id }));
+}
+export function updateArgos(g, m, dt) {
+  const ph = m.phase || 1, alive = g.alivePlayers();
+  m.orbit += dt * (0.35 + 0.1 * ph);
+  m.eyes = m.eyes.filter((e) => g.objects.includes(e));
+  m.eyesAlive = m.eyes.length; m.shield = m.eyesAlive > 0 && m.stagger <= 0;
+  const n = m.eyes.length;
+  m.eyes.forEach((e, k) => { const a = m.orbit + (k / Math.max(1, n)) * Math.PI * 2; e.pos = v3(m.pos.x + Math.cos(a) * 22, m.pos.y - 5 + Math.sin(a * 2 + k) * 3 + (k % 2) * 4, m.pos.z + Math.sin(a) * 22); });
+  if (m.stagger > 0) { m.stagger -= dt; m.mech = 'stagger'; if (m.stagger <= 0) { m.mech = null; respawnEyes(g, m); g.emit({ t: 'shield', id: m.id }); } return { skip: true }; }
+  if (!n && m.stagger <= 0) { m.stagger = 9; m.mech = 'stagger'; m.gaze = null; g.emit({ t: 'stagger', id: m.id, secs: 9 }); return { skip: true }; }
+  // mirada: elige un jugador, avisa 2,5 s y dispara una línea; los muros la detienen
+  if (m.gaze) {
+    m.gaze.t -= dt; m.mech = 'gaze';
+    const tgt = g.players.find((p) => p.id === m.gaze.pid);
+    if (tgt && !tgt.dead && m.gaze.t > 0.4) m.gaze.dir = norm(sub(tgt.pos, m.pos));
+    if (m.gaze.t <= 0) {
+      const d = m.gaze.dir, o = m.pos; let tEnd = 140;
+      for (let t = 2; t < 140; t += 1.5) if (blocked(g.map, madd(o, d, t))) { tEnd = t; break; }
+      for (const p of alive) { const oc = sub(p.pos, o), t = dot(oc, d); if (t < 0 || t > tEnd) continue; const d2 = dot(oc, oc) - t * t; if (d2 < 2.2 * 2.2) g.hurtPlayer(p, 38 + 4 * ph, true); }
+      g.emit({ t: 'gazefire', from: [o.x, o.y, o.z], to: [madd(o, d, tEnd).x, madd(o, d, tEnd).y, madd(o, d, tEnd).z] });
+      m.gaze = null; m.mech = null; m.gazeCd = [0, 9, 7, 5.5][ph];
+    }
+  } else {
+    m.mech = null; m.gazeCd -= dt;
+    if (m.gazeCd <= 0 && alive.length) { const tgt = alive[Math.floor(g.rng.next() * alive.length)]; m.gaze = { t: 2.5, pid: tgt.id, dir: norm(sub(tgt.pos, m.pos)) }; g.emit({ t: 'gaze', id: m.id, pid: tgt.id }); }
+  }
+  return { skip: false };
+}
