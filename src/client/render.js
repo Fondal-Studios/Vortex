@@ -222,14 +222,15 @@ export class Renderer {
 
   /* ───────── narrativa: el Heraldo y el despertar ───────── */
   setGuide(on) {
-    if (on && !this.guide) { const b = heraldo(kit), g = new THREE.Group(); g.add(b.root); g.scale.setScalar(1.15); g.userData.arrive = 0; this.entRoot.add(g); this.guide = { g, b, talk: 0 }; }
+    if (on && !this.guide) { const b = heraldo(kit), g = new THREE.Group(); g.add(b.root); g.scale.setScalar(0.85); g.userData.arrive = 0; this.entRoot.add(g); this.guide = { g, b, talk: 0 }; }
     else if (!on && this.guide) { this.fx.burst(this.guide.g.position, 0xffa6e8, 60, 9, 1.2, 0.9); this.fx.blast(this.guide.g.position, 0x7dfff0, 5, 0.8); this.entRoot.remove(this.guide.g); this.guide.b.mats.forEach((m) => m.dispose()); this.guide = null; }
   }
+  setThird(on) { this.third = !!on; this.vm.root.visible = !on; if (on) this.ensureHumans(); }
   startWake(secs = 4) { this.wakeT = 0; this.wakeDur = secs; }
   updateGuide(dt, me) {
-    if (!this.guide || !me) return; const G = this.guide; G.g.userData.arrive = Math.min(1, G.g.userData.arrive + dt * 0.6);
+    if (!this.guide || !me) return; const G = this.guide; G.g.userData.arrive = Math.min(1, G.g.userData.arrive + dt * 0.5);
     const up = V(me.up), h = V(me.h), right = new THREE.Vector3().crossVectors(h, up).normalize(), a = G.g.userData.arrive;
-    const target = V(me.pos).addScaledVector(h, 3.4 + (1 - a) * 6).addScaledVector(up, 1.6 + (1 - a) * 3).addScaledVector(right, 0.7);
+    const target = V(me.pos).addScaledVector(h, 5.6 + (1 - a) * 6).addScaledVector(up, 1.9 + (1 - a) * 3).addScaledVector(right, 1.5);
     G.g.position.lerp(target, Math.min(1, 3 * dt)); this.orient(G.g, me.up, [me.pos[0] - G.g.position.x, me.pos[1] - G.g.position.y, me.pos[2] - G.g.position.z]);
     G.g.updateMatrixWorld(); this.tmpV.copy(this.camera.position); G.g.worldToLocal(this.tmpV);
     G.b.tick(dt, { id: 1, talk: this.guideTalk || 0 }, this.t, { look: this.tmpV.clone().normalize() });
@@ -270,6 +271,7 @@ export class Renderer {
     const q = new THREE.Quaternion().setFromRotationMatrix(m);
     if (!this.camInit) { this.camQ.copy(q); this.camInit = true; } else this.camQ.slerp(q, 1 - Math.exp(-14 * dt));
     this.camera.quaternion.copy(this.camQ);
+    if (this.third) { const cpos = V(me.pos).addScaledVector(aim, -5.2).addScaledVector(up, 2.1).addScaledVector(right, 1.0); this.camera.position.copy(cpos); this.camera.up.copy(up); this.camera.lookAt(V(me.pos).addScaledVector(aim, 14).addScaledVector(up, 0.9)); this.eye = cpos; this.aim = aim; this.vm.update(dt, { firing: false, hidden: true }); return; }
     let eyeH = 0.6;
     if (this.wakeT !== undefined && this.wakeT < this.wakeDur) { this.wakeT += dt; const k = Math.min(1, this.wakeT / this.wakeDur), e = 1 - Math.pow(1 - k, 3); this.camera.rotateZ((1 - e) * 1.45); eyeH = 0.6 - 0.45 * (1 - e); }
     const eye = V(me.pos).addScaledVector(up, eyeH);
@@ -301,7 +303,7 @@ export class Renderer {
         this.entRoot.add(e.object); this.ents.mon.set(m.id, e);
         e.object.position.set(...m.p);
       }
-      const o = e.object, scale = m.r * (m.k === 'coloso' || m.k === 'madre' ? 0.8 : 1) * Math.min(1, 0.2 + (this.t - e.born) * 3);
+      const o = e.object, scale = m.r * (m.k === 'coloso' || m.k === 'madre' ? 1.15 : 1) * Math.min(1, 0.2 + (this.t - e.born) * 3);
       o.position.lerp(V(m.p), 0.6); o.scale.setScalar(scale);
       this.orient(o, m.u, m.f);
       const hv = m.h ? 0.7 : 0;
@@ -375,12 +377,12 @@ export class Renderer {
     const seen = new Set();
     if (state.players.length > 1) this.ensureHumans();
     for (const p of state.players) {
-      if (p.id === myId) continue;
+      const self = p.id === myId; if (self && !this.third) continue;
       seen.add(p.id);
       let e = this.ents.ply.get(p.id);
       const col = PLAYER_COLORS[(p.id - 1) % 4];
       if (!e) { e = { object: new THREE.Group(), human: null, simple: null, prev: p.pos, spd: 0, col, shotT: 0 }; e.simple = this.simpleAvatar(col); e.object.add(e.simple); this.entRoot.add(e.object); this.ents.ply.set(p.id, e); }
-      if (!e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, { preset: 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
+      if (!e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
       const spd = Math.hypot(p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]) / Math.max(dt, 1e-3); e.prev = p.pos; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
       const base = V(p.pos).addScaledVector(V(p.up), e.human ? -0.9 : 0);
       e.object.position.copy(base); this.orient(e.object, p.up, p.h); e.object.visible = true;
@@ -391,10 +393,11 @@ export class Renderer {
         e.human.update(dt, { speed: e.spd, camera: this.camera });
       } else e.object.visible = !p.dead;
       // etiqueta con nombre; caído: progreso de reanimación
-      if (!e.label) { e.label = new THREE.Sprite(this.label(p.name, '#ffffff')); e.label.scale.set(2.6, 0.65, 1); e.object.add(e.label); }
+      if (self) { if (e.label) e.label.visible = false; } else if (!e.label) { e.label = new THREE.Sprite(this.label(p.name, '#ffffff')); e.label.scale.set(2.6, 0.65, 1); e.object.add(e.label); }
+      if (!self) {
       const txt = p.dead ? `REANIMAR ${Math.round(p.rv / 3 * 100)}%` : `${p.name} ${p.id}`, colr = p.dead ? '#ff7a9a' : '#' + col.toString(16).padStart(6, '0');
       if (e.labelTxt !== txt) { e.labelTxt = txt; e.label.material = this.label(txt, colr); }
-      e.label.position.set(0, e.human ? 2.25 : 1.8, 0);
+      e.label.position.set(0, e.human ? 2.25 : 1.8, 0); }
     }
     for (const [id, e] of this.ents.ply) if (!seen.has(id)) { this.entRoot.remove(e.object); if (e.human) e.human.dispose(); this.ents.ply.delete(id); }
   }

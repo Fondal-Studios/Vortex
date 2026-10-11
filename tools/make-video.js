@@ -16,11 +16,11 @@ const game = (extra) => `/?cap=1&q=${Q}&autoq=0&${extra}`;
 const JOBS = [
   { id: '01-titulo', frames: sec(13), url: game('seed=3'), script: { 0: `ui.show('title')`, [sec(4.2)]: `ui.act('ok')`, [sec(7)]: `ui.act('down')`, [sec(8)]: `ui.act('down')`, [sec(9)]: `ui.act('down')`, [sec(10)]: `ui.act('up')`, [sec(10.7)]: `ui.act('up')`, [sec(11.5)]: `ui.act('up')` } },
   { id: '02-historia', frames: sec(34), url: game('seed=3'), script: { 0: `ui.act('ok'); ui.go('story')`, [sec(1.5)]: `document.getElementById('campaign').click()` } },
-  { id: '03-isla', frames: sec(15), url: game('auto=m1&bot=1&god=1&wave=3&seed=11&skill=1.6'), title: ['CAPÍTULO 1', 'VACÍO DE ISLAS'] },
+  { id: '03-isla', frames: sec(15), url: game('auto=m1&bot=1&god=1&wave=3&seed=11&skill=1.6&cam=third'), title: ['CAPÍTULO 1', 'VACÍO DE ISLAS'] },
   { id: '04-coloso', frames: sec(11), url: game('auto=m1&bot=1&god=1&wave=7&seed=5&skill=1.6&look=boss'), title: ['JEFE', 'COLOSO PRISMÁTICO'] },
-  { id: '05-fractal', frames: sec(14), url: game('auto=m2&bot=1&god=1&wave=4&seed=8&skill=1.6'), title: ['CAPÍTULO 2', 'CÁMARA FRACTAL'] },
+  { id: '05-fractal', frames: sec(14), url: game('auto=m2&bot=1&god=1&wave=4&seed=8&skill=1.6&cam=third'), title: ['CAPÍTULO 2', 'CÁMARA FRACTAL'] },
   { id: '06-madre', frames: sec(10), url: game('auto=m2&bot=1&god=1&wave=7&seed=9&skill=1.6&look=boss'), title: ['JEFE', 'MADRE GEODA'] },
-  ...BEAST.map(([k, s], i) => ({ id: `07-bestiario-${String(i).padStart(2, '0')}-${k}`, frames: sec(k === 'coloso' || k === 'madre' ? 2.6 : 1.9), viewer: `k=${k}&s=${s}&turn=1&v=0.7&big=1&cap=1&q=${Q}&dist=${k === 'coloso' || k === 'madre' ? 11 : 5.4}&cy=0.35`, beast: k })),
+  ...BEAST.map(([k, s], i) => ({ id: `07-bestiario-${String(i).padStart(2, '0')}-${k}`, frames: sec(k === 'coloso' || k === 'madre' ? 2.6 : 1.9), viewer: `k=${k}&s=${s}&turn=1&v=0.7&big=1&cap=1&q=${Q}&dist=${({ coloso: 12, madre: 12, obelisco: 8.5, aurora: 8, lente: 7.5, espiral: 7, geoda: 6.6 })[k] || 6.2}&cy=${({ obelisco: 0.6, aurora: 0.9, lente: 0.5, coloso: 0.3, madre: 0.3 })[k] ?? 0.9}`, beast: k })),
   { id: '08-final', frames: sec(6), url: '/public/endcard.html', endcard: true },
 ];
 
@@ -31,6 +31,7 @@ async function runJob(b, srvPort, job) {
   const errs = []; pg.on('pageerror', (e) => errs.push(e.message));
   const url = job.viewer ? `/public/viewer.html?${job.viewer}` : job.url;
   await pg.goto(`http://localhost:${srvPort}${url}`); await pg.waitForTimeout(job.endcard ? 500 : 1500);
+  if (url.includes('cam=third')) await pg.waitForFunction(() => window.__renderer && window.__renderer.humansKit, null, { timeout: 120000 }).catch(() => console.log('personas no cargaron'));
   if (job.viewer) await pg.evaluate(([n, r]) => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:6vw;bottom:9vh;font-family:system-ui;color:#fff;text-shadow:0 0 12px #000'; d.innerHTML = `<div style="font-size:3.2vw;font-weight:200;letter-spacing:.3em">${n}</div><div style="font-size:1.3vw;letter-spacing:.3em;color:#7fb2ff;text-transform:uppercase">${r}</div>`; document.body.appendChild(d); }, NAMES[job.beast]);
   if (job.title) await pg.evaluate(([a, b2]) => { const d = document.createElement('div'); d.id = 'captitle'; d.style.cssText = 'position:fixed;left:6vw;top:11vh;z-index:40;font-family:"SF Pro Display","Helvetica Neue",Inter,system-ui,sans-serif;color:#fff;text-shadow:0 0 14px #000;animation:ct 4.5s ease both'; d.innerHTML = `<div style="font-size:1.2vw;letter-spacing:.5em;color:#7fb2ff">${a}</div><div style="font-size:3.6vw;font-weight:200;letter-spacing:.28em">${b2}</div>`; const st = document.createElement('style'); st.textContent = '@keyframes ct{0%{opacity:0;transform:translateX(-30px)}12%,80%{opacity:1;transform:none}100%{opacity:0}}'; document.head.append(st, d); }, job.title);
   const dtMs = 1000 / FPS; let vms = 0; const t0 = Date.now();

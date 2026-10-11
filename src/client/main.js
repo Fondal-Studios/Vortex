@@ -50,6 +50,7 @@ addEventListener('keydown', (e) => {
   if (e.code >= 'Digit1' && e.code <= 'Digit5') wantWeapon = +e.code.slice(5) - 1;
   if (e.code === 'Space') e.preventDefault();
   if ((e.code === 'Enter' || e.code === 'Escape') && session && session.intro) skipIntro();
+  if (e.code === 'KeyV' && session && !session.intro) renderer.setThird(!renderer.third); // cámara en tercera persona
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('mousedown', (e) => { if (e.button === 0) mouse.fire = true; if (session && session.intro) skipIntro(); });
@@ -134,7 +135,7 @@ async function startCoop(create, code, mapId) {
 function enter(mapId) {
   $('menu').classList.add('hidden'); $('end').classList.add('hidden'); $('hud').classList.remove('hidden'); document.body.classList.add('playing');
   sound.init(); sound.resume(); sound.startMusic(mapId);
-  renderer.setMap(mapId); renderer.camInit = false;
+  renderer.setMap(mapId); renderer.camInit = false; renderer.setThird(params.get('cam') === 'third');
   buildWeaponHud();
   touch.show(!!session.touch);
   if (!session.touch && !session.headless && !NOLOCK && !params.get('auto')) lockPointer(); // requiere gesto del usuario
@@ -155,7 +156,6 @@ function beginIntro(kind) {
 function startWake(lines) {
   if (!session || !session.intro) return;
   if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden');
-  $('hud').classList.remove('hidden'); if (session.touch) touch.show(false);
   renderer.setGuide(true); renderer.startWake(4); sound.heartbeat();
   subs.play(lines, finishIntro);
 }
