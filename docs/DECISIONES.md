@@ -27,3 +27,20 @@ Formato: **ID · decisión · por qué · alternativa descartada.**
 **D-12 · Dificultad por presupuesto.** Cada oleada gasta un presupuesto de «costo» entre las criaturas habilitadas; sube cuadráticamente con el número de oleada y linealmente (+60 %) por jugador extra. La oleada dura ~40 s sin importar su tamaño (el goteo de spawns se adapta).
 
 **D-13 · Muerte del jefe = todo se hace añicos.** Si no, los refuerzos invocados impedían ganar (lo detectó la prueba de jefes).
+
+---
+## Fase 2 (isekai, organismos, PS5, iPhone, video)
+
+**D-14 · Historia isekai con campaña jugable.** El protagonista es un **Pasajero** neutro atropellado por un tren que despierta en el Vórtice; el **Heraldo** (bicho guía) explica la regla única. La historia no vive en documentos: **se ve al jugar** (`▶ Historia`: cine del tren → despertar con la cámara levantándose del suelo → subtítulos del Heraldo → capítulo 1 → interludio → capítulo 2 → final). Guion en `src/client/story.js`.
+
+**D-15 · Enemigos = organismos.** Se descartaron las formas de cristal puras por pedido del usuario. Se creó un **kit orgánico** (`organism.js`) y 14 criaturas en archivos separados (`src/client/creatures/`). Se repartió el trabajo en 3 agentes en paralelo, cada uno con archivos propios y verificación visual obligatoria. Resultado honesto: vivos y estilizados, **no AAA** (ver `BESTIARIO.md`).
+
+**D-16 · Personas con la NPC Factory de *Duelo Arcano*.** Se trasplantó el mínimo necesario (rig MakeHuman + animaciones Quaternius, ambos CC0) a `src/arcanum/` + `assets/arcanum/`; **no** se usó nada de Ready Player Me (licencia pendiente en ese repo). En calidad Baja los compañeros del coop usan un avatar liviano (≈30 k triángulos por persona es mucho para iPhone). Ver `PERSONAS.md`.
+
+**D-17 · Calidad adaptable (Baja/Media/Alta).** Un solo perfil por nivel (`quality.js`): resolución, post-proceso (bloom + ACES), reflejos PBR, partículas, decorado, iteraciones de los shaders del cielo y detalle de las criaturas. El teléfono arranca en Baja y baja solo si los FPS caen. En Baja no hay post-proceso ni PBR de entorno.
+
+**D-18 · Controles táctiles propios, no librería.** Palanca dinámica, mirada por arrastre, botón de disparo arrastrable y una asistencia de puntería suave. Probado con iPhone emulado (Chromium táctil), **no en un iPhone real**.
+
+**D-19 · Interfaz estilo PS5.** Título → menú principal con tarjetas y hero, sub-pantallas, bestiario 3D, opciones, pantalla de carga con consejos, trofeos y soporte de mando (Gamepad API). Es **inspiración de estilo**: no usa marcas, fuentes ni recursos de Sony.
+
+**D-20 · Video por captura determinista.** Render cuadro a cuadro con **reloj virtual** (el render por software es lento pero el video sale fluido a 30 fps), registro de eventos de sonido y **banda sonora sintetizada** (numpy) mezclada con ffmpeg. Pipeline reproducible: `tools/make-video.js` → `tools/assemble-video.sh`.

@@ -7,7 +7,20 @@
 4. **Belleza rara.** Formas simples, colores saturados, escalas imposibles.
 
 ## Controles
-`WASD` mover · ratón apuntar · clic izq. disparar · `ESPACIO` saltar (en cero-G: impulso hacia «arriba») · `SHIFT` correr · `1–5` o rueda: armas · `ESC` pausa.
+| | PC | Mando (DualSense/Xbox) | iPhone |
+|---|---|---|---|
+| Mover | `WASD` | stick izq. | palanca virtual (al borde: correr) |
+| Mirar | ratón | stick der. | arrastrar a la derecha |
+| Disparar | clic izq. | R2 | botón DISPARO (arrastrable) |
+| Saltar | `ESPACIO` | ✕ | SALTO |
+| Correr | `SHIFT` | L3 / L2 | CORRER |
+| Arma | `1–5` / rueda | L1 / R1 | ‹ › o tocar el nombre |
+| Pausa | `ESC` | Options | ❚❚ |
+
+Menús: flechas/WASD + Enter/Esc, mouse, toque o D-pad/stick + ✕/○. Hay una pequeña asistencia de puntería en táctil.
+
+## Cooperativo (2–4)
+Cada pasajero tiene color propio y nombre sobre la cabeza. Si cae, un compañero que se quede **3 s a menos de 3,5 u** lo **reanima** (50 de vida); si no, revive al empezar la próxima oleada. Las hordas escalan +60 % por jugador extra.
 
 ## Jugador
 Vida 100 (no se regenera) + escudo 100 (se regenera 35/s tras 3 s sin daño). Caer al vacío: −25 y reaparecer. Entre oleadas: +40 de vida y botiquín/munición alrededor. Solo: derrota al caer (reintentar). Coop: el caído revive al empezar la próxima oleada.

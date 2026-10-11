@@ -28,6 +28,9 @@ Elegí **▶ Historia** (campaña con la intro del tren) o una **Arena**, y hac�
 ### Cooperativo (2–4)
 Una persona crea la sala (código de 4 dígitos) y las demás se unen con ese código desde `http://IP:8080`. Si un compañero cae, **acercate 3 segundos para reanimarlo**.
 
+## Demo en video
+`demo/cristal-vortice-demo.mp4`: título y menú PS5, la intro del tren, el despertar con el Heraldo, los dos capítulos, los dos jefes y el bestiario. Se regenera con `node tools/make-video.js && bash tools/assemble-video.sh` (tarda: el render es por CPU).
+
 ## Los mapas
 1. **Vacío de Islas** — islas flotantes: ascensores de gravedad invertida, planetoides, zonas sin peso, burbujas de tiempo lento, portales. Jefe: *Coloso Prismático* (ojo-colmena leviatán).
 2. **Cámara Fractal** — por dentro de una esfera hueca; el suelo está en todas partes y cada 60 s «la marea» apaga la gravedad. Jefe: *Madre Geoda* (flor-útero).
