@@ -53,6 +53,11 @@ addEventListener('keydown', (e) => {
   if (e.code >= 'Digit1' && e.code <= 'Digit5') { const n = +e.code.slice(5) - 1; if (cardsOpen && n < 3) pickReq = n; else wantWeapon = n; }
   if (e.code === 'Space') e.preventDefault();
   if ((e.code === 'Enter' || e.code === 'Escape') && session && session.intro) skipIntro();
+  if (session && session.practice && session.game && !e.repeat) {
+    const g = session.game, p = g.players[0];
+    if (e.code === 'KeyH') { const ids = Object.keys(CHARACTERS), i = (ids.indexOf(p.char) + 1) % ids.length; g.setLoadout(p.id, ids[i], p.slots); }
+    if (e.code === 'Comma' || e.code === 'Period') { const d = e.code === 'Period' ? 1 : -1, slot = Math.max(1, p.slots.indexOf(p.weapon)), n = WEAPONS.length; let w = p.weapon; do { w = (w + d + n) % n; } while (w < 1 || p.slots.includes(w)); g.setSlotWeapon(p.id, slot, w); }
+  }
   if (e.code === 'KeyV' && session && !session.intro) renderer.setThird(!renderer.third); // cámara en tercera persona
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
@@ -116,11 +121,11 @@ function assistAim(inp, state, me, dt) {
 /* ───────── sesión y campaña ───────── */
 function startSolo(mapId, opts = {}) {
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
-  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4 });
+  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, practice: !!opts.practice });
   const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots });
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
-  session = { horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
+  session = { practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
   enter(mapId);
   if (intro) beginIntro(opts.campaign === 'm2' ? 'short' : 'full'); else finishIntro();
 }
@@ -315,6 +320,8 @@ function audioAndHud(state, me, dt) {
   if (state.fx && !state.fx.warn) session.tideWarned = false;
   $('wave').textContent = state.phase === 'intermission' ? (state.wave ? 'RESPIRO' : 'PREPARATE') : `OLEADA ${state.wave} / ${state.waveTotal}`;
   $('left').textContent = state.phase === 'intermission' ? `siguiente en ${Math.ceil(state.intermission)}s` : `${state.left} criaturas`;
+  const pr = $('practice');
+  if (session.practice && me) { pr.classList.remove('hidden'); pr.innerHTML = `<b>CAMPO DE PRUEBAS</b> · Héroe: <i>${CHARACTERS[me.char] ? CHARACTERS[me.char].name : '—'}</i> (H) · Arma: <i>${WEAPONS[me.w].name}</i> ( , . ) · munición y vida ilimitadas`; } else pr.classList.add('hidden');
   const bb = $('bossbar');
   if (state.boss) { bb.classList.remove('hidden'); $('bossname').textContent = state.boss.name; $('bossfill').style.width = `${Math.max(0, 100 * state.boss.hp / state.boss.max)}%`; } else bb.classList.add('hidden');
   hudDirector(state, me);
@@ -433,7 +440,7 @@ const pad = new Pad();
 const loadAnd = (fn) => (params.get('cap') ? fn() : showLoading(1900, fn));
 const ui = new MenuUI({ sound, actions: {
   story: () => loadAnd(() => startSolo('m1', { campaign: 'm1' })),
-  arena: (m) => loadAnd(() => startSolo(m, { intro: false })),
+  arena: (m) => loadAnd(() => (m === 'practica' ? startSolo('m1', { intro: false, practice: true }) : startSolo(m, { intro: false }))),
 } });
 $('mkroom').addEventListener('click', () => startCoop(true, null, $('coopmap').value));
 $('joinroom').addEventListener('click', () => startCoop(false, $('roomcode').value.trim()));

@@ -208,3 +208,5 @@ select, input[type=text], input:not([type]), input[type=range] { font: inherit; 
 @media (pointer: coarse) { .ucard { width: 28vw; padding: 8px 8px; } .ucard .ud { display: none; } #cards { padding-top: 6vh; } #cards h3 { font-size: 14px; } #bars { width: 170px; } }
 
 #wlist { grid-template-columns: repeat(4, 1fr); max-height: 52vh; }
+
+#practice { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-radius: 10px; background: #0c0822cc; border: 1px solid #ffe27a88; font-size: 12px; letter-spacing: .05em; pointer-events: none; white-space: nowrap; } #practice i { color: #ffe27a; font-style: normal; } @media (pointer: coarse) { #practice { font-size: 10px; top: 40px; } }

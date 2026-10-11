@@ -19,7 +19,8 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4 } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false } = {}) {
+    this.practice = !!practice; this.practiceT = 0;
     this.map = MAPS[mapId];
     if (!this.map) throw new Error('mapa desconocido: ' + mapId);
     this.mapId = mapId;
@@ -68,6 +69,8 @@ export class Game {
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
   }
+  /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
+  setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
   setLoadout(id, char, slots) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].role; } if (Array.isArray(slots)) p.slots = cleanSlots(slots); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
@@ -94,7 +97,20 @@ export class Game {
   }
 
   /* ─────────── oleadas ─────────── */
+  /** Campo de pruebas: sin oleadas; blancos pasivos que reaparecen, munición y vida ilimitadas. */
+  updatePractice(dt) {
+    this.phaseT = 1e9; this.phase = 'intermission';
+    for (const p of this.players) { if (p.dead) { p.dead = false; p.hp = 100; } p.hp = Math.min(PLAYER.hp, p.hp + 40 * dt); p.shield = PLAYER.shield; WEAPONS.forEach((w, i) => { if (w.max !== Infinity) p.ammo[i] = ammoMax(p, i); }); }
+    const alive = this.monsters.filter((m) => !m.dead && m.passive).length;
+    this.practiceT -= dt;
+    if (alive < 8 && this.practiceT <= 0 && this.players.length) {
+      this.practiceT = 0.8; const ref = this.players[0], kinds = ['astilla', 'geoda', 'prisma', 'lente', 'cuarzo', 'espejo', 'ariete', 'obelisco'], k = kinds[this.stats.spawned % kinds.length], def = MONSTERS[k];
+      const pos = def.fly ? this.map.spawnAir(this.rng, ref.pos, ref.up) : this.map.spawnGround(this.rng, ref.pos);
+      const m = this.spawnMonster(k, pos, { noElite: true }); if (m) { m.passive = true; m.hp = m.maxhp = Math.max(300, m.maxhp); if (k === 'geoda') m.open = true; }
+    }
+  }
   updateWaves(dt) {
+    if (this.practice) return this.updatePractice(dt);
     const plan = WAVE_PLANS[this.mapId];
     if (this.phase === 'intermission') {
       this.phaseT -= dt;
@@ -498,7 +514,8 @@ export class Game {
     }
     m.t += dtm; m.hurt = Math.max(0, m.hurt - dt);
     const targets = this.alivePlayers();
-    if (targets.length) AI[m.def.ai](this, m, dtm, targets);
+    if (m.passive && targets.length) { const d = sub(targets[0].pos, m.pos), up = m.up || v3(0, 1, 0); m.fwd = norm(project(d, up), m.fwd); }
+    else if (targets.length) AI[m.def.ai](this, m, dtm, targets);
     if (m.dead) return;
     if (!finite(m.pos) || this.map.outOfBounds(m.pos)) { m.dead = true; if (m.parent) { const par = this.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); } if (m.def.boss) { m.pos = clone(this.map.bossAnchor); m.dead = false; m.vel = v3(); } return; }
     // reubicar rezagados (fuera de alcance mucho tiempo)

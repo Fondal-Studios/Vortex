@@ -106,3 +106,11 @@ test('efectos de estado: Glaciar ralentiza, Plaga y Brasa dañan con el tiempo, 
   { const { g, p } = arena(); p.weapon = id('mina'); p.ammo[p.weapon] = 10; g.setInput(p.id, { fire: true, dpitch: -0.3 }); g.step(1 / 60); g.setInput(p.id, { fire: false }); run(g, 2); assert.ok(g.objects.some((o) => o.type === 'mine'), 'mina colocada'); const mine = g.objects.find((o) => o.type === 'mine'); const m = g.spawnMonster('geoda', madd(mine.pos, v3(1, 0, 0), 2)); m.cd = 1e9; const h = m.hp; run(g, 1.5); assert.ok(m.hp < h || m.dead, 'explotó'); assert.ok(!g.objects.some((o) => o.type === 'mine'), 'la mina se consume'); }
   { const { g, p } = arena(); p.weapon = id('quimera'); p.ammo[p.weapon] = 100; target(g, p); const fx = new Set(); g.setInput(p.id, { fire: true }); for (let i = 0; i < 400; i++) { g.step(1 / 60); for (const e of g.drainEvents()) if (e.t === 'shot' && e.fx) fx.add(e.fx); } assert.ok(fx.size >= 3, `efectos distintos: ${[...fx]}`); }
 });
+
+test('Campo de pruebas: sin oleadas, 8 blancos pasivos que reaparecen, munición y vida ilimitadas, cambio de héroe y de arma en caliente', () => {
+  const g = new Game({ mapId: 'm1', seed: 1, practice: true }); const p = g.addPlayer('a'); run(g, 12);
+  assert.equal(g.wave, 0); assert.equal(g.monsters.filter((m) => m.passive).length, 8, '8 blancos');
+  const m = g.monsters[0]; const pos = { ...m.pos }; run(g, 2); assert.ok(dist(m.pos, pos) < 0.5, 'no se mueven ni atacan'); p.hp = 10; p.ammo[8] = 0; run(g, 1.5); assert.ok(p.hp > 40 && p.ammo[8] > 0, 'se recuperan');
+  g.damageMonster(m, 1e9, p); run(g, 3); assert.equal(g.monsters.filter((q) => q.passive && !q.dead).length, 8, 'reaparece');
+  g.setSlotWeapon(p.id, 2, 20); assert.equal(p.weapon, 20); assert.equal(p.slots[2], 20); g.setLoadout(p.id, 'umbra', p.slots); assert.equal(p.char, 'umbra');
+});
