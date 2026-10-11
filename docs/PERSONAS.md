@@ -21,23 +21,36 @@ h.play('walk'); h.update(dt, { speed: 3.1, camera });   // cada cuadro
 - Convención: pies en y=0, mide ≈1,7, **la cara mira a +Z**. Los materiales son `MeshStandardMaterial`: necesitan luces en la escena.
 - Demo: `/public/humans.html?q=low|medium|high` (`&anim=walk` fuerza un clip). Captura: `node tools/shot-humans.js [low|medium|high]` → `shots/personas.jpg` (medium) o `personas-<q>.jpg`.
 
-## Medidas (5 personas, Chromium + SwiftShader; sirven para comparar, los fps NO representan un iPhone)
-| Calidad | Draw calls | Triángulos | Texturas máx. | Qué recorta |
-|---|---|---|---|---|
-| low | 34 (≈7/persona) | ≈150 k (≈30 k/persona) | 256 px | sin capas de tela procedurales (abrigos/capas), ojos sin córnea, sin cara animada (ojos/párpados/mandíbula), sin normal maps, sin sombras ni partículas, piel/telas sin detalle extra, 1 cristal de acento |
-| medium | 54 (≈11/persona) | ≈210 k (≈42 k/persona) | 512 px | luz de piel, rubor, capas de tela, brazaletes |
-| high | 54 | ≈211 k | 1024 px | + normal maps, brillos dobles, sombras propias si el renderer las activa |
-Descarga: **≈7–8,5 MB** en total (cuerpo 1,1 MB + máscaras 0,6 MB + texturas de piel/ropa/pelo + `clips.bin` 0,4 MB); las texturas se bajan completas aunque low las achique a 256 px al cargar (no hay versiones chicas en disco). Cada persona extra reutiliza todo lo cargado. Carga inicial ≈5 s en SwiftShader.
+## API v2 (animación por capas, arma, roles, gestos)
+`createHuman(kit, { preset, role, color, weapon, name, overrides })`
+- `role`: `'vanguardia'` (peto, hombreras de cristal, cúpula en el hombro) · `'soporte'` (mochila blanca con frascos de cristal verde y cruz luminosa) · `'ingeniero'` (overol, mochila con herramientas y mini-torreta plegada, gafas) · `'explorador'` (visor luminoso, capa corta, rollo de dormir). Mismo cuerpo base; `color` tiñe los acentos de cristal y un matiz de la sudadera. **render.js todavía no pasa `role`**: agregar `role: p.role` en el `createHuman` de `syncPlayers`.
+- `weapon`: índice de `createWeaponModel` (por defecto 0; `null` = desarmado). `h.setWeapon(i)` cambia el arma con animación (baja la vieja, sube la nueva, destello). Si `weapons-vm.js` no existe se usa un arma de respaldo.
+- `h.update(dt, { speed, moveDir:{x,z}, pitch, look, firing, camera })`: `speed` (m/s) elige idle/walk/jog/sprint para las PIERNAS y ajusta el paso; `moveDir` (x derecha, z adelante, relativo a hacia dónde mira) da strafe y retroceso (las piernas giran hasta ±66° y hacia atrás el ciclo corre al revés; el torso lo compensa); `pitch` (rad, + arriba) reparte el giro en columna/cuello y el arma lo sigue.
+- Capas: con arma, torso/brazos/cabeza = `aimIdle` + retroceso procedural y la mano izquierda se coloca por IK en el guardamano; las piernas siguen a la locomoción. Sin arma, las dos capas usan el mismo clip. Clips `idle walk jog sprint aim aimIdle shoot` son «de locomoción»; los demás (`fall death revive interact cast reload hit jump…`) son de cuerpo entero. `revive` = muerte al revés (reanimación), `interact` = gesto de ayuda.
+- `h.shoot()` (o `play('shoot',{restart:true})`): retroceso + fogonazo en la boca (`userData.muzzle`). `h.gesture('ping',{target:Vector3})` señala con el brazo derecho, `h.gesture('wave')` saluda, `h.gesture(null)` cancela.
+- Equipo en `src/arcanum/gear.js`, IK en `src/arcanum/pose.js`.
 
-## Qué funciona (verificado en Chromium headless)
-Las 5 personas se ven con cuerpo, ropa, pelo, mochila, auriculares y acento emisivo, sin errores de consola ni de WebGL (las 3 calidades); animaciones idle/walk/jog/aim/shoot/cast/fall/death; `setLook`, `seed`, `dispose` ejecutados sin error.
+## LOD bajo (iPhone)
+`low` usa mallas decimadas: `assets/arcanum/narrative/lod.json + lod.bin` (1,5 MB; cuerpo ya recortado por prenda: ≈2,5–3,7 k tri, ropa ≈2 k, pelo 1–2,4 k, ojos 280, calzado 900). Regenerar (herramienta de un solo uso, no queda en package.json):
+`npm i --no-save meshoptimizer && node src/arcanum/bake-lod.mjs` (o `MESHOPT_DIR=<carpeta con node_modules/meshoptimizer>`).
 
-## Qué NO se logró / límites honestos
-- **No medido en iPhone real.** ≈30 k triángulos por persona en low es mucho si hay 4 jugadores + monstruos; el cuerpo MakeHuman (≈16 k visibles) no se pudo reducir sin una herramienta de decimado. «Menos huesos»: el rig sigue teniendo 326 huesos (sólo se salta la animación facial); no hay un esqueleto reducido.
-- Las animaciones son de cuerpo entero (no hay capa «apuntar con el torso mientras corrés»): al disparar en movimiento el clip de disparo reemplaza al de correr. `shoot`/`aim` son de pistola; no hay clips de otras armas.
-- La mochila, los auriculares y el cristal/brazaletes son geometría simple propia (cajas/toros); los auriculares sin cable. Los abrigos son las capas procedurales de ARCANUM (estilizadas); en low no hay abrigo, sólo el traje base. En low los trajes `male_worksuit01` son un overol azul (textura original), así que el color del jugador se nota sobre todo en la camiseta, mochila y acento.
-- Look «de pasajero» aproximado: no hay jeans/campera reales como piezas; se usan los trajes MakeHuman disponibles. Proporciones algo anchas (base MakeHuman). Las caras no son de calidad GTA (ver `docs/AUDITORIA_NPC.md` de duelo-arcano).
-- La verificación visual se hizo sólo con capturas estáticas (no se miró una secuencia larga de animación).
+## Medidas (Chromium + SwiftShader, 4 personas con rol y arma 0)
+| Calidad | Draw calls/persona | Triángulos/persona | Notas |
+|---|---|---|---|
+| low | 21–26 (arma ≈8–10 de ellas) | 9,5–12 k (antes ≈30 k) | LOD, sin capas de tela, piel liviana, sin sombras |
+| medium | 24–28 | 37–48 k | cuerpo completo, trama de tela, poros |
+| high | 24–28 | 42–53 k | + normal maps de ropa, sombras |
+Descarga ≈7,6–8 MB (low baja además lod.bin 1,5 MB y no el cuerpo de 1,1 MB). Las texturas en disco son 512 px.
+
+## Pruebas
+`node tools/shot-humans.js <q> --w 1400 --h 560 --multi "nombre:set=roles&cam=full&frozen=1&speed=4&move=0,1;..."` → `shots/<nombre>.jpg`. Parámetros de la demo: ver cabecera de `src/client/humans-demo.js` (set, role, weapon, anim, speed, move, pitch, cam, yaw, ov=campo:valor).
+
+## Límites honestos (v2)
+- No medido en iPhone real. low sigue pasando de 8–10 k triángulos y ~25 draw calls cuando el arma (varias mallas) cuenta; medium/high subieron por el equipo.
+- En low la ropa oscura se ve muy oscura (sin mapa de entorno). Metal de equipo sin reflejos reales en low.
+- Cara/pelo: base MakeHuman 512 px; borde de pelo duro (el juego no usa MSAA). Dedos del gesto «señalar» no se curvan (mano abierta).
+- Peto de la vanguardia algo cuadrado; capa del explorador es una malla rígida que se mece. No se verificó visualmente: reanimación (`revive`), saludo, `ping`, cambio de arma animado (sólo se probó que corre sin errores).
+- La mano izquierda por IK puede tener un pequeño desfase con armas largas.
 
 ## Origen y licencias
 - Copiado/adaptado de `duelo-arcano` (propio del autor): `src/npc/{actor,store,rig,library,parts,materials,schema,deform}.js` y `src/characters/retarget.js` → `src/arcanum/`. Cambios: stubs propios `quality.js` (reemplaza core/quality.js y world/materials.js), `locomotion.js` (sólo velocidades), sin biblioteca de importación; `store.js` carga clips ya horneados; `materials.js` parcheado para three 0.186 (el shader de luz cambió: `BRDF_Lambert(diffuseContribution)`); `actor.js` con perfil `lite`, clips de una sola vez, `restart`/`fade`; presets propios en `src/client/humans.js`.

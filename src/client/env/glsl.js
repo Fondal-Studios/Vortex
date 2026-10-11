@@ -39,24 +39,24 @@ void surfShade(vec3 p, vec3 nW, vec3 acc, vec4 isl, float t, out vec3 alb, out v
   float crag = fbm(p * vec3(1.05, 1.5, 1.05) + 3.0);
   float fine = vnoise(p * 6.5) * smoothstep(0.35, 0.08, fw);
   float g = vnoise(p * 0.5 + 7.0);
-  vec3 cA = vec3(0.034, 0.030, 0.056), cB = vec3(0.125, 0.078, 0.072), cC = vec3(0.050, 0.064, 0.100);
+  vec3 cA = vec3(0.020, 0.018, 0.036), cB = vec3(0.085, 0.052, 0.046), cC = vec3(0.034, 0.042, 0.070);
   alb = mix(mix(cA, cB, strata * 0.65 + g * 0.35), cC, thin * 0.5);
   alb *= 0.34 + 0.62 * crag;
-  alb = mix(alb, alb * (0.55 + acc * 1.4), 0.3);
+  alb = mix(alb, alb * (0.6 + acc * 1.0), 0.22);
   rough = 0.92 - 0.2 * strata;
   hgt = strata * 0.5 + crag * 1.0 + fine * 0.16;
   emi = vec3(0.0);
   // grietas con luz que fluye
   float n1 = vnoise(p * 0.42 + 3.0), n2 = vnoise(p * 0.95 + 11.0);
   float net = abs(n1 - 0.5) * 2.0 + (n2 - 0.5) * 0.05;
-  float crack = (1.0 - smoothstep(0.0, max(0.026, aa * 0.5), net)) * smoothstep(0.30, 0.60, vnoise(p * 0.2 + 21.0));
+  float crack = (1.0 - smoothstep(0.0, max(0.026, aa * 0.5), net)) * smoothstep(0.50, 0.70, vnoise(p * 0.2 + 21.0));
   float flow = 0.5 + 0.5 * sin(t * 1.6 - p.y * 0.8 + n2 * 10.0);
   emi += acc * crack * (0.4 + 1.5 * flow * flow);
   hgt -= crack * 0.5; alb = mix(alb, vec3(0.01), crack * 0.7);
   // musgo / hongos luminosos sobre repisas
   float up = smoothstep(0.15, 0.55, nW.y);
   float mp = smoothstep(0.50, 0.62, vnoise(p * vec3(0.8, 1.6, 0.8) + 4.0) + up * 0.18 - 0.1) * up;
-  alb = mix(alb, vec3(0.025, 0.10, 0.07) * (0.5 + acc), mp * 0.85); rough = mix(rough, 0.97, mp);
+  alb = mix(alb, vec3(0.012, 0.055, 0.04) * (0.5 + acc), mp * 0.85); rough = mix(rough, 0.97, mp);
   float spot = smoothstep(0.78, 0.9, vnoise(p * 5.5 + 9.0)) * mp;
   emi += acc * spot * (0.7 + 0.8 * sin(t * 1.5 + p.x * 3.0 + p.z * 2.0));
   emi += acc * 0.05 * smoothstep(0.0, -0.8, nW.y); // reflejo del mar de nubes en la panza

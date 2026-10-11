@@ -20,9 +20,11 @@ class Spring {
   step(dt) { let n = Math.max(1, Math.ceil(dt / 0.006)); const h = dt / n; while (n--) { this.v += (-this.k * this.x - this.c * this.v) * h; this.x += this.v * h; } return this.x; }
 }
 
+/** Color anodizado saturado: mismo tono, saturación alta y luminosidad fija (en sRGB). */
+function vivid(hex, l) { const hsl = {}; new THREE.Color(hex).getHSL(hsl, THREE.SRGBColorSpace); return new THREE.Color().setHSL(hsl.h, 0.95, l, THREE.SRGBColorSpace).getHex(); }
 function newGun(index, q) {
   const hex = WEAPON_COLORS[index], k = new Kit(q), mats = makeMats(q, hex), scr = new AmmoScreen(hex, WEAPON_LABELS[index]);
-  return { hex, k, mats, scr, B: tint(hex, 0.34), B2: tint(hex, 0.2), A: new THREE.Color(hex).offsetHSL(0.5, 0, -0.18).multiplyScalar(0.8).getHex(), q, heat: 0, boost: 0, ammo: 1 };
+  return { hex, k, mats, scr, B: vivid(hex, 0.46), B2: vivid(hex, 0.3), A: vivid(new THREE.Color(hex).offsetHSL(0.5, 0, 0).getHex(), 0.4), q, heat: 0, boost: 0, ammo: 1 };
 }
 /** Ranuras de ventilación. */
 function vents(k, n, [x, y, z], [w, h, d], step, c = DARK, axis = 'z') {
@@ -85,7 +87,7 @@ export function haz(q, hands) {
   const sl = new Spring(1100, 44), curl = { v: 0 }; let ringW = 3, ringA = 0;
   const W = {
     group, muzzle: [0, 0.03, -0.52], eject: [0.03, 0.07, 0.02], flash: { shape: 'star', size: 0.5, decay: 13 },
-    recoil: { z: 0.07, y: 0.012, pitch: 0.2, roll: 0.025, k: 210, c: 17 }, view: { pos: [0.27, -0.2, -0.5], scale: 0.78, rot: [0.0, 0.12, 0] },
+    recoil: { z: 0.07, y: 0.012, pitch: 0.2, roll: 0.025, k: 210, c: 17 }, view: { pos: [0.3, -0.19, -0.5], scale: 0.78, zs: 0.8, rot: [0.0, 0.04, 0] },
     update(dt, t, firing) {
       sl.step(dt); P.slide.position.z = P.slide.userData.base.z + clamp(sl.x, -0.01, 0.06);
       G.heat = Math.max(0, G.heat - dt * 0.55); G.boost = Math.max(0, G.boost - dt * 7);
@@ -149,7 +151,7 @@ export function prisma(q, hands) {
   let pumpT = -1, fanW = 2, fanA = 0, curl = 0, ejectDone = true; const kick = new Spring(180, 15);
   const W = {
     group, muzzle: [0, 0.03, -0.74], eject: [0.034, 0.05, 0.0], flash: { shape: 'fan', size: 1.0, decay: 9 },
-    recoil: { z: 0.17, y: 0.035, pitch: 0.4, roll: 0.045, k: 120, c: 11 }, view: { pos: [0.19, -0.26, -0.5], scale: 0.64, rot: [0.02, 0.04, 0] },
+    recoil: { z: 0.17, y: 0.035, pitch: 0.4, roll: 0.045, k: 120, c: 11 }, view: { pos: [0.31, -0.2, -0.5], scale: 0.62, zs: 0.6, rot: [0.02, 0.0, 0] },
     update(dt, t, firing) {
       kick.step(dt);
       let off = 0;
@@ -215,7 +217,7 @@ export function rafaga(q, hands) {
   let w = 0, ang = 0, curl = 0, shake = 0, wd = 0, sinceShot = 9; const sx = new Spring(400, 20);
   const W = {
     group, muzzle: [0, 0.045, -0.77], eject: [0.037, 0.045, 0.02], flash: { shape: 'jet', size: 0.5, decay: 26 },
-    recoil: { z: 0.026, y: 0.004, pitch: 0.045, roll: 0.012, k: 300, c: 22 }, view: { pos: [0.18, -0.24, -0.5], scale: 0.58, rot: [0.03, 0.05, 0] },
+    recoil: { z: 0.026, y: 0.004, pitch: 0.045, roll: 0.012, k: 300, c: 22 }, view: { pos: [0.3, -0.2, -0.5], scale: 0.62, zs: 0.65, rot: [0.02, 0.0, 0] },
     update(dt, t, firing) {
       sinceShot += dt; const spin = firing || sinceShot < 0.18;
       w = damp(w, spin ? 42 : 0, spin ? 5 : 1.4, dt); ang += w * dt; P.barrels.rotation.z = -ang; wd = damp(wd, w * 0.25, 4, dt); P.drum.rotation.x += wd * dt;
@@ -277,7 +279,7 @@ export function nova(q, hands) {
   let cageW = 1.2, rocketT = 9, curl = 0, steam = 0, coreP = 0; const kick = new Spring(120, 9);
   const W = {
     group, muzzle: [0, 0.07, -0.68], eject: null, flash: { shape: 'ball', size: 1.5, decay: 5.5 },
-    recoil: { z: 0.2, y: 0.045, pitch: 0.5, roll: 0.05, k: 90, c: 9 }, view: { pos: [0.17, -0.3, -0.52], scale: 0.6, rot: [0.03, 0.04, 0] },
+    recoil: { z: 0.2, y: 0.045, pitch: 0.5, roll: 0.05, k: 90, c: 9 }, view: { pos: [0.3, -0.24, -0.5], scale: 0.6, zs: 0.6, rot: [0.02, 0.0, 0] },
     update(dt, t, firing) {
       kick.step(dt); cageW = damp(cageW, firing ? 7 : 1.2, 3, dt); P.cage.rotation.y += cageW * dt; P.cage.rotation.x += cageW * 0.4 * dt;
       coreP = damp(coreP, firing ? 1 : 0, 5, dt); const s = 1 + 0.06 * Math.sin(t * 7) + coreP * 0.18 - G.boost * 0.2; P.core.scale.setScalar(s); P.core.rotation.set(t * 1.7, t * 2.3, 0);
@@ -346,7 +348,7 @@ export function aguja(q, hands) {
   let seq = 9, seqSpeed = 0, charge = 0, dischargeT = 9, curl = 0, spark = 0; const kick = new Spring(150, 12), open = new Spring(500, 24);
   const W = {
     group, muzzle: [0, 0.05, -1.3], eject: null, flash: { shape: 'ring', size: 1.0, decay: 8 },
-    recoil: { z: 0.1, y: 0.015, pitch: 0.22, roll: 0.02, k: 140, c: 14 }, view: { pos: [0.15, -0.26, -0.45], scale: 0.5, rot: [0.03, 0.045, 0] },
+    recoil: { z: 0.1, y: 0.015, pitch: 0.22, roll: 0.02, k: 140, c: 14 }, view: { pos: [0.3, -0.2, -0.45], scale: 0.52, zs: 0.5, rot: [0.02, 0.0, 0] },
     update(dt, t, firing) {
       kick.step(dt); open.step(dt); dischargeT += dt;
       charge = damp(charge, firing ? 1 : 0, firing ? 2.4 : 3, dt);

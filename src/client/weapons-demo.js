@@ -9,8 +9,10 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { skyMaterial, uTime, OUT } from './shaders.js';
 import { setCurrent, LEVELS, cfg } from './quality.js';
 import { Viewmodels, createWeaponModel } from './weapons-vm.js';
+import { TUNE } from './weapons/kit.js';
 
 const P = new URLSearchParams(location.search), Q = LEVELS[P.get('q')] ? P.get('q') : 'high', W = +(P.get('w') ?? 0), view = P.get('view') || 'fp';
+if (P.get('tune')) Object.assign(TUNE, JSON.parse(P.get('tune')));
 setCurrent(Q); OUT.linear = !!cfg().post;
 const canvas = document.getElementById('c'), gl = new THREE.WebGLRenderer({ canvas, antialias: false }); gl.info.autoReset = false;
 gl.setPixelRatio(P.get('pr') ? +P.get('pr') : (Q === 'low' ? 0.7 : 1)); gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = cfg().post ? 1.9 : 1.05;

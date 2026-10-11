@@ -139,8 +139,8 @@ const legGeo = (upper, lower, r, rad) => cache(`leg|${upper}|${lower}|${r}|${rad
   const tU = low ? [0, 0.5, 0.9, 1] : [0, 0.14, 0.36, 0.62, 0.86, 1], tL = low ? [0.1, 0.5, 0.95, 1] : [0.1, 0.22, 0.46, 0.74, 0.93, 1];
   const rings = [];
   const bulge = (x, c, wd, a) => a * Math.exp(-(((x - c) / wd) ** 2));
-  for (const t of tU) rings.push({ y: -t * upper, rr: r * (1.0 - 0.2 * t) + bulge(t, 1, 0.1, r * 0.5) + bulge(t, 0, 0.1, r * 0.25), wB: t > 0.8 ? 0.5 * (t - 0.8) / 0.2 * 0.95 : 0 });
-  for (const t of tL) rings.push({ y: -upper - t * lower, rr: r * 0.8 * (1 - 0.45 * t) + bulge(t, 0, 0.12, r * 0.38) + bulge(t, 1, 0.1, r * 0.32), wB: t < 0.2 ? 0.55 + 0.45 * (t / 0.2) : 1 });
+  for (const t of tU) rings.push({ y: -t * upper, rr: r * (0.85 - 0.2 * t) + bulge(t, 1, 0.1, r * 0.3) + bulge(t, 0, 0.1, r * 0.2), wB: t > 0.8 ? 0.5 * (t - 0.8) / 0.2 * 0.95 : 0 });
+  for (const t of tL) rings.push({ y: -upper - t * lower, rr: r * 0.72 * (1 - 0.45 * t) + bulge(t, 0, 0.12, r * 0.28) + bulge(t, 1, 0.1, r * 0.26), wB: t < 0.2 ? 0.55 + 0.45 * (t / 0.2) : 1 });
   const pos = [], idx = [], si = [], sw = [];
   const push = (x, y, z, wB) => { pos.push(x, y, z); si.push(0, 1, 0, 0); sw.push(1 - wB, wB, 0, 0); return pos.length / 3 - 1; };
   const apexTop = push(0, r * 0.5, 0, 0);

@@ -391,7 +391,7 @@ export function eye(o = {}) {
   };
 }
 /** Material de párpado/piel: carne húmeda con venas (versión con recorte). */
-export const lidMaterial = (o = {}) => bio({ color: 0x7a3a46, rough: 0.4, clear: 0.5, sheen: 0.6, tex: 'skin', tile: 2.2, bump: 1.2, seam: 0x2a0810, seamK: 0.5, vein: 0x4a0a18, veinK: 0.5, sss: 0.7, sssColor: 0xff5040, lid: true, vcol: false, side: THREE.DoubleSide, ...o });
+export const lidMaterial = (o = {}) => bio({ color: 0x7a3a46, rough: 0.4, clear: 0.4, sheen: 0, tex: 'skin', tile: 1.2, bump: 0.8, seam: 0x2a0810, seamK: 0.5, vein: 0x4a0a18, veinK: 0.35, sss: 0.15, sssColor: 0xff5040, lid: true, vcol: false, side: THREE.DoubleSide, ...o });
 
 /* ═════════════════════════ EXTRAS ═════════════════════════ */
 let haloTex = null;

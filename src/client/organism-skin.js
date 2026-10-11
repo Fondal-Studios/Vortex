@@ -94,7 +94,7 @@ const MID = {
     diffuseColor.rgb *= 1.0 - 0.14 * pore;
     ${WOUND(low)}
     diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.55 + uBlood * 0.35, thin * 0.3 * uSSS);
-    hh += oct(Pw, 4.5, fp, 1.0) + ${low ? 'oct(Pw, 22.0, fp, 0.0) * 0.6' : 'oct(Pw, 14.0, fp, 1.0) * 0.8 + oct(Pw, 46.0, fp, 0.0) * 0.6 + oct(Pw, 120.0, fp, 0.0) * 0.45'};`,
+    hh += oct(Pw, 3.2, fp, 0.0) * 1.2 + ${low ? 'oct(Pw, 22.0, fp, 0.0) * 0.6' : 'oct(Pw, 15.0, fp, 1.0) * 0.55 + oct(Pw, 46.0, fp, 0.0) * 0.6 + oct(Pw, 120.0, fp, 0.0) * 0.45'};`,
   chitin: (low) => `
     // placas: surcos finos entre placas + bandas de crecimiento (capas) + iridiscencia de película delgada
     float g1 = abs(vn(Po * uScale * 1.6) - 0.5); float groove = 1.0 - smoothstep(0.0, 0.05, g1);
@@ -202,7 +202,7 @@ const EMIT = (kind, low) => `#include <emissivemap_fragment>
       float ndl = dot(normal, Ls);
       float wrap = clamp((ndl + 0.55) / 1.55, 0.0, 1.0) - clamp(ndl, 0.0, 1.0);
       float trans = pow(clamp(dot(Vv, -Ls), 0.0, 1.0), 2.5) * (0.2 + 1.2 * thin);
-      sss = (wrap * 0.55 + trans * 1.3) * Lc * uBlood * diffuseColor.rgb * uSSS;
+      sss = (wrap * 0.3 + trans * 1.2) * Lc * uBlood * diffuseColor.rgb * uSSS;
     #endif
     float pulseW = 0.65 + 0.35 * sin(uTime * 3.0 + vObj.y * 4.0 + vn1 * 3.0);
     float spotP = 0.5 + 0.5 * sin(uTime * 2.4 - spotN * 18.0 + Po.y * 3.0);
@@ -235,6 +235,8 @@ function bio(kind, o = {}, base = {}) {
   const translucent = (o.alpha ?? 1) < 1 || kind === 'membrane' || kind === 'goo' && (o.alpha ?? 1) < 1;
   const mat = new Cls({ color: o.color ?? 0xff8a7a, roughness: o.rough ?? 0.42, metalness: 0, transparent: translucent, opacity: (kind === 'membrane' || kind === 'goo') ? 1 : (o.alpha ?? 1), side: kind === 'membrane' ? THREE.DoubleSide : THREE.FrontSide, flatShading: !!o.flat, ...base });
   const u = makeUniforms(o); mat.userData.u = u; mat.userData.kind = kind;
+  const DBG = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('dbg') || '' : '';  // DEBUG TEMPORAL
+  if (DBG.includes('nov')) u.uVeins.value = 0; if (DBG.includes('nos')) u.uSSS.value = 0; if (DBG.includes('nob')) u.uBump.value = 0; if (DBG.includes('nosp')) u.uSpots.value = 0;
   const anim = kind !== 'bone' && kind !== 'crystal' && kind !== 'lid';
   const key = `org-${kind}-${low ? 'L' : 'H'}-${o.flat ? 'f' : 's'}`;
   mat.customProgramCacheKey = () => key;

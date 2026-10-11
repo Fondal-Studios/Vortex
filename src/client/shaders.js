@@ -170,18 +170,54 @@ export function shellMaterial(hue = 0.3, iters = 5) {
   }));
 }
 
-/* Zonas de física: cáscara translúcida con bandas animadas. mode 0 plano, 1 sube, 2 baja/gira */
+/** Color "de pantalla": canales sRGB tal cual (finish() hace pow(2.2) cuando hay post-proceso). */
+export function screenColor(hex) { return new THREE.Color().setRGB(((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255, THREE.LinearSRGBColorSpace); }
+
+/* Zonas de física: cáscara translúcida animada.
+   modo 0 plano · 1 columna que sube · 2 baja/gira (clásico) · 3 burbuja de tiempo lento (reloj en el ecuador)
+   4 burbuja sin gravedad (pompa irisada) · 5 pozo de gravedad (atmósfera) · 6 almohadilla circular (uv) */
 export function zoneMaterial(color, mode = 0) {
   return finish(new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
-    uniforms: { uTime, uColor: { value: new THREE.Color(color) }, uMode: { value: mode } },
-    vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vW; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = -mv.xyz; vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * mv; }`,
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, defines: { FBM_OCT: 3 },
+    uniforms: { uTime, uColor: { value: color && color.isColor ? color : screenColor(color) }, uMode: { value: mode } },
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vW; varying vec3 vP; varying vec2 vUv; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = -mv.xyz; vW = (modelMatrix * vec4(position, 1.0)).xyz; vP = position; vUv = uv; gl_Position = projectionMatrix * mv; }`,
     fragmentShader: `
-      uniform float uTime, uMode; uniform vec3 uColor; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      uniform float uTime, uMode; uniform vec3 uColor; varying vec3 vN; varying vec3 vV; varying vec3 vW; varying vec3 vP; varying vec2 vUv; ${PAL} ${NOISE}
       void main(){
         float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.0);
-        float band = uMode < 0.5 ? 0.5 : (uMode < 1.5 ? sin(vW.y * 0.8 - uTime * 3.0) * 0.5 + 0.5 : sin((vW.x + vW.z) * 0.6 + vW.y * 0.5 + uTime * 2.0) * 0.5 + 0.5);
-        gl_FragColor = vec4(uColor * (0.25 + 0.9 * band), (0.05 + 0.5 * f) * (0.4 + 0.6 * band));
+        vec3 col; float al;
+        if (uMode < 1.5 && uMode > 0.5) {            // columna ascendente
+          float ang = atan(vP.z, vP.x);
+          float n = vnoise(vec3(ang * 6.0, vW.y * 0.16 - uTime * 1.6, 1.0)), n2 = vnoise(vec3(ang * 13.0, vW.y * 0.4 - uTime * 2.6, 5.0));
+          float st = smoothstep(0.50, 0.85, n) * 0.8 + smoothstep(0.62, 0.9, n2) * 0.6;
+          float band = pow(sin(vW.y * 0.7 - uTime * 3.2) * 0.5 + 0.5, 4.0);
+          float ends = smoothstep(0.0, 0.04, vUv.y) * smoothstep(1.0, 0.82, vUv.y);
+          col = uColor * (0.30 + 1.1 * st + 0.5 * band) + vec3(0.5, 0.8, 0.7) * f * 0.4;
+          al = (0.05 + 0.40 * f) * (0.4 + 0.9 * st) * ends + band * 0.04 * ends;
+        } else if (uMode > 5.5) {                    // almohadilla
+          vec2 p = (vUv - 0.5) * 2.0; float r = length(p);
+          float ring = smoothstep(0.07, 0.0, abs(fract(r * 2.0 - uTime * 0.35) - 0.5) - 0.38) * smoothstep(1.0, 0.2, r);
+          float edge = smoothstep(0.06, 0.0, abs(r - 0.92)), disc = smoothstep(1.0, 0.0, r);
+          col = uColor * (0.5 + 1.4 * ring + 1.6 * edge); al = (0.10 * disc + 0.35 * ring + 0.55 * edge) * smoothstep(1.0, 0.9, r);
+        } else if (uMode > 4.5) {                    // pozo de gravedad
+          vec3 nd = normalize(vP); float ang = atan(nd.z, nd.x);
+          float sw = 0.5 + 0.5 * sin(ang * 3.0 + nd.y * 6.0 - uTime * 1.4 + vnoise(nd * 4.0) * 4.0);
+          col = uColor * (0.4 + 0.9 * sw); al = (0.015 + 0.16 * f) * (0.4 + 0.8 * sw);
+        } else if (uMode > 3.5) {                    // pompa irisada
+          vec3 nd = normalize(vP); float nz = fbm(nd * 2.5 + uTime * 0.07);
+          vec3 ir = pal(fract(f * 1.2 + nz * 0.9 + uTime * 0.05));
+          col = mix(uColor, ir, 0.7) * (0.35 + 0.9 * f + 0.3 * nz); al = 0.03 + 0.28 * f + 0.05 * nz;
+        } else if (uMode > 2.5) {                    // burbuja de tiempo lento: ondas y reloj ecuatorial
+          vec3 nd = normalize(vP); float ang = atan(nd.z, nd.x);
+          float rip = sin(nd.y * 11.0 - uTime * 0.9 + vnoise(nd * 3.0 + uTime * 0.1) * 3.0) * 0.5 + 0.5;
+          float eq = smoothstep(0.10, 0.0, abs(nd.y));
+          float tick = smoothstep(0.90, 1.0, cos(ang * 24.0 - uTime * 0.25)) * smoothstep(0.22, 0.02, abs(nd.y)) + smoothstep(0.035, 0.0, abs(nd.y)) * 0.6;
+          col = uColor * (0.35 + 0.9 * rip * f + 1.5 * tick); al = 0.04 + 0.30 * f + tick * 0.5 + eq * 0.04;
+        } else {
+          float band = uMode < 0.5 ? 0.5 : sin((vW.x + vW.z) * 0.6 + vW.y * 0.5 + uTime * 2.0) * 0.5 + 0.5;
+          col = uColor * (0.25 + 0.9 * band); al = (0.05 + 0.5 * f) * (0.4 + 0.6 * band);
+        }
+        gl_FragColor = vec4(col, al);
       }`,
   }));
 }

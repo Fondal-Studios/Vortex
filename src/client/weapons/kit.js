@@ -204,20 +204,25 @@ function surfaceDetail(mat, hex, strength = 1) {
           base += gWear * 0.12;
           diffuseColor.rgb = base;
         }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        { float fr = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 3.0);
+          vec3 rc = 0.5 + 0.5 * cos(6.28318 * (fr * 0.7 + vOP.z * 1.3 + vec3(0.0, 0.33, 0.67)));
+          totalEmissiveRadiance += mix(uAcc, rc, 0.6) * fr * ${TUNE.rim.toFixed(2)}; }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = clamp(roughnessFactor + (1.0 - gPanel) * 0.35 + gWear * 0.2, 0.05, 1.0);`);
   };
   mat.customProgramCacheKey = () => 'wsurf';
 }
 
+export const TUNE = { iri: 0.4, thick: [150, 500], rough: 0.34, cc: 0.3, env: 1.3, rim: 0.45 };
 /** Los tres materiales de un arma. body: metal anodizado iridiscente; glove: tela técnica; glow: cristal. */
 export function makeMats(q, hex) {
   let body, glove;
   if (q.high) {
-    body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 1, roughness: 0.34, clearcoat: 0.45, clearcoatRoughness: 0.07, iridescence: 0.8, iridescenceIOR: 1.9, iridescenceThicknessRange: [250, 820], envMapIntensity: 1.3 });
+    body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 1, roughness: TUNE.rough, clearcoat: TUNE.cc, clearcoatRoughness: 0.07, iridescence: TUNE.iri, iridescenceIOR: 1.9, iridescenceThicknessRange: TUNE.thick, envMapIntensity: TUNE.env });
     glove = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 0.1, roughness: 0.62, sheen: 0.7, sheenColor: new THREE.Color(hex).multiplyScalar(0.3), sheenRoughness: 0.6, envMapIntensity: 0.45 });
   } else if (q.name === 'medium') {
-    body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 1, roughness: 0.4, iridescence: 1, iridescenceIOR: 1.9, iridescenceThicknessRange: [250, 820], envMapIntensity: 1.5 });
+    body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 1, roughness: 0.4, iridescence: TUNE.iri, iridescenceIOR: 1.9, iridescenceThicknessRange: TUNE.thick, envMapIntensity: TUNE.env });
     glove = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.1, roughness: 0.7, envMapIntensity: 0.45 });
   } else {
     body = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.45, roughness: 0.38 });

@@ -8,7 +8,7 @@ import { THREE, TAU, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3;
   const col = new THREE.Color(color), R = rng(7);
-  const carap = bio({ rough: 0.5, clear: 0.4, clearRough: 0.3, metal: 0.0, tex: 'plates', tile: 1.4, bump: 0.7, grain: 0.6, seam: color, seamK: 0.3, seamGlow: 0.25, vcol: true });
+  const carap = bio({ rough: 0.5, clear: 0.4, clearRough: 0.3, metal: 0.0, tex: 'plates', tile: 1.4, bump: 0.7, grain: 0.6, seam: color, seamK: 0.2, seamGlow: 0.3, vcol: true });
   const flesh = bio({ rough: 0.6, clear: 0.15, sheen: 0, tex: 'skin', tile: 1.6, bump: 0.6, grain: 0.5, seam: 0x180a14, seamK: 0.4, vein: color, veinK: 0.55, veinGlow: 0.7, sss: 0.0, sssColor: 0x30b0a8 });
   const cry = crystalMat(color, { glow: 0.95, alpha: 0.9 });
   const mats = [carap, flesh, cry];

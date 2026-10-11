@@ -1,122 +1,134 @@
-// GEODA — tanque. Un molusco-almeja acorazado: valvas de placas con biocristales que ruedan cerradas (casi inmune).
-// Al abrirse (~2 s) muestra su interior: carne húmeda y palpitante, un gran ojo-núcleo ardiente (la debilidad),
-// una lengua de tentáculos y dientes de nácar. La apertura es MUY legible: chasquido de bisagra, resplandor, latido.
-import { cfg } from '../quality.js';
-
-import { fixEye, mergeStatic, glowSprite, shieldAura, tickAura } from './geoda_util.js';
+// GEODA — tanque. Un molusco-armadillo acorazado: el caparazón son BANDAS de placas superpuestas (como un armadillo/quitón) con
+// una quilla dorsal y biocristales que brotan de las juntas. Cerrada rueda como una bola de placas (20 % de daño); cada ~5 s
+// se abre ~2 s: la valva superior se alza, las bandas se abren en abanico y enseña un interior de carne húmeda: labios, dientes
+// irregulares de nácar, lengua de tentáculos y un ojo-núcleo ardiente sobre un tallo muscular (la debilidad).
+// st.s: 'roll' (cerrada) / 'open' (st.o). st.hp<0.35 la coraza se agrieta y tirita; st.sd aura; st.st aturdida.
+import { THREE, TAU, lod, clamp, lerp, smooth, rng, bio, crystalMat, lidMaterial, ellipsoid, tube, spike, crystalCluster, paint, path, Rig, skinRigid, skinChain, eye, boneQuat, glowSprite, shieldAura, tickAura, Spring, dampTo } from './geoda-bio.js';
 
 export default function build(kit, color) {
-  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, horn, crystalSpike, scatterOnSurface, tentacle, eye, Spring, TAU } = kit;
-  const level = cfg().humans, low = level === 'low', hi = level === 'high';
-  const col = new THREE.Color(color);
-  const shellCol = col.clone().lerp(new THREE.Color(0x1a1230), 0.72).getHex();
-  // materiales
-  const shellM = boneMaterial(shellCol, { rough: 0.3 }); shellM.side = THREE.DoubleSide;
-  const plateM = boneMaterial(col.clone().lerp(new THREE.Color(0x2a2236), 0.5).getHex(), { rough: 0.25 });
-  const crystal = bioCrystalMaterial(color, { glow: 0.9 });
-  const tooth = boneMaterial(0xf6ecd8, { rough: 0.3 });
-  const flesh = fleshMaterial({ color: 0xe0687e, vein: 0x66082e, spot: color, glow: 0.1, wobble: 0.025, breath: 0.035, spots: 0.7, veins: 0.9, rough: 0.3, sheen: 1, scale: 2.6 });
-  const lining = fleshMaterial({ color: 0xc24b78, vein: 0x4a0628, spot: color, glow: 0.08, wobble: 0.015, breath: 0.02, spots: 0.5, veins: 1, rough: 0.28, scale: 3 }); lining.side = THREE.BackSide;
-  // piel para tentáculos: SIN ondulación/respiración de superficie (en tubos finos inflaría el radio) — workaround del kit
-  const tflesh = fleshMaterial({ color: 0xe0687e, vein: 0x66082e, spot: color, glow: 0.1, wobble: 0, breath: 0, spots: 0.6, veins: 0.9, rough: 0.3, sheen: 0.2, scale: 2.6 });
-  const mats = [tflesh, shellM, plateM, crystal, tooth, flesh, lining];
+  const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3;
+  const col = new THREE.Color(color), R = rng(11);
+  const RX = 1.1, RY = 0.9, RZ = 1.0, CY = 0.92, HZ = -0.95;
+  const shell = bio({ rough: 0.46, clear: 0.55, clearRough: 0.3, metal: 0.05, tex: 'plates', tile: 1.3, bump: 1.0, grain: 0.55, seam: color, seamK: 0.28, seamGlow: 0.25 });
+  const flesh = bio({ rough: 0.42, clear: 0.55, clearRough: 0.2, sheen: 0.3, tex: 'skin', tile: 1.5, bump: 0.8, grain: 0.5, seam: 0x30081a, seamK: 0.4, vein: color, veinK: 0.5, veinGlow: 0.8, sss: 0.45, sssColor: 0xff3a5a });
+  const cry = crystalMat(color, { glow: 0.9, alpha: 0.9 });
+  const mats = [shell, flesh, cry];
 
-  const root = new THREE.Group(), body = new THREE.Group(); body.position.y = 0.92; root.add(body);
-  const RX = 1.1, RY = 0.88, RZ = 1.02, HZ = -0.96;
-  // media esfera (cúpula) con base en y=0
-  const [dw, dh] = low ? [14, 7] : hi ? [28, 12] : [20, 9];
-  const domeGeo = new THREE.SphereGeometry(1, dw, dh, 0, TAU, 0, Math.PI / 2);
-  const dome = (m, sx, sy, sz) => { const d = new THREE.Mesh(domeGeo, m); d.scale.set(sx, sy, sz); return d; };
+  const rig = new Rig();
+  const root = rig.bone(null, [0, 0, 0], 'root'), body = rig.bone(root, [0, CY, 0], 'body');
+  const hu = rig.bone(body, [0, CY, HZ], 'hu'), hl = rig.bone(body, [0, CY, HZ], 'hl');
+  const NU = low ? 5 : 7, NL = low ? 4 : 6, bandsU = [], bandsL = [];
+  for (let i = 0; i < NU; i++) bandsU.push(rig.bone(hu, [0, CY, HZ], 'bu'));
+  for (let i = 0; i < NL; i++) bandsL.push(rig.bone(hl, [0, CY, HZ], 'bl'));
 
-  // ── valva: pivote en la bisagra trasera; dentro, el grupo con cúpula + forro + placas + dientes
-  function valve(sign) {
-    const pivot = new THREE.Group(); pivot.position.set(0, 0, HZ); body.add(pivot);
-    const g = new THREE.Group(); g.position.z = -HZ; pivot.add(g);
-    const flip = new THREE.Group(); flip.scale.y = sign; g.add(flip);      // sign -1 => valva inferior (espejo)
-    const ry = sign > 0 ? RY : RY * 0.8;
-    flip.add(dome(shellM, RX, ry, RZ));
-    flip.add(dome(lining, RX * 0.94, ry * 0.9, RZ * 0.94));
-    // costillas (anillos de placa) para dar lectura de caparazón
-    const ribs = low ? 3 : 5;
-    for (let i = 0; i < ribs; i++) {
-      const ph = (i + 0.5) / ribs * Math.PI, rh = 1 / Math.sqrt((Math.cos(ph) / RX) ** 2 + (Math.sin(ph) / RZ) ** 2);
-      const rib = new THREE.Mesh(new THREE.TorusGeometry(1, 0.05, 4, low ? 10 : 16, Math.PI), plateM);
-      rib.rotation.y = ph; rib.scale.set(rh * 1.015, ry * 1.015, 1); flip.add(rib);
-    }
-    // escudos hexagonales planos y cristales que brotan de las grietas
-    const scutes = scatterOnSurface(flip, low ? 8 : 16, [RX * 1.0, ry, RZ * 1.0], (i) => { if (i % 3 === 0) return null; const h = horn(plateM, 0.2 + (i % 4) * 0.03, 0.1 + (i % 3) * 0.04, 6); return h; }, { from: 0.04, to: 0.5, seed: sign * 2 + 1 });
-    const crys = scatterOnSurface(flip, low ? 4 : 9, [RX * 0.98, ry * 0.98, RZ * 0.98], (i) => { if (i % 3 !== 0) return null; const c = crystalSpike(crystal, 0.075 + (i % 4) * 0.02, 0.22 + (i % 5) * 0.07); c.rotation.z += (i % 2 ? 0.2 : -0.2); return c; }, { from: 0.03, to: 0.46, seed: sign * 1.7 + 4 });
-    // dientes de nácar en el borde frontal
-    const nT = low ? 5 : 9;
-    for (let i = 0; i < nT; i++) {
-      const a = (i / (nT - 1) - 0.5) * 2 * 1.15;                           // arco frontal del borde
-      const t = horn(tooth, 0.075, 0.28 + 0.1 * Math.sin(i * 1.7) ** 2, 6);
-      t.position.set(Math.sin(a) * RX * 0.9, 0, Math.cos(a) * RZ * 0.9); t.rotation.x = Math.PI; flip.add(t);
-    }
-    [plateM, crystal, tooth].forEach((m) => mergeStatic(flip, m));
-    return { pivot, flip, crys };
+  // ── bandas del caparazón ──
+  const nb = low ? 8 : hi ? 16 : 12, na = low ? 1 : 2;
+  const shellBase = new THREE.Color(0x1a1226), shellRim = new THREE.Color(0x6a5880), flC0 = new THREE.Color(0x8a2c48), flC1 = new THREE.Color(0xd06a7c), tmp = new THREE.Color();
+  function band(sign, k, N, bone, ryK) {
+    const a0 = (k / N) * Math.PI, a1 = ((k + 1) / N) * Math.PI, aEnd = Math.min(Math.PI, a1 + 0.07), ry = RY * ryK;
+    const over = 0.055, keel = 0.07 + 0.02 * Math.sin(k * 1.7), thick = 0.1, tone = 0.8 + R() * 0.4;
+    const P = (a, b, rad, o) => { const sa = Math.sin(a); o.set(RX * sa * Math.cos(b) * rad, sign * ry * sa * Math.sin(b) * rad + CY, RZ * Math.cos(a) * rad); };
+    const v = new V3(), outer = [], inner = [], co = [], ci = [], ids = (i, j) => i * (nb + 1) + j;
+    for (let i = 0; i <= na; i++) { const tt = i / na, a = lerp(a0, aEnd, tt); for (let j = 0; j <= nb; j++) {
+      const b = (j / nb) * Math.PI, kb = Math.exp(-Math.pow((b - Math.PI / 2) / 0.24, 2)), rb = Math.pow(Math.sin(b), 0.5);
+      const rad = 1 + over * smooth(0, 1, tt) * (0.6 + 0.4 * rb) + keel * kb * (0.55 + 0.45 * Math.sin(tt * Math.PI)) + 0.012 * Math.sin(b * 9 + k);
+      P(a, b, rad, v); outer.push(v.x, v.y, v.z); P(a, b, rad - thick, v); inner.push(v.x, v.y, v.z);
+      tmp.copy(shellBase).multiplyScalar(tone).lerp(shellRim, 0.45 * smooth(0.5, 1, tt) + 0.5 * kb * 0.5 + 0.1 * (1 - rb)); co.push(tmp.r, tmp.g, tmp.b);
+      tmp.copy(flC0).lerp(flC1, 0.5 * Math.sin(b) + 0.3 * R()); ci.push(tmp.r, tmp.g, tmp.b);
+    } }
+    const I = [], mk = (flip) => { const o = []; for (let i = 0; i < na; i++) for (let j = 0; j < nb; j++) { const a = ids(i, j), b = ids(i, j + 1), c = ids(i + 1, j), d = ids(i + 1, j + 1); if (flip) o.push(a, c, b, b, c, d); else o.push(a, b, c, b, d, c); } return o; };
+    const g1 = new THREE.BufferGeometry(); g1.setAttribute('position', new THREE.Float32BufferAttribute(outer, 3)); g1.setAttribute('color', new THREE.Float32BufferAttribute(co, 3)); g1.setIndex(mk(sign < 0)); g1.computeVertexNormals();
+    const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(inner, 3)); g2.setAttribute('color', new THREE.Float32BufferAttribute(ci, 3)); g2.setIndex(mk(sign > 0)); g2.computeVertexNormals();
+    // cantos: borde delantero/trasero y laterales (grosor de la placa)
+    const E = [], EC = [], pushQ = (pa, pb, qa, qb, flip) => { const base = E.length / 3; for (const q of [pa, pb, qa, qb]) { E.push(q[0], q[1], q[2]); EC.push(0.52, 0.44, 0.6); } return flip ? [base, base + 2, base + 1, base + 1, base + 2, base + 3] : [base, base + 1, base + 2, base + 1, base + 3, base + 2]; };
+    const gp = (arr, i, j) => { const o = ids(i, j) * 3; return [arr[o], arr[o + 1], arr[o + 2]]; }, EI = [];
+    for (let j = 0; j < nb; j++) { EI.push(...pushQ(gp(outer, 0, j), gp(outer, 0, j + 1), gp(inner, 0, j), gp(inner, 0, j + 1), sign < 0)); EI.push(...pushQ(gp(outer, na, j), gp(outer, na, j + 1), gp(inner, na, j), gp(inner, na, j + 1), sign > 0)); }
+    for (let i = 0; i < na; i++) { EI.push(...pushQ(gp(outer, i, 0), gp(outer, i + 1, 0), gp(inner, i, 0), gp(inner, i + 1, 0), sign > 0)); EI.push(...pushQ(gp(outer, i, nb), gp(outer, i + 1, nb), gp(inner, i, nb), gp(inner, i + 1, nb), sign < 0)); }
+    const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(E, 3)); g3.setAttribute('color', new THREE.Float32BufferAttribute(EC, 3)); g3.setIndex(EI); g3.computeVertexNormals();
+    rig.add(shell, skinRigid(g1, bone)); rig.add(flesh, skinRigid(g2, bone)); rig.add(shell, skinRigid(g3, bone));
+    return { a0, a1, sign, ry };
   }
-  const up = valve(1), lo = valve(-1);
-
-  // ── interior: manto carnoso sobre la valva inferior + ojo-núcleo + lengua de tentáculos
-  const inner = new THREE.Group(); inner.position.set(0, 0.02, 0.05); body.add(inner);
-  const mantle = blob(flesh, 0.8, 1.15, 0.5, 1.15); mantle.position.set(0, -0.12, 0); inner.add(mantle);
-  const lipsG = new THREE.Group(); inner.add(lipsG); // labios del manto (bultos que laten), fundidos en 1 malla
-  const lipGeo = new THREE.SphereGeometry(1, low ? 8 : 12, low ? 5 : 8);
-  for (let i = 0; i < (low ? 4 : 7); i++) { const a = (i / (low ? 4 : 7)) * TAU; const b = new THREE.Mesh(lipGeo, flesh); b.scale.set(0.22, 0.18, 0.26); b.position.set(Math.cos(a) * 0.8, -0.05, Math.sin(a) * 0.82); lipsG.add(b); }
-  mergeStatic(lipsG, flesh);
-  const neck = blob(flesh, 0.3, 1, 1.1, 1); neck.geometry = new THREE.SphereGeometry(1, 14, 9); neck.position.set(0, 0.2, 0.15); inner.add(neck); const core = fixEye(eye({ r: 0.46, iris: 0xff5a14, glow: 0.5 })); core.mats[0].color.set(0xffd2c0); core.mats[0].emissive.set(0x601810); core.object.position.set(0, 0.5, 0.25);  inner.add(core.object);
-  const haloS = glowSprite(0xffa040, 1.4, 0);
-  haloS.position.set(0, 0.66, -0.05); inner.add(haloS); 
-  const tongue = [];
-  const nTen = low ? 3 : 5;
+  const infoU = bandsU.map((b, k) => band(1, k, NU, b, 1)), infoL = bandsL.map((b, k) => band(-1, k, NL, b, 0.8));
+  // ── biocristales: nacen de las juntas entre bandas, asimétricos (más en el flanco derecho) y de las grietas ──
+  const rimPt = (sign, a, b, ryK, rad = 1.03) => new V3(RX * Math.sin(a) * Math.cos(b) * rad, sign * RY * ryK * Math.sin(a) * Math.sin(b) * rad + CY, RZ * Math.cos(a) * rad);
+  infoU.forEach((inf, k) => {
+    if (k === 0) return; const a = inf.a0 + 0.02, bone = bandsU[k];
+    [[Math.PI / 2 + (R() - 0.5) * 0.3, 1], [0.45 + R() * 0.4, k % 2 ? 0 : 1], [Math.PI - 0.5 - R() * 0.4, k % 3 ? 0 : 1]].forEach(([b, on], ix) => {
+      if (!on) return; const p = rimPt(1, a, b, 1, 1.04), n = new V3(RX * Math.sin(a) * Math.cos(b) / (RX * RX), RY * Math.sin(a) * Math.sin(b) / (RY * RY), Math.cos(a) / RZ).normalize(); if (n.lengthSq() < 0.5) return;
+      const big = ix === 0 ? 1 : 0.65; crystalCluster(low ? 2 : ix === 0 ? 4 : 3, 0.05 * big * (0.8 + 0.5 * Math.sin(k * 1.3 + ix)), 0.34 * big * (1 - k * 0.04), { pos: p, dir: [n.x, n.y, n.z - 0.1], seed: 40 + k * 7 + ix, c0: 0x2a1060, c1: 0xe6ccff, spread: 0.45 }).forEach((c) => rig.add(cry, skinRigid(c, bone)));
+    });
+  });
+  infoL.forEach((inf, k) => { if (k === 0 || k % 2) return; const a = inf.a0 + 0.02, b = Math.PI / 2 + (R() - 0.5) * 0.6, p = rimPt(-1, a, b, 0.8, 1.04); crystalCluster(2, 0.04, 0.22, { pos: p, dir: [0, -1, 0.2], seed: 90 + k, c0: 0x2a1060, c1: 0xe6ccff }).forEach((c) => rig.add(cry, skinRigid(c, bandsL[k]))); });
+  // ── dientes irregulares de nácar y labios en el borde de las valvas ──
+  const nT = low ? 4 : 7;
+  for (const [sign, bands, infos, ryK] of [[1, bandsU, infoU, 1], [-1, bandsL, infoL, 0.8]]) for (const side of [-1, 1]) for (let i = 0; i < nT; i++) {
+    const a = 0.25 + (i / (nT - 1)) * (Math.PI * 0.62) + (R() - 0.5) * 0.12, rim = new V3(RX * Math.sin(a) * side * 0.93, CY + sign * 0.02, RZ * Math.cos(a) * 0.93);
+    const len = (0.12 + R() * 0.2) * (R() < 0.15 ? 0.4 : 1), g = spike(0.036 + R() * 0.02, len, { sides: 4, seg: 2, bend: (R() - 0.5) * 0.8, bendDir: [-side, 0, 0.3], pos: rim, dir: [-side * 0.35, -sign * 0.9, 0.2] });
+    paint(g, (p) => new THREE.Color(0x62503c).lerp(new THREE.Color(0xf2e8d2), smooth(rim.y + sign * 0.0, rim.y - sign * len * 0.9, p.y) * 1.0));
+    let kk = 0; infos.forEach((inf, ix) => { if (a >= inf.a0) kk = ix; }); rig.add(shell, skinRigid(g, bands[kk]));
+  }
+  // labios hinchados del manto a lo largo del borde (arcos de carne)
+  for (const [sign, bone, ryK] of [[-1, body, 0.8]]) for (const side of [-1, 1]) {
+    const pts = []; for (let i = 0; i <= 8; i++) { const a = 0.15 + (i / 8) * (Math.PI - 0.5); pts.push([RX * Math.sin(a) * side * 0.86, CY - 0.03, RZ * Math.cos(a) * 0.86]); }
+    const g = tube(pts, { rad: (t) => 0.09 * (0.7 + 0.5 * Math.sin(t * Math.PI)), seg: low ? 8 : 16, sides: low ? 5 : 7, ex: [0.8, 1.3] }); paint(g, (p) => new THREE.Color(0xa83250).lerp(new THREE.Color(0xe08a98), 0.5 * R()));
+    rig.add(flesh, skinRigid(g, body));
+  }
+  // manto: montículo de carne que llena la valva inferior
+  const mantle = ellipsoid([0.95, 0.36, 0.92], { w: low ? 12 : 20, h: low ? 7 : 12, noise: 0.14, freq: 2.2, seed: 8, pos: [0, CY - 0.18, 0.05] }); paint(mantle, (p, n) => new THREE.Color(0x982a48).lerp(new THREE.Color(0xe07a88), smooth(0.2, 1, n.y) * 0.6)); rig.add(flesh, skinRigid(mantle, body));
+  // tallo del ojo-núcleo: columna muscular de 3 huesos
+  const s1 = rig.bone(body, [0, CY - 0.05, 0.1], 's1'), s2 = rig.bone(s1, [0, CY + 0.28, 0.3], 's2'), s3 = rig.bone(s2, [0, CY + 0.52, 0.5], 's3');
+  const stalk = tube([[0, CY - 0.15, 0.05], [0, CY + 0.1, 0.18], [0, CY + 0.3, 0.32], [0, CY + 0.5, 0.48]], { rad: (t) => 0.27 - 0.07 * t, seg: low ? 8 : 14, sides: low ? 6 : 10, bulge: (t) => 1 + 0.08 * Math.sin(t * 20), ex: [1, 1] });
+  paint(stalk, (p, n) => new THREE.Color(0xa83250).lerp(new THREE.Color(0xf09aa4), smooth(0.1, 1, n.y) * 0.4)); rig.add(flesh, skinChain(stalk, [s1, s2, s3], 0.14));
+  // ojo-núcleo
+  const core = eye({ r: 0.44, iris: 0xff5a10, iris2: 0x7a1400, sclera: 0xeed4c4, vein: 0xa01820, pupil: 'round', irisR: 0.66, glow: 0.7, lidMat: lidMaterial({ color: 0x9a3048, vein: 0x601020, sssColor: 0xff3050, sss: 0.4, tile: 1.4 }), slant: 0.12, maxYaw: 0.8, maxPitch: 0.6 });
+  rig.attach(s3, core.object, [0, CY + 0.52 + 0.3, 0.6]); mats.push(core.mat, core.lid.material);
+  // lengua: 5 tentáculos de 4 huesos con punta luminosa
+  const tongue = [], nTen = low ? 3 : 5;
   for (let i = 0; i < nTen; i++) {
-    const t = tentacle(tflesh, { len: 0.85 + (i % 2) * 0.25, r0: 0.09, r1: 0.025, hang: false, amp: 0.18, speed: 2.4 + i * 0.3, freq: 3.4 });
-    const g = new THREE.Group(); g.position.set((i - (nTen - 1) / 2) * 0.3, 0.1, 0.55); g.rotation.set(Math.PI / 2 - 0.2, 0, (i - (nTen - 1) / 2) * 0.5); g.add(t); inner.add(g); tongue.push({ g, t });
+    const sx = (i - (nTen - 1) / 2) * 0.3, len = 0.95 + (i % 2) * 0.25, J = [[sx, CY - 0.08, 0.55], [sx * 1.15, CY + 0.08, 0.55 + len * 0.3], [sx * 1.35, CY + 0.15, 0.55 + len * 0.62], [sx * 1.5, CY + 0.1, 0.55 + len]];
+    const bs = []; J.forEach((p, ix) => bs.push(rig.bone(ix ? bs[ix - 1] : body, p, 'tg')));
+    const g = tube(J, { rad: (t) => 0.085 * (1 - t * 0.85) + 0.01, seg: low ? 8 : 14, sides: low ? 4 : 6, bulge: (t) => 1 + 0.15 * Math.sin(t * 25), caps: true }); paint(g, (p) => new THREE.Color(0xb03a56).lerp(new THREE.Color(0xff9a50), smooth(0.7, 1.0, (p.z - 0.55) / len)));
+    rig.add(flesh, skinChain(g, bs, 0.12)); tongue.push({ bs, sx, ph: i * 1.3, len });
   }
-  const fringe = []; // flecos finos en el borde de la valva inferior
-  if (!low) for (let i = 0; i < 7; i++) {
-    const a = -0.9 + (i / 6) * (Math.PI + 1.8) - Math.PI / 2 + Math.PI / 2; const t = tentacle(tflesh, { len: 0.5, r0: 0.045, r1: 0.01, hang: false, amp: 0.12, speed: 3 + (i % 3), freq: 4 });
-    const g = new THREE.Group(); g.position.set(Math.sin(a - 0.0) * RX * 0.78, 0.05, Math.cos(a) * RZ * 0.78); g.rotation.set(0.3 * Math.cos(a), 0, -0.3 * Math.sin(a)); g.add(t); inner.add(g); fringe.push(g);
-  }
-  mats.push(...tongue.map((x) => x.t.userData.mat));
+  // ── ensamblaje ──
+  const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group);
+  const halo = glowSprite(0xffa040, 1.4, 0); halo.position.set(0, CY + 0.9, 0.6); rootObj.add(halo);
+  const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.5); aura.position.y = CY; rootObj.add(aura);
 
-  // aura de escudo
-  const aura = shieldAura(new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.4), 1.5); body.add(aura);
+  const sOpen = new Spring(0, 55, 7.5), sWob = new Spring(0, 70, 6), sShake = new Spring(0, 90, 5), sPit = new Spring(0, 40, 6), sYaw = new Spring(0, 40, 6);
+  let roll = 0, glowT = 0, prevOpen = false, snap = 0, rattle = 0; const q1 = new THREE.Quaternion(), lh = new V3(), tv = new V3(), look = new V3(0, 0.3, 1);
 
-  const sOpen = new Spring(0, 55, 7.5), sWob = new Spring(0, 70, 6), sShake = new Spring(0, 90, 5);
-  let roll = 0, glowT = 0, prevOpen = false, snap = 0; const tmp = new THREE.Vector3(0, 0.4, 1);
-
-  return { root, mats, tick(dt, st, t, ctx = {}) {
-    const open = !!(st.o || st.s === 'open'), speed = Math.min(1.6, ctx.speed || 0), hurtLow = st.hp != null && st.hp < 0.35;
-    if (open && !prevOpen) snap = 1; prevOpen = open; snap = Math.max(0, snap - dt * 2.5);
-    const o = Math.max(0, sOpen.step(dt, open ? 1 : 0)); const oc = Math.min(1.1, o);
-    // bisagra: valva superior se alza (con rebote), la inferior baja un poco
-    up.pivot.rotation.x = -oc * 1.12; lo.pivot.rotation.x = oc * 0.34;
+  return { root: rootObj, mats, tick(dt, st, t, ctx = {}) {
+    dt = Math.min(dt, 0.05);
+    const open = !!(st.o || st.s === 'open'), speed = Math.min(1.6, ctx.speed || 0), hurt = st.hp != null && st.hp < 0.35, stun = !!st.st;
+    if (ctx.look) look.copy(ctx.look);
+    if (open && !prevOpen) { snap = 1; rattle = 1; } prevOpen = open; snap = Math.max(0, snap - dt * 2.5); rattle = Math.max(0, rattle - dt * 2);
+    const o = Math.max(0, sOpen.step(dt, open ? 1 : 0)), oc = Math.min(1.1, o), oe = clamp(o, 0, 1);
+    // valvas: la superior se alza y las bandas se abren en abanico; la inferior baja un poco
+    hu.rotation.x = -oc * 1.12; hl.rotation.x = oc * 0.3;
+    const flare = oe * 0.16 + snap * 0.08;
+    bandsU.forEach((b, k) => { b.rotation.x = -flare * (k / NU) * 0.9 + (hurt ? Math.sin(t * 17 + k * 2) * 0.012 : 0) + Math.sin(t * 40 + k) * rattle * 0.01; b.rotation.y = (k % 2 ? 1 : -1) * 0.01 * Math.sin(t * 13 + k) * (hurt ? 2 : 0.4) * (1 - oe); });
+    bandsL.forEach((b, k) => { b.rotation.x = flare * (k / NL) * 0.5; });
     // rodar cerrada, nivelar al abrir
-    if (open || o > 0.05) { const tgt = Math.round(roll / TAU) * TAU; roll += (tgt - roll) * Math.min(1, 7 * dt); } else roll += dt * (speed * 3.4);
-    const wob = sWob.step(dt, (open ? 0 : Math.sin(roll * 2) * 0.05));
-    body.rotation.x = roll + wob; body.rotation.z = Math.sin(t * 1.1 + st.id) * 0.03 * (1 - oc) + (hurtLow ? Math.sin(t * 17) * 0.05 : 0);
-    body.position.y = 0.92 + (open ? 0.02 : Math.abs(Math.sin(roll * 2)) * 0.05 * speed) - snap * 0.0 + Math.sin(t * 2.2 + st.id) * 0.015;
-    body.scale.set(1 + 0.02 * Math.sin(t * 2.3) * oc, 1, 1);
-    // aturdida: tiembla; escudada: aura
-    const shk = sShake.step(dt, st.st ? Math.sin(t * 40) * 0.08 : 0); root.position.x = shk; root.rotation.z = st.st ? Math.sin(t * 31) * 0.05 : 0;
+    if (open || o > 0.05) { const tgt = Math.round(roll / TAU) * TAU; roll += (tgt - roll) * Math.min(1, 7 * dt); } else roll += dt * (speed * 3.4) * (hurt ? 0.6 : 1);
+    const wob = sWob.step(dt, open ? 0 : Math.sin(roll * 2) * 0.05);
+    body.rotation.x = roll + wob; body.rotation.z = Math.sin(t * 1.1 + st.id) * 0.03 * (1 - oc) + (hurt ? Math.sin(t * 17) * 0.04 : 0);
+    body.position.y = body.userData.rest.y + (open ? 0.02 : Math.abs(Math.sin(roll * 2)) * 0.05 * speed) + Math.sin(t * 2.2 + st.id) * 0.015 - 0.04 * snap;
+    const shk = sShake.step(dt, stun ? Math.sin(t * 40) * 0.08 : 0); rootObj.position.x = shk; rootObj.rotation.z = stun ? Math.sin(t * 31) * 0.05 : 0;
     tickAura(aura, st, t);
-    // interior: sólo visible/activo al abrir; el ojo se asoma y arde
-    const beat = 0.5 + 0.5 * Math.sin(t * (hurtLow ? 9 : 5.2)), pul = oc * (0.6 + 0.4 * beat);
-    inner.scale.setScalar(0.55 + 0.45 * Math.min(1, o)); core.object.scale.setScalar(0.35 + 0.65 * oc * (1 + 0.06 * beat));
-    core.update(dt, ctx.look || tmp, { dilate: -0.15 + 0.35 * beat, glowMul: 0.5 + 0.9 * oc * (0.7 + 0.5 * beat) });
-    haloS.material.opacity = oc * (0.22 + 0.16 * beat) * (0.8 + snap * 0.5); haloS.scale.setScalar(1.4 + 0.3 * beat + snap * 0.6);
+    // interior: latido; el ojo se asoma y arde (retraído al cerrar para caber dentro del caparazón)
+    const beat = 0.5 + 0.5 * Math.sin(t * (hurt ? 9 : 5.2)), pul = oc * (0.6 + 0.4 * beat);
+    s1.position.y = s1.userData.rest.y - body.userData.rest.y - (1 - oe) * 0.55; s1.rotation.x = sPit.step(dt, -clamp(look.y, -0.5, 0.8) * 0.5 + 0.1 * Math.sin(t * 1.2 + st.id)); s1.rotation.y = sYaw.step(dt, clamp(Math.atan2(look.x, Math.max(0.2, look.z)), -0.7, 0.7) * 0.5);
+    s2.rotation.x = -s1.rotation.x * 0.3 + 0.1 * Math.sin(t * 1.5) * oe; s3.rotation.z = Math.sin(t * 0.9) * 0.05 * oe;
+    core.object.scale.setScalar(0.5 + 0.5 * oe * (1 + 0.05 * beat));
+    s3.updateMatrix(); boneQuat(s3, root, q1); lh.copy(look).applyQuaternion(q1.clone().invert());
+    core.update(dt, lh, { open: oe > 0.2 ? (stun ? 0.5 : hurt ? 0.65 + 0.2 * beat : 1) : 0.0, dilate: -0.15 + 0.35 * beat - (hurt ? 0.25 : 0), glowMul: 0.5 + 0.9 * oc * (0.7 + 0.5 * beat), quiver: hurt ? 1 : 0 });
+    halo.material.opacity = oc * (0.22 + 0.16 * beat) * (0.8 + snap * 0.5); halo.scale.setScalar(1.4 + 0.3 * beat + snap * 0.6);
     glowT += (oc - glowT) * Math.min(1, 10 * dt);
-    flesh.userData.u.uGlow.value = tflesh.userData.u.uGlow.value = 0.05 + glowT * 0.3; flesh.userData.u.uPulse.value = open ? 0.35 + snap : 0;
-    lining.userData.u.uGlow.value = 0.03 + glowT * 0.2;
-    mantle.scale.set(0.92 * (1 + 0.04 * beat * oc), 0.4 * (1 + 0.1 * beat), 0.92);
-    lipsG.scale.set(1 + 0.05 * beat * oc, 1 + 0.35 * beat * oc, 1 + 0.05 * beat * oc);
-    tongue.forEach((T, i) => { T.t.userData.u.uAmp.value = 0.1 + 0.35 * oc + (hurtLow ? 0.25 : 0); T.t.userData.u.uSpeed.value = 2 + (hurtLow ? 3 : 0) + i * 0.2; T.g.scale.set(1, Math.max(0.05, oc), 1); T.g.rotation.x = Math.PI / 2 - 0.2 - 0.2 * Math.sin(t * 1.8 + i) * oc; });
-    fringe.forEach((g, i) => { g.scale.setScalar(Math.max(0.05, oc)); });
-    // cristales: brillan más cerrados (alerta de blindaje) y titilan
-    crystal.userData.u.uGlow.value = 0.7 + 0.4 * Math.sin(t * 5) + (open ? -0.1 : 0.2); crystal.emissiveIntensity = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(t * 4)) + (hurtLow ? 0.4 * Math.sin(t * 20) ** 2 : 0);
-    // al abrirse la valva superior se agita levemente por el latido
-    up.flip.position.y = 0.012 * beat * oc;
+    tongue.forEach((T, i) => { const ext = oe, a = (0.12 + 0.45 * oe) * (1 + (hurt ? 0.6 : 0)); T.bs.forEach((b, ix) => { if (!ix) { b.rotation.x = -0.5 + (1 - ext) * 0.9 + Math.sin(t * 1.8 + T.ph) * 0.12 * oe; b.rotation.y = Math.sin(t * 0.9 + T.ph) * 0.15; return; } b.rotation.x = Math.sin(t * (2.0 + (hurt ? 3 : 0)) + T.ph + ix * 0.9) * a * 0.55 - 0.15 * ext; b.rotation.y = Math.cos(t * 1.7 + T.ph + ix) * a * 0.5; }); T.bs[0].scale.setScalar(Math.max(0.15, ext)); });
+    // cristales y grietas: brillan cerrada (alerta de blindaje) y titilan; herida = grietas encendidas
+    cry.emissiveIntensity = 0.6 + 0.35 * (0.5 + 0.5 * Math.sin(t * 4)) + (open ? -0.1 : 0.25) + (hurt ? 0.5 * Math.sin(t * 20) ** 2 : 0);
+    shell.userData.u.uSeamGlow.value = 0.25 + (open ? 0 : 0.2 * Math.sin(t * 5) ** 2) + (hurt ? 1.3 + 0.6 * Math.sin(t * 13) : 0);
+    flesh.userData.u.uVeinGlow.value = 0.5 + 1.2 * glowT * beat; flesh.userData.u.uSss.value = 0.3 + 0.5 * glowT;
   } };
 }

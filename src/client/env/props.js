@@ -154,11 +154,15 @@ export function particleMat({ color = 0xffffff, size = 0.4, mode = 0, speed = 0.
           float k = 1.0 + uK * 1.5;
           p += vec3(sin(uTime * 0.4 * aR.y * k + aR.w * 60.0), cos(uTime * 0.35 * aR.x * k + aR.w * 20.0), sin(uTime * 0.3 * k + aR.x * 30.0)) * uAmp;
           vA = 0.55 + 0.45 * sin(uTime * (0.8 + aR.y) + aR.w * 30.0);
-        #else
+        #elif MODE == 2
           float ph = fract(aR.x + uTime * uSpeed * (0.6 + 0.8 * aR.y)); // espiral hacia el centro
           float a = aR.w * 6.2831 + ph * 5.0 * (0.6 + aR.y), rr = uAmp * (1.0 - ph) + 0.4;
           p = vec3(cos(a) * rr, (aR.z - 0.5) * uH * (1.0 - ph), sin(a) * rr);
           vA = sin(ph * 3.14159);
+        #else
+          float ph = fract(aR.x + uTime * uSpeed * (0.6 + 0.8 * aR.y)); // caída hacia un pozo: radio uAmp → uH girando
+          float ca = cos(ph * 2.2), sa = sin(ph * 2.2); vec3 nd = normalize(position); nd.xz = mat2(ca, -sa, sa, ca) * nd.xz;
+          p = nd * mix(uAmp, uH, ph * ph); vA = sin(ph * 3.14159);
         #endif
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_PointSize = clamp(uSize * aR.z * 2.0 * uPx / max(-mv.z, 0.3), 1.0, 96.0);

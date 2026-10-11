@@ -288,15 +288,16 @@ export class Renderer {
       let e = this.ents.ply.get(p.id);
       const col = PLAYER_COLORS[(p.id - 1) % 4];
       if (!e) { e = { object: new THREE.Group(), human: null, simple: null, prev: p.pos, spd: 0, col, shotT: 0 }; e.simple = this.simpleAvatar(col); e.object.add(e.simple); this.entRoot.add(e.object); this.ents.ply.set(p.id, e); }
-      if (!e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
-      const spd = Math.hypot(p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]) / Math.max(dt, 1e-3); e.prev = p.pos; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
+      if (!e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
+      const dv = [p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]], spd = Math.hypot(...dv) / Math.max(dt, 1e-3); e.prev = p.pos;
+      const hv = V(p.h), rv = new THREE.Vector3().crossVectors(hv, V(p.up)), dvv = V(dv), dl = dvv.length() || 1; e.moveDir = { x: dvv.dot(rv) / dl, z: dvv.dot(hv) / dl }; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
       const base = V(p.pos).addScaledVector(V(p.up), e.human ? -0.9 : 0);
       e.object.position.copy(base); this.orient(e.object, p.up, p.h); e.object.visible = true;
       if (e.human) {
         e.shotT = Math.max(0, e.shotT - dt);
         const clip = p.dead ? 'death' : e.shotT > 0 ? 'shoot' : e.spd > 6 ? 'sprint' : e.spd > 1.5 ? 'jog' : 'aimIdle';
         if (clip !== e.clip) { e.clip = clip; e.human.play(clip, { fade: 0.2, restart: clip === 'shoot' }); }
-        e.human.update(dt, { speed: e.spd, camera: this.camera });
+        e.human.update(dt, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, camera: this.camera });
       } else e.object.visible = !p.dead;
       // etiqueta con nombre; caído: progreso de reanimación
       if (self) { if (e.label) e.label.visible = false; } else if (!e.label) { e.label = new THREE.Sprite(this.label(p.name, '#ffffff')); e.label.scale.set(2.6, 0.65, 1); e.object.add(e.label); }
@@ -314,6 +315,7 @@ export class Renderer {
     const bossP = (state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre') || {}).p;
     for (const e of state.events) {
       this.objects.onEvent(e, this.fx, bossP);
+      if (e.t === 'shot') for (const [pid, pe] of this.ents.ply) if (pid === e.pid) pe.shotT = 0.25;
       switch (e.t) {
         case 'shot': {
           const o = V(e.o), col = WEAPON_COLORS[e.w] || 0xffffff;

@@ -16,7 +16,10 @@ export const TAU = Math.PI * 2;
 export { fleshMaterial, chitinMaterial, membraneMaterial, gooMaterial, furMaterial, boneMaterial, bioCrystalMaterial, lidMaterial, setHurt, setWound, setBeat };
 export { eye };
 export { blob, capsule, horn, crystalSpike, scatterOnSurface, tentacle, jaw, leg, crestRow, teeth, ribs, sac, scar, scarOn, mergeStatic, Spring, lodOf };
-export const kit = {
+// ── TEMPORAL (comparar antes/después con ?kit=old) ──
+const OLD = typeof location !== 'undefined' && new URLSearchParams(location.search).get('kit') === 'old';
+const OM = OLD ? await import('./organism-old.js') : null;
+export const kit = OLD ? OM.kit : {
   fleshMaterial, chitinMaterial, membraneMaterial, gooMaterial, furMaterial, boneMaterial, bioCrystalMaterial, lidMaterial,
   blob, capsule, horn, crystalSpike, scatterOnSurface, tentacle, eye, jaw, leg, crestRow, teeth, ribs, sac, scar, scarOn, mergeStatic,
   Spring, setHurt, setWound, setBeat, THREE, TAU, uTime,

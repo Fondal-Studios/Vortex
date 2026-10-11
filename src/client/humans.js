@@ -47,10 +47,10 @@ export const PRESETS = {
 export const PRESET_NAMES = Object.keys(PRESETS);
 // Rol → ropa base y tinte de la ropa (la prenda MakeHuman es una sola pieza: sudadera + jeans; el tinte va por zonas, ver materials.js)
 const ROLE_LOOK = {
-  vanguardia: { top: '#3a4049', bottom: '#454c58', topHue: true },
+  vanguardia: { top: '#5a6676', bottom: '#667080', topHue: true },
   soporte:    { top: '#d6dbe2', bottom: '#9fa9b8', topHue: false },
   ingeniero:  { top: '#a77b3c', bottom: '#58463a', topHue: false, outfit: 'male_worksuit01' },
-  explorador: { top: '#566246', bottom: '#4a4a3a', topHue: false },
+  explorador: { top: '#7a8a62', bottom: '#74745a', topHue: false },
 };
 
 function hash(str) { let h = 2166136261 >>> 0; for (const c of String(str)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }

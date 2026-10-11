@@ -94,7 +94,7 @@ export class Viewmodels {
       v.rot[0] + kp + sy * 0.04 + breathe * 0.004 + Math.sin(ph * 2 + 1) * 0.008 * b - lowTilt * 0.95,
       v.rot[1] + sx * 0.055 + Math.sin(ph) * 0.012 * b + lowTilt * 0.55,
       v.rot[2] + kr - sx * 0.035 + Math.sin(ph) * 0.016 * b + lowTilt * 0.6, 'YXZ');
-    it.rig.scale.setScalar(v.scale); it.rig.updateMatrix();
+    it.rig.scale.set(v.scale, v.scale, v.scale * (v.zs || 1)); it.rig.updateMatrix();
     W.update(dt, this.t, firing);
     // fogonazo: destello con forma propia + halo
     it.f = Math.max(0, it.f - dt * W.flash.decay);
