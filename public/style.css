@@ -204,5 +204,5 @@ select, input[type=text], input:not([type]), input[type=range] { font: inherit; 
 .tc-btn.tc-ability { right: calc(196px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); width: 52px; height: 52px; font-size: 8px; border-color: #b9a4ff; }
 .tc-btn.tc-use { right: calc(180px + env(safe-area-inset-right)); bottom: calc(160px + env(safe-area-inset-bottom)); width: 48px; height: 48px; font-size: 9px; border-color: #7dff9a; }
 .tc-btn.tc-ping { right: calc(14px + env(safe-area-inset-right)); top: calc(96px + env(safe-area-inset-top)); width: 42px; height: 42px; font-size: 16px; border-color: #ffe27a; }
-.tc-prev, .tc-next { top: calc(50% - 24px); } .tc-prev { right: calc(300px + env(safe-area-inset-right)); } .tc-next { right: calc(250px + env(safe-area-inset-right)); }
+.tc-prev, .tc-next { top: calc(96px + env(safe-area-inset-top)); width: 42px; height: 42px; } .tc-prev { right: calc(118px + env(safe-area-inset-right)); } .tc-next { right: calc(66px + env(safe-area-inset-right)); }
 @media (pointer: coarse) { .ucard { width: 28vw; padding: 8px 8px; } .ucard .ud { display: none; } #cards { padding-top: 6vh; } #cards h3 { font-size: 14px; } #bars { width: 170px; } }

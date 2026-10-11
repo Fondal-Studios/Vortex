@@ -19,7 +19,7 @@ const s = q.get('s') || 'idle', hp = q.get('hp') != null ? +q.get('hp') : 1;
 let ent, ojos = [];
 if (!ojoMode) {
   const b = buildArgos(kit, 0xff4fa8); const piv = new THREE.Group(); piv.add(b.root); piv.scale.setScalar(6.5); scene.add(piv); ent = { b, piv };
-  cam.position.set(0, 1.5, q.get('dist') ? +q.get('dist') : 20); cam.lookAt(0, 0, 0);
+  cam.position.set(0, 1.5, q.get('dist') ? +q.get('dist') : 32); cam.lookAt(0, 0, 0);
 } else {
   for (let i = 0; i < 4; i++) { const o = buildOjo(kit, { color: [0xffb020, 0x66ffd0, 0xff66c4, 0x8fb0ff][i] }); o.root.position.set((i - 1.5) * 4.2, 0, 0); o.root.scale.setScalar(1.7); scene.add(o.root); ojos.push({ o, hp: [1, 0.7, 0.4, 0.15][i] }); }
   cam.position.set(0, 0.5, q.get('dist') ? +q.get('dist') : 11); cam.lookAt(0, -0.3, 0);

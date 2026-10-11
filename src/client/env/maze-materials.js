@@ -193,7 +193,7 @@ export function wallMaterial(U, { full = true } = {}) {
             vec2 gq = (gf - 0.5) * 1.35 + 0.5;
             float g = rune(gq, hash21(gid + gh * 31.0), 0.045, 0.035 + faa);
             float pl = 0.6 + 0.4 * sin(t * 1.4 + gh * 40.0);
-            col += mix(zc, vec3(1.0), 0.25) * g * pl * 1.5;
+            col += vec3(1.0,0.0,0.0) * 1.0 * step(0.001, g);
             col += zc * 0.06 * pl;
           }
         }

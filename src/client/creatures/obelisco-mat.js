@@ -121,24 +121,29 @@ export function bioMaterial(o = {}) {
 
 /* ───────────────────────── OJOS ───────────────────────── */
 // Esfera pintada por shader: esclerótica con venas, iris fibroso con anillo límbico y pupila (redonda / rendija / horizontal).
-// Mira hacia +z local; el iris/pupila se pintan en coordenadas de la esfera, así que girar la malla = mover la mirada.
-export function eyeMaterial({ iris = 0xffb020, sclera = 0xd8c8b8, pupil = 'round', glow = 0.6, irisR = 0.46, instanced = false } = {}) {
+// Mira hacia +z local. Con `lids:true` los PÁRPADOS también se pintan en el shader (sin mallas extra): la mirada se desplaza girando el iris
+// (uGazeM) mientras los párpados quedan fijos en la cuenca; uOpen=(alto superior, alto inferior, inclinación de la ceja).
+export function eyeMaterial({ iris = 0xffb020, sclera = 0xd8c8b8, pupil = 'round', glow = 0.6, irisR = 0.46, instanced = false, lids = false, lid = 0x4a2a34 } = {}) {
   const hi = cfg().humans !== 'low', Cls = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
   const mat = new Cls({ color: 0xffffff, roughness: 0.55, metalness: 0 });
   if (hi) { mat.clearcoat = 0.6; mat.clearcoatRoughness = 0.2; mat.specularIntensity = 0.5; }
-  const u = { uTime, uHurt: { value: 0 }, uIris: { value: new THREE.Color(iris) }, uScl: { value: new THREE.Color(sclera) }, uPup: { value: 0.5 }, uIrisR: { value: irisR }, uSlit: { value: pupil === 'slit' ? 1 : pupil === 'goat' ? 2 : 0 }, uGlow: { value: glow }, uSeed: { value: Math.random() * 9 } };
+  const u = { uTime, uHurt: { value: 0 }, uIris: { value: new THREE.Color(iris) }, uScl: { value: new THREE.Color(sclera) }, uPup: { value: 0.5 }, uIrisR: { value: irisR }, uSlit: { value: pupil === 'slit' ? 1 : pupil === 'goat' ? 2 : 0 }, uGlow: { value: glow }, uSeed: { value: Math.random() * 9 },
+    uGazeM: { value: new THREE.Matrix3() }, uOpen: { value: new THREE.Vector3(0.8, 0.6, 0) }, uLid: { value: new THREE.Color(lid) } };
   mat.userData.u = u;
-  const key = 'eye' + (instanced ? 'i' : '') + (hi ? 'h' : 'l');
+  const key = 'eye' + (instanced ? 'i' : '') + (lids ? 'L' : '') + (hi ? 'h' : 'l');
   mat.customProgramCacheKey = () => key;
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vO;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvO = position;');
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        uniform float uTime, uHurt, uPup, uIrisR, uSlit, uGlow, uSeed; uniform vec3 uIris, uScl; varying vec3 vO;
+        uniform float uTime, uHurt, uPup, uIrisR, uSlit, uGlow, uSeed; uniform vec3 uIris, uScl, uOpen, uLid; uniform mat3 uGazeM; varying vec3 vO;
+        float gLid;
         ${NOISE}
         vec3 eyeCol(out float irisK, out float pupK){
-          vec3 p = normalize(vO); vec2 e = p.xy / (1.0 + max(p.z, -0.95));
+          vec3 p0 = normalize(vO);
+          ${lids ? 'vec3 p = uGazeM * p0;' : 'vec3 p = p0;'}
+          vec2 e = p.xy / (1.0 + max(p.z, -0.95));
           float R = length(e), irisR = uIrisR, ang = atan(e.y, e.x + 1e-5);
           vec2 pe = e / irisR; float pr = uPup * 0.62;
           vec2 pd = uSlit > 1.5 ? vec2(pe.x / (pr * 1.5), pe.y / (pr * 0.38)) : uSlit > 0.5 ? vec2(pe.x / (pr * 0.2), pe.y / (pr * 1.25)) : pe / pr;
@@ -146,24 +151,49 @@ export function eyeMaterial({ iris = 0xffb020, sclera = 0xd8c8b8, pupil = 'round
           pupK = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, pdist);
           float rr = R / irisR; irisK = 1.0 - smoothstep(0.96, 1.02, rr);
           float fib = vn(vec3(cos(ang) * 5.0 + uSeed, sin(ang) * 5.0, rr * 2.2)) * 0.6 + vn(vec3(cos(ang) * 14.0, sin(ang) * 14.0 + uSeed, rr * 3.0)) * 0.4;
-          vec3 ic = uIris * (0.35 + 1.15 * fib);
-          ic = mix(ic, uIris * 1.6 + vec3(0.1), smoothstep(0.55, 0.2, rr) * 0.55);
-          ic *= mix(1.0, 0.18, smoothstep(0.78, 1.0, rr));
+          vec3 ic = uIris * (0.12 + 0.6 * fib);
+          ic = mix(ic, uIris * 0.9 + vec3(0.03), smoothstep(0.55, 0.2, rr) * 0.5);
+          ic *= mix(1.0, 0.15, smoothstep(0.74, 1.0, rr));
           float v1 = 1.0 - smoothstep(0.02, 0.09, abs(vn(vec3(cos(ang) * 4.0, sin(ang) * 4.0, R * 6.0 + uSeed)) - 0.5));
-          vec3 sc = uScl * (0.7 + 0.3 * vn(p * 7.0)); sc = mix(sc, vec3(0.5, 0.06, 0.08), v1 * smoothstep(irisR * 1.1, irisR * 2.6, R) * 0.75);
+          vec3 sc = uScl * (0.65 + 0.3 * vn(p0 * 7.0)); sc = mix(sc, vec3(0.5, 0.05, 0.07), v1 * smoothstep(irisR * 1.1, irisR * 2.6, R) * 0.75);
           sc *= 1.0 - 0.55 * smoothstep(irisR * 1.8, 2.6, R);
-          return mix(sc, ic, irisK);
+          vec3 c = mix(sc, ic, irisK);
+          gLid = 0.0;
+          ${lids ? `{
+            vec2 q = p0.xy / (1.0 + max(p0.z, -0.95));
+            float k = 1.0 - (q.x * q.x) / 0.9025;
+            float hu = uOpen.x * k + uOpen.z * q.x, hl = uOpen.y * k;
+            float m = min(hu - q.y, q.y + hl); m = min(m, k * 0.6);
+            float w = fwidth(m) * 1.5 + 0.012;
+            gLid = 1.0 - smoothstep(-w, w, m);
+            float sh = smoothstep(0.0, 0.22, m);                         // sombra del párpado sobre el ojo
+            c *= 0.35 + 0.65 * sh; irisK *= (0.5 + 0.5 * sh);
+            float lash = 1.0 - smoothstep(0.0, 0.05, abs(m));
+            vec3 skin = uLid * (0.6 + 0.6 * vn(p0 * 5.0 + 3.0)) * (0.7 + 0.3 * smoothstep(0.0, 0.5, -m));
+            float ven = (1.0 - smoothstep(0.015, 0.05, abs(vn(p0 * 9.0 + 5.0) - 0.5))) * 0.5;
+            skin = mix(skin, skin * vec3(0.35, 0.2, 0.25), ven);
+            skin = mix(skin, skin * 0.3, lash);
+            c = mix(c, skin, gLid);
+          }` : ''}
+          return c;
         }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         float irisK, pupK; vec3 eyeC = eyeCol(irisK, pupK);
         #ifdef USE_COLOR
           eyeC = mix(eyeC, eyeC * vColor.rgb * 1.5, irisK);
         #endif
+        pupK *= (1.0 - gLid); irisK *= (1.0 - gLid);
         diffuseColor.rgb = eyeC * (1.0 - pupK) + vec3(0.004, 0.0, 0.006) * pupK;`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+        roughnessFactor = mix(roughnessFactor, 0.62, gLid);`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         totalEmissiveRadiance += diffuseColor.rgb * irisK * (1.0 - pupK) * uGlow * 0.55;
-        { float cl = smoothstep(0.965, 0.99, dot(normal, normalize(vec3(-0.45, 0.6, 0.66)))); totalEmissiveRadiance += vec3(1.0, 0.97, 0.92) * cl * 0.45 * (1.0 - pupK); }
+        { float cl = smoothstep(0.965, 0.99, dot(normal, normalize(vec3(-0.45, 0.6, 0.66)))); totalEmissiveRadiance += vec3(1.0, 0.97, 0.92) * cl * 0.45 * (1.0 - pupK) * (1.0 - gLid); }
         totalEmissiveRadiance += vec3(1.0, 0.85, 0.7) * uHurt * 0.6;`);
+    if (hi) sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
+        #ifdef USE_CLEARCOAT
+          material.clearcoat *= (1.0 - 0.75 * gLid);
+        #endif`);
     sh.fragmentShader = guard(sh.fragmentShader);
   };
   return mat;

@@ -10,7 +10,7 @@ export default function build(kit, color) {
   const col = new THREE.Color(color), R = rng(11);
   const RX = 1.1, RY = 0.9, RZ = 1.0, CY = 0.92, HZ = -0.95;
   const shell = bio({ rough: 0.55, clear: 0.25, clearRough: 0.35, metal: 0.0, env: 0.55, tex: 'fine', tile: 1.4, bump: 0.45, grain: 0.5, seam: color, seamK: 0.0, seamGlow: 0.0, rv: 0.7 });
-  const flesh = bio({ rough: 0.4, clear: 0.6, clearRough: 0.18, sheen: 0.2, env: 0.7, tex: 'flesh', tile: 1.3, bump: 0.9, grain: 0.45, seam: 0x25040f, seamK: 0.55, vein: color, veinK: 0.28, veinGlow: 0.6, sss: 0.3, sssColor: 0xff3a5a });
+  const flesh = bio({ rough: 0.4, clear: 0.6, clearRough: 0.18, sheen: 0.1, env: 0.6, tex: 'flesh', tile: 1.3, bump: 0.9, grain: 0.45, seam: 0x25040f, seamK: 0.55, vein: color, veinK: 0.28, veinGlow: 0.6, sss: 0.15, sssColor: 0xff3a5a });
   const cry = crystalMat(color, { glow: 0.9, alpha: 0.9 });
   const mats = [shell, flesh, cry];
 
@@ -23,7 +23,7 @@ export default function build(kit, color) {
 
   // ── bandas del caparazón ──
   const nb = low ? 8 : hi ? 16 : 12, na = low ? 1 : 2;
-  const shellBase = new THREE.Color(0x1f1538), shellRim = new THREE.Color(0x6e5a8c), flC0 = new THREE.Color(0x6a1430), flC1 = new THREE.Color(0xa83a58), tmp = new THREE.Color();
+  const shellBase = new THREE.Color(0x130c26), shellRim = new THREE.Color(0x5a4876), flC0 = new THREE.Color(0x6a1430), flC1 = new THREE.Color(0xa83a58), tmp = new THREE.Color();
   function band(sign, k, N, bone, ryK) {
     const a0 = (k / N) * Math.PI, a1 = ((k + 1) / N) * Math.PI, aEnd = Math.min(Math.PI, a1 + 0.07), ry = RY * ryK;
     const over = 0.1, keel = 0.1 + 0.03 * Math.sin(k * 1.7), thick = 0.12, tone = 0.8 + R() * 0.4;
@@ -131,6 +131,6 @@ export default function build(kit, color) {
     // cristales y grietas: brillan cerrada (alerta de blindaje) y titilan; herida = grietas encendidas
     cry.emissiveIntensity = 0.6 + 0.35 * (0.5 + 0.5 * Math.sin(t * 4)) + (open ? -0.1 : 0.25) + (hurt ? 0.5 * Math.sin(t * 20) ** 2 : 0);
     shell.userData.u.uSeamGlow.value = 0.25 + (open ? 0 : 0.2 * Math.sin(t * 5) ** 2) + (hurt ? 1.3 + 0.6 * Math.sin(t * 13) : 0);
-    flesh.userData.u.uVeinGlow.value = 0.5 + 1.2 * glowT * beat; flesh.userData.u.uSss.value = 0.3 + 0.5 * glowT;
+    flesh.userData.u.uVeinGlow.value = 0.5 + 1.2 * glowT * beat; flesh.userData.u.uSss.value = 0.15 + 0.5 * glowT;
   } };
 }

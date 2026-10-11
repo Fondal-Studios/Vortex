@@ -29,7 +29,7 @@ export default function build(kit, color) {
   const sp = path(SP);
   const segN = low ? 22 : hi ? 40 : 30, sides = low ? 7 : hi ? 12 : 9;
   const ring = (t) => (t > 0.5 ? Math.pow(Math.abs(Math.sin((t - 0.5) / 0.5 * Math.PI * 3.5)), 0.5) : 1);
-  const bodyGeo = tube(SP, { rad: rf, seg: segN, sides, ex: [0.92, 1.1], bulge: (t, a) => (t > 0.5 ? 0.9 + 0.1 * ring(t) : 1) * (1 + 0.1 * Math.pow(Math.max(0, Math.cos(a)), 6)) });
+  const bodyGeo = tube(SP, { rad: rf, seg: segN, sides, ex: [0.92, 1.1], bulge: (t, a) => (t > 0.5 ? 0.82 + 0.18 * ring(t) : 1) * (1 + 0.1 * Math.pow(Math.max(0, Math.cos(a)), 6)) });
   paint(bodyGeo, (p, n) => { const up = clamp(n.y * 0.5 + 0.5, 0, 1); return new THREE.Color(0x3c1626).lerp(new THREE.Color(0x10181e), smooth(0.2, 0.8, up)); });
   rig.add(flesh, skinChain(bodyGeo, [neck, thorax, body, abd1, abd2, abd3, sting], 0.2));
   // ── placas de quitina superpuestas: pronoto, escudo del tórax y tergitos del abdomen ──
@@ -38,7 +38,7 @@ export default function build(kit, color) {
   const tergBone = (t) => (t < 0.18 ? thorax : t < 0.42 ? body : t < 0.62 ? abd1 : t < 0.8 ? abd2 : abd3);
   const addPlate = (t, w, l, h, o) => { const g = plateOn(t, w, l, h, o); rig.add(carap, skinChain(g, [neck, thorax, body, abd1, abd2, abd3, sting], 0.2)); };
   addPlate(0.12, 0.2, 0.2, 0.07, { col: dark }); addPlate(0.22, 0.27, 0.24, 0.1, { col: mid, keel: 0.9 }); addPlate(0.32, 0.22, 0.17, 0.07, { col: dark });
-  const nAb = low ? 4 : 6; for (let i = 0; i < nAb; i++) { const t = 0.52 + (i / (nAb - 1)) * 0.4; addPlate(t, 0.2 + 0.1 * Math.sin((i / (nAb - 1)) * 3), 0.13, 0.06, { col: i % 2 ? dark : mid, keel: 0.7 }); }
+  const nAb = low ? 4 : 6; for (let i = 0; i < nAb; i++) { const t = 0.52 + (i / (nAb - 1)) * 0.4; addPlate(t, 0.2 + 0.12 * Math.sin((i / (nAb - 1)) * 3), 0.16, 0.085, { col: i % 2 ? dark : mid, keel: 0.8 }); }
   // ── cabeza ──
   const hw = 0.19;
   const skull = ellipsoid([hw, 0.16, 0.27], { w: low ? 10 : 16, h: low ? 7 : 12, noise: 0.08, seed: 3, pos: [0, 0.83, 0.97] }); paint(skull, (p, n) => new THREE.Color(0x14242c).lerp(new THREE.Color(0x090f14), smooth(0.2, -0.8, n.y)));

@@ -39,7 +39,7 @@ void surfShade(vec3 p, vec3 nW, vec3 acc, vec4 isl, float t, out vec3 alb, out v
   float crag = fbm(p * vec3(1.05, 1.5, 1.05) + 3.0);
   float fine = vnoise(p * 6.5) * smoothstep(0.35, 0.08, fw);
   float g = vnoise(p * 0.5 + 7.0);
-  vec3 cA = vec3(0.020, 0.018, 0.036), cB = vec3(0.085, 0.052, 0.046), cC = vec3(0.034, 0.042, 0.070);
+  vec3 cA = vec3(0.012, 0.011, 0.022), cB = vec3(0.052, 0.032, 0.029), cC = vec3(0.020, 0.025, 0.042);
   alb = mix(mix(cA, cB, strata * 0.65 + g * 0.35), cC, thin * 0.5);
   alb *= 0.34 + 0.62 * crag;
   alb = mix(alb, alb * (0.6 + acc * 1.0), 0.22);
@@ -64,7 +64,7 @@ void surfShade(vec3 p, vec3 nW, vec3 acc, vec4 isl, float t, out vec3 alb, out v
   float plate = smoothstep(0.82, 0.97, abs(nW.y));
   if (plate > 0.001 && isl.z > 1.5) {
     vec2 q = p.xz - isl.xy; float rd = length(q), R = max(isl.z, 1.0), ang = atan(q.y, q.x), TAU = 6.2831853;
-    vec3 pa = (vec3(0.016, 0.019, 0.032) + acc * 0.006) * (0.7 + 0.6 * mix(0.5, vnoise(p * 2.2), smoothstep(0.5, 0.1, fw))) * (0.8 + 0.4 * vnoise(p * 0.6));
+    vec3 pa = (vec3(0.0055, 0.0065, 0.011) + acc * 0.003) * (0.7 + 0.6 * mix(0.5, vnoise(p * 2.2), smoothstep(0.5, 0.1, fw))) * (0.8 + 0.4 * vnoise(p * 0.6));
     float rdist = (0.5 - abs(fract(rd / 3.2) - 0.5)) * 3.2;
     float S = floor(R * 0.6 + 0.5) * 2.0, adist = (0.5 - abs(fract(ang / TAU * S) - 0.5)) * TAU * rd / S;
     float sw = max(0.07, aa);
@@ -82,8 +82,8 @@ void surfShade(vec3 p, vec3 nW, vec3 acc, vec4 isl, float t, out vec3 alb, out v
     float dash = step(0.5, fract(ang / TAU * S * 2.0)) * (1.0 - smoothstep(0.0, 0.07, abs(rd - (R - 1.3))));
     pe += acc * (0.16 * eb + 0.95 * core + 0.4 * dash) + vec3(0.3) * core * 0.2;
     vec3 palb = pa * (1.0 - 0.6 * seam) + vec3(0.02) * lines;
-    float prough = 0.72 + 0.2 * vnoise(p * 3.0) + 0.1 * seam;
-    float phgt = vnoise(p * 5.0) * 0.12 * smoothstep(0.3, 0.06, fw) - seam * 0.35 - lines * 0.12;
+    float prough = 0.80 + 0.15 * vnoise(p * 3.0) + 0.05 * seam;
+    float phgt = vnoise(p * 5.0) * 0.06 * smoothstep(0.3, 0.06, fw) - seam * 0.3 - lines * 0.1;
     alb = mix(alb, palb, plate); emi = mix(emi, pe, plate); rough = mix(rough, prough, plate); hgt = mix(hgt, phgt, plate);
   }
 }

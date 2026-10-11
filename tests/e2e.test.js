@@ -23,7 +23,7 @@ test('e2e: un humano (teclas + ratón) se mueve, apunta, cambia de arma, dispara
     await pg.evaluate(() => window.dispatchEvent(new MouseEvent('mousemove', { movementX: 300, movementY: 0 })));
     await simWait(pg, 0.3);
     const c = await me(); assert.ok(Math.hypot(c.h.x - b1.h.x, c.h.z - b1.h.z) > 0.3, 'el ratón gira la vista');
-    await pg.keyboard.press('Digit3'); await pg.waitForTimeout(150); assert.equal((await me()).w, 2, 'tecla 3 = Ráfaga');
+    await pg.keyboard.press('Digit3'); await simWait(pg, 0.4); assert.equal((await me()).w, 2, 'tecla 3 = Ráfaga');
     assert.match(await pg.textContent('#w2'), /Ráfaga/); assert.ok((await pg.getAttribute('#w2', 'class')).includes('sel'));
     await pg.keyboard.down('Space'); await pg.waitForTimeout(100); await pg.keyboard.up('Space');
     await pg.mouse.down(); await simWait(pg, 2.5); await pg.mouse.up();
@@ -71,7 +71,7 @@ test('e2e iPhone (emulado): calidad Baja automática, palanca, mirar, disparar, 
     const b1 = await me(); assert.ok(Math.hypot(b1.x - a.x, b1.z - a.z) > 3, 'la palanca mueve al jugador');
     await T('touchStart', [{ x: 650, y: 150, id: 2 }]); for (let i = 1; i <= 8; i++) { await T('touchMove', [{ x: 650 + i * 12, y: 150, id: 2 }]); await pg.waitForTimeout(30); } await T('touchEnd', []); await simWait(pg, 0.3);
     const c = await me(); assert.ok(Math.hypot(c.h.x - b1.h.x, c.h.z - b1.h.z) > 0.2, 'arrastrar a la derecha gira la vista');
-    const box = await pg.locator('.tc-next').boundingBox(); await pg.touchscreen.tap(box.x + 10, box.y + 10); await pg.waitForTimeout(200);
+    const box = await pg.locator('.tc-next').boundingBox(); await pg.touchscreen.tap(box.x + 10, box.y + 10); await simWait(pg, 0.4);
     assert.equal((await me()).w, 1, 'el botón › pasa al arma 2');
     await pg.evaluate(() => { window.__api.session.game.players[0].ammo[1] = 20; });
     const f = await pg.locator('.tc-fire').boundingBox(); await T('touchStart', [{ x: f.x + 40, y: f.y + 40, id: 3 }]); await simWait(pg, 1.5); await T('touchEnd', []);

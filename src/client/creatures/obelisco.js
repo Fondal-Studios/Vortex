@@ -16,7 +16,7 @@ export default function build(kit, color) {
   const bio = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x1c4a6a, scale: 1.3, bump: 1.0, wet: 0.6, ridge: 50, sheen: 0.1, breath: 0.012 });
   const U = bio.userData.u; U.uVeinGlow.value = 0.35; U.uCrackGlow.value = 0.2;
   const bioT = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x1c4a6a, scale: 1.3, tent: 12, breath: 0.0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.3;
-  const FLESH = 0x2a2236, FLESH2 = 0x433a52, CHIT = 0x101a24, BONE = 0x8a98a0, CRY = 0x20d0ff;
+  const FLESH = 0x2a2236, FLESH2 = 0x433a52, CHIT = 0x101a24, BONE = 0x6a7680, CRY = 0x20d0ff;
   const root = new THREE.Group(), body = new THREE.Group(); body.scale.setScalar(0.78); body.position.y = -1.0; root.add(body); // origen = centro de la esfera de colisión: el suelo queda en y=-1
   const mesh = (geo, parent, m = bio) => { const o = new THREE.Mesh(geo, m); parent.add(o); return o; };
 
@@ -50,9 +50,12 @@ export default function build(kit, color) {
     parts.push(paint(col, FLESH, 0, 0, (p, n, uv) => ({ c: n.z > 0.2 ? FLESH2 : FLESH, k: 0.75 + 0.35 * Math.sin(uv[1] * 3.1), g: 0.0 })));
     // costillas: arcos de hueso que rodean el tallo por delante y los lados
     for (let k = 0; k < (LOW ? 1 : 2); k++) {
-      const yk = 0.18 + 0.3 * k, pts = []; for (let s = 0; s <= 8; s++) { const f = s / 8, ph = -2.35 + f * 4.7; pts.push(new V3(Math.sin(ph) * (Ri + 0.045), yk - 0.07 * Math.pow(ph / 2.35, 2) + 0.03 * Math.sin(f * 6 + i), Math.cos(ph) * (Ri + 0.045))); }
-      parts.push(paint(loft(pts, { seg: 14, radial: 5, r: (t) => 0.034 * (0.35 + Math.sin(t * Math.PI) * 0.9), round: [0.1, 0.1] }), BONE, 2, 0.0, (p, n, uv) => ({ g: 0.1 })));
+      const yk = 0.18 + 0.3 * k, pts = []; for (let s = 0; s <= 8; s++) { const f = s / 8, ph = -2.1 + f * 4.2; pts.push(new V3(Math.sin(ph) * (Ri + 0.05), yk - 0.1 * Math.pow(ph / 2.1, 2) + 0.03 * Math.sin(f * 6 + i), Math.cos(ph) * (Ri + 0.05))); }
+      parts.push(paint(loft(pts, { seg: 14, radial: 5, r: (t) => 0.05 * (0.3 + Math.sin(t * Math.PI) * 0.9), ry: () => 0.8, round: [0.1, 0.1] }), BONE, 2, 0.0, (p, n, uv) => ({ g: 0.1 })));
     }
+    // faldón óseo festoneado en la base de cada vértebra y placa de pecho
+    parts.push(paint(loft(line([0, -0.02, 0], [0, 0.16, 0]), { seg: 3, radial: R + 6, r: (t) => Ri * (1.34 - 0.34 * t), mod: (t, a) => 1 + 0.07 * Math.sin(a * 7 + i) * (1 - t) }), BONE, 2, 0, (p, n, uv) => ({ g: 0.5 * (1 - uv[1]) })));
+    const cp = domePlate(Ri * 0.38, 0.2, 0.09, { ridge: 0.8, thick: 0.02, nu: 5, nv: 5 }); parts.push(paint(aimY(cp, new V3(0, 0.34, Ri * 0.97), new V3(0, 0.1, 1)), BONE, 2, 0, () => ({ k: 1.0 })));
     // placa dorsal de quitina + espina con cristal
     const dp = domePlate(Ri * 0.45, 0.25, 0.11, { ridge: 0.7, thick: 0.025, nu: 6, nv: 6 });
     parts.push(paint(aimY(dp, new V3(0, 0.31, -Ri * 0.93), new V3(0, 0.2, -1)), CHIT, 1, 0, (p, n, uv) => ({ k: 0.8 + 0.6 * Math.max(0, n.y), g: sstep(0.8, 1, Math.max(Math.abs(uv[0] * 2 - 1), Math.abs(uv[1] * 2 - 1))) * 0.6 })));
@@ -68,7 +71,7 @@ export default function build(kit, color) {
     mesh(merge(hp), head); }
   const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.34, 0.12); head.add(eyeRoot);
   const RE = 0.6;
-  const E = bigEye({ r: RE, iris: 0x18c8ff, quality: level, lidSkin: bio, lidColor: 0x30283c, scleraColor: 0xb4bcc0, irisR: 0.55 }); eyeRoot.add(E.object);
+  const E = bigEye({ r: RE, iris: 0x18c8ff, quality: level, lidColor: 0x3a2a40, scleraColor: 0x59626a, irisR: 0.5 }); eyeRoot.add(E.object);
   const lensPt = new THREE.Object3D(); lensPt.position.z = RE * 1.1; E.ball.add(lensPt);
   // pétalos-garra de quitina (se abren al apuntar): 1 solo InstancedMesh
   const NP = LOW ? 5 : HI ? 8 : 7, petals = [];
@@ -144,7 +147,7 @@ export default function build(kit, color) {
     eyeRoot.getWorldQuaternion(qb); root.getWorldQuaternion(qa); qb.premultiply(qa.clone().invert()).invert();
     up.copy(aimL).applyQuaternion(qb).normalize();
     const squint = locked ? 0.7 : charging ? 1.1 : 1;
-    E.update(dt, up, { open: clamp((0.8 + 0.2 * Math.sin(t * 0.8 + id)) * squint * (1 - hit * 0.5) * (1 - hurtLow * 0.2) + k * 0.15, 0, 1), pupil: lerp(0.9, 0.2, heat) * (1 - hit * 0.1) + 0.08 * Math.sin(t * 2.3 + id), glow: 0.35 + heat * 0.9 + shotFlash * 1.2, hurt: U.uHurt.value, shake: hurtLow * 0.1 + k * 0.03, blinkRate: charging ? 0.2 : 1 + hurtLow });
+    E.update(dt, up, { open: clamp((0.8 + 0.2 * Math.sin(t * 0.8 + id)) * squint * (1 - hit * 0.5) * (1 - hurtLow * 0.2) + k * 0.15, 0, 1), pupil: lerp(0.55, 0.16, heat) * (1 - hit * 0.1) + 0.08 * Math.sin(t * 2.3 + id), glow: 0.35 + heat * 0.9 + shotFlash * 1.2, hurt: U.uHurt.value, shake: hurtLow * 0.1 + k * 0.03, blinkRate: charging ? 0.2 : 1 + hurtLow });
     E.iris.userData.u.uIris.value.copy(irisA).lerp(irisR, lockAmt * 0.8 + hurtLow * 0.3);
 
     // pétalos: respiran, se abren al cargar, se cierran al ser herido

@@ -41,37 +41,31 @@ export function glowSphere(mat, r = 1) { const m = new THREE.Mesh(G('gs', () => 
  * Devuelve { object, ball, mats, update(dt, dirLocal, opts) }. `dirLocal` = hacia dónde mira, EN EL ESPACIO DEL PADRE del ojo.
  * opts: open 0–1, pupil 0.1–1.6, glow, hurt, shake, blinkRate, track.
  */
-export function bigEye({ r = 0.5, iris = 0xffb020, slit = false, pupil = null, lids = true, lidSkin = null, lidColor = 0x7a3a44, scleraColor = 0xcdbfae, irisR = 0.5, quality = 'high' } = {}) {
+export function bigEye({ r = 0.5, iris = 0xffb020, slit = false, pupil = null, lids = true, lidSkin = null, lidColor = 0x7a3a44, scleraColor = 0xcdbfae, irisR = 0.5, quality = 'high', brow = 0 } = {}) {
   const object = new THREE.Group(), ball = new THREE.Group(); object.add(ball);
   const lo = quality === 'low';
-  const em = eyeMaterial({ iris, sclera: scleraColor, pupil: pupil || (slit ? 'slit' : 'round'), irisR });
-  const sph = G(lo ? 'eb0' : 'eb1', () => new THREE.SphereGeometry(1, lo ? 14 : 30, lo ? 10 : 22));
+  const em = eyeMaterial({ iris, sclera: scleraColor, pupil: pupil || (slit ? 'slit' : 'round'), irisR, lids: true, lid: lidColor });
+  const sph = G(lo ? 'eb0' : 'eb1', () => new THREE.SphereGeometry(1, lo ? 16 : 36, lo ? 12 : 26));
   const bm = new THREE.Mesh(sph, em); bm.scale.setScalar(r); ball.add(bm);
-  let up = null, dn = null, rim = null; const mats = [em];
-  if (lids) {
-    const lm = lidSkin || bioMaterial({ rim: 0x803040 });
-    const hemi = G('hemiP' + lo + lidColor, () => paint(new THREE.SphereGeometry(1, lo ? 12 : 24, lo ? 6 : 10, 0, Math.PI * 2, 0, Math.PI / 2), lidColor, 0, 0, (p) => ({ k: 0.75 + 0.3 * Math.min(1, p.y * 1.4) })));
-    up = new THREE.Mesh(hemi, lm); up.scale.setScalar(r * 1.1); dn = new THREE.Mesh(hemi, lm); dn.scale.setScalar(r * 1.1); dn.scale.y = -r * 1.1; object.add(up, dn);
-    // aro carnoso alrededor del ojo (la cuenca): oculta la unión con el cuerpo
-    const ringG = G('eyering' + lo + lidColor, () => paint(new THREE.TorusGeometry(1, 0.2, lo ? 6 : 10, lo ? 16 : 28), lidColor, 0, 0, (p) => ({ k: 0.8 + 0.3 * Math.max(0, p.z * 3) })));
-    rim = new THREE.Mesh(ringG, lm); rim.scale.setScalar(r * 0.98); rim.position.z = -r * 0.05; object.add(rim);
-    if (!lidSkin) mats.push(lm);
-  }
-  let blinkT = 1 + rnd() * 3, blink = 0, sacT = 0.5, sacX = 0, sacY = 0, cur = 0.9; const tq = new THREE.Quaternion(), d = new THREE.Vector3();
+  const mats = [em];
+  let blinkT = 1 + rnd() * 3, blink = 0, sacT = 0.5, sacX = 0, sacY = 0, cur = 0.9; const gq = new THREE.Quaternion(), tq = new THREE.Quaternion(), d = new THREE.Vector3(), M4 = new THREE.Matrix4();
   const u = em.userData.u;
   return {
-    object, ball, mats, iris: em, lidMat: lidSkin, sclera: em,
-    update(dt, dirLocal, { open = 1, pupil = 0.55, glow = 0.6, hurt = 0, shake = 0, blinkRate = 1, track = 14 } = {}) {
+    object, ball, mats, iris: em, lidMat: null, sclera: em,
+    update(dt, dirLocal, { open = 1, pupil = 0.55, glow = 0.6, hurt = 0, shake = 0, blinkRate = 1, track = 14, brow: br = brow } = {}) {
       if (dirLocal) {
         sacT -= dt; if (sacT <= 0) { sacT = 0.4 + rnd() * 1.6; sacX = (rnd() - 0.5) * 0.14; sacY = (rnd() - 0.5) * 0.1; } // microsacadas
         d.copy(dirLocal).normalize(); d.x += sacX + (shake ? (rnd() - 0.5) * shake : 0); d.y += sacY + (shake ? (rnd() - 0.5) * shake : 0); d.normalize();
-        tq.setFromUnitVectors(Z, d); ball.quaternion.slerp(tq, 1 - Math.exp(-track * dt));
+        // la mirada gira el iris (los párpados quedan fijos); límite ~35° para que el iris no se salga del ojo
+        const ang = Math.acos(clamp(d.z, -1, 1)), lim = 0.6; if (ang > lim) { const k = Math.sin(lim) / Math.max(Math.sin(ang), 1e-4); d.set(d.x * k, d.y * k, Math.cos(lim)); }
+        tq.setFromUnitVectors(Z, d); gq.slerp(tq, 1 - Math.exp(-track * dt));
+        M4.makeRotationFromQuaternion(gq); u.uGazeM.value.setFromMatrix4(M4).transpose();
       }
       blinkT -= dt * blinkRate; if (blinkT <= 0) { blink = 1; blinkT = 2 + rnd() * 4.5; } blink = Math.max(0, blink - dt * 6.5);
       const bl = Math.sin(Math.min(1, blink) * Math.PI);
       cur = damp(cur, open, 9, dt);
       const o = clamp(cur * (1 - bl), 0, 1);
-      if (up) { up.rotation.x = lerp(1.5, -1.0, o); dn.rotation.x = lerp(-1.5, 0.8, o); }
+      u.uOpen.value.set(lerp(0.02, 0.8, o), lerp(0.02, 0.62, o), br); window.__o = [u.uOpen.value.x, u.uOpen.value.y, o];
       u.uPup.value = pupil; u.uGlow.value = glow; u.uHurt.value = hurt;
     },
   };

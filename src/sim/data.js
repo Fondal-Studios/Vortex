@@ -57,7 +57,7 @@ export const WEAPON_MODS = {
   cadena:   { name: 'Cadena',      desc: 'El daño salta a 2 criaturas cercanas.' },
   vampirica:{ name: 'Vampírica',   desc: 'Cada baja te cura 6 de vida.' },
 };
-export const WAVE_SCALE = { hp: 0.1, speed: 0.018, elite: 0.12 }; // por oleada; élites desde la oleada 3
+export const WAVE_SCALE = { hp: 0.08, speed: 0.016, elite: 0.1 }; // por oleada; élites desde la oleada 3
 
 // Bestiario: criaturas de cristal. `ai` mapea a src/sim/ai.js
 export const MONSTERS = {

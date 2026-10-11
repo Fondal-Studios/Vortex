@@ -6,7 +6,7 @@ import { v3 } from '../src/sim/math.js';
 import { makeBot } from '../src/sim/bot.js';
 
 test('rendimiento de la simulación con la horda máxima (90 criaturas + 300 proyectiles, 4 jugadores)', () => {
-  for (const mapId of ['m1', 'm2']) {
+  for (const mapId of ['m1', 'm2', 'm3']) {
     const g = new Game({ mapId, seed: 1 }); const ps = [0, 1, 2, 3].map(() => g.addPlayer()); g.phaseT = 1e9;
     const kinds = Object.keys(MONSTERS).filter((k) => !MONSTERS[k].boss);
     for (let i = 0; i < LIMITS.monsters; i++) { const k = kinds[i % kinds.length]; g.spawnMonster(k, MONSTERS[k].fly ? g.map.spawnAir(g.rng, ps[0].pos, ps[0].up) : g.map.spawnGround(g.rng, ps[0].pos)); }

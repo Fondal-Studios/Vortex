@@ -20,7 +20,7 @@ function spikeRing(n, radius, z, hMin, hMax, rBase, sides, seed) {
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + (rnd() - 0.5) * 0.12, h = hMin + (hMax - hMin) * (0.3 + 0.7 * rnd()) * (i % 2 ? 1 : 0.7);
     const c = new THREE.ConeGeometry(rBase * (0.8 + 0.5 * rnd()), h, sides, 1); c.translate(0, h / 2, 0);
-    const dir = new THREE.Vector3(Math.cos(a), Math.sin(a), -0.28 - 0.25 * rnd()).normalize(), q = new THREE.Quaternion().setFromUnitVectors(up, dir);
+    const dir = new THREE.Vector3(Math.cos(a), Math.sin(a), -0.12 - 0.2 * rnd()).normalize(), q = new THREE.Quaternion().setFromUnitVectors(up, dir);
     c.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, z), q, new THREE.Vector3(1, 1, 1)));
     parts.push(c.toNonIndexed());
   }
@@ -47,9 +47,9 @@ export default function build(kit, color) {
   const root = new THREE.Group(), rig = new THREE.Group(), body = new THREE.Group(); root.add(rig); rig.add(body);
 
   /* ── materiales ── */
-  const lidM = kit.fleshMaterial({ color: 0x9a3a54, vein: 0x3a0818, spot: color, glow: 0.0, wobble: 0.012, breath: 0.03, spots: 0.35, veins: 1.0, rough: 0.34, sheen: 0.5, scale: 2.2 });
-  const foldM = kit.fleshMaterial({ color: 0x5a1c44, vein: 0x1a0414, spot: color, glow: 0.0, wobble: 0.018, breath: 0.03, spots: 0.4, veins: 0.9, rough: 0.42, sheen: 0.3, scale: 2.0 });
-  const nerveM = kit.fleshMaterial({ color: 0x6a2658, vein: 0x20061c, spot: color, glow: 0.0, wobble: 0.02, breath: 0.04, spots: 0.4, veins: 1.0, rough: 0.4, sheen: 0.3, scale: 2.2 });
+  const lidM = kit.fleshMaterial({ color: 0x8a3050, vein: 0x300612, spot: 0x602040, glow: 0.0, wobble: 0.012, breath: 0.03, spots: 0.08, veins: 1.0, rough: 0.34, sheen: 0.5, scale: 2.2 });
+  const foldM = kit.fleshMaterial({ color: 0x4a1840, vein: 0x14030f, spot: 0x401030, glow: 0.0, wobble: 0.018, breath: 0.03, spots: 0.1, veins: 0.9, rough: 0.42, sheen: 0.3, scale: 2.0 });
+  const nerveM = kit.fleshMaterial({ color: 0x5a2050, vein: 0x1a0418, spot: 0x401030, glow: 0.0, wobble: 0.02, breath: 0.04, spots: 0.1, veins: 1.0, rough: 0.4, sheen: 0.3, scale: 2.2 });
   const crystA = kit.bioCrystalMaterial(0xff5ac8, { glow: 0.8 }), crystB = kit.bioCrystalMaterial(0x4fd8ff, { glow: 0.9 }), crystC = kit.bioCrystalMaterial(0xffc040, { glow: 1.0 });
   const ballM = eyeballMaterial({ color, irisAng: 0.8, fib: 26 });
   const U = ballM.uniforms;
@@ -71,8 +71,8 @@ export default function build(kit, color) {
   const foldParts = [], NF = LOW ? 8 : 12, rf = rndMake(77);
   for (let i = 0; i < NF; i++) {
     const a = (i / NF) * Math.PI * 2 + 0.2, g = new THREE.SphereGeometry(1, 8, 6); const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion().setFromAxisAngle(Z, a), s = V(0.5 + rf() * 0.25, 0.22 + rf() * 0.12, 0.28);
-    m.compose(V(Math.cos(a) * R * 1.12, Math.sin(a) * R * 1.12, -0.3), q, s); g.applyMatrix4(m); foldParts.push(g.toNonIndexed());
+    const q = new THREE.Quaternion().setFromAxisAngle(Z, a), s = V(0.34 + rf() * 0.14, 0.12 + rf() * 0.06, 0.2);
+    m.compose(V(Math.cos(a) * R * 1.1, Math.sin(a) * R * 1.1, -0.22), q, s); g.applyMatrix4(m); foldParts.push(g.toNonIndexed());
   }
   { const g = new THREE.SphereGeometry(1, 14, 10); g.applyMatrix4(new THREE.Matrix4().compose(V(0, 0, -0.62), new THREE.Quaternion(), V(0.98, 0.98, 0.5))); foldParts.push(g.toNonIndexed()); }
   const folds = new THREE.Mesh(mergeGeometries(foldParts, false), foldM); body.add(folds);
@@ -80,15 +80,15 @@ export default function build(kit, color) {
   /* ── coronas de espinas de cristal (3 anillos que brotan por fase) ── */
   const mkCrown = (n, radius, z, hMin, hMax, rb, mat, seed, sides = 5) => { const pv = new THREE.Group(), m = new THREE.Mesh(spikeRing(n, radius, z, hMin, hMax, rb, sides, seed), mat); pv.add(m); body.add(pv); return pv; };
   const crowns = [
-    { g: mkCrown(LOW ? 14 : 20, R * 1.18, -0.18, 0.3, 0.75, 0.075, crystA, 11), sp: 0.07, ph: 1 },
-    { g: mkCrown(LOW ? 12 : 18, R * 1.32, -0.34, 0.45, 1.0, 0.09, crystB, 23, 6), sp: -0.05, ph: 2 },
-    { g: mkCrown(LOW ? 10 : 14, R * 1.46, -0.5, 0.6, 1.25, 0.11, crystC, 37, 6), sp: 0.035, ph: 3 },
+    { g: mkCrown(LOW ? 14 : 20, R * 1.2, -0.2, 0.4, 0.9, 0.08, crystA, 11), sp: 0.07, ph: 1 },
+    { g: mkCrown(LOW ? 12 : 18, R * 1.3, -0.36, 0.5, 1.1, 0.09, crystB, 23, 6), sp: -0.05, ph: 2 },
+    { g: mkCrown(LOW ? 10 : 14, R * 1.4, -0.52, 0.6, 1.3, 0.1, crystC, 37, 6), sp: 0.035, ph: 3 },
   ];
 
   /* ── anillos-halo (finos, aditivos) y halo grande detrás ── */
-  const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
   const ringMat2 = new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
-  const rings = [[2.0, 0.02, ringMat, 1.1, 0.3], [2.45, 0.014, ringMat2, 0.55, -0.5], [1.7, 0.012, ringMat, 1.35, 0.9]].slice(0, LOW ? 2 : 3).map(([rad, tube, mat, tilt, sp]) => {
+  const rings = [[2.6, 0.02, ringMat, 0.55, 0.3], [3.1, 0.014, ringMat2, 0.85, -0.5], [2.3, 0.012, ringMat, 0.35, 0.9]].slice(0, LOW ? 2 : 3).map(([rad, tube, mat, tilt, sp]) => {
     const tl = new THREE.Group(), m = new THREE.Mesh(shared(`arg-ring${rad}${LOW}`, () => new THREE.TorusGeometry(rad, tube, 4, LOW ? 48 : 90)), mat); tl.add(m); tl.rotation.x = tilt; tl.rotation.y = tilt * 0.6; rig.add(tl); return { tl, m, sp };
   });
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: softDot(), color, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); halo.position.z = -0.9; halo.scale.setScalar(7.5); rig.add(halo);
@@ -104,7 +104,7 @@ export default function build(kit, color) {
 
   /* ── escudo facetado de cristal ── */
   const shM = new THREE.ShaderMaterial({ vertexShader: SHIELD_V, fragmentShader: SHIELD_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uTime: kit.uTime, uK: { value: 1 }, uFlash: { value: 0 }, uCol: { value: new THREE.Color(color) } } });
-  const shGeo = shared(`ash${LOW}`, () => new THREE.IcosahedronGeometry(1, LOW ? 1 : 2).toNonIndexed());
+  const shGeo = shared(`ash${LOW}`, () => new THREE.IcosahedronGeometry(1, LOW ? 1 : 2));
   const shield = new THREE.Mesh(shGeo, shM); shield.scale.setScalar(R * 1.62); shield.frustumCulled = false; rig.add(shield);
   const shEdgeM = new THREE.LineBasicMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
   const shEdges = new THREE.LineSegments(shared(`ashe${LOW}`, () => new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1, LOW ? 1 : 2), 1)), shEdgeM); shield.add(shEdges);
@@ -120,7 +120,7 @@ export default function build(kit, color) {
   let p2 = 0, p3 = 0, prevPh = 1, prevHp = 1, hit = 0, flashT = 0, prevS = '', gt = 0, gz = 0, recoil = 0, stag = 0, shieldK = 1, prevSd = true, shBurst = 0;
   let lastHurt = 0, open = 0.85, blinkT = 2, blink = 0, pupS = 0.42, shakeX = 0, shakeY = 0;
   const tq = new THREE.Quaternion(), d = new THREE.Vector3(), inv = new THREE.Matrix4(), dc = new THREE.Color();
-  const colA = new THREE.Color(color), colHot = new THREE.Color(0xff3a20), tintLid = new THREE.Color(0x9a3a54), tintRage = new THREE.Color(0xb02a3a);
+  const colA = new THREE.Color(color), colHot = new THREE.Color(0xff3a20), tintLid = new THREE.Color(0x8a3050), tintRage = new THREE.Color(0xb02a3a);
 
   return { root, mats, tick(dt, st, t, ctx = {}) {
     dt = clamp(dt, 0, 0.05); const id = st.id || 0, hp = st.hp == null ? 1 : st.hp, ph = hp > 0.66 ? 1 : hp > 0.33 ? 2 : 3, rage = clamp((1 - hp) * 1.25, 0, 1);
@@ -150,9 +150,9 @@ export default function build(kit, color) {
 
     /* párpados */
     blinkT -= dt * (0.5 + rage) * a; if (blinkT <= 0) { blink = 1; blinkT = 2.5 + Math.random() * 4; } blink = Math.max(0, blink - dt * 5); const bl = Math.sin(Math.min(1, blink) * Math.PI);
-    const tOpen = sn === 'gaze' ? 1.0 : stag > 0.5 ? 0.32 + 0.04 * Math.sin(t * 5) : clamp(0.85 - (1 - hp) * 0.05 - hit * 0.35, 0.2, 1);
+    const tOpen = sn === 'gaze' ? 1.0 : stag > 0.5 ? 0.68 + 0.04 * Math.sin(t * 5) : clamp(0.95 - (1 - hp) * 0.05 - hit * 0.35, 0.2, 1);
     open = damp(open, tOpen, 8, dt); const o = clamp(open * (1 - bl * a) + (stag * 0.0), 0, 1);
-    lidUp.rotation.x = lerp(1.5, -1.15, o); lidDn.rotation.x = lerp(-1.5, 0.85, o);
+    lidUp.rotation.x = lerp(1.5, -1.45, o); lidDn.rotation.x = lerp(-1.5, 1.15, o);
 
     /* iris y pupila */
     const pTarget = sn === 'gaze' ? lerp(0.42, 0.12, gz) : stag > 0.5 ? 0.62 : 0.42 + 0.05 * Math.sin(t * 1.3 + id) + rage * 0.04;
@@ -164,8 +164,8 @@ export default function build(kit, color) {
 
     /* carne: se enrojece con las fases / la mirada */
     lidM.color.copy(tintLid).lerp(tintRage, p3 * 0.6 + gz * 0.4).multiplyScalar(0.55 + 0.45 * a);
-    lidM.userData.u.uGlow.value = 0.02 + cg * 0.25 + p3 * 0.06 + flashT * 0.1; foldM.userData.u.uGlow.value = 0.01 + cg * 0.12 + p3 * 0.04; foldM.color.setHex(0x5a1c44).multiplyScalar(0.6 + 0.4 * a);
-    folds.scale.setScalar(1 + Math.sin(t * 1.4 + id) * 0.02 + cg * 0.06); nerveM.color.setHex(0x6a2658).multiplyScalar(0.6 + 0.4 * a);
+    lidM.userData.u.uGlow.value = 0.02 + cg * 0.25 + p3 * 0.06 + flashT * 0.1; foldM.userData.u.uGlow.value = 0.01 + cg * 0.12 + p3 * 0.04; foldM.color.setHex(0x4a1840).multiplyScalar(0.6 + 0.4 * a);
+    folds.scale.setScalar(1 + Math.sin(t * 1.4 + id) * 0.02 + cg * 0.06); nerveM.color.setHex(0x5a2050).multiplyScalar(0.6 + 0.4 * a);
 
     /* coronas: brotan por fase, giran; se encienden al cargar y se apagan aturdido */
     crowns.forEach((C, i) => { const g = C.ph === 1 ? 1 : C.ph === 2 ? p2 : p3; C.g.rotation.z += dt * C.sp * (1 + cg * 6 + rage) * (0.3 + 0.7 * a); const s = Math.max(0.001, clamp(g, 0, 1.05) * (1 + 0.03 * Math.sin(t * 2 + i) + cg * 0.1) * (0.92 + 0.08 * a)); C.g.scale.set(s, s, 1); });

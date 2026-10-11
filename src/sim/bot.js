@@ -95,7 +95,7 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
   let strafe = 1, strafeT = 0, jumpT = 0;
   return function think(dt) {
     const p = game.players.find((q) => q.id === pid);
-    const inp = { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, pick: p && p.cards && p.cards.length ? 0 : -1 };
+    const inp = { esp: false, mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, pick: p && p.cards && p.cards.length ? 0 : -1 };
     if (!p || p.dead) return inp;
     const mons = game.monsters.filter((m) => !m.dead);
     const right = cross(p.heading, p.up);
@@ -150,6 +150,7 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
       inp.fire = clear && !armored && Math.abs(yawErr) < 0.07 && Math.abs(pitchErr) < 0.07 && d < (WEAPONS[w].range || 140) * 0.8;
     }
 
+    if (tgt && p.char && p.espCd <= 0 && d < 28 && (near >= 2 || tgt.def.boss || (tgt.maxhp > 250 && d < 22)) && los(game, eye, tgt.pos)) inp.esp = true;
     const task = taskFor(game, p);
     if (game.map.maze && tgt && !los(game, eye, tgt.pos) && !task) { // detrás de un muro: ir a buscarla por el laberinto
       const gp = mazeStep(game, p.pos, tgt.pos); wishMove = add(wishMove, mul(norm(project(sub(gp, p.pos), p.up), p.heading), 4));
