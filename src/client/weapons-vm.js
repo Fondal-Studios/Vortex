@@ -92,3 +92,10 @@ export class Viewmodels {
     it.flash.scale.setScalar(0.4 + Math.random() * 0.25);
   }
 }
+
+/** Modelo del arma para mundo/tercera persona (lo usa el avatar). Origen en la empuñadura, boca hacia -Z; group.userData.muzzle = [x,y,z]. */
+export function createWeaponModel(index = 0) {
+  const c = WEAPON_COLORS[index % WEAPON_COLORS.length];
+  const mats = { main: crystalMaterial(c, { glow: 0.12 }), glow: crystalMaterial(c, { glow: 1.6 }), dark: crystalMaterial(new THREE.Color(c).multiplyScalar(0.28), { glow: 0.05 }) };
+  const b = BUILDERS[index % BUILDERS.length](c, mats); b.g.userData.muzzle = b.muzzle; b.g.userData.tick = b.tick; return b.g;
+}
