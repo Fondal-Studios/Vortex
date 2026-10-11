@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cristal Vórtice</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/public/style.css">
+<script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js" } }</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vignette"></div><div id="flash"></div>
+<div id="hud" class="hidden">
+  <div id="cross"><i></i></div>
+  <div id="top"><div id="wave">OLEADA 1</div><div id="left">0 criaturas</div></div>
+  <div id="bossbar" class="hidden"><span id="bossname"></span><div><b id="bossfill"></b></div></div>
+  <div id="banner"></div>
+  <div id="bars">
+    <div class="bar sh"><b id="shfill"></b><span id="shnum"></span></div>
+    <div class="bar hp"><b id="hpfill"></b><span id="hpnum"></span></div>
+    <div id="score"></div>
+  </div>
+  <div id="weapons"></div>
+  <div id="coop" class="hidden"></div>
+</div>
+<div id="menu">
+  <h1>CRISTAL<br>VÓRTICE</h1>
+  <p class="tag">Sobrevivir entre dimensiones, donde la gravedad es solo una opinión.</p>
+  <div id="story"></div>
+  <div class="row">
+    <button data-start="m1">Solo · Vacío de Islas</button>
+    <button data-start="m2">Solo · Cámara Fractal</button>
+  </div>
+  <div class="row coop">
+    <button id="mkroom">Cooperativo · crear sala</button>
+    <input id="roomcode" placeholder="código" maxlength="4" inputmode="numeric">
+    <button id="joinroom">Unirse</button>
+    <select id="coopmap"><option value="m1">Vacío de Islas</option><option value="m2">Cámara Fractal</option></select>
+  </div>
+  <p class="keys">WASD mover · ratón apuntar · clic disparar · ESPACIO saltar · SHIFT correr · 1–5 armas · ESC pausa</p>
+  <p id="menuerr" class="err"></p>
+</div>
+<div id="pause" class="hidden"><h2>PAUSA</h2><p>Hacé clic para continuar</p><button id="quit">Salir al menú</button></div>
+<div id="end" class="hidden"><h2 id="endtitle"></h2><pre id="endstats"></pre><button id="again">Jugar de nuevo</button><button id="tomenu">Menú</button></div>
+<script type="module" src="/src/client/main.js"></script>
+</body>
+</html>

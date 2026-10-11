@@ -1,0 +1,10 @@
+import { launch } from './browser.js';
+import { startServer } from '../server/server.js';
+const srv = await startServer({ port: 0 });
+const b = await launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 720 } });
+const errs = []; pg.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errs.push(m.text()); }); pg.on('pageerror', (e) => errs.push('PAGEERR ' + e.message));
+await pg.goto(`http://localhost:${srv.port}/?auto=${process.argv[2] || 'm1'}&bot=1&wave=${process.argv[3] || 1}&god=1`);
+await pg.waitForTimeout(+process.argv[4] || 8000);
+await pg.screenshot({ path: process.argv[5] || '/tmp/shot.png' });
+console.log('fps', await pg.evaluate(() => window.__fps), errs.slice(0, 8));
+await b.close(); await srv.close();
