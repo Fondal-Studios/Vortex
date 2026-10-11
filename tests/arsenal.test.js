@@ -9,14 +9,15 @@ import { arena, run, ahead } from './helpers.js';
 
 const target = (g, p, kind = 'geoda', d = 14) => { const m = g.spawnMonster(kind, ahead(p, d)); m.cd = 1e9; m.open = true; m.hp = m.maxhp = 5000; return m; };
 
-test('15 armas en total, cada una con nombre, descripción y munición coherente', () => {
-  assert.equal(WEAPONS.length, 15); assert.equal(new Set(WEAPONS.map((w) => w.id)).size, 15);
+test('25 armas en total, cada una con nombre, descripción y munición coherente', () => {
+  assert.equal(WEAPONS.length, 25); assert.equal(new Set(WEAPONS.map((w) => w.id)).size, 25);
   for (const w of WEAPONS.slice(5)) { assert.ok(w.desc && w.name && w.dmg > 0 && w.rate > 0 && w.max >= w.start && w.per > 0, w.id); }
 });
 
 test('cada arma nueva dispara, gasta munición y daña a una criatura de frente', () => {
-  for (let wid = 5; wid < 15; wid++) {
-    const { g, p } = arena(); p.slots = cleanSlots([wid]); p.weapon = wid; p.ammo[wid] = 200; const m = target(g, p, 'geoda', wid === 7 ? 10 : 14);
+  const NEAR = { 7: 10, 18: 12, 20: 8, 21: 7 };
+  for (let wid = 5; wid < 25; wid++) {
+    const { g, p } = arena(); p.slots = cleanSlots([wid]); p.weapon = wid; p.ammo[wid] = 200; const m = target(g, p, 'geoda', NEAR[wid] || 14);
     const a0 = p.ammo[wid], h0 = m.hp; g.setInput(p.id, { fire: true }); run(g, wid === 11 ? 5.5 : 2.5); g.setInput(p.id, { fire: false });
     assert.ok(p.ammo[wid] < a0, `${WEAPONS[wid].id} gasta munición`); assert.ok(m.hp < h0, `${WEAPONS[wid].id} daña (${h0 - m.hp})`);
   }
@@ -94,4 +95,14 @@ test('Argos (jefe del Mapa 3): escudo hasta romper todos los ojos; entonces qued
 test('snapshot incluye personaje, ranuras, mejoras, tarjetas y recargas de habilidades', () => {
   const g = new Game({ mapId: 'm1', seed: 1 }); const p = g.addPlayer('a', null, { char: 'nova', slots: [0, 8, 12, 5, 6] }); applyCard(p, { w: 8, k: 'dmg' }); p.cards = [{ w: 8, k: 'rate' }];
   const s = JSON.parse(JSON.stringify(g.snapshot())).players[0]; assert.equal(s.char, 'nova'); assert.deepEqual(s.sl, [0, 8, 12, 5, 6]); assert.equal(s.up[1][0], 1); assert.equal(s.cards.length, 1); assert.ok('mv' in s && 'es' in s);
+});
+
+test('efectos de estado: Glaciar ralentiza, Plaga y Brasa dañan con el tiempo, Réquiem ejecuta, Pulsar empuja, Mina explota al acercarse, Quimera cambia de efecto', () => {
+  const id = (n) => WEAPONS.findIndex((w) => w.id === n);
+  { const { g, p } = arena(); p.weapon = id('glaciar'); p.ammo[p.weapon] = 100; const m = target(g, p); g.setInput(p.id, { fire: true }); g.step(1 / 60); g.setInput(p.id, { fire: false }); assert.ok(g.time < m.slowUntil, 'ralentizada'); assert.ok(JSON.parse(JSON.stringify(g.snapshot())).monsters[0].ef & 1, 'se informa al cliente'); }
+  for (const n of ['plaga', 'brasa']) { const { g, p } = arena(); p.weapon = id(n); p.ammo[p.weapon] = 100; const m = target(g, p, 'geoda', n === 'brasa' ? 12 : 14); g.setInput(p.id, { fire: true }); g.step(1 / 60); g.setInput(p.id, { fire: false }); const h = m.hp; run(g, 3); assert.ok(m.hp < h - 10, `${n}: daño continuo (${h - m.hp})`); }
+  { const { g, p } = arena(); p.weapon = id('requiem'); p.ammo[p.weapon] = 10; const m = target(g, p); const h0 = m.hp; g.damageMonster(m, 60, p); const normal = h0 - m.hp; m.hp = m.maxhp * 0.2; const h1 = m.hp; g.setInput(p.id, { fire: true }); g.step(1 / 60); const ex = h1 - m.hp; assert.ok(ex > normal * 1.8, `ejecución ${ex} vs ${normal}`); }
+  { const { g, p } = arena(); p.weapon = id('pulsar'); p.ammo[p.weapon] = 10; const m = target(g, p, 'astilla', 6); m.hp = m.maxhp = 1e5; const d0 = dist(m.pos, p.pos); g.setInput(p.id, { fire: true }); g.step(1 / 60); g.step(1 / 60); assert.ok(m.hp < 1e5 && dist(m.pos, p.pos) > d0, 'daña y empuja'); }
+  { const { g, p } = arena(); p.weapon = id('mina'); p.ammo[p.weapon] = 10; g.setInput(p.id, { fire: true, dpitch: -0.3 }); g.step(1 / 60); g.setInput(p.id, { fire: false }); run(g, 2); assert.ok(g.objects.some((o) => o.type === 'mine'), 'mina colocada'); const mine = g.objects.find((o) => o.type === 'mine'); const m = g.spawnMonster('geoda', madd(mine.pos, v3(1, 0, 0), 2)); m.cd = 1e9; const h = m.hp; run(g, 1.5); assert.ok(m.hp < h || m.dead, 'explotó'); assert.ok(!g.objects.some((o) => o.type === 'mine'), 'la mina se consume'); }
+  { const { g, p } = arena(); p.weapon = id('quimera'); p.ammo[p.weapon] = 100; target(g, p); const fx = new Set(); g.setInput(p.id, { fire: true }); for (let i = 0; i < 400; i++) { g.step(1 / 60); for (const e of g.drainEvents()) if (e.t === 'shot' && e.fx) fx.add(e.fx); } assert.ok(fx.size >= 3, `efectos distintos: ${[...fx]}`); }
 });

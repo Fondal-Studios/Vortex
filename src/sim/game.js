@@ -341,6 +341,17 @@ export class Game {
     const origin = this.eyePos(p);
     const base = this.aimDir(p);
     const w = { ...w0, dmg: w0.dmg * st.dmg, mod: st.mod, pierce: w0.pierce || st.mod === 'perfora', chain: w0.chain || (st.mod === 'cadena' ? 2 : 0) };
+    if (w.kind === 'pulse') { // onda radial sin apuntar
+      for (const m of this.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < w.radius + m.r) { this.damageMonster(m, w.dmg * (1 - 0.4 * d / (w.radius + m.r)), p, m.pos); m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), w.knock); } }
+      for (const ob of [...this.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, p.pos) < w.radius + ob.r) this.damageObject(ob, w.dmg, p, ob.pos);
+      this.emit({ t: 'pulsar', pid: p.id, p: a3(p.pos), r: w.radius, w: p.weapon }); this.emit({ t: 'shot', pid: p.id, w: p.weapon, o: a3(origin) });
+      return;
+    }
+    if (w.chaos) { const r = this.rng.next(); if (r < 0.25) w.chain = 3; else if (r < 0.5) w.slow = 3; else if (r < 0.75) w.burn = 14; else w.mod = 'explosiva'; w.fxk = r < 0.25 ? 'voltaico' : r < 0.5 ? 'glaciar' : r < 0.75 ? 'brasa' : 'explosiva'; }
+    if (w.kind === 'mine') {
+      this.addProjectile({ owner: 'p', pid: p.id, kind: 'mina', wid: p.weapon, pos: madd(origin, base, 1.5), vel: mul(base, w.speed), dmg: w.dmg, splash: w.splash, r: 0.5, life: 3, mine: true });
+      this.emit({ t: 'shot', pid: p.id, w: p.weapon, o: a3(origin) }); return;
+    }
     if (w.kind === 'projectile' || w.kind === 'swarm') {
       const n = w.kind === 'swarm' ? w.count : 1, right = cross(p.heading, p.up);
       for (let i = 0; i < n; i++) {
@@ -358,7 +369,7 @@ export class Game {
       if (w.spread) d = norm(add(add(base, mul(right, this.rng.gauss() * w.spread)), mul(cross(base, right), this.rng.gauss() * w.spread)));
       tips.push(this.hitscan(p, origin, d, w));
     }
-    this.emit({ t: 'shot', pid: p.id, w: p.weapon, o: a3(origin), to: tips.slice(0, 3).map(a3) });
+    this.emit({ t: 'shot', pid: p.id, w: p.weapon, o: a3(origin), to: tips.slice(0, 3).map(a3), fx: w.fxk || undefined });
   }
 
   /** Rayo: devuelve el punto final. Daña criaturas; las armas "pierce" atraviesan. */
@@ -389,7 +400,9 @@ export class Game {
       const at = madd(o, d, Math.max(0, h.t));
       if (h.ob) this.damageObject(h.ob, w.dmg, p, at);
       else {
-        this.damageMonster(h.m, w.dmg, p, at);
+        const dmgHit = w.exec && h.m.hp < h.m.maxhp * 0.35 ? w.dmg * w.exec : w.dmg;
+        this.damageMonster(h.m, dmgHit, p, at);
+        if (!h.m.dead) this.applyStatus(h.m, w, p);
         if (w.lifesteal && p && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + w.dmg * w.lifesteal);
         if (w.knock && !h.m.dead) h.m.vel = madd(h.m.vel, d, w.knock);
         if (w.chain && !w.noChain) this.chainFrom(p, h.m, w);
@@ -400,6 +413,12 @@ export class Game {
     return madd(o, d, Math.max(0.5, Math.min(tEnd, w.range)));
   }
 
+  /** Estados de las armas: ralentizar (hielo), veneno y fuego (daño continuo). */
+  applyStatus(m, w, p) {
+    if (w.slow && !m.def.boss) m.slowUntil = this.time + w.slow;
+    const dps = w.poison || w.burn;
+    if (dps) { m.dotUntil = this.time + (w.poison ? 5 : 4); m.dotDps = dps * (p ? wstat(p, p.weapon).dmg : 1); m.dotBy = p ? p.id : 0; m.dotKind = w.poison ? 'poison' : 'burn'; }
+  }
   /** Arco de energía: el daño salta a las criaturas más cercanas (Fractal / mejora Cadena). */
   chainFrom(p, from, w) {
     const used = new Set([from.id]); let cur = from;
@@ -471,7 +490,12 @@ export class Game {
   updateMonster(m, dt) {
     if (m.dead) return;
     const ts = this.map.timeScaleAt(m.pos);
-    const dtm = dt * ts;
+    const slowed = this.time < (m.slowUntil || 0) && !m.def.boss;
+    const dtm = dt * ts * (slowed ? 0.5 : 1);
+    if (this.time < (m.dotUntil || 0)) { // veneno / fuego: daño continuo
+      m.hp -= m.dotDps * dt; m.hurt = Math.max(m.hurt, 0.05);
+      if (m.hp <= 0) { this.killMonster(m, this.players.find((q) => q.id === m.dotBy) || null); return; }
+    }
     m.t += dtm; m.hurt = Math.max(0, m.hurt - dt);
     const targets = this.alivePlayers();
     if (targets.length) AI[m.def.ai](this, m, dtm, targets);
@@ -530,7 +554,8 @@ export class Game {
       dead = dead || pr.life <= 0 || !finite(pr.pos) || this.map.outOfBounds(pr.pos);
       const owner = this.players.find((q) => q.id === pr.pid);
       if (dead && pr.owner === 'p') {
-        if (pr.well) { this.addObject('well', pr.pos, { life: pr.well, r: 2, dmg: pr.dmg, splash: pr.splash || 7, owner: pr.pid }); this.emit({ t: 'well', p: a3(pr.pos) }); }
+        if (pr.mine) { const mine = this.objects.filter((o) => o.type === 'mine' && o.owner === pr.pid); if (mine.length >= 6) this.removeObject(mine[0]); this.addObject('mine', pr.pos, { life: 25, r: 5, dmg: pr.dmg, splash: pr.splash, owner: pr.pid, arm: 0.6 }); this.emit({ t: 'minePlace', p: a3(pr.pos) }); }
+        else if (pr.well) { this.addObject('well', pr.pos, { life: pr.well, r: 2, dmg: pr.dmg, splash: pr.splash || 7, owner: pr.pid }); this.emit({ t: 'well', p: a3(pr.pos) }); }
         else if (hitP === 'monster' && !pr.pierce) this.explode(pr.pos, pr.splash || 0.1, 0, pr.dmg, owner, false);
         else if (hitP === 'solid') { if (pr.splash) this.explode(pr.pos, pr.splash, 0, pr.dmg, owner, false); else this.emit({ t: 'splat', p: a3(pr.pos) }); }
         else if (pr.life <= 0 && pr.splash) this.explode(pr.pos, pr.splash, 0, pr.dmg, owner, false);
@@ -592,6 +617,10 @@ export class Game {
           for (const m of this.monsters) { if (m.dead) continue; const d = dist(m.pos, o.pos); if (d < bd) { bd = d; best = m; } }
           if (best) { const by = this.players.find((q) => q.id === o.owner); this.damageMonster(best, 12, by || null, best.pos); this.emit({ t: 'tshot', o: a3(o.pos), to: a3(best.pos) }); o.cd = 0.26; } else o.cd = 0.3;
         }
+      } else if (o.type === 'mine') {
+        o.life -= dt; o.arm -= dt;
+        if (o.life <= 0) { this.removeObject(o); continue; }
+        if (o.arm <= 0 && this.monsters.some((m) => !m.dead && dist(m.pos, o.pos) < o.r + m.r)) { this.removeObject(o); this.explode(o.pos, o.splash, 0, o.dmg, this.players.find((q) => q.id === o.owner), false); }
       } else if (o.type === 'well') {
         o.life -= dt;
         for (const m of this.monsters) { if (m.dead || m.def.boss) continue; const d = dist(m.pos, o.pos); if (d < 16 && d > 0.8) m.vel = madd(m.vel, norm(sub(o.pos, m.pos)), 40 * dt); }
@@ -639,7 +668,7 @@ export class Game {
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
-        s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || !!m.shield, st: !!m.stun || (m.stagger || 0) > 0,
+        s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || !!m.shield, st: !!m.stun || (m.stagger || 0) > 0,
       })),
       projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),

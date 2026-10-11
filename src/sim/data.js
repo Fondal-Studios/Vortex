@@ -20,6 +20,16 @@ export const WEAPONS = [
   { id: 'lanza',    name: 'Lanza',    kind: 'projectile', dmg: 150, rate: 1.0, splash: 0, speed: 110, pierce: true, max: 30, start: 12, per: 1, desc: 'Lanza de cristal que atraviesa filas enteras.' },
   { id: 'cetro',    name: 'Cetro Vital', kind: 'hitscan', dmg: 16, rate: 0.16, pellets: 1, spread: 0.01, range: 90, lifesteal: 0.1, max: 300, start: 100, per: 1, desc: 'Cada impacto te devuelve vida.' },
   { id: 'eclipse',  name: 'Eclipse',  kind: 'hitscan', dmg: 11, rate: 1.2, pellets: 14, spread: 0.1, range: 40, knock: 9, max: 40, start: 16, per: 1, desc: 'Escopeta pesada: empuja y destroza de cerca.' },
+  { id: 'voltaico', name: 'Voltaico', kind: 'hitscan', dmg: 20, rate: 0.35, pellets: 1, spread: 0.006, range: 120, chain: 4, max: 200, start: 100, per: 1, desc: 'Arco eléctrico que salta por hasta 4 criaturas.' },
+  { id: 'glaciar',  name: 'Glaciar',  kind: 'hitscan', dmg: 14, rate: 0.22, pellets: 1, spread: 0.01, range: 90, slow: 3, max: 160, start: 80, per: 1, desc: 'Ráfaga helada: ralentiza a las criaturas a la mitad.' },
+  { id: 'plaga',    name: 'Plaga',    kind: 'hitscan', dmg: 6, rate: 0.18, pellets: 1, spread: 0.012, range: 100, poison: 14, max: 220, start: 100, per: 1, desc: 'Veneno: daño continuo durante 5 segundos.' },
+  { id: 'brasa',    name: 'Brasa',    kind: 'hitscan', dmg: 3, rate: 0.05, pellets: 2, spread: 0.06, range: 26, burn: 12, max: 600, start: 250, per: 1, desc: 'Llamas que dejan a las criaturas ardiendo.' },
+  { id: 'mina',     name: 'Sembradora', kind: 'mine', dmg: 160, rate: 0.8, splash: 7, speed: 40, max: 20, start: 8, per: 1, desc: 'Minas de cristal: se pegan a la superficie y explotan al acercarse una criatura.' },
+  { id: 'sierra',   name: 'Sierra',   kind: 'hitscan', dmg: 5, rate: 0.04, pellets: 3, spread: 0.2, range: 11, pierce: true, max: 600, start: 250, per: 1, desc: 'Sierra de luz giratoria: corta todo lo que tiene delante.' },
+  { id: 'pulsar',   name: 'Pulsar',   kind: 'pulse', dmg: 40, rate: 0.7, radius: 10, knock: 12, max: 40, start: 20, per: 1, desc: 'Onda en todas direcciones: sin apuntar, aleja a los que te rodean.' },
+  { id: 'dardos',   name: 'Dardos',   kind: 'hitscan', dmg: 26, rate: 0.38, pellets: 3, spread: 0.012, range: 220, max: 150, start: 75, per: 1, desc: 'Ráfaga de 3 dardos de cristal muy precisos.' },
+  { id: 'requiem',  name: 'Réquiem',  kind: 'hitscan', dmg: 60, rate: 0.6, pellets: 1, spread: 0.002, range: 360, exec: 2.2, max: 60, start: 24, per: 1, desc: 'Ejecuta: ×2,2 de daño a criaturas con poca vida.' },
+  { id: 'quimera',  name: 'Quimera',  kind: 'hitscan', dmg: 22, rate: 0.3, pellets: 1, spread: 0.01, range: 160, chaos: true, max: 150, start: 70, per: 1, desc: 'Cada disparo tiene un efecto distinto al azar: arco, hielo, fuego o explosión.' },
 ];
 
 /* ───────── Personajes: cada uno con 2 habilidades propias (desplazamiento + disparo especial) y un rol de equipo ───────── */
