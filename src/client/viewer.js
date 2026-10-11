@@ -22,14 +22,14 @@ const items = kinds.map((k, i) => {
 });
 const span = Math.min(kinds.length, 5);
 const bossK = kinds.some((k) => k === 'coloso' || k === 'madre');
-cam.position.set(0, 0.5 + (Math.ceil(kinds.length / 5) - 1) * -2.1, embed && kinds.length === 1 ? (bossK ? 10 : 5.2) : 5 + span * 3.6); cam.lookAt(0, -(Math.ceil(kinds.length / 5) - 1) * 2.1, 0);
+cam.position.set(0, 0.5 + (Math.ceil(kinds.length / 5) - 1) * -2.1, q.get('dist') ? +q.get('dist') : embed && kinds.length === 1 ? (bossK ? 10 : 5.2) : 5 + span * 3.6); cam.lookAt(0, -(Math.ceil(kinds.length / 5) - 1) * 2.1 + (+q.get('cy') || 0), 0);
 let t = 0, last = performance.now();
 const renderFrame = (now) => {
-  requestAnimationFrame(renderFrame);
+  if (!q.get('cap')) requestAnimationFrame(renderFrame);
   const dt = Math.max(0.001, Math.min(0.1, (now - last) / 1000)); last = now; t += dt; uTime.value = t;
   const sp = +q.get('v') || 0;
   for (const { e, st } of items) { e.object.rotation.y = q.get('turn') ? t * 0.6 : Math.PI * 0.8 + Math.sin(t * 0.5) * 0.4; e.object.updateMatrixWorld(); const look = cam.position.clone(); e.object.worldToLocal(look); e.tick(dt, st, t, { look: look.normalize(), speed: sp, dist: 10 }); }
   gl.render(scene, cam);
 };
-requestAnimationFrame(renderFrame);
+if (q.get('cap')) { window.__vframe = (dtMs) => renderFrame(last + dtMs); last = 0; } else requestAnimationFrame(renderFrame);
 window.__viewerReady = true;

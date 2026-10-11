@@ -3,10 +3,10 @@
 // de carne húmeda con un ojo grande, una boca y sacos translúcidos con embriones que "paren" racimos. Pétalos internos carnosos,
 // tentáculos/raíces, esporas flotantes. Fases por hp: más espinas, heridas brillantes, pétalos rotos y más rabia.
 import { cfg } from '../quality.js';
-import { bigEye, maw, mergeParts, spikeGeometry, softDot, clamp, lerp, damp, rnd } from './obelisco-lib.js';
+import { bigEye, maw, mergeParts, spikeGeometry, softDot, soft, softGeo, clamp, lerp, damp, rnd } from './obelisco-lib.js';
 
 export default function build(kit, color) {
-  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, horn, tentacle, Spring } = kit;
+  const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, tentacle, Spring } = kit;
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   const skin = fleshMaterial({ color: 0x7a2c4a, vein: 0x2a0818, spot: color, glow: 0.0, wobble: 0.02, breath: 0.03, spots: 0.5, veins: 1.0, rough: 0.4, sheen: 0.4, scale: 2.4 });
@@ -27,11 +27,9 @@ export default function build(kit, color) {
   const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.04, 0.4); body.add(eyeRoot);
   const BE = bigEye({ r: 0.24, iris: color, quality: level, lidSkin: wet, scleraColor: 0xf6e8dc }); eyeRoot.add(BE.object);
   const mouth = maw(wet, fang, { w: 0.24, len: 0.22, teeth: LOW ? 5 : 8, tooth: 0.09, inner: gum }); mouth.object.position.set(0, -0.3, 0.32); mouth.object.rotation.x = 0.5; body.add(mouth.object);
-  const NS = LOW ? 4 : 5, sacG = new THREE.Group(), sacs = []; body.add(sacG);
-  for (let i = 0; i < NS; i++) {
-    const a = (i / NS) * Math.PI * 2 + 0.3, g = new THREE.Group(); g.position.set(Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0.12); sacG.add(g);
-    const sac = blob(sacM, 0.2, 0.9, 1.0, 1.1); g.add(sac); const emb = blob(embM, 0.085, 1, 1, 1.3); g.add(emb); sacs.push({ g, sac, emb, a, ph: i * 1.7 });
-  }
+  const NS = LOW ? 4 : 5, sacs = [];
+  const sacIM = new THREE.InstancedMesh(softGeo(14, 10), sacM, NS), embIM = new THREE.InstancedMesh(softGeo(10, 8), embM, NS); sacIM.frustumCulled = embIM.frustumCulled = false; sacIM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); embIM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); body.add(sacIM, embIM);
+  for (let i = 0; i < NS; i++) sacs.push({ a: (i / NS) * Math.PI * 2 + 0.3, ph: i * 1.7 });
 
   /* ── pétalos: exteriores (hueso-cristal) e interiores (carne luminosa) ── */
   const petalGeo = (L, W, T, curl, tip = 0.85) => {
@@ -42,19 +40,15 @@ export default function build(kit, color) {
   };
   const NP = LOW ? 6 : 8, NI = LOW ? 0 : 6, petals = [], inner = [];
   const gOut = petalGeo(1.15, 0.62, 0.1, 0.5), gOutB = petalGeo(1.0, 0.54, 0.09, 0.45), gIn = petalGeo(0.8, 0.34, 0.07, 0.35);
-  for (let i = 0; i < NP; i++) {
-    const ang = (i / NP) * Math.PI * 2 + (i % 2) * 0.03, h = new THREE.Group(); h.position.z = -0.38; h.rotation.z = ang; body.add(h);
-    const p = new THREE.Group(); p.position.y = 0.26; h.add(p);
-    const big = i % 2 === 0, m = new THREE.Mesh(big ? gOut : gOutB, big ? shell : shell2); p.add(m);
-    const lin = new THREE.Mesh(big ? gOut : gOutB, wet); lin.scale.set(0.9, 0.93, 0.7); lin.position.z = -0.045; p.add(lin); // forro de carne húmeda por dentro
-    const tip = horn(crystal, 0.07, 0.38, 5); tip.position.y = (big ? 1.15 : 1.0) * 0.98; tip.position.z = (big ? 1.15 : 1.0) * 0.55 * 0.97 * 0.45; tip.rotation.x = 0.4; p.add(tip);
-    const sp = []; for (let k = 0; k < 2; k++) { const s = horn(crystal2, 0.04, 0.2 + k * 0.04, 4); s.position.set((k ? 1 : -1) * 0.1, 0.5 + k * 0.1, 0.06 + 0.45 * 0.45 * 0.2); s.rotation.x = 0.5; p.add(s); sp.push(s); }
-    petals.push({ h, p, m, tip, sp, ang, big, i, off: (rnd() - 0.5) * 0.25 });
-  }
-  for (let i = 0; i < NI; i++) {
-    const ang = ((i + 0.5) / NI) * Math.PI * 2, h = new THREE.Group(); h.position.z = -0.3; h.rotation.z = ang; body.add(h); const p = new THREE.Group(); p.position.y = 0.2; h.add(p);
-    p.add(new THREE.Mesh(gIn, wet)); const t = horn(crystal2, 0.05, 0.3, 5); t.position.set(0, 0.8, 0.2); t.rotation.x = 0.4; p.add(t); inner.push({ h, p, t, ang, i });
-  }
+  const nBig = Math.ceil(NP / 2), nSm = NP - nBig;
+  const mk = (g, m, n) => { const im = new THREE.InstancedMesh(g, m, Math.max(1, n)); im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.count = n; body.add(im); return im; };
+  const coneG = new THREE.ConeGeometry(1, 1, 5); coneG.translate(0, 0.5, 0); const coneG4 = new THREE.ConeGeometry(1, 1, 4); coneG4.translate(0, 0.5, 0);
+  const shBig = mk(gOut, shell, nBig), shSm = mk(gOutB, shell2, nSm), liBig = mk(gOut, wet, nBig), liSm = mk(gOutB, wet, nSm), tipIM = mk(coneG, crystal, NP), spIM = mk(coneG4, crystal2, NP * 2);
+  const inIM = mk(gIn, wet, NI), inTip = mk(coneG, crystal2, NI);
+  for (let i = 0; i < NP; i++) { const h = new THREE.Object3D(); h.position.z = -0.38; h.rotation.z = (i / NP) * Math.PI * 2 + (i % 2) * 0.03; const p = new THREE.Object3D(); p.position.y = 0.26; petals.push({ h, p, big: i % 2 === 0, bi: i >> 1, i, off: (rnd() - 0.5) * 0.25 }); }
+  for (let i = 0; i < NI; i++) { const h = new THREE.Object3D(); h.position.z = -0.3; h.rotation.z = ((i + 0.5) / NI) * Math.PI * 2; const p = new THREE.Object3D(); p.position.y = 0.2; inner.push({ h, p, i }); }
+  const mA = new THREE.Matrix4(), mB = new THREE.Matrix4(), mC = new THREE.Matrix4(), qq = new THREE.Quaternion(), vv = new THREE.Vector3(), ss = new THREE.Vector3(), eul = new THREE.Euler();
+  const compose = (x, y, z, rx, sx, sy, sz) => { qq.setFromEuler(eul.set(rx, 0, 0)); return mC.compose(vv.set(x, y, z), qq, ss.set(sx, sy, sz)); };
 
   /* ── raíces/tentáculos atrás y espinas que brotan por fases ── */
   const tents = [], NT = LOW ? 5 : 9;
@@ -70,7 +64,8 @@ export default function build(kit, color) {
 
   /* ── luces de disparo (giran al ritmo de las espirales), halo interior y esporas ── */
   const mkSprite = (c, s, o) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: softDot(), color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp.scale.setScalar(s); return sp; };
-  const NA = 6, arms = []; for (let i = 0; i < NA; i++) { const s = mkSprite(color, 0.55, 0); body.add(s); arms.push(s); }
+  const NA = 6, armP = new Float32Array(NA * 3), armC = new Float32Array(NA * 3), armG = new THREE.BufferGeometry(); armG.setAttribute('position', new THREE.BufferAttribute(armP, 3)); armG.setAttribute('color', new THREE.BufferAttribute(armC, 3));
+  const armPts = new THREE.Points(armG, new THREE.PointsMaterial({ size: 0.7, map: softDot(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); armPts.frustumCulled = false; body.add(armPts);
   const inGlow = mkSprite(0xff6a90, 2.2, 0); inGlow.position.z = 0.15; body.add(inGlow);
   const halo = mkSprite(color, 4.6, 0.25); rig.add(halo);
   const NSP = LOW ? 20 : 56, pp = new Float32Array(NSP * 3), pc = new Float32Array(NSP * 3), pd = []; for (let i = 0; i < NSP; i++) pd.push({ a: rnd() * 6.28, r: 0.7 + rnd() * 1.1, y: rnd() * 2 - 1, s: 0.1 + rnd() * 0.25, h: rnd(), v: rnd() });
@@ -101,16 +96,23 @@ export default function build(kit, color) {
 
     /* pétalos: onda de apertura, vibración al disparar, rotos/colgando con la salud baja */
     const shoot = isOpen ? 0 : Math.sin((fireT / cyc) * Math.PI * 2) * 0.5 + 0.5;
+    let ib = 0, is = 0;
     petals.forEach((P0) => {
-      const delay = P0.i * 0.045, k = sstep(delay, delay + 0.6, opS), over = Math.sin(clamp(opS * 3.14, 0, 3.14)) * 0.0;
+      const delay = P0.i * 0.045, k = sstep(delay, delay + 0.6, opS);
       const closed = 1.42 - (P0.i % 2) * 0.05, open = 0.3 + P0.off * 0.6 + hurtLow * 0.25 * (P0.i % 3 === 0 ? 1 : 0);
       const th = lerp(closed, open, k) + (1 - k) * (shoot * 0.03 + Math.sin(t * 40 + P0.i) * 0.004 * (1 + rage)) + hk * 0.1 * Math.sin(P0.i * 2.3 + t * 30) + (k > 0.05 ? Math.sin(t * 1.3 + P0.i) * 0.04 * k : 0);
-      P0.p.rotation.x = th; P0.p.rotation.y = Math.sin(t * 0.9 + P0.i) * 0.03 * k + (hurtLow && P0.i % 3 === 0 ? Math.sin(t * 7 + P0.i) * 0.05 : 0); P0.h.position.z = -0.38 + (1 - k) * 0.0;
-      P0.p.scale.set(1, 1 + (1 - k) * (breath - 0.5) * 0.03, 1);
-      P0.tip.scale.y = 0.38 * (1 + p2 * 0.35 + p3 * 0.5 + 0.1 * Math.sin(t * 4 + P0.i));
-      P0.sp.forEach((s, k) => { s.visible = p2 > 0.05; const q = Math.max(0.001, p2); s.scale.set(0.04 * q, (0.2 + k * 0.04) * q, 0.04 * q); });
+      P0.p.rotation.x = th; P0.p.rotation.y = Math.sin(t * 0.9 + P0.i) * 0.03 * k + (hurtLow && P0.i % 3 === 0 ? Math.sin(t * 7 + P0.i) * 0.05 : 0);
+      P0.h.updateMatrix(); P0.p.updateMatrix(); mA.multiplyMatrices(P0.h.matrix, P0.p.matrix);
+      const L = P0.big ? 1.15 : 1.0;
+      (P0.big ? shBig : shSm).setMatrixAt(P0.big ? ib : is, mA);
+      mB.multiplyMatrices(mA, compose(0, 0, -0.045, 0, 0.9, 0.93, 0.7)); (P0.big ? liBig : liSm).setMatrixAt(P0.big ? ib : is, mB);
+      mB.multiplyMatrices(mA, compose(0, L * 0.98, L * 0.24, 0.4, 0.07, 0.38 * (1 + p2 * 0.35 + p3 * 0.5 + 0.1 * Math.sin(t * 4 + P0.i)), 0.07)); tipIM.setMatrixAt(P0.i, mB);
+      for (let q = 0; q < 2; q++) { const z = Math.max(0.001, p2); mB.multiplyMatrices(mA, compose((q ? 1 : -1) * 0.1, 0.5 + q * 0.1, 0.1, 0.5, 0.04 * z, (0.2 + q * 0.04) * z, 0.04 * z)); spIM.setMatrixAt(P0.i * 2 + q, mB); }
+      if (P0.big) ib++; else is++;
     });
-    inner.forEach((I) => { const k = sstep(0.1 + I.i * 0.03, 0.8 + I.i * 0.03, opS); I.p.rotation.x = lerp(1.5, 0.6 + Math.sin(t * 1.2 + I.i) * 0.06, k); I.h.position.z = -0.3; I.p.visible = true; });
+    [shBig, shSm, liBig, liSm, tipIM, spIM].forEach((m) => { m.instanceMatrix.needsUpdate = true; });
+    inner.forEach((I) => { const k = sstep(0.1 + I.i * 0.03, 0.8 + I.i * 0.03, opS); I.p.rotation.x = lerp(1.5, 0.6 + Math.sin(t * 1.2 + I.i) * 0.06, k); I.h.updateMatrix(); I.p.updateMatrix(); mA.multiplyMatrices(I.h.matrix, I.p.matrix); inIM.setMatrixAt(I.i, mA); mB.multiplyMatrices(mA, compose(0, 0.8, 0.2, 0.4, 0.05, 0.3, 0.05)); inTip.setMatrixAt(I.i, mB); });
+    inIM.instanceMatrix.needsUpdate = inTip.instanceMatrix.needsUpdate = true;
 
     /* núcleo: ojo, boca, sacos que paren */
     const exp = sstep(0.35, 0.9, opS);
@@ -118,10 +120,12 @@ export default function build(kit, color) {
     BE.update(dt, look, { open: clamp(exp * (1 - hit * 0.6) * (0.95 + 0.05 * Math.sin(t)), 0.0, 1) * 0.95 + 0.04, pupil: lerp(1.0, 0.7, 0.5) + 0.12 * Math.sin(t * 4) * exp + p3 * 0.2, glow: 0.4 + exp * (1.0 + 0.6 * Math.sin(t * 3) + p3 * 1.0) + flashT, hurt: skin.userData.u.uHurt.value, shake: hurtLow * 0.05, blinkRate: 0.7 + rage * 1.2, track: 7 });
     const bp = Math.pow(Math.max(0, Math.sin(birth * 2.6)), 3), mo = clamp(exp * (0.25 + 0.55 * bp + 0.2 * breath) + hit * 0.3 * exp, 0, 1); mouth.set(mo);
     sacs.forEach((S, i) => {
-      const w = Math.pow(Math.max(0, Math.sin(birth * 2.6 - i * 0.7)), 2), sw = 0.9 + 0.2 * Math.sin(t * 2 + S.ph) + w * 0.35 * exp;
-      S.g.position.set(Math.cos(S.a + t * 0.05) * (0.52 + 0.05 * w * exp), Math.sin(S.a + t * 0.05) * (0.52 + 0.05 * w), 0.12 + 0.08 * w * exp); S.g.scale.setScalar(Math.max(0.001, exp) * (0.85 + 0.25 * exp));
-      S.sac.scale.set(0.2 * sw * 0.9, 0.2 * sw, 0.22 * sw); S.emb.position.z = 0.03 * w * exp + Math.sin(t * 5 + S.ph) * 0.01; S.emb.scale.set(0.085 * (1 + 0.2 * Math.sin(t * 7 + S.ph)), 0.085 * (1 + 0.25 * Math.sin(t * 6 + S.ph * 2)), 0.11);
+      const w = Math.pow(Math.max(0, Math.sin(birth * 2.6 - i * 0.7)), 2), sw = 0.9 + 0.2 * Math.sin(t * 2 + S.ph) + w * 0.35 * exp, gs = Math.max(0.001, exp) * (0.85 + 0.25 * exp);
+      const gx = Math.cos(S.a + t * 0.05) * (0.52 + 0.05 * w * exp), gy = Math.sin(S.a + t * 0.05) * (0.52 + 0.05 * w), gz = 0.12 + 0.08 * w * exp;
+      mA.compose(vv.set(gx, gy, gz), qq.identity(), ss.set(0.2 * sw * 0.9 * gs, 0.2 * sw * gs, 0.22 * sw * gs)); sacIM.setMatrixAt(i, mA);
+      mA.compose(vv.set(gx, gy, gz + (0.03 * w * exp + Math.sin(t * 5 + S.ph) * 0.01) * gs), qq.identity(), ss.set(0.085 * (1 + 0.2 * Math.sin(t * 7 + S.ph)) * gs, 0.085 * (1 + 0.25 * Math.sin(t * 6 + S.ph * 2)) * gs, 0.11 * gs)); embIM.setMatrixAt(i, mA);
     });
+    sacIM.instanceMatrix.needsUpdate = embIM.instanceMatrix.needsUpdate = true;
     sacM.emissiveIntensity = 0.3 + exp * (0.4 + 0.5 * bp); embM.emissiveIntensity = 0.8 + exp * (1.0 + 1.2 * bp);
 
     /* materiales: brillo del vientre al abrirse (punto débil) y rabia */
@@ -130,7 +134,9 @@ export default function build(kit, color) {
     shell.emissive.setRGB(0.0, 0.1, 0.02).multiplyScalar((1 - op) * (0.3 + shoot * 1.2) + flashT);
 
     /* destellos de disparo: giran como las espirales (m.t*1.6 rad/s) */
-    arms.forEach((s, i) => { const a = t * 1.6 + (i / NA) * Math.PI * 2, r = 0.55; s.position.set(Math.cos(a) * r, Math.sin(a) * r, 0.6 - 0.1 * Math.sin(a * 2)); s.material.opacity = (1 - op) * (0.35 + 0.45 * Math.pow(0.5 + 0.5 * Math.sin(a * 2 - fireT * 4), 2)) * (i < ph + 3 ? 1 : 0.0); s.scale.setScalar(0.5 + shoot * 0.35 + p3 * 0.2); s.material.color.copy(colA).lerp(colHot, p3 * 0.6); });
+    for (let i = 0; i < NA; i++) { const a = t * 1.6 + (i / NA) * Math.PI * 2, r = 0.55, f = (1 - op) * (0.35 + 0.45 * Math.pow(0.5 + 0.5 * Math.sin(a * 2 - fireT * 4), 2)) * (i < ph + 3 ? 1 : 0) * (1 + shoot * 0.5);
+      armP[i * 3] = Math.cos(a) * r; armP[i * 3 + 1] = Math.sin(a) * r; armP[i * 3 + 2] = 0.6 - 0.1 * Math.sin(a * 2); dc.copy(colA).lerp(colHot, p3 * 0.6).multiplyScalar(f); armC[i * 3] = dc.r; armC[i * 3 + 1] = dc.g; armC[i * 3 + 2] = dc.b; }
+    armG.attributes.position.needsUpdate = true; armG.attributes.color.needsUpdate = true;
     inGlow.material.opacity = exp * (0.35 + 0.25 * bp + 0.1 * Math.sin(t * 3)) + shock * 0.3; inGlow.scale.setScalar(2.2 + exp * 0.6 + shock * 1.2);
     halo.material.opacity = 0.2 + (1 - op) * 0.12 + exp * 0.15 + shock * 0.3 + flashT * 0.25 + p3 * 0.1; halo.scale.setScalar(4.6 + shock * 1.5 + flashT * 1.0); halo.material.color.copy(colA).lerp(colHot, p3 * 0.5);
 

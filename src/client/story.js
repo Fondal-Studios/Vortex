@@ -47,6 +47,7 @@ export class Subtitles {
     const l = this.queue.shift();
     if (!l) { this.cur = null; this.el.classList.remove('on'); this.talking = 0; const cb = this.cb; this.cb = null; if (cb) cb(); return; }
     this.cur = { who: l[0], text: l[1], dur: l[2], shown: 0 }; this.t = 0;
+    if (window.__evlog) window.__evlog.push({ t: window.__capT || 0, m: 'line', a: [l[0], l[1], l[2]] });
     this.el.innerHTML = (l[0] === 'H' ? '<b>Heraldo</b> ' : '') + '<span></span>'; this.el.classList.add('on'); this.el.classList.toggle('narr', l[0] !== 'H');
   }
   skip() { this.queue = []; this.skipped = true; this.cur = null; this.el.classList.remove('on'); this.talking = 0; const cb = this.cb; this.cb = null; if (cb) cb(); }
@@ -60,27 +61,26 @@ export class Subtitles {
   }
 }
 
-/** Cine 2D del tren: rieles en perspectiva y un faro que crece hasta el impacto. */
-export function trainCine(canvas, durSec, onImpact) {
+/** Cine 2D del tren: rieles en perspectiva y un faro que crece hasta el impacto. En modo captura se avanza a mano con tick(dt). */
+export function trainCine(canvas, durSec, onImpact, manual = false) {
   const g = canvas.getContext('2d'); let t = 0, raf = 0, last = performance.now(), hit = false, stopped = false;
   const W = () => (canvas.width = canvas.clientWidth * Math.min(devicePixelRatio || 1, 1.5)), H = () => (canvas.height = canvas.clientHeight * Math.min(devicePixelRatio || 1, 1.5));
   W(); H();
-  function frame(now) {
-    if (stopped) return; raf = requestAnimationFrame(frame); const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
+  function step(dt) {
+    t += dt;
     const w = canvas.width, h = canvas.height, k = Math.min(1, t / durSec), ease = k * k * k;
     g.fillStyle = '#05040a'; g.fillRect(0, 0, w, h);
     const hx = w / 2 + Math.sin(t * 40) * ease * 6, hy = h * 0.46;
-    // rieles
     g.strokeStyle = 'rgba(180,170,220,.35)'; g.lineWidth = 2;
     for (const s of [-1, 1]) { g.beginPath(); g.moveTo(hx + s * 14, hy); g.lineTo(hx + s * w * 0.42, h); g.stroke(); }
     for (let i = 0; i < 14; i++) { const z = ((i / 14) + t * 0.9) % 1, y = hy + (h - hy) * z * z, wd = 14 + (w * 0.42 - 14) * z * z; g.strokeStyle = `rgba(150,140,190,${0.1 + z * 0.4})`; g.beginPath(); g.moveTo(hx - wd, y); g.lineTo(hx + wd, y); g.stroke(); }
-    // faro
     const r = 8 + ease * Math.max(w, h) * 0.9, gr = g.createRadialGradient(hx, hy, 0, hx, hy, r);
     gr.addColorStop(0, 'rgba(255,255,245,1)'); gr.addColorStop(0.25, 'rgba(255,245,220,.8)'); gr.addColorStop(1, 'rgba(255,240,200,0)');
     g.fillStyle = gr; g.fillRect(0, 0, w, h);
     if (k >= 1 && !hit) { hit = true; g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); if (onImpact) onImpact(); }
-    if (k < 1) { /* viñeta */ const v = g.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.9); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = v; g.fillRect(0, 0, w, h); }
+    if (k < 1) { const v = g.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.9); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = v; g.fillRect(0, 0, w, h); }
   }
-  raf = requestAnimationFrame(frame);
-  return { progress: () => Math.min(1, t / durSec), stop() { stopped = true; cancelAnimationFrame(raf); } };
+  function frame(now) { if (stopped) return; raf = requestAnimationFrame(frame); const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; step(dt); }
+  if (!manual) raf = requestAnimationFrame(frame); else step(0);
+  return { progress: () => Math.min(1, t / durSec), tick: step, stop() { stopped = true; cancelAnimationFrame(raf); } };
 }

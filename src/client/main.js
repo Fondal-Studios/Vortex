@@ -15,12 +15,19 @@ import { Pad } from './gamepad.js';
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const SIM_DT = 1 / 60;
+const CAP = !!params.get('cap'); // captura de video determinista: el tiempo lo maneja tools/make-video.js
+let capT = 0; const timers = [];
+/** setTimeout que respeta el reloj virtual de la captura. */
+const later = (fn, ms) => { if (CAP) timers.push({ at: capT * 1000 + ms, fn }); else setTimeout(fn, ms); };
 
 /* ───────── calidad, dispositivo y controles ───────── */
 let level = initialQuality(params);
 const canvas = $('c');
 const renderer = new Renderer(canvas, { level, pixelRatio: params.get('pr') ? +params.get('pr') : null });
 const sound = new Sound();
+if (CAP) { // no suena nada en vivo: se registra cada sonido con su tiempo virtual para sintetizar la banda sonora
+  window.__evlog = []; for (const m of ['ui', 'chirp', 'train', 'heartbeat', 'shot', 'boom', 'hit', 'voice', 'hurt', 'pickup', 'gravity', 'portal', 'wave', 'init', 'resume', 'startMusic', 'setListener']) sound[m] = (...a) => { if (m !== 'init' && m !== 'resume' && m !== 'setListener' && m !== 'startMusic') window.__evlog.push({ t: window.__capT || 0, m, a: JSON.parse(JSON.stringify(a)) }); };
+}
 const subs = new Story.Subtitles($('sub'), sound);
 const ctrlPref = params.get('input') || (() => { try { return localStorage.getItem('cristal.ctrl.v1') || 'auto'; } catch { return 'auto'; } })();
 const useTouch = () => { const p = $('ctrlsel').value; return p === 'touch' || (p === 'auto' && isTouchDevice()); };
@@ -141,8 +148,8 @@ function beginIntro(kind) {
   if (kind === 'full') {
     $('cine').classList.remove('hidden'); sound.train(11);
     const total = Story.INTRO_TRAIN.reduce((a, l) => a + l[2], 0);
-    cine = Story.trainCine($('cine'), total, () => { const f = $('flash'); f.classList.add('on'); sound.heartbeat(); setTimeout(() => f.classList.remove('on'), 1200); });
-    subs.play(Story.INTRO_TRAIN, () => setTimeout(() => { if (session && session.intro) startWake(Story.WAKE); }, 900));
+    cine = Story.trainCine($('cine'), total, () => { const f = $('flash'); f.classList.add('on'); sound.heartbeat(); later(() => f.classList.remove('on'), 1200); }, CAP);
+    subs.play(Story.INTRO_TRAIN, () => later(() => { if (session && session.intro) startWake(Story.WAKE); }, 900));
   } else startWake(Story.WAKE_SHORT);
 }
 function startWake(lines) {
@@ -164,7 +171,8 @@ function buildWeaponHud() {
   $('weapons').querySelectorAll('div').forEach((d) => d.addEventListener('pointerdown', (e) => { if (session && session.touch) { wantWeapon = +d.dataset.w; touch.weapon = wantWeapon; e.stopPropagation(); } }));
 }
 let bannerTimer = 0;
-function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 60); b.classList.add('on'); clearTimeout(bannerTimer); bannerTimer = setTimeout(() => b.classList.remove('on'), ms); }
+function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 60); b.classList.add('on'); bannerSeq++; const my = bannerSeq; later(() => { if (my === bannerSeq) b.classList.remove('on'); }, ms); }
+let bannerSeq = 0;
 
 function pauseTouch(on) { if (!session) return; session.paused = on; $('pausehint').textContent = 'Tocá «Continuar» para seguir'; $('pause').classList.toggle('hidden', !on); if (on) touch.reset(); }
 
@@ -178,8 +186,9 @@ function hordeTopUp(g) {
 
 /* ───────── bucle principal ───────── */
 function frame(now) {
-  requestAnimationFrame(frame);
+  if (!CAP) requestAnimationFrame(frame);
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; // nunca negativo (carga lenta)
+  if (CAP) { capT += dt; window.__capT = capT; for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= capT * 1000) { const f = timers[i].fn; timers.splice(i, 1); f(); } if (cine && cine.tick) cine.tick(dt); }
   window.__fps = (window.__fps || 60) * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;
   uTime.value += 0; subs.update(dt); padDt = dt;
   if (!session) { for (const a of pad.menuEvents(dt)) ui.act(a); menuSpin(dt); return; }
@@ -283,8 +292,8 @@ function audioAndHud(state, me, dt) {
   }
 }
 
-let flashT = 0;
-function flash() { const f = $('flash'); f.classList.add('on'); clearTimeout(flashT); flashT = setTimeout(() => f.classList.remove('on'), 90); }
+let flashSeq = 0;
+function flash() { const f = $('flash'); f.classList.add('on'); const my = ++flashSeq; later(() => { if (my === flashSeq) f.classList.remove('on'); }, 90); }
 
 /* ───────── final / campaña ───────── */
 function endGame(state, me) {
@@ -341,7 +350,7 @@ if (params.get('auto')) {
   window.__session = session; window.__renderer = renderer;
 }
 window.__api = { ui, pad, get session() { return session; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
-window.__frame = frame; window.__ui = ui; if (!params.get('cap')) requestAnimationFrame(frame);
+window.__frame = frame; window.__step = (ms) => frame(last + ms); window.__ui = ui; if (!params.get('cap')) requestAnimationFrame(frame);
 
 // En un sitio estático (sin servidor) el cooperativo no está disponible: se avisa y se deshabilita.
 fetch('health').then((r) => { if (!r.ok) throw new Error('sin servidor'); }).catch(() => {

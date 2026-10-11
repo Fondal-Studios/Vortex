@@ -85,7 +85,7 @@ export default function build(kit, color) {
   const mats = [skin, skinD, bone, crystal, fang, ...E.mats];
   const sYaw = new Spring(0, 40, 7), sPit = new Spring(0, 40, 7), sRec = new Spring(0, 160, 9), sTail = new Spring(0, 70, 6), sHit = new Spring(0, 120, 7);
   let ct = -1, wasCharge = false, open = 0, heat = 0, prevHp = 1, hit = 0, shotFlash = 0, lockedAim = null, lockAmt = 0, bt = 0;
-  const aimTest = false; const aimW = new THREE.Vector3(), aimL = new THREE.Vector3(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), pa = new THREE.Vector3(), pb = new THREE.Vector3(), up = new THREE.Vector3(), col = new THREE.Color(), cA = new THREE.Color(0xffb040), cB = new THREE.Color(0xfff2d0), cR = new THREE.Color(0xff2a3a);
+  const aimW = new THREE.Vector3(), aimL = new THREE.Vector3(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), pa = new THREE.Vector3(), pb = new THREE.Vector3(), up = new THREE.Vector3(), col = new THREE.Color(), cA = new THREE.Color(0xffb040), cB = new THREE.Color(0xfff2d0), cR = new THREE.Color(0xff2a3a);
   const look0 = new THREE.Vector3(0, 0.1, 1);
 
   return { root, mats, tick(dt, st, t, ctx = {}) {
@@ -101,7 +101,6 @@ export default function build(kit, color) {
     // dirección de apuntado (en espacio local de root); mientras carga usa st.a (fija al final)
     root.updateWorldMatrix(true, false); root.getWorldQuaternion(qa); qa.invert();
     if (charging && st.a) { aimW.set(st.a[0] ?? st.a.x, st.a[1] ?? st.a.y, st.a[2] ?? st.a.z); aimL.copy(aimW).applyQuaternion(qa).normalize(); } else aimL.copy(look).normalize();
-    if (aimTest && charging) aimL.set(0.9, 0.05, 0.4).normalize();
     if (locked) { if (!lockedAim) lockedAim = aimL.clone(); aimL.copy(lockedAim); }
     lockAmt = damp(lockAmt, locked ? 1 : 0, 14, dt);
 

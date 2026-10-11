@@ -4,7 +4,7 @@
 // más cristales brotando de la piel, heridas brillantes, ojos nuevos, anillos más rápidos, carne más enrojecida y rabiosa.
 // 'wind' (0.8 s) = aviso: ojos clavados en el jugador, boca abierta, anillos que se expanden, núcleo que se calienta; luego estalla.
 import { cfg } from '../quality.js';
-import { bigEye, eyeCluster, maw, mergeParts, spikeGeometry, tubeGeo, softDot, clamp, lerp, damp, rnd } from './obelisco-lib.js';
+import { bigEye, eyeCluster, soft, maw, mergeParts, spikeGeometry, tubeGeo, softDot, clamp, lerp, damp, rnd } from './obelisco-lib.js';
 
 export default function build(kit, color) {
   const { THREE, fleshMaterial, boneMaterial, bioCrystalMaterial, blob, tentacle, Spring } = kit;
@@ -21,9 +21,9 @@ export default function build(kit, color) {
 
   /* ── masa: núcleo, grupa, vientre ── */
   const core = blob(skin, 1, RAD[0], RAD[1], RAD[2]); body.add(core);
-  const rear = blob(skin, 0.5, 1, 0.9, 1.25); rear.position.set(0, -0.1, -0.58); body.add(rear);
-  const belly = blob(skinD, 0.42, 1.1, 0.8, 1.0); belly.position.set(0, -0.42, 0.12); body.add(belly);
-  const nape = blob(skinD, 0.3, 1.5, 0.7, 1.0); nape.position.set(0, 0.5, -0.1); body.add(nape);
+  const rear = soft(skin, 0.5, 1, 0.9, 1.25, 20, 14); rear.position.set(0, -0.1, -0.58); body.add(rear);
+  const belly = soft(skinD, 0.42, 1.1, 0.8, 1.0, 18, 12); belly.position.set(0, -0.42, 0.12); body.add(belly);
+  const nape = soft(skinD, 0.3, 1.5, 0.7, 1.0, 14, 10); nape.position.set(0, 0.5, -0.1); body.add(nape);
 
   /* ── costillas de hueso-cristal (jaula abierta por delante) ── */
   { const ribs = [], N = LOW ? 5 : 8;
