@@ -4,7 +4,7 @@ import { playMatch } from '../tools/bots-report.js';
 
 // Partidas completas simuladas por bots (60 Hz, mismo código que usa el servidor).
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
-for (const mapId of ['m1', 'm2']) {
+for (const mapId of ['m1', 'm2', 'm3']) {
   test(`gameplay ${mapId}: ${SEEDS.length} partidas de bots de principio a fin, sin caídas ni bloqueos`, { timeout: 240000 }, () => {
     const res = SEEDS.map((seed) => playMatch({ mapId, seed, skill: 1.2, maxSeconds: 1500 }));
     for (const r of res) {

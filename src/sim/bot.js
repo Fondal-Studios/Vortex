@@ -118,6 +118,12 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
       if (sc < best) { best = sc; tgt = m; }
     }
 
+    // objetos hostiles (ojos de Argos, huevos de la Madre) también son blancos
+    for (const ob of game.objects) {
+      if (!ob.hostile || ob.hp <= 0) continue;
+      const d = dist(ob.pos, p.pos), sc = d - (ob.type === 'ojo' ? 18 : 6);
+      if (sc < best && (!game.map.walls || los(game, eye, ob.pos))) { best = sc; tgt = { pos: ob.pos, vel: v3(), kind: ob.type, def: {}, r: ob.r, open: true, hostileObj: true }; }
+    }
     // arma
     const d = tgt ? dist(tgt.pos, p.pos) : 0;
     let w = 0;
