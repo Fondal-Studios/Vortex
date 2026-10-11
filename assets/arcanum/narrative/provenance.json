@@ -1,0 +1,170 @@
+[
+  {
+    "id": "body",
+    "author": "MakeHuman Team",
+    "sourceSha256": "be71b1d08a32dbaf5576ffa49b20173641d7741472a14f335a0c1f946e9d98ad",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "author": "MakeHuman Team"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "HighPolyEyes",
+    "author": "Manuel Bastioni, Thomas Larsson",
+    "sourceSha256": "9f96b6143a6f6b373709aede3a141ca761412cba53a90c0d861f039dd1593b0b",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (http://www.makehuman.org/doc/node/makehuman_mesh_license.html)",
+      "author": "Manuel Bastioni, Thomas Larsson"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "short01",
+    "author": "Manuel Bastioni",
+    "sourceSha256": "e4c2ebb6aa897d4e2ef74a246fe89032b060001ed0caae56d29d6fa889a4cc4e",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/node/320)",
+      "author": "Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "bob02",
+    "author": "Manuel Bastioni",
+    "sourceSha256": "1485cbea41bd20d8e166f6b91bba64966634ee0c68171b1085a73e48b15ba545",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "male_casualsuit01",
+    "author": "Jonas Hauquier, Manuel Bastioni",
+    "sourceSha256": "033a275e85956edd38acb68f973fcf49b3c71afd7fb5562b30e59ca9edb230ca",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Jonas Hauquier, Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "female_elegantsuit01",
+    "author": "Manuel Bastioni, Jonas Hauquier",
+    "sourceSha256": "cd33dfa6aee4f6569fd2d7bdb9154b01e05075f1539773d1e2cfcbdab7b75e3e",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Manuel Bastioni, Jonas Hauquier"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "male_worksuit01",
+    "author": "Manuel Bastioni",
+    "sourceSha256": "c1450c338797c44c95e25014b3fc95ffaab451f86ee64dc0d52d83e874aa1731",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "shoes02",
+    "author": "Jonas Hauquier",
+    "sourceSha256": "621132baa8e5f46ef001bb693fc778e2ff612f2a79fd403048698f595afce5b5",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Jonas Hauquier"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "long01",
+    "author": "Manuel Bastioni",
+    "sourceSha256": "629a374e8ff7293403f8052154a173effd253143dbbff6c8102f1a0b41525fd4",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "ponytail01",
+    "author": "Manuel Bastioni",
+    "sourceSha256": "aa19b067456d956e9379485a6a1be56d8e66dc51d4f04d7cd4ec44eb0a6b4d2a",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "short02",
+    "author": "Jonas Hauquier, Manuel Bastioni",
+    "sourceSha256": "6e4c907d35946bac86b6144d8d18909f2412888f03f5b96eb5478d4b2be08577",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Jonas Hauquier, Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "short04",
+    "author": "Manuel Bastioni",
+    "sourceSha256": "05f803de91e7a3cd381a86495c5c24a5d4e61362814c2cc3cfc52eebb4eb9cb3",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "eyebrow001",
+    "author": "Manuel Bastioni",
+    "sourceSha256": "42e4eb69cefcb2c421ccc59d5f52f0abf8271ded673841223dd43daf0c8e3689",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  },
+  {
+    "id": "eyebrow010",
+    "author": "Manuel Bastioni",
+    "sourceSha256": "46be9b13aa3c45f14cf4a5c49ec1ef437f603f21d753a5a7a2202d2234f49827",
+    "historicalMetadata": {
+      "homepage": "http://www.makehuman.org/",
+      "copyright": "(c) MakeHuman.org 2001-2015",
+      "license": "AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)",
+      "author": "Manuel Bastioni"
+    },
+    "license": "CC0 current core asset licence; historical AGPL labels retained; current upstream core licence in LICENSE.md"
+  }
+]

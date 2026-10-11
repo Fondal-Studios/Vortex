@@ -222,7 +222,7 @@ export const AI = {
     if (m.state === 'cast') {
       m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); m.pos = madd(m.pos, m.vel, dt);
       if ((m.stateT -= dt) <= 0) {
-        for (const o of game.monsters) if (!o.dead && o !== m && !o.def.boss && dist(o.pos, m.pos) < 16) { o.hp = Math.min(o.maxhp, o.hp + o.maxhp * 0.3); o.shieldUntil = game.time + 4; }
+        for (const o of game.monsters) if (!o.dead && o !== m && !o.def.boss && dist(o.pos, m.pos) < 18) { o.hp = Math.min(o.maxhp, o.hp + o.maxhp * 0.3); o.shieldUntil = game.time + 4; }
         game.emit({ t: 'heal', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] });
         m.state = 'idle'; m.cd = 5;
       }
@@ -232,10 +232,10 @@ export const AI = {
     // se queda detrás y encima de sus aliados (centroide), lejos del jugador
     let cx = 0, cy = 0, cz = 0, n = 0;
     for (const o of game.monsters) if (!o.dead && o !== m && !o.def.boss) { cx += o.pos.x; cy += o.pos.y; cz += o.pos.z; n++; }
-    const want = n ? madd(madd(v3(cx / n, cy / n, cz / n), p.up, 7), mul(dir, -1), 9) : madd(madd(p.pos, p.up, 12), side, 30);
+    const want = n ? madd(madd(v3(cx / n, cy / n, cz / n), p.up, 5), mul(dir, -1), 5) : madd(madd(p.pos, p.up, 12), side, 30);
     flyMove(game, m, dt, mul(sub(want, m.pos), 0.8), 2);
     face(m, dir);
-    if (m.cd <= 0 && game.monsters.some((o) => o !== m && !o.dead && !o.def.boss && dist(o.pos, m.pos) < 16)) { m.state = 'cast'; m.stateT = 0.9; }
+    if (m.cd <= 0 && game.monsters.some((o) => o !== m && !o.dead && !o.def.boss && dist(o.pos, m.pos) < 12)) { m.state = 'cast'; m.stateT = 0.9; }
   },
 
   // 11) Embestidor: avisa 1 s (patea y brilla), carga en línea recta a gran velocidad y queda **aturdido** (recibe ×1.5)

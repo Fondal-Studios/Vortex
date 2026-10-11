@@ -57,6 +57,17 @@ export class Sound {
   wave() { [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 110 * 2 ** (s / 12), type: 'sawtooth', dur: 0.9, vol: 0.18, att: 0.1, delay: i * 0.12 })); }
   gravity(at) { this.tone({ f: 80, f2: 600, type: 'sine', dur: 0.8, vol: 0.5, at }); this.tone({ f: 600, f2: 80, type: 'triangle', dur: 0.8, vol: 0.3, at, delay: 0.4 }); }
   portal(at) { this.tone({ f: 300, f2: 1500, type: 'sine', dur: 0.35, vol: 0.3, at }); this.tone({ f: 1500, f2: 300, type: 'triangle', dur: 0.35, vol: 0.2, at, delay: 0.1 }); }
+  /** Chirrido del Heraldo al hablar (una nota corta por letra). */
+  chirp(n) { const f = 700 + (n * 53) % 500; this.tone({ f, f2: f * (1.2 + (n % 3) * 0.1), type: 'sine', dur: 0.07, vol: 0.12 }); }
+  /** Tren: estruendo creciente, bocina y silencio. */
+  train(secs = 8) {
+    if (!this.ctx) return; const t = this.ctx.currentTime;
+    const s = this.ctx.createBufferSource(); s.buffer = this.noiseBuf; s.loop = true; const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(120, t); f.frequency.exponentialRampToValueAtTime(2200, t + secs);
+    const e = this.ctx.createGain(); e.gain.setValueAtTime(0.02, t); e.gain.exponentialRampToValueAtTime(1.0, t + secs); e.gain.setValueAtTime(1.0, t + secs); e.gain.exponentialRampToValueAtTime(0.0001, t + secs + 0.6);
+    s.connect(f); f.connect(e); e.connect(this.sfxBus); s.start(t); s.stop(t + secs + 0.7);
+    for (const [d, fr] of [[secs * 0.55, 311], [secs * 0.55, 392], [secs * 0.8, 311], [secs * 0.8, 392]]) this.tone({ f: fr, type: 'sawtooth', dur: 1.2, vol: 0.22, att: 0.05, delay: d });
+  }
+  heartbeat() { this.tone({ f: 60, f2: 40, type: 'sine', dur: 0.25, vol: 0.6 }); this.tone({ f: 55, f2: 38, type: 'sine', dur: 0.25, vol: 0.45, delay: 0.22 }); }
   /** Voz de cada criatura: timbre propio */
   voice(kind, ev, at) {
     const V = {

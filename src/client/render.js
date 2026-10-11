@@ -1,10 +1,20 @@
 import * as THREE from 'three';
 import { MAPS } from '../sim/maps.js';
-import { skyMaterial, crystalMaterial, groundMaterial, shellMaterial, zoneMaterial, uTime } from './shaders.js';
+import { skyMaterial, crystalMaterial, groundMaterial, shellMaterial, zoneMaterial, uTime, OUT } from './shaders.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildMonster, COLORS } from './models.js';
 import { Effects } from './effects.js';
+import { Viewmodels, WEAPON_COLORS as WC } from './weapons-vm.js';
+import { kit } from './organism.js';
+import heraldo from './creatures/heraldo.js';
+import { cfg, LEVELS, setCurrent } from './quality.js';
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+const MONSTER_SIZE = { astilla: 0.35, racimo: 0.35, geoda: 0.9, ariete: 0.8, obelisco: 0.6, cuarzo: 0.55 };
 const WEAPON_COLORS = [0x66ffee, 0xff9bd8, 0xffe066, 0xff7a45, 0xb9a4ff];
 const PLAYER_COLORS = [0x66ffee, 0xff66c4, 0xffd23f, 0x9dff5a];
 
@@ -17,30 +27,71 @@ function haloTexture() {
 }
 
 export class Renderer {
-  constructor(canvas, { pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5) } = {}) {
+  constructor(canvas, { level = 'high', pixelRatio = null } = {}) {
+    setCurrent(level); OUT.linear = !!cfg().post;
+    this.canvas = canvas; this.level = level; this.prOverride = pixelRatio;
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
-    this.gl.setPixelRatio(pixelRatio);
+    this.gl.setPixelRatio(this.pixelRatioFor(level));
+    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.lost = true; });
+    canvas.addEventListener('webglcontextrestored', () => { this.lost = false; const m = this.mapId; this.mapId = null; this.setMap(m); });
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(82, 1, 0.1, 2000);
     this.scene.add(this.camera);
     this.halo = haloTexture();
     this.cache = new Map(); // geometrías/materiales compartidos de proyectiles y pickups (evita fugas de GPU)
-    this.fx = new Effects(this.scene);
+    this.fx = new Effects(this.scene, cfg().particles, cfg());
+    this.tmpV = new THREE.Vector3();
     this.mapRoot = new THREE.Group(); this.scene.add(this.mapRoot);
     this.ents = { mon: new Map(), proj: new Map(), pick: new Map(), ply: new Map() };
     this.entRoot = new THREE.Group(); this.scene.add(this.entRoot);
     this.dyn = []; // objetos del mapa con animación
     this.shake = 0; this.camQ = new THREE.Quaternion(); this.camInit = false;
     this.mapId = null; this.t = 0;
-    this.buildViewmodel();
+    this.gl.toneMapping = THREE.ACESFilmicToneMapping; this.gl.toneMappingExposure = cfg().post ? 1.9 : 1.05;
+    this.hemi = new THREE.HemisphereLight(0xb9c4ff, 0x2a0f3a, 1.1); this.sun = new THREE.DirectionalLight(0xfff1e0, 2.2); this.sun.position.set(0.4, 1, 0.3);
+    this.rim = new THREE.DirectionalLight(0xff66c4, 1.0); this.rim.position.set(-0.6, 0.2, -0.8);
+    this.muzzle = new THREE.PointLight(0xffd9a0, 0, 28, 1.6); this.camera.add(this.muzzle); this.muzzle.position.set(0.3, -0.2, -1);
+    this.scene.add(this.hemi, this.sun, this.rim);
+    this.vm = new Viewmodels(this.camera, this.halo);
+    this.dying = [];
+    this.setupPost();
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
   shared(key, make) { let v = this.cache.get(key); if (!v) { v = make(); this.cache.set(key, v); } return v; }
   halo_(color) { return this.shared('halo' + color, () => new THREE.SpriteMaterial({ map: this.halo, color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); }
+  pixelRatioFor(level) {
+    if (this.prOverride) return this.prOverride;
+    const L = LEVELS[level], dpr = window.devicePixelRatio || 1;
+    return Math.max(0.5, Math.min(L.maxPR, dpr * L.pixelRatio));
+  }
+  /** Cambia la calidad en caliente: resolución, partículas, aristas, decorado y shaders del cielo. */
+  applyQuality(level) {
+    if (!LEVELS[level]) return;
+    this.level = level; setCurrent(level); OUT.linear = !!cfg().post; this.gl.toneMappingExposure = cfg().post ? 1.9 : 1.05; this.setupPost();
+    this.gl.setPixelRatio(this.pixelRatioFor(level)); this.resize();
+    this.fx.configure(cfg());
+    for (const m of Object.values(this.ents)) { for (const o of m.values()) this.entRoot.remove(o.object || o); m.clear(); }
+    const id = this.mapId; this.mapId = null; if (id) this.setMap(id);
+  }
+  /** Bloom + tonemapping ACES (Media/Alta) y reflejos PBR por entorno. En Baja: render directo. */
+  setupPost() {
+    const q = cfg();
+    if (this.composer) { this.composer.dispose(); this.composer = null; }
+    if (q.post) {
+      const c = new EffectComposer(this.gl); c.setPixelRatio(this.gl.getPixelRatio());
+      c.addPass(new RenderPass(this.scene, this.camera));
+      this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), q.bloom || 0.5, 0.7, 0.8); c.addPass(this.bloom); c.addPass(new OutputPass());
+      this.composer = c;
+    }
+    if (q.env && !this.envTex) { const pm = new THREE.PMREMGenerator(this.gl); this.envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); }
+    this.scene.environment = q.env ? this.envTex : null; this.scene.environmentIntensity = 0.55;
+    this.rim.visible = q.lights >= 3; this.muzzle.visible = q.lights >= 4;
+  }
   resize() {
     const w = this.gl.domElement.clientWidth || window.innerWidth, h = this.gl.domElement.clientHeight || window.innerHeight;
     this.gl.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+    if (this.composer) { this.composer.setPixelRatio(this.gl.getPixelRatio()); this.composer.setSize(w, h); }
   }
 
   /* ───────── mapas ───────── */
@@ -50,12 +101,14 @@ export class Renderer {
     for (const c of [...this.mapRoot.children]) { this.mapRoot.remove(c); c.traverse((o) => { o.geometry && o.geometry.dispose(); o.material && o.material.dispose && o.material.dispose(); }); }
     for (const m of Object.values(this.ents)) { for (const o of m.values()) this.entRoot.remove(o.object || o); m.clear(); }
     this.dyn = [];
+    const warm = mapId === 'm2';
+    this.hemi.color.setHex(warm ? 0xffb0d8 : 0xaab8ff); this.hemi.groundColor.setHex(warm ? 0x3a0a2a : 0x1a0f3a); this.sun.color.setHex(warm ? 0xffd2c0 : 0xe8f0ff); this.rim.color.setHex(warm ? 0x66ffd8 : 0xff66c4);
     (mapId === 'm1' ? this.buildMap1 : this.buildMap2).call(this, MAPS[mapId]);
   }
 
   buildMap1(map) {
     const root = this.mapRoot;
-    const sky = new THREE.Mesh(new THREE.SphereGeometry(1200, 32, 16), skyMaterial({ hue: 0.0, speed: 0.04 })); sky.renderOrder = -10; root.add(sky); this.sky = sky;
+    const sky = new THREE.Mesh(new THREE.SphereGeometry(1200, 32, 16), skyMaterial({ hue: 0.0, speed: 0.04, iters: cfg().skyIters })); sky.renderOrder = -10; root.add(sky); this.sky = sky;
     // islas: disco con relieve + cono inferior (o superior si cuelga)
     map.islands.forEach((is, k) => {
       const mat = groundMaterial(k * 0.17, new THREE.Vector3(is.x, 0, is.z));
@@ -86,6 +139,7 @@ export class Renderer {
       g.add(ring, disc); g.position.set(end.x, end.y + 1, end.z); g.rotation.y = Math.atan2(end.x, end.z); root.add(g);
       this.dyn.push((dt, t) => { ring.rotation.z = t * 1.5; disc.rotation.z = -t * 2; });
     }
+    if (!cfg().decor) return;
     // escalas imposibles: formas gigantes, simples, lejanas
     const far = [[0x7d5cff, 'ring'], [0xff5ca8, 'ico'], [0x35e0c2, 'oct'], [0xffc14d, 'ring'], [0x5cb8ff, 'ico']];
     far.forEach(([c, kind], i) => {
@@ -103,7 +157,7 @@ export class Renderer {
 
   buildMap2(map) {
     const root = this.mapRoot;
-    this.shellMat = shellMaterial(0.35);
+    this.shellMat = shellMaterial(0.35, cfg().shellIters);
     root.add(new THREE.Mesh(new THREE.SphereGeometry(map.R, 64, 40), this.shellMat));
     for (const s of map.solids) if (s.type === 'sph') {
       const m = new THREE.Mesh(new THREE.IcosahedronGeometry(s.r, 1), crystalMaterial(new THREE.Color().setHSL((s.c.x * 0.013 + 0.8) % 1, 0.7, 0.55), { glow: 0.12 }));
@@ -111,8 +165,8 @@ export class Renderer {
     }
     // espigas de cristal clavadas en el cascarón, apuntando hacia adentro
     const up = new THREE.Vector3(0, 1, 0);
-    for (let i = 0; i < 90; i++) {
-      const z = 1 - (i + 0.5) / 45, rad = Math.sqrt(Math.max(0, 1 - z * z)), th = i * 2.399963;
+    for (let i = 0; i < (cfg().decor ? 90 : 40); i++) {
+      const z = 1 - (i + 0.5) / (cfg().decor ? 45 : 20), rad = Math.sqrt(Math.max(0, 1 - z * z)), th = i * 2.399963;
       const n = new THREE.Vector3(Math.cos(th) * rad, z, Math.sin(th) * rad);
       if (map.solids.some((s) => s.type === 'sph' && n.clone().multiplyScalar(map.R).distanceTo(new THREE.Vector3(s.c.x, s.c.y, s.c.z)) < s.r + 3)) continue;
       const h = 3 + (i % 5) * 1.6, spike = new THREE.Mesh(new THREE.ConeGeometry(1.1 + (i % 3) * 0.5, h, 5), crystalMaterial(new THREE.Color().setHSL(((i * 0.031) + 0.55) % 1, 0.85, 0.6), { glow: 0.1 }));
@@ -120,7 +174,7 @@ export class Renderer {
       root.add(spike);
     }
     // polvo cósmico flotando en el volumen
-    const N = 400, pos = new Float32Array(N * 3);
+    const N = cfg().decor ? 400 : 120, pos = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(map.R * 0.9 * Math.cbrt(Math.random())); pos.set([v.x, v.y, v.z], i * 3); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const dust = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.5, color: 0xffffff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })); root.add(dust);
@@ -128,23 +182,25 @@ export class Renderer {
     this.sky = null;
   }
 
-  /* ───────── viewmodel ───────── */
-  buildViewmodel() {
-    this.vm = new THREE.Group(); this.camera.add(this.vm);
-    this.vmMats = WEAPON_COLORS.map((c) => crystalMaterial(c, { glow: 0.1 }));
-    this.vmMeshes = [];
-    const mk = (i) => {
-      const g = new THREE.Group(), m = this.vmMats[i];
-      const body = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), m); body.scale.set(0.09, 0.09, 0.4); g.add(body);
-      const bar = new THREE.Mesh(new THREE.ConeGeometry(1, 2, 6), m); bar.rotation.x = -Math.PI / 2; bar.scale.set(0.045, 0.3, 0.045); bar.position.z = -0.45; g.add(bar);
-      if (i === 1) { bar.scale.x = 0.08; bar.scale.z = 0.08; }
-      if (i === 3) { bar.scale.set(0.09, 0.4, 0.09); }
-      if (i === 4) { bar.scale.set(0.025, 0.6, 0.025); bar.position.z = -0.7; }
-      if (i === 2) { const b2 = bar.clone(); b2.position.x = 0.07; g.add(b2); }
-      g.scale.setScalar(0.55); g.position.set(0.26, -0.24, -0.6); g.visible = false; this.vm.add(g); return g;
-    };
-    for (let i = 0; i < WEAPON_COLORS.length; i++) this.vmMeshes.push(mk(i));
-    this.kick = 0; this.curW = -1;
+  /* ───────── narrativa: el Heraldo y el despertar ───────── */
+  setGuide(on) {
+    if (on && !this.guide) { const b = heraldo(kit), g = new THREE.Group(); g.add(b.root); g.scale.setScalar(1.15); g.userData.arrive = 0; this.entRoot.add(g); this.guide = { g, b, talk: 0 }; }
+    else if (!on && this.guide) { this.fx.burst(this.guide.g.position, 0xffa6e8, 60, 9, 1.2, 0.9); this.fx.blast(this.guide.g.position, 0x7dfff0, 5, 0.8); this.entRoot.remove(this.guide.g); this.guide.b.mats.forEach((m) => m.dispose()); this.guide = null; }
+  }
+  startWake(secs = 4) { this.wakeT = 0; this.wakeDur = secs; }
+  updateGuide(dt, me) {
+    if (!this.guide || !me) return; const G = this.guide; G.g.userData.arrive = Math.min(1, G.g.userData.arrive + dt * 0.6);
+    const up = V(me.up), h = V(me.h), right = new THREE.Vector3().crossVectors(h, up).normalize(), a = G.g.userData.arrive;
+    const target = V(me.pos).addScaledVector(h, 3.4 + (1 - a) * 6).addScaledVector(up, 1.6 + (1 - a) * 3).addScaledVector(right, 0.7);
+    G.g.position.lerp(target, Math.min(1, 3 * dt)); this.orient(G.g, me.up, [me.pos[0] - G.g.position.x, me.pos[1] - G.g.position.y, me.pos[2] - G.g.position.z]);
+    G.g.updateMatrixWorld(); this.tmpV.copy(this.camera.position); G.g.worldToLocal(this.tmpV);
+    G.b.tick(dt, { id: 1, talk: this.guideTalk || 0 }, this.t, { look: this.tmpV.clone().normalize() });
+  }
+  label(text, color = '#ffffff') {
+    return this.shared('lb' + text + color, () => {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d'); g.font = '700 30px "Trebuchet MS", system-ui'; g.textAlign = 'center'; g.lineWidth = 6; g.strokeStyle = '#000c'; g.strokeText(text, 128, 42); g.fillStyle = color; g.fillText(text, 128, 42);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false })); sp.scale.set(2.6, 0.65, 1); sp.renderOrder = 10; return sp.material;
+    });
   }
 
   /* ───────── cuadro ───────── */
@@ -157,11 +213,14 @@ export class Renderer {
     this.syncMonsters(state, dt);
     this.syncProjectiles(state, dt);
     this.syncPickups(state);
-    this.syncPlayers(state, myId);
+    this.syncPlayers(state, myId, dt);
     this.handleEvents(state, me);
+    this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
+    this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 60);
     if (me) this.updateCamera(me, dt, look);
-    this.gl.render(this.scene, this.camera);
+    if (this.lost) return;
+    if (this.composer) this.composer.render(); else this.gl.render(this.scene, this.camera);
   }
 
   updateCamera(me, dt, look) {
@@ -173,15 +232,16 @@ export class Renderer {
     const q = new THREE.Quaternion().setFromRotationMatrix(m);
     if (!this.camInit) { this.camQ.copy(q); this.camInit = true; } else this.camQ.slerp(q, 1 - Math.exp(-14 * dt));
     this.camera.quaternion.copy(this.camQ);
-    const eye = V(me.pos).addScaledVector(up, 0.6);
+    let eyeH = 0.6;
+    if (this.wakeT !== undefined && this.wakeT < this.wakeDur) { this.wakeT += dt; const k = Math.min(1, this.wakeT / this.wakeDur), e = 1 - Math.pow(1 - k, 3); this.camera.rotateZ((1 - e) * 1.45); eyeH = 0.6 - 0.45 * (1 - e); }
+    const eye = V(me.pos).addScaledVector(up, eyeH);
     this.shake = Math.max(0, this.shake - dt * 2.5);
     if (this.shake > 0) eye.add(new THREE.Vector3().randomDirection().multiplyScalar(this.shake * 0.25));
     this.camera.position.copy(eye);
     this.eye = eye; this.aim = aim;
-    // viewmodel
-    if (this.curW !== me.w) { this.vmMeshes.forEach((g, i) => { g.visible = i === me.w && !me.dead; }); this.curW = me.w; }
-    this.kick = Math.max(0, this.kick - dt * 6);
-    const g = this.vmMeshes[me.w]; if (g) { g.position.z = -0.6 + this.kick * 0.1; g.rotation.x = this.kick * 0.15 + Math.sin(this.t * 1.7) * 0.004; g.visible = !me.dead; }
+    this.vm.setWeapon(me.w);
+    const lk = look && look.delta ? look.delta : [0, 0];
+    this.vm.update(dt, { firing: !!this.firing, hidden: me.dead, look: lk });
   }
 
   /* ───────── sincronización de entidades ───────── */
@@ -199,17 +259,29 @@ export class Renderer {
       seen.add(m.id);
       let e = this.ents.mon.get(m.id);
       if (!e) {
-        e = buildMonster(m.k); e.kind = m.k; e.born = this.t; e.object.userData.s = new THREE.Vector3();
+        e = buildMonster(m.k); e.kind = m.k; e.born = this.t; e.spd = 0; e.object.userData.s = new THREE.Vector3();
         this.entRoot.add(e.object); this.ents.mon.set(m.id, e);
         e.object.position.set(...m.p);
       }
       const o = e.object, scale = m.r * (m.k === 'coloso' || m.k === 'madre' ? 0.8 : 1) * Math.min(1, 0.2 + (this.t - e.born) * 3);
       o.position.lerp(V(m.p), 0.6); o.scale.setScalar(scale);
       this.orient(o, m.u, m.f);
-      for (const mat of e.mats) if (mat.uniforms.uHurt) mat.uniforms.uHurt.value = m.h ? 0.7 : 0;
-      e.tick(dt, { id: m.id, s: m.s, o: m.o, c: m.c }, this.t);
+      const hv = m.h ? 0.7 : 0;
+      for (const mat of e.mats) { const uh = (mat.userData && mat.userData.u && mat.userData.u.uHurt) || (mat.uniforms && mat.uniforms.uHurt); if (uh) uh.value = hv; }
+      this.tmpV.set(this.camera.position.x, this.camera.position.y, this.camera.position.z); o.updateMatrixWorld(); o.worldToLocal(this.tmpV);
+      const spd = e.prev ? Math.hypot(m.p[0] - e.prev[0], m.p[1] - e.prev[1], m.p[2] - e.prev[2]) / Math.max(dt, 1e-3) : 0; e.prev = m.p; e.spd += ((spd / Math.max(1, m.r * 6)) - e.spd) * Math.min(1, 6 * dt);
+      e.tick(dt, { id: m.id, s: m.s, o: m.o, c: m.c, hp: m.hp / m.mh, sd: m.sd, st: m.st, a: m.a }, this.t, { look: this.tmpV.clone().normalize(), speed: e.spd, dist: this.tmpV.length() });
     }
-    for (const [id, e] of this.ents.mon) if (!seen.has(id)) { this.entRoot.remove(e.object); e.mats.forEach((m) => m.dispose()); this.ents.mon.delete(id); }
+    for (const [id, e] of this.ents.mon) if (!seen.has(id)) { this.ents.mon.delete(id); e.dyingT = 0; e.dyingMax = e.kind === 'coloso' || e.kind === 'madre' ? 1.8 : 0.5; e.base = e.object.scale.clone(); this.dying.push(e); }
+  }
+  /** Muerte: la criatura se desploma y se desinfla mientras salen esquirlas (ver evento 'kill'). */
+  updateDying(dt) {
+    for (let i = this.dying.length - 1; i >= 0; i--) {
+      const e = this.dying[i]; e.dyingT += dt; const k = Math.min(1, e.dyingT / e.dyingMax), o = e.object;
+      o.scale.set(e.base.x * (1 + 0.35 * k), e.base.y * Math.max(0.05, 1 - 0.95 * k * k), e.base.z * (1 + 0.35 * k));
+      for (const mat of e.mats) { const uh = mat.userData && mat.userData.u && mat.userData.u.uHurt; if (uh) uh.value = 1 - k * 0.5; }
+      if (k >= 1) { this.entRoot.remove(o); e.mats.forEach((m) => m.dispose()); if (e.halo) e.halo.material.dispose(); this.dying.splice(i, 1); }
+    }
   }
 
   syncProjectiles(state) {
@@ -250,21 +322,43 @@ export class Renderer {
     for (const [id, g] of this.ents.pick) if (!seen.has(id)) { this.entRoot.remove(g); this.ents.pick.delete(id); }
   }
 
-  syncPlayers(state, myId) {
+  /** Carga perezosa del kit de personas (Arcanum NPC Factory). En calidad Baja no se usa: avatares livianos. */
+  async ensureHumans() {
+    if (this.humansKit || this.humansLoading || cfg().humans === 'low') return;
+    this.humansLoading = true;
+    try { this.hm = await import('./humans.js'); this.humansKit = await this.hm.loadHumanKit({ quality: cfg().humans }); } catch (err) { console.warn('personas 3D no disponibles:', err.message); }
+  }
+  simpleAvatar(col) {
+    const g = new THREE.Group(), m = crystalMaterial(col, { glow: 0.2 });
+    const body = new THREE.Mesh(new THREE.OctahedronGeometry(0.8, 0), m); body.scale.y = 1.4; g.add(body);
+    const gun = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.2, 5), m); gun.rotation.x = Math.PI / 2; gun.position.set(0.5, 0, 0.7); g.add(gun); return g;
+  }
+  syncPlayers(state, myId, dt = 0.016) {
     const seen = new Set();
+    if (state.players.length > 1) this.ensureHumans();
     for (const p of state.players) {
       if (p.id === myId) continue;
       seen.add(p.id);
       let e = this.ents.ply.get(p.id);
-      if (!e) {
-        const col = PLAYER_COLORS[(p.id - 1) % 4], g = new THREE.Group(), m = this.shared('pl' + col, () => crystalMaterial(col, { glow: 0.2 }));
-        const body = new THREE.Mesh(new THREE.OctahedronGeometry(0.8, 0), m); body.scale.y = 1.4; g.add(body);
-        const gun = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.2, 5), m); gun.rotation.x = Math.PI / 2; gun.position.set(0.5, 0, 0.7); g.add(gun);
-        e = { object: g }; this.entRoot.add(g); this.ents.ply.set(p.id, e);
-      }
-      e.object.position.set(...p.pos); this.orient(e.object, p.up, p.h); e.object.visible = !p.dead;
+      const col = PLAYER_COLORS[(p.id - 1) % 4];
+      if (!e) { e = { object: new THREE.Group(), human: null, simple: null, prev: p.pos, spd: 0, col, shotT: 0 }; e.simple = this.simpleAvatar(col); e.object.add(e.simple); this.entRoot.add(e.object); this.ents.ply.set(p.id, e); }
+      if (!e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, { preset: 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
+      const spd = Math.hypot(p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]) / Math.max(dt, 1e-3); e.prev = p.pos; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
+      const base = V(p.pos).addScaledVector(V(p.up), e.human ? -0.9 : 0);
+      e.object.position.copy(base); this.orient(e.object, p.up, p.h); e.object.visible = true;
+      if (e.human) {
+        e.shotT = Math.max(0, e.shotT - dt);
+        const clip = p.dead ? 'death' : e.shotT > 0 ? 'shoot' : e.spd > 6 ? 'sprint' : e.spd > 1.5 ? 'jog' : 'aimIdle';
+        if (clip !== e.clip) { e.clip = clip; e.human.play(clip, { fade: 0.2, restart: clip === 'shoot' }); }
+        e.human.update(dt, { speed: e.spd, camera: this.camera });
+      } else e.object.visible = !p.dead;
+      // etiqueta con nombre; caído: progreso de reanimación
+      if (!e.label) { e.label = new THREE.Sprite(this.label(p.name, '#ffffff')); e.label.scale.set(2.6, 0.65, 1); e.object.add(e.label); }
+      const txt = p.dead ? `REANIMAR ${Math.round(p.rv / 3 * 100)}%` : `${p.name} ${p.id}`, colr = p.dead ? '#ff7a9a' : '#' + col.toString(16).padStart(6, '0');
+      if (e.labelTxt !== txt) { e.labelTxt = txt; e.label.material = this.label(txt, colr); }
+      e.label.position.set(0, e.human ? 2.25 : 1.8, 0);
     }
-    for (const [id, e] of this.ents.ply) if (!seen.has(id)) { this.entRoot.remove(e.object); this.ents.ply.delete(id); }
+    for (const [id, e] of this.ents.ply) if (!seen.has(id)) { this.entRoot.remove(e.object); if (e.human) e.human.dispose(); this.ents.ply.delete(id); }
   }
 
   /* ───────── eventos → efectos ───────── */
@@ -274,12 +368,13 @@ export class Renderer {
       switch (e.t) {
         case 'shot': {
           const o = V(e.o), col = WEAPON_COLORS[e.w] || 0xffffff;
-          if (e.pid === (me && me.id)) { this.kick = 1; }
+          { const pe = this.ents.ply.get(e.pid); if (pe) pe.shotT = 0.35; }
+          if (e.pid === (me && me.id)) { this.vm.shoot(); this.muzzle.intensity = 18; this.muzzle.color.setHex(col); }
           if (e.to) for (const t of e.to) this.fx.tracer(e.pid === (me && me.id) && this.aim ? this.camera.localToWorld(new THREE.Vector3(0.3, -0.25, -1.2)) : o, V(t), col);
           break;
         }
         case 'hit': this.fx.burst(V(e.p), e.arm ? 0x9999ff : 0xffffff, e.arm ? 3 : 6, 7, 0.4, 0.6); break;
-        case 'kill': { const c = COLORS[e.k] || 0xffffff; this.fx.burst(V(e.p), c, e.k === 'coloso' || e.k === 'madre' ? 400 : 40, 14, 1.0, 1.0); if (e.k === 'coloso' || e.k === 'madre') { this.shake = 2; this.fx.blast(V(e.p), c, 40, 1.6); } break; }
+        case 'kill': { const c = COLORS[e.k] || 0xffffff, boss = e.k === 'coloso' || e.k === 'madre'; this.fx.shatter(V(e.p), c, { size: boss ? 1.6 : (MONSTER_SIZE[e.k] || 0.5), n: boss ? 24 : 10, speed: boss ? 16 : 9 }); if (boss) { this.shake = 2; this.fx.blast(V(e.p), c, 40, 1.6); } break; }
         case 'boom': this.fx.blast(V(e.p), 0xffa24a, e.r, 0.6); this.fx.burst(V(e.p), 0xffd080, 30, e.r * 2.5, 0.8, 1); this.shake = Math.max(this.shake, Math.min(1, 12 / (near(e.p) + 4))); break;
         case 'splat': this.fx.burst(V(e.p), 0xff9ae8, 8, 6, 0.4, 0.6); break;
         case 'portal': this.fx.blast(V(e.p), 0x66ffff, 4, 0.5); break;

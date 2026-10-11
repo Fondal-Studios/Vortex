@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import { crystalMaterial } from './shaders.js';
+import { cfg } from './quality.js';
+import { kit, setHurt } from './organism.js';
+import { ORGANISMS } from './creatures/index.js';
 
 /** Colores del bestiario (también usados por partículas y HUD). */
 export const COLORS = {
   astilla: 0x44ffd0, geoda: 0xb066ff, prisma: 0xff66c4, lente: 0xffd23f, cuarzo: 0xff7a45,
   espejo: 0xcfe9ff, racimo: 0xff3b5c, graviton: 0x6a7bff, coloso: 0xffc65c, madre: 0x9dff5a,
+  obelisco: 0x2de0ff, aurora: 0xff9ae8, ariete: 0xff8a3d, espiral: 0xb48cff,
 };
 
 const G = {
@@ -12,6 +16,7 @@ const G = {
   cone6: new THREE.ConeGeometry(1, 2, 6), cyl6: new THREE.CylinderGeometry(1, 1, 2, 6), box: new THREE.BoxGeometry(1, 1, 1),
   torus: new THREE.TorusGeometry(1, 0.08, 6, 24), halfA: new THREE.SphereGeometry(1, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
   halfB: new THREE.SphereGeometry(1, 8, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), sph: new THREE.SphereGeometry(1, 12, 8),
+  knot: new THREE.TorusKnotGeometry(0.7, 0.13, 72, 6, 2, 3), cyl8: new THREE.CylinderGeometry(1, 1, 2, 8), dome: new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2),
 };
 const mesh = (geo, mat, s = [1, 1, 1], p = [0, 0, 0]) => { const m = new THREE.Mesh(geo, mat); m.scale.set(...s); m.position.set(...p); return m; };
 
@@ -139,11 +144,91 @@ const BUILD = {
       orb.scale.setScalar(0.4 + k * 0.4); glow.uniforms.uGlow.value = 0.5 + k * 2.5; orb.rotation.y = t * 1.2; root.rotation.y = t * 0.2;
     } };
   },
+  obelisco(c) {
+    const m = crystalMaterial(c), dark = crystalMaterial(0x16304a), eyeM = crystalMaterial(0xffffff, { glow: 0.6 }), root = new THREE.Group();
+    root.add(mesh(G.cyl6, m, [0.5, 1.5, 0.5], [0, 0.4, 0]));
+    root.add(mesh(G.cone6, m, [0.5, 0.8, 0.5], [0, 2.4, 0]));
+    root.add(mesh(G.cyl6, dark, [0.85, 0.12, 0.85], [0, -1.05, 0]));
+    const eye = mesh(G.oct, eyeM, [0.16, 0.45, 0.1], [0, 0.9, 0.5]); root.add(eye);
+    const orbit = []; for (let i = 0; i < 3; i++) { const o = mesh(G.tet, m, [0.2, 0.3, 0.2]); root.add(o); orbit.push(o); }
+    return { root, mats: [m, dark, eyeM], tick(dt, st, t) {
+      const ch = st.s === 'charge'; eyeM.uniforms.uGlow.value = ch ? 4 : 0.5; eye.scale.y = ch ? 0.9 + 0.2 * Math.sin(t * 30) : 0.45;
+      m.uniforms.uGlow.value = ch ? 1.2 : 0.1;
+      orbit.forEach((o, i) => { const a = t * (ch ? 6 : 1.2) + i * 2.09; o.position.set(Math.cos(a) * 1.0, 0.4 + Math.sin(a * 2) * 0.5, Math.sin(a) * 1.0); o.rotation.y = a * 2; });
+    } };
+  },
+  aurora(c) {
+    const m = crystalMaterial(c, { alpha: 0.62 }), core = crystalMaterial(0xffffff, { glow: 1.2 }), root = new THREE.Group(), ten = [];
+    root.add(mesh(G.dome, m, [1.1, 0.9, 1.1]));
+    const heart = mesh(G.ico, core, [0.32, 0.32, 0.32], [0, 0.2, 0]); root.add(heart);
+    for (let i = 0; i < 7; i++) { const g = new THREE.Group(), a = (i / 7) * Math.PI * 2; for (let k = 0; k < 3; k++) g.add(mesh(G.cone6, m, [0.07, 0.45, 0.07], [0, -0.45 - k * 0.55, 0])); g.position.set(Math.cos(a) * 0.7, 0, Math.sin(a) * 0.7); root.add(g); ten.push(g); }
+    const ring = mesh(G.torus, core, [1.4, 1.4, 1.4], [0, -0.1, 0]); ring.rotation.x = Math.PI / 2; ring.visible = false; root.add(ring);
+    return { root, mats: [m, core], tick(dt, st, t) {
+      const cast = st.s === 'cast'; ten.forEach((g, i) => { g.rotation.z = Math.sin(t * 3 + i) * 0.35; g.rotation.x = Math.cos(t * 2.4 + i * 1.7) * 0.35; });
+      heart.scale.setScalar(0.3 + 0.08 * Math.sin(t * 6) + (cast ? 0.25 : 0)); core.uniforms.uGlow.value = cast ? 3.2 : 1.0;
+      ring.visible = cast; if (cast) ring.scale.setScalar(1 + ((t * 2.2) % 1) * 2.4); root.position.y = Math.sin(t * 1.5 + st.id) * 0.2;
+    } };
+  },
+  ariete(c) {
+    const m = crystalMaterial(c), dark = crystalMaterial(0x7a2e14), hornM = crystalMaterial(0xffe9b0, { glow: 0.2 }), root = new THREE.Group(), body = new THREE.Group(), legs = [];
+    root.add(body);
+    body.add(mesh(G.oct, m, [1.0, 0.8, 1.5], [0, 0.25, 0]));
+    const head = new THREE.Group(); head.position.set(0, 0.2, 1.3); head.add(mesh(G.oct, dark, [0.6, 0.55, 0.65])); const horn = mesh(G.cone6, hornM, [0.22, 1.1, 0.22], [0, 0.05, 0.75]); horn.rotation.x = Math.PI / 2; head.add(horn); body.add(head);
+    for (let i = 0; i < 5; i++) { const sp = mesh(G.cone6, m, [0.17, 0.6, 0.17], [0, 0.95, 0.7 - i * 0.45]); sp.rotation.x = -0.25; body.add(sp); }
+    for (let i = 0; i < 4; i++) { const l = mesh(G.cone6, dark, [0.2, 0.7, 0.2], [(i % 2 ? 0.75 : -0.75), -0.6, i < 2 ? 0.7 : -0.7]); l.rotation.x = Math.PI; body.add(l); legs.push(l); }
+    const orb = []; for (let i = 0; i < 3; i++) { const o = mesh(G.tet, hornM, [0.18, 0.18, 0.18]); o.visible = false; root.add(o); orb.push(o); }
+    return { root, mats: [m, dark, hornM], tick(dt, st, t) {
+      const w = st.s === 'wind', ch = st.s === 'charge', stun = st.s === 'stun';
+      head.rotation.x = w ? 0.5 + Math.sin(t * 30) * 0.06 : ch ? 0.25 : 0; hornM.uniforms.uGlow.value = w ? 3 : ch ? 2 : 0.2; m.uniforms.uGlow.value = w ? 1.2 : 0;
+      legs.forEach((l, i) => { l.rotation.x = Math.PI + Math.sin(t * (ch ? 30 : 9) + i * 1.6) * (stun ? 0.05 : 0.5); });
+      body.scale.set(ch ? 0.85 : 1, ch ? 0.85 : 1, ch ? 1.3 : 1); body.rotation.z = stun ? Math.sin(t * 6) * 0.25 : 0; body.position.y = stun ? -0.3 : 0;
+      orb.forEach((o, i) => { o.visible = stun; const a = t * 5 + i * 2.09; o.position.set(Math.cos(a) * 1.0, 1.7, Math.sin(a) * 1.0); o.rotation.y = a; });
+    } };
+  },
+  espiral(c) {
+    const m = crystalMaterial(c, { glow: 0.3 }), core = crystalMaterial(0xffffff, { glow: 1.5 }), root = new THREE.Group();
+    const knot = mesh(G.knot, m, [1, 1, 1]); root.add(knot); const heart = mesh(G.ico, core, [0.3, 0.3, 0.3]); root.add(heart);
+    const rings = [0, 1, 2].map((i) => { const r = mesh(G.torus, core, [1.6 + i * 0.5, 1.6 + i * 0.5, 1.6 + i * 0.5]); r.visible = false; root.add(r); return r; });
+    return { root, mats: [m, core], tick(dt, st, t) {
+      const pull = st.s === 'pull', ch = st.s === 'charge';
+      knot.rotation.set(t * 1.2, t * (pull ? 9 : 1.6), t * 0.7); heart.rotation.y = t * 3; core.uniforms.uGlow.value = pull ? 3.5 : ch ? 2.5 : 1.2; m.uniforms.uGlow.value = pull ? 1 : 0.3;
+      rings.forEach((r, i) => { r.visible = pull; if (pull) { const k = 1 - (((t * 1.8) + i / 3) % 1); r.scale.setScalar((1.6 + k * 1.8)); r.rotation.x = Math.PI / 2; } });
+      root.position.y = Math.sin(t * 1.3 + st.id) * 0.2;
+    } };
+  },
 };
 
+const edgeCache = new WeakMap();
+const edgeMats = new Map();
+let haloTex = null;
+function halo() {
+  if (haloTex) return haloTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,0.3)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return (haloTex = new THREE.CanvasTexture(c));
+}
+/** Pulido: aristas luminosas de cristal (Alta), halo de color (Media/Alta). */
+function polish(root, color) {
+  const q = cfg();
+  if (q.edges) {
+    let em = edgeMats.get(color); if (!em) { em = new THREE.LineBasicMaterial({ color: new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.55), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }); edgeMats.set(color, em); }
+    const meshes = []; root.traverse((o) => { if (o.isMesh && o.geometry && o.geometry.type !== 'TorusGeometry' && o.geometry.type !== 'TorusKnotGeometry' && o.geometry.type !== 'SphereGeometry' && !(o.material.transparent)) meshes.push(o); });
+    for (const mm of meshes) { let eg = edgeCache.get(mm.geometry); if (!eg) { eg = new THREE.EdgesGeometry(mm.geometry, 28); edgeCache.set(mm.geometry, eg); } mm.add(new THREE.LineSegments(eg, em)); }
+  }
+  if (q.halos) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: halo(), color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.35 }));
+    sp.scale.setScalar(4.2); root.add(sp); return sp;
+  }
+  return null;
+}
+
 export function buildMonster(kind) {
-  const b = BUILD[kind](COLORS[kind]);
+  const org = ORGANISMS[kind];
+  const b = org ? org(kit, COLORS[kind]) : BUILD[kind](COLORS[kind]);
   const pivot = new THREE.Group(); pivot.add(b.root);
-  return { object: pivot, mats: b.mats, tick: b.tick.bind(b) };
+  const sp = org ? null : polish(b.root, COLORS[kind]);
+  const mats = b.mats;
+  return { object: pivot, mats, organism: !!org, halo: sp, tick(dt, st, t, ctx) { b.tick(dt, st, t, ctx); if (sp) sp.material.opacity = 0.25 + 0.12 * Math.sin(t * 3 + st.id); } };
 }
 export const MONSTER_KINDS = Object.keys(BUILD);
+export { setHurt };

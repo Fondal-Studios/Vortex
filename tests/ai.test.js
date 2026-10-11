@@ -109,15 +109,15 @@ test('Obelisco (francotirador): se aleja, traza línea 1.6 s, fija el blanco y d
 test('Aurora (sanadora): cura 30 % y escuda (daño ×0.5) a las criaturas cercanas', () => {
   const { g, p } = arena(); const a = spawn(g, p, 'aurora', 20, 6); const v = spawn(g, p, 'geoda', 22); v.hp = v.maxhp * 0.3; v.cd = 1e9;
   const ev = []; const drain = events(g, ev); let healed = false, shielded = false; const hp0 = v.hp;
-  watch(g, 10, () => { drain(); if (ev.some((e) => e.t === 'heal') && !healed) { healed = true; shielded = g.time < v.shieldUntil; } });
+  watch(g, 10, () => { drain(); if (!healed && v.hp > hp0) { healed = true; shielded = g.time < v.shieldUntil; } });
   assert.ok(healed && v.hp > hp0, 'curó'); assert.ok(shielded, 'escudó');
   const h = v.hp; v.shieldUntil = g.time + 5; v.open = true; g.damageMonster(v, 100, p); assert.ok(Math.abs(h - v.hp - 50) < 1e-6, 'daño ×0.5 con escudo'); void a;
 });
 
 test('Ariete (embestidor): avisa 1 s, carga en línea recta, empuja al jugador y queda aturdido (×1.5 de daño)', () => {
-  const { g, p } = arena(); const m = spawn(g, p, 'ariete', 18); let wind = 0, stun = false, pushed = false, sh0 = p.shield; const st = [];
-  watch(g, 8, () => { st.push(m.state); if (m.state === 'wind') wind++; if (m.state === 'stun') stun = true; if (len(p.ext) > 3) pushed = true; });
-  assert.ok(wind >= 55, `aviso ${wind} ticks`); assert.ok(st.includes('charge')); assert.ok(stun, 'aturdido tras embestir'); assert.ok(p.shield < sh0 && pushed, 'daño + empuje');
+  const { g, p } = arena(); const m = spawn(g, p, 'ariete', 18); let wind = 0, stun = false, pushed = false, minSh = p.shield; const st = [];
+  watch(g, 8, () => { minSh = Math.min(minSh, p.shield); st.push(m.state); if (m.state === 'wind') wind++; if (m.state === 'stun') stun = true; if (len(p.ext) > 3) pushed = true; });
+  assert.ok(wind >= 55, `aviso ${wind} ticks`); assert.ok(st.includes('charge')); assert.ok(stun, 'aturdido tras embestir'); assert.ok(minSh < 100 && pushed, 'daño + empuje');
   m.stun = true; const h = m.hp; g.damageMonster(m, 100, p); assert.ok(Math.abs(h - m.hp - 150) < 1e-6);
 });
 

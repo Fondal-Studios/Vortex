@@ -2,14 +2,19 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Cristal Vórtice">
+<meta name="theme-color" content="#07030f"><meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="/public/manifest.webmanifest"><link rel="apple-touch-icon" href="/public/icon-180.png">
 <title>Cristal Vórtice</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/public/style.css">
-<script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js" } }</script>
+<script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
 </head>
 <body>
 <canvas id="c"></canvas>
+<canvas id="cine" class="hidden"></canvas><div id="sub"></div>
 <div id="vignette"></div><div id="flash"></div>
 <div id="hud" class="hidden">
   <div id="cross"><i></i></div>
@@ -24,13 +29,22 @@
   <div id="weapons"></div>
   <div id="coop" class="hidden"></div>
 </div>
+<div id="touch" class="hidden"></div>
+<div id="rotate" class="hidden"><p>📱↻</p><p>Girá el teléfono en horizontal para jugar</p></div>
 <div id="menu">
   <h1>CRISTAL<br>VÓRTICE</h1>
   <p class="tag">Sobrevivir entre dimensiones, donde la gravedad es solo una opinión.</p>
   <div id="story"></div>
   <div class="row">
-    <button data-start="m1">Solo · Vacío de Islas</button>
-    <button data-start="m2">Solo · Cámara Fractal</button>
+    <button id="campaign" class="primary">▶ Historia (solo)</button>
+  </div>
+  <div class="row">
+    <button data-start="m1">Arena · Vacío de Islas</button>
+    <button data-start="m2">Arena · Cámara Fractal</button>
+  </div>
+  <div class="row opts">
+    <label>Gráficos <select id="qsel"></select></label>
+    <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado y ratón</option></select></label>
   </div>
   <div class="row coop">
     <button id="mkroom">Cooperativo · crear sala</button>
@@ -38,10 +52,10 @@
     <button id="joinroom">Unirse</button>
     <select id="coopmap"><option value="m1">Vacío de Islas</option><option value="m2">Cámara Fractal</option></select>
   </div>
-  <p class="keys">WASD mover · ratón apuntar · clic disparar · ESPACIO saltar · SHIFT correr · 1–5 armas · ESC pausa</p>
+  <p class="keys">PC: WASD mover · ratón apuntar · clic disparar · ESPACIO saltar · SHIFT correr · 1–5 armas · ESC pausa<br>iPhone: palanca izquierda · arrastrar derecha para mirar · botones</p>
   <p id="menuerr" class="err"></p>
 </div>
-<div id="pause" class="hidden"><h2>PAUSA</h2><p>Hacé clic para continuar</p><button id="quit">Salir al menú</button></div>
+<div id="pause" class="hidden"><h2>PAUSA</h2><p id="pausehint">Hacé clic para continuar</p><div class="row opts"><label>Gráficos <select id="qsel2"></select></label><label>Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label></div><div class="row"><button id="resume">Continuar</button><button id="quit">Salir al menú</button></div></div>
 <div id="end" class="hidden"><h2 id="endtitle"></h2><pre id="endstats"></pre><button id="again">Jugar de nuevo</button><button id="tomenu">Menú</button></div>
 <script type="module" src="/src/client/main.js"></script>
 </body>

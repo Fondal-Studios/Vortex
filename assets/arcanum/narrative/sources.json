@@ -1,0 +1,227 @@
+{
+  "revision": "e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f",
+  "files": [
+    {
+      "file": "bob02-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/bob02/textures/bob02_diffuse.png",
+      "sha256": "102cbf70c2e7e3ee1c9c64b6a56484085f5e0362b405cff37f1887c86ed3cdee"
+    },
+    {
+      "file": "male_worksuit01-normal.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/male_worksuit01/textures/male_worksuit01_normal.png",
+      "sha256": "17209da0ab4121112e7da3c23ae0c79c895f43f081f8a6f62c1ed096e72413fb"
+    },
+    {
+      "file": "skin-young.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/skins/young_caucasian_female/textures/young_lightskinned_female_diffuse.png",
+      "sha256": "b5bddb5ca1c97cb5944d33b4ce937af12196414d001bbca010d19ed3d7581d39"
+    },
+    {
+      "file": "female_elegantsuit01-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/female_elegantsuit01/textures/female_elegantsuit01_diffuse.png",
+      "sha256": "b8f938d27a21a4cf4ffe92d691db23832716d4592fab901ab19adae8649e378d"
+    },
+    {
+      "file": "HighPolyEyes-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/eyes/HighPolyEyes/textures/blue_eye.png",
+      "sha256": "2d80dc5861585aeb654aff2fcd61abed80cd451273b78d3af855093ac00583bf"
+    },
+    {
+      "file": "skin-old.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/skins/old_caucasian_male/textures/old_lightskinned_male_diffuse.png",
+      "sha256": "911a6c5d30e1a6f7170afd7fd2c9749f522f77fc6a3b2ca125cec97c6283fe06"
+    },
+    {
+      "file": "male_worksuit01-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/male_worksuit01/textures/male_worksuit01_diffuse.png",
+      "sha256": "379c2d9dc6b6041ac29ac4e7a7106d438eed500f51bd00cecf2c94498a04c008"
+    },
+    {
+      "file": "male_casualsuit01-normal.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/male_casualsuit01/textures/male_casualsuit01_normal.png",
+      "sha256": "0da53d133a40524f05cf1f0d2738107c8f521fcde69640014fe6e8bba5733c82"
+    },
+    {
+      "file": "shoes02-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/shoes02/textures/shoes02_diffuse.png",
+      "sha256": "254207e4712ce378d986c1c7e9e46f79a0b99f047ade4ff31f8adb03b7bc0393"
+    },
+    {
+      "file": "female_elegantsuit01-normal.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/female_elegantsuit01/textures/female_elegantsuit01_normal.png",
+      "sha256": "1e307593efd26a386aa5efd57d71502cc950e7f01cb4865c7c9b880b840333db"
+    },
+    {
+      "file": "male_casualsuit01-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/male_casualsuit01/textures/male_casualsuit01_diffuse.png",
+      "sha256": "6ea98d1ebf1d4caf16359d29b33b65515738eaa1e1be46a96d1b63e8a3d52252"
+    },
+    {
+      "file": "short01-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/short01/textures/short01_diffuse.png",
+      "sha256": "068310998065b067a82994200df7082fb05830fb3cd02b6343e65fd51d319811"
+    },
+    {
+      "file": "short01.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/short01/short01.json",
+      "sha256": "e4c2ebb6aa897d4e2ef74a246fe89032b060001ed0caae56d29d6fa889a4cc4e"
+    },
+    {
+      "file": "shoes02.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/shoes02/shoes02.json",
+      "sha256": "621132baa8e5f46ef001bb693fc778e2ff612f2a79fd403048698f595afce5b5"
+    },
+    {
+      "file": "HighPolyEyes.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/eyes/HighPolyEyes/HighPolyEyes.json",
+      "sha256": "9f96b6143a6f6b373709aede3a141ca761412cba53a90c0d861f039dd1593b0b"
+    },
+    {
+      "file": "female_elegantsuit01.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/female_elegantsuit01/female_elegantsuit01.json",
+      "sha256": "cd33dfa6aee4f6569fd2d7bdb9154b01e05075f1539773d1e2cfcbdab7b75e3e"
+    },
+    {
+      "file": "male_worksuit01.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/male_worksuit01/male_worksuit01.json",
+      "sha256": "c1450c338797c44c95e25014b3fc95ffaab451f86ee64dc0d52d83e874aa1731"
+    },
+    {
+      "file": "bob02.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/bob02/bob02.json",
+      "sha256": "1485cbea41bd20d8e166f6b91bba64966634ee0c68171b1085a73e48b15ba545"
+    },
+    {
+      "file": "human_full_size.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/models/human_full_size.json",
+      "sha256": "be71b1d08a32dbaf5576ffa49b20173641d7741472a14f335a0c1f946e9d98ad"
+    },
+    {
+      "file": "male_casualsuit01.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/clothes/male_casualsuit01/male_casualsuit01.json",
+      "sha256": "033a275e85956edd38acb68f973fcf49b3c71afd7fb5562b30e59ca9edb230ca"
+    },
+    {
+      "file": "long01.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/long01/long01.json",
+      "sha256": "629a374e8ff7293403f8052154a173effd253143dbbff6c8102f1a0b41525fd4"
+    },
+    {
+      "file": "long01-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/long01/textures/long01_diffuse.png",
+      "sha256": "2f84c8c6d720486b1d1b95d45ef16f77ecaa7cfcb7a4f34001785aee342a9332"
+    },
+    {
+      "file": "ponytail01.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/ponytail01/ponytail01.json",
+      "sha256": "aa19b067456d956e9379485a6a1be56d8e66dc51d4f04d7cd4ec44eb0a6b4d2a"
+    },
+    {
+      "file": "ponytail01-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/ponytail01/textures/ponytail01_diffuse.png",
+      "sha256": "71f83fb7a4f668b5f79172cf4fb7ae71875cc9194e996af26f53efe807122d02"
+    },
+    {
+      "file": "short02.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/short02/short02.json",
+      "sha256": "6e4c907d35946bac86b6144d8d18909f2412888f03f5b96eb5478d4b2be08577"
+    },
+    {
+      "file": "short02-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/short02/textures/short02_diffuse.png",
+      "sha256": "bc6b98435175f92789368e06d343a1f94f42c7624b6d61e4e012fc05e192408a"
+    },
+    {
+      "file": "short04.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/short04/short04.json",
+      "sha256": "05f803de91e7a3cd381a86495c5c24a5d4e61362814c2cc3cfc52eebb4eb9cb3"
+    },
+    {
+      "file": "short04-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/hair/short04/textures/short04_diffuse.png",
+      "sha256": "0df4908902b083747669d44b48b363e3571fbd748b442f861c2df98a6776d1dc"
+    },
+    {
+      "file": "eyebrow001.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/eyebrows/eyebrow001/eyebrow001.json",
+      "sha256": "42e4eb69cefcb2c421ccc59d5f52f0abf8271ded673841223dd43daf0c8e3689"
+    },
+    {
+      "file": "eyebrow001-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/eyebrows/eyebrow001/textures/eyebrow001.png",
+      "sha256": "3dd927e4548b21f9cc15f3c1391019e4c8a6bc39841eb4e8ff7cfa77521587e8"
+    },
+    {
+      "file": "eyebrow010.json",
+      "destination": "source",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/eyebrows/eyebrow010/eyebrow010.json",
+      "sha256": "46be9b13aa3c45f14cf4a5c49ec1ef437f603f21d753a5a7a2202d2234f49827"
+    },
+    {
+      "file": "eyebrow010-color.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/proxies/eyebrows/eyebrow010/textures/eyebrow010.png",
+      "sha256": "a6a35024e4efc9d12bb09c96af1817e981ff7fc99262b55e2bb2cf7012f72ba4"
+    },
+    {
+      "file": "skin-young-male.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/skins/young_caucasian_male/textures/young_lightskinned_male_diffuse.png",
+      "sha256": "0a3c7330a7d042b79e5b9b337c932b745ba3054955979acc93faa96257f8a295"
+    },
+    {
+      "file": "skin-middle-male.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/skins/middleage_caucasian_male/textures/middleage_lightskinned_male_diffuse.png",
+      "sha256": "2fcba10dea50d21dcd5b2582ac7cbe82bb2a0a5ddc9fd9ea55587056734d7d31"
+    },
+    {
+      "file": "skin-middle-female.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/skins/middleage_caucasian_female/textures/middleage_lightskinned_female_diffuse.png",
+      "sha256": "81d55ff6aa7bfaa121164dbdcbfdc6eb6d853307409659ef6847901eeb4e3b6c"
+    },
+    {
+      "file": "skin-old-female.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/skins/old_caucasian_female/textures/old_lightskinned_female_diffuse.png",
+      "sha256": "bc2db71b0fb164ead9944cbec3638e600ac2b6dc4792cca7ebafb4b9dfe3d0c1"
+    },
+    {
+      "file": "skin-young-dark-male.png",
+      "destination": "texture",
+      "url": "https://raw.githubusercontent.com/makehuman-js/makehuman-data/e5d1a42cb469025a6d2b3ecea3e0252e6feccc1f/public/data/skins/young_african_male/textures/young_darkskinned_male_diffuse.png",
+      "sha256": "5f9bfcb85661a2ad9408ae0563f81606f68611b01443ad978f4ad6f2080ee860"
+    }
+  ]
+}

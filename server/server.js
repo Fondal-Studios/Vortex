@@ -36,7 +36,7 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
   const send = (ws, o) => { if (ws.readyState === 1) ws.send(typeof o === 'string' ? o : JSON.stringify(o)); };
 
   function makeRoom(code, mapId) {
-    const room = { code, mapId, game: new Game({ mapId, seed: (Math.random() * 1e9) | 0 }), clients: new Map(), acc: 0, last: Date.now() };
+    const room = { code, mapId, game: new Game({ mapId, seed: (Math.random() * 1e9) | 0, calm: 16 }), clients: new Map(), acc: 0, last: Date.now() };
     rooms.set(code, room);
     return room;
   }
@@ -55,17 +55,17 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
         if (ws.room) return;
         const map = MAPS[m.map] ? m.map : 'm1';
         const code = String((Math.random() * 9000 + 1000) | 0);
-        join(ws, makeRoom(code, map), String(m.name || 'jugador').slice(0, 16));
+        join(ws, makeRoom(code, map), String(m.name || 'Pasajero').slice(0, 16));
       } else if (m.t === 'join') {
         const room = rooms.get(String(m.room));
         if (!room || ws.room) return send(ws, { t: 'error', msg: 'sala inexistente' });
-        join(ws, room, String(m.name || 'jugador').slice(0, 16));
+        join(ws, room, String(m.name || 'Pasajero').slice(0, 16));
       } else if (m.t === 'in' && ws.room) {
         const pid = ws.room.clients.get(ws);
         if (pid && m.i && typeof m.i === 'object') ws.room.game.setInput(pid, m.i);
       } else if (m.t === 'restart' && ws.room && ws.room.game.state !== 'playing') {
         const room = ws.room;
-        room.game = new Game({ mapId: room.mapId, seed: (Math.random() * 1e9) | 0 });
+        room.game = new Game({ mapId: room.mapId, seed: (Math.random() * 1e9) | 0, calm: 8 });
         for (const [c] of room.clients) { const p = room.game.addPlayer(); room.clients.set(c, p.id); send(c, { t: 'welcome', pid: p.id, room: room.code, map: room.mapId, dt: SIM_DT }); }
       }
     });

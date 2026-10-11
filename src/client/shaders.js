@@ -1,13 +1,21 @@
 import * as THREE from 'three';
 
 export const uTime = { value: 0 }; // reloj global compartido por todos los shaders
+/** Si hay post-proceso (bloom), los ShaderMaterial propios deben escribir color lineal (el OutputPass lo codifica a sRGB). */
+export const OUT = { linear: false };
+export function finish(mat) {
+  if (!OUT.linear) return mat;
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, r) => { if (prev) prev(sh, r); const i = sh.fragmentShader.lastIndexOf('}'); sh.fragmentShader = sh.fragmentShader.slice(0, i) + ' gl_FragColor.rgb = pow(max(gl_FragColor.rgb, vec3(0.0)), vec3(2.2)); }'; };
+  return mat;
+}
 
 const PAL = `vec3 pal(float t){ return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67))); }`;
 
 /* Cielo: pliegues fractales tipo Kali + estrellas. Cada mapa le da su tono. */
-export function skyMaterial({ hue = 0, inside = false, speed = 0.05 } = {}) {
-  return new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false,
+export function skyMaterial({ hue = 0, inside = false, speed = 0.05, iters = 8 } = {}) {
+  return finish(new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, defines: { ITERS: iters },
     uniforms: { uTime, uHue: { value: hue }, uSpeed: { value: speed }, uInside: { value: inside ? 1 : 0 } },
     vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `
@@ -17,7 +25,7 @@ export function skyMaterial({ hue = 0, inside = false, speed = 0.05 } = {}) {
         vec3 d = normalize(vDir);
         vec3 p = d * (uInside > 0.5 ? 0.9 : 1.5);
         float t = uTime * uSpeed, a = 0.0;
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < ITERS; i++) {
           p = abs(p) / (dot(p, p) + 0.12) - vec3(0.85 + 0.12 * sin(t + float(i)), 0.78, 0.62 + 0.12 * cos(t * 1.3));
           float c = cos(t * 0.7), s = sin(t * 0.7); p.xy = mat2(c, -s, s, c) * p.xy;
           a += exp(-length(p) * 0.35);
@@ -29,7 +37,7 @@ export function skyMaterial({ hue = 0, inside = false, speed = 0.05 } = {}) {
         float st = hash(floor(d * 260.0)); col += vec3(1.0) * smoothstep(0.994, 1.0, st) * (uInside > 0.5 ? 0.0 : 1.0);
         gl_FragColor = vec4(col, 1.0);
       }`,
-  });
+  }));
 }
 
 /* Cristal facetado: normal por derivadas + iridiscencia por Fresnel. */
@@ -58,12 +66,12 @@ export function crystalMaterial(color = 0x66ffee, { alpha = 1, glow = 0, hue = 0
       }`,
   });
   mat.extensions = { derivatives: true };
-  return mat;
+  return finish(mat);
 }
 
 /* Suelo/isla: anillos concéntricos psicodélicos + rejilla. */
 export function groundMaterial(hue = 0, center = new THREE.Vector3()) {
-  return new THREE.ShaderMaterial({
+  return finish(new THREE.ShaderMaterial({
     uniforms: { uTime, uHue: { value: hue }, uC: { value: center } },
     vertexShader: `varying vec3 vWorld; varying vec3 vN; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: `
@@ -78,13 +86,13 @@ export function groundMaterial(hue = 0, center = new THREE.Vector3()) {
         vec3 side = pal(fract(vWorld.y * 0.05 + uHue + 0.3 + uTime * 0.03)) * 0.35;
         gl_FragColor = vec4(mix(side, top, smoothstep(0.55, 0.85, face)), 1.0);
       }`,
-  });
+  }));
 }
 
 /* Cascarón interior del Mapa 2: superficie orgánica, respira. */
-export function shellMaterial(hue = 0.3) {
-  return new THREE.ShaderMaterial({
-    side: THREE.BackSide,
+export function shellMaterial(hue = 0.3, iters = 5) {
+  return finish(new THREE.ShaderMaterial({
+    side: THREE.BackSide, defines: { ITERS: iters },
     uniforms: { uTime, uHue: { value: hue }, uWarn: { value: 0 } },
     vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `
@@ -92,7 +100,7 @@ export function shellMaterial(hue = 0.3) {
       void main(){
         vec3 p = vP * 0.05; float t = uTime * 0.15;
         float f = 0.0, amp = 1.0;
-        for (int i = 0; i < 5; i++) { p = vec3(p.y + sin(p.z * 1.7 + t), p.z + sin(p.x * 1.9 - t), p.x + sin(p.y * 1.3 + t)); f += amp * (0.5 + 0.5 * sin(p.x * 3.0 + p.y * 2.0)); amp *= 0.55; p *= 1.7; }
+        for (int i = 0; i < ITERS; i++) { p = vec3(p.y + sin(p.z * 1.7 + t), p.z + sin(p.x * 1.9 - t), p.x + sin(p.y * 1.3 + t)); f += amp * (0.5 + 0.5 * sin(p.x * 3.0 + p.y * 2.0)); amp *= 0.55; p *= 1.7; }
         float cells = abs(sin(f * 4.0 + uTime * 0.4));
         vec3 col = pal(fract(f * 0.35 + uHue + uTime * 0.02)) * (0.10 + 0.30 * cells);
         col = mix(col, vec3(0.04, 0.02, 0.10), 0.35);
@@ -100,12 +108,12 @@ export function shellMaterial(hue = 0.3) {
         col = mix(col, vec3(1.0, 0.3, 0.5) * (0.4 + 0.4 * sin(uTime * 8.0)), uWarn * 0.35);
         gl_FragColor = vec4(col, 1.0);
       }`,
-  });
+  }));
 }
 
 /* Zonas de física: cáscara translúcida con bandas animadas. mode 0 plano, 1 sube, 2 baja/gira */
 export function zoneMaterial(color, mode = 0) {
-  return new THREE.ShaderMaterial({
+  return finish(new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
     uniforms: { uTime, uColor: { value: new THREE.Color(color) }, uMode: { value: mode } },
     vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vW; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = -mv.xyz; vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * mv; }`,
@@ -116,5 +124,5 @@ export function zoneMaterial(color, mode = 0) {
         float band = uMode < 0.5 ? 0.5 : (uMode < 1.5 ? sin(vW.y * 0.8 - uTime * 3.0) * 0.5 + 0.5 : sin((vW.x + vW.z) * 0.6 + vW.y * 0.5 + uTime * 2.0) * 0.5 + 0.5);
         gl_FragColor = vec4(uColor * (0.25 + 0.9 * band), (0.05 + 0.5 * f) * (0.4 + 0.6 * band));
       }`,
-  });
+  }));
 }

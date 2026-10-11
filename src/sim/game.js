@@ -12,7 +12,7 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1 } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4 } = {}) {
     this.map = MAPS[mapId];
     if (!this.map) throw new Error('mapa desconocido: ' + mapId);
     this.mapId = mapId;
@@ -24,14 +24,14 @@ export class Game {
     this.nextId = 1;
     this.state = 'playing'; // playing | won | lost
     this.wave = 0; this.waveTotal = WAVE_PLANS[mapId].length + 1;
-    this.phase = 'intermission'; this.phaseT = 4; // arranca con 4s de calma
+    this.phase = 'intermission'; this.phaseT = calm; // calma inicial (la historia usa más)
     this.queue = []; this.spawnT = 0; this.spawnGap = 1.5;
     this.boss = null;
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
   }
 
   /* ─────────── jugadores ─────────── */
-  addPlayer(name = 'jugador') {
+  addPlayer(name = 'Pasajero') {
     if (this.players.length >= 4) return null;
     const idx = this.players.length;
     const pos = clone(this.map.playerSpawn(idx));
