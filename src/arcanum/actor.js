@@ -4,7 +4,7 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { assertNPC, resolveVisibility } from './schema.js';
-import { SKINS, HAIR, EYEBROWS, OUTFITS, PALETTES, AFFINITIES, ANIMATION_SETS, BASES, BEARDS, meshesFor } from './library.js';
+import { SKINS, HAIR, EYEBROWS, OUTFITS, PALETTES, AFFINITIES, ANIMATION_SETS, BASES, BEARDS, meshesFor, fabricId } from './library.js';
 import { deformPositions } from './deform.js';
 import { CLIP_SPEED } from './locomotion.js';
 import { npcProfile } from './quality.js';
@@ -14,7 +14,7 @@ import { npcTier, skinMaterial, eyeMaterial, hairMaterial, beardMaterial, fabric
 // Perfil de representación: una sola fuente de verdad en src/core/quality.js (PRESETS[q].npc).
 export function npcQuality(q, { movil = false } = {}) {
   const p = npcProfile(q, { movil });
-  return { detail: p.accessoryDetail + 1, shadows: p.shadows, particles: p.particles, lodDistance: p.lodDistance, textureMax: p.textureMax, facial: p.facial, normalMaps: p.normalMaps, lite: p.lite };
+  return { detail: p.accessoryDetail + 1, shadows: p.shadows, particles: p.particles, lodDistance: p.lodDistance, textureMax: p.textureMax, facial: p.facial, normalMaps: p.normalMaps, lite: p.lite, lod: !!p.lod };
 }
 
 const PARTICLES = { brasas: { color: '#ffb46b', rise: 0.25, size: 0.018, blend: T.AdditiveBlending }, gotas: { color: '#9fd8ff', rise: -0.12, size: 0.014, blend: T.AdditiveBlending },
@@ -30,17 +30,29 @@ function dominantFor(entry, names) {
 
 // ------------------------------------------------------------------ ACTUACIÓN (capa procedural sobre los clips)
 // Huesos que mueve la capa procedural. Los que no están acá los maneja solo el mezclador.
-const PROC_BONES = ['root', 'spine03_h', 'spine01_h', 'neck01_h', 'neck02_h', 'head_h', 'shoulder01_L_h', 'shoulder01_R_h', 'jaw_h',
+const PROC_BONES = ['root', 'spine05_h', 'spine04_h', 'spine03_h', 'spine02_h', 'spine01_h', 'neck01_h', 'neck02_h', 'head_h', 'shoulder01_L_h', 'shoulder01_R_h', 'jaw_h',
+  'clavicle_L_h', 'clavicle_R_h', 'upperarm01_L_h', 'upperarm01_R_h', 'lowerarm01_L_h', 'lowerarm01_R_h', 'wrist_L_h', 'wrist_R_h',
+  ...['L', 'R'].flatMap((s) => [1, 2, 3, 4, 5].flatMap((f) => [1, 2, 3].map((j) => `finger${f}-${j}_${s}_h`))),
   'eye_L_h', 'eye_R_h', 'orbicularis03_L_h', 'orbicularis04_L_h', 'orbicularis03_R_h', 'orbicularis04_R_h', 'oculi01_L_h', 'oculi01_R_h'];
 const LADOS = ['L', 'R'].map((s) => ({ up: 'orbicularis03_' + s + '_h', lo: 'orbicularis04_' + s + '_h', brow: 'oculi01_' + s + '_h' }));
 const LOCO = new Set(['walk', 'walkFormal', 'jog', ...Object.keys(CLIP_SPEED)]); // (+ caminatas de la biblioteca)
 const LOW = new Set(['kneel', 'sit', 'sitTalk', 'crouch']);           // bajar / subir el cuerpo: transición más larga
-const QUICK = new Set(['spellEnter', 'spellExit', 'cast', 'hitChest', 'hitHead', 'shoot', 'hit', 'punch', 'jump', 'land']);
-const ONCE = new Set(['death', 'land', 'hit', 'jump', 'shoot', 'punch', 'reload', 'cast', 'interact']); // se reproducen una vez y quedan en la última pose
+const QUICK = new Set(['revive', 'spellEnter', 'spellExit', 'cast', 'hitChest', 'hitHead', 'shoot', 'hit', 'punch', 'jump', 'land']);
+const ONCE = new Set(['death', 'revive', 'land', 'hit', 'jump', 'shoot', 'punch', 'reload', 'cast', 'interact']); // se reproducen una vez y quedan en la última pose
 const ONESHOT = new Set(['interact', 'pickup', 'kneel', 'spellEnter', 'spellExit', 'cast', 'hitChest', 'hitHead', ...ONCE]); // empiezan desde el principio
 const IDLE = new Set(['calm', 'idle', 'talk', 'spellIdle', 'torch']); // en estos se nota el cambio de peso
 // Tramo que se repite (ida y vuelta) mientras se mantiene el clip: arrodillarse baja una vez y sigue examinando.
 const HOLD = { kneel: [0.95, 4.05] };
+// CAPAS: cada clip se parte en dos clips con los mismos tiempos: «lo» (raíz, cadera, piernas) y «up» (columna, brazos, dedos, cuello).
+// Cada mitad tiene su propio mezclador de pesos: así las piernas siguen al clip de locomoción mientras el torso apunta o dispara.
+const LOWER = /^(root|spine05_h|pelvis|upperleg|lowerleg|foot|toe)/;
+function splitClip(clip, key) {
+  const part = (keep) => { const c = new T.AnimationClip(key, clip.duration, clip.tracks.filter((t) => keep === LOWER.test(t.name)).map((t) => t.clone())); if (clip.userData) c.userData = clip.userData; return c; };
+  return { lo: part(true), up: part(false) };
+}
+const keyPhase = (key) => ((hash(key) % 997) / 997);
+/** Un mezclador de capa: un peso por clip que se acerca a 1 (el actual) o a 0 (los demás). */
+const makeGroup = (acts) => ({ layers: Object.entries(acts).map(([key, action]) => ({ key, action, w: 0 })), current: null, currentKey: null, fade: 0.4, holdDir: 1, prevKey: null });
 /** Duración del fundido entre dos clips (s). */
 export function fadeFor(from, to) {
   if (LOW.has(from) || LOW.has(to)) return 0.75;
@@ -66,19 +78,20 @@ function actingState() {
     glanceT: 3 + Math.random() * 5, glance: 0, gY: 0, gP: 0, gW: 0, jaw: 0, jawTo: 0, jawT: 0, beatT: 0.6, beat: 0, beatY: 0, emph: 0,
     hablaba: false, gesto: null, gestoT: 0, gestoW: 0, idleW: 0 };
 }
-/** Cambia el clip objetivo; el peso de cada capa se mueve hacia él en update (fundido sin saltos). */
-function setMotion(b, next, fade) {
-  if (!next || next === b.current) return;
-  const key = next.getClip().name, layer = b.layers.find((l) => l.action === next);
+/** Cambia el clip objetivo de una capa; el peso de cada clip se mueve hacia él en blend (fundido sin saltos). */
+function setMotion(b, g, key, fade) {
+  const layer = g.layers.find((l) => l.key === key); if (!layer || layer === g.current) return;
+  const next = layer.action;
   if (layer.w <= 0.001) {
     next.reset(); next.enabled = true; next.setLoop(ONCE.has(key) ? T.LoopOnce : T.LoopRepeat, Infinity); next.clampWhenFinished = ONCE.has(key); next.play(); next.setEffectiveWeight(0);
-    // Los clips cíclicos empiezan en una fase propia de cada personaje; los de una vez, desde el principio.
-    if (!ONESHOT.has(key)) next.time = ((b.persona.fase + (b.cambios = (b.cambios || 0) + 0.37)) % 1) * next.getClip().duration;
+    // Los clips cíclicos empiezan en una fase propia de cada personaje (igual en las dos capas: brazos y piernas van acompasados); los de una vez, desde el principio.
+    if (!ONESHOT.has(key)) next.time = ((b.persona.fase + keyPhase(key)) % 1) * next.getClip().duration;
+    if (key === 'revive') next.time = next.getClip().duration; // levantarse = la caída al revés
   }
-  b.prevKey = b.current ? b.current.getClip().name : key; b.current = next; b.fade = fade; b.holdDir = 1;
+  g.prevKey = g.currentKey; g.current = layer; g.currentKey = key; g.fade = fade; g.holdDir = 1;
   // Sin fundido (el personaje se coloca fuera de cuadro o con la pantalla en negro): ya está en la pose, y si el clip
   // tiene un tramo sostenido (arrodillado), ya está abajo.
-  if (fade === 0) { for (const l of b.layers) { l.w = l.action === next ? 1 : 0; if (!l.w) l.action.stop(); } if (HOLD[key]) next.time = HOLD[key][0]; }
+  if (fade === 0) { for (const l of g.layers) { l.w = l === layer ? 1 : 0; if (!l.w) l.action.stop(); } if (HOLD[key]) next.time = HOLD[key][0]; }
 }
 
 /** Crea un NPC. quality: 'low'|'medium'|'high'|'ultra' (o perfil). Devuelve una API síncrona con `ready`. */
@@ -92,7 +105,9 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
     await store.ready;
     const model = store.model, names = model.bones.map((b) => b.name);
     const needed = meshesFor(d).filter((m) => m !== 'shoes02' || vis.shoes).filter((m) => m !== HAIR[d.hair]?.mesh || vis.hair);
-    const [entries, clips, bodyData] = await Promise.all([Promise.all(needed.map((n) => store.mesh(n))), store.animationClips(), store.body()]);
+    const lod = !!profileQ.lod; // mallas decimadas (assets/arcanum/narrative/lod.*): ≈ 9 k triángulos por persona
+    const load = (n) => (lod ? (n === 'body' ? store.mesh('body@' + (OUTFITS[d.outfit] ? d.outfit : 'none'), true, 'body') : store.mesh(n, true)) : store.mesh(n));
+    const [entries, clips, bodyData] = await Promise.all([Promise.all(needed.map(load)), store.animationClips(), store.body(lod)]);
     const byName = Object.fromEntries(entries.map((e) => [e.name, e]));
     const textures = {}; const files = new Set([SKINS[d.skin].file, 'HighPolyEyes-color.png']);
     if (OUTFITS[d.outfit]) { files.add(d.outfit + '-color.png'); if (OUTFITS[d.outfit].normal && profileQ.normalMaps !== false) files.add(d.outfit + '-normal.png'); }
@@ -100,7 +115,7 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
     if (EYEBROWS[d.eyebrows].mesh) files.add(EYEBROWS[d.eyebrows].mesh + '-color.png');
     if (vis.shoes) files.add('shoes02-color.png');
     await Promise.all([...files].map(async (f) => { textures[f] = await store.texture(f); }));
-    const mask = OUTFITS[d.outfit] ? await store.bodyMask(d.outfit) : null;
+    const mask = OUTFITS[d.outfit] && !lod ? await store.bodyMask(d.outfit) : null;
 
     const rig = store.createSkeleton(), group = new T.Group(); group.add(rig.group);
     const materials = new Set(), geometries = new Set(), meshes = {}, detailOnly = [];
@@ -126,7 +141,14 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
       if (skin && d.skinTint) m.color.set(d.skinTint);
       if (skin) skinMaterial(m, { tier, flush, edad: BASES[d.base].edad, barba: BEARDS[d.beard]?.capas ? { capas: BEARDS[d.beard].capas, color: d.beardColor || d.hairColor } : null });
       if (eyes) eyeMaterial(m, { tier });
-      if (outfit) { m.color.set(palette.secundario).lerp(new T.Color('#ffffff'), 0.35); fabricMaterial(m, { tier, mode: 'garment', dirt }); }
+      if (outfit) {
+        if (d.clothTop) {
+          // tinte por zonas (sudadera arriba, pantalón abajo) y trama de tela por zonas: lana arriba, lona abajo
+          const pa = e.attrs.position, fb = new Float32Array(pa.count * 2); for (let i = 0; i < pa.count; i++) { fb[i * 2] = pa.getY(i) > 0.97 ? fabricId('lana') : fabricId('lona'); fb[i * 2 + 1] = 1; }
+          g.setAttribute('npcFab', new T.BufferAttribute(fb, 2)); m.color.set('#ffffff');
+          fabricMaterial(m, { tier, mode: 'garment', dirt, top: d.clothTop, bottom: d.clothBottom });
+        } else { m.color.set(palette.secundario).lerp(new T.Color('#ffffff'), 0.35); fabricMaterial(m, { tier, mode: 'garment', dirt }); }
+      }
       if (hair || brow) hairMaterial(m, { color: brow ? new T.Color(d.hairColor).multiplyScalar(0.7) : new T.Color(d.hairColor), gain: store.gain(file), tier, brow });
       const mesh = new T.SkinnedMesh(g, m); mesh.name = 'npc-' + e.name; mesh.frustumCulled = false; group.add(mesh); mesh.bind(rig.skeleton); meshes[e.name] = mesh;
       if (brow) detailOnly.push(mesh);
@@ -171,18 +193,21 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
       const pm = new T.PointsMaterial({ color: pk.color, size: pk.size, transparent: true, opacity: 0.75, depthWrite: false, blending: pk.blend }); materials.add(pm);
       particles = new T.Points(g, pm); particles.frustumCulled = false; particles.userData = { seeds, kind: pk, n }; group.add(particles); detailOnly.push(particles);
     }
-    const mixer = new T.AnimationMixer(rig.group), actions = {}; for (const [k, c] of Object.entries(clips)) actions[k] = mixer.clipAction(c);
+    const mixer = new T.AnimationMixer(rig.group), actions = {}, lo = {}, up = {};
+    const addClip = (k, c) => { const sp = splitClip(c, k); lo[k] = mixer.clipAction(sp.lo); up[k] = mixer.clipAction(sp.up); actions[k] = true; };
+    for (const [k, c] of Object.entries(clips)) addClip(k, c);
+    if (clips.death) addClip('revive', clips.death); // reanimación: la muerte reproducida al revés
     const set = ANIMATION_SETS[d.animationSet], tempo = set.tempo * affinity.tempo * (BASES[d.base].tempo || 1);
-    // Mezclador propio: un peso por clip que se acerca a 1 (el actual) o a 0 (los demás); nunca un salto de pose.
-    const layers = Object.entries(actions).map(([key, action]) => ({ key, action, w: 0 }));
+    // Mezclador propio por capa: un peso por clip que se acerca a 1 (el actual) o a 0 (los demás); nunca un salto de pose.
+    const groups = { lo: makeGroup(lo), up: makeGroup(up) };
     // Huesos que la capa procedural toca (mirada, respiración, gestos, rostro): se restauran a la última pose del
     // mezclador antes de cada cuadro, en vez de devolver TODO el esqueleto a la pose de enlace (el mezclador de three
     // solo escribe un hueso si su valor cambió: con clips estáticos, como sentarse, la pose quedaba en la de enlace).
     const proc = PROC_BONES.filter((n) => rig.bones[n]).map((n) => ({ bone: rig.bones[n], p: rig.bones[n].position.clone(), q: rig.bones[n].quaternion.clone() }));
     group.scale.setScalar(d.body.height);
-    const b = { def: d, group, rig, meshes, materials, geometries, held, particles, mixer, actions, layers, proc, current: null, set, tempo, sway, detailOnly,
+    const b = { def: d, group, rig, meshes, materials, geometries, held, particles, mixer, actions, groups, proc, set, tempo, sway, detailOnly, legYaw: 0, kick: 0,
       posture: Math.max(set.postura, BASES[d.base].postura), persona: persona(d.id), act: actingState() };
-    setMotion(b, actions[set.reposo] || actions.idle, 0);
+    const rest = actions[set.reposo] ? set.reposo : 'idle'; setMotion(b, groups.lo, rest, 0); setMotion(b, groups.up, rest, 0);
     return b;
   }
 
@@ -240,23 +265,26 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
     p.geometry.attributes.position.needsUpdate = true; p.material.opacity = 0.65;
   }
 
-  /** Mezcla de clips: los pesos se acercan al objetivo a ritmo constante y se normalizan (nunca asoma la pose de enlace). */
-  function blend(dt, motionSpeed) {
-    const B = built, rate = dt / Math.max(0.05, B.fade || 0.4); let sum = 0;
-    for (const l of B.layers) {
-      const target = l.action === B.current ? 1 : 0;
-      if (l.w === 0 && target === 0) continue;
-      l.w = target ? Math.min(1, l.w + rate) : Math.max(0, l.w - rate);
-      if (l.w === 0) { l.action.stop(); continue; }
-      sum += l.w * l.w * (3 - 2 * l.w); // suavizado: entra y sale despacio
-    }
-    for (const l of B.layers) {
-      if (l.w === 0) continue;
-      const a = l.action, hold = HOLD[l.key];
-      a.setEffectiveWeight(sum > 0 ? (l.w * l.w * (3 - 2 * l.w)) / sum : 1);
-      let ts = LOCO.has(l.key) ? motionSpeed : B.persona.ritmo * B.tempo;
-      if (hold && a === B.current) { if (a.time > hold[1]) B.holdDir = -1; else if (a.time < hold[0] && B.holdDir < 0) B.holdDir = 1; ts *= B.holdDir; }
-      a.timeScale = ts;
+  /** Mezcla de clips por capa: los pesos se acercan al objetivo a ritmo constante y se normalizan (nunca asoma la pose de enlace). */
+  function blend(dt, speeds) {
+    const B = built;
+    for (const [gk, g] of Object.entries(B.groups)) {
+      const motionSpeed = speeds[gk], rate = dt / Math.max(0.05, g.fade || 0.4); let sum = 0;
+      for (const l of g.layers) {
+        const target = l === g.current ? 1 : 0;
+        if (l.w === 0 && target === 0) continue;
+        l.w = target ? Math.min(1, l.w + rate) : Math.max(0, l.w - rate);
+        if (l.w === 0) { l.action.stop(); continue; }
+        sum += l.w * l.w * (3 - 2 * l.w); // suavizado: entra y sale despacio
+      }
+      for (const l of g.layers) {
+        if (l.w === 0) continue;
+        const a = l.action, hold = HOLD[l.key];
+        a.setEffectiveWeight(sum > 0 ? (l.w * l.w * (3 - 2 * l.w)) / sum : 1);
+        let ts = LOCO.has(l.key) ? motionSpeed : B.persona.ritmo * B.tempo;
+        if (hold && l === g.current) { if (a.time > hold[1]) g.holdDir = -1; else if (a.time < hold[0] && g.holdDir < 0) g.holdDir = 1; ts *= g.holdDir; }
+        a.timeScale = l.key === 'revive' ? -Math.abs(ts) : ts;
+      }
     }
     B.mixer.update(dt);
   }
@@ -270,7 +298,8 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
    * cull: el NPC está fuera de cámara → animación a 1/4 de frecuencia (ahorro en teléfono);
    * snap: cambiar de clip sin fundido (solo cuando nadie lo ve: recién colocado fuera de cuadro o en negro).
    */
-  function update(dt, { speaking = false, action = '', expression = 'sereno', camera = null, motion = null, motionSpeed = 1, look = null, gesture = null, cull = false, snap = false, restart = false, fade = null } = {}) {
+  function update(dt, { speaking = false, action = '', expression = 'sereno', camera = null, motion = null, motionSpeed = 1, look = null, gesture = null, cull = false, snap = false, restart = false, fade = null,
+    upper = null, lower = null, upperSpeed = null, legYaw = 0, pitch = 0, kick = 0, overlay = null } = {}) {
     if (status !== 'ready' || !built || !Number.isFinite(dt) || dt <= 0) return;
     time += dt; built.sway.value = time; if (snap) built.snap = true; // se recuerda aunque este cuadro se salte (cull)
     if (cull) { built.culled = (built.culled || 0) + dt; if (built.culled < 0.25) return; dt = built.culled; } built.culled = 0;
@@ -279,13 +308,25 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
     if (cam) { root.getWorldPosition(tmp); far = tmp.distanceTo(cam.getWorldPosition(tmp2)) > profileQ.lodDistance; }
     for (const o of built.detailOnly) o.visible = !far && (o !== built.particles || profileQ.particles > 0);
     for (const r of built.proc) { r.bone.position.copy(r.p); r.bone.quaternion.copy(r.q); }
-    const next = (motion && built.actions[motion]) || (action === 'presentar' ? built.actions[built.set.demostrar] : built.actions[built.set.reposo] || built.actions.idle);
-    if (restart && next && next === built.current) { next.reset(); next.setLoop(ONCE.has(next.getClip().name) ? T.LoopOnce : T.LoopRepeat, Infinity); next.play(); }
-    if (next && next !== built.current) setMotion(built, next, built.snap ? 0 : fade ?? fadeFor(built.current?.getClip().name, next.getClip().name));
+    // Capas: «motion» manda en las dos mitades (cuerpo entero); «lower»/«upper» pisan sólo piernas / torso+brazos.
+    const has = (k) => k && built.actions[k], rest = built.actions[built.set.reposo] ? built.set.reposo : 'idle';
+    const base = has(motion) ? motion : action === 'presentar' && has(built.set.demostrar) ? built.set.demostrar : rest;
+    const keys = { lo: has(lower) ? lower : base, up: has(upper) ? upper : base };
+    for (const [gk, g] of Object.entries(built.groups)) {
+      const k = keys[gk];
+      if (restart && k === g.currentKey && (gk === 'up' || !lower)) { const a = g.current.action; a.reset(); a.setLoop(ONCE.has(k) ? T.LoopOnce : T.LoopRepeat, Infinity); a.play(); }
+      if (k !== g.currentKey) setMotion(built, g, k, built.snap ? 0 : fade ?? fadeFor(g.currentKey, k));
+    }
     built.snap = false;
-    blend(dt, motionSpeed);
+    blend(dt, { lo: motionSpeed, up: upperSpeed ?? motionSpeed });
     for (const r of built.proc) { r.p.copy(r.bone.position); r.q.copy(r.bone.quaternion); } // pose del mezclador = base del próximo cuadro
-    const key = built.current?.getClip().name || '', walking = LOCO.has(key);
+    const key = built.groups.lo.currentKey || '', walking = LOCO.has(key);
+    // Giro de las piernas (strafe / retroceso): la raíz gira con las piernas y la cadera lo deshace, así el torso sigue mirando adelante.
+    built.legYaw += (legYaw - built.legYaw) * (1 - Math.exp(-dt * 10)); built.kick = Math.max(kick, built.kick - dt * 6);
+    if (Math.abs(built.legYaw) > 0.002) { q0.setFromAxisAngle(up, built.legYaw); b.root?.quaternion.premultiply(q0); q0.setFromAxisAngle(up, -built.legYaw); b.spine05_h?.quaternion.premultiply(q0); }
+    // Apuntar arriba/abajo: el pitch del jugador se reparte entre la columna y el cuello (los brazos y el arma lo siguen).
+    if (pitch) { const p = T.MathUtils.clamp(pitch, -1.2, 1.2); b.spine04_h?.rotateX(-p * 0.1); b.spine02_h?.rotateX(-p * 0.2); b.spine01_h?.rotateX(-p * 0.24); b.neck01_h?.rotateX(-p * 0.14); b.head_h?.rotateX(-p * 0.14); }
+    if (built.kick > 0.01) { b.spine02_h?.rotateX(-0.03 * built.kick); b.spine01_h?.rotateX(-0.05 * built.kick); b.clavicle_L_h?.rotateZ(0.03 * built.kick); b.clavicle_R_h?.rotateZ(-0.03 * built.kick); }
     // Postura: ancianos y eruditos se inclinan levemente.
     if (built.posture) { b.spine01_h?.rotateX(built.posture * 0.12); b.neck01_h?.rotateX(built.posture * 0.1); }
     // Respiración (pecho y hombros) y cambio de peso lento en reposo; ritmo y fase propios de cada personaje.
@@ -363,6 +404,7 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
       }
     }
     built.group.updateMatrixWorld(true);
+    if (overlay) { overlay(built.rig.bones, built.group, dt); built.group.updateMatrixWorld(true); } // arma en la mano, IK de la mano libre, gestos
     updateHeld(dt); if (!far) updateParticles();
   }
 
@@ -376,6 +418,8 @@ export function createNpcActor(store, definition, { quality = 'medium', movil = 
     root, get group() { return root; },
     get definition() { return def; }, get status() { return status; }, get bones() { return built?.rig.bones || {}; },
     hasClip(k) { return !!built?.actions[k]; },
+    /** Clip actual de cada capa: { lower, upper }. */
+    get layerClips() { return built ? { lower: built.groups.lo.currentKey, upper: built.groups.up.currentKey } : null; },
     /** Punta del báculo (o la mano derecha si no tiene) en coordenadas del mundo: de ahí salen sus hechizos. */
     punta(out = new T.Vector3()) {
       if (!built) return null; const h = built.held;

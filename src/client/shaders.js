@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { NOISE, BUMP, HAZE, SURF } from './env/glsl.js';
 
 export const uTime = { value: 0 }; // reloj global compartido por todos los shaders
 /** Si hay post-proceso (bloom), los ShaderMaterial propios deben escribir color lineal (el OutputPass lo codifica a sRGB). */
@@ -12,29 +13,75 @@ export function finish(mat) {
 
 const PAL = `vec3 pal(float t){ return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67))); }`;
 
-/* Cielo: pliegues fractales tipo Kali + estrellas. Cada mapa le da su tono. */
-export function skyMaterial({ hue = 0, inside = false, speed = 0.05, iters = 8 } = {}) {
+/* Cielo (Mapa 1 y visores): nebulosas con dominio deformado, vía láctea, galaxias espirales, estrellas de varios
+   tamaños que titilan, horizonte atmosférico y un sol con corona. Más oscuro que el primer plano (legibilidad). */
+export function skyMaterial({ hue = 0, inside = false, speed = 0.05, iters = 8, sun = null } = {}) {
+  const oct = iters <= 4 ? 2 : iters <= 6 ? 3 : 4, full = iters > 4 ? 1 : 0;
   return finish(new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, defines: { ITERS: iters },
-    uniforms: { uTime, uHue: { value: hue }, uSpeed: { value: speed }, uInside: { value: inside ? 1 : 0 } },
-    vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    side: THREE.BackSide, depthWrite: false, defines: { FBM_OCT: oct, FULL: full },
+    uniforms: { uTime, uHue: { value: hue }, uSpeed: { value: speed }, uInside: { value: inside ? 1 : 0 }, uSunDir: { value: new THREE.Vector3(...(sun || [0, 0, 0])).normalize() }, uSunOn: { value: sun ? 1 : 0 } },
+    vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position.z = gl_Position.w; }`,
     fragmentShader: `
-      uniform float uTime, uHue, uSpeed, uInside; varying vec3 vDir; ${PAL}
-      float hash(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+      uniform float uTime, uHue, uSpeed, uInside, uSunOn; uniform vec3 uSunDir; varying vec3 vDir; ${NOISE}
+      vec3 hueRot(vec3 c, float a){ const vec3 k = vec3(0.57735); float ca = cos(a), sa = sin(a); return c * ca + cross(k, c) * sa + k * dot(k, c) * (1.0 - ca); }
+      vec3 stars(vec3 d, float scale, float thr, float size, float bright){
+        vec3 p = d * scale, i = floor(p), f = fract(p) - 0.5, r = hash33(i); float h = hash13(i + 13.7);
+        float dd = length(f - (r - 0.5) * 0.7), on = step(thr, h);
+        float tw = 0.65 + 0.35 * sin(uTime * (1.0 + r.x * 3.0) + r.y * 40.0);
+        float core = smoothstep(size, 0.0, dd), halo = pow(smoothstep(size * 3.0, 0.0, dd), 3.0) * 0.35;
+        vec3 tint = mix(vec3(0.65, 0.8, 1.0), vec3(1.0, 0.78, 0.55), r.z);
+        return on * (core + halo) * tw * bright * tint * (0.5 + 0.9 * h);
+      }
+      vec3 galaxy(vec3 d, vec3 c, float size, float rot, float incl, vec3 col){
+        float vis = smoothstep(0.0, 0.25, dot(d, c)); if (vis <= 0.0) return vec3(0.0);
+        vec3 u = normalize(cross(c, vec3(0.0, 1.0, 0.1))), v = cross(c, u);
+        vec2 q = vec2(dot(d, u), dot(d, v)) / size; float cr = cos(rot), sr = sin(rot); q = mat2(cr, -sr, sr, cr) * q; q.y /= incl;
+        float rr = length(q), a = atan(q.y, q.x);
+        float arms = 0.5 + 0.5 * cos(2.0 * (a - 2.4 * log(rr + 0.06)) + uTime * 0.02);
+        float disc = exp(-rr * 2.4) * (0.35 + 0.9 * arms * smoothstep(0.0, 0.35, rr)) + exp(-rr * 14.0) * 1.3;
+        return col * disc * vis * smoothstep(1.4, 0.8, rr);
+      }
       void main(){
-        vec3 d = normalize(vDir);
-        vec3 p = d * (uInside > 0.5 ? 0.9 : 1.5);
-        float t = uTime * uSpeed, a = 0.0;
-        for (int i = 0; i < ITERS; i++) {
-          p = abs(p) / (dot(p, p) + 0.12) - vec3(0.85 + 0.12 * sin(t + float(i)), 0.78, 0.62 + 0.12 * cos(t * 1.3));
-          float c = cos(t * 0.7), s = sin(t * 0.7); p.xy = mat2(c, -s, s, c) * p.xy;
-          a += exp(-length(p) * 0.35);
+        vec3 d = normalize(vDir); float t = uTime * uSpeed;
+        float up = d.y;
+        // base: degradado vertical (cenit casi negro, horizonte luminoso, abajo violeta hondo)
+        vec3 zen = vec3(0.008, 0.007, 0.028), hor = vec3(0.05, 0.06, 0.17), low = vec3(0.02, 0.01, 0.06);
+        vec3 col = mix(hor, zen, smoothstep(0.0, 0.8, up)); col = mix(col, low, smoothstep(0.0, -0.5, up));
+        col += vec3(0.04, 0.17, 0.24) * pow(1.0 - abs(up), 9.0) * 0.5 + vec3(0.25, 0.06, 0.25) * pow(1.0 - abs(up), 22.0) * 0.35;
+        // nebulosas (dominio deformado)
+        vec3 q = d * 1.7 + vec3(0.0, t * 0.6, 0.0);
+        vec3 w = vec3(vnoise(q * 1.3 + 3.0), vnoise(q * 1.3 + 7.0), vnoise(q * 1.3 + 11.0)) - 0.5;
+        float n = fbm(q * 1.4 + 2.2 * w + t), n2 = fbm(q * 2.9 - 1.6 * w + 5.0 + t * 0.7);
+        float dens = smoothstep(0.38, 0.86, n);
+        vec3 nA = vec3(0.16, 0.05, 0.42), nB = vec3(0.60, 0.12, 0.48), nC = vec3(0.05, 0.42, 0.52);
+        vec3 nebC = mix(mix(nA, nB, smoothstep(0.3, 0.7, n2)), nC, smoothstep(0.45, 0.8, w.x + 0.5 + n * 0.2));
+        float lane = smoothstep(0.55, 0.3, fbm(q * 3.6 + 9.0));            // vetas de polvo oscuras
+        col += nebC * dens * (0.18 + 0.55 * n2) * (0.55 + 0.45 * lane) * 0.5;
+        #if FULL
+        // vía láctea
+        vec3 bn = normalize(vec3(0.35, 0.78, -0.45)); float band = exp(-pow(dot(d, bn) * 3.2, 2.0));
+        float dust = fbm(d * 5.0 + 4.0);
+        col += vec3(0.38, 0.32, 0.55) * band * (0.10 + 0.55 * smoothstep(0.25, 0.8, dust)) * 0.4;
+        col *= 1.0 - 0.45 * band * smoothstep(0.55, 0.75, fbm(d * 7.0 + 1.0));
+        // galaxias lejanas
+        col += galaxy(d, normalize(vec3(-0.55, 0.38, 0.74)), 0.16, 0.6, 2.4, vec3(0.50, 0.55, 1.0)) * 0.4;
+        col += galaxy(d, normalize(vec3(0.72, 0.52, 0.46)), 0.10, -0.9, 1.7, vec3(1.0, 0.62, 0.45)) * 0.32;
+        #endif
+        // estrellas
+        float starMask = uInside > 0.5 ? 0.0 : 1.0;
+        col += starMask * (stars(d, 55.0, 0.90, 0.16, 0.9) + stars(d, 26.0, 0.955, 0.17, 1.2) + stars(d, 11.0, 0.97, 0.14, 2.4));
+        #if FULL
+        col += starMask * stars(d, 90.0, 0.93, 0.18, 0.55) * (0.4 + 2.0 * band);
+        #endif
+        col = hueRot(col, uHue * 6.2832);
+        // sol: disco, corona y reflejo en el cielo
+        if (uSunOn > 0.5) {
+          float sd = max(dot(d, uSunDir), 0.0);
+          float disc = smoothstep(0.99905, 0.99935, sd);
+          vec3 sc = vec3(1.0, 0.86, 0.6);
+          col += sc * (disc * 1.3 + pow(sd, 400.0) * 0.5 + pow(sd, 60.0) * 0.2 + pow(sd, 9.0) * 0.02);
+          col += vec3(0.9, 0.35, 0.25) * pow(sd, 3.0) * 0.08 * (0.6 + 0.4 * dens);
         }
-        float v = fract(a * 0.22 + uTime * 0.015 + uHue);
-        float glow = pow(clamp(sin(a * 1.7 + uTime * 0.2) * 0.5 + 0.5, 0.0, 1.0), 2.0);
-        vec3 col = pal(v) * (0.10 + 0.9 * glow);
-        col = mix(vec3(0.015, 0.005, 0.04), col, uInside > 0.5 ? 0.9 : 0.75);
-        float st = hash(floor(d * 260.0)); col += vec3(1.0) * smoothstep(0.994, 1.0, st) * (uInside > 0.5 ? 0.0 : 1.0);
         gl_FragColor = vec4(col, 1.0);
       }`,
   }));

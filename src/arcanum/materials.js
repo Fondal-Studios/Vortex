@@ -197,19 +197,24 @@ function install(material, kind, tier, uniforms, frag) {
 }
 
 /** Piel del cuerpo (MakeHuman). Necesita el atributo `npcRest` (posición sin proporciones) en la geometría. */
-export function skinMaterial(material, { tier, flush = 1, edad = 'adulto', barba = null }) {
-  if (tier === 0) return material;
-  material.normalMap = poreTexture(); material.normalMap.repeat.set(48, 48);
-  const ps = tier > 1 ? 0.1 : 0.07; material.normalScale.set(ps, ps);
-  material.roughness = 0.58;
+export function skinMaterial(material, { tier, flush = 1, edad = 'adulto', barba = null, tone = [1.0, 0.95, 0.9] }) {
+  const lite = tier === 0; if (lite) tier = 1; // low: luz envolvente + rubor + brillo de borde (sólo cuentas, sin texturas extra)
+  if (!lite) { material.normalMap = poreTexture(); material.normalMap.repeat.set(48, 48); const ps = tier > 1 ? 0.12 : 0.08; material.normalScale.set(ps, ps); }
+  material.roughness = 0.56;
   const old = edad === 'anciano' ? 1 : 0;
   // Sombra de barba sobre la piel (mismas regiones que buildBeard): la barba se funde con la cara en vez de «pegarse».
   const bz = barba ? new T.Vector4(barba.capas.includes('mejillas') ? 1 : 0, barba.capas.includes('menton') ? 1 : 0, barba.capas.includes('bigote') ? 1 : 0, barba.fuerza ?? 0.55) : new T.Vector4(0, 0, 0, 0);
   const bc = new T.Color(barba?.color || '#000000');
-  return install(material, 'skin', tier, { uNpcWrap: { value: new T.Vector3(0.32, 0.15, 0.1) }, uNpcFlush: { value: flush }, uNpcOld: { value: old }, uNpcBeard: { value: bz }, uNpcBeardCol: { value: bc } }, {
-    restAttr: true, key: '',
-    pars: 'uniform vec3 uNpcWrap; uniform float uNpcFlush; uniform float uNpcOld; uniform vec4 uNpcBeard; uniform vec3 uNpcBeardCol;\n',
+  return install(material, 'skin', tier, { uNpcWrap: { value: new T.Vector3(0.32, 0.15, 0.1) }, uNpcFlush: { value: flush }, uNpcOld: { value: old }, uNpcBeard: { value: bz }, uNpcBeardCol: { value: bc }, uNpcTone: { value: new T.Vector3(...tone) } }, {
+    restAttr: true, key: lite ? 'l' : '',
+    pars: 'uniform vec3 uNpcWrap; uniform float uNpcFlush; uniform float uNpcOld; uniform vec4 uNpcBeard; uniform vec3 uNpcBeardCol; uniform vec3 uNpcTone;\n',
     after: {
+      // brillo de borde subsuperficial: la luz ambiente atraviesa lo fino (orejas, nariz, contorno) y sale rojiza
+      opaque_fragment: `
+	{ float npcNV = saturate( dot( normal, geometryViewDir ) );
+	  float npcSS = pow( 1.0 - npcNV, 3.0 ) * ( 0.16 + 0.7 * npcThin );
+	  float npcAmb = dot( reflectedLight.indirectDiffuse + reflectedLight.directDiffuse * 0.25, vec3( 0.3333 ) );
+	  gl_FragColor.rgb += diffuseColor.rgb * vec3( 1.0, 0.34, 0.2 ) * npcSS * clamp( npcAmb * 1.5 + 0.06, 0.0, 0.9 ); }`,
       color_fragment: `
 	vec3 npcQ = vec3( abs( vNpcP.x ), vNpcP.yz );
 	float npcCheek = npcBlob( npcQ, vec3( 0.047, 1.543, 0.124 ), vec3( 0.021, 0.018, 0.03 ) );
@@ -221,6 +226,9 @@ export function skinMaterial(material, { tier, flush = 1, edad = 'adulto', barba
 	float npcLid = length( npcE * vec3( 0.85, 1.25, 1.0 ) );
 	float npcLash = ( 1.0 - smoothstep( 0.0148, 0.0172, npcLid ) ) * smoothstep( -0.004, 0.008, npcE.z ) * mix( 0.45, 1.0, smoothstep( -0.002, 0.003, npcE.y ) );
 	npcThin = npcEar + 0.35 * npcNose;
+	diffuseColor.rgb *= uNpcTone;
+	float npcJaw = npcBlob( npcQ, vec3( 0.0, 1.462, 0.1 ), vec3( 0.075, 0.03, 0.05 ) );
+	diffuseColor.rgb *= 1.0 - 0.42 * npcJaw;
 	vec3 npcFlushCol = vec3( 1.0, 0.76, 0.74 );
 	diffuseColor.rgb *= mix( vec3( 1.0 ), npcFlushCol, saturate( ( npcCheek * 0.32 + npcNose * 0.38 ) * uNpcFlush + npcEar * 0.3 + npcLip * 0.1 ) );
 	diffuseColor.rgb *= mix( vec3( 1.0 ), vec3( 0.84, 0.78, 0.86 ), npcUnder * ( 0.35 + 0.25 * uNpcOld ) );
@@ -318,26 +326,38 @@ export function beardMaterial(material, { tier }) {
  * (proyección triplanar sobre la posición local), 'garment' = ropa MakeHuman (solo polvo en el ruedo y desgaste).
  * La geometría lleva el atributo `npcFab` = (id de tela, distancia en metros al borde más cercano) salvo en 'garment'.
  */
-export function fabricMaterial(material, { tier, mode = 'uv', dirt = 0.5 }) {
-  if (tier === 0) return material;
-  const S = tier > 1 ? 256 : 128;
-  if (mode === 'garment') {
-    return install(material, 'garment', tier, { uNpcDirt: { value: dirt } }, {
-      key: 'g', pars: 'uniform float uNpcDirt;\n',
-      after: { color_fragment: `
+export function fabricMaterial(material, { tier, mode = 'uv', dirt = 0.5, top = null, bottom = null, gain = 2.4 }) {
+  // Prenda MakeHuman con zonas: «arriba» (sudadera, camisa; y > 0,97) y «abajo» (pantalón). Se recolorea por luminancia
+  // (conserva los pliegues y las costuras pintadas de la textura) y, desde Medio, suma relieve de trama triplanar.
+  const tint = mode === 'garment' && (top || bottom) ? {
+    uNpcTop: { value: new T.Color(top || '#ffffff') }, uNpcBot: { value: new T.Color(bottom || '#ffffff') },
+    uNpcTopMix: { value: top ? 0.88 : 0 }, uNpcBotMix: { value: bottom ? 0.8 : 0 }, uNpcGain: { value: gain } } : null;
+  const tintPars = tint ? 'uniform vec3 uNpcTop; uniform vec3 uNpcBot; uniform float uNpcTopMix; uniform float uNpcBotMix; uniform float uNpcGain;\n' : '';
+  const tintCode = tint ? `
+	{ float npcTopM = smoothstep( 0.95, 1.05, vNpcP.y );
+	  float npcLumA = dot( diffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) ) * uNpcGain;
+	  vec3 npcRecT = mix( diffuseColor.rgb, vec3( npcLumA ) * uNpcTop, uNpcTopMix );
+	  vec3 npcRecB = mix( diffuseColor.rgb, vec3( npcLumA ) * uNpcBot, uNpcBotMix );
+	  diffuseColor.rgb = mix( npcRecB, npcRecT, npcTopM ); }` : '';
+  if (mode === 'garment' && tier === 0) {
+    return install(material, 'garment', tier, { uNpcDirt: { value: dirt }, ...(tint || {}) }, {
+      key: 'g' + (tint ? 't' : ''), pars: 'uniform float uNpcDirt;\n' + tintPars,
+      after: { color_fragment: `${tintCode}
 	float npcDirt = ( 1.0 - smoothstep( 0.03, 0.42, vNpcP.y ) ) * uNpcDirt;
 	diffuseColor.rgb = mix( diffuseColor.rgb, diffuseColor.rgb * vec3( 0.74, 0.68, 0.58 ) + vec3( 0.02, 0.016, 0.01 ), npcDirt );`,
       roughnessmap_fragment: 'roughnessFactor = min( 1.0, roughnessFactor + 0.08 * npcDirt );' },
     });
   }
+  if (tier === 0) return material;
+  const S = tier > 1 ? 256 : 128;
   // Proyección triplanar sobre la posición de reposo (antes de skinning): densidad de hilo constante en metros,
   // sin depender de los UV de las capas derivadas (que se estiran en mangas y hombros) y pegada a la tela al animar.
-  material.map = null;
-  return install(material, 'fabric', tier, { uNpcFab: { value: fabricArray(S) }, uNpcDirt: { value: dirt }, uNpcBump: { value: 2.5 } }, {
-    key: mode,
+  if (mode !== 'garment') material.map = null;
+  return install(material, 'fabric', tier, { uNpcFab: { value: fabricArray(S) }, uNpcDirt: { value: dirt }, uNpcBump: { value: mode === 'garment' ? 3.2 : 2.5 }, ...(tint || {}) }, {
+    key: mode + (tint ? 't' : ''),
     pars: `precision highp sampler2DArray;
 uniform sampler2DArray uNpcFab; uniform float uNpcDirt; uniform float uNpcBump; varying vec2 vNpcFab; varying vec3 vNpcN;
-const float NPC_TILE[${FAB_LIST.length}] = ${glslArr('tile')};
+${tintPars}const float NPC_TILE[${FAB_LIST.length}] = ${glslArr('tile')};
 const float NPC_NRM[${FAB_LIST.length}] = ${glslArr('normal')};
 const float NPC_ROUGH[${FAB_LIST.length}] = ${glslArr('rough')};
 const float NPC_SHEEN[${FAB_LIST.length}] = ${glslArr('sheen')};
@@ -351,7 +371,7 @@ vec3 npcBump( vec3 surf_pos, vec3 surf_norm, vec2 dHdxy, float faceDir ) {
 }
 `,
     after: {
-      color_fragment: `
+      color_fragment: `${tintCode}
 	int npcId = int( vNpcFab.x + 0.5 );
 	float npcLayer = float( npcId );
 	vec3 npcW = pow( abs( normalize( vNpcN ) ), vec3( 4.0 ) ); npcW /= ( npcW.x + npcW.y + npcW.z );

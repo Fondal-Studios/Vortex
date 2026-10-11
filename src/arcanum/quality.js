@@ -4,9 +4,9 @@
 //   lite: sin capas de tela procedurales (abrigos/capas, ≈11 k triángulos por persona), ojos sin córnea y traje liviano
 //   shadows: sombras propias · particles: partículas de afinidad (0 = ninguna) · lodDistance: metros a partir de los cuales se apaga el detalle
 export const PROFILES = {
-  low:    { textureMax: 256,  accessoryDetail: 0, shadows: false, particles: 0,   lodDistance: 6,  facial: false, normalMaps: false, lite: true },
-  medium: { textureMax: 512,  accessoryDetail: 1, shadows: false, particles: 0.4, lodDistance: 12, facial: true,  normalMaps: false, lite: false },
-  high:   { textureMax: 1024, accessoryDetail: 2, shadows: true,  particles: 1,   lodDistance: 22, facial: true,  normalMaps: true, lite: false },
+  low:    { textureMax: 256,  accessoryDetail: 0, shadows: false, particles: 0,   lodDistance: 6,  facial: false, normalMaps: false, lite: true, lod: true },
+  medium: { textureMax: 512,  accessoryDetail: 1, shadows: false, particles: 0.4, lodDistance: 12, facial: true,  normalMaps: false, lite: false, lod: false },
+  high:   { textureMax: 1024, accessoryDetail: 2, shadows: true,  particles: 1,   lodDistance: 22, facial: true,  normalMaps: true, lite: false, lod: false },
 };
 export function npcProfile(q, { movil = false } = {}) {
   const p = { ...(PROFILES[q] || PROFILES.medium) };

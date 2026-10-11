@@ -19,20 +19,24 @@ export function getNpcStore({ textureMax = null, base = NPC_ASSET_BASE } = {}) {
 
 function createStore({ textureMax, base }) {
   const loader = new T.TextureLoader(), textures = new Map(), meshes = new Map(), masks = new Map(), gains = new Map();
-  let model = null, clips = null, clipsPromise = null, bodyCache = null, bytes = 0;
+  let model = null, lodModel = null, clips = null, clipsPromise = null, bodyCache = null, bytes = 0;
   const ready = (async () => {
     const r = await fetch(new URL('model.json', base)); if (!r.ok) throw Error('No se pudo cargar anatomía humana');
     model = await r.json();
   })();
+  // Mallas de bajo detalle (assets/arcanum/narrative/lod.json, ver bake-lod.mjs): el cuerpo ya viene recortado por prenda.
+  const lodReady = ready.then(async () => { const r = await fetch(new URL('lod.json', base)); if (!r.ok) throw Error('No se pudo cargar el LOD de personas'); lodModel = await r.json(); });
   function boneWorld() {
     const W = {}; for (const b of model.bones) { const p = b.parent >= 0 ? W[model.bones[b.parent].name] : [0, 0, 0]; W[b.name] = [p[0] + b.pos[0], p[1] + b.pos[1], p[2] + b.pos[2]]; }
     return W;
   }
   const createSkeleton = () => crearEsqueletoMH(model);
-  async function mesh(name) {
-    await ready;
-    if (!meshes.has(name)) meshes.set(name, (async () => {
-      const data = model.meshes[name]; if (!data) throw Error(`Asset inexistente: malla ${name}`);
+  /** name: malla (o «body@<prenda>» en el LOD); lod: usa las mallas decimadas. `alias` = nombre con el que se devuelve. */
+  async function mesh(name, lod = false, alias = name) {
+    await ready; if (lod) await lodReady;
+    const key = (lod ? 'lod:' : '') + name + '>' + alias;
+    if (!meshes.has(key)) meshes.set(key, (async () => {
+      const data = (lod ? lodModel : model).meshes[name]; if (!data) throw Error(`Asset inexistente: malla ${name}`);
       const r = await fetch(new URL(data.file, base)); if (!r.ok) throw Error(`Asset inexistente: ${data.file}`);
       const buffer = await r.arrayBuffer(), attrs = {};
       for (const [k, a] of Object.entries(data.attributes)) {
@@ -40,9 +44,9 @@ function createStore({ textureMax, base }) {
         const arr = new Type(buffer, a.offset, a.count * a.width);
         attrs[k] = k === 'index' ? new T.BufferAttribute(arr, 1) : new T.BufferAttribute(arr, a.width);
       }
-      return { name, attrs, base: attrs.position.array, triangles: data.triangles };
+      return { name: alias, attrs, base: attrs.position.array, triangles: data.triangles };
     })());
-    return meshes.get(name);
+    return meshes.get(key);
   }
   async function bodyMask(outfit) {
     await ready;
@@ -74,12 +78,12 @@ function createStore({ textureMax, base }) {
     } catch { return 2; }
   }
   // Datos crudos del cuerpo para derivar capas procedurales (barbas, capuchas, túnicas, botas, guantes).
-  async function body() {
-    if (bodyCache) return bodyCache;
-    const m = await mesh('body'), W = boneWorld(), names = model.bones.map((b) => b.name);
+  async function body(lod = false) {
+    if (bodyCache && (!bodyCache.lod || lod)) return bodyCache;
+    const m = lod ? await mesh('body@none', true, 'body') : await mesh('body'), W = boneWorld(), names = model.bones.map((b) => b.name);
     const si = m.attrs.skinIndex.array, sw = m.attrs.skinWeight.array, n = m.attrs.position.count, dominant = new Array(n);
     for (let i = 0; i < n; i++) { let best = 0; for (let k = 1; k < 4; k++) if (sw[i * 4 + k] > sw[i * 4 + best]) best = k; dominant[i] = names[si[i * 4 + best]]; }
-    bodyCache = { position: m.base, normal: m.attrs.normal.array, uv: m.attrs.uv.array, skinIndex: si, skinWeight: sw, index: m.attrs.index.array, dominant, boneWorld: W, boneIndex: Object.fromEntries(names.map((nm, i) => [nm, i])) };
+    bodyCache = { lod, position: m.base, normal: m.attrs.normal.array, uv: m.attrs.uv.array, skinIndex: si, skinWeight: sw, index: m.attrs.index.array, dominant, boneWorld: W, boneIndex: Object.fromEntries(names.map((nm, i) => [nm, i])) };
     return bodyCache;
   }
   async function animationClips() {
@@ -94,7 +98,7 @@ function createStore({ textureMax, base }) {
     return clipsPromise;
   }
   return {
-    ready, mesh, bodyMask, texture, body, animationClips, createSkeleton, boneWorld,
+    ready, lodReady, mesh, bodyMask, texture, body, animationClips, createSkeleton, boneWorld,
     gain: (file) => gains.get(file) ?? 2,
     get model() { return model; },
     stats: () => ({ textures: textures.size, meshes: meshes.size }),
