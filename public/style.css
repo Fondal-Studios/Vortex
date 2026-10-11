@@ -147,7 +147,7 @@ select, input[type=text], input:not([type]), input[type=range] { font: inherit; 
 .abbar{height:6px;background:rgba(255,255,255,.14);border-radius:5px;overflow:hidden;margin:3px 0}
 #abfill{display:block;height:100%;width:100%;background:#5cf2ff}
 #ability.cd #abfill{background:#8a7fb8}#abkey{opacity:.65}
-#bossmech{position:absolute;top:58px;left:50%;transform:translateX(-50%);padding:5px 12px;border-radius:8px;background:rgba(40,10,30,.72);border:1px solid #ff9ae8;font-size:12px;letter-spacing:.06em;text-align:center;pointer-events:none;white-space:nowrap}
+#bossmech{position:absolute;top:112px;left:50%;transform:translateX(-50%);padding:5px 12px;border-radius:8px;background:rgba(40,10,30,.72);border:1px solid #ff9ae8;font-size:12px;letter-spacing:.06em;text-align:center;pointer-events:none;white-space:nowrap}
 #downed{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;letter-spacing:.14em;color:#ff7a9a;text-shadow:0 0 18px #ff2a5a;background:radial-gradient(ellipse at center,transparent 35%,rgba(120,0,30,.45));pointer-events:none;text-align:center;padding:0 20px}
 #pings{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .ping{position:absolute;transform:translate(-50%,-100%);font-size:11px;font-weight:800;color:#fff;text-shadow:0 0 8px #000;text-align:center;white-space:nowrap}

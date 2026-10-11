@@ -16,13 +16,15 @@ Elegí **▶ Historia** (campaña con la intro del tren) o una **Arena**, y hac�
 |---|---|---|---|---|
 | `WASD` | mover | | `SHIFT` | correr |
 | ratón | apuntar | | `1–5` / rueda | cambiar de arma |
+| `Q` | habilidad de tu rol | | `E` | usar / pasar el núcleo |
+| `G` o rueda (clic) | señalar (ping) | | | |
 | clic izq. | disparar | | `ESC` | pausa |
 | `ESPACIO` | saltar | | `Enter`/clic | saltar la intro |
 
 ### En iPhone
 - **Con tu PC:** corré `npm start` y abrí `http://IP-DE-TU-PC:8080` en Safari (misma Wi-Fi). Funciona **solo y cooperativo**. Compartir ▸ *Agregar a pantalla de inicio* lo deja a pantalla completa.
 - **Sin PC (solo, tipo app):** `node tools/build-static.js` genera `dist/` (sitio estático); el workflow `.github/workflows/pages.yml` lo publica en GitHub Pages (activá *Settings ▸ Pages ▸ Source: GitHub Actions*). El cooperativo necesita el servidor.
-- **Controles táctiles:** palanca a la izquierda (empujala al borde para correr), arrastrá a la derecha para mirar, botón **DISPARO** grande (también se puede arrastrar desde él), **SALTO**, **CORRER**, ‹ › para cambiar de arma o tocar el nombre del arma, ❚❚ pausa. Hay una pequeña asistencia de puntería. Girá el teléfono en horizontal.
+- **Controles táctiles:** palanca a la izquierda (empujala al borde para correr), arrastrá a la derecha para mirar, botón **DISPARO** grande (también se puede arrastrar desde él), **SALTO**, **CORRER**, **HABILIDAD**, **USAR**, ◆ (señalar), ‹ › para cambiar de arma o tocar el nombre del arma, ❚❚ pausa. Hay una pequeña asistencia de puntería. Girá el teléfono en horizontal.
 - **Gráficos:** el menú y la pausa tienen *Baja / Media / Alta*. En teléfono arranca en **Baja**; si los FPS caen solos, baja un nivel. Se recuerda la elección.
 
 ### Cooperativo (2–4)

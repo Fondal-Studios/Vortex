@@ -32,7 +32,7 @@ Un shooter de oleadas se vuelve aburrido cuando **todos hacen lo mismo** (dispar
 ### 4.1 Director de ritmo (estilo Left 4 Dead)
 Mide el **estrés** del equipo (daño reciente, vida baja, caídos). Con estrés alto **espacia las apariciones y suelta más botiquines**; con estrés bajo y mucho tiempo sin presión **mete un pelotón de criaturas especiales**. Resultado: partidas que respiran y suben, sin que el jugador lo note.
 
-### 4.2 Cuatro roles (estilo Deep Rock / Helldivers) — tecla **E** / botón / ○
+### 4.2 Cuatro roles (estilo Deep Rock / Helldivers) — habilidad: tecla **Q** / botón HABILIDAD / □
 | Rol | Habilidad (recarga) | Pasivo | Cuándo brilla |
 |---|---|---|---|
 | **Vanguardia** | **Cúpula** (24 s): escudo de 6 s que destruye proyectiles y reduce 40 % el daño a los de adentro | resiste más | proteger una Ancla o a un compañero caído |
@@ -44,9 +44,9 @@ Mide el **estrés** del equipo (daño reciente, vida baja, caídos). Con estrés
 Cada oleada puede traer un **objetivo**, además de sobrevivir. Si lo cumplís: **suministros, +25 % de daño 30 s al equipo y un fragmento de historia**. Si fallás (o se acaba el tiempo): sale una **oleada de castigo** y no hay recompensa — pero la partida sigue.
 - **Ancla de realidad** *(defender)*: se carga mientras haya jugadores dentro del círculo (más jugadores → carga más rápido). Las criaturas la roen: **hay que cubrirla**.
 - **Sintonía** *(puzzle de sincronía)*: placas lejos unas de otras (en el Mapa 1, en **islas distintas**: hay que usar portales). **Todas deben estar pisadas a la vez durante 3 s.** En coop se reparten; **en solitario** cada placa queda «viva» 10 s después de salir, así que se resuelve corriendo contra el reloj.
-- **Núcleo de memoria** *(llevar y cubrir)*: lo carga **uno** (más lento y **sin poder disparar**) hasta un altar; el resto lo cubre y puede **pasarle el núcleo con ✕/E** cerca. En el Mapa 1 el altar está **en la isla-techo**: hay que usar el ascensor de gravedad invertida con el núcleo.
+- **Núcleo de memoria** *(llevar y cubrir)*: lo carga **uno** (más lento y **sin poder disparar**) hasta un altar; el resto lo cubre y puede **pasarle el núcleo con E** cerca (botón USAR / △). En el Mapa 1 el altar está **en la isla-techo**: hay que usar el ascensor de gravedad invertida con el núcleo.
 
-### 4.4 Ping (estilo Apex/Division) — tecla **G** / tocar con dos dedos / R3
+### 4.4 Ping (estilo Apex/Division) — tecla **G** / clic de la rueda del ratón / botón ◆ táctil / R3
 Marca criatura, objetivo o lugar y **todos lo ven** (con distancia). Sin hablar, el equipo se coordina.
 
 ### 4.5 Jefes con mecánicas independientes (estilo Destiny)
