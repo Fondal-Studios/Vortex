@@ -18,13 +18,14 @@ const STORY = {
 $('story').textContent = STORY.intro;
 
 const canvas = $('c');
-const renderer = new Renderer(canvas);
+const renderer = new Renderer(canvas, params.get('pr') ? { pixelRatio: +params.get('pr') } : {});
 const sound = new Sound();
 
 /* ───────── entrada ───────── */
 const keys = new Set();
 const mouse = { dx: 0, dy: 0, fire: false };
-let wantWeapon = -1, locked = false;
+const NOLOCK = params.get('nolock') === '1'; // pruebas e2e: sin pointer lock real
+let wantWeapon = -1, locked = NOLOCK;
 addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (e.code >= 'Digit1' && e.code <= 'Digit5') wantWeapon = +e.code.slice(5) - 1;
@@ -36,6 +37,7 @@ addEventListener('mouseup', (e) => { if (e.button === 0) mouse.fire = false; });
 addEventListener('wheel', (e) => { if (session) wantWeapon = (((session.myWeapon || 0) + (e.deltaY > 0 ? 1 : -1)) % 5 + 5) % 5; });
 addEventListener('mousemove', (e) => { if (locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
+  if (NOLOCK) return;
   locked = document.pointerLockElement === canvas;
   if (session && !session.ended) $('pause').classList.toggle('hidden', locked || session.headless);
 });
@@ -55,12 +57,23 @@ function readInput() {
 let session = null;
 let last = performance.now();
 
+const HORDE_KINDS = ['astilla', 'geoda', 'prisma', 'lente', 'cuarzo', 'espejo', 'racimo', 'graviton'];
+/** Modo de prueba de rendimiento: mantiene la horda al máximo (criaturas casi inmortales). */
+function hordeTopUp(g) {
+  const ref = g.players[0]; g.phaseT = 1e9; g.queue = [];
+  for (const m of g.monsters) { m.hp = m.maxhp = 1e9; }
+  while (g.monsters.length < 88) {
+    const k = HORDE_KINDS[g.monsters.length % HORDE_KINDS.length], def = MONSTERS[k];
+    g.spawnMonster(k, def.fly ? g.map.spawnAir(g.rng, ref.pos, ref.up) : g.map.spawnGround(g.rng, ref.pos));
+  }
+}
+
 function startSolo(mapId, opts = {}) {
   const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1 });
   const p = game.addPlayer('Ilse');
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
-  session = { mode: 'solo', game, pid: p.id, acc: 0, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId };
+  session = { horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId };
   enter(mapId);
 }
 
@@ -73,7 +86,6 @@ async function startCoop(create, code, mapId) {
   net.send(create ? { t: 'create', map: mapId, name: 'Ilse' } : { t: 'join', room: code, name: 'Ilse' });
   await new Promise((r) => { const t = setInterval(() => { if (net.pid || net.closed) { clearInterval(t); r(); } }, 30); setTimeout(() => { clearInterval(t); r(); }, 2500); });
   if (!net.pid) { session = null; $('menuerr').textContent ||= 'no se pudo entrar a la sala'; return; }
-  setInterval(() => { if (session && session.net === net && !session.ended) { /* entrada enviada en el bucle */ } }, 1000);
   enter(net.map);
 }
 
@@ -83,7 +95,7 @@ function enter(mapId) {
   renderer.setMap(mapId); renderer.camInit = false;
   banner(STORY[mapId], 6000);
   buildWeaponHud();
-  if (!session.headless) lockPointer();
+  if (!session.headless && !NOLOCK && !params.get('auto')) lockPointer(); // requiere gesto del usuario
 }
 
 function buildWeaponHud() {
@@ -92,7 +104,7 @@ function buildWeaponHud() {
 
 let bannerTimer = 0;
 function banner(text, ms = 2500) {
-  const b = $('banner'); b.textContent = text; b.classList.add('on'); clearTimeout(bannerTimer);
+  const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 60); b.classList.add('on'); clearTimeout(bannerTimer);
   bannerTimer = setTimeout(() => b.classList.remove('on'), ms);
 }
 
@@ -114,6 +126,7 @@ function frame(now) {
         g.setInput(session.pid, inp);
         g.step(SIM_DT);
         if (g.players[0].godmode) { g.players[0].hp = 100; g.players[0].shield = 100; }
+        if (session.horde) hordeTopUp(g);
         if (g.state !== 'playing') break;
       }
     }
@@ -138,6 +151,13 @@ function frame(now) {
     }
   }
   const me = state.players.find((p) => p.id === session.pid) || state.players[0];
+  if (params.get('look') === 'boss' && me) { // ayuda para capturas: mirar siempre al jefe
+    const b = state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre');
+    if (b) {
+      const up = v3(...me.up), d = norm(v3(b.p[0] - me.pos[0], b.p[1] - me.pos[1], b.p[2] - me.pos[2])), h = norm(project(d, up), v3(...me.h));
+      session.look = { h: [h.x, h.y, h.z], pitch: Math.asin(Math.max(-1, Math.min(1, d.x * up.x + d.y * up.y + d.z * up.z))) };
+    }
+  }
   session.myWeapon = me ? me.w : 0;
   renderer.render(state, dt, session.pid, session.look);
   audioAndHud(state, me, dt);
@@ -231,7 +251,7 @@ $('again').addEventListener('click', () => {
 
 // Modos automáticos para pruebas visuales y de rendimiento: ?auto=m1&bot=1&wave=3&god=1
 if (params.get('auto')) {
-  startSolo(params.get('auto'), { bot: params.get('bot') === '1', wave: +params.get('wave') || 0, god: params.get('god') === '1', seed: +params.get('seed') || 7, skill: +params.get('skill') || 1.2, difficulty: +params.get('difficulty') || 1 });
+  startSolo(params.get('auto'), { bot: params.get('bot') === '1', wave: +params.get('wave') || 0, god: params.get('god') === '1', horde: params.get('horde') === '1', seed: +params.get('seed') || 7, skill: +params.get('skill') || 1.2, difficulty: +params.get('difficulty') || 1 });
   window.__session = session; window.__renderer = renderer;
 }
 window.__api = { get session() { return session; }, renderer, MONSTERS };

@@ -51,6 +51,7 @@ export function crystalMaterial(color = 0x66ffee, { alpha = 1, glow = 0, hue = 0
         col = mix(col, pal(irid) * 1.1, 0.2 + 0.5 * fres); col += uColor * 0.12;
         col += uColor * uGlow * (0.6 + 0.4 * sin(uTime * 9.0));
         col += vec3(1.0, 0.9, 0.8) * uHurt;
+        col = 1.0 - exp(-col * 1.35); // tonemap suave: el brillo no quema a blanco
         float al = uAlpha;
         if (uShim > 0.0) { float w = sin(vWorld.y * 6.0 + uTime * 5.0 + vWorld.x * 3.0) * 0.5 + 0.5; al = mix(uAlpha, 0.06 + 0.12 * w + fres * 0.5, uShim); }
         gl_FragColor = vec4(col, al);
@@ -93,8 +94,9 @@ export function shellMaterial(hue = 0.3) {
         float f = 0.0, amp = 1.0;
         for (int i = 0; i < 5; i++) { p = vec3(p.y + sin(p.z * 1.7 + t), p.z + sin(p.x * 1.9 - t), p.x + sin(p.y * 1.3 + t)); f += amp * (0.5 + 0.5 * sin(p.x * 3.0 + p.y * 2.0)); amp *= 0.55; p *= 1.7; }
         float cells = abs(sin(f * 4.0 + uTime * 0.4));
-        vec3 col = pal(fract(f * 0.35 + uHue + uTime * 0.02)) * (0.18 + 0.5 * cells);
-        float edge = smoothstep(0.92, 1.0, cells); col += vec3(1.0) * edge * 0.35;
+        vec3 col = pal(fract(f * 0.35 + uHue + uTime * 0.02)) * (0.10 + 0.30 * cells);
+        col = mix(col, vec3(0.04, 0.02, 0.10), 0.35);
+        float edge = smoothstep(0.94, 1.0, cells); col += vec3(0.6, 0.9, 1.0) * edge * 0.18;
         col = mix(col, vec3(1.0, 0.3, 0.5) * (0.4 + 0.4 * sin(uTime * 8.0)), uWarn * 0.35);
         gl_FragColor = vec4(col, 1.0);
       }`,

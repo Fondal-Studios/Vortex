@@ -15,7 +15,7 @@ const items = kinds.map((k, i) => {
   e.object.position.set(x, y, 0); e.object.scale.setScalar(sc); scene.add(e.object); return { e, st };
 });
 const span = Math.min(kinds.length, 5);
-cam.position.set(0, 0.5 + (Math.ceil(kinds.length / 5) - 1) * -2.1, 4 + span * 2.4); cam.lookAt(0, -(Math.ceil(kinds.length / 5) - 1) * 2.1, 0);
+cam.position.set(0, 0.5 + (Math.ceil(kinds.length / 5) - 1) * -2.1, 5 + span * 3.6); cam.lookAt(0, -(Math.ceil(kinds.length / 5) - 1) * 2.1, 0);
 let t = 0, last = performance.now();
 const renderFrame = (now) => {
   requestAnimationFrame(renderFrame);

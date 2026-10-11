@@ -4,7 +4,7 @@ import { crystalMaterial } from './shaders.js';
 /** Colores del bestiario (también usados por partículas y HUD). */
 export const COLORS = {
   astilla: 0x44ffd0, geoda: 0xb066ff, prisma: 0xff66c4, lente: 0xffd23f, cuarzo: 0xff7a45,
-  espejo: 0xcfe9ff, racimo: 0xff3b5c, graviton: 0x6a7bff, coloso: 0xfff2a8, madre: 0x9dff5a,
+  espejo: 0xcfe9ff, racimo: 0xff3b5c, graviton: 0x6a7bff, coloso: 0xffc65c, madre: 0x9dff5a,
 };
 
 const G = {
@@ -34,7 +34,7 @@ const BUILD = {
     } };
   },
   geoda(c) {
-    const shell = crystalMaterial(c), core = crystalMaterial(0xffe8a0, { glow: 1.2 }), root = new THREE.Group();
+    const shell = crystalMaterial(c), core = crystalMaterial(0xff9a3c, { glow: 1.0 }), root = new THREE.Group();
     const top = new THREE.Group(), bot = new THREE.Group(); root.add(top, bot);
     top.add(mesh(G.halfA, shell)); bot.add(mesh(G.halfB, shell));
     for (let i = 0; i < 6; i++) { const sp = mesh(G.cone6, shell, [0.18, 0.5, 0.18]); const a = i * 1.047; sp.position.set(Math.cos(a) * 0.8, 0.55, Math.sin(a) * 0.8); sp.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); top.add(sp); }
@@ -43,7 +43,7 @@ const BUILD = {
     return { root, mats: [shell, core], tick(dt, st, t) {
       open += ((st.o ? 1 : 0) - open) * Math.min(1, 10 * dt);
       top.position.y = open * 0.9; top.rotation.z = open * 0.5; bot.position.y = -open * 0.5; bot.rotation.z = -open * 0.2;
-      core.uniforms.uGlow.value = 0.2 + open * 2.2; inner.scale.setScalar(0.45 + open * 0.25);
+      core.uniforms.uGlow.value = 0.2 + open * 1.4; inner.scale.setScalar(0.45 + open * 0.25);
       inner.rotation.y = t * 2; root.rotation.x = st.o ? 0 : t * 2.2; // rueda cerrado, quieto abierto
     } };
   },

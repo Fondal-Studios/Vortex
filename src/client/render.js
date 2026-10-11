@@ -24,6 +24,7 @@ export class Renderer {
     this.camera = new THREE.PerspectiveCamera(82, 1, 0.1, 2000);
     this.scene.add(this.camera);
     this.halo = haloTexture();
+    this.cache = new Map(); // geometrías/materiales compartidos de proyectiles y pickups (evita fugas de GPU)
     this.fx = new Effects(this.scene);
     this.mapRoot = new THREE.Group(); this.scene.add(this.mapRoot);
     this.ents = { mon: new Map(), proj: new Map(), pick: new Map(), ply: new Map() };
@@ -35,6 +36,8 @@ export class Renderer {
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
+  shared(key, make) { let v = this.cache.get(key); if (!v) { v = make(); this.cache.set(key, v); } return v; }
+  halo_(color) { return this.shared('halo' + color, () => new THREE.SpriteMaterial({ map: this.halo, color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); }
   resize() {
     const w = this.gl.domElement.clientWidth || window.innerWidth, h = this.gl.domElement.clientHeight || window.innerHeight;
     this.gl.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
@@ -108,8 +111,8 @@ export class Renderer {
     }
     // espigas de cristal clavadas en el cascarón, apuntando hacia adentro
     const up = new THREE.Vector3(0, 1, 0);
-    for (let i = 0; i < 160; i++) {
-      const z = 1 - (i + 0.5) / 80, rad = Math.sqrt(Math.max(0, 1 - z * z)), th = i * 2.399963;
+    for (let i = 0; i < 90; i++) {
+      const z = 1 - (i + 0.5) / 45, rad = Math.sqrt(Math.max(0, 1 - z * z)), th = i * 2.399963;
       const n = new THREE.Vector3(Math.cos(th) * rad, z, Math.sin(th) * rad);
       if (map.solids.some((s) => s.type === 'sph' && n.clone().multiplyScalar(map.R).distanceTo(new THREE.Vector3(s.c.x, s.c.y, s.c.z)) < s.r + 3)) continue;
       const h = 3 + (i % 5) * 1.6, spike = new THREE.Mesh(new THREE.ConeGeometry(1.1 + (i % 3) * 0.5, h, 5), crystalMaterial(new THREE.Color().setHSL(((i * 0.031) + 0.55) % 1, 0.85, 0.6), { glow: 0.1 }));
@@ -206,7 +209,7 @@ export class Renderer {
       for (const mat of e.mats) if (mat.uniforms.uHurt) mat.uniforms.uHurt.value = m.h ? 0.7 : 0;
       e.tick(dt, { id: m.id, s: m.s, o: m.o, c: m.c }, this.t);
     }
-    for (const [id, e] of this.ents.mon) if (!seen.has(id)) { this.entRoot.remove(e.object); this.ents.mon.delete(id); }
+    for (const [id, e] of this.ents.mon) if (!seen.has(id)) { this.entRoot.remove(e.object); e.mats.forEach((m) => m.dispose()); this.ents.mon.delete(id); }
   }
 
   syncProjectiles(state) {
@@ -216,10 +219,10 @@ export class Renderer {
       let e = this.ents.proj.get(p.id);
       if (!e) {
         const col = p.k === 'nova' ? 0xff9a3c : p.k === 'orb' ? 0xff4fd8 : p.k === 'beam' ? 0x66f0ff : 0xffe066;
-        const g = new THREE.Group();
-        g.add(new THREE.Mesh(p.k === 'beam' ? new THREE.CylinderGeometry(0.1, 0.1, 2.6, 5) : new THREE.OctahedronGeometry(p.r * 1.1, 0), new THREE.MeshBasicMaterial({ color: col })));
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: col, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); sp.scale.setScalar(p.r * 5); g.add(sp);
-        if (p.k === 'beam') g.children[0].geometry.rotateX(Math.PI / 2);
+        const g = new THREE.Group(), key = `${p.k}${p.r}`;
+        const geo = this.shared('pg' + key, () => { const q = p.k === 'beam' ? new THREE.CylinderGeometry(0.1, 0.1, 2.6, 5) : new THREE.OctahedronGeometry(p.r * 1.1, 0); if (p.k === 'beam') q.rotateX(Math.PI / 2); return q; });
+        g.add(new THREE.Mesh(geo, this.shared('pm' + col, () => new THREE.MeshBasicMaterial({ color: col }))));
+        const sp = new THREE.Sprite(this.halo_(col)); sp.scale.setScalar(p.r * 5); g.add(sp);
         e = g; e.userData.col = col; e.position.set(...p.p); this.entRoot.add(g); this.ents.proj.set(p.id, g);
       }
       e.position.set(...p.p);
@@ -236,10 +239,10 @@ export class Renderer {
       let e = this.ents.pick.get(k.id);
       if (!e) {
         const hp = k.t === 'hp', col = hp ? 0x7dffa0 : WEAPON_COLORS[k.w] || 0xffcc44;
-        const g = new THREE.Group();
-        if (hp) { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.3, 0.3), crystalMaterial(col, { glow: 0.5 }))); g.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.9, 0.3), crystalMaterial(col, { glow: 0.5 }))); }
-        else g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), crystalMaterial(col, { glow: 0.6 })));
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: col, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); sp.scale.setScalar(3); g.add(sp);
+        const g = new THREE.Group(), mat = this.shared('pk' + col, () => crystalMaterial(col, { glow: 0.5 }));
+        if (hp) { g.add(new THREE.Mesh(this.shared('pkb1', () => new THREE.BoxGeometry(0.9, 0.3, 0.3)), mat)); g.add(new THREE.Mesh(this.shared('pkb2', () => new THREE.BoxGeometry(0.3, 0.9, 0.3)), mat)); }
+        else g.add(new THREE.Mesh(this.shared('pko', () => new THREE.OctahedronGeometry(0.6, 0)), mat));
+        const sp = new THREE.Sprite(this.halo_(col)); sp.scale.setScalar(3); g.add(sp);
         e = g; this.entRoot.add(g); this.ents.pick.set(k.id, g);
       }
       e.position.set(k.p[0], k.p[1], k.p[2]); e.rotation.y = this.t * 2;
@@ -254,7 +257,7 @@ export class Renderer {
       seen.add(p.id);
       let e = this.ents.ply.get(p.id);
       if (!e) {
-        const col = PLAYER_COLORS[(p.id - 1) % 4], g = new THREE.Group(), m = crystalMaterial(col, { glow: 0.2 });
+        const col = PLAYER_COLORS[(p.id - 1) % 4], g = new THREE.Group(), m = this.shared('pl' + col, () => crystalMaterial(col, { glow: 0.2 }));
         const body = new THREE.Mesh(new THREE.OctahedronGeometry(0.8, 0), m); body.scale.y = 1.4; g.add(body);
         const gun = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.2, 5), m); gun.rotation.x = Math.PI / 2; gun.position.set(0.5, 0, 0.7); g.add(gun);
         e = { object: g }; this.entRoot.add(g); this.ents.ply.set(p.id, e);

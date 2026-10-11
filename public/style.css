@@ -41,3 +41,4 @@ button, select, input { font: inherit; color: #fff; background: #1a0f3a; border:
 input { width: 90px; cursor: text; text-align: center; } button:hover { background: #2c1a66; box-shadow: 0 0 14px var(--a); }
 .keys { color: #8a80b8; font-size: 12px; margin-top: 16px; } .err { color: #ff7a9a; min-height: 1.2em; }
 #end pre { font-size: 15px; line-height: 1.6; } h2 { letter-spacing: .3em; }
+#banner.long { font-size: 18px; letter-spacing: .04em; line-height: 1.5; color: #d9cfff; text-shadow: 0 0 10px #000, 0 0 3px #000; }

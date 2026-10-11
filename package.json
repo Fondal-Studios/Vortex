@@ -8,7 +8,7 @@
     "start": "node server/server.js",
     "test": "node --expose-gc --test --test-concurrency=1 \"tests/*.test.js\"",
     "test:fast": "node --expose-gc --test tests/weapons.test.js tests/physics.test.js tests/ai.test.js tests/waves.test.js tests/limits.test.js",
-    "bench": "node tools/bench.js",
+    "bench": "node tools/perf-browser.js",
     "bots": "node tools/bots-report.js",
     "shots": "node tools/screenshots.js"
   },
