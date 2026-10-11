@@ -85,3 +85,37 @@ Lo que **sigue sin gustarme** (no se corrigió): los modelos son *low-poly* y to
 - Hitboxes de criaturas = esfera; el *ray-marching* de la línea de tiro avanza de 1,5 u (puede dejar pasar un disparo por un sólido muy fino).
 - Los modelos y animaciones son procedurales y simples; no hay animación esquelética.
 - Sólo 2 mapas y 1 modo (hordas), por pedido.
+
+---
+# Fase 2 — historia isekai, organismos, PS5, iPhone, video
+
+## Qué se hizo y cómo se verificó
+| Pedido | Qué hay | Evidencia |
+|---|---|---|
+| Historia **visible en el juego** | Campaña `▶ Historia`: cine del tren → despertar → Heraldo → cap. 1 → interludio → cap. 2 → final | `demo/cristal-vortice-demo.mp4` (cuadros reales del juego), `shots/historia-*.jpg` |
+| Enemigos **organismos** | 14 criaturas orgánicas (kit + 3 agentes en paralelo) | bestiario del video y `shots/` |
+| Personajes / armas psicodélicas | Pasajero humano (Arcanum NPC Factory) con 3ª persona (`V`); 5 armas con modelo propio animado | video (tercera persona), `iphone.jpg` |
+| Interfaz PS5 | título, menú con tarjetas, bestiario 3D, opciones, carga, trofeos, mando | `shots/ui-*.jpg`, video |
+| PC + iPhone, calidad | Baja/Media/Alta, táctil, PWA, build estático para GitHub Pages | e2e iPhone emulado ✓ |
+| Coop 4 | reanimar, nombres, avatares humanos (Media/Alta) | pruebas de IA y e2e de 2 navegadores |
+| Video de demo | 131 s, 1280×720, 30 fps, audio sintetizado | `demo/cristal-vortice-demo.mp4` |
+
+Pruebas: **69** (67 + las dos corregidas). Esta fase encontró y arregló: un `dt` negativo en el primer cuadro que trababa la simulación en cargas lentas, el balance del Mapa 2 (el bot ganaba 8/8 → ahora 2/8; Mapa 1: 5/8) y un coste de dibujo desmedido de las criaturas.
+
+## Rendimiento (honesto)
+Chromium + SwiftShader (**CPU, sin GPU**), horda de 88–90 criaturas todas cerca (peor caso, irreal):
+| Calidad | llamadas de dibujo | triángulos | FPS (software) |
+|---|---|---|---|
+| Baja (iPhone) | ~230 | 21–31 k | 9–16 |
+| Alta (PC) | ~1.450 | 200–275 k | ~1 |
+- **Sin el tope de modelos completos** Baja pedía ~3.300 llamadas (cada organismo cuesta 35–40): imposible para un teléfono. Ahora solo las N criaturas más cercanas (Baja 10, Media 24, Alta 56) tienen modelo completo y las lejanas son un proxy.
+- **Los FPS de software no predicen un iPhone ni una GPU de PC.** **No se probó en un iPhone real.** La estimación (230 llamadas, ~25 k triángulos, sin post-proceso) es *plausible* para un iPhone reciente, pero es una hipótesis.
+- Memoria JS ~45–65 MB.
+
+## Lo que NO se probó / límites
+- **Nada en un iPhone real**, ni mando físico (el código usa el mapeo estándar de la Gamepad API; se probó solo con teclado/táctil emulado).
+- **No es «nivel Halo».** Hay bloom, reflejos, luz dinámica y un salto grande respecto a la fase 1, pero los modelos son procedurales y estilizados, el terreno es simple y no hay sombras proyectadas. Lo digo claro para que no haya sorpresas.
+- Las criaturas: ojos aún algo caricaturescos; **Ariete** y **Obelisco** son lo más flojo; el Heraldo sale muy brillante por el bloom.
+- El video usa el bot jugando (modo dios) y cámara en 3ª persona; **no es una partida humana**. Parte del audio (música y efectos) es sintético, sin mezclar en altavoces reales.
+- Personas: ≈30 k triángulos cada una, por eso en Baja se usa un avatar liviano; el rig sigue con 326 huesos. La verificación pieza por pieza de las ampliaciones CC0 de MakeHuman queda **pendiente de revisión humana** (ver `PERSONAS.md`).
+- La interfaz PS5 es *inspiración de estilo*; sin recursos de Sony.

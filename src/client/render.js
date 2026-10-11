@@ -47,6 +47,7 @@ export class Renderer {
     this.dyn = []; // objetos del mapa con animación
     this.shake = 0; this.camQ = new THREE.Quaternion(); this.camInit = false;
     this.mapId = null; this.t = 0;
+    this.gl.info.autoReset = false; // contamos todas las pasadas del cuadro (post-proceso incluido)
     this.gl.toneMapping = THREE.ACESFilmicToneMapping; this.gl.toneMappingExposure = cfg().post ? 1.9 : 1.05;
     this.hemi = new THREE.HemisphereLight(0xb9c4ff, 0x2a0f3a, 1.1); this.sun = new THREE.DirectionalLight(0xfff1e0, 2.2); this.sun.position.set(0.4, 1, 0.3);
     this.rim = new THREE.DirectionalLight(0xff66c4, 1.0); this.rim.position.set(-0.6, 0.2, -0.8);
@@ -244,7 +245,7 @@ export class Renderer {
 
   /* ───────── cuadro ───────── */
   render(state, dt, myId, look) {
-    this.t += dt; uTime.value = this.t;
+    this.gl.info.reset(); this.t += dt; uTime.value = this.t;
     this.setMap(state.map);
     const me = state.players.find((p) => p.id === myId) || state.players[0];
     for (const f of this.dyn) f(dt, this.t);
@@ -295,17 +296,24 @@ export class Renderer {
 
   syncMonsters(state, dt) {
     const seen = new Set();
+    // solo las N criaturas más cercanas tienen modelo completo; el resto, proxy barato (clave para iPhone)
+    const cp = this.camera.position, ranked = state.monsters.map((m) => [(m.p[0] - cp.x) ** 2 + (m.p[1] - cp.y) ** 2 + (m.p[2] - cp.z) ** 2, m.id]).sort((a, b) => a[0] - b[0]);
+    const full = new Set(ranked.slice(0, cfg().full).map((r) => r[1]));
     for (const m of state.monsters) {
       seen.add(m.id);
       let e = this.ents.mon.get(m.id);
       if (!e) {
-        e = buildMonster(m.k); e.kind = m.k; e.born = this.t; e.spd = 0; e.object.userData.s = new THREE.Vector3();
+        e = buildMonster(m.k); e.kind = m.k; e.born = this.t; e.spd = 0; e.far = false; e.frame = 0;
+        e.proxy = new THREE.Mesh(this.shared('lodgeo', () => new THREE.IcosahedronGeometry(1, 1)), this.shared('lodm' + m.k, () => new THREE.MeshStandardMaterial({ color: COLORS[m.k] || 0xffffff, emissive: COLORS[m.k] || 0xffffff, emissiveIntensity: 0.5, roughness: 0.5 }))); e.proxy.visible = false; e.object.add(e.proxy); e.object.userData.s = new THREE.Vector3();
         this.entRoot.add(e.object); this.ents.mon.set(m.id, e);
         e.object.position.set(...m.p);
       }
       const o = e.object, scale = m.r * (m.k === 'coloso' || m.k === 'madre' ? 1.15 : 1) * Math.min(1, 0.2 + (this.t - e.born) * 3);
       o.position.lerp(V(m.p), 0.6); o.scale.setScalar(scale);
       this.orient(o, m.u, m.f);
+      const boss = m.k === 'coloso' || m.k === 'madre'; this.tmpV.copy(this.camera.position).sub(o.position); const far = !boss && (this.tmpV.length() > cfg().lod + m.r * 2 || !full.has(m.id));
+      if (far !== e.far) { e.far = far; e.object.children[0].visible = !far; e.proxy.visible = far; }
+      if (far) { e.proxy.scale.setScalar(0.9); continue; }
       const hv = m.h ? 0.7 : 0;
       for (const mat of e.mats) { const uh = (mat.userData && mat.userData.u && mat.userData.u.uHurt) || (mat.uniforms && mat.uniforms.uHurt); if (uh) uh.value = hv; }
       this.tmpV.set(this.camera.position.x, this.camera.position.y, this.camera.position.z); o.updateMatrixWorld(); o.worldToLocal(this.tmpV);

@@ -17,7 +17,7 @@ export class Game {
     if (!this.map) throw new Error('mapa desconocido: ' + mapId);
     this.mapId = mapId;
     this.rng = makeRng(seed);
-    this.difficulty = difficulty;
+    this.difficulty = difficulty * (mapId === 'm2' ? 1.35 : 1); // la Cámara Fractal es más exigente (el bot ganaba 8/8)
     this.tick = 0; this.time = 0; this.dt = 1 / 60;
     this.players = []; this.monsters = []; this.projectiles = []; this.pickups = [];
     this.events = [];
