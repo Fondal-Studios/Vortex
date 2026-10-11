@@ -70,7 +70,7 @@ export function buildIslands(r, map, { haze, hazeDens, sun }) {
     const acc = pbr ? new THREE.Color(ACCENTS[k % ACCENTS.length]) : dc(ACCENTS[k % ACCENTS.length]);
     geos.push(...rockGeometry(is, k, P[k], seg, rings, acc));
   });
-  const mat = pbr ? rockPBR({ haze, hazeDens, octaves: q.shadows ? 4 : 3 }) : rockLite({ haze, hazeDens, sun });
+  const mat = pbr ? rockPBR({ envMap: r.envTex, haze, hazeDens, octaves: q.shadows ? 4 : 3 }) : rockLite({ haze, hazeDens, sun });
   const body = new THREE.Mesh(mergeGeometries(geos, false), mat); body.frustumCulled = false;
   if (q.shadows) { body.castShadow = true; body.receiveShadow = true; } else if (pbr) body.receiveShadow = false;
   root.add(body);
@@ -136,7 +136,7 @@ export function buildIslands(r, map, { haze, hazeDens, sun }) {
   });
 
   // escombros de roca y cristales flotantes (mecen y giran: se actualizan a mano, son pocos)
-  const nd = 34, dmesh = new THREE.InstancedMesh(debrisGeo(2, 3), rockPBR({ attr: false, accent: 0x66b4ff, haze, hazeDens, octaves: 3 }), nd), fl = [];
+  const nd = 34, dmesh = new THREE.InstancedMesh(debrisGeo(2, 3), rockPBR({ envMap: r.envTex, attr: false, accent: 0x66b4ff, haze, hazeDens, octaves: 3 }), nd), fl = [];
   dmesh.frustumCulled = false; if (q.shadows) { dmesh.castShadow = true; dmesh.receiveShadow = true; }
   const dr = rng(2024);
   for (let i = 0; i < nd; i++) {

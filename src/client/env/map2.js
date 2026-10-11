@@ -75,7 +75,7 @@ export function buildMap2(r, map) {
   // escombros de cristal y roca que flotan (con la marea giran y brillan)
   const fl = [];
   if (deco) {
-    const nd = 24, dm = new THREE.InstancedMesh(debrisGeo(2, 5), rockPBR({ attr: false, accent: 0xff6aa8, haze: HAZE, hazeDens: HD, octaves: 3 }), nd); dm.frustumCulled = false; if (q.shadows) { dm.castShadow = true; dm.receiveShadow = true; }
+    const nd = 24, dm = new THREE.InstancedMesh(debrisGeo(2, 5), rockPBR({ envMap: r.envTex, attr: false, accent: 0xff6aa8, haze: HAZE, hazeDens: HD, octaves: 3 }), nd); dm.frustumCulled = false; if (q.shadows) { dm.castShadow = true; dm.receiveShadow = true; }
     for (let i = 0; i < nd; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(20 + rd() * 52); fl.push({ mesh: dm, i, p: v, s: 0.8 + rd() * rd() * 4, ax: new THREE.Vector3(rd() - 0.5, rd(), rd() - 0.5).normalize(), sp: (rd() - 0.5) * 0.4, ph: rd() * 6.28 }); } root.add(dm);
     const nc = 16, cm = new THREE.InstancedMesh(crystalGeo(), crystalMat({ haze: HAZE, hazeDens: HD, core: true, glow: 1.2 }), nc); cm.frustumCulled = false;
     for (let i = 0; i < nc; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(22 + rd() * 50); fl.push({ mesh: cm, i, p: v, s: 1.2 + rd() * 2.2, sy: 1.8 + rd() * 1.6, ax: new THREE.Vector3(rd() - 0.5, 1, rd() - 0.5).normalize(), sp: (rd() - 0.5) * 0.5, ph: rd() * 6.28, crys: true }); cm.setColorAt(i, colorOf(i)); }

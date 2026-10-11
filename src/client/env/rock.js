@@ -10,8 +10,8 @@ import { dc } from './props.js';
 
 const lin = (c) => new THREE.Color(c).convertSRGBToLinear();
 
-export function rockPBR({ attr = true, accent = 0x66ffe0, haze = 0x2a2060, hazeDens = 0.0000028, octaves = 4, bump = 0.22, metal = 0.05 } = {}) {
-  const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: metal, envMapIntensity: 0.12 });
+export function rockPBR({ envMap = null, attr = true, accent = 0x66ffe0, haze = 0x2a2060, hazeDens = 0.0000028, octaves = 4, bump = 0.22, metal = 0.05 } = {}) {
+  const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: metal, envMap, envMapIntensity: 0.22 }); // envMap propio: así envMapIntensity sí cuenta (scene.environment usa otra escala)
   const uni = { uTime, uAccent: { value: new THREE.Color(accent) }, uHaze: { value: lin(haze) }, uHazeD: { value: hazeDens }, uBump: { value: bump } };
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uni);

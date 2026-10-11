@@ -8,7 +8,7 @@ import { THREE, TAU, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, li
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3, R = rng(41);
   const col = new THREE.Color(color);
-  const flesh = bio({ rough: 0.45, clear: 0.5, clearRough: 0.22, sheen: 0.25, env: 0.7, tex: 'flesh', tile: 1.4, bump: 0.9, grain: 0.5, seam: 0x3a0c08, seamK: 0.5, vein: color, veinK: 0.35, veinGlow: 0.5, sss: 0.35, sssColor: 0xff7a45 });
+  const flesh = bio({ rough: 0.45, clear: 0.5, clearRough: 0.22, sheen: 0.25, env: 0.7, tex: 'flesh', tile: 1.4, bump: 0.9, grain: 0.5, seam: 0x3a0c08, seamK: 0.5, vein: color, veinK: 0.35, veinGlow: 0.5, sss: 0.15, sssColor: 0xff7a45 });
   const skirtM = bio({ rough: 0.5, clear: 0.3, env: 0.6, tex: 'flesh', tile: 1.2, bump: 0.6, grain: 0.4, vein: color, veinK: 0.5, veinGlow: 0.6, sss: 0.6, sssColor: 0xff9a60, side: THREE.DoubleSide });
   const bone = bio({ rough: 0.5, clear: 0.3, env: 0.55, tex: 'fine', tile: 1.8, bump: 0.5, grain: 0.5 });
   const sacM = bio({ rough: 0.12, clear: 1, clearRough: 0.05, env: 0.9, tex: 'flesh', tile: 1.6, bump: 0.5, grain: 0.3, vein: 0xd03060, veinK: 0.7, veinGlow: 0.5, sss: 1.2, sssColor: 0xff8a60, alpha: 0.5, vcol: true });
@@ -22,13 +22,13 @@ export default function build(kit, color) {
   const SJ = [[0, 0.55, 0], [0, 0.95, 0.02], [0, 1.35, 0]], st = []; SJ.forEach((p, i) => st.push(rig.bone(i ? st[i - 1] : body, p, 'st')));
   const cap = rig.bone(st[2], [0, 1.7, -0.02], 'cap'), ann = rig.bone(st[1], [0, 1.0, 0], 'ann'), jaw = rig.bone(st[2], [0, 1.2, 0.3], 'jaw'), tongue = rig.bone(jaw, [0, 1.18, 0.34], 'tg'), tongue2 = rig.bone(tongue, [0, 1.15, 0.5], 'tg2');
   // ── volva y tallo costillado ──
-  const volva = ellipsoid([0.62, 0.38, 0.62], { w: low ? 12 : 20, h: low ? 8 : 12, noise: 0.14, freq: 2, seed: 3, pos: [0, 0.48, 0] }); paint(volva, (p, n) => new THREE.Color(0x5a2820).lerp(new THREE.Color(0xc07860), smooth(-0.2, 0.9, n.y))); rig.add(flesh, skinRigid(volva, body));
+  const volva = ellipsoid([0.62, 0.38, 0.62], { w: low ? 12 : 20, h: low ? 8 : 12, noise: 0.14, freq: 2, seed: 3, pos: [0, 0.48, 0] }); paint(volva, (p, n) => new THREE.Color(0x40160e).lerp(new THREE.Color(0xa05840), smooth(-0.2, 0.9, n.y))); rig.add(flesh, skinRigid(volva, body));
   const SP = [[0, 0.5, 0], [0, 0.55, 0], [0, 0.95, 0.02], [0, 1.35, 0], [0, 1.7, -0.02]], sp = path(SP), RAD = [0.5, 0.46, 0.35, 0.3, 0.34];
   const rf = (t) => { const f = t * (RAD.length - 1), i = Math.min(RAD.length - 2, Math.floor(f)); return lerp(RAD[i], RAD[i + 1], smooth(0, 1, f - i)); };
   const stG = tube(SP, { rad: rf, seg: low ? 16 : 28, sides: low ? 8 : 14, bulge: (t, a) => (1 + 0.07 * Math.cos(a * 7)) * (1 + 0.08 * Math.exp(-Math.pow((t - 0.62) / 0.025, 2))), caps: false });
-  paint(stG, (p, n) => new THREE.Color(0xa05040).lerp(new THREE.Color(0xd89078), smooth(0.9, 1.7, p.y)).lerp(new THREE.Color(0x5a2820), smooth(0.9, 0.5, p.y))); rig.add(flesh, skinChain(stG, [body, ...st], 0.2));
+  paint(stG, (p, n) => new THREE.Color(0x8a3428).lerp(new THREE.Color(0xc06a54), smooth(0.9, 1.7, p.y)).lerp(new THREE.Color(0x42180f), smooth(0.9, 0.5, p.y))); rig.add(flesh, skinChain(stG, [body, ...st], 0.2));
   // anillo-falda (membrana festoneada que cuelga)
-  { const nA = low ? 14 : 28, nK = 3, P = [], I = [], C = []; for (let k = 0; k <= nK; k++) for (let j = 0; j < nA; j++) { const a = (j / nA) * TAU, kk = k / nK, rr = 0.34 + kk * 0.34 + 0.05 * Math.sin(a * 7) * kk, y = 1.02 - kk * 0.3 - 0.06 * Math.abs(Math.sin(a * 3.5)) * kk * kk; P.push(Math.cos(a) * rr, y, Math.sin(a) * rr); const c = new THREE.Color(0xe8b898).lerp(new THREE.Color(0xc06a58), kk); C.push(c.r, c.g, c.b); }
+  { const nA = low ? 14 : 28, nK = 3, P = [], I = [], C = []; for (let k = 0; k <= nK; k++) for (let j = 0; j < nA; j++) { const a = (j / nA) * TAU, kk = k / nK, rr = 0.34 + kk * 0.34 + 0.05 * Math.sin(a * 7) * kk, y = 1.02 - kk * 0.3 - 0.06 * Math.abs(Math.sin(a * 3.5)) * kk * kk; P.push(Math.cos(a) * rr, y, Math.sin(a) * rr); const c = new THREE.Color(0xc89070).lerp(new THREE.Color(0x984a3c), kk); C.push(c.r, c.g, c.b); }
     for (let k = 0; k < nK; k++) for (let j = 0; j < nA; j++) { const a = k * nA + j, b = k * nA + (j + 1) % nA, c = (k + 1) * nA + j, d = (k + 1) * nA + (j + 1) % nA; I.push(a, c, b, b, c, d); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); g.setIndex(I); g.computeVertexNormals(); rig.add(skirtM, skinRigid(g, ann)); }
   // ── sombrero: domo con lunares, borde ondulado y verrugas de biocristal ──
@@ -98,7 +98,7 @@ export default function build(kit, color) {
     sacs.forEach((S, i) => { const beat = 0.5 + 0.5 * Math.sin(t * (hurt ? 8 : 2.4) + S.ph), k = (1 + 0.42 * infl + 0.06 * beat) * (1 - 0.3 * burst) * (hurt ? 0.85 : 1); S.sb.scale.set(k, k * 1.1, k); S.sb.position.y = S.sb.userData.rest.y - cap.userData.rest.y - 0.04 * infl + Math.sin(t * 1.3 + S.ph) * 0.015 - 0.0;
       const w = 1 + 7 * pe, wob = Math.sin(t * 3 * w + S.ph); S.lb.position.set(Math.sin(t * 1.1 * w + S.ph) * 0.07, Math.sin(t * 0.9 * w + S.ph * 2) * 0.06, Math.cos(t * 1.3 * w + S.ph) * 0.07); S.lb.rotation.set(wob * 0.7, t * w * 0.8 + S.ph, wob * 0.4); });
     sacM.userData.u.uVeinGlow.value = 0.5 + 1.2 * pe + 1.0 * burst; sacM.userData.u.uSss.value = 0.7 + 0.8 * pe; larvaM.userData.u.uGlow.value = 0.8 + 1.5 * pe + 1.0 * burst; sacM.opacity = 0.5 + 0.15 * pe;
-    flesh.userData.u.uVeinGlow.value = 0.5 + 0.9 * pe + 0.7 * burst; flesh.userData.u.uSss.value = 0.35 + 0.5 * pe; skirtM.userData.u.uSss.value = 0.6 + 0.6 * pe;
+    flesh.userData.u.uVeinGlow.value = 0.5 + 0.9 * pe + 0.7 * burst; flesh.userData.u.uSss.value = 0.15 + 0.5 * pe; skirtM.userData.u.uSss.value = 0.6 + 0.6 * pe;
     cry.emissiveIntensity = 0.7 + 0.3 * Math.sin(t * 3) + 0.9 * pe + 0.8 * burst;
     glow.material.opacity = (0.28 * pe + 0.45 * burst) * (0.8 + 0.2 * Math.sin(t * 25)); glow.scale.setScalar(2.2 + 1.2 * pe + 1.5 * burst);
     // ojos

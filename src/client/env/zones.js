@@ -140,7 +140,7 @@ function buildPlanetoid(r, map, sun) {
 /* ───────── zonas ───────── */
 function addDebrisSwarm(r, center, n, rmin, rmax, size, seed, orbit) {
   if (!cfg().decor) return;
-  const rd = rng(seed), m = new THREE.InstancedMesh(debrisGeo(1, seed), rockPBR({ attr: false, accent: 0xa0c8ff, octaves: 3 }), n), it = [];
+  const rd = rng(seed), m = new THREE.InstancedMesh(debrisGeo(1, seed), rockPBR({ envMap: r.envTex, attr: false, accent: 0xa0c8ff, octaves: 3 }), n), it = [];
   m.frustumCulled = false;
   for (let i = 0; i < n; i++) it.push({ a: rd() * 6.283, rr: rmin + rd() * (rmax - rmin), y: (rd() - 0.5) * (rmax - rmin) * 0.8, s: size * (0.3 + rd() * 0.9), sp: (0.3 + rd() * 0.5) * (orbit ? 0.35 : 0.12) * (rd() < 0.5 ? 1 : -1), ax: new THREE.Vector3(rd() - 0.5, rd(), rd() - 0.5).normalize(), ph: rd() * 6.28 });
   const mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), pp = new THREE.Vector3(), ss = new THREE.Vector3();

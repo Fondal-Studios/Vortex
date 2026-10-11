@@ -140,14 +140,14 @@ export function buildSkyFx(r, map, { sunPos, haze, hazeDens }) {
     r.dyn.push((dt) => { o.rotation.x += dt * 0.02 * (i + 1); o.rotation.y += dt * 0.015; });
   });
   if (q.decor) { // megaestructura anular: un arco colosal cruzando el cielo
-    const ring = new THREE.Mesh(new THREE.CylinderGeometry(1000, 1000, 170, 160, 1, true, 0, 2.6), ringMat(haze)); ring.position.set(-120, -300, -260); ring.rotation.set(0.95, 0.4, 0.28); ring.frustumCulled = false; far.add(ring);
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(1000, 1000, 300, 160, 1, true, 0, 2.6), ringMat(haze)); ring.position.set(-120, -300, -260); ring.rotation.set(0.95, 0.4, 0.28); ring.frustumCulled = false; far.add(ring);
   }
 
   // destellos de lente con oclusión por las islas (muestreo del rayo cámara→sol)
   const glare = new THREE.Group(); root.add(glare);
   const mk = (tex, col, base, order = 20) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: col, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true, opacity: 0 })); m.renderOrder = order; m.frustumCulled = false; m.userData = { base }; glare.add(m); return m; };
-  const rays = mk(r.shared('env.rays', raysTex), 0xffd9a0, 0.55), halo = mk(r.shared('env.soft', softTex), 0xffc890, 0.5), streak = mk(r.shared('env.streak', streakTex), 0x9fd8ff, 0.5), ghosts = [];
-  const gt = r.shared('env.ring', ringTex), gdef = [[0.55, 0.16, 0xff9a60, 0.4], [0.9, 0.09, 0x7ad0ff, 0.5], [1.35, 0.22, 0xa078ff, 0.28], [1.8, 0.07, 0xffd070, 0.45], [-0.35, 0.12, 0x70ffd0, 0.3]];
+  const rays = mk(r.shared('env.rays', raysTex), 0xffd9a0, 0.34), halo = mk(r.shared('env.soft', softTex), 0xffc890, 0.32), streak = mk(r.shared('env.streak', streakTex), 0x9fd8ff, 0.3), ghosts = [];
+  const gt = r.shared('env.ring', ringTex), gdef = [[0.55, 0.10, 0xff9a60, 0.16], [0.9, 0.06, 0x7ad0ff, 0.22], [1.35, 0.14, 0xa078ff, 0.10], [1.8, 0.05, 0xffd070, 0.20], [-0.35, 0.08, 0x70ffd0, 0.12]];
   for (const [k, sz, col, o] of gdef) { const m = mk(gt, col, o); m.userData.k = k; m.userData.sz = sz; ghosts.push(m); }
   const ndc = new THREE.Vector3(), tmp = new THREE.Vector3(), cd = new THREE.Vector3(), sunW = new THREE.Vector3(); let vis = 0;
   const place = (m, x, y, size, d = 5) => { tmp.set(x, y, 0.5).unproject(r.camera); tmp.sub(r.camera.position).normalize(); m.position.copy(r.camera.position).addScaledVector(tmp, d); const wh = 2 * d * Math.tan(THREE.MathUtils.degToRad(r.camera.fov / 2)); m.scale.set(size * wh, size * wh, 1); };

@@ -77,10 +77,10 @@ void surfShade(vec3 p, vec3 nW, vec3 acc, vec4 isl, float t, out vec3 alb, out v
     float spokes = (1.0 - smoothstep(0.03, max(0.08, aa), sd)) * smoothstep(R * 0.1, R * 0.16, rd) * (1.0 - smoothstep(R * 0.76, R * 0.8, rd));
     lines = max(lines, spokes);
     float wave = 0.5 + 0.5 * sin(rd * 0.35 - t * 1.8 + ang * 2.0);
-    vec3 pe = acc * lines * (0.35 + 1.1 * wave * wave * wave);
+    vec3 pe = acc * lines * (0.25 + 0.75 * wave * wave * wave);
     float eb = smoothstep(R - 1.0, R - 0.15, rd), core = 1.0 - smoothstep(0.0, max(0.17, aa), abs(rd - (R - 0.32)));
     float dash = step(0.5, fract(ang / TAU * S * 2.0)) * (1.0 - smoothstep(0.0, 0.07, abs(rd - (R - 1.3))));
-    pe += acc * (0.22 * eb + 1.5 * core + 0.6 * dash) + vec3(0.4) * core * 0.35;
+    pe += acc * (0.16 * eb + 0.95 * core + 0.4 * dash) + vec3(0.3) * core * 0.2;
     vec3 palb = pa * (1.0 - 0.6 * seam) + vec3(0.02) * lines;
     float prough = 0.72 + 0.2 * vnoise(p * 3.0) + 0.1 * seam;
     float phgt = vnoise(p * 5.0) * 0.12 * smoothstep(0.3, 0.06, fw) - seam * 0.35 - lines * 0.12;
