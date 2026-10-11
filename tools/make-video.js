@@ -16,9 +16,9 @@ const game = (extra) => `/?cap=1&q=${Q}&autoq=0&${extra}`;
 const JOBS = [
   { id: '01-titulo', frames: sec(13), url: game('seed=3'), script: { 0: `ui.show('title')`, [sec(4.2)]: `ui.act('ok')`, [sec(7)]: `ui.act('down')`, [sec(8)]: `ui.act('down')`, [sec(9)]: `ui.act('down')`, [sec(10)]: `ui.act('up')`, [sec(10.7)]: `ui.act('up')`, [sec(11.5)]: `ui.act('up')` } },
   { id: '02-historia', frames: sec(34), url: game('seed=3'), script: { 0: `ui.act('ok'); ui.go('story')`, [sec(1.5)]: `document.getElementById('campaign').click()` } },
-  { id: '03-isla', frames: sec(15), url: game('auto=m1&bot=1&god=1&wave=3&seed=11&skill=1.6&cam=third'), title: ['CAPÍTULO 1', 'VACÍO DE ISLAS'] },
+  { id: '03-isla', frames: sec(15), url: game('auto=m1&bot=1&god=1&wave=5&seed=11&skill=1.6&cam=third'), title: ['CAPÍTULO 1', 'VACÍO DE ISLAS'] },
   { id: '04-coloso', frames: sec(11), url: game('auto=m1&bot=1&god=1&wave=7&seed=5&skill=1.6&look=boss'), title: ['JEFE', 'COLOSO PRISMÁTICO'] },
-  { id: '05-fractal', frames: sec(14), url: game('auto=m2&bot=1&god=1&wave=4&seed=8&skill=1.6&cam=third'), title: ['CAPÍTULO 2', 'CÁMARA FRACTAL'] },
+  { id: '05-fractal', frames: sec(14), url: game('auto=m2&bot=1&god=1&wave=5&seed=8&skill=1.6&cam=third'), title: ['CAPÍTULO 2', 'CÁMARA FRACTAL'] },
   { id: '06-madre', frames: sec(10), url: game('auto=m2&bot=1&god=1&wave=7&seed=9&skill=1.6&look=boss'), title: ['JEFE', 'MADRE GEODA'] },
   ...BEAST.map(([k, s], i) => ({ id: `07-bestiario-${String(i).padStart(2, '0')}-${k}`, frames: sec(k === 'coloso' || k === 'madre' ? 2.6 : 1.9), viewer: `k=${k}&s=${s}&turn=1&v=0.7&big=1&cap=1&q=${Q}&dist=${({ coloso: 12, madre: 12, obelisco: 8.5, aurora: 8, lente: 7.5, espiral: 7, geoda: 6.6 })[k] || 6.2}&cy=${({ obelisco: 0.6, aurora: 0.9, lente: 0.5, coloso: 0.3, madre: 0.3 })[k] ?? 0.9}`, beast: k })),
   { id: '08-final', frames: sec(6), url: '/public/endcard.html', endcard: true },

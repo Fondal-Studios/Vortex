@@ -222,7 +222,7 @@ export class Renderer {
 
   /* ───────── narrativa: el Heraldo y el despertar ───────── */
   setGuide(on) {
-    if (on && !this.guide) { const b = heraldo(kit), g = new THREE.Group(); g.add(b.root); g.scale.setScalar(0.85); g.userData.arrive = 0; this.entRoot.add(g); this.guide = { g, b, talk: 0 }; }
+    if (on && !this.guide) { const b = heraldo(kit), g = new THREE.Group(); g.add(b.root); g.scale.setScalar(1.15); g.userData.arrive = 0; this.entRoot.add(g); this.guide = { g, b, talk: 0 }; }
     else if (!on && this.guide) { this.fx.burst(this.guide.g.position, 0xffa6e8, 60, 9, 1.2, 0.9); this.fx.blast(this.guide.g.position, 0x7dfff0, 5, 0.8); this.entRoot.remove(this.guide.g); this.guide.b.mats.forEach((m) => m.dispose()); this.guide = null; }
   }
   setThird(on) { this.third = !!on; this.vm.root.visible = !on; if (on) this.ensureHumans(); }
@@ -230,7 +230,7 @@ export class Renderer {
   updateGuide(dt, me) {
     if (!this.guide || !me) return; const G = this.guide; G.g.userData.arrive = Math.min(1, G.g.userData.arrive + dt * 0.5);
     const up = V(me.up), h = V(me.h), right = new THREE.Vector3().crossVectors(h, up).normalize(), a = G.g.userData.arrive;
-    const target = V(me.pos).addScaledVector(h, 5.6 + (1 - a) * 6).addScaledVector(up, 1.9 + (1 - a) * 3).addScaledVector(right, 1.5);
+    const target = V(me.pos).addScaledVector(h, 4.6 + (1 - a) * 6).addScaledVector(up, 1.5 + (1 - a) * 3).addScaledVector(right, 1.3);
     G.g.position.lerp(target, Math.min(1, 3 * dt)); this.orient(G.g, me.up, [me.pos[0] - G.g.position.x, me.pos[1] - G.g.position.y, me.pos[2] - G.g.position.z]);
     G.g.updateMatrixWorld(); this.tmpV.copy(this.camera.position); G.g.worldToLocal(this.tmpV);
     G.b.tick(dt, { id: 1, talk: this.guideTalk || 0 }, this.t, { look: this.tmpV.clone().normalize() });
