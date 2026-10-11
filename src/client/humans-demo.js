@@ -1,6 +1,6 @@
 // Demo de personas humanas (Pasajero/a, jugadores, roles, armas, animaciones por capas).
 // Parámetros (todos opcionales):
-//   q=low|medium|high          calidad          · set=team|roles|solo|clips|weapons   qué mostrar
+//   q=low|medium|high          calidad          · set=team|roles|chars|solo|clips|weapons   qué mostrar (chars = los 6 personajes; solo + char=egida..umbra)
 //   p=pasajero|jugador1..4     (solo)           · role=vanguardia|soporte|ingeniero|explorador
 //   weapon=0..5 | none         arma en la mano  · anim=<clip> fuerza un clip           · speed=<m/s> · move=x,z (dirección relativa)
 //   cam=full|close|face|back|side|hands          · yaw=<grados> gira a la persona        · pitch=<rad> apunta arriba/abajo
@@ -8,7 +8,7 @@
 //   w=ancho&h=alto             tamaño del lienzo (captura)
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { loadHumanKit, createHuman, PLAYER_COLORS, ROLES } from './humans.js';
+import { loadHumanKit, createHuman, PLAYER_COLORS, ROLES, CHAR_IDS } from './humans.js';
 
 const qs = new URLSearchParams(location.search), quality = qs.get('q') || 'medium', forced = qs.get('anim'), set = qs.get('set') || 'team';
 const frozen = qs.get('frozen') === '1', camMode = qs.get('cam') || 'full';
@@ -35,8 +35,9 @@ const t0 = performance.now();
 const kit = await loadHumanKit({ quality });
 const wp = qs.get('weapon'), weapon = wp === 'none' ? null : wp != null ? Number(wp) : undefined;
 let specs;
-if (set === 'roles') specs = ROLES.map((r, i) => ({ preset: 'jugador' + (i + 1), role: r, color: PLAYER_COLORS[i], name: r, weapon }));
-else if (set === 'solo') specs = [{ preset: qs.get('p') || 'pasajero', role: qs.get('role') || undefined, color: qs.get('color') ? Number('0x' + qs.get('color')) : (qs.get('p') ? PLAYER_COLORS[(Number((qs.get('p') || '').slice(7)) || 1) - 1] : undefined), name: qs.get('p') || 'pasajero', weapon }];
+if (set === 'chars') specs = CHAR_IDS.map((c) => ({ char: c, name: c, weapon }));
+else if (set === 'roles') specs = ROLES.map((r, i) => ({ preset: 'jugador' + (i + 1), role: r, color: PLAYER_COLORS[i], name: r, weapon }));
+else if (set === 'solo') specs = [{ char: qs.get('char') || undefined, hands: qs.get('hands') === '0' ? false : undefined, preset: qs.get('char') ? undefined : qs.get('p') || 'pasajero', role: qs.get('role') || undefined, color: qs.get('color') ? Number('0x' + qs.get('color')) : (qs.get('p') ? PLAYER_COLORS[(Number((qs.get('p') || '').slice(7)) || 1) - 1] : undefined), name: qs.get('p') || 'pasajero', weapon }];
 else if (set === 'weapons') specs = [0, 1, 2, 3, 4, 5].map((i) => ({ preset: 'jugador' + ((i % 4) + 1), role: ROLES[i % 4], color: PLAYER_COLORS[i % 4], name: 'arma ' + i, weapon: i }));
 else specs = [
   { preset: 'pasajero', name: 'Pasajero/a', weapon }, { preset: 'jugador1', role: 'vanguardia', color: PLAYER_COLORS[0], name: 'Jugador 1', weapon },
@@ -61,8 +62,13 @@ names.innerHTML = specs.map((s) => `<span>${s.name}<i></i></span>`).join('');
 const labels = [...names.querySelectorAll('i')];
 if (set === 'solo' || set === 'weapons') names.style.display = 'none';
 
+const _hp = new THREE.Vector3();
 function frame() { // cámara según el modo
-  const f = { full: [0, 1.2, 6.3, 0, 0.9, 0, 38], close: [0, 1.35, 2.7, 0, 1.18, 0, 38], face: [0.15, 1.55, 1.15, 0, 1.52, 0, 34], back: [0.4, 1.3, -3.0, 0, 1.15, 0, 38], side: [3.0, 1.2, 0.2, 0, 1.1, 0, 38], hands: [0.55, 1.28, 1.6, 0.05, 1.2, 0.3, 34] }[camMode] || [0, 1.2, 6.3, 0, 0.9, 0, 38];
+  if (camMode === 'handL' || camMode === 'handR') { // primer plano de una mano (sigue al hueso): handL = mano +x (a la derecha de la imagen)
+    const L = camMode === 'handL', h = humans[0].h, b = h.bones[L ? 'wrist_L_h' : 'wrist_R_h']; if (b) {
+      h.object.updateMatrixWorld(true); b.getWorldPosition(_hp); const k = Number(qs.get('zoom')) || 1;
+      cam.position.set(_hp.x + (L ? 0.28 : -0.28) * k, _hp.y + 0.22 * k, _hp.z + 0.62 * k); cam.lookAt(_hp.x, _hp.y + 0.02, _hp.z + 0.06); cam.fov = 32; cam.updateProjectionMatrix(); return; } }
+  const f = { full: [0, 1.2, 6.3, 0, 0.9, 0, 38], close: [0, 1.35, 2.7, 0, 1.18, 0, 38], face: [0.15, 1.55, 1.15, 0, 1.52, 0, 34], back: [0.4, 1.3, -3.0, 0, 1.15, 0, 38], side: [3.0, 1.2, 0.2, 0, 1.1, 0, 38], hands: [0.55, 1.28, 1.6, 0.05, 1.2, 0.3, 34], handL: [0.62, 1.12, 0.9, 0.38, 1.1, 0.12, 30], handR: [-0.62, 1.12, 0.9, -0.38, 1.1, 0.12, 30] }[camMode] || [0, 1.2, 6.3, 0, 0.9, 0, 38];
   const k = set === 'solo' ? 1 : set === 'weapons' ? 1.9 : 1; if (camMode === 'full' && set !== 'solo') { cam.position.set(0, 1.25, 6.3 * (specs.length > 4 ? 1 : 0.8) * (set === 'weapons' ? 1.1 : 1)); cam.lookAt(0, 0.9, 0); }
   else { cam.position.set(f[0], f[1], f[2]); cam.lookAt(f[3], f[4], f[5]); }
   cam.fov = (W / H < 1.4 && camMode === 'full' ? 56 : f[6]) * (set === 'solo' && camMode === 'full' ? 0.75 : 1); cam.updateProjectionMatrix(); void k;
@@ -87,11 +93,11 @@ function stats() {
     assetMB: +(bytes / 1048576).toFixed(2), assetFiles: res.length, textures: gl.info.memory.textures, geometries: gl.info.memory.geometries, loadMs: Math.round(performance.now() - t0), fps };
 }
 window.__advance = (s, dt = 1 / 30) => { for (let t = 0; t < s; t += dt) tick(dt, false); };
-window.__render = () => gl.render(scene, cam);
+window.__render = () => { frame(); gl.render(scene, cam); };
 window.__play = (clip, opts) => humans.forEach((x) => x.h.play(clip, opts));
-if (frozen) { window.__advance(Number(qs.get('t')) || 1.5); gl.render(scene, cam); hud.textContent = `calidad ${quality}`; }
+if (frozen) { window.__advance(Number(qs.get('t')) || 1.5); frame(); gl.render(scene, cam); hud.textContent = `calidad ${quality}`; }
 else gl.setAnimationLoop(() => {
-  clock.update(); const dt = Math.min(clock.getDelta(), 0.1); tick(dt, true);
+  clock.update(); const dt = Math.min(clock.getDelta(), 0.1); tick(dt, true); if (camMode.startsWith('hand') && camMode.length === 5) frame();
   gl.render(scene, cam);
   frames++; acc += dt; if (acc >= 1) { fps = frames / acc; frames = 0; acc = 0;
     const s = stats(); hud.innerHTML = `<b>Personas 3D</b> · calidad <b>${quality}</b> · ${s.drawCallsHumans} draw calls y ${(s.trianglesHumans / 1000).toFixed(1)} k triángulos (${humans.length} personas) · ${s.assetMB} MB · ${fps.toFixed(0)} fps`; window.__humansStats = s; }

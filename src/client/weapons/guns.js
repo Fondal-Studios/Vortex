@@ -3,7 +3,7 @@
 // Origen en la empuñadura, boca hacia -Z, y hacia arriba, x hacia la derecha.
 import * as THREE from 'three';
 import { Kit, makeMats, AmmoScreen, tint } from './kit.js';
-import { rightHand, triggerFinger, supportHand } from './hands.js';
+import { rightHand, triggerFinger, supportHand, trigCurl, bindTrigger } from './hands.js';
 
 export const WEAPON_COLORS = [0x66ffee, 0xff8fd0, 0xffd34a, 0xff7a45, 0xa98bff, 0x5fd0ff, 0xff4fd8, 0xffa030, 0xc8ff4a, 0xff5a5a, 0x7aa8ff, 0xb050ff, 0x40ffc0, 0x6aff6a, 0x9060ff];
 export const WEAPON_LABELS = ['HAZ', 'PRISMA', 'RÁFAGA', 'NOVA', 'AGUJA', 'PULSO', 'GEMELAS', 'SOLAR', 'FRACTAL', 'ENJAMBRE', 'COMETA', 'VÓRTICE', 'LANZA', 'CETRO', 'ECLIPSE'];
@@ -43,7 +43,7 @@ export function finalize(G, W) {
   W.mats = G.mats; W.G = G; return W;
 }
 export function addParts(G, group, names) {
-  const out = {}; for (const n of names) { out[n] = G.k.build(n, G.mats); group.add(out[n]); out[n].userData.base = out[n].position.clone(); } return out;
+  const out = {}; for (const n of names) { out[n] = G.k.build(n, G.mats); group.add(out[n]); out[n].userData.base = out[n].position.clone(); } bindTrigger(out); return out;
 }
 
 /* ═════════════════════════════ 0 · HAZ — pistola de prisma ═════════════════════════════ */
@@ -92,7 +92,7 @@ export function haz(q, hands) {
       sl.step(dt); P.slide.position.z = P.slide.userData.base.z + clamp(sl.x, -0.01, 0.06);
       G.heat = Math.max(0, G.heat - dt * 0.55); G.boost = Math.max(0, G.boost - dt * 7);
       ringW = damp(ringW, firing ? 16 : 3.2, 4, dt); ringA += ringW * dt; P.ring.rotation.z = ringA;
-      curl.v = Math.max(curl.v - dt * 9, firing ? 0.35 : 0); if (P.trigger) P.trigger.rotation.x = -curl.v * 0.5;
+      curl.v = Math.max(curl.v - dt * 9, firing ? 0.35 : 0); trigCurl(P, curl.v);
       G.mats.set(t, G.heat, -9, G.ammo, G.boost); G.scr.update(t);
     },
     fire(ctx) {
@@ -162,7 +162,7 @@ export function prisma(q, hands) {
       P.pump.position.z = P.pump.userData.base.z + off * 0.115;
       G.heat = Math.max(0, G.heat - dt * 0.4); G.boost = Math.max(0, G.boost - dt * 6);
       fanW = damp(fanW, firing ? 12 : 1.8, 3, dt); fanA += fanW * dt; P.fan.rotation.z = fanA;
-      curl = Math.max(curl - dt * 8, firing ? 0.3 : 0); if (P.trigger) P.trigger.rotation.x = -curl * 0.5;
+      curl = Math.max(curl - dt * 8, firing ? 0.3 : 0); trigCurl(P, curl);
       G.mats.set(t, G.heat, -9, G.ammo, G.boost); G.scr.update(t);
     },
     fire(ctx) {
@@ -225,7 +225,7 @@ export function rafaga(q, hands) {
       P.barrels.position.x = P.barrels.userData.base.x + (Math.random() - 0.5) * 0.0025 * shake; P.barrels.position.y = P.barrels.userData.base.y + (Math.random() - 0.5) * 0.0025 * shake;
       P.main.position.z = clamp(sx.x, -0.01, 0.03) * 0.6;
       G.heat = Math.max(0, G.heat - dt * 0.3); G.boost = Math.max(0, G.boost - dt * 9);
-      curl = Math.max(curl - dt * 14, firing ? 0.8 : 0); if (P.trigger) P.trigger.rotation.x = -curl * 0.5;
+      curl = Math.max(curl - dt * 14, firing ? 0.8 : 0); trigCurl(P, curl);
       G.mats.set(t, G.heat + w / 160, -9, G.ammo, G.boost * 0.7); G.scr.update(t);
     },
     fire(ctx) {
@@ -287,7 +287,7 @@ export function nova(q, hands) {
       P.rocket.visible = rocketT < 0.06 || rocketT > 0.35; P.rocket.scale.setScalar(Math.max(0.01, rocketT < 0.06 ? 1 : rs)); P.rocket.position.z = P.rocket.userData.base.z + (1 - rs) * 0.1;
       G.heat = Math.max(0, G.heat - dt * 0.28); G.boost = Math.max(0, G.boost - dt * 4);
       steam -= dt; if (steam > 0 && W._ctx && Math.random() < dt * 30) { const c = W._ctx; for (const sx of [-1, 1]) c.puff([sx * 0.09, 0.07, -0.28 + Math.random() * 0.08], [sx * 0.2, 0.18 + Math.random() * 0.1, -0.05], 0xffffff, { size: 0.07, grow: 0.3, life: 0.7, alpha: 0.2 }); c.puff([0, 0.07, 0.22], [0, 0.1, 0.35], hex, { size: 0.08, grow: 0.3, life: 0.5, alpha: 0.25 }); }
-      curl = Math.max(curl - dt * 6, firing ? 0.3 : 0); if (P.trigger) P.trigger.rotation.x = -curl * 0.5;
+      curl = Math.max(curl - dt * 6, firing ? 0.3 : 0); trigCurl(P, curl);
       G.mats.set(t, G.heat + coreP * 0.1, -9, G.ammo, G.boost); G.scr.update(t);
     },
     fire(ctx) {
@@ -361,7 +361,7 @@ export function aguja(q, hands) {
       P.needle.visible = dischargeT > 0.4 || dischargeT < 0.0; P.needle.position.z = P.needle.userData.base.z + (1 - need) * 0.5 - charge * 0.0;
       G.heat = Math.max(0, G.heat - dt * 0.2); G.boost = Math.max(0, G.boost - dt * 3.2);
       if (W._ctx && dischargeT > 0.2 && dischargeT < 1.6 && Math.random() < dt * 24) W._ctx.puff([(Math.random() - 0.5) * 0.04, 0.05, -0.5 - Math.random() * 0.5], [0, 0.22, 0], 0xffffff, { size: 0.05, grow: 0.25, life: 0.8, alpha: 0.16 });
-      curl = Math.max(curl - dt * 4, firing ? 0.25 : 0); if (P.trigger) P.trigger.rotation.x = -curl * 0.5;
+      curl = Math.max(curl - dt * 4, firing ? 0.25 : 0); trigCurl(P, curl);
       spark = Math.max(0, spark - dt);
       G.mats.set(t, G.heat * 0.9 + charge * 0.22, seq, G.ammo, G.boost + charge * 0.25); G.scr.update(t);
     },

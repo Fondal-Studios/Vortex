@@ -6,10 +6,11 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { fabricMaterial, npcTier } from './materials.js';
+import { fabricMaterial, npcTier, tattooMaterial, gloveSkin, TATTOO_STYLES } from './materials.js';
 import { fabricId } from './library.js';
 
 const col = (c) => new T.Color(c);
+const TATTOO_ACCENT = { egida: 0xe6ffff, lumen: 0x5dffa4, forja: 0xfff0a8, vigia: 0xffffff, nova: 0xffe27a, umbra: 0xff7ae8 };
 const ROLE_LIST = ['vanguardia', 'soporte', 'ingeniero', 'explorador'];
 
 // ------------------------------------------------------------------ material de cristal (acento psicodélico)
@@ -48,6 +49,16 @@ class Builder {
     for (let i = 0; i < n; i++) { k.toArray(c, i * 3); f[i * 2] = fabricId(tela); f[i * 2 + 1] = 0.1; }
     g.setAttribute('color', new T.BufferAttribute(c, 3)); g.setAttribute('npcFab', new T.BufferAttribute(f, 2));
     this.items.push({ bone, mat, g });
+  }
+  /** Pieza del material de tatuaje: conserva uv (tUv, en dm) y tipo (tKind 0 tatuaje · 1 placa · 2 cristal). uvOf(x,y,z) → [u,v] con la posición ya colocada. */
+  addTat(bone, geo, kind, uvOf) {
+    const g = geo.index ? geo.toNonIndexed() : geo.clone(); geo.dispose();
+    const own = uvOf ? null : g.attributes.tUv;     // sin uvOf: la geometría ya trae tUv (el tubo del antebrazo)
+    for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && !(own && k === 'tUv')) g.deleteAttribute(k);
+    const pa = g.attributes.position, n = pa.count, kd = new Float32Array(n).fill(kind);
+    if (!own) { const uv = new Float32Array(n * 2); for (let i = 0; i < n; i++) { const [u, v] = uvOf(pa.getX(i), pa.getY(i), pa.getZ(i), i); uv[i * 2] = u; uv[i * 2 + 1] = v; } g.setAttribute('tUv', new T.BufferAttribute(uv, 2)); }
+    g.setAttribute('tKind', new T.BufferAttribute(kd, 1));
+    this.items.push({ bone, mat: 'tatuaje', g });
   }
   /** Fusiona y devuelve { 'hueso|material': BufferGeometry } con origen en el hueso. */
   build(flat = false) {
@@ -240,6 +251,68 @@ function goggles(b, accent, hi) {
   b.add('head_h', 'goma', xf(new T.TorusGeometry(0.098, 0.009, 4, hi ? 20 : 10), [0, 1.655, 0.03], [Math.PI / 2 - 0.12, 0, 0]), '#2a2420');
 }
 
+
+// ------------------------------------------------------------------ guantes tácticos + tatuajes de cristal (manos y antebrazos)
+const V3 = (a) => new T.Vector3(a[0], a[1], a[2]);
+/** Sistema de coordenadas de una mano en la pose de reposo: Z hacia los dedos, Y hacia el dorso, X = Y × Z. */
+function handFrame(W, s) {
+  const sx = s === 'L' ? 1 : -1, w = V3(W[`wrist_${s}_h`]), e = V3(W[`lowerarm01_${s}_h`]);
+  const Z = V3(W[`finger3-2_${s}_h`]).sub(w).normalize(), c = V3(W[`finger5-1_${s}_h`]).sub(V3(W[`finger1-1_${s}_h`]));
+  const Y = new T.Vector3().crossVectors(Z, c).normalize(); if (Y.dot(new T.Vector3(sx, 0.6, 0)) < 0) Y.negate();
+  Y.addScaledVector(Z, -Y.dot(Z)).normalize();
+  const X = new T.Vector3().crossVectors(Y, Z), M = new T.Matrix4().makeBasis(X, Y, Z).setPosition(w), Mi = M.clone().invert();
+  const a = w.clone().sub(e), len = a.length(); a.normalize();
+  return { s, sx, w, e, X, Y, Z, M, Mi, a, len, loc: (name) => V3(W[`${name}_${s}_h`]).applyMatrix4(Mi) };
+}
+// Medidas de calibración (m): el antebrazo viste una manga de ~4–5 cm de radio
+const HT = { start: 0.03, r0: 0.052, r1: 0.044, hand: 0.018 };
+/** Tubo del antebrazo (tatuaje proyectado): del codo a la muñeca, ángulo 0 = dorso. UV: x = arco, y = largo desde el codo, en dm. */
+function forearmTube(f, rings, seg) {
+  const U = f.Y.clone().addScaledVector(f.a, -f.Y.dot(f.a)).normalize(), S = new T.Vector3().crossVectors(f.a, U);
+  const pos = [], uv = [], idx = [], L = f.len - HT.start + 0.004;
+  for (let i = 0; i <= rings; i++) { const t = i / rings, r = HT.r0 + (HT.r1 - HT.r0) * t, c = f.e.clone().addScaledVector(f.a, HT.start + L * t);
+    for (let j = 0; j <= seg; j++) { const th = -Math.PI + (j / seg) * Math.PI * 2, p = c.clone().addScaledVector(U, Math.cos(th) * r).addScaledVector(S, Math.sin(th) * r);
+      pos.push(p.x, p.y, p.z); uv.push(th * 0.045 * 10, (HT.start + L * t) * 10); } }
+  for (let i = 0; i < rings; i++) for (let j = 0; j < seg; j++) { const a = i * (seg + 1) + j, b = a + 1, c = a + seg + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  // las normales deben mirar hacia afuera; si no, se invierte el sentido de los triángulos
+  const n = g.attributes.normal, p = g.attributes.position, mid = Math.floor(seg / 4) + (seg + 1);
+  const out = new T.Vector3(p.getX(mid), p.getY(mid), p.getZ(mid)).sub(f.e.clone().addScaledVector(f.a, HT.start + L / rings));
+  if (new T.Vector3(n.getX(mid), n.getY(mid), n.getZ(mid)).dot(out) < 0) { for (let i = 0; i < idx.length; i += 3) { const t = idx[i + 1]; idx[i + 1] = idx[i + 2]; idx[i + 2] = t; } g.setIndex(idx); g.computeVertexNormals(); }
+  g.setAttribute('tUv', new T.Float32BufferAttribute(uv, 2));
+  return { g, U, S };
+}
+/**
+ * Guantes (dorso, nudillos de cristal, puño con muñequera luminosa) y tatuajes (tubo proyectado en el antebrazo + dorso de la mano).
+ * Cuelga de 2 huesos por mano (antebrazo y muñeca) y todo va en el material de tatuaje: 2 mallas por mano. Los dedos se pintan en la piel (gloveSkin).
+ */
+function gloves(b, W, hi) {
+  for (const s of ['L', 'R']) {
+    const f = handFrame(W, s), M = f.M, wb = `wrist_${s}_h`, fb = `lowerarm01_${s}_h`;
+    const k3 = f.loc('finger3-1'), thumb = f.loc('finger1-1'), seg = hi ? 16 : 10;
+    const addLocal = (geo, kind) => { geo.applyMatrix4(M); b.addTat(wb, geo, kind, (px, py, pz) => { const l = new T.Vector3(px, py, pz).applyMatrix4(f.Mi); return [l.x * 10, 2.3 + l.z * 10]; }); };
+    // --- tubo del antebrazo con tatuaje proyectado
+    const tube = forearmTube(f, hi ? 5 : 3, hi ? 18 : 12); b.addTat(fb, tube.g, 0, null);
+    // --- puño táctico (elipse alrededor de la muñeca) + muñequera luminosa de cristal
+    const cuff = new T.CylinderGeometry(1, 1, 0.05, seg, 1, true); cuff.rotateX(Math.PI / 2); cuff.scale(0.053, 0.046, 1); cuff.translate(0, 0, -0.022); cuff.computeVertexNormals(); addLocal(cuff, 1);
+    const ring = new T.TorusGeometry(1, 0.004, 5, seg * 2); ring.scale(0.054, 0.047, 1); ring.translate(0, 0, -0.047); addLocal(ring, 2);
+    
+    // cristal de la muñequera: racimo sobre el dorso, apuntando hacia los dedos
+    addLocal(xf(shard(0.06, 0.014), [0, 0.05, -0.024], [Math.PI / 2, 0, 0]), 2);
+    addLocal(xf(shard(0.036, 0.009), [-0.017, 0.047, -0.02], [Math.PI / 2, 0, 0.35]), 2);
+    addLocal(xf(shard(0.036, 0.009), [0.017, 0.047, -0.02], [Math.PI / 2, 0, -0.35]), 2);
+    // --- dorso de la mano (placa) + nudillos de cristal sobre las articulaciones reales de los dedos
+    const by = k3.y + 0.014;
+    addLocal(xf(rbox(0.07, 0.009, 0.062, 0.004, 1), [0, by, k3.z * 0.5]), 1);
+    for (const n of [2, 3, 4, 5]) { const kp = f.loc(`finger${n}-1`); addLocal(xf(new T.OctahedronGeometry(0.012, 0), [kp.x, kp.y + 0.015, kp.z + 0.004], [0, 0, 0], [0.9, 0.6, 1.1]), 2); }
+    addLocal(xf(rbox(0.07, 0.007, 0.011, 0.003, 1), [0, by - 0.001, k3.z + 0.002]), 1);                     // tira de agarre bajo los nudillos
+    addLocal(xf(shard(0.04, 0.012), [thumb.x + (f.sx > 0 ? -0.004 : 0.004), thumb.y + 0.018, thumb.z + 0.012], [Math.PI / 2 - 0.2, 0, 0]), 2); // base del pulgar
+    if (hi) { // medium/high: dos cristales más en la muñequera (el resto del detalle es teselado más fino)
+      addLocal(xf(shard(0.03, 0.008), [-0.035, 0.036, -0.03], [Math.PI / 2, 0, 0.8]), 2); addLocal(xf(shard(0.03, 0.008), [0.035, 0.036, -0.03], [Math.PI / 2, 0, -0.8]), 2);
+    }
+  }
+}
+
 // ------------------------------------------------------------------ ensamblado
 const PACK_COLORS = { civil: '#303846', vanguardia: '#3b414c', soporte: '#cfd5dc', ingeniero: '#8c6e3e', explorador: '#4f4635' };
 /**
@@ -247,7 +320,8 @@ const PACK_COLORS = { civil: '#303846', vanguardia: '#3b414c', soporte: '#cfd5dc
  * spec: { role: null|'vanguardia'|'soporte'|'ingeniero'|'explorador', color, quality, extras: ['mochila','auriculares'], tstate, detail }
  * Devuelve { meshes, materials, geometries, cape, update(dt, {speed, t}), dispose() }.
  */
-export function buildGear(kit, actor, { role = null, color = 0x66ffee, quality = 'medium', extras = ['mochila', 'auriculares'], tstate, tint = null } = {}) {
+export function buildGear(kit, actor, { role = null, color = 0x66ffee, quality = 'medium', extras = ['mochila', 'auriculares'], tstate, tint = null, char = null } = {}) {
+  if (char && !(char in TATTOO_STYLES)) char = null;
   const W = kit.store.boneWorld(), bones = actor.bones, hi = quality !== 'low', tier = npcTier(quality === 'low' ? 1 : quality === 'medium' ? 2 : 3);
   const b = new Builder(W), accent = col(color), soft = accent.clone().lerp(col('#ffffff'), 0.15);
   const base = col(PACK_COLORS[role] || PACK_COLORS.civil);
@@ -264,7 +338,7 @@ export function buildGear(kit, actor, { role = null, color = 0x66ffee, quality =
   if (role === 'vanguardia') vanguardia(b, W, soft, trim, hi);
   if (role === 'explorador') visor(b, soft, hi);
   if (role === 'ingeniero') goggles(b, soft, hi);
-  if (hi) bracelets(b, W, hi);
+  if (char) gloves(b, W, hi); else if (hi) bracelets(b, W, hi);
   bootDetail(b, W, hi, soft);
 
   const geos = b.build(), meshes = [], materials = [], geometries = [];
@@ -272,8 +346,12 @@ export function buildGear(kit, actor, { role = null, color = 0x66ffee, quality =
   const metal = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.55 });
   const rubber = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0.05 });
   const crystal = crystalAccent(color, tstate, { glow: 0.9 });
-  const mats = { tela: fab, metal, goma: rubber, cristal: crystal };
-  materials.push(fab, metal, rubber, crystal);
+  const tattoo = char ? tattooMaterial({ style: char, color, accent: TATTOO_ACCENT[char], tstate }) : null;
+  const mats = { tela: fab, metal, goma: rubber, cristal: crystal, tatuaje: tattoo };
+  materials.push(fab, metal, rubber, crystal); if (tattoo) materials.push(tattoo);
+  // dedos/manos de la piel: guante táctico oscuro con yemas y aros luminosos (sin mallas extra)
+  const skinMesh = char ? actor.root.getObjectByName('npc-body') : null, WR = (c) => ({ pos: W[`wrist_${c}_h`], dir: V3(W[`finger3-2_${c}_h`]).sub(V3(W[`wrist_${c}_h`])).normalize().toArray() });
+  if (skinMesh?.material) gloveSkin(skinMesh.material, { wrists: [WR('L'), WR('R')], color, tstate });
   for (const [key, g] of Object.entries(geos)) {
     const [bone, mat] = key.split('|'), parent = bones[bone]; if (!parent) { g.dispose(); continue; }
     const m = new T.Mesh(g, mats[mat]); m.name = `gear-${bone}-${mat}`; m.frustumCulled = false; parent.add(m); meshes.push(m); geometries.push(g);
@@ -291,7 +369,7 @@ export function buildGear(kit, actor, { role = null, color = 0x66ffee, quality =
   }
   return {
     meshes, materials, geometries, cape, mats,
-    setColor(c) { crystal.uniforms.uColor.value.set(c); },
+    setColor(c) { crystal.uniforms.uColor.value.set(c); if (tattoo) tattoo.uniforms.uColor.value.set(c); if (skinMesh?.material?.userData.glove) skinMesh.material.userData.glove.uGCol.value.set(c); },
     update(dt, { speed = 0, t = 0 } = {}) {
       if (cape) { const k = Math.min(1, speed / 6); cape.rotation.x = -0.1 - 0.5 * k - 0.04 * Math.sin(t * 3.1 + k * 4) * (0.4 + k); cape.rotation.z = 0.04 * Math.sin(t * 2.3); }
     },

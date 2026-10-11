@@ -20,6 +20,14 @@ import { twoBoneIK, setWorldQuat, handBasis, basisQuat } from '../arcanum/pose.j
 export const QUALITIES = Object.keys(PROFILES); // 'low' | 'medium' | 'high'
 export const PLAYER_COLORS = [0x66ffee, 0xff66c4, 0xffd23f, 0x9dff5a]; // los mismos de render.js
 export const ROLES = ['vanguardia', 'soporte', 'ingeniero', 'explorador'];
+// Personajes del juego (espejo de CHARACTERS en src/sim/data.js): elige guantes + tatuajes de cristal propios, color y, si faltan, preset/semilla/rol.
+export const CHAR_IDS = ['egida', 'lumen', 'forja', 'vigia', 'nova', 'umbra'];
+export const CHAR_INFO = {
+  egida: { color: 0x66ffee, role: 'vanguardia', preset: 'jugador1' }, lumen: { color: 0xff66c4, role: 'soporte', preset: 'jugador2' },
+  forja: { color: 0xffd23f, role: 'ingeniero', preset: 'jugador3' }, vigia: { color: 0x9dff5a, role: 'explorador', preset: 'jugador4' },
+  nova: { color: 0xff9a3c, role: 'explorador', seed: 'nova-7' }, umbra: { color: 0xb98cff, role: 'soporte', seed: 'umbra-3' },
+};
+const ROLE_CHAR = { vanguardia: 'egida', soporte: 'lumen', ingeniero: 'forja', explorador: 'vigia' }; // sin `char`, el rol elige el estilo de manos
 
 // Nombre corto → clip horneado en assets/arcanum/clips.bin (revive = la caída al revés)
 const ALIAS = { idle: 'idle', stand: 'idle', walk: 'walk', run: 'jog', jog: 'jog', sprint: 'sprint', crouch: 'crouch', crouchWalk: 'crouchWalk',
@@ -126,6 +134,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _v3 = new T.Vector3(), _v4 = 
 
 /**
  * spec: { preset: 'pasajero'|'jugador1'..'jugador4' | seed: texto, role: 'vanguardia'|'soporte'|'ingeniero'|'explorador'|null,
+ *         char: 'egida'|'lumen'|'forja'|'vigia'|'nova'|'umbra' (guantes + tatuajes de cristal propios; pone color/preset/rol si faltan; sin `char` el rol elige: vanguardia→egida, soporte→lumen, ingeniero→forja, explorador→vigia; hands:false los apaga),
  *         color: 0xRRGGBB (acentos + matiz de la ropa), accent, name, weapon: índice de arma (0..n) | null, overrides: campos de la fábrica }
  * `weapon` por defecto: el arma 0 (Haz) si hay rol; 'null' = sin arma (el avatar camina/idle normal).
  * Devuelve { object, ready, update, play, setWeapon, shoot, gesture, setRole, setLook, stats, dispose, clip, bones, actor }.
@@ -133,10 +142,14 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _v3 = new T.Vector3(), _v4 = 
  * Mira hacia +Z (hacia donde apunta la cara) y los pies están en y = 0; mide ≈ 1,7 unidades (metros).
  */
 export function createHuman(kit, spec = {}) {
-  const preset = spec.preset && PRESETS[spec.preset] ? spec.preset : null;
+  let char = CHAR_INFO[spec.char] ? spec.char : null; const ci = char ? CHAR_INFO[char] : null;
+  const preset = spec.preset && PRESETS[spec.preset] ? spec.preset : (!spec.seed && ci?.preset) || null;
+  if (ci && !spec.preset && !spec.seed && !ci.preset) spec = { ...spec, seed: ci.seed };
   const idx = preset?.startsWith('jugador') ? Number(preset.slice(7)) - 1 : 0;
-  let role = ROLES.includes(spec.role) ? spec.role : null;
-  let look = { color: spec.color ?? (preset === 'pasajero' || !preset ? 0x66ffee : PLAYER_COLORS[idx % 4]), accent: spec.accent ?? null, ...spec.overrides };
+  let role = ROLES.includes(spec.role) ? spec.role : (ci?.role ?? null);
+  if (!char && role && spec.hands !== false) char = ROLE_CHAR[role];
+  if (spec.hands === false) char = null;
+  let look = { color: spec.color ?? ci?.color ?? (preset === 'pasajero' || !preset ? 0x66ffee : PLAYER_COLORS[idx % 4]), accent: spec.accent ?? null, ...spec.overrides };
   const baseDef = preset ? PRESETS[preset] : fromSeed(spec.seed ?? spec.name ?? 'anon');
   const idBase = String(spec.name || baseDef.name || 'persona').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'persona';
   const id = `${idBase}-${(hash(JSON.stringify([spec, Math.random()])) % 9999)}`;
@@ -165,7 +178,7 @@ export function createHuman(kit, spec = {}) {
   function decorate() {
     gear?.dispose();
     const accent = look.accent ?? look.color ?? 0x66ffee;
-    gear = buildGear(kit, actor, { role, color: accent, quality: kit.quality, extras: baseDef.extras || [], tstate, tint: clothing(look.color, role).top });
+    gear = buildGear(kit, actor, { role, color: accent, quality: kit.quality, extras: baseDef.extras || [], tstate, char, tint: clothing(look.color, role).top });
     if (!spec.noWeapon) attachWeapon(weaponIndex, true);
   }
 
@@ -283,6 +296,7 @@ export function createHuman(kit, spec = {}) {
     get bones() { return actor.bones; },
     get weapon() { return weaponIndex; },
     get role() { return role; },
+    get char() { return char; },
     get layers() { return actor.layerClips; },
     /**
      * Pide un clip (nombres: ver CLIP_NAMES y alias). idle/walk/jog/sprint/aim/aimIdle/shoot son «de locomoción»: las piernas siguen a la

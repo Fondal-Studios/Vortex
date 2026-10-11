@@ -8,7 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { skyMaterial, uTime, OUT } from './shaders.js';
 import { setCurrent, LEVELS, cfg } from './quality.js';
-import { Viewmodels, createWeaponModel, applyUpgrades } from './weapons-vm.js';
+import { Viewmodels, createWeaponModel, applyUpgrades, setHandStyle } from './weapons-vm.js';
 import { TUNE } from './weapons/kit.js';
 
 const P = new URLSearchParams(location.search), Q = LEVELS[P.get('q')] ? P.get('q') : 'high', W = +(P.get('w') ?? 0), view = P.get('view') || 'fp';
@@ -16,7 +16,7 @@ if (P.get('tune')) Object.assign(TUNE, JSON.parse(P.get('tune')));
 setCurrent(Q); OUT.linear = !!cfg().post;
 const canvas = document.getElementById('c'), gl = new THREE.WebGLRenderer({ canvas, antialias: false }); gl.info.autoReset = false;
 gl.setPixelRatio(P.get('pr') ? +P.get('pr') : (Q === 'low' ? 0.7 : 1)); gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = cfg().post ? 1.9 : 1.05;
-const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(view === 'fp' ? 82 : 40, innerWidth / innerHeight, 0.05, 3000); scene.add(cam);
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(P.get('fov') ? +P.get('fov') : view === 'fp' ? 82 : 40, innerWidth / innerHeight, 0.05, 3000); scene.add(cam);
 const hemi = new THREE.HemisphereLight(0xaab8ff, 0x1a0f3a, 1.1), sun = new THREE.DirectionalLight(0xe8f0ff, 2.2), rim = new THREE.DirectionalLight(0xff66c4, 1.0);
 sun.position.set(0.4, 1, 0.3); rim.position.set(-0.6, 0.2, -0.8); scene.add(hemi, sun, rim); rim.visible = cfg().lights >= 3;
 if (cfg().env) { const pm = new THREE.PMREMGenerator(gl); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.55; }
@@ -27,9 +27,11 @@ if (cfg().post) { composer = new EffectComposer(gl); composer.setPixelRatio(gl.g
 const resize = () => { gl.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); if (composer) { composer.setPixelRatio(gl.getPixelRatio()); composer.setSize(innerWidth, innerHeight); } };
 resize(); addEventListener('resize', resize);
 
+// ?hs=color,acento,tatuaje,guante  (ej. hs=66ffee,ff66c4,runas,tactico)  ·  ?rp=x,y,z desplaza las armas (para acercar la mano)  ·  ?fov=  ·  ?cam=x,y,z (modo close)
+if (P.get('hs')) { const [c, a, t, g] = P.get('hs').split(','); setHandStyle({ ...(c ? { color: parseInt(c, 16) } : {}), ...(a ? { accent: parseInt(a, 16) } : {}), ...(t ? { tattoo: t } : {}), ...(g ? { glove: g } : {}) }); }
 let vm = null, model = null; const speed = +(P.get('speed') || 0), holdFire = P.get('fire') === '1';
 function parseUpg(s) { const [dmg, rate, mag, mod] = s.split(','); return { dmg: +dmg, rate: +rate, mag: +mag, mod: mod || null }; }
-if (view === 'fp') { vm = new Viewmodels(cam, halo); vm.setWeapon(W); vm.setAmmo(W === 0 ? Infinity : 20, 48); if (P.get('upg')) vm.setUpgrades(W, parseUpg(P.get('upg'))); vm.setWeapon(W); }
+if (view === 'fp') { vm = new Viewmodels(cam, halo); vm.setWeapon(W); vm.setAmmo(W === 0 ? Infinity : 20, 48); if (P.get('upg')) vm.setUpgrades(W, parseUpg(P.get('upg'))); vm.setWeapon(W); if (P.get('rp')) vm.root.position.set(...P.get('rp').split(',').map(Number)); }
 else {
   model = createWeaponModel(W, { quality: Q, hands: P.get('h') !== '0' }); scene.add(model); if (P.get('upg')) applyUpgrades(model, parseUpg(P.get('upg')));
   const d = +(P.get('d') || [1.0, 1.6, 1.5, 1.4, 2.3, 1.0, 1.2, 1.3, 1.9, 1.7, 1.7, 1.6, 2.6, 2.3, 1.7][W]), a = THREE.MathUtils.degToRad(+(P.get('a') ?? -50)), e = THREE.MathUtils.degToRad(+(P.get('e') ?? 18));

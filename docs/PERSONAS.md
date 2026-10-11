@@ -30,6 +30,12 @@ h.play('walk'); h.update(dt, { speed: 3.1, camera });   // cada cuadro
 - `h.shoot()` (o `play('shoot',{restart:true})`): retroceso + fogonazo en la boca (`userData.muzzle`). `h.gesture('ping',{target:Vector3})` señala con el brazo derecho, `h.gesture('wave')` saluda, `h.gesture(null)` cancela.
 - Equipo en `src/arcanum/gear.js`, IK en `src/arcanum/pose.js`.
 
+## Guantes y tatuajes de cristal (manos y antebrazos)
+`createHuman(kit, { char: 'egida'|'lumen'|'forja'|'vigia'|'nova'|'umbra', ... })` (también `CHAR_IDS`, `CHAR_INFO` en humans.js). `char` pone, si faltan, color, preset/semilla y rol del personaje (como CHARACTERS en src/sim/data.js). Sin `char`, un `role` elige el estilo (vanguardia→égida, soporte→lumen, ingeniero→forja, explorador→vigía); `hands:false` lo apaga; sin rol ni char no hay guantes (Pasajero/a igual que antes). `h.char` devuelve el estilo; `setLook({accent})` recolorea.
+- Estilos: égida runas angulares y triángulos · lumen venas curativas + cruz (acento verde) · forja circuitos y chip · vigía constelaciones y astrolabio · nova ojos cósmicos (iris y párpados que parpadean) · umbra tentáculos con ventosas y ojo de pupila vertical con anillos de glifos.
+- Cómo: (1) `gloveSkin` (materials.js) pinta la piel más allá de la muñeca como guante oscuro con yemas y aros luminosos (cero mallas); (2) gear.js `gloves()` agrega por mano 2 mallas fusionadas (tubo proyectado en el antebrazo sobre la manga + puño, placa del dorso, nudillos y muñequera de cristal) con un único `tattooMaterial` (shader emisivo, 6 estilos, pulso que viaja hacia la mano). Demo: `set=chars`, `set=solo&char=umbra&cam=handL|handR&anim=idle&weapon=none`.
+- Costo: +4 draw calls y ≈+1,5 k triángulos por persona en todas las calidades (low ≈ 18–24 dc, 10–13 k tri); medium/high sólo suman teselado y 2 cristales. Límites: placas rígidas (no siguen el curvado de los dedos), tatuaje del antebrazo es una proyección sobre la manga, no piel; en vista de cuerpo entero (≈25 px de antebrazo) se lee como brillo de color más que como dibujo.
+
 ## LOD bajo (iPhone)
 `low` usa mallas decimadas: `assets/arcanum/narrative/lod.json + lod.bin` (1,5 MB; cuerpo ya recortado por prenda: ≈2,5–3,7 k tri, ropa ≈2 k, pelo 1–2,4 k, ojos 280, calzado 900). Regenerar (herramienta de un solo uso, no queda en package.json):
 `npm i --no-save meshoptimizer && node src/arcanum/bake-lod.mjs` (o `MESHOPT_DIR=<carpeta con node_modules/meshoptimizer>`).

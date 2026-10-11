@@ -409,3 +409,233 @@ export function eyeIndex(entry) {
 }
 /** Posición sin proporciones del NPC (compartida por todos los NPC que usan la malla). */
 export function restAttribute(entry) { return (entry.restAttr ||= new T.BufferAttribute(entry.base, 3)); }
+
+// ====================================================================================================================
+// GUANTES Y TATUAJES DE CRISTAL (manos y antebrazos de los avatares de jugador)
+//  · tattooMaterial: UN solo ShaderMaterial emisivo y barato con 6 estilos (uno por personaje). Dibuja líneas, runas, venas, circuitos,
+//    constelaciones u ojos en coordenadas (x = arco en dm, y = largo desde el codo en dm) con pulso que viaja hacia la mano.
+//    El atributo `tKind` elige qué es cada pieza: 0 = tatuaje proyectado (sólo líneas, resto transparente), 1 = placa táctica oscura con
+//    el tatuaje encima, 2 = cristal facetado luminoso.
+//  · gloveSkin: pinta la piel de las manos (dedos incluidos) como guante táctico oscuro con anillos y yemas luminosas, sin mallas extra.
+// ====================================================================================================================
+export const TATTOO_STYLES = { egida: 0, lumen: 1, forja: 2, vigia: 3, nova: 4, umbra: 5 };
+
+const TATTOO_GLSL = `
+float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float seg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
+float rng(vec2 p, vec2 c, float r){ return abs(length(p - c) - r); }
+float tri(vec2 p, vec2 c, float r, float fl){ vec2 a = c + vec2(0.0, r * fl), b = c + vec2(-0.866 * r, -0.5 * r * fl), d = c + vec2(0.866 * r, -0.5 * r * fl);
+  return min(seg(p, a, b), min(seg(p, b, d), seg(p, d, a))); }
+float rune(vec2 f, float h){
+  float d = 9.0;
+  if (h > 0.12) d = min(d, seg(f, vec2(0.0, -0.36), vec2(0.0, 0.36)));
+  if (fract(h * 7.3) > 0.5) d = min(d, seg(f, vec2(-0.3, 0.34), vec2(0.0, 0.08)));
+  if (fract(h * 13.1) > 0.5) d = min(d, seg(f, vec2(0.3, 0.34), vec2(0.0, 0.08)));
+  if (fract(h * 3.7) > 0.55) d = min(d, seg(f, vec2(-0.3, -0.34), vec2(0.3, -0.06)));
+  if (fract(h * 5.9) > 0.5) d = min(d, seg(f, vec2(-0.3, -0.06), vec2(0.3, -0.34)));
+  if (fract(h * 9.7) > 0.62) d = min(d, seg(f, vec2(-0.3, 0.0), vec2(0.3, 0.0)));
+  return d;
+}
+// ojo cósmico: párpado almendrado, iris, pupila y pestañas. f en [-0.5, 0.5]; devuelve (distancia de trazo, distancia de iris)
+vec2 eyeShape(vec2 f, float open, float slit){
+  float ax = abs(f.x), lid = 0.27 * open * (1.0 - (f.x / 0.47) * (f.x / 0.47));
+  float dLid = ax < 0.47 ? abs(abs(f.y) - lid) : length(vec2(ax - 0.47, f.y));
+  float d = dLid, di = 9.0;
+  float inside = step(abs(f.y), lid + 0.01) * step(ax, 0.47);
+  float ir = abs(length(vec2(f.x, f.y * 1.35 / max(open, 0.3))) - 0.15);
+  float pu = slit > 0.5 ? seg(f, vec2(0.0, -0.17 * open), vec2(0.0, 0.17 * open)) : max(length(f) - 0.05, 0.0);
+  di = min(ir, pu) + (1.0 - inside) * 5.0;
+  for (int k = -2; k <= 2; k++) { float x = float(k) * 0.17, y = 0.27 * open * (1.0 - (x / 0.47) * (x / 0.47)); d = min(d, seg(f, vec2(x, y), vec2(x * 1.3, y + 0.11 + 0.03 * float(2 - abs(k))))); }
+  return vec2(d, di);
+}
+// ---- estilos: devuelven (distancia a trazo principal, distancia a trazo de acento) en dm
+vec2 sEgida(vec2 p, float t){
+  float d = 9.0, a = 9.0; vec2 q = vec2(abs(p.x), p.y);
+  if (p.y < 2.3) {
+    d = min(d, seg(p, vec2(0.0, 0.1), vec2(0.0, 2.25)));
+    d = min(d, seg(vec2(q.x, mod(p.y, 0.4)), vec2(0.0, 0.0), vec2(0.22, 0.16)));
+    d = min(d, seg(vec2(q.x, mod(p.y + 0.2, 0.4)), vec2(0.26, 0.0), vec2(0.5, 0.12)) + (p.y < 1.9 ? 0.0 : 9.0));
+    vec2 cp = vec2(q.x - 0.62, p.y - 0.15) / 0.52; vec2 id = floor(cp), f = fract(cp) - 0.5;
+    if (id.x >= 0.0 && id.x < 2.0 && id.y >= 0.0 && id.y < 4.0 && h21(id + floor(p.x < 0.0 ? 7.0 : 3.0)) > 0.22) d = min(d, rune(f, h21(id * 1.7 + (p.x < 0.0 ? 5.0 : 1.0))) * 0.52);
+    a = min(a, abs(p.y - 0.45) + (q.x < 1.3 ? 0.0 : 9.0)); a = min(a, abs(p.y - 2.05) + (q.x < 1.3 ? 0.0 : 9.0));
+  }
+  d = min(d, tri(p, vec2(0.0, 2.8), 0.4, 1.0)); d = min(d, tri(p, vec2(0.0, 2.8), 0.4 * 0.5, -1.0));
+  a = min(a, length(p - vec2(0.0, 2.8)) - 0.0);
+  return vec2(d, a);
+}
+float vein(vec2 p, float i, float t){
+  float x = sin(p.y * (1.5 + 0.35 * i) + i * 1.9 + t * 0.15) * (0.30 + 0.1 * i) + (i - 1.5) * 0.2 * (1.0 - smoothstep(0.0, 2.2, p.y) * 0.55);
+  float dx = abs(p.x - x), slope = abs(cos(p.y * (1.5 + 0.35 * i) + i * 1.9 + t * 0.15) * (0.30 + 0.1 * i) * (1.5 + 0.35 * i));
+  return dx / sqrt(1.0 + slope * slope);
+}
+vec2 sLumen(vec2 p, float t){
+  float d = 9.0, a = 9.0;
+  if (p.y < 2.3) {
+    for (int i = 0; i < 4; i++) { float fi = float(i); for (int k = -1; k <= 1; k++) { float dd = vein(vec2(p.x - float(k) * 0.95, p.y), fi, t); d = min(d, dd + (abs(float(k)) > 0.5 ? 0.02 : 0.0));
+      float yy = (floor(p.y * 2.0) + 0.5) / 2.0; vec2 c = vec2(sin(yy * (1.5 + 0.35 * fi) + fi * 1.9 + t * 0.15) * (0.30 + 0.1 * fi) + (fi - 1.5) * 0.2 * (1.0 - smoothstep(0.0, 2.2, yy) * 0.55) + float(k) * 0.95, yy);
+      if (h21(vec2(fi, yy)) > 0.45) a = min(a, length(p - c) - 0.02); } }
+  }
+  vec2 c = vec2(0.0, 2.85); float bar = min(seg(p, c + vec2(0.0, -0.3), c + vec2(0.0, 0.3)), seg(p, c + vec2(-0.3, 0.0), c + vec2(0.3, 0.0)));
+  a = min(a, bar); d = min(d, rng(p, c, 0.38));
+  return vec2(d, a);
+}
+vec2 sForja(vec2 p, float t){
+  float d = 9.0, a = 9.0;
+  if (p.y < 2.3) {
+    vec2 g = vec2(p.x + 3.0, p.y) / 0.42, id = floor(g), f = fract(g) - 0.5; float h = h21(id);
+    if (h < 0.3) d = min(d, seg(f, vec2(-0.5, 0.0), vec2(0.5, 0.0)));
+    else if (h < 0.55) d = min(d, seg(f, vec2(0.0, -0.5), vec2(0.0, 0.5)));
+    else if (h < 0.8) { d = min(d, seg(f, vec2(0.0, 0.0), vec2(0.5, 0.0))); d = min(d, seg(f, vec2(0.0, 0.0), vec2(0.0, 0.5))); }
+    d *= 0.42;
+    if (h > 0.3) a = min(a, length(f) * 0.42 - 0.07 + (h > 0.62 ? 0.0 : 9.0));
+    d = min(d, rng(vec2(f.x, f.y) * 0.42, vec2(0.0), 0.075) + (h > 0.62 ? 0.0 : 9.0));
+  }
+  vec2 c = vec2(0.0, 2.8), r = abs(p - c); float sq = max(r.x, r.y);
+  d = min(d, abs(sq - 0.24)); a = min(a, max(sq - 0.11, 0.0));
+  for (int k = -1; k <= 1; k++) { float o = float(k) * 0.14; d = min(d, seg(p, c + vec2(o, 0.24), c + vec2(o, 0.4))); d = min(d, seg(p, c + vec2(o, -0.24), c + vec2(o, -0.4))); d = min(d, seg(p, c + vec2(0.24, o), c + vec2(0.4, o))); d = min(d, seg(p, c + vec2(-0.24, o), c + vec2(-0.4, o))); }
+  return vec2(d, a);
+}
+vec2 sVigia(vec2 p, float t){
+  float d = 9.0, a = 9.0;
+  if (p.y < 2.3) {
+    vec2 g = vec2(p.x + 3.0, p.y) / 0.62; vec2 id = floor(g);
+    for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+      vec2 c = id + vec2(float(i), float(j)); vec2 s = (c + 0.2 + 0.6 * vec2(h21(c), h21(c + 9.1))) * 0.62;
+      vec2 pp = vec2(p.x + 3.0, p.y);
+      float tw = 0.5 + 0.5 * sin(t * 2.5 + h21(c) * 30.0);
+      a = min(a, max(length(pp - s) - 0.035 * (0.6 + tw), 0.0) + (h21(c + 3.3) > 0.28 ? 0.0 : 9.0));
+      vec2 c2 = c + vec2(1.0, 0.0); vec2 s2 = (c2 + 0.2 + 0.6 * vec2(h21(c2), h21(c2 + 9.1))) * 0.62;
+      if (h21(c + 5.5) > 0.4) d = min(d, seg(pp, s, s2));
+      vec2 c3 = c + vec2(0.0, 1.0); vec2 s3 = (c3 + 0.2 + 0.6 * vec2(h21(c3), h21(c3 + 9.1))) * 0.62;
+      if (h21(c + 8.8) > 0.55) d = min(d, seg(pp, s, s3));
+    }
+  }
+  vec2 c = vec2(0.0, 2.8); d = min(d, rng(p, c, 0.38)); d = min(d, rng(p, c, 0.28) + 0.0);
+  vec2 v = p - c; float an = atan(v.y, v.x); float tk = abs(fract(an * 12.0 / 6.2832) - 0.5);
+  if (length(v) > 0.38 && length(v) < 0.46) d = min(d, tk * 0.12 + abs(length(v) - 0.42) * 0.0 + 0.0);
+  a = min(a, min(seg(p, c + vec2(0.0, -0.2), c + vec2(0.0, 0.2)), seg(p, c + vec2(-0.2, 0.0), c + vec2(0.2, 0.0))));
+  a = min(a, seg(p, c + vec2(-0.1, -0.1), c + vec2(0.1, 0.1))); a = min(a, seg(p, c + vec2(-0.1, 0.1), c + vec2(0.1, -0.1)));
+  return vec2(d, a);
+}
+vec2 sNova(vec2 p, float t){
+  float d = 9.0, a = 9.0;
+  if (p.y < 2.3) {
+    float row = floor(p.y / 0.62); vec2 g = vec2((p.x + 3.0 + h21(vec2(row, 1.0)) * 0.7) / 0.8, p.y / 0.62); vec2 id = vec2(floor(g.x), row), f = fract(g) - 0.5; float h = h21(id);
+    if (h > 0.22 && p.y > 0.1) { float open = 0.55 + 0.45 * sin(t * 1.3 + h * 20.0); open = max(open * open * 1.4, 0.25); float sc = 0.8 * (0.7 + 0.5 * h);
+      vec2 e = eyeShape(f * vec2(1.0, 0.8 / 0.62 * 0.62 / 0.8 * 0.77) / (0.7 + 0.5 * h) * 1.1, min(open, 1.0), 0.0); d = min(d, e.x * sc * 0.9); a = min(a, e.y * sc * 0.9); }
+  }
+  vec2 c = vec2(0.0, 2.8); vec2 e = eyeShape((p - c) / 0.85, 1.0, 0.0); d = min(d, e.x * 0.85); a = min(a, e.y * 0.85);
+  vec2 v = p - c; float an = atan(v.y, v.x); float r = length(v);
+  if (r > 0.42 && r < 0.54) d = min(d, abs(fract(an * 8.0 / 6.2832) - 0.5) * 0.14 * (r - 0.3) * 6.0 + (r - 0.42) * 0.3 * 0.0);
+  return vec2(d, a);
+}
+vec2 sUmbra(vec2 p, float t){
+  float d = 9.0, a = 9.0;
+  if (p.y < 2.3) {
+    for (int i = 0; i < 3; i++) { float fi = float(i);
+      float ph = fi * 2.1 + t * 0.5, off = (fi - 1.0) * 0.62;
+      float x = off + 0.26 * sin(p.y * 2.6 + ph) * (0.5 + 0.5 * smoothstep(0.0, 1.2, p.y));
+      float slope = 0.26 * 2.6 * cos(p.y * 2.6 + ph);
+      float dx = abs(p.x - x) / sqrt(1.0 + slope * slope); float taper = 0.25 + 0.75 * smoothstep(0.0, 2.2, p.y);
+      d = min(d, dx / taper * 0.6 + 0.0);
+      float yk = (floor(p.y / 0.3) + 0.5) * 0.3; float xk = off + 0.26 * sin(yk * 2.6 + ph) * (0.5 + 0.5 * smoothstep(0.0, 1.2, yk));
+      a = min(a, abs(length(p - vec2(xk + 0.07, yk)) - 0.045) + (h21(vec2(fi, yk)) > 0.35 ? 0.0 : 9.0)); }
+    d = min(d, abs(p.y - 0.18) * 1.0 + (abs(p.x) < 1.1 ? 0.0 : 9.0));
+  }
+  vec2 c = vec2(0.0, 2.8); vec2 e = eyeShape((p - c) / 0.86, 1.0, 1.0); d = min(d, e.x * 0.86); a = min(a, e.y * 0.86);
+  vec2 v = p - c; float r = length(v), an = atan(v.y, v.x);
+  if (r > 0.4 && r < 0.5) d = min(d, abs(r - 0.445) + step(0.5, fract(an * 10.0 / 6.2832 + t * 0.05)) * 9.0);
+  a = min(a, abs(r - 0.52) + step(0.5, fract(an * 14.0 / 6.2832 - t * 0.25)) * 9.0);
+  return vec2(d, a);
+}
+`;
+
+/**
+ * Material de tatuaje/guante de un personaje. style: 'egida'|'lumen'|'forja'|'vigia'|'nova'|'umbra' (o su número).
+ * tstate = { value: segundos } compartido (el pulso corre solo con tstate.value += dt). Atributos requeridos: tUv (vec2), tKind (float).
+ */
+export function tattooMaterial({ style = 'egida', color = 0x66ffee, accent = 0xffffff, tstate }) {
+  const st = typeof style === 'number' ? style : (TATTOO_STYLES[style] ?? 0);
+  const m = new T.ShaderMaterial({
+    transparent: true, depthWrite: true,
+    uniforms: { uTime: tstate || { value: 0 }, uStyle: { value: st }, uColor: { value: new T.Color(color) }, uAccent: { value: new T.Color(accent) } },
+    vertexShader: 'attribute vec2 tUv; attribute float tKind; varying vec3 vV; varying vec2 vT; varying float vK; varying vec3 vP;\nvoid main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = mv.xyz; vT = tUv; vK = tKind; vP = position; gl_Position = projectionMatrix * mv; }',
+    fragmentShader: `uniform float uTime, uStyle; uniform vec3 uColor, uAccent; varying vec3 vV; varying vec2 vT; varying float vK; varying vec3 vP;
+${TATTOO_GLSL}
+void main(){
+  vec3 n = normalize(cross(dFdx(vV), dFdy(vV))); vec3 v = normalize(-vV); if (dot(n, v) < 0.0) n = -n;
+  float fres = pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 2.0);
+  float lit = 0.5 + 0.75 * max(dot(n, normalize(vec3(0.4, 0.8, 0.5))), 0.0);
+  float kind = vK;
+  vec3 col = vec3(0.0); float alpha = 1.0;
+  float beat = 0.82 + 0.18 * sin(uTime * 1.9);
+  if (kind > 1.5) {
+    // cristal facetado luminoso (muñequera, nudillos): el mismo lenguaje que crystalAccent
+    float irid = fract(dot(n, vec3(0.3, 0.5, 0.2)) * 1.5 + fres * 0.9 + (vP.x + vP.y + vP.z) * 6.0 + uTime * 0.12);
+    col = uColor * lit * 0.8;
+    col = mix(col, (0.5 + 0.5 * cos(6.28318 * (irid + vec3(0.0, 0.33, 0.67)))) * 0.8, 0.08 + 0.3 * fres);
+    col += uColor * (0.12 + 0.15 * sin(uTime * 2.4 + vP.y * 90.0)) + vec3(1.0, 0.95, 0.9) * pow(fres, 3.0) * 0.25;
+  } else {
+    vec2 p = vT; vec2 r;
+    if (uStyle < 0.5) r = sEgida(p, uTime); else if (uStyle < 1.5) r = sLumen(p, uTime); else if (uStyle < 2.5) r = sForja(p, uTime);
+    else if (uStyle < 3.5) r = sVigia(p, uTime); else if (uStyle < 4.5) r = sNova(p, uTime); else r = sUmbra(p, uTime);
+    float flow = 0.55 + 0.45 * sin(p.y * 3.4 - uTime * 2.8);
+    float pulse = beat * (0.7 + 0.5 * flow);
+    float w = 0.05 + 0.008 * sin(uTime * 2.0 + p.y * 4.0);
+    float core = 1.0 - smoothstep(w * 0.5, w * 0.5 + 0.022, r.x), halo = exp(-r.x * r.x * (kind < 0.5 ? 90.0 : 420.0));
+    float coreA = 1.0 - smoothstep(w * 0.55, w * 0.55 + 0.022, r.y), haloA = exp(-r.y * r.y * (kind < 0.5 ? 120.0 : 500.0));
+    vec3 line = uColor * (0.5 + 0.5 * pulse) * (core + 0.28 * halo) + mix(uColor, vec3(1.0), 0.5) * core * 0.08 * pulse;
+    vec3 acc = uAccent * (0.55 + 0.5 * pulse) * (coreA + 0.3 * haloA);
+    float cover = clamp(max(core + 0.3 * halo, coreA + 0.35 * haloA), 0.0, 1.0);
+    if (kind < 0.5) {
+      col = line + acc; alpha = cover * smoothstep(0.0, 0.12, p.y);
+      alpha *= 0.55 + 0.45 * smoothstep(0.0, 0.3, 1.0 - fres);
+      if (alpha < 0.05) discard;
+    } else {
+      vec3 base = vec3(0.03, 0.033, 0.04) * lit + uColor * 0.012 + uColor * fres * 0.06;
+      col = base + line + acc;
+    }
+  }
+  gl_FragColor = vec4(col, alpha);
+#include <tonemapping_fragment>
+#include <colorspace_fragment>
+}`,
+  });
+  m.userData.tattoo = true; return m;
+}
+
+/**
+ * Guante sobre la piel: cualquier vértice de la malla del cuerpo que quede más allá de la muñeca (en el sistema de reposo) se
+ * pinta como tela táctica oscura, con yemas y aros de articulación luminosos. wrists = [{ pos:[x,y,z], dir:[x,y,z] }, ...] (dir = muñeca → dedos, unitaria).
+ * Idempotente: una segunda llamada sólo cambia colores.
+ */
+export function gloveSkin(material, { wrists, color = 0x66ffee, tstate }) {
+  const u = material.userData.glove;
+  if (u) { u.uGCol.value.set(color); return u; }
+  const g = { uGCol: { value: new T.Color(color) }, uGTime: tstate || { value: 0 },
+    uGW: { value: wrists.map((w) => new T.Vector3(...w.pos)) }, uGD: { value: wrists.map((w) => new T.Vector3(...w.dir)) } };
+  material.userData.glove = g;
+  const prev = material.onBeforeCompile, prevKey = material.customProgramCacheKey ? material.customProgramCacheKey() : '';
+  material.onBeforeCompile = (s, r) => {
+    prev?.call(material, s, r); Object.assign(s.uniforms, g);
+    s.fragmentShader = 'uniform vec3 uGCol; uniform float uGTime; uniform vec3 uGW[2]; uniform vec3 uGD[2];\n' + s.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+	{
+		vec3 gp = vNpcP; int gs = gp.x >= 0.0 ? 0 : 1; vec3 gw = gs == 0 ? uGW[0] : uGW[1], gd = gs == 0 ? uGD[0] : uGD[1];
+		vec3 grel = gp - gw; float gt = dot(grel, gd);
+		float gin = smoothstep( -0.012, -0.004, gt ) * ( 1.0 - smoothstep( 0.19, 0.23, length( grel ) ) );
+		if ( gin > 0.001 ) {
+			float gbeat = 0.8 + 0.2 * sin( uGTime * 1.9 + gt * 20.0 );
+			float grip = 0.5 + 0.5 * step( 0.5, fract( gt * 90.0 ) );
+			vec3 gbase = vec3( 0.04, 0.045, 0.055 ) * grip + uGCol * 0.03;
+			diffuseColor.rgb = mix( diffuseColor.rgb, gbase, gin );
+			roughnessFactor = mix( roughnessFactor, 0.52, gin );
+			float gtip = smoothstep( 0.128, 0.16, gt );
+			float gring = ( 1.0 - smoothstep( 0.0, 0.0035, abs( gt - 0.0 ) ) ) + ( 1.0 - smoothstep( 0.0, 0.003, abs( gt - 0.066 ) ) ) * 0.6 + ( 1.0 - smoothstep( 0.0, 0.003, abs( gt - 0.1 ) ) ) * 0.6;
+			totalEmissiveRadiance += uGCol * gin * ( gtip * 1.5 + gring * 1.6 ) * gbeat;
+		}
+	}`);
+  };
+  material.customProgramCacheKey = () => prevKey + '|glove';
+  material.needsUpdate = true;
+  return g;
+}

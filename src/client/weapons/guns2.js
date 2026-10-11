@@ -2,7 +2,7 @@
 // Fábrica común `make`: cada arma sólo describe su geometría (build), su animación (anim) y qué hace al disparar (fire).
 import * as THREE from 'three';
 import { Kit, makeMats, AmmoScreen } from './kit.js';
-import { rightHand, triggerFinger, supportHand } from './hands.js';
+import { rightHand, triggerFinger, supportHand, trigCurl, bindTrigger } from './hands.js';
 import { DARK, GUN, STEEL, PALE, clamp, damp, easeOut, Spring, newGun, finalize, addParts, placeScreen, bezel, screw, vents } from './guns.js';
 
 const VIEW_L = { pos: [0.27, -0.27, -0.7], scale: 0.95, zs: 0.55, rot: [-0.02, 0.28, -0.05] };
@@ -31,7 +31,7 @@ function make(index, q, hands, S) {
     update(dt, t, firing) {
       st.t = t; st.kick.step(dt); st.t0 += dt; G.heat = Math.max(0, G.heat - dt * (S.cool ?? 0.4)); G.boost = Math.max(0, G.boost - dt * (S.bdec ?? 6));
       st.curl = Math.max(st.curl - dt * 8, firing ? 0.3 : 0); st.pulse = Math.max(0, st.pulse - dt * 3);
-      if (P.trigger) P.trigger.rotation.x = -st.curl * 0.5;
+      trigCurl(P, st.curl);
       S.anim && S.anim(P, st, dt, t, firing, G, W);
       G.mats.set(t, G.heat, st.seq, G.ammo, G.boost); G.scr.update(t);
     },

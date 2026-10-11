@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { OUT } from '../shaders.js';
+import { handMaterial, HU } from './handmat.js';
 
 /** Presupuesto gráfico según el nivel ('low' | 'medium' | 'high'). */
 export function qualityOf(name = 'high') {
@@ -49,10 +50,12 @@ export class Kit {
     const mm = this.stack[this.stack.length - 1].clone().multiply(_m);
     const g = geo.index ? geo.toNonIndexed() : geo.clone();
     g.deleteAttribute('uv'); if (g.attributes.uv1) g.deleteAttribute('uv1');
+    const raw = o.flow ? Float32Array.from(g.attributes.position.array) : null;
     g.applyMatrix4(mm);
-    const n = g.attributes.position.count, col = new THREE.Color(o.c ?? 0xffffff), ca = new Float32Array(n * 3), ka = new Float32Array(n).fill(o.k || 0);
+    const n = g.attributes.position.count, col = new THREE.Color(o.c ?? 0xffffff), ca = new Float32Array(n * 3), ka = new Float32Array(n).fill(o.k || 0), ua = new Float32Array(n).fill(o.u || 0);
     for (let i = 0; i < n; i++) { ca[i * 3] = col.r; ca[i * 3 + 1] = col.g; ca[i * 3 + 2] = col.b; }
-    g.setAttribute('color', new THREE.BufferAttribute(ca, 3)); g.setAttribute('kind', new THREE.BufferAttribute(ka, 1));
+    if (o.flow) { const [u0, u1, ax, len] = o.flow, pa = g.attributes.position, ai = ax === 'x' ? 0 : ax === 'y' ? 1 : 2; for (let i = 0; i < n; i++) ua[i] = u0 + (u1 - u0) * (pa.array[i * 3 + ai] / len + 0.5); } // 'aux' = coordenada de flujo (manos)
+    g.setAttribute('color', new THREE.BufferAttribute(ca, 3)); g.setAttribute('kind', new THREE.BufferAttribute(ka, 1)); g.setAttribute('aux', new THREE.BufferAttribute(ua, 1));
     this.cur[L].push(g); return this;
   }
 
@@ -94,8 +97,8 @@ export class Kit {
     const seg = o.seg || Math.max(5, this.q.seg - 3);
     const geo = cached(`li${r0},${r1},${len.toFixed(4)},${seg}`, () => new THREE.CylinderGeometry(r1, r0, len, seg, 1)); // +Y = r1 (b)
     const qq = new THREE.Quaternion().setFromUnitVectors(_Y, d.normalize());
-    this.put(L, geo, A.clone().add(B).multiplyScalar(0.5).toArray(), { ...o, q: qq });
-    if (o.ball) { this.sph(L, r0, a, o); this.sph(L, r1, b, o); }
+    this.put(L, geo, A.clone().add(B).multiplyScalar(0.5).toArray(), { ...o, q: qq, flow: o.flow ? [o.flow[0], o.flow[1], 'y', len] : null });
+    if (o.ball) { const f = o.flow, oo = { ...o, flow: null }; this.sph(L, r0, a, f ? { ...oo, u: f[0] } : oo); this.sph(L, r1, b, f ? { ...oo, u: f[1] } : oo); }
     return this;
   }
   /** Cadena de miembros por un arco (en XY, eje Z) — dedos que envuelven un tubo. */
@@ -217,29 +220,28 @@ function surfaceDetail(mat, hex, strength = 1) {
 export const TUNE = { met: 0.7, iri: 0.4, thick: [150, 500], rough: 0.5, cc: 0.0, env: 0.9, rim: 0.3 };
 /** Los tres materiales de un arma. body: metal anodizado iridiscente; glove: tela técnica; glow: cristal. */
 export function makeMats(q, hex) {
-  let body, glove;
+  let body;
+  const glove = handMaterial(q); // guantes: material compartido (handmat.js), el estilo se cambia con setHandStyle
   if (q.high) {
     body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: TUNE.met, roughness: TUNE.rough, clearcoat: TUNE.cc, clearcoatRoughness: 0.07, iridescence: TUNE.iri, iridescenceIOR: 1.9, iridescenceThicknessRange: TUNE.thick, envMapIntensity: TUNE.env });
-    glove = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 0.1, roughness: 0.62, sheen: 0.3, sheenColor: new THREE.Color(hex).multiplyScalar(0.2), sheenRoughness: 0.6, envMapIntensity: 0.45 });
   } else if (q.name === 'medium') {
     body = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 1, roughness: 0.4, iridescence: TUNE.iri, iridescenceIOR: 1.9, iridescenceThicknessRange: TUNE.thick, envMapIntensity: TUNE.env });
-    glove = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.1, roughness: 0.7, envMapIntensity: 0.45 });
   } else {
     body = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.45, roughness: 0.38 });
-    glove = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.05, roughness: 0.7 });
   }
   surfaceDetail(body, hex);
   const c = new THREE.Color(hex);
-  body.emissive = c.clone().multiplyScalar(q.low ? 0.07 : 0.03); glove.emissive = c.clone().multiplyScalar(q.low ? 0.05 : 0.02);
+  body.emissive = c.clone().multiplyScalar(q.low ? 0.07 : 0.03); const wc = c.clone();
   const glow = glowMaterial(hex, q);
   return {
     body, glove, glow, base: { be: body.emissive.clone() },
     /** Reloj, calor (0..1), secuencia de bobinas (z), munición (0..1) y destello puntual. */
     set(t, heat, seq = -9, ammo = 1, boost = 0) {
+      HU.uTime.value = t; HU.uFire.value = Math.max(heat * 0.55, boost); HU.uWeap.value.copy(wc);
       const u = glow.uniforms; u.uTime.value = t; u.uHeat.value = heat; u.uSeq.value = seq; u.uAmmo.value = ammo; u.uBoost.value = boost;
       const k = heat * 0.35 + boost * 0.2; body.emissive.copy(this.base.be); body.emissive.r += c.r * k; body.emissive.g += c.g * k; body.emissive.b += c.b * k;
     },
-    dispose() { body.dispose(); glove.dispose(); glow.dispose(); },
+    dispose() { body.dispose(); glow.dispose(); }, // el guante es compartido: no se libera
   };
 }
 

@@ -6,8 +6,9 @@ import { qualityOf } from './weapons/kit.js';
 import { BUILD, WEAPON_COLORS } from './weapons/guns.js';
 import { VMFx, flashTexture } from './weapons/fx.js';
 import { applyUpgrades } from './weapons/mods.js';
+import { setHandStyle, HAND_STYLE, HAND_PRESETS, HU, TATTOOS, GLOVES } from './weapons/handmat.js';
 
-export { WEAPON_COLORS, applyUpgrades };
+export { WEAPON_COLORS, applyUpgrades, setHandStyle, HAND_PRESETS, TATTOOS, GLOVES };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const smooth = (x) => x * x * (3 - 2 * x);
@@ -51,6 +52,10 @@ export class Viewmodels {
     if (this.ammo.n !== undefined) W.setAmmo(this.ammo.n, this.ammo.max);
     this.items[i] = it; return it;
   }
+  /** Estilo de las manos: { color, accent, tattoo: 'runas'|'ojos'|'constelacion'|'venas'|'ninguno', glove: 'tactico'|'cristal'|'desnudo', skin }.
+   *  Parcial (lo no pasado se conserva), en caliente, sin reconstruir. También sirve un nombre de HAND_PRESETS ('egida'...'umbra'). Devuelve el estilo vigente. */
+  setHandStyle(st) { return setHandStyle(typeof st === 'string' ? HAND_PRESETS[st] || {} : st); }
+  getHandStyle() { return { ...HAND_STYLE }; }
   /** Mejoras visibles de un arma: upg = { dmg:0-5, rate:0-5, mag:0-4, mod:null|'perfora'|'explosiva'|'cadena'|'vampirica' }. Se recuerdan por arma. */
   setUpgrades(weaponId, upg) { this.upg[weaponId] = upg ? { ...upg } : null; const it = this.items[weaponId]; if (it) applyUpgrades(it.W.group, upg || {}); }
   setAmmo(n, max) { this.ammo = { n, max }; const it = this.items[this.cur]; if (it) it.W.setAmmo(n, max); }
@@ -98,6 +103,7 @@ export class Viewmodels {
       v.rot[1] + sx * 0.055 + Math.sin(ph) * 0.012 * b + lowTilt * 0.55,
       v.rot[2] + kr - sx * 0.035 + Math.sin(ph) * 0.016 * b + lowTilt * 0.6, 'YXZ');
     it.rig.scale.set(v.scale, v.scale, v.scale * (v.zs || 1)); it.rig.updateMatrix();
+    const u = this.upg[this.cur]; HU.uUpg.value = u ? Math.min(1, ((u.dmg | 0) + (u.rate | 0) + (u.mag | 0) + (u.mod ? 1 : 0)) / 15) : 0; // el tatuaje crece con las mejoras del arma
     W.update(dt, this.t, firing);
     // fogonazo: destello con forma propia + halo
     it.f = Math.max(0, it.f - dt * W.flash.decay);
