@@ -54,7 +54,7 @@ export default function build(kit, color) {
       parts.push(paint(loft(pts, { seg: 14, radial: 5, r: (t) => 0.05 * (0.3 + Math.sin(t * Math.PI) * 0.9), ry: () => 0.8, round: [0.1, 0.1] }), BONE, 2, 0.0, (p, n, uv) => ({ g: 0.1 })));
     }
     // faldón óseo festoneado en la base de cada vértebra y placa de pecho
-    parts.push(paint(loft(line([0, -0.02, 0], [0, 0.16, 0]), { seg: 3, radial: R + 6, r: (t) => Ri * (1.34 - 0.34 * t), mod: (t, a) => 1 + 0.07 * Math.sin(a * 7 + i) * (1 - t) }), BONE, 2, 0, (p, n, uv) => ({ g: 0.5 * (1 - uv[1]) })));
+    parts.push(paint(loft(line([0, -0.02, 0], [0, 0.16, 0]), { seg: 3, radial: R + 6, r: (t) => Ri * (1.22 - 0.22 * t), mod: (t, a) => 1 + 0.07 * Math.sin(a * 7 + i) * (1 - t) }), BONE, 2, 0, (p, n, uv) => ({ g: 0.5 * (1 - uv[1]) })));
     const cp = domePlate(Ri * 0.38, 0.2, 0.09, { ridge: 0.8, thick: 0.02, nu: 5, nv: 5 }); parts.push(paint(aimY(cp, new V3(0, 0.34, Ri * 0.97), new V3(0, 0.1, 1)), BONE, 2, 0, () => ({ k: 1.0 })));
     // placa dorsal de quitina + espina con cristal
     const dp = domePlate(Ri * 0.45, 0.25, 0.11, { ridge: 0.7, thick: 0.025, nu: 6, nv: 6 });
@@ -147,7 +147,7 @@ export default function build(kit, color) {
     eyeRoot.getWorldQuaternion(qb); root.getWorldQuaternion(qa); qb.premultiply(qa.clone().invert()).invert();
     up.copy(aimL).applyQuaternion(qb).normalize();
     const squint = locked ? 0.7 : charging ? 1.1 : 1;
-    E.update(dt, up, { open: clamp((0.8 + 0.2 * Math.sin(t * 0.8 + id)) * squint * (1 - hit * 0.5) * (1 - hurtLow * 0.2) + k * 0.15, 0, 1), pupil: lerp(0.55, 0.16, heat) * (1 - hit * 0.1) + 0.08 * Math.sin(t * 2.3 + id), glow: 0.35 + heat * 0.9 + shotFlash * 1.2, hurt: U.uHurt.value, shake: hurtLow * 0.1 + k * 0.03, blinkRate: charging ? 0.2 : 1 + hurtLow });
+    E.update(dt, up, { open: clamp((0.62 + 0.18 * Math.sin(t * 0.8 + id)) * squint * (1 - hit * 0.5) * (1 - hurtLow * 0.2) + k * 0.15, 0, 1), pupil: lerp(0.55, 0.16, heat) * (1 - hit * 0.1) + 0.08 * Math.sin(t * 2.3 + id), glow: 0.35 + heat * 0.9 + shotFlash * 1.2, hurt: U.uHurt.value, shake: hurtLow * 0.1 + k * 0.03, blinkRate: charging ? 0.2 : 1 + hurtLow, brow: 0.22 + heat * 0.3 });
     E.iris.userData.u.uIris.value.copy(irisA).lerp(irisR, lockAmt * 0.8 + hurtLow * 0.3);
 
     // pétalos: respiran, se abren al cargar, se cierran al ser herido

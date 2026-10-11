@@ -64,7 +64,7 @@ void surfShade(vec3 p, vec3 nW, vec3 acc, vec4 isl, float t, out vec3 alb, out v
   float plate = smoothstep(0.82, 0.97, abs(nW.y));
   if (plate > 0.001 && isl.z > 1.5) {
     vec2 q = p.xz - isl.xy; float rd = length(q), R = max(isl.z, 1.0), ang = atan(q.y, q.x), TAU = 6.2831853;
-    vec3 pa = (vec3(0.0055, 0.0065, 0.011) + acc * 0.003) * (0.7 + 0.6 * mix(0.5, vnoise(p * 2.2), smoothstep(0.5, 0.1, fw))) * (0.8 + 0.4 * vnoise(p * 0.6));
+    vec3 pa = (vec3(0.0030, 0.0036, 0.0060) + acc * 0.0016) * (0.7 + 0.6 * mix(0.5, vnoise(p * 2.2), smoothstep(0.5, 0.1, fw))) * (0.8 + 0.4 * vnoise(p * 0.6));
     float rdist = (0.5 - abs(fract(rd / 3.2) - 0.5)) * 3.2;
     float S = floor(R * 0.6 + 0.5) * 2.0, adist = (0.5 - abs(fract(ang / TAU * S) - 0.5)) * TAU * rd / S;
     float sw = max(0.07, aa);

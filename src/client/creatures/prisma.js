@@ -34,12 +34,12 @@ export default function build(kit, color) {
         .replace('#include <color_fragment>', `#include <color_fragment>
           float s = vW.x, v = vW.y;
           // venas: radiales en abanico (más densas hacia el borde), con ramificaciones cruzadas finas
-          float fan = v * (6.0 + 5.0 * s) + sin(s * 3.0) * 0.25; float l1 = abs(fract(fan) - 0.5); float vein = smoothstep(0.43, 0.5, l1) * (0.35 + 0.65 * smoothstep(0.0, 0.25, v));
+          float fan = v * (6.0 + 5.0 * s) + sin(s * 3.0) * 0.25; float l1 = abs(fract(fan) - 0.5); float vein = smoothstep(0.4, 0.5, l1) * (0.45 + 0.55 * smoothstep(0.0, 0.25, v));
           float cell = abs(vn(vec3(s * 14.0, v * 8.0, 3.0)) - 0.5); float cross = (1.0 - smoothstep(0.43, 0.5, cell)) * 0.5 * smoothstep(0.15, 0.55, v);
           float leading = smoothstep(0.1, 0.0, v) * 1.0, rim = smoothstep(0.9, 1.0, v);
           float vv = clamp(max(vein, cross) + leading, 0.0, 1.0);
           // ocelo: dos (alas delanteras: grande; traseras: pequeño). Distancias en proporción de pantalla
-          vec2 c0 = uKind < 0.5 ? vec2(0.6, 0.5) : vec2(0.55, 0.45); float rs = uKind < 0.5 ? 0.17 : 0.1;
+          vec2 c0 = uKind < 0.5 ? vec2(0.6, 0.5) : vec2(0.55, 0.45); float rs = uKind < 0.5 ? 0.2 : 0.12;
           vec2 q = (vec2(s, v) - c0) * vec2(1.5, 0.92); float d = length(q) / rs;
           float oRing = smoothstep(1.0, 0.92, d);
           float c1 = smoothstep(1.0, 0.9, d) - smoothstep(0.85, 0.75, d);       // aro exterior oscuro
@@ -56,7 +56,7 @@ export default function build(kit, color) {
           diffuseColor.rgb = base; float oc = max(c2 + c3 + c4, 0.0);`)
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
           float fres = pow(1.0 - abs(dot(normal, normalize(vViewPosition))), 2.0);
-          diffuseColor.a = clamp(0.4 + 0.3 * (1.0 - v) + vv * 0.5 + (c1 + c2 + c3 + c4) * 0.55 + fres * 0.25, 0.0, 0.96) * (1.0 - smoothstep(0.93, 1.0, v) * 0.45);
+          diffuseColor.a = clamp(0.26 + 0.26 * (1.0 - v) + vv * 0.6 + (c1 + c2 + c3 + c4) * 0.6 + fres * 0.3, 0.0, 0.97) * (1.0 - smoothstep(0.93, 1.0, v) * 0.45);
           totalEmissiveRadiance += uC2 * (vv * (0.35 + uWind * 2.6) * (0.6 + 0.4 * sin(uTime * 3.0 - s * 8.0)) + (c3 * 0.9 + c2 * 0.5) * (0.5 + uWind * 2.2)) + irid * fres * 0.4 + vec3(1.0, 0.85, 0.7) * uHurt * 0.9;`);
     };
     return m;
@@ -69,8 +69,8 @@ export default function build(kit, color) {
   const ab = []; [[0, 0.08, -0.35], [0, 0.04, -0.75], [0, 0.0, -1.1], [0, -0.04, -1.4]].forEach((p, i) => ab.push(rig.bone(i ? ab[i - 1] : body, p, 'ab')));
   // ── alas ──
   const WSEG = low ? [5, 4] : [11, 8];
-  const LEx = (s) => 0.28 + 1.52 * s, LEz = (s) => 0.2 + 0.1 * Math.sin(Math.PI * s) - 0.42 * s * s;
-  const chord = (s) => 1.0 * (0.34 + 0.66 * Math.sin(Math.PI * Math.pow(s, 0.8))) * Math.pow(Math.max(0, 1 - Math.pow(s, 2.4)), 0.55);
+  const LEx = (s) => 0.28 + 1.95 * s, LEz = (s) => 0.2 + 0.14 * Math.sin(Math.PI * s) - 0.5 * s * s;
+  const chord = (s) => 1.3 * (0.34 + 0.66 * Math.sin(Math.PI * Math.pow(s, 0.8))) * Math.pow(Math.max(0, 1 - Math.pow(s, 2.4)), 0.55);
   function foreGeo(side) {
     const [nx, nz] = WSEG, P = [], K = [], I = [], PH = [];
     for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) {
@@ -85,21 +85,21 @@ export default function build(kit, color) {
     // ala trasera: lóbulo redondeado con cola larga tipo golondrina
     for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) {
       const s = i / nx, v = j / nz, w = 0.95 * Math.sin(Math.PI * (0.08 + 0.7 * s)), ch = 0.55 * (0.5 + 0.5 * Math.sin(Math.PI * (s * 0.9 + 0.05))) + (s > 0.55 ? 0.9 * Math.pow((s - 0.55) / 0.45, 2.2) * (1 - 0.7 * Math.abs(v - 0.4)) : 0);
-      P.push(side * (0.3 + 1.0 * s * (1 - 0.15 * v)), 0.06 - 0.03 * s, -0.2 - v * ch * (1 + 0.2 * Math.sin(s * 6) * v * 0.3) - 0.3 * s * s); K.push(s); PH.push(v);
+      P.push(side * (0.3 + 1.3 * s * (1 - 0.15 * v)), 0.06 - 0.03 * s, -0.2 - v * ch * 1.25 * (1 + 0.2 * Math.sin(s * 6) * v * 0.3) - 0.3 * s * s); K.push(s); PH.push(v);
     }
     for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const a = i * (nz + 1) + j, b = a + nz + 1; if (side > 0) I.push(a, b, a + 1, b, b + 1, a + 1); else I.push(a, a + 1, b, b, a + 1, b + 1); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('aK', new THREE.Float32BufferAttribute(K, 1)); g.setAttribute('aPh', new THREE.Float32BufferAttribute(PH, 1)); g.setIndex(I); g.computeVertexNormals(); return g;
   }
   const wings = [];
   for (const side of [-1, 1]) {
-    const sh = rig.bone(body, [side * 0.26, 0.1, 0.16], 'sh'), el = rig.bone(sh, [side * 1.0, 0.12, LEz(0.47)], 'el'), tip = rig.bone(el, [side * 1.75, 0.1, LEz(1)], 'wt'), hw = rig.bone(sh, [side * 0.34, 0.07, -0.18], 'hw'), hwt = rig.bone(hw, [side * 1.2, 0.04, -0.5], 'hwt');
+    const sh = rig.bone(body, [side * 0.26, 0.1, 0.16], 'sh'), el = rig.bone(sh, [side * LEx(0.47), 0.12, LEz(0.47)], 'el'), tip = rig.bone(el, [side * LEx(1), 0.1, LEz(1)], 'wt'), hw = rig.bone(sh, [side * 0.34, 0.07, -0.18], 'hw'), hwt = rig.bone(hw, [side * 1.4, 0.04, -0.55], 'hwt');
     rig.add(wingF, skinChain(foreGeo(side), [sh, el, tip], 0.28)); rig.add(wingH, skinChain(hindGeo(side), [hw, hwt], 0.3));
     // huesos del ala: borde de ataque (tubo curvo) + dedos en abanico; garra de cristal en la muñeca
     const LE = []; for (let i = 0; i <= 6; i++) { const s = i / 6; LE.push([side * LEx(s), 0.12 + 0.02 * Math.sin(s * 3), LEz(s)]); }
     const lg = tube(LE, { rad: (t) => 0.05 * (1 - t * 0.8) + 0.008, seg: low ? 8 : 14, sides: low ? 4 : 6, caps: true }); paint(lg, (p, n) => new THREE.Color(0x2a1038).lerp(new THREE.Color(0x7a4a9a), smooth(0.0, 1, n.y * 0.5 + 0.5))); rig.add(bone, skinChain(lg, [sh, el, tip], 0.28));
     if (!low) for (let f = 0; f < 3; f++) { const s0 = 0.18 + f * 0.1, a = LE[Math.round(s0 * 6)], tgt = [side * (LEx(s0 + 0.5)), 0.08, LEz(s0 + 0.5) - chord(s0 + 0.5) * (0.85 + f * 0.05)]; const fg = tube([a, [lerp(a[0], tgt[0], 0.5), 0.1, lerp(a[2], tgt[2], 0.5)], tgt], { rad: (t) => 0.018 * (1 - t) + 0.004, seg: 5, sides: 4, caps: false }); paint(fg, 0x3a1850); rig.add(bone, skinChain(fg, [sh, el, tip], 0.28)); }
-    const claw = spike(0.035, 0.22, { sides: 5, seg: 3, bend: 0.5, bendDir: [0, 0, -1], pos: [side * 1.0, 0.13, LEz(0.47) + 0.03], dir: [side * 0.3, 0.5, 1] }); paint(claw, (p) => new THREE.Color(0x5a3a6a).lerp(new THREE.Color(0xfff0e0), smooth(0.05, 0.22, p.z - 0.25))); rig.add(bone, skinRigid(claw, el));
-    crystalCluster(2, 0.025, 0.2, { pos: [side * 1.0, 0.14, LEz(0.47)], dir: [side * 0.3, 1, 0.2], seed: 70 + side, c0: 0x20406a, c1: 0xe0ffff }).forEach((c) => rig.add(cry, skinRigid(c, el)));
+    const claw = spike(0.035, 0.22, { sides: 5, seg: 3, bend: 0.5, bendDir: [0, 0, -1], pos: [side * LEx(0.47), 0.13, LEz(0.47) + 0.03], dir: [side * 0.3, 0.5, 1] }); paint(claw, (p) => new THREE.Color(0x5a3a6a).lerp(new THREE.Color(0xfff0e0), smooth(0.05, 0.22, p.z - 0.25))); rig.add(bone, skinRigid(claw, el));
+    crystalCluster(2, 0.025, 0.2, { pos: [side * LEx(0.47), 0.14, LEz(0.47)], dir: [side * 0.3, 1, 0.2], seed: 70 + side, c0: 0x20406a, c1: 0xe0ffff }).forEach((c) => rig.add(cry, skinRigid(c, el)));
     wings.push({ sh, el, tip, hw, hwt, side });
   }
   // ── cuerpo ──

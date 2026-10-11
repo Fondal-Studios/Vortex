@@ -9,7 +9,7 @@ import { buildZones } from './zones.js';
 
 // Entorno del Mapa 1 · Vacío de Islas. `r` es el Renderer (r.mapRoot, r.shared(), r.dyn, r.sun, r.halo, r.camera…).
 const SUN_POS = new THREE.Vector3(380, 300, -700);
-export const M1 = { haze: 0x241a58, hazeDens: 0.0000032 };
+export const M1 = { haze: 0x35277a, hazeDens: 0.000014 };
 
 export function buildMap1(r, map) {
   const root = r.mapRoot, q = cfg(), sunDir = SUN_POS.clone().normalize();

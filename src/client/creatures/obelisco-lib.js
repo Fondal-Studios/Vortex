@@ -65,7 +65,7 @@ export function bigEye({ r = 0.5, iris = 0xffb020, slit = false, pupil = null, l
       const bl = Math.sin(Math.min(1, blink) * Math.PI);
       cur = damp(cur, open, 9, dt);
       const o = clamp(cur * (1 - bl), 0, 1);
-      u.uOpen.value.set(lerp(0.02, 0.8, o), lerp(0.02, 0.62, o), br); window.__o = [u.uOpen.value.x, u.uOpen.value.y, o];
+      u.uOpen.value.set(lerp(0.02, 0.8, o), lerp(0.02, 0.62, o), br);
       u.uPup.value = pupil; u.uGlow.value = glow; u.uHurt.value = hurt;
     },
   };
@@ -178,4 +178,21 @@ export function legLite(mat, { upper = 0.7, lower = 0.8, r = 0.1 } = {}) {
   }
   solve(new THREE.Vector3(0, -(upper + lower) * 0.9, 0));
   return { object: root, setFoot: solve, setBend(v) { bend.copy(v).normalize(); } };
+}
+
+/* ───────────────────────── anillos aditivos (1 draw call para todos) ───────────────────────── */
+/**
+ * n anillos en un InstancedMesh aditivo. set(i, { r, a, y, rx, rz, rot, color }) — a = opacidad (se aplica como brillo del color).
+ * Plano por defecto horizontal (xz); rx/rz inclinan el anillo.
+ */
+export function ringBank(parent, n, { color = 0xffffff, thick = 0.9, seg = 56 } = {}) {
+  const g = new THREE.RingGeometry(thick, 1, seg); g.rotateX(-Math.PI / 2);
+  const m = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const im = new THREE.InstancedMesh(g, m, n); im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.setColorAt(0, new THREE.Color(0)); im.renderOrder = 4; parent.add(im);
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), P = new THREE.Vector3(), S = new THREE.Vector3(), C = new THREE.Color(), base = new THREE.Color(color);
+  for (let i = 0; i < n; i++) { M.makeScale(0.0001, 0.0001, 0.0001); im.setMatrixAt(i, M); im.setColorAt(i, C.setRGB(0, 0, 0)); }
+  return { object: im, set(i, { r = 1, a = 0, y = 0, rx = 0, rz = 0, rot = 0, color: c = null } = {}) {
+    E.set(rx, rot, rz); Q.setFromEuler(E); P.set(0, y, 0); const rr = Math.max(0.0001, r); S.set(rr, rr, rr); M.compose(P, Q, S); im.setMatrixAt(i, M);
+    C.copy(c == null ? base : (c.isColor ? c : C.set(c))).multiplyScalar(clamp(a, 0, 3)); im.setColorAt(i, C); },
+    flush() { im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; } };
 }

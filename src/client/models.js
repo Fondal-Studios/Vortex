@@ -7,7 +7,7 @@ import { ORGANISMS } from './creatures/index.js';
 /** Colores del bestiario (también usados por partículas y HUD). */
 export const COLORS = {
   astilla: 0x44ffd0, geoda: 0xb066ff, prisma: 0xff66c4, lente: 0xffd23f, cuarzo: 0xff7a45,
-  espejo: 0xcfe9ff, racimo: 0xff3b5c, graviton: 0x6a7bff, coloso: 0xffc65c, madre: 0x9dff5a,
+  espejo: 0xcfe9ff, racimo: 0xff3b5c, graviton: 0x6a7bff, coloso: 0xffc65c, madre: 0x9dff5a, argos: 0xff4fa8,
   obelisco: 0x2de0ff, aurora: 0xff9ae8, ariete: 0xff8a3d, espiral: 0xb48cff,
 };
 

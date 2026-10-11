@@ -37,5 +37,5 @@ if (q.get('dbg')) { const rt = new THREE.WebGLRenderTarget(480, 300, { type: THR
 { const c2 = gl.getContext(), px = new Uint8Array(4 * 16); c2.readPixels(480, 300, 4, 4, c2.RGBA, c2.UNSIGNED_BYTE, px); window.__info.px = [...px.slice(0, 8)]; }
 if (q.get('dbg2')) { const W = innerWidth, H = innerHeight; const c = new EffectComposer(gl); c.setPixelRatio(1); c.setSize(W, H); c.addPass(new RenderPass(scene, cam)); const rd = () => { const b = new Uint16Array(W * H * 4); gl.readRenderTargetPixels(c.readBuffer, 0, 0, W, H, b); let bad = 0, mx = 0, pts = []; for (let i = 0; i < b.length; i += 4) { const v = THREE.DataUtils.fromHalfFloat(b[i]) + THREE.DataUtils.fromHalfFloat(b[i + 1]) + THREE.DataUtils.fromHalfFloat(b[i + 2]); if (!Number.isFinite(v)) { bad++; pts.push([(i / 4) % W, Math.floor(i / 4 / W), [b[i], b[i + 1], b[i + 2], b[i + 3]]]); } else mx = Math.max(mx, v); } return [bad, mx, pts]; };
   c.render(); window.__info.rp = rd(); const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.6, 0.7, 0.8); c.addPass(bl); c.render(); window.__info.bl = rd(); }
-window.__info.o = window.__o; window.__info.lost = !!window.__lost; window.__info.err = gl.getContext().getError();
+window.__info.lost = !!window.__lost; window.__info.err = gl.getContext().getError();
 window.__viewerReady = true;

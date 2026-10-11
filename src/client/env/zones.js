@@ -26,7 +26,7 @@ function portalMats() {
           float sw = a * 2.0 + 5.5 * log(r + 0.08) - uTime * 3.0;
           float arms = 0.5 + 0.5 * sin(sw * 1.5), arms2 = 0.5 + 0.5 * sin(a * 3.0 - 7.0 * r + uTime * 2.2);
           float core = exp(-r * 3.2), rip = 0.5 + 0.5 * sin(r * 26.0 - uTime * 5.0);
-          vec3 col = vC * (0.25 + 0.9 * arms * (1.0 - r * 0.5) + 0.5 * arms2 * r) + vec3(1.0, 0.95, 0.9) * core * 0.7 + vC * rip * 0.18 * (1.0 - r);
+          vec3 col = vC * (0.18 + 0.7 * arms * (1.0 - r * 0.5) + 0.4 * arms2 * r) + vec3(1.0, 0.95, 0.9) * core * 0.5 + vC * rip * 0.14 * (1.0 - r);
           float edge = smoothstep(1.0, 0.80, r);
           gl_FragColor = vec4(col, edge * (0.50 + 0.45 * arms + core * 0.4));
         } else {        // almohadilla en el suelo: anillos que se contraen hacia el portal

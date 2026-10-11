@@ -27,7 +27,7 @@ export function bioMaterial(o = {}) {
     uTime, uHurt: { value: 0 }, uGlow: { value: o.glowAmt ?? 0 }, uPulse: { value: 0 }, uBreath: { value: o.breath ?? 0.012 },
     uGlowCol: { value: new THREE.Color(o.glow ?? 0xffa040) }, uVein: { value: new THREE.Color(o.vein ?? 0x2a0610) }, uRim: { value: new THREE.Color(o.rim ?? 0x703050) },
     uPS: { value: o.scale ?? 1 }, uBump: { value: o.bump ?? 1 }, uCry: { value: 1 }, uWet: { value: o.wet ?? 0.4 }, uVeinGlow: { value: o.veinGlow ?? 0 }, uCrackGlow: { value: o.crackGlow ?? 0 },
-    uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? 0.55 },
+    uFres: { value: o.fres ?? 0 }, uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? 0.55 },
   };
   if (NT) { u.uTA = { value: Array.from({ length: NT }, () => new THREE.Vector4(0.3, 1.5, 0, 1)) }; u.uTB = { value: Array.from({ length: NT }, () => new THREE.Vector4(0, 0, 0, 0)) }; }
   mat.userData.u = u;
@@ -51,7 +51,7 @@ export function bioMaterial(o = {}) {
           transformed += B.xyz * (B.w * w * L) + d * ((A.w - 1.0) * k * L); }` : ''}`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb;
+        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb, uFres;
         uniform vec3 uGlowCol, uVein, uRim;
         varying vec3 vO; varying vec2 vS; varying vec2 vU; varying float vSc;
         float gFl, gCh, gBo, gCr, gVein, gCrack, gH, gN2, gN3;
@@ -84,9 +84,12 @@ export function bioMaterial(o = {}) {
           float ann = sin(vU.y * uRidge * 0.6 + n1 * 2.0);
           gH = gFl * (n3 * 0.45 + n2 * 0.35 - vein * 0.6 + ann * 0.12) + gCh * (n3 * 0.4 + n2 * 0.3 - crack * 0.9 + ann * 0.3) + gBo * (rg * 0.55 + n3 * 0.3) + gMb * n3 * 0.3;
           diffuseColor.rgb = (flesh * (gFl + gMb) + chit * gCh + bone * gBo + cry * gCr) * uAlb;
+          #ifndef FLAT_SHADED
+          if (uFres > 0.0) { float fr0 = 1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))); diffuseColor.a *= clamp(0.35 + uFres * pow(fr0, 2.0) + gVein * 0.5, 0.0, 1.0); }
+          #endif
         }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = clamp(gFl * (0.62 - uWet * 0.3 * gN2) + gCh * (0.34 + 0.3 * gN3) + gBo * (0.5 - 0.12 * gN2) + gCr * 0.16 + (1.0 - gFl - gCh - gBo - gCr) * 0.2, 0.14, 1.0);`)
+        roughnessFactor = clamp(gFl * (0.62 - uWet * 0.3 * gN2) + gCh * (0.34 + 0.3 * gN3) + gBo * (0.74 - 0.12 * gN2) + gCr * 0.16 + (1.0 - gFl - gCh - gBo - gCr) * 0.2, 0.14, 1.0);`)
       .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
         metalnessFactor = gCh * uMetal + gCr * 0.5;`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
@@ -112,7 +115,7 @@ export function bioMaterial(o = {}) {
         }`);
     if (hi) sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
         #ifdef USE_CLEARCOAT
-          material.clearcoat *= (0.4 * gFl + 0.3 * gCh + 0.3 * gBo + 1.0 * gCr);
+          material.clearcoat *= (0.4 * gFl + 0.3 * gCh + 0.1 * gBo + 1.0 * gCr);
         #endif`);
     sh.fragmentShader = guard(sh.fragmentShader);
   };
@@ -155,7 +158,7 @@ export function eyeMaterial({ iris = 0xffb020, sclera = 0xd8c8b8, pupil = 'round
           ic = mix(ic, uIris * 0.9 + vec3(0.03), smoothstep(0.55, 0.2, rr) * 0.5);
           ic *= mix(1.0, 0.15, smoothstep(0.74, 1.0, rr));
           float v1 = 1.0 - smoothstep(0.02, 0.09, abs(vn(vec3(cos(ang) * 4.0, sin(ang) * 4.0, R * 6.0 + uSeed)) - 0.5));
-          vec3 sc = uScl * (0.65 + 0.3 * vn(p0 * 7.0)); sc = mix(sc, vec3(0.5, 0.05, 0.07), v1 * smoothstep(irisR * 1.1, irisR * 2.6, R) * 0.75);
+          vec3 sc = uScl * (0.65 + 0.3 * vn(p0 * 7.0)); sc *= vec3(1.0, 0.88, 0.72); sc = mix(sc, vec3(0.55, 0.04, 0.06), v1 * smoothstep(irisR * 0.9, irisR * 2.2, R) * 0.95);
           sc *= 1.0 - 0.55 * smoothstep(irisR * 1.8, 2.6, R);
           vec3 c = mix(sc, ic, irisK);
           gLid = 0.0;

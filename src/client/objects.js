@@ -1,6 +1,8 @@
 // Objetos del director en el mundo: ancla, placas, núcleo, altar, pilares del Coloso, válvulas de la Madre, huevos, cúpula, torreta.
 // Todo se arma con geometría simple y materiales aditivos para que brille con el bloom, sin costo de draw calls importante.
 import * as THREE from 'three';
+import { kit } from './organism.js';
+import { buildOjo } from './creatures/ojo.js';
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const Y = new THREE.Vector3(0, 1, 0);
@@ -88,12 +90,9 @@ const BUILD = {
     g.userData = { ring, ring2 }; return g;
   },
   ojo(o) {
-    const g = new THREE.Group();
-    const ball = new THREE.Mesh(GEO.sph, new THREE.MeshStandardMaterial({ color: 0xf6efe8, emissive: 0x552222, emissiveIntensity: 0.4, roughness: 0.25 })); ball.scale.setScalar(1.7); g.add(ball);
-    const iris = new THREE.Mesh(GEO.disc, add(0xff3a6a, 0.95)); iris.scale.setScalar(0.9); iris.position.z = 1.62; g.add(iris);
-    const pupil = new THREE.Mesh(GEO.disc, new THREE.MeshBasicMaterial({ color: 0x000000 })); pupil.scale.set(0.3, 0.6, 1); pupil.position.z = 1.64; g.add(pupil);
-    const halo = new THREE.Mesh(GEO.sph, add(0xff3a3a, 0.14)); halo.scale.setScalar(3); g.add(halo);
-    g.userData = { ball, iris, pupil, halo, look: true }; return g;
+    const g = new THREE.Group(), h = buildOjo(kit, { color: 0xff3a5a });
+    g.add(h.root); g.scale.setScalar(o.r || 1.7); g.userData = { h };
+    return g;
   },
   dome(o) {
     const g = new THREE.Group();
@@ -129,7 +128,7 @@ export class ObjectsView {
     this.tracers.push({ m, life, max: life });
   }
   sync(state, dt, map, cam) {
-    this.t += dt; this.cam = cam || null;
+    this.t += dt; this.dt = dt; this.cam = cam || null;
     const seen = new Set(), objs = state.objs || [];
     for (const o of objs) {
       seen.add(o.id);
@@ -143,7 +142,7 @@ export class ObjectsView {
       const up = o.t === 'dome' || o.t === 'core' || o.t === 'well' || o.t === 'ojo' ? Y : upAt(map, o.p); g.quaternion.setFromUnitVectors(Y, up);
       this.animate(it, o, u, up);
     }
-    for (const [id, it] of this.items) if (!seen.has(id)) { this.root.remove(it.g); it.g.traverse((x) => { if (x.material) x.material.dispose && x.material.dispose(); }); this.items.delete(id); }
+    for (const [id, it] of this.items) if (!seen.has(id)) { this.root.remove(it.g); if (it.g.userData.h) it.g.userData.h.dispose(); else it.g.traverse((x) => { if (x.material) x.material.dispose && x.material.dispose(); }); this.items.delete(id); }
     // rayo del jefe hacia cada pilar marcado
     const boss = state.monsters && state.monsters.find((m) => m.k === 'coloso');
     let bi = 0;
@@ -209,7 +208,7 @@ export class ObjectsView {
         break;
       }
       case 'well': { u.ring.rotation.z = t * 5; u.ring2.rotation.z = -t * 4; u.ring.scale.setScalar(3 + Math.sin(t * 6) * 0.4); break; }
-      case 'ojo': { const k = o.mx ? o.hp / o.mx : 1; u.halo.material.opacity = 0.1 + 0.12 * Math.sin(t * 5 + o.id) + (1 - k) * 0.1; u.iris.material.color.setHex(k < 0.4 ? 0xffd24a : 0xff3a6a); if (this.cam) it.g.lookAt(this.cam); break; }
+      case 'ojo': { u.h.tick(this.dt, { hp: o.hp, maxhp: o.mx || 1, t }); if (this.cam) it.g.lookAt(this.cam); break; }
       case 'turret': { u.head.rotation.y = t * 2; u.head.material.opacity = 0.7 + pulse * 0.3; break; }
       default: break;
     }

@@ -362,7 +362,8 @@ export function footTo(Lg, rootBone, target, bend, cache) {
 }
 
 /* ═════════════════════════ OJOS REALISTAS ═════════════════════════ */
-let eyeGeoCache = null;
+let eyeGeoCache = null, lidGeoCache = null;
+const lidSphere = () => (lidGeoCache || (lidGeoCache = [new THREE.SphereGeometry(1, 20, 12, 0, TAU, 0, 2.3).rotateX(Math.PI / 2), new THREE.SphereGeometry(1, 12, 7, 0, TAU, 0, 2.3).rotateX(Math.PI / 2)]))[lod().low ? 1 : 0];
 const eyeSphere = () => (eyeGeoCache || (eyeGeoCache = [new THREE.SphereGeometry(1, 20, 14), new THREE.SphereGeometry(1, 12, 8)]))[lod().low ? 1 : 0];
 /** Globo ocular: esclerótica con venas, iris con fibras/anillo límbico y pupila dibujados por shader. Mira hacia +Z local. */
 export function eyeBallMat({ iris = 0xffb030, iris2 = null, sclera = 0xe8dccb, vein = 0x9a2a2a, pupil = 'round', irisR = 0.62, glow = 0.35, veinK = 0.7 } = {}) {
@@ -403,7 +404,7 @@ export function eye(o = {}) {
   const g = new THREE.Group(), mat = eyeBallMat(o), geo = eyeSphere();
   const ball = new THREE.Mesh(geo, mat); ball.scale.setScalar(r); g.add(ball);
   let lid = null, lm = null;
-  if (lids && lidMat) { lm = lidMat; lid = new THREE.Mesh(geo, lm); lid.scale.setScalar(r * 1.07); g.add(lid); }
+  if (lids && lidMat) { lm = lidMat; lid = new THREE.Mesh(lidSphere(), lm); lid.scale.setScalar(r * 1.07); g.add(lid); }
   let blinkT = 1.5 + Math.random() * 3, blink = 0, yaw = 0, pit = 0, vy = 0, vp = 0, openS = 1, openV = 0, qt = 0; const tmp = new V3(), pup0 = mat.userData.u.uPup.value.clone();
   return {
     object: g, ball, lid, mat, r,

@@ -20,20 +20,19 @@ vec3 hazeCol(vec3 dir){ // color de la bruma lejana (un poco más claro hacia el
 /** Runas procedurales: 10 trazos posibles sobre una rejilla 3×3; el hash elige cuáles se encienden. q en [0,1]². */
 export const RUNES = /* glsl */`
 float segd(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
+#define RSEG(k, a, b) if (mod(floor(bits / k), 2.0) > 0.5) d = min(d, segd(q, a, b));
 float rune(vec2 q, float h, float w, float aa){
   float bits = floor(h * 1023.0), d = 9.0;
-  vec2 g[10]; vec2 e[10];
-  g[0] = vec2(0.2, 0.2); e[0] = vec2(0.8, 0.2);
-  g[1] = vec2(0.2, 0.5); e[1] = vec2(0.8, 0.5);
-  g[2] = vec2(0.2, 0.8); e[2] = vec2(0.8, 0.8);
-  g[3] = vec2(0.2, 0.2); e[3] = vec2(0.2, 0.8);
-  g[4] = vec2(0.5, 0.2); e[4] = vec2(0.5, 0.8);
-  g[5] = vec2(0.8, 0.2); e[5] = vec2(0.8, 0.8);
-  g[6] = vec2(0.2, 0.2); e[6] = vec2(0.8, 0.8);
-  g[7] = vec2(0.2, 0.8); e[7] = vec2(0.8, 0.2);
-  g[8] = vec2(0.2, 0.5); e[8] = vec2(0.5, 0.8);
-  g[9] = vec2(0.5, 0.2); e[9] = vec2(0.8, 0.5);
-  for (int i = 0; i < 10; i++) { if (mod(floor(bits / exp2(float(i))), 2.0) > 0.5) d = min(d, segd(q, g[i], e[i])); }
+  RSEG(1.0, vec2(0.2, 0.2), vec2(0.8, 0.2))
+  RSEG(2.0, vec2(0.2, 0.5), vec2(0.8, 0.5))
+  RSEG(4.0, vec2(0.2, 0.8), vec2(0.8, 0.8))
+  RSEG(8.0, vec2(0.2, 0.2), vec2(0.2, 0.8))
+  RSEG(16.0, vec2(0.5, 0.2), vec2(0.5, 0.8))
+  RSEG(32.0, vec2(0.8, 0.2), vec2(0.8, 0.8))
+  RSEG(64.0, vec2(0.2, 0.2), vec2(0.8, 0.8))
+  RSEG(128.0, vec2(0.2, 0.8), vec2(0.8, 0.2))
+  RSEG(256.0, vec2(0.2, 0.5), vec2(0.5, 0.8))
+  RSEG(512.0, vec2(0.5, 0.2), vec2(0.8, 0.5))
   return 1.0 - smoothstep(w, w + aa, d);
 }
 `;

@@ -234,7 +234,7 @@ export class Renderer {
       const spd = e.prev ? Math.hypot(m.p[0] - e.prev[0], m.p[1] - e.prev[1], m.p[2] - e.prev[2]) / Math.max(dt, 1e-3) : 0; e.prev = m.p; e.spd += ((spd / Math.max(1, m.r * 6)) - e.spd) * Math.min(1, 6 * dt);
       e.tick(dt, { id: m.id, s: m.s, o: m.o, c: m.c, hp: m.hp / m.mh, sd: m.sd, st: m.st, a: m.a }, this.t, { look: this.tmpV.clone().normalize(), speed: e.spd, dist: this.tmpV.length() });
     }
-    for (const [id, e] of this.ents.mon) if (!seen.has(id)) { this.ents.mon.delete(id); e.dyingT = 0; e.dyingMax = e.kind === 'coloso' || e.kind === 'madre' ? 1.8 : 0.5; e.base = e.object.scale.clone(); this.dying.push(e); }
+    for (const [id, e] of this.ents.mon) if (!seen.has(id)) { this.ents.mon.delete(id); e.dyingT = 0; e.dyingMax = e.kind === 'coloso' || e.kind === 'madre' || e.kind === 'argos' ? 1.8 : 0.5; e.base = e.object.scale.clone(); this.dying.push(e); }
   }
   /** Muerte: la criatura se desploma y se desinfla mientras salen esquirlas (ver evento 'kill'). */
   updateDying(dt) {
@@ -341,7 +341,7 @@ export class Renderer {
           break;
         }
         case 'hit': this.fx.burst(V(e.p), e.arm ? 0x9999ff : 0xffffff, e.arm ? 3 : 6, 7, 0.4, 0.6); break;
-        case 'kill': { const c = COLORS[e.k] || 0xffffff, boss = e.k === 'coloso' || e.k === 'madre'; this.fx.shatter(V(e.p), c, { size: boss ? 1.6 : (MONSTER_SIZE[e.k] || 0.5), n: boss ? 24 : 10, speed: boss ? 16 : 9 }); if (boss) { this.shake = 2; this.fx.blast(V(e.p), c, 40, 1.6); } break; }
+        case 'kill': { const c = COLORS[e.k] || 0xffffff, boss = e.k === 'coloso' || e.k === 'madre' || e.k === 'argos'; this.fx.shatter(V(e.p), c, { size: boss ? 1.6 : (MONSTER_SIZE[e.k] || 0.5), n: boss ? 24 : 10, speed: boss ? 16 : 9 }); if (boss) { this.shake = 2; this.fx.blast(V(e.p), c, 40, 1.6); } break; }
         case 'boom': this.fx.blast(V(e.p), 0xffa24a, e.r, 0.6); this.fx.burst(V(e.p), 0xffd080, 30, e.r * 2.5, 0.8, 1); this.shake = Math.max(this.shake, Math.min(1, 12 / (near(e.p) + 4))); break;
         case 'splat': this.fx.burst(V(e.p), 0xff9ae8, 8, 6, 0.4, 0.6); break;
         case 'portal': this.fx.blast(V(e.p), 0x66ffff, 4, 0.5); break;

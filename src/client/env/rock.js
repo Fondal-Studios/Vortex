@@ -39,6 +39,7 @@ export function rockPBR({ envMap = null, attr = true, accent = 0x66ffe0, haze = 
           diffuseColor.rgb = alb; }`)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = rkRough;')
       .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n normal = bumpN(normal, -vViewPosition, rkH, uBump);')
+      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\n reflectedLight.directSpecular *= 0.28; reflectedLight.indirectSpecular *= 0.6;')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += rkEmi;')
       .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n gl_FragColor.rgb = hazeMix(gl_FragColor.rgb, length(vViewPosition), uHaze, uHazeD);');
   };

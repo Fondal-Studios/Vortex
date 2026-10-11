@@ -8,7 +8,7 @@ import { THREE, TAU, gazeDir, lod, clamp, lerp, smooth, rng, bio, crystalMat, li
 export default function build(kit, color) {
   const L = lod(), low = L.low, hi = L.hi, V3 = THREE.Vector3, R = rng(21);
   const col = new THREE.Color(color);
-  const flesh = bio({ rough: 0.45, clear: 0.5, clearRough: 0.25, sheen: 0.25, env: 0.7, tex: 'flesh', tile: 1.5, bump: 0.9, grain: 0.5, seam: 0x2a0c0c, seamK: 0.5, vein: color, veinK: 0.3, veinGlow: 0.5, sss: 0.35, sssColor: 0xff7040 });
+  const flesh = bio({ rough: 0.45, clear: 0.5, clearRough: 0.25, sheen: 0.25, env: 0.7, tex: 'flesh', tile: 1.5, bump: 0.9, grain: 0.5, seam: 0x2a0c0c, seamK: 0.5, vein: 0x9a1828, veinK: 0.3, veinGlow: 0.15, sss: 0.2, sssColor: 0xff7040 });
   const bone = bio({ rough: 0.5, clear: 0.3, clearRough: 0.35, env: 0.55, tex: 'fine', tile: 1.8, bump: 0.5, grain: 0.5, seam: 0x30200c, seamK: 0.25, rv: 0.7 });
   const lashM = bio({ rough: 0.6, tex: 'fine', bend: true, bump: 0, grain: 0, vcol: true }); lashM.userData.u.uAmp.value = 0.05; lashM.userData.u.uSpd.value = 2.2;
   const cry = crystalMat(color, { glow: 0.9, alpha: 0.9 });
@@ -34,7 +34,8 @@ export default function build(kit, color) {
   const nV = low ? 3 : 5;
   for (let i = 0; i < nV; i++) {
     const t = 0.16 + (i / (nV - 1)) * 0.66, P = sp.at(t), T = sp.tan(t), r = rf(t), tilt = new V3(0.05 * Math.sin(i * 2), 0, 0.05 * Math.cos(i * 3)), d = T.clone().add(tilt).normalize();
-    const disc = ellipsoid([r * 1.34, 0.085, r * 1.28], { w: low ? 9 : 14, h: 5, noise: 0.1, seed: i, pos: P.toArray(), dir: d.toArray() }); paint(disc, (p, n) => new THREE.Color(0x7a6a52).lerp(new THREE.Color(0xe0d2b0), smooth(-0.3, 0.8, n.y)));
+    const disc = ellipsoid([r * 1.36, 0.12, r * 1.3], { w: low ? 9 : 14, h: 5, noise: 0.1, seed: i, pos: P.toArray(), dir: d.toArray() }); paint(disc, (p, n) => new THREE.Color(0x7a6a52).lerp(new THREE.Color(0xe0d2b0), smooth(-0.3, 0.8, n.y)));
+    for (const sd of [-1, 1]) { const tp = spike(0.03, 0.14, { sides: 4, seg: 2, bend: 0.2, bendDir: [0, -1, 0], pos: [P.x + sd * r * 1.25, P.y, P.z], dir: [sd, 0.1, 0.1] }); paint(tp, 0xd8caa8); rig.add(bone, skinRigid(tp, t < 0.25 ? stalk[0] : t < 0.45 ? stalk[1] : t < 0.62 ? stalk[2] : t < 0.8 ? stalk[3] : stalk[4])); }
     const nearest = t < 0.25 ? stalk[0] : t < 0.45 ? stalk[1] : t < 0.62 ? stalk[2] : t < 0.8 ? stalk[3] : stalk[4]; rig.add(bone, skinRigid(disc, nearest));
     const spur = spike(0.04, 0.16 + 0.04 * Math.sin(i * 1.9), { sides: 4, seg: 2, bend: 0.5, bendDir: [0, 0, -1], pos: [P.x, P.y, P.z - r * 0.92], dir: [0, 0.5, -1] }); paint(spur, (p) => new THREE.Color(0x6a5a44).lerp(new THREE.Color(0xe8dcc0), smooth(0, 0.14, p.distanceTo(P) - r * 0.85))); rig.add(bone, skinRigid(spur, nearest));
   }
@@ -46,6 +47,7 @@ export default function build(kit, color) {
   const socket = ellipsoid([0.6, 0.54, 0.48], { w: low ? 12 : 18, h: low ? 8 : 12, noise: 0.1, freq: 2.4, seed: 6, pos: [0, EC.y - 0.02, EC.z - 0.2] }); paint(socket, (p, n) => new THREE.Color(0x5a2c2c).lerp(new THREE.Color(0x9a5a50), smooth(0, 1, n.y * 0.5 + 0.5))); rig.add(flesh, skinRigid(socket, head));
   const brow = plate({ w: 0.46, l: 0.2, h: 0.1, nr: 3, ns: 10, keel: 0.5, wrap: 1.4, curve: -0.9, quat: orient(new V3(0, 1, 0.5), new V3(0, -0.3, 1)), pos: [0, EC.y + 0.5, EC.z + 0.05], col: 0x3a2a24, col2: 0xa89068 }); rig.add(bone, skinRigid(brow, head));
   for (const s of [-1, 1]) rig.add(bone, skinRigid(spike(0.06, 0.28, { sides: 5, seg: 3, bend: 0.4, bendDir: [s, 0.3, 0], pos: [s * 0.5, EC.y + 0.36, EC.z - 0.05], dir: [s * 0.8, 0.8, 0.1] }), head));
+  for (let i = 0; i < (low ? 3 : 5); i++) { const a = Math.PI * (0.15 + i * 0.175), n = new V3(Math.cos(a) * 0.9, Math.sin(a), -0.55).normalize(), pp = new V3(Math.cos(a) * 0.6, EC.y - 0.02 + Math.sin(a) * 0.6, EC.z - 0.34); rig.add(bone, skinRigid(plate({ w: 0.24, l: 0.3, h: 0.1, nr: 2, ns: 8, wrap: 1.2, keel: 0.6, quat: orient(n, new V3(-Math.cos(a), 0.4, 0.2)), pos: pp.toArray(), col: 0x3a2a24, col2: 0xb09a74 }), head)); rig.add(bone, skinRigid(spike(0.04, 0.2 - Math.abs(i - 2) * 0.03, { sides: 4, seg: 2, bend: 0.4, bendDir: [0, 0, -1], pos: [pp.x * 1.05, pp.y + 0.05, pp.z - 0.08], dir: [n.x, n.y, n.z - 0.3] }), head)); }
   const nL = low ? 0 : 16;
   for (let i = 0; i < nL; i++) {
     const a = -0.2 + (i / (nL - 1)) * (Math.PI + 0.4), base = new V3(Math.cos(a) * 0.56, EC.y + Math.sin(a) * 0.56, EC.z + 0.12), out = new V3(Math.cos(a), Math.sin(a), 0.35).normalize(), len = 0.14 + 0.08 * R();
