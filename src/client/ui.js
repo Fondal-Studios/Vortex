@@ -2,6 +2,7 @@
 import { BESTIARY, TIPS } from './lore.js';
 import { CHARACTERS, CHARACTER_IDS, ROLES, WEAPONS } from '../sim/data.js';
 import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
+import { WEAPON_COLORS } from './shotfx.js';
 
 const $ = (id) => document.getElementById(id);
 const HERO = {
@@ -54,7 +55,7 @@ export class MenuUI {
   }
   /* ───── equipo: personajes y armas ───── */
   buildLoadout() {
-    const hex = (c) => '#' + c.toString(16).padStart(6, '0'), WC = ['#66ffee', '#ff9bd8', '#ffe066', '#ff7a45', '#b9a4ff', '#7dfcff', '#ffd23f', '#ff9a3c', '#9dff5a', '#ff66c4', '#ffb35c', '#8a7fff', '#e8f6ff', '#7dff9a', '#ff5a7a'];
+    const hex = (c) => '#' + c.toString(16).padStart(6, '0'), WC = WEAPON_COLORS.map((c) => hex(c));
     this.wcol = WC; this.cur = Equipo.slots.length > 1 ? 1 : 1;
     $('chlist').innerHTML = CHARACTER_IDS.map((id) => { const c = CHARACTERS[id]; return `<button class="chcard" data-ch="${id}" style="--c:${hex(c.color)}"><i>${c.name[0]}</i><div><b>${c.name}</b><small>${ROLES[c.role].name} · ${c.mov.name} + ${c.esp.name}</small></div></button>`; }).join('');
     $('chlist').querySelectorAll('.chcard').forEach((b) => b.addEventListener('click', () => { Equipo.char = b.dataset.ch; saveEquipo(); this.sound.ui('ok'); this.renderLoadout(); }));

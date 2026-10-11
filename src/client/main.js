@@ -2,6 +2,7 @@ import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS } from '../sim/data.js';
 import { Equipo } from './equipo.js';
+import { WEAPON_COLORS } from './shotfx.js';
 import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.js';
 import { Renderer } from './render.js';
 import { Sound } from './audio.js';
@@ -357,7 +358,7 @@ function hudDirector(state, me) {
   if (wantCards) {
     const key = JSON.stringify(me.cards) + me.sl.join(',');
     if (session.cardKey !== key) {
-      session.cardKey = key; const WC = ['#66ffee', '#ff9bd8', '#ffe066', '#ff7a45', '#b9a4ff', '#7dfcff', '#ffd23f', '#ff9a3c', '#9dff5a', '#ff66c4', '#ffb35c', '#8a7fff', '#e8f6ff', '#7dff9a', '#ff5a7a'];
+      session.cardKey = key; const WC = WEAPON_COLORS.map((c) => '#' + c.toString(16).padStart(6, '0'));
       $('cardlist').innerHTML = me.cards.map((c, i) => {
         const [w, k, mod] = c, W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.up[idx] || [0, 0, 0, null], isMod = k === 'mod', lvl = isMod ? '' : `NIVEL ${(u[{ dmg: 0, rate: 1, mag: 2 }[k]] || 0) + 1}`;
         return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${W.name}</div><div class="un">${isMod ? WEAPON_MODS[mod].name : UPGRADE_KINDS[k].name}</div><div class="ud">${isMod ? WEAPON_MODS[mod].desc : UPGRADE_KINDS[k].desc}</div><div class="lv">${isMod ? '★ ESPECIAL' : lvl}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;

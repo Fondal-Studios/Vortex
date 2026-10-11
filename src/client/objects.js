@@ -94,6 +94,12 @@ const BUILD = {
     g.add(h.root); g.scale.setScalar(o.r || 1.7); g.userData = { h };
     return g;
   },
+  mine(o) {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(GEO.ico, new THREE.MeshStandardMaterial({ color: 0x3a2a10, emissive: 0xffa010, emissiveIntensity: 0.6, roughness: 0.4, metalness: 0.6 })); body.scale.setScalar(0.5); body.position.y = 0.3; g.add(body);
+    const ring = new THREE.Mesh(GEO.ring, add(0xffd23f, 0.6)); ring.rotation.x = Math.PI / 2; ring.scale.setScalar(o.r || 5); g.add(ring);
+    g.userData = { body, ring }; return g;
+  },
   dome(o) {
     const g = new THREE.Group();
     const d = new THREE.Mesh(GEO.sph, add(0x66ffee, 0.12)); d.scale.setScalar(o.r); g.add(d);
@@ -126,6 +132,15 @@ export class ObjectsView {
     const A = V(a), B = V(b), d = B.clone().sub(A), l = d.length();
     m.position.copy(A).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(Y, d.normalize()); m.scale.set(width, l, width);
     this.tracers.push({ m, life, max: life });
+  }
+  /** Rayo eléctrico en zigzag entre dos puntos. */
+  bolt(a, b, color) {
+    const A = a.clone ? a : V(a), B = b.clone ? b : V(b), d = B.clone().sub(A), l = d.length(); if (l < 0.5) return;
+    const n = Math.max(3, Math.min(9, Math.round(l / 6))), pts = [A.clone()];
+    const side = new THREE.Vector3().crossVectors(d, Y).normalize();
+    for (let i = 1; i < n; i++) pts.push(A.clone().addScaledVector(d, i / n).addScaledVector(side, (Math.random() - 0.5) * 1.6).addScaledVector(Y, (Math.random() - 0.5) * 1.6));
+    pts.push(B.clone());
+    for (let i = 0; i < pts.length - 1; i++) this.beam([pts[i].x, pts[i].y, pts[i].z], [pts[i + 1].x, pts[i + 1].y, pts[i + 1].z], color, 0.14, 0.07);
   }
   sync(state, dt, map, cam) {
     this.t += dt; this.dt = dt; this.cam = cam || null;
@@ -209,6 +224,7 @@ export class ObjectsView {
       }
       case 'well': { u.ring.rotation.z = t * 5; u.ring2.rotation.z = -t * 4; u.ring.scale.setScalar(3 + Math.sin(t * 6) * 0.4); break; }
       case 'ojo': { u.h.tick(this.dt, { hp: o.hp, maxhp: o.mx || 1, t }); if (this.cam) it.g.lookAt(this.cam); break; }
+      case 'mine': { const pu = 0.5 + 0.5 * Math.sin(t * 8); u.body.material.emissiveIntensity = 0.4 + pu; u.ring.material.opacity = 0.15 + 0.2 * pu; break; }
       case 'turret': { u.head.rotation.y = t * 2; u.head.material.opacity = 0.7 + pulse * 0.3; break; }
       default: break;
     }
@@ -222,6 +238,8 @@ export class ObjectsView {
     else if (e.t === 'ability') {/* cada rol lo resuelve su objeto */}
     else if (e.t === 'purge') fx.blast(V(pos || [0, 0, 0]), 0xff9ae8, 60, 1.2);
     else if (e.t === 'sacbreak' || e.t === 'hatch') { fx.burst(V(e.p), 0xff5aa8, 22, 8, 0.7, 0.8); fx.blast(V(e.p), 0xff5aa8, 5, 0.5); }
+    else if (e.t === 'pulsar') { fx.blast(V(e.p), 0xb98cff, e.r || 10, 0.45); fx.burst(V(e.p), 0xe8d8ff, 24, 14, 0.4, 0.5); }
+    else if (e.t === 'minePlace') { fx.blast(V(e.p), 0xffd23f, 2, 0.3); }
     else if (e.t === 'ping') fx.blast(V(e.p), 0xffe27a, 3, 0.6);
     else if (e.t === 'beam') this.beam(e.o, e.to, e.c === 'heal' ? 0x7dff9a : 0xffffff, 0.35, e.c === 'rail' ? 0.18 : 0.3);
     else if (e.t === 'arc') this.beam(e.o, e.to, 0xb8e6ff, 0.18, 0.07);

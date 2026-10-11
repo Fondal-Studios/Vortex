@@ -20,7 +20,8 @@ const WEAPONS_MAX = WEAPONS.map((w) => w.max);
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const MONSTER_SIZE = { astilla: 0.35, racimo: 0.35, geoda: 0.9, ariete: 0.8, obelisco: 0.6, cuarzo: 0.55 };
-const WEAPON_COLORS = [0x66ffee, 0xff9bd8, 0xffe066, 0xff7a45, 0xb9a4ff, 0x7dfcff, 0xffd23f, 0xff9a3c, 0x9dff5a, 0xff66c4, 0xffb35c, 0x8a7fff, 0xe8f6ff, 0x7dff9a, 0xff5a7a];
+import { WEAPON_COLORS, shotEffects } from './shotfx.js';
+const WEAPON_IDS = WEAPONS.map((w) => w.id);
 const PLAYER_COLORS = [0x66ffee, 0xff66c4, 0xffd23f, 0x9dff5a];
 
 function haloTexture() {
@@ -232,6 +233,8 @@ export class Renderer {
       const boss = m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'; this.tmpV.copy(this.camera.position).sub(o.position); const far = !boss && (this.tmpV.length() > cfg().lod + m.r * 2 || !full.has(m.id));
       if (far !== e.far) { e.far = far; e.object.children[0].visible = !far; e.proxy.visible = far; }
       if (far) { e.proxy.scale.setScalar(0.9); continue; }
+      if ((m.ef || 0) !== (e.ef || 0)) { e.ef = m.ef || 0; if (e.statusSp) { e.object.remove(e.statusSp); e.statusSp = null; } if (e.ef) { const c = e.ef & 4 ? 0xff7a1a : e.ef & 2 ? 0x7dff4a : 0x66b8ff; const sp = new THREE.Sprite(this.halo_(c)); sp.scale.setScalar(2.8); sp.material.opacity = 0.5; e.object.add(sp); e.statusSp = sp; } }
+      if (e.statusSp) e.statusSp.material.opacity = 0.35 + 0.2 * Math.sin(this.t * 9);
       const hv = m.h ? 0.7 : 0; if (kit.setWound) kit.setWound(e.mats, Math.max(0, Math.min(1, 1 - m.hp / m.mh)));
       for (const mat of e.mats) { const uh = (mat.userData && mat.userData.u && mat.userData.u.uHurt) || (mat.uniforms && mat.uniforms.uHurt); if (uh) uh.value = hv; }
       this.tmpV.set(this.camera.position.x, this.camera.position.y, this.camera.position.z); o.updateMatrixWorld(); o.worldToLocal(this.tmpV);
@@ -256,7 +259,7 @@ export class Renderer {
       seen.add(p.id);
       let e = this.ents.proj.get(p.id);
       if (!e) {
-        const col = p.k === 'nova' ? 0xff9a3c : p.k === 'orb' ? 0xff4fd8 : p.k === 'beam' ? 0x66f0ff : p.k === 'swarm' ? 0xff66c4 : p.k === 'lanza' ? 0xb8f6ff : 0xffe066;
+        const col = p.k === 'mina' ? 0xffd23f : p.k === 'nova' ? 0xff9a3c : p.k === 'orb' ? 0xff4fd8 : p.k === 'beam' ? 0x66f0ff : p.k === 'swarm' ? 0xff66c4 : p.k === 'lanza' ? 0xb8f6ff : 0xffe066;
         const g = new THREE.Group(), key = `${p.k}${p.r}`;
         const geo = this.shared('pg' + key, () => { const long = p.k === 'beam' || p.k === 'lanza', q = p.k === 'beam' ? new THREE.CylinderGeometry(0.1, 0.1, 2.6, 5) : p.k === 'lanza' ? new THREE.ConeGeometry(0.25, 3.2, 6) : new THREE.OctahedronGeometry(p.r * 1.1, 0); if (long) q.rotateX(p.k === 'lanza' ? -Math.PI / 2 : Math.PI / 2); return q; });
         g.add(new THREE.Mesh(geo, this.shared('pm' + col, () => new THREE.MeshBasicMaterial({ color: col }))));
@@ -341,7 +344,7 @@ export class Renderer {
           const o = V(e.o), col = WEAPON_COLORS[e.w] || 0xffffff;
           { const pe = this.ents.ply.get(e.pid); if (pe) pe.shotT = 0.35; }
           if (e.pid === (me && me.id)) { this.vm.shoot(); this.muzzle.intensity = 18; this.muzzle.color.setHex(col); }
-          if (e.to) for (const t of e.to) this.fx.tracer(e.pid === (me && me.id) && this.aim ? this.camera.localToWorld(new THREE.Vector3(0.3, -0.25, -1.2)) : o, V(t), col);
+          if (e.to) shotEffects(this, e, e.pid === (me && me.id) && this.aim ? this.camera.localToWorld(new THREE.Vector3(0.3, -0.25, -1.2)) : o, WEAPON_IDS);
           break;
         }
         case 'hit': this.fx.burst(V(e.p), e.arm ? 0x9999ff : 0xffffff, e.arm ? 3 : 6, 7, 0.4, 0.6); break;
