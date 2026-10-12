@@ -80,10 +80,10 @@ export function createCaida({ renderer, root, sound = null } = {}) {
 
   /* ── escena: halo + líneas de profundidad ── */
   const scene = renderer.scene, group = new THREE.Group(); group.visible = false; group.frustumCulled = false; scene.add(group);
-  const haloMat = new THREE.ShaderMaterial({ vertexShader: HALO_VS, fragmentShader: HALO_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { uOp: { value: 0 }, uT: { value: 0 }, uR: { value: 20 }, uShape: { value: 0 }, uSize: { value: 100 }, uCol: { value: new THREE.Color(1, 0.62, 0.12) }, uHot: { value: new THREE.Color(1, 0.9, 0.55) } } });
+  const haloMat = new THREE.ShaderMaterial({ vertexShader: HALO_VS, fragmentShader: HALO_FS, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { uOp: { value: 0 }, uT: { value: 0 }, uR: { value: 20 }, uShape: { value: 0 }, uSize: { value: 100 }, uCol: { value: new THREE.Color(1, 0.62, 0.12) }, uHot: { value: new THREE.Color(1, 0.9, 0.55) } } });
   const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), haloMat); halo.rotation.x = -Math.PI / 2; halo.frustumCulled = false; halo.renderOrder = 50; group.add(halo);
-  const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
-  const loopMat = new THREE.LineBasicMaterial({ color: 0xffb02e, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
+  const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
+  const loopMat = new THREE.LineBasicMaterial({ color: 0xffb02e, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
   const parts = { circle: rimParts('circle'), square: rimParts('square') };
   const rim = new THREE.Group(); group.add(rim); rim.frustumCulled = false; let rimShape = null;
   const setShape = (shape) => {

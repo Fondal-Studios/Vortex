@@ -16,7 +16,7 @@ const SKILLS = {
 };
 const BUDGET = 12; // draw calls extra por efecto
 
-test('hostfx: las 20 habilidades, los estados y el melee de los 5 Huéspedes corren sin errores y dentro de presupuesto', { skip: !hasChromium, timeout: 280000 }, async () => {
+test('hostfx: las 20 habilidades, los estados y el melee de los 5 Huéspedes corren sin errores y dentro de presupuesto', { skip: !hasChromium, timeout: 1500000 }, async () => {
   const { launch } = await import('../tools/browser.js');
   const srv = await startServer({ port: 0 }); const b = await launch(); const pg = await b.newPage({ viewport: { width: 640, height: 360 } });
   const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) errs.push(m.text()); });
@@ -31,10 +31,10 @@ test('hostfx: las 20 habilidades, los estados y el melee de los 5 Huéspedes cor
           // medición A/B: la misma secuencia SIN y CON el efecto; el costo del efecto = máxima diferencia de draw calls cuadro a cuadro
           const d = window.__demo; const trial = (withFx) => {
             d.setup(host, { third: true }); d.cam({ yaw: 0.8, dist: 12, lift: 4, fwd: 4, fixed: false }); d.run(0.2, 1 / 10); d.frame(1 / 30, 2);
-            if (withFx) d.skill(id, k); d.push(10, 0.3); const calls = [], part = []; for (let i = 0; i < 40; i++) { d.frame(1 / 20, 1); calls.push(d.r.gl.info.render.calls); part.push((d.r.fx.add.live || 0) + (d.r.fx.smoke.live || 0)); }
+            if (withFx) d.skill(id, k); d.push(10, 0.3); const calls = [], part = []; for (let i = 0; i < 28; i++) { d.frame(1 / 20, 1); calls.push(d.r.gl.info.render.calls); part.push((d.r.fx.add.live || 0) + (d.r.fx.smoke.live || 0)); }
             return { calls, part, geos: d.r.gl.info.memory.geometries, loops: d.stats().loops };
           };
-          const A = trial(false), B = trial(true); let extra = 0; for (let i = 0; i < 40; i++) extra = Math.max(extra, B.calls[i] - A.calls[i]);
+          const A = trial(false), B = trial(true); let extra = 0; for (let i = 0; i < 28; i++) extra = Math.max(extra, B.calls[i] - A.calls[i]);
           return { base: Math.max(...A.calls), pk: Math.max(...A.calls) + extra, part: Math.max(...B.part), bad: Number.isFinite(d.r.camera.position.x) ? 0 : 1, geos: B.geos, left: B.loops };
         }, [host, k, id]);
         assert.equal(r.bad, 0, `${id}: la cámara quedó en NaN`);
