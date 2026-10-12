@@ -96,8 +96,8 @@ export default function build(kit, color) {
     halo.rotation.z = t * (0.6 + inhale * 4 + exhale * 6); halo.position.y = 1.62 + Math.sin(t * 1.1) * 0.05 + jet * 0.5; haloG.position.copy(halo.position); haloG.material.opacity = 0.12 + bright * 0.3; haloG.scale.setScalar(1.6 + bright * 0.8); halo.scale.setScalar(1 + inhale * 0.2 + exhale * 0.4);
     UO.uCry.value = 0.6 + bright * 1.0;
     // ondas de luz expansivas (curación) y esporas que se dispersan
-    for (let i = 0; i < 3; i++) { const k = clamp(relT / 0.95 - i * 0.14, 0, 1); waves.set(i, { r: 0.8 + ease(k) * 8.4, a: relT < 1.2 && k < 1 ? (1 - k) * 0.7 : 0, y: 0.5 }); }
-    for (let i = 0; i < 2; i++) { const k = clamp(relT / 0.8 - 0.08 - i * 0.2, 0, 1); waves.set(3 + i, { r: 0.6 + ease(k) * 7.0, a: relT < 1.2 && k < 1 && k > 0 ? (1 - k) * 0.55 : 0, y: 0.5 + 0.5 * i, color: 0xff9ad8 }); }
+    for (let i = 0; i < 3; i++) { const k = clamp(relT / 0.95 - i * 0.14, 0, 1); waves.set(i, { r: 0.8 + ease(k) * 8.4, a: relT < 1.2 && k < 1 ? (1 - k) * 0.5 : 0, y: 0.5 }); }
+    for (let i = 0; i < 2; i++) { const k = clamp(relT / 0.8 - 0.08 - i * 0.2, 0, 1); waves.set(3 + i, { r: 0.6 + ease(k) * 7.0, a: relT < 1.2 && k < 1 && k > 0 ? (1 - k) * 0.42 : 0, y: 0.5 + 0.5 * i, color: 0xff9ad8 }); }
     waves.flush();
     const pa = spG.attributes.position.array;
     for (let i = 0; i < NS; i++) { const ix = i * 3, bx = pa[ix], bz = pa[ix + 2], rr = Math.hypot(bx, bz) + 0.001;

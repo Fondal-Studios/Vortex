@@ -55,7 +55,7 @@ export default function build(kit, color) {
       parts.push(paint(loft(pts, { seg: 14, radial: 5, r: (t) => 0.036 * (0.3 + Math.sin(t * Math.PI) * 0.9), ry: () => 0.8, round: [0.1, 0.1] }), BONE, 2, 0.0, (p, n, uv) => ({ g: 0.1 })));
     }
     // faldón óseo festoneado en la base de cada vértebra y placa de pecho
-    parts.push(paint(loft(line([0, -0.02, 0], [0, 0.16, 0]), { seg: 3, radial: R + 6, r: (t) => Ri * (1.13 - 0.13 * t), mod: (t, a) => 1 + 0.07 * Math.sin(a * 7 + i) * (1 - t) }), BONE, 2, 0, (p, n, uv) => ({ g: 0.5 * (1 - uv[1]) })));
+    parts.push(paint(loft(line([0, -0.02, 0], [0, 0.16, 0]), { seg: 3, radial: R + 6, r: (t) => Ri * (1.1 - 0.1 * t), mod: (t, a) => 1 + 0.07 * Math.sin(a * 7 + i) * (1 - t) }), 0x12404e, 1, 0, (p, n, uv) => ({ g: 0.6 * (1 - uv[1]), k: 0.9 })));
     const cp = domePlate(Ri * 0.38, 0.2, 0.09, { ridge: 0.8, thick: 0.02, nu: 5, nv: 5 }); parts.push(paint(aimY(cp, new V3(0, 0.34, Ri * 0.97), new V3(0, 0.1, 1)), BONE, 2, 0, () => ({ k: 1.0 })));
     // placa dorsal de quitina + espina con cristal
     const dp = domePlate(Ri * 0.45, 0.25, 0.11, { ridge: 0.7, thick: 0.025, nu: 6, nv: 6 });

@@ -162,8 +162,9 @@ export default function build(kit, color) {
     for (let i = 0; i < NA; i++) { const a = t * 1.6 + (i / NA) * TAU, r = 0.55, f = (1 - op) * (0.3 + 0.4 * Math.pow(0.5 + 0.5 * Math.sin(a * 2 - fireT * 4), 2)) * (i < ph + 3 ? 1 : 0) * (1 + shoot * 0.5) * (1 - (vent || gest ? 1 : 0));
       armP[i * 3] = Math.cos(a) * r; armP[i * 3 + 1] = Math.sin(a) * r; armP[i * 3 + 2] = 0.6 - 0.1 * Math.sin(a * 2); dc.copy(colA).lerp(colHot, p3 * 0.6).multiplyScalar(f); armC[i * 3] = dc.r; armC[i * 3 + 1] = dc.g; armC[i * 3 + 2] = dc.b; }
     armG.attributes.position.needsUpdate = true; armG.attributes.color.needsUpdate = true;
-    inGlow.material.opacity = exp * (0.28 + 0.2 * bp + 0.08 * Math.sin(t * 3)) + shock * 0.3 + spasm * 0.4; inGlow.scale.setScalar(2.0 + exp * 0.6 + shock * 1.2 + spasm * 0.8);
-    halo.material.opacity = 0.08 + (1 - op) * 0.06 + exp * 0.1 + shock * 0.25 + flashT * 0.2 + p3 * 0.07 + prSm * 0.2 * beat; halo.scale.setScalar(4.6 + shock * 1.5 + flashT * 1.0 + prSm * 0.8); halo.material.color.copy(colA).lerp(colHot, p3 * 0.5 + prSm * 0.3);
+    // resplandor del núcleo: concentrado en el ojo (con bloom de Media/Alta un halo grande lavaba los pétalos hasta dejarlos durazno)
+    inGlow.material.opacity = (exp * (0.28 + 0.2 * bp + 0.08 * Math.sin(t * 3)) + shock * 0.3 + spasm * 0.4) * (LOW ? 1 : 0.7); inGlow.scale.setScalar(1.15 + exp * 0.4 + shock * 1.0 + spasm * 0.7);
+    halo.material.opacity = (0.08 + (1 - op) * 0.06 + exp * 0.1 + shock * 0.25 + flashT * 0.2 + p3 * 0.07 + prSm * 0.2 * beat) * (LOW ? 1 : 0.6); halo.scale.setScalar(4.6 + shock * 1.5 + flashT * 1.0 + prSm * 0.8); halo.material.color.copy(colA).lerp(colHot, p3 * 0.5 + prSm * 0.3);
 
     /* tentáculos, cristales por fases */
     for (let i = 0; i < NT; i++) trig.set(i, 0.5 + p3 * 0.3 + hit * 0.4 + exp * 0.15 + spasm * 0.3 + prSm * 0.1, 1.1 + (i % 3) * 0.2 + rage * 1.0, null, 0, 1 + spasm * 0.06);

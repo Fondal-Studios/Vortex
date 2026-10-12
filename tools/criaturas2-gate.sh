@@ -9,7 +9,7 @@ KINDS=${@:-graviton obelisco aurora ariete espiral coloso madre}
 declare -A REST=( [graviton]=idle [obelisco]=idle [aurora]=idle [ariete]=idle [espiral]=idle )
 declare -A ATK=( [graviton]=charge [obelisco]=charge [aurora]=cast [ariete]=wind [espiral]=pull )
 declare -A FR=( [graviton]=39 [obelisco]=30 [aurora]=25 [ariete]=25 [espiral]=40 )
-declare -A CAM=( [graviton]="9 1.5 2 3.2 250" [obelisco]="7 1.0 2 1.6 250" [aurora]="9 1.5 3 3.2 250" [ariete]="8 1.4 3 1.2 250" [espiral]="9 1.5 3 3.0 250" )
+declare -A CAM=( [graviton]="8 1.5 2 3.2 250" [obelisco]="5.5 1.0 1.5 1.6 250" [aurora]="7 1.5 2 3.2 250" [ariete]="7 1.4 3 1.2 250" [espiral]="7 1.5 2 3.0 250" )
 retry() { for i in 1 2 3; do "$@" && return 0; sleep 3; done; return 1; }
 for k in $KINDS; do
   case $k in
