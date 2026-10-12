@@ -1,5 +1,5 @@
 // Visor de ART GATE (criaturas): ?k=coloso&q=low&s=ray&hp=0.5&sd=1&hurt=1&sim=4&dist=8&cy=0&yaw=0.6&pitch=0.1&big=1
-// Avanza la simulación `sim` segundos sin dibujar (paso 1/30), dibuja UN cuadro y publica window.__info = {calls,tris} y __ready.
+// Avanza la simulación `sim` segundos sin dibujar (paso 1/30), dibuja UN cuadro y publica const bb = new THREE.Box3().setFromObject(e.object, true); window.__info = { minY: +(bb.min.y / sc).toFixed(2), maxY: +(bb.max.y / sc).toFixed(2),calls,tris} y __ready.
 import * as THREE from 'three';
 import { skyMaterial, uTime } from './shaders.js';
 import { buildMonster } from './models.js';
@@ -29,7 +29,7 @@ e.object.scale.setScalar(sc); scene.add(e.object);
 const hp = q.get('hp') == null ? 1 : +q.get('hp');
 const st = { id: 3, s: q.get('s') || 'idle', o: q.get('o') === '1' || q.get('s') === 'open', c: q.get('c') === '1', hp, sd: q.get('sd') == null ? undefined : q.get('sd') === '1', st: q.get('stun') === '1', a: null, pr: q.get('pr') ? +q.get('pr') : undefined };
 if (q.get('vis')) st.vis = q.get('vis'); if (q.get('a')) st.a = q.get('a').split(',').map(Number);
-const dist = +q.get('dist') || (RAD[k] || 1.4) * (boss ? 4.2 : 5.2), yaw = +q.get('yaw') || 0, pitch = +q.get('pitch') || 0, cy = +q.get('cy') || 0;
+const dist = +q.get('dist') || (RAD[k] || 1.4) * (boss ? 6 : 5.2), yaw = +q.get('yaw') || 0, pitch = +q.get('pitch') || 0, cy = +q.get('cy') || 0;
 e.object.rotation.y = yaw;
 cam.position.set(0, cy + dist * Math.sin(pitch), dist * Math.cos(pitch)); cam.lookAt(0, cy, 0);
 const mats = e.mats; const setHurtU = (v) => { for (const m of mats) { const uh = (m.userData && m.userData.u && m.userData.u.uHurt) || (m.uniforms && m.uniforms.uHurt); if (uh) uh.value = v; } };
@@ -43,5 +43,5 @@ const sim = +q.get('sim') || 3, n = Math.round(sim * 30);
 // 's2' = estado posterior: la primera mitad se simula en 's' y el final en 's2' (para ver transiciones)
 for (let i = 0; i < n; i++) { if (q.get('s2') && i > n - (+q.get('t2') || 20)) st.s = q.get('s2'); step(q.get('hurt') === '1' && i > n - 3); }
 gl.info.autoReset = false; gl.info.reset(); if (composer) composer.render(); else gl.render(scene, cam);
-window.__info = { calls: gl.info.render.calls, tris: gl.info.render.triangles, geo: gl.info.memory.geometries, tex: gl.info.memory.textures };
+const bb = new THREE.Box3().setFromObject(e.object, true); window.__info = { minY: +(bb.min.y / sc).toFixed(2), maxY: +(bb.max.y / sc).toFixed(2), calls: gl.info.render.calls, tris: gl.info.render.triangles, geo: gl.info.memory.geometries, tex: gl.info.memory.textures };
 window.__ready = true;

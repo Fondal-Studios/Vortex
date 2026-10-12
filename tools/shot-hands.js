@@ -10,7 +10,7 @@ const srv = await startServer({ port: 0 }); const b = await launch(); const resu
 for (let i = 0; i < queries.length; i++) {
   const [q, stepArg] = queries[i].split('@'); const pg = await b.newPage({ viewport: { width: W, height: H } }); const errs = [];
   pg.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errs.push(m.text()); }); pg.on('pageerror', (e) => errs.push('PAGEERR ' + e.message));
-  await pg.goto(`http://localhost:${srv.port}/public/weapons.html?cap=1&${q}`);
+  await pg.goto(`http://localhost:${srv.port}/public/weapons.html?cap=1&${q}`, { timeout: 180000 });
   await pg.waitForFunction(() => window.__weaponsReady && window.__step, null, { timeout: 120000 });
   const [n, dt, shots] = (stepArg || opts.step || '40:0.016:').split(':'); const list = (shots || '').split(',').filter(Boolean).map(Number);
   await pg.evaluate(([n, dt, list]) => window.__step(n, dt, list), [+n, +dt, list]); await pg.waitForTimeout(100);

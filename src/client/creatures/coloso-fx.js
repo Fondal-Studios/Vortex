@@ -25,8 +25,7 @@ export function shieldBubble(color = 0xffc65c, radius = 1.8, detail = 2) {
         float cr = 1.0 - smoothstep(0.0, 0.035, abs(vn(vP * 5.5 + 3.0) - 0.5)); cr *= uCrack * (0.4 + 0.6 * vn(vP * 9.0));
         float sweep = 0.5 + 0.5 * sin(vP.y * 5.0 + vP.x * 3.0 - uTime * 2.0);
         vec3 c = uColor * (0.06 + fr * 0.5 + edge * (0.7 + 0.5 * sweep) + cr * 1.6) * facet + vec3(1.0) * uFlash * (0.4 + edge);
-        float a = (0.05 + fr * 0.4 + edge * 0.6 + cr * 0.9) * uAmt + uFlash * 0.4; gl_FragColor = vec4(c * uAmt + vec3(uFlash) * 0.3, clamp(a, 0.0, 1.0));
-      }`,
+        float a = (0.05 + fr * 0.4 + edge * 0.6 + cr * 0.9) * uAmt + uFlash * 0.4; gl_FragColor = vec4(c * uAmt + vec3(uFlash) * 0.3, clamp(a, 0.0, 1.0));\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n      }`,
   });
   const m = new THREE.Mesh(g, mat); m.scale.setScalar(radius); m.frustumCulled = false; m.visible = false; m.renderOrder = 6;
   return { object: m, set({ amt = 0, crack = 0, flash = 0, scale = 1 } = {}) { u.uAmt.value = amt; u.uCrack.value = crack; u.uFlash.value = flash; m.visible = amt > 0.01 || flash > 0.01; m.scale.setScalar(radius * scale); }, uniforms: u };
@@ -59,7 +58,7 @@ export function chargeBeam() {
   return { object: grp, set({ len = 10, w = 0.05, a = 0, k = 0 } = {}) {
     grp.visible = a > 0.01; if (!grp.visible) return;
     outer.scale.set(w * 2.6, w * 2.6, len); mid.scale.set(w * 1.4, w * 1.4, len); core.scale.set(w * 0.6, w * 0.6, len);
-    outer.material.color.copy(cA).lerp(cB, k * 0.5); outer.material.opacity = 0.2 * a; mid.material.opacity = 0.4 * a; core.material.opacity = (0.35 + 0.65 * k) * a; } };
+    outer.material.color.copy(cA).lerp(cB, k * 0.5); outer.material.opacity = 0.2 * a; mid.material.opacity = 0.34 * a; core.material.opacity = (0.22 + 0.5 * k) * a; } };
 }
 
 /** Partículas (Points) con color por vértice: humo, brasas, vapor. emit(pos, vel, life, size?) ; update(dt). */

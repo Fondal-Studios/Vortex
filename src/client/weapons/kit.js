@@ -238,12 +238,12 @@ function glowMaterial(hex, q) {
 
 /** Detalle de superficie sin geometría: juntas de paneles, cepillado, desgaste, un "estudio" fingido que se refleja en el metal
  *  (también en Baja, donde no hay mapa de entorno) y el filo iridiscente de Fresnel. */
-function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0) {
+function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0, key = 0) {
   const acc = new THREE.Color(hex).offsetHSL(0.45, 0.05, 0.02).multiplyScalar(0.9);
   mat.onBeforeCompile = (sh) => {
-    sh.uniforms.uAcc = { value: acc }; sh.uniforms.uEnvK = { value: env }; sh.uniforms.uFill = { value: fill };
+    sh.uniforms.uAcc = { value: acc }; sh.uniforms.uEnvK = { value: env }; sh.uniforms.uFill = { value: fill }; sh.uniforms.uKey = { value: key };
     sh.vertexShader = 'attribute float aux; varying vec3 vOP; varying vec3 vON; varying float vDec;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vOP = position; vON = normal; vDec = aux;');
-    sh.fragmentShader = `varying vec3 vOP; varying vec3 vON; varying float vDec; uniform vec3 uAcc; uniform float uEnvK, uFill;
+    sh.fragmentShader = `varying vec3 vOP; varying vec3 vON; varying float vDec; uniform vec3 uAcc; uniform float uEnvK, uFill, uKey;
       float h3(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
       float gPanel, gWear, gEm;
       ` + sh.fragmentShader
@@ -286,7 +286,7 @@ function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0) {
           vec3 hi = vec3(1.0, 0.96, 0.9) * pow(max(dot(Rr, normalize(vec3(0.3, 0.85, 0.45))), 0.0), 16.0) * 1.4
                   + vec3(1.0, 0.35, 0.8) * pow(max(dot(Rr, normalize(vec3(-0.8, 0.15, -0.3))), 0.0), 7.0) * 0.5
                   + vec3(0.5, 0.7, 1.0) * pow(max(dot(Rr, normalize(vec3(0.75, -0.1, 0.45))), 0.0), 9.0) * 0.18;
-          vec3 tc = diffuseColor.rgb * 2.2 + 0.03; totalEmissiveRadiance += diffuseColor.rgb * uFill;
+          vec3 tc = diffuseColor.rgb * 2.2 + 0.03; totalEmissiveRadiance += diffuseColor.rgb * (uFill + uKey * max(dot(nn, normalize(vec3(-0.35, 0.75, 0.55))), 0.0));
           float spec = 0.3 + 0.7 * fr + 0.25 * (1.0 - roughnessFactor);
           totalEmissiveRadiance += uAcc * gEm * 1.1 + (grad * tc * 0.9 + hi * mix(vec3(1.0), tc, 0.5)) * spec * uEnvK * (gWear > 0.5 ? 1.6 : 1.0) * mix(0.5, 1.0, gPanel); }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
@@ -295,7 +295,7 @@ function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0) {
   mat.customProgramCacheKey = () => 'wsurf2';
 }
 
-export const TUNE = { met: 0.6, iri: 0.12, thick: [150, 500], rough: 0.5, cc: 0.0, env: 0.6, rim: 0.3, fake: 1, metLow: 0.7, emi: 1, fill: 0.45 };
+export const TUNE = { met: 0.6, iri: 0.12, thick: [150, 500], rough: 0.5, cc: 0.0, env: 0.6, rim: 0.3, fake: 1, metLow: 0.7, emi: 1, fill: 0.4, key: 1 };
 /** Los tres materiales de un arma. body: metal anodizado iridiscente; glove: tela técnica; glow: cristal. */
 export function makeMats(q, hex) {
   let body;
@@ -307,7 +307,7 @@ export function makeMats(q, hex) {
   } else {
     body = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: TUNE.metLow, roughness: 0.4 });
   }
-  surfaceDetail(body, hex, 1, TUNE.fake * (q.high ? 0.45 : q.name === 'medium' ? 0.7 : 1.0), TUNE.fill * (q.high ? 0 : q.name === 'medium' ? 0.15 : 1));
+  surfaceDetail(body, hex, 1, TUNE.fake * (q.high ? 0.45 : q.name === 'medium' ? 0.7 : 1.0), TUNE.fill * (q.high ? 0 : q.name === 'medium' ? 0.15 : 1), TUNE.key * (q.high ? 0.5 : q.name === 'medium' ? 0.6 : 0.55));
   const c = new THREE.Color(hex);
   body.emissive = c.clone().multiplyScalar((q.low ? 0.03 : 0.015) * TUNE.emi); const wc = c.clone();
   const glow = glowMaterial(hex, q);

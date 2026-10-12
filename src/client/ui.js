@@ -3,6 +3,7 @@ import { BESTIARY, TIPS } from './lore.js';
 import { CHARACTERS, CHARACTER_IDS, ROLES, WEAPONS } from '../sim/data.js';
 import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
 import { WEAPON_COLORS } from './shotfx.js';
+import { buildHeroScreen, renderHeroScreen } from './heroes-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const HERO = {
@@ -54,32 +55,8 @@ export class MenuUI {
     const f = $('bview'), src = `/public/viewer.html?k=${b.kind}&turn=1&embed=1&big=1&q=${window.__api && window.__api.level === 'low' ? 'low' : 'medium'}`; if (f.dataset.k !== b.kind) { f.dataset.k = b.kind; f.src = new URL(src, location.href).href.replace(location.origin + '/public/', location.href.replace(/[^/]*$/, '') + 'public/'); }
   }
   /* ───── equipo: personajes y armas ───── */
-  buildLoadout() {
-    const hex = (c) => '#' + c.toString(16).padStart(6, '0'), WC = WEAPON_COLORS.map((c) => hex(c));
-    this.wcol = WC; this.cur = Equipo.slots.length > 1 ? 1 : 1;
-    $('chlist').innerHTML = CHARACTER_IDS.map((id) => { const c = CHARACTERS[id]; return `<button class="chcard" data-ch="${id}" style="--c:${hex(c.color)}"><i>${c.name[0]}</i><div><b>${c.name}</b><small>${ROLES[c.role].name} · ${c.mov.name} + ${c.esp.name}</small></div></button>`; }).join('');
-    $('chlist').querySelectorAll('.chcard').forEach((b) => b.addEventListener('click', () => { Equipo.char = b.dataset.ch; saveEquipo(); this.sound.ui('ok'); this.renderLoadout(); }));
-    $('wlist').innerHTML = WEAPONS.map((w, i) => i === 0 ? '' : `<button class="wcell" data-w="${i}" style="--c:${WC[i % WC.length]}"><b>${w.name}</b></button>`).join('');
-    $('wlist').querySelectorAll('.wcell').forEach((b) => {
-      b.addEventListener('click', () => { assignWeapon(this.cur, +b.dataset.w); this.sound.ui('ok'); this.renderLoadout(); });
-      b.addEventListener('mouseenter', () => { $('wdesc').textContent = WEAPONS[+b.dataset.w].desc || ''; });
-    });
-  }
-  renderLoadout() {
-    const C = CHARACTERS[Equipo.char], col = '#' + C.color.toString(16).padStart(6, '0'); this.root.querySelector('#loadout').style.setProperty('--c', col);
-    $('chname').textContent = C.name; $('chrole').textContent = `${ROLES[C.role].name} — ${ROLES[C.role].ability} (Q)`; $('chdesc').textContent = C.desc;
-    $('skmov').innerHTML = `<b>F · ${C.mov.name}</b>${C.mov.desc}<br><em>recarga ${C.mov.cd} s</em>`;
-    $('skesp').innerHTML = `<b>Clic der. · ${C.esp.name}</b>${C.esp.desc}<br><em>recarga ${C.esp.cd} s</em>`;
-    $('sktac').innerHTML = `<b>Q · ${ROLES[C.role].ability}</b>${ROLES[C.role].desc.split('.')[0]}<br><em>recarga ${ROLES[C.role].cd} s</em>`;
-    $('chlist').querySelectorAll('.chcard').forEach((b) => b.classList.toggle('sel', b.dataset.ch === Equipo.char));
-    $('slotbar').innerHTML = Equipo.slots.map((w, i) => `<button class="slot ${i === 0 ? 'fix' : ''} ${i === this.cur ? 'cur' : ''}" data-s="${i}" style="border-color:${this.wcol[w % this.wcol.length]}"><span>${i + 1}</span><b>${WEAPONS[w].name}</b></button>`).join('');
-    $('slotbar').querySelectorAll('.slot').forEach((b) => b.addEventListener('click', () => { if (+b.dataset.s > 0) { this.cur = +b.dataset.s; this.renderLoadout(); } }));
-    $('wlist').querySelectorAll('.wcell').forEach((b) => b.classList.toggle('in', Equipo.slots.includes(+b.dataset.w)));
-    // vista previa 3D del avatar (liviana: sólo si no es táctil)
-    const f = $('chview'), K = `p=${C.preset || 'jugador' + (1 + CHARACTER_IDS.indexOf(Equipo.char) % 4)}&role=${C.role}`;
-    if (f.dataset.k !== K && !matchMedia('(pointer: coarse)').matches) { f.dataset.k = K; f.src = new URL(`public/humans.html?set=solo&${K}&cam=full&q=low&turn=1`, location.href.replace(/[^/]*$/, '')).href; }
-    $('wdesc').textContent = '';
-  }
+  buildLoadout() { buildHeroScreen(this); } // la pantalla de héroes vive en heroes-ui.js (+ public/heroes.css y public/hero-view.html)
+  renderLoadout() { renderHeroScreen(this); }
   /* ───── entrada ───── */
   bindEvents() {
     this.root.querySelectorAll('[data-go]').forEach((b) => { b.addEventListener('mouseenter', () => { if (this.screen === 'main') this.focus(this.list().indexOf(b)); }); b.addEventListener('click', () => this.go(b.dataset.go)); });

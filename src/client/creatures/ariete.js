@@ -16,7 +16,7 @@ export default function build(kit, color) {
   const bio = bioMaterial({ glow: 0xff5a1a, vein: 0x12040a, rim: 0xff7a30, scale: 1.2, bump: 1.0, wet: 0.5, ridge: 70, metal: 0.12, sheen: 0.1, breath: 0.01 });
   const U = bio.userData.u; U.uCrackGlow.value = 0.12; U.uVeinGlow.value = 0.05;
   const ORANGE = new THREE.Color(0xff4a0a), HOT = 0xff6a20;
-  const root = new THREE.Group(), body = new THREE.Group(); body.position.y = 0.22; root.add(body);
+  const root = new THREE.Group(), body = new THREE.Group(); body.position.y = 0.22; root.add(body); root.position.y = 0.43; // pies en y=-0.9 (el sim pone el centro a 0.9·r del piso)
   const mesh = (geo, parent) => { const m = new THREE.Mesh(geo, bio); parent.add(m); return m; };
 
   /* ── perfiles del torso (z = eje del cuerpo) ── */

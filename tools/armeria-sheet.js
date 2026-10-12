@@ -14,8 +14,8 @@ for (const w of ids) for (const q of qArg.split(',')) for (const v of viewsArg.s
   pg.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errs.push(m.text()); }); pg.on('pageerror', (e) => errs.push('PAGEERR ' + e.message));
   const query = `w=${w}&q=${q}&view=${v === 'close' ? 'close' : 'fp'}` + (v === 'fire' ? '&fire=0' : '');
   try {
-    await pg.goto(`http://localhost:${srv.port}/public/weapons.html?cap=1&${query}`);
-    await pg.waitForFunction(() => window.__weaponsReady && window.__step, null, { timeout: 120000 });
+    await pg.goto(`http://localhost:${srv.port}/public/weapons.html?cap=1&${query}`, { timeout: 240000 });
+    await pg.waitForFunction(() => window.__weaponsReady && window.__step, null, { timeout: 400000 });
     const shots = v === 'fire' ? [30] : [];
     await pg.evaluate(([n, dt, list]) => window.__step(n, dt, list), [v === 'fire' ? 33 : 60, 1 / 60, shots]);
     await pg.waitForTimeout(100);

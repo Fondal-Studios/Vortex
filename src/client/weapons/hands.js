@@ -150,8 +150,8 @@ export function trigCurl(P, c) { if (P.trigger) P.trigger.userData.curl = c; }
 /** Conecta la curva del índice al dibujo (el material es compartido): se llama una vez tras construir las piezas. */
 export function bindTrigger(P) {
   if (!P.trigger) return;
-  P.trigger.userData.curl = 0;
-  P.trigger.traverse((o) => { if (o.isMesh) o.onBeforeRender = () => { HU.uTrig.value = P.trigger.userData.curl || 0; }; });
+  P.trigger.userData.curl = 0; // en reposo el índice respira y tiembla un poco (se suma en onBeforeRender)
+  P.trigger.traverse((o) => { if (o.isMesh) o.onBeforeRender = () => { const t = HU.uTime.value; HU.uTrig.value = Math.min(1, (P.trigger.userData.curl || 0) + 0.05 + 0.03 * Math.sin(t * 1.7) + 0.015 * Math.sin(t * 5.3)); }; });
 }
 
 /**

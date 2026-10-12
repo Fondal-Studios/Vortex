@@ -2,7 +2,7 @@
 import { rightHand, supportHand } from './hands.js';
 import { forge, grip, plate, armor, stripe, piping, inset, DEC, rail, holo, fins, bolts, screenAt, crownRing, stock, stock2, shroud, clamp, damp, easeOut, easeInOut, Spring, PI, puffs, casing } from './forge.js';
 
-const VS = { pos: [0.3, -0.25, -0.58], scale: 2.2, zs: 0.7, rot: [-0.02, 0.45, -0.02] };       // armas cortas
+const VS = { pos: [0.28, -0.2, -0.56], scale: 2.0, zs: 0.7, rot: [-0.03, 0.42, -0.04] };       // armas cortas
 const VL = { pos: [0.32, -0.3, -0.62], scale: 2.2, zs: 0.55, rot: [-0.02, 0.5, -0.03] };         // armas largas
 
 /* ═════════════ 0 · HAZ — pistola de prisma: corredera angular con un prisma de cristal a la vista ═════════════ */
@@ -43,14 +43,14 @@ export function haz(q, hands) {
       k.gem('l', [0.014, 0.04], [0, 0.075, -0.092], { k: 0, n: 6, axis: 'z', tip: 0.3, twist: 0.5 });
       k.cbox('b', [0.052, 0.006, 0.05], [0, 0.0825, 0.065], { c: P.dom2, ch: 0.002 });
       for (let i = 0; i < (low ? 3 : 5); i++) k.box('b', [0.054, 0.05, 0.004], [0, 0.047, 0.14 - i * 0.012], { c: P.dk, sharp: true });
-      for (const sx of [-1, 1]) k.cbox('b', [0.005, 0.01, 0.01], [sx * 0.013, 0.088, 0.135], { c: P.st, ch: 0.002 });    // alza
+      for (const sx of [-1, 1]) k.cbox('b', [0.005, 0.008, 0.008], [sx * 0.013, 0.088, 0.135], { c: P.dk, ch: 0.002 });    // alza
       k.gem('b', [0.007, 0.012], [0, 0.092, -0.285], { n: 4, axis: 'y', c: P.acc });                              // punto de mira
       // cara trasera de la corredera (la cámara la ve): ranuras y cristal de estado
       k.cbox('b', [0.04, 0.05, 0.004], [0, 0.047, 0.152], { c: P.gm3, ch: 0.004 }); for (const x of [-0.012, 0, 0.012]) k.box('b', [0.004, 0.034, 0.003], [x, 0.047, 0.1545], { c: P.dk, sharp: true });
       k.gem('l', [0.006, 0.012], [0, 0.074, 0.154], { k: 2, n: 4, axis: 'y' });
       // — anillo emisor que gira alrededor del cañón
       k.part('ring', [0, 0.036, -0.4]);
-      crownRing(k, P, [0, 0.036, -0.4], 0.04, low ? 5 : 6, { tube: 0.0045, gemR: 0.0075 });
+      crownRing(k, P, [0, 0.036, -0.4], 0.05, low ? 5 : 6, { tube: 0.0055, gemR: 0.0095 });
       const bz = 0.065; k.cbox('b', [0.006, 0.042, 0.082], [-0.0265, 0.047, bz], { c: P.dk, ch: 0.002 });
       return { gh, pivot, screen: { on: 'slide', pos: [-0.0298, 0.017, bz], rot: [0, -PI / 2 + 0.3, 0], scale: 0.95 }, fore: null };
     },
@@ -85,8 +85,8 @@ export function prisma(q, hands) {
       stock2(k, P, 'tubo', { z0: 0.2, len: 0.3, top: 0.068, bot: -0.1 });
       const gh = grip(k, P, -0.034, { len: 0.17 }); let pivot = null; if (hands) pivot = rightHand(k, gh, hex);
       // tres cañones en triángulo, abrazaderas hexagonales y puntas luminosas
-      for (const [x, y] of [[0, 0.054], [-0.023, 0.016], [0.023, 0.016]]) { k.cyl('b', [0.0185, 0.0185, 0.62], [x, y, -0.43], { c: P.gm3, seg: 8 }); k.cyl('l', [0.0125, 0.0125, 0.006], [x, y, -0.742], { k: 0, seg: 8 }); }
-      for (const [z, c] of [[-0.22, P.dom], [-0.4, P.dom2], [-0.56, P.dom]]) { k.cyl('b', [0.056, 0.056, 0.026], [0, 0.03, z], { c, seg: 6 }); k.tor('l', [0.056, 0.0025], [0, 0.03, z - 0.0135], { seg: 6, k: 0 }); }
+      for (const [x, y] of [[0, 0.058], [-0.026, 0.014], [0.026, 0.014]]) { k.cyl('b', [0.0215, 0.0215, 0.62], [x, y, -0.43], { c: P.gm3, seg: 8 }); k.cyl('l', [0.015, 0.015, 0.006], [x, y, -0.742], { k: 0, seg: 8 }); }
+      for (const [z, c] of [[-0.22, P.dom], [-0.4, P.dom2], [-0.56, P.dom]]) { k.cyl('b', [0.062, 0.062, 0.028], [0, 0.03, z], { c, seg: 6 }); k.tor('l', [0.062, 0.003], [0, 0.03, z - 0.0145], { seg: 6, k: 0 }); }
       // tubo del cargador con cartuchos de energía
       k.limb('l', [0, -0.026, -0.14], [0, -0.026, -0.64], 0.0125, 0.0125, { k: 0, seg: 8 });
       for (const z of [-0.12, -0.64]) k.cyl('b', [0.022, 0.022, 0.03], [0, -0.026, z], { c: P.pale, seg: 10 });
@@ -98,8 +98,8 @@ export function prisma(q, hands) {
       if (hands) supportHand(k, [0, -0.026, -0.34], 0.036, hex);
       // corona de cristal que gira en la boca
       k.part('fan', [0, 0.03, -0.69]);
-      k.tor('l', [0.06, 0.006], [0, 0.03, -0.69], { k: 0, seg: 12 });
-      for (let i = 0; i < (low ? 6 : 9); i++) { const a = i * PI * 2 / (low ? 6 : 9); k.gem('l', [0.0085, 0.0145], [Math.cos(a) * 0.06, 0.03 + Math.sin(a) * 0.06, -0.69], { k: 1, n: 4, axis: 'y', r: [0, 0, a - PI / 2 + PI] }); }
+      k.tor('l', [0.074, 0.007], [0, 0.03, -0.69], { k: 0, seg: 12 });
+      for (let i = 0; i < (low ? 6 : 9); i++) { const a = i * PI * 2 / (low ? 6 : 9); k.gem('l', [0.012, 0.022], [Math.cos(a) * 0.074, 0.03 + Math.sin(a) * 0.074, -0.69], { k: 1, n: 4, axis: 'y', r: [0, 0, a - PI / 2 + PI] }); }
       return { gh, pivot, screen: { on: 'main', pos: [-0.0385, 0.03, 0.118], rot: [0, -PI / 2 + 0.3, 0], scale: 1.2 }, fore: [0, -0.026, -0.34] };
     },
     anim(P, st, dt, t, firing) {
@@ -148,9 +148,9 @@ export function rafaga(q, hands) {
       if (hands) supportHand(k, [0, 0.045, -0.32], 0.054, hex);
       // 6 cañones giratorios con eje de energía
       k.part('barrels', [0, 0.045, -0.5]);
-      for (let i = 0; i < 6; i++) { const a = i * PI / 3, x = Math.cos(a) * 0.032, y = 0.045 + Math.sin(a) * 0.032; k.cyl('b', [0.0108, 0.0108, 0.34], [x, y, -0.6], { c: i % 2 ? P.gm3 : P.st, seg: 8 }); k.cyl('l', [0.007, 0.007, 0.006], [x, y, -0.772], { k: i % 2 ? 1 : 0, seg: 6 }); }
-      k.limb('l', [0, 0.045, -0.44], [0, 0.045, -0.765], 0.0095, 0.0095, { k: 0, seg: 8 });
-      for (const [z, c] of [[-0.46, P.dom], [-0.61, P.dk], [-0.73, P.dom]]) { k.cyl('b', [0.048, 0.048, 0.02], [0, 0.045, z], { c, seg: low ? 10 : 12 }); k.tor('l', [0.048, 0.0022], [0, 0.045, z - 0.01], { k: 0, seg: 12 }); }
+      for (let i = 0; i < 6; i++) { const a = i * PI / 3, x = Math.cos(a) * 0.04, y = 0.045 + Math.sin(a) * 0.04; k.cyl('b', [0.0145, 0.0145, 0.34], [x, y, -0.6], { c: i % 2 ? P.gm3 : P.st, seg: 8 }); k.cyl('l', [0.0095, 0.0095, 0.006], [x, y, -0.772], { k: i % 2 ? 1 : 0, seg: 6 }); }
+      k.limb('l', [0, 0.045, -0.44], [0, 0.045, -0.765], 0.012, 0.012, { k: 0, seg: 8 });
+      for (const [z, c] of [[-0.46, P.dom], [-0.61, P.dk], [-0.73, P.dom]]) { k.cyl('b', [0.058, 0.058, 0.022], [0, 0.045, z], { c, seg: low ? 10 : 12 }); k.tor('l', [0.058, 0.0028], [0, 0.045, z - 0.011], { k: 0, seg: 12 }); }
       // tambor interior de cristales que gira
       k.part('drum', [0, -0.1, -0.16]);
       for (let i = 0; i < 7; i++) { const a = i * PI * 2 / 7; k.gem('l', [0.0095, 0.016], [-0.0475, -0.1 + Math.sin(a) * 0.04, -0.16 + Math.cos(a) * 0.04], { k: 1, n: 4, axis: 'x', r: [a, 0, 0] }); }
@@ -170,39 +170,44 @@ export function rafaga(q, hands) {
 /* ═════════════ 3 · NOVA — lanzacohetes: tubo grueso, reactor en la cima y bidones de combustible ═════════════ */
 export function nova(q, hands) {
   return forge(3, q, hands, {
-    muzzle: [0, 0.07, -0.7], eject: null, flash: { shape: 'ball', size: 1.5, decay: 5.5 },
-    recoil: { z: 0.2, y: 0.045, pitch: 0.5, roll: 0.05, k: 90, c: 9 }, view: { ...VL, scale: 2.0 }, heat: 0.9, kv: 1.6, cool: 0.28, bdec: 4,
+    muzzle: [0, 0.075, -0.72], eject: null, flash: { shape: 'ball', size: 1.4, decay: 5.5 },
+    recoil: { z: 0.2, y: 0.045, pitch: 0.5, roll: 0.05, k: 90, c: 9 }, view: { ...VL, scale: 1.95, pos: [0.3, -0.31, -0.62], rot: [-0.02, 0.55, -0.03] }, heat: 0.9, kv: 1.6, cool: 0.28, bdec: 4,
     build(k, G, hands) {
-      const { P } = G, hex = G.hex, low = G.low, sg = q.high ? 20 : 12;
-      k.cyl('b', [0.07, 0.07, 0.26], [0, 0.07, 0.02], { c: P.gm3, seg: sg });                                    // tubo trasero
-      k.cyl('b', [0.07, 0.07, 0.3], [0, 0.07, -0.26], { c: P.dom, seg: sg });                                    // tubo medio, color del arma
-      k.cyl('b', [0.098, 0.07, 0.15], [0, 0.07, -0.55], { c: P.dom2, seg: sg });                                 // boca acampanada
-      for (const z of [0.12, 0.0, -0.1, -0.12, -0.3, -0.4]) { k.cyl('b', [0.0755, 0.0755, 0.014], [0, 0.07, z], { c: P.dk, seg: sg }); k.tor('l', [0.0755, 0.0028], [0, 0.07, z - 0.007], { k: 0, seg: low ? 12 : 24 }); }
-      k.tor('l', [0.098, 0.0065], [0, 0.07, -0.628], { k: 0, seg: low ? 14 : 28 });
-      k.cyl('b', [0.074, 0.092, 0.1], [0, 0.07, 0.17], { c: P.gm, seg: sg }); k.cyl('l', [0.058, 0.058, 0.006], [0, 0.07, 0.222], { k: 0, seg: 12 }); k.tor('b', [0.09, 0.008], [0, 0.07, 0.22], { c: P.pale, seg: low ? 12 : 24 }); // escape trasero
-      for (let i = 0; i < 6; i++) { const a = i * PI / 3; k.cbox('b', [0.012, 0.03, 0.06], [Math.cos(a) * 0.09, 0.07 + Math.sin(a) * 0.09, 0.19], { c: P.dom2, r: [0, 0, a - PI / 2], ch: 0.003 }); }
-      // bidones de combustible a los costados (visible el líquido)
+      const { P } = G, hex = G.hex, low = G.low, sg = q.high ? 20 : 12, Y = 0.075;
+      k.cyl('b', [0.073, 0.073, 0.3], [0, Y, 0.05], { c: P.dom, seg: sg, u: DEC.rombos });                      // tubo trasero, color del arma
+      k.cyl('b', [0.075, 0.075, 0.32], [0, Y, -0.26], { c: P.gm3, seg: sg, u: DEC.nervadura });                     // tubo medio
+      k.cyl('b', [0.108, 0.075, 0.2], [0, Y, -0.52], { c: P.dom2, seg: sg });                                     // boca acampanada
+      for (const z of [0.18, 0.08, -0.04, -0.1, -0.42, -0.5]) { k.cyl('b', [0.08, 0.08, 0.014], [0, Y, z], { c: P.dk, seg: sg }); k.tor('l', [0.0805, 0.0026], [0, Y, z - 0.007], { k: 0, seg: low ? 12 : 24 }); }
+      k.cyl('b', [0.116, 0.116, 0.016], [0, Y, -0.625], { c: P.dk, seg: sg }); k.tor('l', [0.103, 0.006], [0, Y, -0.635], { k: 0, seg: low ? 14 : 28 });
+      // escape trasero: tobera con seis pétalos y núcleo caliente
+      k.cyl('b', [0.074, 0.09, 0.08], [0, Y, 0.235], { c: P.gm, seg: sg }); k.cyl('b', [0.084, 0.084, 0.012], [0, Y, 0.28], { c: P.dk, seg: sg }); k.cyl('l', [0.05, 0.05, 0.006], [0, Y, 0.288], { k: 0, seg: 12 });
+      for (let i = 0; i < 6; i++) { const a = i * PI / 3; k.cbox('b', [0.016, 0.036, 0.07], [Math.cos(a) * 0.092, Y + Math.sin(a) * 0.092, 0.25], { c: i % 2 ? P.dom2 : P.dom, r: [0, 0, a - PI / 2], ch: 0.004 }); }
+      // bidones de combustible en los costados con tuberías al tubo
       for (const sx of [-1, 1]) {
-        for (const y of [0.04, 0.1]) { k.cyl('b', [0.024, 0.024, 0.24], [sx * 0.105, y, -0.24], { c: P.gm3, seg: 10 }); k.cyl('l', [0.017, 0.017, 0.22], [sx * 0.105, y, -0.24], { k: 0, seg: 8 }); for (const z of [-0.14, -0.34]) k.cyl('b', [0.028, 0.028, 0.012], [sx * 0.105, y, z], { c: P.dk, seg: 10 }); }
-        k.cbox('b', [0.05, 0.1, 0.02], [sx * 0.082, 0.07, -0.14], { c: P.dk, ch: 0.005 }); k.cbox('b', [0.05, 0.1, 0.02], [sx * 0.082, 0.07, -0.34], { c: P.dk, ch: 0.005 });
+        for (const y of [0.04, 0.108]) { k.cyl('b', [0.024, 0.024, 0.26], [sx * 0.112, y, -0.22], { c: P.gm3, seg: 10 }); k.cyl('l', [0.017, 0.017, 0.235], [sx * 0.112, y, -0.22], { k: 0, seg: 8 }); for (const z of [-0.12, -0.32]) k.cyl('b', [0.029, 0.029, 0.014], [sx * 0.112, y, z], { c: P.dom, seg: 10 }); }
+        for (const z of [-0.1, -0.34]) k.cbox('b', [0.05, 0.12, 0.022], [sx * 0.088, Y - 0.005, z], { c: P.dk, ch: 0.006 });
+        k.limb('b', [sx * 0.112, 0.075, -0.1], [sx * 0.078, 0.11, -0.04], 0.009, 0.009, { c: P.st, seg: 6, ball: true });
       }
+      // lomo con riel, alza y punto de mira
+      k.cbox('b', [0.03, 0.012, 0.42], [0, 0.152, -0.12], { c: P.dk, ch: 0.003 }); for (let i = 0; i < (low ? 5 : 9); i++) k.box('b', [0.034, 0.005, 0.01], [0, 0.1605, 0.05 - i * 0.04], { c: P.st, sharp: true });
+      k.cbox('b', [0.012, 0.03, 0.012], [0, 0.17, 0.12], { c: P.pale, ch: 0.002 }); k.gem('b', [0.007, 0.016], [0, 0.17, -0.38], { n: 4, axis: 'y', c: P.acc });
       k.prof('b', [[-0.12, 0.0], [0.15, 0.0], [0.15, -0.04], [-0.12, -0.04]], 0.07, 0, { c: P.gm, bevel: 0.005 });
-      const gh = grip(k, P, -0.04, { len: 0.17 }); let pivot = null; if (hands) { pivot = rightHand(k, gh, hex); supportHand(k, [0, 0.07, -0.34], 0.074, hex, { flip: 0.7 }); }
-      // jaula del reactor
-      for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.limb('b', [Math.cos(a) * 0.03, 0.135, -0.12 + Math.sin(a) * 0.03], [Math.cos(a) * 0.056, 0.2, -0.12 + Math.sin(a) * 0.056], 0.008, 0.006, { c: P.st, ball: true }); }
-      k.tor('b', [0.058, 0.005], [0, 0.245, -0.12], { c: P.pale, r: [PI / 2, 0, 0], seg: low ? 10 : 20 }); k.tor('b', [0.058, 0.005], [0, 0.19, -0.12], { c: P.pale, r: [PI / 2, 0, 0], seg: low ? 10 : 20 });
-      for (let i = 0; i < 4; i++) { const a = i * PI / 2; k.cyl('b', [0.008, 0.008, 0.055], [Math.cos(a) * 0.058, 0.2175, -0.12 + Math.sin(a) * 0.058], { axis: 'y', c: P.gm3, seg: 6 }); }
-      const scr = screenAt(k, P, [0, 0.1425, 0.04], 0, 0.062, 0.04, 1.12, 0.9);
-      for (let i = 0; i < 3; i++) k.box('l', [0.008, 0.005, 0.01], [-0.02 + i * 0.02, 0.139, -0.02], { k: 2 });
-      k.part('cage', [0, 0.22, -0.12]);
-      for (let i = 0; i < 3; i++) k.tor('l', [0.047, 0.0042], [0, 0.22, -0.12], { k: 0, r: [i * PI / 3 + 0.4, i * PI / 3, 0], seg: low ? 12 : 22 });
-      k.part('core', [0, 0.22, -0.12]);
-      k.gem('l', [0.032, 0.045], [0, 0.22, -0.12], { k: 1, n: 6, axis: 'y' }); k.gem('l', [0.02, 0.03], [0, 0.22, -0.12], { k: 0, n: 5, axis: 'x', c: 0xffffff });
+      const gh = grip(k, P, -0.04, { len: 0.17 }); let pivot = null; if (hands) { pivot = rightHand(k, gh, hex); supportHand(k, [0, Y, -0.34], 0.075, hex, { flip: 0.7 }); }
+      // jaula del reactor sobre una peana
+      k.cbox('b', [0.07, 0.03, 0.09], [0, 0.17, -0.2], { c: P.gm3, ch: 0.008 });
+      for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.limb('b', [Math.cos(a) * 0.03, 0.185, -0.2 + Math.sin(a) * 0.03], [Math.cos(a) * 0.062, 0.26, -0.2 + Math.sin(a) * 0.062], 0.009, 0.007, { c: P.st, ball: true }); }
+      k.tor('b', [0.064, 0.006], [0, 0.31, -0.2], { c: P.pale, r: [PI / 2, 0, 0], seg: low ? 10 : 20 }); k.tor('b', [0.064, 0.006], [0, 0.23, -0.2], { c: P.pale, r: [PI / 2, 0, 0], seg: low ? 10 : 20 });
+      for (let i = 0; i < 4; i++) { const a = i * PI / 2; k.cyl('b', [0.008, 0.008, 0.08], [Math.cos(a) * 0.064, 0.27, -0.2 + Math.sin(a) * 0.064], { axis: 'y', c: P.gm3, seg: 6 }); }
+      const scr = screenAt(k, P, [-0.0795, 0.06, 0.06], -1, 0.07, 0.04, 1.2, 0.3);
+      k.part('cage', [0, 0.27, -0.2]);
+      for (let i = 0; i < 3; i++) k.tor('l', [0.052, 0.0045], [0, 0.27, -0.2], { k: 0, r: [i * PI / 3 + 0.4, i * PI / 3, 0], seg: low ? 12 : 22 });
+      k.part('core', [0, 0.27, -0.2]);
+      k.gem('l', [0.036, 0.052], [0, 0.27, -0.2], { k: 1, n: 6, axis: 'y' }); k.gem('l', [0.022, 0.034], [0, 0.27, -0.2], { k: 0, n: 5, axis: 'x', c: 0xffffff });
       // cohete cargado: la punta de cristal asoma por la boca
-      k.part('rocket', [0, 0.07, -0.5]);
-      k.cyl('b', [0.052, 0.052, 0.08], [0, 0.07, -0.52], { c: P.gm3 }); k.cyl('l', [0.003, 0.052, 0.12], [0, 0.07, -0.62], { k: 1, seg: 8 });
-      for (let i = 0; i < 3; i++) { const a = i * PI * 2 / 3 + 1; k.cbox('b', [0.006, 0.05, 0.05], [Math.cos(a) * 0.05, 0.07 + Math.sin(a) * 0.05, -0.49], { c: P.dom, r: [0, 0, a - PI / 2], ch: 0.002 }); }
-      return { gh, pivot, screen: { on: 'main', pos: [scr.pos[0], scr.pos[1], scr.pos[2]], rot: scr.rot, scale: scr.scale }, fore: [0, 0.07, -0.34] };
+      k.part('rocket', [0, Y, -0.5]);
+      k.cyl('b', [0.056, 0.056, 0.08], [0, Y, -0.53], { c: P.gm3 }); k.cyl('l', [0.003, 0.056, 0.14], [0, Y, -0.65], { k: 1, seg: 8 });
+      for (let i = 0; i < 3; i++) { const a = i * PI * 2 / 3 + 1; k.cbox('b', [0.006, 0.054, 0.05], [Math.cos(a) * 0.054, Y + Math.sin(a) * 0.054, -0.5], { c: P.dom, r: [0, 0, a - PI / 2], ch: 0.002 }); }
+      return { gh, pivot, screen: { on: 'main', pos: scr.pos, rot: scr.rot, scale: scr.scale }, fore: [0, Y, -0.34] };
     },
     anim(P, st, dt, t, firing, G) {
       st.cw = damp(st.cw ?? 1.2, firing ? 7 : 1.2, 3, dt); P.cage.rotation.y += st.cw * dt; P.cage.rotation.x += st.cw * 0.4 * dt;
@@ -210,9 +215,9 @@ export function nova(q, hands) {
       const rt = st.t0, rk = clamp((rt - 0.35) / 0.7, 0, 1), rs = rt < 0.1 ? 1 : easeOut(rk);
       P.rocket.visible = rt < 0.06 || rt > 0.35; P.rocket.scale.setScalar(Math.max(0.01, rt < 0.06 ? 1 : rs)); P.rocket.position.z = P.rocket.userData.base.z + (1 - rs) * 0.1;
       st.steam = (st.steam || 0) - dt;
-      if (st.steam > 0 && st.ctx && Math.random() < dt * 30) { const c = st.ctx; for (const sx of [-1, 1]) c.puff([sx * 0.11, 0.07, -0.28 + Math.random() * 0.08], [sx * 0.2, 0.18 + Math.random() * 0.1, -0.05], 0xffffff, { size: 0.07, grow: 0.3, life: 0.7, alpha: 0.2 }); c.puff([0, 0.07, 0.24], [0, 0.1, 0.35], G.hex, { size: 0.08, grow: 0.3, life: 0.5, alpha: 0.25 }); }
+      if (st.steam > 0 && st.ctx && Math.random() < dt * 30) { const c = st.ctx; for (const sx of [-1, 1]) c.puff([sx * 0.12, 0.075, -0.28 + Math.random() * 0.08], [sx * 0.2, 0.18 + Math.random() * 0.1, -0.05], 0xffffff, { size: 0.07, grow: 0.3, life: 0.7, alpha: 0.2 }); c.puff([0, 0.075, 0.3], [0, 0.1, 0.35], G.hex, { size: 0.08, grow: 0.3, life: 0.5, alpha: 0.25 }); }
     },
-    fire(P, st, ctx, G) { st.steam = 1.2; st.cw = (st.cw ?? 1.2) + 14; if (ctx) { for (let i = 0; i < 4; i++) ctx.puff([0, 0.07, -0.66], [(Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4 + 0.1, -0.5], i % 2 ? G.hex : 0xffffff, { size: 0.16, grow: 0.5, life: 0.8, alpha: 0.4 }); for (let i = 0; i < 3; i++) ctx.shard([0, 0.07, -0.65], [(Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5 + 0.4, -1.2], G.hex, 1.1); } },
+    fire(P, st, ctx, G) { st.steam = 1.2; st.cw = (st.cw ?? 1.2) + 14; if (ctx) { for (let i = 0; i < 4; i++) ctx.puff([0, 0.075, -0.7], [(Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4 + 0.1, -0.5], i % 2 ? G.hex : 0xffffff, { size: 0.16, grow: 0.5, life: 0.8, alpha: 0.4 }); for (let i = 0; i < 3; i++) ctx.shard([0, 0.075, -0.68], [(Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5 + 0.4, -1.2], G.hex, 1.1); } },
   });
 }
 
@@ -242,7 +247,7 @@ export function aguja(q, hands) {
       for (const sx of [-1, 1]) { k.limb('b', [sx * 0.02, -0.035, -0.7], [sx * 0.032, -0.09, -0.86], 0.007, 0.006, { c: P.pale, ball: true }); k.cbox('b', [0.016, 0.01, 0.03], [sx * 0.032, -0.095, -0.865], { c: P.dom, ch: 0.002 }); }
       k.cbox('b', [0.05, 0.026, 0.07], [0, -0.03, -0.7], { c: P.gm3, ch: 0.006 });
       // bobinas fijas (se encienden en secuencia) y soportes
-      for (const z of COIL_Z) { k.tor('l', [0.05, 0.0075], [0, 0.05, z], { k: 3, seg: low ? 8 : 14 }); k.cbox('b', [0.016, 0.014, 0.03], [0, -0.0, z], { c: P.gm3, ch: 0.003 }); k.cbox('b', [0.014, 0.012, 0.014], [0, 0.103, z], { c: P.gm3, ch: 0.002 }); }
+      for (const z of COIL_Z) { k.tor('l', [0.065, 0.01], [0, 0.05, z], { k: 3, seg: low ? 8 : 14 }); k.cbox('b', [0.016, 0.014, 0.03], [0, -0.0, z], { c: P.gm3, ch: 0.003 }); k.cbox('b', [0.014, 0.012, 0.014], [0, 0.103, z], { c: P.gm3, ch: 0.002 }); }
       k.loft('b', [{ z: -1.12, w: 0.04, h: 0.04, y: 0.05, ch: 0.01 }, { z: -1.22, w: 0.03, h: 0.03, y: 0.05, ch: 0.008 }], { c: P.dom });
       // rieles gemelos (se abren al cargar)
       for (const sx of [-1, 1]) {

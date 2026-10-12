@@ -25,7 +25,7 @@ export default function build(kit, color) {
   const NT = LOW ? 5 : 9;
   const bioT = bioMaterial({ glow: 0x9dff5a, vein: 0x061a10, rim: 0x2a8a50, scale: 2.0, tent: NT, breath: 0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.15;
 
-  const root = new THREE.Group(), rig = new THREE.Group(), body = new THREE.Group(); root.add(rig); rig.add(body);
+  const root = new THREE.Group(), rig = new THREE.Group(), body = new THREE.Group(); root.add(rig); rig.add(body); rig.scale.setScalar(1.5); // jefe: escala imponente
   const mesh = (g, parent = body, m = bio) => { const o = new THREE.Mesh(g, m); parent.add(o); return o; };
 
   /* ── núcleo: útero de carne, abdomen, ojo, boca, sacos con embriones ── */
@@ -46,7 +46,7 @@ export default function build(kit, color) {
   for (let i = 0; i < NS; i++) sacs.push({ a: (i / NS) * TAU + 0.3, ph: i * 1.7 });
 
   /* ── pétalos exteriores (quitina), interiores (carne), espinas y puntas: InstancedMesh ── */
-  const outerG = (() => { const L = 1.2, W = 0.6;
+  const outerG = (() => { const L = 1.3, W = 1.15;
     const g = patch((u, v) => { const w = W * Math.pow(Math.sin(Math.PI * (0.1 + 0.9 * v)), 0.75) * (0.55 + 0.45 * Math.sin(v * 2.4 + 0.3)), x = (u - 0.5) * 2 * w, y = v * L, z = 0.55 * v * v * 0.5 + 0.1 * Math.pow(x / Math.max(w, 0.01), 2) * Math.min(1, v * 3) - 0.045 * Math.sin(v * 22) * (1 - Math.abs(2 * u - 1)); return new V3(x, y, z); }, LOW ? 6 : 10, LOW ? 8 : 14, { thick: 0.07, inner: true });
     return paint(g, SHELL, 1, 0, (p, n, uv) => { const mid = Math.exp(-Math.pow((uv[0] - 0.5) * 7, 2)), edge = sstep(0.78, 1, Math.abs(uv[0] * 2 - 1)); return { c: new THREE.Color(SHELL).lerp(new THREE.Color(0x1c5a34), 0.4 * uv[1] + 0.4 * edge), k: 0.6 + 0.8 * uv[1] + 0.3 * mid, g: (mid * 0.6 + edge * 0.5) * (0.4 + 0.6 * uv[1]) }; }); })();
   const innerG = (() => { const L = 0.85, W = 0.34;
@@ -117,7 +117,7 @@ export default function build(kit, color) {
     let sIdx = 0;
     petals.forEach((P0) => {
       const delay = P0.i * 0.045, k = sstp(delay, delay + 0.6, opS);
-      const closed = 1.42 - (P0.i % 2) * 0.05, open = 0.3 + P0.off * 0.6 + hurtLow * 0.25 * (P0.i % 3 === 0 ? 1 : 0);
+      const closed = 1.62 - (P0.i % 2) * 0.06, open = 0.3 + P0.off * 0.6 + hurtLow * 0.25 * (P0.i % 3 === 0 ? 1 : 0);
       const th = lerp(closed, open, k) + (1 - k) * (shoot * 0.03 + Math.sin(t * 40 + P0.i) * 0.004 * (1 + rage) + prSm * Math.sin(t * 31 + P0.i * 2) * 0.012) + hk * 0.1 * Math.sin(P0.i * 2.3 + t * 30) + (k > 0.05 ? Math.sin(t * 1.3 + P0.i) * 0.04 * k : 0) + (vent ? Math.sin(t * 28 + P0.i * 1.7) * 0.03 : 0) - spasm * 0.12;
       P0.p.rotation.x = th; P0.p.rotation.y = Math.sin(t * 0.9 + P0.i) * 0.03 * k + (hurtLow && P0.i % 3 === 0 ? Math.sin(t * 7 + P0.i) * 0.05 : 0);
       P0.h.updateMatrix(); P0.p.updateMatrix(); mA.multiplyMatrices(P0.h.matrix, P0.p.matrix);

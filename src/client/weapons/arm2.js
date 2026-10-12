@@ -2,7 +2,7 @@
 import { rightHand, supportHand } from './hands.js';
 import { forge, grip, plate, armor, stripe, piping, inset, DEC, rail, holo, fins, screenAt, crownRing, stock, stock2, shroud, clamp, damp, easeOut, easeInOut, Spring, PI, puffs, casing } from './forge.js';
 
-const VS = { pos: [0.3, -0.25, -0.58], scale: 2.2, zs: 0.7, rot: [-0.02, 0.45, -0.02] };
+const VS = { pos: [0.28, -0.2, -0.56], scale: 2.0, zs: 0.7, rot: [-0.03, 0.42, -0.04] };       // armas cortas
 const VL = { pos: [0.32, -0.3, -0.62], scale: 2.2, zs: 0.55, rot: [-0.02, 0.5, -0.03] };
 
 /* ═════════════ 5 · PULSO — cañón de mano: tambor hexagonal de celdas de energía y tres anillos de choque ═════════════ */

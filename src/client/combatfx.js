@@ -273,7 +273,7 @@ export class CombatFx {
   /** Lo que pasa donde termina la traza. */
   tipFx(name, t, n, c, onMon, x) {
     const fx = this.fx, st = (TIPS[name] || 'spark');
-    this.impact(st, t, n, c, 0.8, onMon);
+    this.impact(st, t, n, c, 1.1, onMon);
     if (!onMon) { const sz = st === 'fire' ? 1.4 : st === 'frost' ? 1.6 : 1.1; const dc = st === 'frost' ? 0xbfe8ff : st === 'poison' ? 0x1a4a14 : st === 'fire' ? 0x180a04 : st === 'void' ? 0x1a0a30 : 0x101018; if (x.w !== 7 && x.w !== 18 && x.w !== 2 && x.w !== 6 && Math.random() < 0.7) fx.decal(t, n, dc, sz, st === 'frost' ? 3 : 4.5, { op: st === 'frost' ? 0.55 : 0.75 }); }
   }
 
@@ -330,10 +330,11 @@ export class CombatFx {
     const style = lh && this.t - lh.t < 0.5 ? lh.style : 'spark', up = this.up, size = boss ? 1.6 : clamp(r * 0.45, 0.3, 1.1);
     const tint = style === 'frost' ? 0xbfeaff : style === 'poison' || style === 'poisonlight' ? 0x8dff5a : style === 'fire' ? 0xff8a3a : mc;
     // 1) el cuerpo se rompe en trozos sólidos + fluido luminoso
-    fx.shatter(p, tint, { size, n: boss ? 24 : 10, speed: boss ? 16 : 9, dir: lh ? lh.nrm.clone().negate() : null });
+    fx.shatter(p, tint, { size: Math.max(size, r * 0.5) * (boss ? 1.2 : 2.0), n: boss ? 24 : 10, speed: boss ? 16 : 10, dir: lh ? lh.nrm.clone().negate() : null });
+    fx.blast(p, tint, boss ? 30 : r * 2.4 + 2, boss ? 0.8 : 0.34);
     // 2) fluido por material
-    if (mat === 'bio') { fx.spray(p, mc, 18 * (boss ? 3 : 1), 8, 0.9, 0.8 * size + 0.4, { grav: 10, c2: mix(mc, 0x000000, 0.7), grow: -0.3 }); fx.spray(p, mc, 6, 3, 0.5, 1.8 * size + 0.6, { c2: 0xffffff, grow: 0.5, drag: 3 }); }
-    else if (mat === 'glass') { fx.spray(p, mc, 16 * (boss ? 3 : 1), 11, 1.0, 0.8 * size + 0.3, { shape: SHAPE.shard, spin: 10, grav: 7, c2: 0xffffff, grow: -0.3 }); fx.sparks(p, 0xffffff, 10, 13, 0.5, { c2: mc }); }
+    if (mat === 'bio') { fx.spray(p, mc, 26 * (boss ? 3 : 1), 9, 0.95, 0.9 * size + 0.5, { grav: 10, c2: mix(mc, 0x000000, 0.7), grow: -0.3 }); fx.spray(p, mc, 6, 3, 0.5, 1.8 * size + 0.6, { c2: 0xffffff, grow: 0.5, drag: 3 }); }
+    else if (mat === 'glass') { fx.spray(p, mc, 22 * (boss ? 3 : 1), 12, 1.0, 0.7 * size + 0.3, { shape: SHAPE.shard, spin: 10, grav: 7, c2: 0xffffff, grow: -0.3 }); fx.sparks(p, 0xffffff, 10, 13, 0.5, { c2: mc }); }
     else if (mat === 'rock') { fx.spray(p, 0x6a4a8a, 8, 5, 1.3, 2.0 * size + 0.5, { smoke: true, shape: SHAPE.smoke, grow: 1.3, drag: 2, c2: 0x241a34, spin: 2 }); fx.spray(p, mc, 14, 9, 0.9, 0.7 * size + 0.3, { shape: SHAPE.shard, spin: 8, grav: 9 }); }
     else { fx.spray(p, mc, 20, 10, 0.9, 0.9 * size + 0.3, { c2: 0xffffff, grow: 0.2 }); fx.ring(p, null, mc, r * 3.2, 0.5, { r0: r * 0.6, shock: true }); }
     // 3) variación según el arma que lo mató
@@ -348,7 +349,7 @@ export class CombatFx {
       default: break;
     }
     // 4) destello y onda (más grandes si es élite o jefe)
-    fx.flash(p, elite ? 0xffd23f : mc, boss ? 12 : (elite ? 7 : 2.6 + r), boss ? 0.5 : 0.25, { burst: true });
+    fx.flash(p, elite ? 0xffd23f : mc, boss ? 9 : (elite ? 3.6 : 2.2 + r * 0.9), boss ? 0.5 : 0.25, { burst: true });
     fx.ring(p, up, mc, (boss ? 22 : elite ? 9 : 3 + r * 2), boss ? 0.9 : 0.5, { r0: 0.5, shock: true, op: 0.9 });
     if (elite) { fx.ringChroma(p, null, 11, 0.7, { op: 0.9 }); fx.ring(p, up, 0xff3a5a, 14, 0.8, { r0: 0.5, shock: true }); fx.spray(p, 0xffe27a, 14, 12, 1.1, 1.0, { shape: SHAPE.star, spin: 4, c2: 0xff3a5a, grow: -0.5 }); fx.sparks(p, 0xffe9a0, 14, 15, 0.6, { c2: 0xff3a5a }); }
     if (boss) { fx.ringChroma(p, null, 38, 1.4, { op: 0.9 }); fx.blast(p, mc, 36, 1.4); fx.spray(p, 0xffffff, 40, 26, 1.4, 1.6, { shape: SHAPE.star, spin: 3, c2: mc, grow: -0.4, raw: true }); }

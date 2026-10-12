@@ -17,7 +17,7 @@ export default function build(kit, color) {
   const U = bio.userData.u; U.uVeinGlow.value = 0.35; U.uCrackGlow.value = 0.2;
   const bioT = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x40d8ff, scale: 1.3, tent: 12, breath: 0.0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.3;
   const FLESH = 0x0f4252, FLESH2 = 0x1c6274, CHIT = 0x0c2c3a, BONE = 0x7ca8b0, CRY = 0x20d0ff;
-  const root = new THREE.Group(), body = new THREE.Group(); body.scale.setScalar(0.78); body.position.y = -1.0; root.add(body); // origen = centro de la esfera de colisión: el suelo queda en y=-1
+  const root = new THREE.Group(), body = new THREE.Group(); body.scale.setScalar(0.78); body.position.y = -0.7; root.add(body); // origen = centro de la esfera de colisión: el suelo queda en y=-1
   const mesh = (geo, parent, m = bio) => { const o = new THREE.Mesh(geo, m); parent.add(o); return o; };
 
   /* ── base: montículo de carne con esquirlas de hueso, raíces (haz de tentáculos) y patas-ancla ── */
@@ -36,7 +36,7 @@ export default function build(kit, color) {
       const a = (i / 2) * Math.PI * 2 + 2.7, side = Math.sin(a) > 0 ? 1 : -1;
       const l = ikLeg(bio, side > 0 ? lg.uR : lg.uL, bio, side > 0 ? lg.lR : lg.lL, { upper: 0.85, lower: 1.0 });
       l.object.position.set(Math.sin(a) * 0.5, 0.85, Math.cos(a) * 0.5); l.object.rotation.y = 0; l.setBend(new V3(Math.sin(a) * 0.8, 1, Math.cos(a) * 0.8)); body.add(l.object);
-      legs.push({ l, foot: new V3(Math.sin(a) * 1.15, -0.8, Math.cos(a) * 1.15), ph: i * 2.1, a });
+      legs.push({ l, foot: new V3(Math.sin(a) * 1.15, -0.4, Math.cos(a) * 1.15), ph: i * 2.1, a });
     }
   }
 

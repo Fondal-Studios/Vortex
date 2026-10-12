@@ -31,11 +31,11 @@ export const hueOf = (hex) => { const o = {}; new THREE.Color(hex).getHSL(o, THR
 
 export const GRAPH = 0x0e0c14, STEEL = 0x8a90b4, PALE = 0xd0d6ff;
 /** Paleta de un arma a partir de su color canon. */
-export function palette(hex) {
-  const h = hueOf(hex);
+export function palette(hex, post = false) {
+  const h = hueOf(hex), k = post ? 0.68 : 1, warm = h > 0.0 && h < 0.17 ? 1.4 : 1; // los naranjas/amarillos oscuros se ven marrones: se suben de valor // con post-proceso (Media/Alta) la exposición es casi el doble: los valores bajan para no lavarse
   return {
-    hex, dk: 0x08070c, gm: hsl(h, 0.12, 0.085), gm2: hsl(h, 0.16, 0.05), gm3: hsl(h, 0.14, 0.14), dom: hsl(h, 0.95, 0.4), dom2: hsl(h, 0.9, 0.2), dom3: hsl(h, 0.95, 0.55),
-    lt: hsl(h, 0.3, 0.6), st: 0x8a90b4, pale: 0xd0d6ff, acc: hsl(h + 0.5, 0.9, 0.5), acc2: hsl(h + 0.33, 0.85, 0.45),
+    hex, dk: post ? 0x050408 : 0x08070c, gm: hsl(h, 0.4, 0.13 * k), gm2: hsl(h, 0.4, 0.07 * k), gm3: hsl(h, 0.35, 0.21 * k), dom: hsl(h, 0.95, Math.min(0.56, 0.4 * k * warm)), dom2: hsl(h, 0.9, Math.min(0.34, 0.25 * k * warm)), dom3: hsl(h, 0.95, Math.min(0.66, 0.55 * k * warm)),
+    lt: hsl(h, 0.3, 0.6 * k), st: post ? 0x5e6482 : 0x8a90b4, pale: post ? 0x9aa0cc : 0xd0d6ff, acc: hsl(h + 0.5, 0.9, 0.5 * k), acc2: hsl(h + 0.33, 0.85, 0.45 * k),
   };
 }
 
@@ -165,7 +165,7 @@ export function crownRing(k, P, c, R, n, { tube = 0.005, gemR = 0.008, kind = 0,
  */
 export function forge(index, q, hands, S) {
   const hex = WEAPON_COLORS[index], k = new Kit(q), mats = makeMats(q, hex), scr = new AmmoScreen(hex, WEAPON_LABELS[index]), group = new THREE.Group();
-  const G = { hex, k, mats, scr, q, heat: 0, boost: 0, ammo: 1, P: palette(hex), low: q.low, high: q.high };
+  const G = { hex, k, mats, scr, q, heat: 0, boost: 0, ammo: 1, P: palette(hex, !q.low), low: q.low, high: q.high };
   const st = { t: 0, curl: 0, kick: new Spring(S.kk?.[0] ?? 180, S.kk?.[1] ?? 14), pulse: 0, rot: 0, seq: -9, ctx: null, side: 0, n: 0, s1: new Spring(500, 24), s2: new Spring(500, 24), t0: 9, firing: false, w: 0 };
   k.part('main');
   const info = S.build(k, G, hands) || {};

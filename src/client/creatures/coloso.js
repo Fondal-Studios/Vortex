@@ -208,7 +208,7 @@ export default function build(kit, color) {
     if (ray > 0.02 && sn === 'ray') {
       eyeLens.getWorldPosition(P); body.worldToLocal(P); const k = rayK, flick = 0.85 + 0.15 * Math.sin(t * 50);
       beam.object.position.copy(P); beam.object.quaternion.setFromUnitVectors(new V3(0, 0, 1), aimL.clone().applyQuaternion(rig.quaternion.clone().multiply(body.quaternion).invert()));
-      beam.set({ len: 6 + 22 * ease2(k), w: 0.015 + 0.14 * ease2(k) * (k > 0.8 ? 1 : 0.7), a: clamp(ray * (0.15 + 0.85 * k), 0, 1) * flick, k });
+      beam.set({ len: 6 + 22 * ease2(k), w: 0.012 + 0.09 * ease2(k) * (k > 0.8 ? 1 : 0.7), a: clamp(ray * (0.15 + 0.85 * k), 0, 1) * flick, k });
     } else beam.set({ a: 0 });
     rayGlow.material.opacity = ray * (0.1 + 0.55 * rayK) * (0.85 + 0.15 * Math.sin(t * 30)); rayGlow.scale.setScalar(0.8 + ray * (0.8 + 2.4 * rayK));
     // partículas de energía que convergen en el ojo durante la carga

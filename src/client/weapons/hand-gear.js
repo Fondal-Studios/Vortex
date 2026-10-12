@@ -126,12 +126,12 @@ function armGear(T, pose, H, low) {
       T.pop();
     };
     band(0.012, 0.034, 0.0016, K.ARM, gr(0.75), -0.3);
-    T.box('g', [0.016, 0.0095, 0.012], at(0.023, ry(0.023) + 0.0045).toArray(), { k: K.ARM, c: gr(1), q: qb, rad: 0.003, u: -0.3 });
+    T.box('g', [0.016, 0.0095, 0.012], at(0.023, ry(0.023) + 0.0045).toArray(), { k: K.ARM, c: gr(1), q: qb, sharp: true, u: -0.3 });
     // — pantallita de muñeca (marco + cristal oscuro con píxeles + costuras)
     const pc = at(0.07, ry(0.07) + 0.0036);
     T.box('g', [0.046, 0.0075, 0.05], pc.toArray(), { k: K.ARM, c: gr(0.9), q: qb, rad: 0.004, u: -0.6 });
     T.box('g', [0.036, 0.0062, 0.04], at(0.07, ry(0.07) + 0.0082).toArray(), { k: K.SCR, c: gr(1), q: qb, rad: 0.002, u: -0.6 });
-    for (const sg of [-1, 1]) T.box('g', [0.0034, 0.0046, 0.046], at(0.07, ry(0.07) + 0.0075, sg * 0.0235).toArray(), { k: K.SEAM, c: gr(1), q: qb, rad: 0.0012, u: -0.6 });
+    for (const sg of [-1, 1]) T.box('g', [0.0034, 0.0046, 0.046], at(0.07, ry(0.07) + 0.0075, sg * 0.0235).toArray(), { k: K.SEAM, c: gr(1), q: qb, sharp: true, u: -0.6 });
     // — manga (tela) bajo el brazalete, acampanada, con aro luminoso
     const t0 = 0.098, t1 = 0.2, tm = (t0 + t1) / 2, flare = 1.1;
     T.push(new THREE.Matrix4().makeTranslation(...at(tm).toArray()).multiply(new THREE.Matrix4().makeBasis(side, d, up.clone().negate())).multiply(new THREE.Matrix4().makeScale((rx(0.1) + 0.006) * flare / 0.03, (t1 - t0) / 0.06, (ry(0.1) + 0.006) * flare / 0.03)));
@@ -143,7 +143,7 @@ function armGear(T, pose, H, low) {
     const b0 = 0.108, b1 = 0.18, bm = (b0 + b1) / 2, bl = b1 - b0;
     for (const sg of [-1, 1]) {
       T.box('g', [0.0072, (ry(bm) * 2 + 0.006) * 0.8, bl], at(bm, -ry(bm) * 0.1, sg * (rx(bm) + 0.0075)).toArray(), { k: K.ARM, c: gr(0.8), q: qb, rad: 0.003, u: -0.8 });
-      T.box('g', [0.003, 0.003, bl * 0.96], at(bm, ry(bm) * 0.45, sg * (rx(bm) + 0.0085)).toArray(), { k: K.SEAM, c: gr(1), q: qb, rad: 0.001, u: -0.8 });
+      T.box('g', [0.003, 0.003, bl * 0.96], at(bm, ry(bm) * 0.45, sg * (rx(bm) + 0.0085)).toArray(), { k: K.SEAM, c: gr(1), q: qb, sharp: true, u: -0.8 });
     }
     T.box('g', [rx(bm) * 1.5, 0.0068, bl], at(bm, -ry(bm) - 0.005).toArray(), { k: K.ARM, c: gr(0.7), q: qb, rad: 0.003, u: -0.8 });
     T.poly('g', 'oct', 0.012, at(0.155, ry(0.155) + 0.011).toArray(), { k: K.CRY, s: [1, 0.6, 1.9], q: qb, c: gr(1), u: -0.9 });

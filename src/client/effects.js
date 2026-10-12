@@ -17,6 +17,7 @@ export const TIERS = [
 ];
 export const tierOf = (q) => { const p = (q && q.particles) || 3000; return p <= 700 ? 0 : p <= 1600 ? 1 : 2; };
 const MAXT = TIERS[2];
+const TW = 2.1, FS = 1.8, PS = 1.3; // escalas globales: grosor de trazas, tamaño de destellos, tamaño de partículas (se ven a 20–30 m)
 
 export const GAM = { value: 1 }; // salida: con post-proceso el OutputPass codifica sRGB; sin él lo hacemos nosotros
 export const INT = { value: 1 }; // intensidad global de lo aditivo (con bloom se baja para que no se queme)
@@ -254,7 +255,7 @@ export class Effects {
       if (o.flat) { const k = dx * o.flat.x + dy * o.flat.y + dz * o.flat.z; dx -= o.flat.x * k; dy -= o.flat.y * k; dz -= o.flat.z * k; const l = Math.hypot(dx, dy, dz) || 1; dx /= l; dy /= l; dz /= l; }
       const sp = speed * (0.3 + Math.random() * 0.7);
       const px = p.x + (o.jit ? (Math.random() - 0.5) * o.jit : 0), py = p.y + (o.jit ? (Math.random() - 0.5) * o.jit : 0), pz = p.z + (o.jit ? (Math.random() - 0.5) * o.jit : 0);
-      sys.spawn(px, py, pz, dx * sp - this.gx * (o.up || 0), dy * sp - this.gy * (o.up || 0), dz * sp - this.gz * (o.up || 0), c1, c2, size * (1 - sv * 0.5 + Math.random() * sv), life * (0.55 + Math.random() * 0.45), grav, drag, grow, shape, spin * (Math.random() - 0.5) * 2, o.amp == null ? 1 : o.amp);
+      sys.spawn(px, py, pz, dx * sp - this.gx * (o.up || 0), dy * sp - this.gy * (o.up || 0), dz * sp - this.gz * (o.up || 0), c1, c2, size * PS * (1 - sv * 0.5 + Math.random() * sv), life * (0.55 + Math.random() * 0.45), grav, drag, grow, shape, spin * (Math.random() - 0.5) * 2, o.amp == null ? 1 : o.amp);
     }
   }
   /** Compatibilidad: ráfaga esférica simple. */
@@ -266,15 +267,15 @@ export class Effects {
       let dx = Math.random() * 2 - 1, dy = Math.random() * 2 - 1, dz = Math.random() * 2 - 1; const l = Math.hypot(dx, dy, dz) || 1; dx /= l; dy /= l; dz /= l;
       if (dir) { tmpA.copy(dir).normalize(); const k = cone / Math.PI; dx = tmpA.x * (1 - k) + dx * k; dy = tmpA.y * (1 - k) + dy * k; dz = tmpA.z * (1 - k) + dz * k; const m = Math.hypot(dx, dy, dz) || 1; dx /= m; dy /= m; dz /= m; }
       const s = speed * (0.4 + Math.random() * 0.8);
-      this.strips.add(p.x, p.y, p.z, p.x, p.y, p.z, color, o.w || 0.05, life * (0.6 + Math.random() * 0.6), { kind: SEG.spark, vel: [dx * s, dy * s, dz * s], grav: o.grav == null ? 14 : o.grav, c2: o.c2, a0: 1, a1: 0.2, len: o.tail || 0.05, shrink: 0.7 });
+      this.strips.add(p.x, p.y, p.z, p.x, p.y, p.z, color, (o.w || 0.05) * 1.5, life * (0.6 + Math.random() * 0.6), { kind: SEG.spark, vel: [dx * s, dy * s, dz * s], grav: o.grav == null ? 14 : o.grav, c2: o.c2, a0: 1, a1: 0.2, len: o.tail || 0.05, shrink: 0.7 });
     }
   }
   /** Cinta recta (rayo, haz, estela). */
-  line(a, b, color, width, life, o = {}) { return this.strips.add(a.x, a.y, a.z, b.x, b.y, b.z, color, width, life, o); }
+  line(a, b, color, width, life, o = {}) { if (o.w1 != null) o = { ...o, w1: o.w1 * TW }; return this.strips.add(a.x, a.y, a.z, b.x, b.y, b.z, color, width * TW, life, o); }
   /** Dardo: cabeza luminosa que viaja de a a b (px/seg `speed`) con cola de largo `len`. */
   dart(a, b, color, width, speed, len, o = {}) {
     tmpA.copy(b).sub(a); const d = tmpA.length(); if (d < 0.01) return; tmpA.multiplyScalar(1 / d);
-    return this.strips.add(a.x, a.y, a.z, b.x, b.y, b.z, color, width, 2, { ...o, kind: SEG.dart, vel: [tmpA.x, tmpA.y, tmpA.z], grav: d, speed, len });
+    return this.strips.add(a.x, a.y, a.z, b.x, b.y, b.z, color, width * 0.3 * TW, 2, { a0: 0.05, a1: 1, w1: width * TW * 1.15, ...o, kind: SEG.dart, vel: [tmpA.x, tmpA.y, tmpA.z], grav: d, speed, len });
   }
   /** Compatibilidad: trazo corto y brillante. */
   tracer(a, b, color, w = 0.05, life = 0.12) { this.line(a, b, color, w, life, { shrink: 0.3 }); this.line(a, b, color, w * 3, life, { a0: 0.3, a1: 0.3, shrink: 0.2 }); }
@@ -294,7 +295,7 @@ export class Effects {
   flash(p, color, size, life = 0.12, o = {}) {
     const s = this.flashes[this.fi]; this.fi = (this.fi + 1) % this.nFlashes;
     s.position.copy(p); s.material.map = o.burst ? this.tex.burst : this.tex.glow; s.material.color.set(color); s.material.rotation = o.rot == null ? Math.random() * 6.283 : o.rot;
-    s.userData = { size, max: life, op: o.op == null ? 1 : o.op, grow: o.grow == null ? 1.3 : o.grow }; s.life = life; s.scale.setScalar(size); s.visible = true; s.material.opacity = s.userData.op; return s;
+    size *= FS; s.userData = { size, max: life, op: o.op == null ? 1 : o.op, grow: o.grow == null ? 1.3 : o.grow }; s.life = life; s.scale.setScalar(size); s.visible = true; s.material.opacity = s.userData.op; return s;
   }
   decal(p, normal, color, size, life = 4, o = {}) {
     const m = this.decals[this.di]; this.di = (this.di + 1) % this.nDecals;
