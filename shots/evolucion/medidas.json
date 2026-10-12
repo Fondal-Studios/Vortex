@@ -1,234 +1,425 @@
 {
- "hosts": {
+ "armas0": {
   "out": [
    {
-    "id": "axioma",
+    "id": "filo_oseo",
     "tier": 0,
-    "calls": 18,
-    "tris": 1724
+    "calls": 2,
+    "tris": 432
    },
    {
-    "id": "axioma",
-    "tier": 4,
-    "calls": 48,
-    "tris": 4888
-   },
-   {
-    "id": "vesper",
+    "id": "sable_plasma",
     "tier": 0,
-    "calls": 19,
-    "tris": 1266
+    "calls": 4,
+    "tris": 996
    },
    {
-    "id": "vesper",
-    "tier": 4,
-    "calls": 46,
-    "tris": 3854
-   },
-   {
-    "id": "micelio",
+    "id": "hoja_umbral",
     "tier": 0,
-    "calls": 13,
-    "tris": 2152
+    "calls": 2,
+    "tris": 340
    },
    {
-    "id": "micelio",
-    "tier": 4,
-    "calls": 35,
-    "tris": 6644
-   },
-   {
-    "id": "umbra",
+    "id": "hacha_quitina",
     "tier": 0,
-    "calls": 26,
-    "tris": 2958
+    "calls": 2,
+    "tris": 928
    },
    {
-    "id": "umbra",
-    "tier": 4,
-    "calls": 47,
-    "tris": 6954
-   },
-   {
-    "id": "seraf",
+    "id": "hacha_doble",
     "tier": 0,
-    "calls": 23,
-    "tris": 3564
+    "calls": 2,
+    "tris": 796
    },
    {
-    "id": "seraf",
-    "tier": 4,
-    "calls": 60,
-    "tris": 7560
+    "id": "segur_vorax",
+    "tier": 0,
+    "calls": 2,
+    "tris": 996
+   },
+   {
+    "id": "martillo_sismico",
+    "tier": 0,
+    "calls": 2,
+    "tris": 796
+   },
+   {
+    "id": "maza_espora",
+    "tier": 0,
+    "calls": 4,
+    "tris": 1230
+   },
+   {
+    "id": "yunque_vital",
+    "tier": 0,
+    "calls": 4,
+    "tris": 808
+   },
+   {
+    "id": "lanza_sinaptica",
+    "tier": 0,
+    "calls": 2,
+    "tris": 1256
+   },
+   {
+    "id": "pica_cristal",
+    "tier": 0,
+    "calls": 4,
+    "tris": 1062
+   },
+   {
+    "id": "tridente_abisal",
+    "tier": 0,
+    "calls": 2,
+    "tris": 1310
+   },
+   {
+    "id": "daga_neurotoxica",
+    "tier": 0,
+    "calls": 4,
+    "tris": 284
+   },
+   {
+    "id": "colmillo",
+    "tier": 0,
+    "calls": 2,
+    "tris": 408
+   },
+   {
+    "id": "aguja_fantasma",
+    "tier": 0,
+    "calls": 4,
+    "tris": 988
+   },
+   {
+    "id": "cuchillas",
+    "tier": 0,
+    "calls": 2,
+    "tris": 156
+   },
+   {
+    "id": "garras",
+    "tier": 0,
+    "calls": 2,
+    "tris": 332
+   },
+   {
+    "id": "punos",
+    "tier": 0,
+    "calls": 2,
+    "tris": 260
+   },
+   {
+    "id": "hoja_dim",
+    "tier": 0,
+    "calls": 2,
+    "tris": 768
+   },
+   {
+    "id": "latigo",
+    "tier": 0,
+    "calls": 4,
+    "tris": 588
    }
   ],
   "W": 1500,
-  "H": 660,
+  "H": 960,
   "worst": {
-   "calls": 60,
-   "tris": 7560,
-   "id": "seraf4"
+   "calls": 4,
+   "tris": 1310,
+   "id": "sable_plasma"
   }
  },
- "hostsladder": {
+ "armas4": {
   "out": [
    {
-    "id": "axioma",
-    "tier": 0,
-    "calls": 18,
-    "tris": 1724
-   },
-   {
-    "id": "axioma",
-    "tier": 1,
-    "calls": 23,
-    "tris": 2784
-   },
-   {
-    "id": "axioma",
-    "tier": 2,
-    "calls": 30,
-    "tris": 3024
-   },
-   {
-    "id": "axioma",
-    "tier": 3,
-    "calls": 39,
-    "tris": 3608
-   },
-   {
-    "id": "axioma",
+    "id": "filo_oseo",
     "tier": 4,
-    "calls": 48,
-    "tris": 4888
+    "calls": 7,
+    "tris": 2184
    },
    {
-    "id": "vesper",
-    "tier": 0,
-    "calls": 19,
-    "tris": 1266
-   },
-   {
-    "id": "vesper",
-    "tier": 1,
-    "calls": 24,
-    "tris": 2298
-   },
-   {
-    "id": "vesper",
-    "tier": 2,
-    "calls": 28,
-    "tris": 2538
-   },
-   {
-    "id": "vesper",
-    "tier": 3,
-    "calls": 41,
-    "tris": 2918
-   },
-   {
-    "id": "vesper",
+    "id": "sable_plasma",
     "tier": 4,
-    "calls": 46,
-    "tris": 3854
+    "calls": 9,
+    "tris": 2908
    },
    {
-    "id": "micelio",
-    "tier": 0,
-    "calls": 13,
-    "tris": 2152
-   },
-   {
-    "id": "micelio",
-    "tier": 1,
-    "calls": 19,
-    "tris": 3976
-   },
-   {
-    "id": "micelio",
-    "tier": 2,
-    "calls": 19,
-    "tris": 4768
-   },
-   {
-    "id": "micelio",
-    "tier": 3,
-    "calls": 27,
-    "tris": 5368
-   },
-   {
-    "id": "micelio",
+    "id": "hoja_umbral",
     "tier": 4,
-    "calls": 35,
-    "tris": 6644
+    "calls": 7,
+    "tris": 1996
    },
    {
-    "id": "umbra",
-    "tier": 0,
-    "calls": 26,
-    "tris": 2958
-   },
-   {
-    "id": "umbra",
-    "tier": 1,
-    "calls": 28,
-    "tris": 4322
-   },
-   {
-    "id": "umbra",
-    "tier": 2,
-    "calls": 32,
-    "tris": 5074
-   },
-   {
-    "id": "umbra",
-    "tier": 3,
-    "calls": 41,
-    "tris": 5402
-   },
-   {
-    "id": "umbra",
+    "id": "hacha_quitina",
     "tier": 4,
-    "calls": 47,
-    "tris": 6954
+    "calls": 7,
+    "tris": 2680
    },
    {
-    "id": "seraf",
-    "tier": 0,
-    "calls": 23,
-    "tris": 3564
-   },
-   {
-    "id": "seraf",
-    "tier": 1,
-    "calls": 28,
-    "tris": 5520
-   },
-   {
-    "id": "seraf",
-    "tier": 2,
-    "calls": 33,
-    "tris": 5968
-   },
-   {
-    "id": "seraf",
-    "tier": 3,
-    "calls": 46,
-    "tris": 6344
-   },
-   {
-    "id": "seraf",
+    "id": "hacha_doble",
     "tier": 4,
-    "calls": 60,
-    "tris": 7560
+    "calls": 7,
+    "tris": 2556
+   },
+   {
+    "id": "segur_vorax",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2756
+   },
+   {
+    "id": "martillo_sismico",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2452
+   },
+   {
+    "id": "maza_espora",
+    "tier": 4,
+    "calls": 9,
+    "tris": 2950
+   },
+   {
+    "id": "yunque_vital",
+    "tier": 4,
+    "calls": 9,
+    "tris": 2432
+   },
+   {
+    "id": "lanza_sinaptica",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2952
+   },
+   {
+    "id": "pica_cristal",
+    "tier": 4,
+    "calls": 9,
+    "tris": 2702
+   },
+   {
+    "id": "tridente_abisal",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2982
+   },
+   {
+    "id": "daga_neurotoxica",
+    "tier": 4,
+    "calls": 9,
+    "tris": 2052
+   },
+   {
+    "id": "colmillo",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2040
+   },
+   {
+    "id": "aguja_fantasma",
+    "tier": 4,
+    "calls": 9,
+    "tris": 2636
+   },
+   {
+    "id": "cuchillas",
+    "tier": 4,
+    "calls": 7,
+    "tris": 1788
+   },
+   {
+    "id": "garras",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2048
+   },
+   {
+    "id": "punos",
+    "tier": 4,
+    "calls": 7,
+    "tris": 1980
+   },
+   {
+    "id": "hoja_dim",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2424
+   },
+   {
+    "id": "latigo",
+    "tier": 4,
+    "calls": 9,
+    "tris": 2248
    }
   ],
-  "W": 1400,
-  "H": 1650,
+  "W": 1500,
+  "H": 960,
   "worst": {
-   "calls": 60,
-   "tris": 7560,
-   "id": "seraf4"
+   "calls": 9,
+   "tris": 2982,
+   "id": "sable_plasma"
+  }
+ },
+ "escalera": {
+  "out": [
+   {
+    "id": "filo_oseo",
+    "tier": 0,
+    "calls": 2,
+    "tris": 432
+   },
+   {
+    "id": "filo_oseo",
+    "tier": 1,
+    "calls": 2,
+    "tris": 1368
+   },
+   {
+    "id": "filo_oseo",
+    "tier": 2,
+    "calls": 2,
+    "tris": 1640
+   },
+   {
+    "id": "filo_oseo",
+    "tier": 3,
+    "calls": 7,
+    "tris": 1840
+   },
+   {
+    "id": "filo_oseo",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2184
+   },
+   {
+    "id": "martillo_sismico",
+    "tier": 0,
+    "calls": 2,
+    "tris": 796
+   },
+   {
+    "id": "martillo_sismico",
+    "tier": 1,
+    "calls": 2,
+    "tris": 1732
+   },
+   {
+    "id": "martillo_sismico",
+    "tier": 2,
+    "calls": 2,
+    "tris": 1908
+   },
+   {
+    "id": "martillo_sismico",
+    "tier": 3,
+    "calls": 7,
+    "tris": 2108
+   },
+   {
+    "id": "martillo_sismico",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2452
+   },
+   {
+    "id": "lanza_sinaptica",
+    "tier": 0,
+    "calls": 2,
+    "tris": 1256
+   },
+   {
+    "id": "lanza_sinaptica",
+    "tier": 1,
+    "calls": 2,
+    "tris": 2192
+   },
+   {
+    "id": "lanza_sinaptica",
+    "tier": 2,
+    "calls": 2,
+    "tris": 2408
+   },
+   {
+    "id": "lanza_sinaptica",
+    "tier": 3,
+    "calls": 7,
+    "tris": 2608
+   },
+   {
+    "id": "lanza_sinaptica",
+    "tier": 4,
+    "calls": 7,
+    "tris": 2952
+   },
+   {
+    "id": "daga_neurotoxica",
+    "tier": 0,
+    "calls": 4,
+    "tris": 284
+   },
+   {
+    "id": "daga_neurotoxica",
+    "tier": 1,
+    "calls": 4,
+    "tris": 1220
+   },
+   {
+    "id": "daga_neurotoxica",
+    "tier": 2,
+    "calls": 4,
+    "tris": 1508
+   },
+   {
+    "id": "daga_neurotoxica",
+    "tier": 3,
+    "calls": 9,
+    "tris": 1708
+   },
+   {
+    "id": "daga_neurotoxica",
+    "tier": 4,
+    "calls": 9,
+    "tris": 2052
+   },
+   {
+    "id": "latigo",
+    "tier": 0,
+    "calls": 4,
+    "tris": 588
+   },
+   {
+    "id": "latigo",
+    "tier": 1,
+    "calls": 4,
+    "tris": 1524
+   },
+   {
+    "id": "latigo",
+    "tier": 2,
+    "calls": 4,
+    "tris": 1704
+   },
+   {
+    "id": "latigo",
+    "tier": 3,
+    "calls": 9,
+    "tris": 1904
+   },
+   {
+    "id": "latigo",
+    "tier": 4,
+    "calls": 9,
+    "tris": 2248
+   }
+  ],
+  "W": 1500,
+  "H": 1200,
+  "worst": {
+   "calls": 9,
+   "tris": 2952,
+   "id": "daga_neurotoxica"
   }
  }
 }

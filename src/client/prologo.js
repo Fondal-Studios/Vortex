@@ -85,7 +85,7 @@ export function startPrologue({ THREE: T, renderer, host = 'axioma', touch = fal
   if (post) {
     composer = new EffectComposer(gl); composer.addPass(new RenderPass(scene, camera));
     if (hi) { bokeh = new BokehPass(scene, camera, { focus: 4, aperture: 0.00018, maxblur: 0.012 }); composer.addPass(bokeh); }
-    bloom = new UnrealBloomPass(new T.Vector2(256, 256), 0.32, 0.7, 0.82); composer.addPass(bloom);
+    bloom = new UnrealBloomPass(new T.Vector2(256, 256), 0.3, 0.6, 1.7); composer.addPass(bloom);
     composer.addPass(new OutputPass()); grade = new ShaderPass(GRADE); composer.addPass(grade);
   }
 
@@ -256,7 +256,7 @@ export function startPrologue({ THREE: T, renderer, host = 'axioma', touch = fal
     if (stopped || !readyOk) return;
     const w = canvas.width || 1, h = canvas.height || 1; camera.aspect = w / h; camera.updateProjectionMatrix();
     if (composer) { const k = `${w}x${h}`; if (k !== sizeKey) { sizeKey = k; composer.setPixelRatio(1); composer.setSize(w, h); bloom.resolution.set(w / 2, h / 2); } grade.uniforms.uTime.value = (T_ * 7) % 100; grade.uniforms.uShake.value = shake * 3;
-      bloom.strength = 0.3 + 0.9 * sm((T_ - (BEATS.IMPACT - 0.4)) * 2) * (T_ < BEATS.WHITE_END ? 1 : 0); if (bokeh) { bokeh.uniforms.focus.value = focusD; bokeh.uniforms.aspect.value = camera.aspect; bokeh.uniforms.aperture.value = (shotId() === 2 || shotId() === 6 || shotId() === 5) ? 0.00026 : 0.00004; } }
+      bloom.strength = 0.3 + 1.6 * sm((T_ - (BEATS.IMPACT - 0.4)) * 2) * (T_ < BEATS.WHITE_END ? 1 : 0); if (bokeh) { bokeh.uniforms.focus.value = focusD; bokeh.uniforms.aspect.value = camera.aspect; bokeh.uniforms.aperture.value = (shotId() === 2 || shotId() === 6 || shotId() === 5) ? 0.00026 : 0.00004; } }
     gl.info.reset(); camera.updateMatrixWorld(true);
     if (composer) composer.render(); else gl.render(scene, camera);
     lastInfo = { calls: gl.info.render.calls, triangles: gl.info.render.triangles, geometries: gl.info.memory.geometries, textures: gl.info.memory.textures };

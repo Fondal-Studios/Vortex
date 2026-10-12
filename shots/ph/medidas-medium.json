@@ -1,0 +1,30 @@
+[
+ {
+  "t": 2,
+  "calls": 94,
+  "triangles": 201511,
+  "shot": 1,
+  "sub": "Martes. 18:42. Andén 3."
+ },
+ {
+  "t": 9,
+  "calls": 91,
+  "triangles": 201685,
+  "shot": 2,
+  "sub": "Otro día igual. Los auriculares puestos, la cabeza en otra parte"
+ },
+ {
+  "t": 23.3,
+  "calls": 95,
+  "triangles": 201893,
+  "shot": 5,
+  "sub": "Alguien"
+ },
+ {
+  "t": 29,
+  "calls": 89,
+  "triangles": 160417,
+  "shot": 8,
+  "sub": "No lo pensé."
+ }
+]
