@@ -143,6 +143,7 @@ export class TouchControls {
   mul() { const s = settings(); return this.st.ads ? (this.zoomKind === 2 ? s.scopeMul : s.adsMul) : 1; }
   move(e) {
     const p = this.ptrs.get(e.pointerId); if (!p) { if (this.editing) this.editMove(e); return; } e.preventDefault();
+    if (p.kind === 'edit') { this.editMove(e); return; } // editor: arrastrar el botón elegido
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : null, list = evs && evs.length ? evs : [e]; // todos los puntos intermedios: precisión en microajustes
     for (const ev of list) {
       const dx = ev.clientX - p.x, dy = ev.clientY - p.y; p.x = ev.clientX; p.y = ev.clientY;

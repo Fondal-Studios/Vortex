@@ -18,7 +18,7 @@ for (const [vn, w, h, touch] of VPS) {
     const out = []; const W = innerWidth, H = innerHeight;
     for (let i = 0; i < items.length; i++) {
       const a = items[i]; if (a.x < -1 || a.y < -1 || a.x + a.w > W + 1 || a.y + a.h > H + 1) out.push(`FUERA DE PANTALLA ${a.s}`);
-      for (let j = i + 1; j < items.length; j++) { const c = items[j]; const ox = Math.min(a.x + a.w, c.x + c.w) - Math.max(a.x, c.x), oy = Math.min(a.y + a.h, c.y + c.h) - Math.max(a.y, c.y); const ign = new Set(['#banner', '#cards', '#downed']); if (ox > 4 && oy > 4 && !(ign.has(a.s) || ign.has(c.s))) out.push(`SOLAPE ${a.s} × ${c.s} (${Math.round(ox)}×${Math.round(oy)})`); }
+      for (let j = i + 1; j < items.length; j++) { const c = items[j]; const ox = Math.min(a.x + a.w, c.x + c.w) - Math.max(a.x, c.x), oy = Math.min(a.y + a.h, c.y + c.h) - Math.max(a.y, c.y); const ign = new Set(['#banner', '#cards', '#downed']); const edOnly = (a.s === '.tc-edit' && !c.touchBtn) || (c.s === '.tc-edit' && !a.touchBtn); if (ox > 4 && oy > 4 && !(ign.has(a.s) || ign.has(c.s) || edOnly)) out.push(`SOLAPE ${a.s} × ${c.s} (${Math.round(ox)}×${Math.round(oy)})`); }
     }
     return { out, n: items.length, btn: items.filter((i) => i.touchBtn).length };
   };

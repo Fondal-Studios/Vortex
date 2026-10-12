@@ -111,8 +111,8 @@ const W = {
     return { base: 0.12, top: 1.28, guardY: 0.12, hw: 0.07, fz: 0.03, mid: 0.7, rad: 0.15, vein: false };
   },
   hoja_umbral(B, c, t) {
-    const VO = 0x1b1030, VO2 = 0x3c2670, VI = c.g, GH = c.h;
-    gripWrap(B, VO, VO2, -0.16, 0.06, 0.025, 3); B.oct('body', VO2, 0.05, [0, -0.2, 0], [1, 1.3, 1]);
+    const VO = 0x40308a, VO2 = 0x7a5cd0, VI = c.g, GH = c.h;
+    gripWrap(B, 0x1b1030, VO2, -0.16, 0.06, 0.025, 3); B.oct('body', VO2, 0.05, [0, -0.2, 0], [1, 1.3, 1]);
     for (const s of [-1, 1]) B.plate('body', VO2, [[0.02 * s, 0.04], [0.19 * s, 0.14], [0.22 * s, 0.26], [0.1 * s, 0.17], [0.02 * s, 0.17]], 0.03);
     // dos mitades de cristal con una grieta luminosa entre ellas; la punta flota separada
     B.plate('body', VO, [[0.024, 0.13], [0.11, 0.3], [0.1, 0.78], [0.022, 0.8]], 0.03); B.plate('body', VO, [[-0.024, 0.13], [-0.11, 0.3], [-0.1, 0.78], [-0.022, 0.8]], 0.03);
@@ -125,12 +125,12 @@ const W = {
   hacha_quitina(B, c, t) {
     const CH = 0x5a3a24, CH2 = 0x9a6a3c, EDGE = 0xe9d8b0, G = c.g;
     B.cyl('body', CH, 0.026, 0.03, 1.14, [0, 0.38, 0]); ribs(B, CH2, -0.12, 5, 0.031, 0.011); B.cone('body', CH2, 0.04, 0.16, [0, -0.28, 0], [Math.PI, 0, 0], 4);
-    B.plate('body', EDGE, [[0.03, 0.78], [0.12, 0.88], [0.26, 0.94], [0.37, 0.66], [0.26, 0.38], [0.12, 0.46], [0.03, 0.56]], 0.036, [0, 0, 0], ZERO, ONE, 0.01);
+    B.plate('body', EDGE, [[0.03, 0.58], [0.1, 0.72], [0.12, 0.86], [0.22, 1.0], [0.36, 1.03], [0.43, 0.84], [0.45, 0.66], [0.43, 0.48], [0.36, 0.29], [0.22, 0.32], [0.12, 0.46]], 0.036, [0, 0, 0], ZERO, ONE, 0.01);
     B.plate('body', CH2, [[0.03, 0.74], [0.12, 0.8], [0.2, 0.74], [0.2, 0.6], [0.12, 0.54], [0.03, 0.58]], 0.05);
-    B.spike('body', CH, [-0.02, 0.66, 0], [-0.24, 0.72, 0], 0.07, 0.04); B.spike('body', CH2, [0, 0.92, 0], [0.02, 1.12, 0], 0.07, 0.05);
+    B.spike('body', CH, [-0.02, 0.66, 0], [-0.24, 0.72, 0], 0.07, 0.04); B.spike('body', CH2, [0, 1.0, 0], [0.02, 1.2, 0], 0.07, 0.05);
     for (let i = 0; i < 3 + (t >= 2 ? 1 : 0); i++) B.spike('body', CH2, [0.14 + i * 0.05, 0.9 - i * 0.12, 0.02], [0.18 + i * 0.07, 0.99 - i * 0.12, 0.05], 0.03, 0.03);
-    B.limb('glow', G, [0.24, 0.92, 0.0], [0.36, 0.66, 0.0], 0.008, 0.008, 3); B.limb('glow', G, [0.36, 0.66, 0.0], [0.24, 0.4, 0.0], 0.008, 0.008, 3); B.sph('glow', G, 0.02, [0.09, 0.66, 0.028], [1, 1, 0.6]);
-    return { base: 0.2, top: 1.12, guardY: 0.5, hw: 0.04, fz: 0.03, mid: 0.7, rad: 0.3, vein: [0, 0.2, 0.6] };
+    B.limb('glow', G, [0.34, 1.0, 0.0], [0.43, 0.84, 0.0], 0.008, 0.008, 3); B.limb('glow', G, [0.43, 0.84, 0.0], [0.45, 0.66, 0.0], 0.008, 0.008, 3); B.limb('glow', G, [0.45, 0.66, 0.0], [0.43, 0.48, 0.0], 0.008, 0.008, 3); B.limb('glow', G, [0.43, 0.48, 0.0], [0.34, 0.31, 0.0], 0.008, 0.008, 3); B.sph('glow', G, 0.02, [0.09, 0.66, 0.028], [1, 1, 0.6]);
+    return { base: 0.2, top: 1.2, guardY: 0.5, hw: 0.04, fz: 0.03, mid: 0.7, rad: 0.32, vein: [0, 0.2, 0.6] };
   },
   hacha_doble(B, c, t) {
     const ST = 0x3a4a62, ST2 = 0x7f93b4, G = c.g, G2 = c.h;
@@ -280,16 +280,17 @@ const W = {
   },
   punos(B, c, t) {
     const CH = 0x2f3f20, CH2 = 0x587a34, CAP = 0xc9732a, CAP2 = 0x7be03a, G = c.g, G2 = c.h;
-    B.cyl('body', CH, 0.07, 0.08, 0.22, [0, -0.1, 0]);
-    B.box('body', CH, [0.3, 0.2, 0.28], [0, 0.12, 0], [0, 0, 0]); B.box('body', CH2, [0.32, 0.06, 0.3], [0, 0.22, 0]); B.box('body', CH2, [0.12, 0.2, 0.26], [0.18, 0.1, 0], [0, 0, -0.1]);
-    for (let i = 0; i < 4; i++) B.cone('body', CH2, 0.04, 0.12, [-0.1 + i * 0.07, 0.22, 0.15], [Math.PI / 2, 0, 0], 4);
+    B.cyl('body', CH, 0.07, 0.08, 0.22, [0, -0.1, 0]); B.tor('body', CH2, 0.085, 0.02, [0, -0.02, 0], [Math.PI / 2, 0, 0], 6);
+    B.ico('body', CH, 0.17, [0, 0.1, 0], [1.15, 0.95, 1]); B.sph('body', CH2, 0.16, [0, 0.14, -0.02], [1.2, 0.5, 1.05], 6);
+    for (let i = 0; i < 4; i++) { const x = -0.11 + i * 0.073; B.sph('body', CH2, 0.056, [x, 0.24, 0.1], [1, 1, 1], 5); B.cone('body', 0xe9e2c8, 0.022, 0.1, [x, 0.3, 0.12], [0.5, 0, 0], 4); }
+    B.sph('body', CH2, 0.06, [0.17, 0.12, 0.07], [1, 1.3, 1], 5); B.sph('body', CH, 0.05, [-0.16, 0.05, 0.0], ONE, 5);
     for (let i = 0; i < 3 + (t >= 2 ? 2 : 0); i++) { const x = -0.12 + i * 0.1, h = 0.1 + (i % 2) * 0.06; B.cyl('body', 0xd8cdb0, 0.012, 0.016, h, [x, 0.3 + h / 2 - 0.04, -0.04], [0.2, 0, 0], 4); B.sph('body', i % 2 ? CAP2 : CAP, 0.05 + (i % 2) * 0.01, [x, 0.3 + h, -0.04], [1, 0.5, 1], 5); B.sph('glow', G, 0.012, [x + 0.02, 0.33 + h, -0.01], ONE, 3); }
-    B.sph('glow', G2, 0.026, [0.1, 0.16, 0.145], [1, 1, 0.5], 4); B.limb('glow', G, [-0.12, 0.05, 0.145], [0.1, 0.18, 0.145], 0.007, 0.007, 3);
-    return { base: 0.0, top: 0.4, guardY: 0.0, hw: 0.16, fz: 0.14, mid: 0.15, rad: 0.2, vein: false };
+    B.sph('glow', G2, 0.026, [0.06, 0.12, 0.17], [1, 1, 0.5], 4); B.limb('glow', G, [-0.12, 0.04, 0.15], [0.1, 0.14, 0.16], 0.007, 0.007, 3);
+    return { base: 0.0, top: 0.4, guardY: 0.0, hw: 0.17, fz: 0.14, mid: 0.15, rad: 0.2, vein: false };
   },
   hoja_dim(B, c, t) {
-    const VO = 0x140a24, VO2 = 0x3b2468, VI = c.g, GH = c.h;
-    B.cyl('body', VO, 0.026, 0.032, 0.3, [0, -0.1, 0]); B.oct('body', VO2, 0.05, [0, 0.07, 0], [1, 0.8, 1]); B.tor('glow', VI, 0.07, 0.006, [0, 0.07, 0], [Math.PI / 2, 0, 0], 8);
+    const VO = 0x3a2a7a, VO2 = 0x7a5cd0, VI = c.g, GH = c.h;
+    B.cyl('body', 0x140a24, 0.026, 0.032, 0.3, [0, -0.1, 0]); B.oct('body', VO2, 0.05, [0, 0.07, 0], [1, 0.8, 1]); B.tor('glow', VI, 0.07, 0.006, [0, 0.07, 0], [Math.PI / 2, 0, 0], 8);
     // hoja = octaedro alargado partido en segmentos que no se tocan
     B.plate('body', VO, [[0, 0.16], [0.06, 0.3], [0, 0.62], [-0.06, 0.3]], 0.024); B.plate('body', VO2, [[0, 0.7], [0.07, 0.86], [0, 1.2], [-0.07, 0.86]], 0.026); B.plate('body', VO, [[0, 1.28], [0.04, 1.4], [0, 1.62], [-0.04, 1.4]], 0.022);
     B.box('glow', GH, [0.012, 0.44, 0.012], [0, 0.4, 0.0]); B.box('glow', VI, [0.01, 0.4, 0.012], [0, 0.95, 0]); B.oct('glow', GH, 0.02, [0, 1.45, 0], [1, 2, 1]);
@@ -364,7 +365,7 @@ export function buildMelee(THREE, id, opts = {}) {
     glow: new T.MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
     mem: new T.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.38, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false }),
     aura: new T.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.07, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false }),
-    cage: new T.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, blending: T.AdditiveBlending, depthWrite: false, wireframe: true, toneMapped: false }),
+    cage: new T.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.3, blending: T.AdditiveBlending, depthWrite: false, wireframe: true, toneMapped: false }),
   };
   let content = null, orbit = null, aura = null;
   function build() {
@@ -389,7 +390,7 @@ export function buildMelee(THREE, id, opts = {}) {
   function update(dt, t) {
     if (state.dead) return; state.time = t == null ? state.time + dt : t; const tm = state.time, tier = state.tier;
     const k = 0.85 + Math.sin(tm * 2.6 + phase) * (0.1 + tier * 0.02) + tier * 0.04;
-    mats.glow.color.setScalar(k); mats.mem.opacity = 0.3 + tier * 0.03 + Math.sin(tm * 1.8 + phase) * 0.06; mats.cage.opacity = 0.4 + Math.sin(tm * 2.2 + phase) * 0.12;
+    mats.glow.color.setScalar(k); mats.mem.opacity = 0.3 + tier * 0.03 + Math.sin(tm * 1.8 + phase) * 0.06; mats.cage.opacity = 0.26 + Math.sin(tm * 2.2 + phase) * 0.08;
     if (orbit) { orbit.rotation.y = tm * (0.9 + tier * 0.25); orbit.position.y = Math.sin(tm * 1.4) * 0.02; }
     if (id === 'latigo') content.rotation.z = Math.sin(tm * 1.6) * 0.06;
     if (id === 'hoja_dim' || id === 'hoja_umbral') content.position.y = Math.sin(tm * 1.2) * 0.012;
