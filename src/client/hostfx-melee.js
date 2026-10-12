@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CHARACTERS } from '../sim/data.js';
 import { SHAPE, GAM, INT } from './effects.js';
+import { attachToViewmodel } from './melee-models.js';
 
 const TAU = Math.PI * 2, Y = new THREE.Vector3(0, 1, 0);
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3(), WHITE = new THREE.Color(0xffffff), WB = new THREE.Vector3();
@@ -95,6 +96,13 @@ export function createHostMelee(renderer, D) {
   const disposables = [];
   let gunHidden = false, worldSide = 1, host = null, built = null, engage = 0, idleT = 9, swing = null, charge = null, freeze = 0, comboIdx = 0, comboT = 9, T = 0, lastPredict = null, vmOff = 0, cdUntil = 0, impactKick = 0;
   const limbs = {}; // R / L: { g, body, wpn, glow, trail:[] }
+  // Arma del catálogo FUSIONADA (me.mw + me.evo del snapshot): modelo de melee-models.js colgado de la mano derecha; reemplaza el arma innata mientras esté equipada.
+  let wm = null, wmKey = '';
+  function syncWeapon(me, dt) {
+    const l = limbs.R; if (!l || !built) return; const id = (me && me.mw) || '', tier = (me && me.evo) | 0, key = `${host}|${id}|${tier}`;
+    if (key !== wmKey) { wmKey = key; if (wm) { wm.dispose(); wm = null; } l.catalog = !!id; if (id) wm = attachToViewmodel(THREE, l.g, id, { tier, quality: 'low', color: D.hostPal(host).c, offset: [0, 0.02, -0.4], size: 0.5, aura: false }); }
+    if (wm) wm.update(dt, T);
+  }
   // sprites: destello de impacto y marcador (X de impacto / ejecución)
   const canvasTex = (draw, s = 128) => { const c = document.createElement('canvas'); c.width = c.height = s; draw(c.getContext('2d'), s); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; disposables.push(t); return t; };
   const hitTex = canvasTex((g, s) => { g.translate(s / 2, s / 2); g.strokeStyle = '#fff'; g.lineCap = 'round'; g.lineWidth = s * 0.07; for (let i = 0; i < 4; i++) { g.save(); g.rotate(Math.PI / 4 + i * Math.PI / 2); g.beginPath(); g.moveTo(s * 0.12, 0); g.lineTo(s * 0.4, 0); g.stroke(); g.restore(); } });
@@ -140,7 +148,7 @@ export function createHostMelee(renderer, D) {
   }
 
   /* ── construcción por Huésped ── */
-  function dispose1() { if (!built) return; for (const k of ['R', 'L']) { const l = limbs[k]; if (!l) continue; rig.remove(l.g); l.body.geometry.dispose(); l.body.material.dispose(); if (l.wpn) { l.wpn.geometry.dispose(); l.wpn.material.dispose(); } if (l.glow) { l.glow.geometry.dispose(); l.glow.material.dispose(); } } if (whip) { rig.remove(whip.mesh); whip.g.dispose(); whip.m.dispose(); whip = null; } built = null; limbs.R = limbs.L = null; }
+  function dispose1() { if (wm) { wm.dispose(); wm = null; wmKey = ''; } if (!built) return; for (const k of ['R', 'L']) { const l = limbs[k]; if (!l) continue; rig.remove(l.g); l.body.geometry.dispose(); l.body.material.dispose(); if (l.wpn) { l.wpn.geometry.dispose(); l.wpn.material.dispose(); } if (l.glow) { l.glow.geometry.dispose(); l.glow.material.dispose(); } } if (whip) { rig.remove(whip.mesh); whip.g.dispose(); whip.m.dispose(); whip = null; } built = null; limbs.R = limbs.L = null; }
   function build(char) {
     dispose1(); const S = styleOf(char), pal = D.hostPal(char); host = char; built = S;
     const skinMat = () => new THREE.MeshStandardMaterial({ vertexColors: true, color: 0x8c8c8c, roughness: 0.5, metalness: 0.2, emissive: pal.c, emissiveIntensity: 0.07 });
@@ -173,8 +181,8 @@ export function createHostMelee(renderer, D) {
     const sway = D.reduced() ? 0 : Math.sin(T * 1.7 + (k === 'R' ? 0 : 2)) * 0.004, p = pose || [0, 0, 0, 0, 0, 0, 0, 0];
     l.g.position.set(rp[0] + p[1] + (k === 'R' ? 0.04 : -0.04) * off, rp[1] + p[2] + sway - 0.4 * off, rp[2] + p[3] + 0.18 * off);
     l.g.rotation.set(rr[0] + p[4] + 0.5 * off, rr[1] + p[5], rr[2] + p[6], 'YXZ');
-    const ext = clamp(S.restExt + (1 - S.restExt) * p[7], 0, 1.4), lerpK = 1 - Math.exp(-30 * dt); l.ext += (ext - l.ext) * lerpK; l.wpn.visible = l.ext > 0.03 || !!S.whip;
-    if (!S.whip) { l.wpn.position.z = S.wz; l.wpn.scale.set(1, 1, Math.max(0.02, S.len * l.ext)); } if (l.glow) { l.glow.visible = l.ext > 0.03; l.glow.position.z = S.wz; l.glow.scale.set(1, 1, Math.max(0.02, S.len * l.ext)); l.glow.material.uniforms.uO.value = 0.55 + 0.25 * (charge ? charge.level : 0); }
+    const ext = clamp(S.restExt + (1 - S.restExt) * p[7], 0, 1.4), lerpK = 1 - Math.exp(-30 * dt); l.ext += (ext - l.ext) * lerpK; l.wpn.visible = (l.ext > 0.03 || !!S.whip) && !l.catalog;
+    if (!S.whip) { l.wpn.position.z = S.wz; l.wpn.scale.set(1, 1, Math.max(0.02, S.len * l.ext)); } if (l.glow) { l.glow.visible = l.ext > 0.03 && !l.catalog; l.glow.position.z = S.wz; l.glow.scale.set(1, 1, Math.max(0.02, S.len * l.ext)); l.glow.material.uniforms.uO.value = 0.55 + 0.25 * (charge ? charge.level : 0); }
     l.wpn.material.emissiveIntensity = 0.45 + 0.9 * (charge ? charge.level : 0) + (swing && swing.u > 0.3 && swing.u < 0.6 ? 0.6 : 0); void idle;
     l.g.updateMatrix(); l.g.matrixWorldNeedsUpdate = true;
   }
@@ -284,7 +292,7 @@ export function createHostMelee(renderer, D) {
     dt = Math.min(dt, 0.1); T += dt; comboT += dt; const fp = !renderer.third, mineChar = me && me.char; void state;
     for (let i = pend.length - 1; i >= 0; i--) { pend[i].t -= dt; if (pend[i].t <= 0) pend.splice(i, 1)[0].fn(); }
     if (me && fp && (!built || (host !== hostOf(me) && !swing && !charge))) build(hostOf(me));
-    if (!built) return; void mineChar;
+    if (!built) return; void mineChar; syncWeapon(me, dt);
     const active = !!(swing || charge); idleT = active ? 0 : idleT + dt; const want = fp && me && !me.dead && (active || idleT < 0.35) ? 1 : 0; engage += (want - engage) * Math.min(1, dt * (want ? 18 : 8)); if (Math.abs(engage - want) < 0.01) engage = want;
     // el arma del viewmodel baja mientras dura el melee
     const vm = renderer.vm; if (vm && vm.root) { const off = -0.95 * sm(engage); vm.root.position.y += off - vmOff; vmOff = off; const hide = engage > 0.6; if (hide !== gunHidden) { gunHidden = hide; vm.root.visible = hide ? false : !renderer.third; } } // con los brazos arriba el arma ni se dibuja (ahorra sus draw calls)
@@ -296,7 +304,7 @@ export function createHostMelee(renderer, D) {
     if (swing) { swing.u += adt / swing.dur; if (!swing.impacted && swing.u >= HIT_AT && (swing.hit > 0 || swing.exec)) impact(swing); else if (!swing.impacted && swing.u >= HIT_AT && (!swing.predicted || swing.confirmed)) swing.impacted = true; if (swing.u >= 1) swing = null; }
     for (const k of ['R', 'L']) applyLimb(k, poseOf(k, swing, ch), dt);
     updateTrail(dt);
-    if (whip) { const l = limbs.R, wsw = swing && swing.kfs.R && swing.u > 0.25 && swing.u < 0.62; WB.set(0, 0.0, -0.47).applyMatrix4(l.g.matrix); whip.mesh.visible = true; whipStep(whip, WB, l.ext, dt, wsw ? 1.2 : 0); }
+    if (whip) { const l = limbs.R, wsw = swing && swing.kfs.R && swing.u > 0.25 && swing.u < 0.62; WB.set(0, 0.0, -0.47).applyMatrix4(l.g.matrix); whip.mesh.visible = !limbs.R.catalog; whipStep(whip, WB, l.ext, dt, wsw ? 1.2 : 0); }
     // destello y marcador
     if (fl.t > 0) { fl.t -= dt; const u = 1 - Math.max(0, fl.t) / fl.max; flashSpr.visible = fl.t > 0; flashSpr.material.opacity = (1 - u) * (1 - u) * 0.7; flashSpr.scale.setScalar(fl.size * (0.6 + 0.8 * u)); } else flashSpr.visible = false;
     if (mk.t > 0) { mk.t -= dt; const u = 1 - Math.max(0, mk.t) / mk.max; markSpr.visible = mk.t > 0; markSpr.material.opacity = 1 - u * u; markSpr.scale.setScalar(mk.size * (u < 0.2 ? 0.6 + 2 * u : 1 + 0.3 * (u - 0.2))); } else markSpr.visible = false;

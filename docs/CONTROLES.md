@@ -18,19 +18,23 @@
 ## Pruebas
 `node --test tests/controles.test.js` (Chromium con toques reales vía CDP): giro exacto por píxel, ida y vuelta, giro ~180° con dos deslizamientos, microajuste de 3 px, vertical independiente, palanca+cámara+disparo simultáneos, arrastre desde el gatillo, cruce de botones sin pulsarlos, ADS reduce la sensibilidad, persistencia tras recargar. `npm test` completo: 101/101.
 
-## Huéspedes: habilidades, definitiva y melee
+## HUD táctil simple (por defecto) y modo avanzado
+- **Básico**: sólo DISPARO (grande; arrastrarlo también apunta), RECARGA, MELEE y SALTO (+ pausa). Correr es automático (palanca al máximo). El arma se cambia tocando o deslizando sobre la barra de armas de abajo.
+- **Contextuales** (aparecen solos): ULTI con la definitiva cargada, USAR con algo cerca u objetivo activo, EVOLUC. cuando `co ≥ evn`.
+- **Modo avanzado** (`advanced`; Opciones táctiles o «Habilidades» en Pausa): HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO y SEÑALAR.
+- Munición: «cargador / reserva» (`cl`/`rs`, ∞ si `rs=-1`) y barrita de recarga (`rl`) en `hud-huesped.js`.
+
+## Huéspedes: teclas
 | Acción | Teclado/ratón | Mando | Táctil |
 |---|---|---|---|
-| Habilidad 1 (`mov`) | F | LB | HAB.1 |
-| Habilidad 2 (`esp`) | G · clic der. | RB | HAB.2 |
-| Habilidad 3 (`s3`) | Z | cruceta ↑ | HAB.3 |
-| Definitiva (`ult`) | R | cruceta ↓ | ULTI |
+| Habilidad 1 (`mov`) | F | LB | HAB.1 (avanzado) |
+| Habilidad 2 (`esp`) | G · clic der. | RB | HAB.2 (avanzado) |
+| Habilidad 3 (`s3`) | Z | cruceta ↑ | HAB.3 (avanzado) |
+| Definitiva (`ult`) | T | cruceta ↓ | ULTI (contextual) |
+| Recargar (`reload`) | R | X / □ | RECARGA |
 | Melee (`melee`; mantener = pesado) | V | B / ○ | MELEE |
-| Señalar (ping) | T · clic central | R3 | ◆ |
-| Cámara en 3.ª persona | P | — | — |
-
-- Los botones táctiles nuevos van en una 4.ª fila de la cuadrícula (MELEE · HAB.3 · ULTI) y respetan los preajustes de 2/3/4 dedos y el editor (posición, tamaño, transparencia). Cada uno lleva un **anillo de recarga** (`--p`): lleno = listo; la definitiva muestra su carga y se ilumina al estar lista.
-- `src/client/hud-huesped.js` dibuja el panel del Huésped (PC) o la tira compacta (táctil): nombre, 3 habilidades + definitiva, combo de melee (●●●) y estados activos. Lee `mc/ec/s3c/ul/ua/cmb/bf` del snapshot propio (0 si faltan).
+| Señalar | B · clic central | R3 | ◆ (avanzado) |
+| 3.ª persona | P | — | — |
 
 ## Percepción de caída y bordes (`src/client/caida.js`)
 Sólo usa el snapshot (posición, `up`, velocidad derivada) y, si llega, el evento `{t:'fall'}`:

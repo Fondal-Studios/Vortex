@@ -89,16 +89,15 @@ test('comprar, equipar y evolucionar cambia el perfil y persiste tras recargar; 
   await pg.click('#evaction'); await pg.waitForTimeout(400);
   p = await perfil(pg); assert.equal(p.melee.axioma, 'hacha_quitina', 'equipa el arma');
   assert.equal(await pg.evaluate(() => window.__api.ui.ev.host.melee), 'hacha_quitina', 'el modelo 3D lleva el arma fusionada');
-  // no se puede comprar sin núcleos: la Hoja del Umbral (140) cabe, el Yunque (200) no tras gastar
+  // dejamos 10 núcleos (menos que cualquier arma cara) y recargamos: todo persiste
   await pg.evaluate(() => { const k = 'cristal.perfil.v1', o = JSON.parse(localStorage.getItem(k)); o.cores = 10; localStorage.setItem(k, JSON.stringify(o)); });
-  await pg.click('.ev-chip[data-id="vesper"]'); await pg.click('.ev-chip[data-id="axioma"]'); await pg.click('.ev-tab[data-tab="martillo"]'); await pg.click('.ev-w[data-id="yunque_vital"]');
-  assert.ok(await pg.isDisabled('#evaction'), 'sin núcleos suficientes el botón de comprar está desactivado');
-  await pg.evaluate(() => { const k = 'cristal.perfil.v1', o = JSON.parse(localStorage.getItem(k)); o.cores = 370; localStorage.setItem(k, JSON.stringify(o)); });
-  // recargar: todo persiste
   await pg.reload(); await pg.waitForFunction(() => window.__api && window.__api.ui); await pg.waitForTimeout(500);
-  p = await perfil(pg); assert.equal(p.evo.axioma, 2); assert.equal(p.melee.axioma, 'hacha_quitina'); assert.ok(p.owned.includes('hacha_quitina')); assert.equal(p.cores, 370);
+  p = await perfil(pg); assert.equal(p.evo.axioma, 2); assert.equal(p.melee.axioma, 'hacha_quitina'); assert.ok(p.owned.includes('hacha_quitina')); assert.equal(p.cores, 10);
   await openEv(pg); assert.match(await pg.textContent('#evtier'), /Nivel\s*2/);
   assert.equal(await pg.locator('.ev-w.eq[data-id="hacha_quitina"]').count(), 1, 'tras recargar sigue equipada');
+  await pg.click('.ev-tab[data-tab="martillo"]'); await pg.click('.ev-w[data-id="yunque_vital"]');
+  assert.ok(await pg.isDisabled('#evaction'), 'sin núcleos suficientes el botón de comprar está desactivado');
+  assert.ok(await pg.isDisabled('#evbtn'), 'sin núcleos suficientes no se puede evolucionar');
   // volver a la innata
   await pg.click('.ev-tab[data-tab="innata"]'); await pg.click('.ev-w[data-id="cuchillas"]'); await pg.click('#evaction'); await pg.waitForTimeout(300);
   p = await perfil(pg); assert.equal(p.melee.axioma, undefined, 'la innata deja al Huésped sin arma del catálogo');

@@ -1,30 +1,58 @@
 [
  {
-  "t": 2,
-  "calls": 94,
-  "triangles": 201511,
-  "shot": 1,
-  "sub": "Martes. 18:42. Andén 3."
+  "t": 25.5,
+  "calls": 89,
+  "triangles": 201681,
+  "shot": 6,
+  "sub": "No lo p"
  },
  {
-  "t": 9,
-  "calls": 91,
-  "triangles": 201685,
-  "shot": 2,
-  "sub": "Otro día igual. Los auriculares puestos, la cabeza en otra parte"
+  "t": 25.9,
+  "calls": 89,
+  "triangles": 201681,
+  "shot": 6,
+  "sub": "No lo pensé."
  },
  {
-  "t": 23.3,
-  "calls": 95,
-  "triangles": 201893,
-  "shot": 5,
-  "sub": "Alguien"
+  "t": 27.8,
+  "calls": 96,
+  "triangles": 202503,
+  "shot": 7,
+  "sub": "No lo pensé."
  },
  {
-  "t": 29,
+  "t": 31,
   "calls": 89,
   "triangles": 160417,
   "shot": 8,
-  "sub": "No lo pensé."
+  "sub": "Intenté levantarla. No se movía."
+ },
+ {
+  "t": 34.4,
+  "calls": 89,
+  "triangles": 160417,
+  "shot": 8,
+  "sub": "El tren no frenaba."
+ },
+ {
+  "t": 34.95,
+  "calls": 89,
+  "triangles": 160417,
+  "shot": 8,
+  "sub": "El tren no frenaba."
+ },
+ {
+  "t": 35.5,
+  "calls": 79,
+  "triangles": 159311,
+  "shot": 8,
+  "sub": "El tren no frenaba."
+ },
+ {
+  "t": 36.8,
+  "calls": 79,
+  "triangles": 159311,
+  "shot": 8,
+  "sub": "El tren no frenaba."
  }
 ]

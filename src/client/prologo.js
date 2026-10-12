@@ -65,7 +65,7 @@ export function startPrologue({ THREE: T, renderer, host = 'axioma', touch = fal
   /* ───────── escena, entorno, cámara ───────── */
   const scene = new T.Scene(); scene.background = new T.Color(0x07090a); scene.fog = new T.FogExp2(0x0d1113, 0.012);
   const camera = new T.PerspectiveCamera(42, 1, 0.05, 260); scene.add(camera);
-  gl.toneMapping = T.ACESFilmicToneMapping; gl.toneMappingExposure = 0.95;
+  gl.toneMapping = T.ACESFilmicToneMapping; gl.toneMappingExposure = 0.85;
   { const pm = new T.PMREMGenerator(gl), env = pm.fromScene(new RoomEnvironment(), 0.04); scene.environment = env.texture; scene.environmentIntensity = 0.42; pm.dispose(); scene.userData.env = env; }
   const st = buildStation(T, { level }); scene.add(st.group);
   // luz de ayuda pegada a la cámara (da volumen a las caras en los primeros planos); su intensidad la fija el director
@@ -157,18 +157,18 @@ export function startPrologue({ THREE: T, renderer, host = 'axioma', touch = fal
   const place = (h, p, ry) => { h.object.position.set(p[0], p[1], p[2]); h.object.rotation.y = ry; };
   const setClip = (h, name, opt) => { if (h.cur !== name) { h.cur = name; h.play(name, opt); } };
   const trainX = (t) => (t < BEATS.FREE0 ? -62 - 14 * (BEATS.FREE0 - t) : -62 + 6 * (t - BEATS.FREE0) + 0.47 * (t - BEATS.FREE0) ** 2); // llega a x≈-0,7 justo en el impacto
-  const X_P0 = [6.0, 0, 1.8], X_EDGE = [1.9, 0, 0.9], X_LAND = [1.5, -1.25, -1.5], X_V = [1.0, 0, 0.9];
+  const X_P0 = [6.0, 0, 1.8], X_EDGE = [3.0, 0, 0.9], X_LAND = [2.6, -1.25, -1.4], X_V = [1.0, 0, 0.9];
   const poseP = (t) => { // protagonista
-    if (t < 25.6) return { p: X_P0, ry: PI, clip: 'idle', speed: 0 };
+    if (t < 25.6) { const u = sm((t - 24.0) / 1.0); return { p: X_P0, ry: lerp(PI, -1.75 + 2 * PI, u), clip: 'idle', speed: 0 }; }
     if (t < 26.9) { const u = (t - 25.6) / 1.3, p = L3(X_P0, X_EDGE, sm(u * 0.9 + 0.1 * u)); return { p, ry: Math.atan2(X_EDGE[0] - X_P0[0], X_EDGE[2] - X_P0[2]), clip: 'jog', speed: 3.4 }; }
     const u = clamp((t - 26.9) / 1.4, 0, 1), p = L3(X_EDGE, X_LAND, u); p[1] = lerp(0, X_LAND[1], u * u) + 0.55 * Math.sin(PI * clamp(u * 1.3, 0, 1));
-    return { p, ry: PI, clip: t < 28.3 ? 'jump' : 'interact', speed: 0 };
+    return { p, ry: -PI / 2 - 0.5, clip: t < 28.3 ? 'jump' : 'interact', speed: 0 };
   };
-  const poseV = (t) => { // la que cae (la empuja el apuro de otro pasajero)
+  const poseV = (t) => { // la que cae: un apurado la empuja, gira, y cae de espaldas a la vía
     if (t < 22.2) return { p: X_V, ry: PI, clip: 'idle' };
-    if (t < 23.3) { const u = sm((t - 22.2) / 1.1); return { p: [1.0, 0, lerp(0.9, 0.42, u)], ry: PI + 0.2 * u, clip: 'hit' }; }
-    if (t < 24.7) { const u = (t - 23.3) / 1.4, ez = u < 0.35 ? 0.42 - 0.2 * (u / 0.35) : 0.22 - 2.2 * ((u - 0.35) / 0.65); return { p: [1.0 - 0.1 * u, u < 0.4 ? 0 : -1.15 * sm((u - 0.4) / 0.6), ez], ry: PI + 0.3, clip: 'fall', tilt: sm(u) * 1.5 }; }
-    return { p: [0.9, -1.1, -2.3], ry: PI + 0.3, clip: 'death', tilt: 1.5 };
+    if (t < 23.3) { const u = sm((t - 22.2) / 1.1); return { p: [1.0, 0, lerp(0.9, 0.55, u)], ry: lerp(PI, 0.35, u), clip: 'hit' }; }
+    const u = clamp((t - 23.3) / 1.5, 0, 1), z = lerp(0.55, -2.4, sm(u)), y = z > 0.05 ? 0 : -1.12 * sm((0.05 - z) / 0.95);
+    return { p: [lerp(1.0, -0.2, sm(u)), y, z], ry: 0.35, clip: 'death' };
   };
   const poseB1 = (t) => (t < 18.2 ? { p: [15.5, 0, 3.4], ry: -PI / 2, clip: 'idle', speed: 0 } : { p: [15.5 - 3.5 * (t - 18.2), 0, 3.4 - 1.9 * sm((t - 18.2) / 3.9)], ry: -PI / 2, clip: 'walk', speed: 3.5 });
   const poseB2 = () => ({ p: [-5, 0, 1.3], ry: PI, clip: 'idle', speed: 0 });
@@ -184,11 +184,11 @@ export function startPrologue({ THREE: T, renderer, host = 'axioma', touch = fal
     else if (t < 17) { const u = sm((t - 12.5) / 4.5); id = 3; p = L3([1.8, 2.5, 3.0], [0.9, 2.55, 4.4], u); tg = [0, 2.6, 6.9]; fov = 36; }                                               // 3 · la pantalla de horarios
     else if (t < 21.5) { const u = (t - 17) / 4.5; id = 4; p = L3([11.5, 1.1, -0.5], [10.5, 1.25, -0.6], u); tg = [-24, 1.3 + 0.25 * u, -2.6]; fov = 24; }                                          // 4 · el túnel (teleobjetivo)
     else if (t < 25.2) { const u = sm((t - 21.5) / 3.7); id = 5; p = L3([5.2, 1.45, -1.0], [3.9, 1.4, -0.7], u); tg = [lerp(2.6, Vp[0], 0.7), Math.max(Vp[1] + 1.0, 0.3), lerp(1.2, Vp[2], 0.7)]; fov = 38; f = tg; k = 5; }                        // 5 · ella, y el empujón
-    else if (t < 26.0) { id = 6; p = [6.5, 1.66, 0.4]; tg = [Pp[0], 1.62, Pp[2]]; fov = 28; f = tg; k = 14; }                                                                                // 6 · reacción del protagonista
+    else if (t < 26.0) { id = 6; p = [4.7, 1.62, 0.5]; tg = [Pp[0], 1.6, Pp[2]]; fov = 30; f = tg; k = 14; }                                                                                // 6 · reacción del protagonista
     else if (t < BEATS.FREE0) { id = 7; p = [Pp[0] + 2.3, Pp[1] + 0.5, Pp[2] + 2.0]; tg = [Pp[0], Pp[1] + 1.1, Pp[2]]; fov = 44; }                                                         // 7 · corre y salta (seguimiento)
     else { // 8 · primera persona en la vía: LA ÚNICA ventana de cámara libre
       id = 8; const u = clamp((t - BEATS.FREE0) / (BEATS.IMPACT - BEATS.FREE0), 0, 1);
-      p = [X_LAND[0], X_LAND[1] + 1.55 + 0.05 * Math.sin(t * 1.3) - 0.12 * u, X_LAND[2]]; tg = [-30, 0.6 + 0.25 * u, -2.7]; fov = lerp(64, 52, u * u); k = 0; shake = 0.012 * sm((u - 0.5) * 2) + 0.003; f = [X_V[0] - 0.1, -1.0, -2.3]; }
+      p = [X_LAND[0], X_LAND[1] + 1.55 + 0.05 * Math.sin(t * 1.3) - 0.12 * u, X_LAND[2]]; tg = [-30, -3.2 + 3.0 * u, -2.7]; fov = lerp(64, 52, u * u); k = 0; shake = 0.012 * sm((u - 0.5) * 2) + 0.003; f = [-0.2, -1.0, -2.3]; }
     return { p, tg, fov, f, k, id };
   }
 
@@ -204,7 +204,7 @@ export function startPrologue({ THREE: T, renderer, host = 'axioma', touch = fal
     // tren y entorno
     const tx = trainX(t), tr = st.train; tr.group.position.x = tx; tr.group.visible = t >= 25.5 && t < BEATS.IMPACT + 0.2;
     const near = clamp(1 - Math.abs(tx - X_LAND[0]) / 60, 0, 1);
-    for (const g of tr.glare) g.scale.setScalar(lerp(1.6, 7, near)); tr.beamMat.opacity = 0.04 + 0.05 * near; tr.spot.intensity = 500 + 600 * near;
+    const dTrain = Math.abs(tx - X_LAND[0]); for (const g of tr.glare) g.scale.setScalar(lerp(1.6, 4.2, near) * clamp(dTrain / 6, 0.45, 1)); tr.beamMat.opacity = (0.03 + 0.03 * near) * clamp(dTrain / 10, 0.2, 1); tr.spot.intensity = 450 + 300 * near;
     const glow = sm((t - 17.5) / 4) * (t < 25.5 ? 1 : 0.0);
     st.update({ t, flick: t > 15 ? 0.7 : 0.18, trainX: t > 17 ? Math.max(tx, -60 + (t - 17) * 4) : -999, tunnelGlow: glow, dark: sm((t - 35) * 8) });
     st.setScreen(t >= 13.2 ? 'alerta' : 'normal', t);

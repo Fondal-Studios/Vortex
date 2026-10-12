@@ -357,3 +357,5 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 }
 .tc-btn.tc-ctx:not(.tc-off) { animation: tcpop .35s ease-out; } @keyframes tcpop { from { transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(.3); } }
 @media (pointer: coarse) { body.playing #trophies { bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); } }
+@media (pointer: coarse) { .tc-btn.tc-fireL { bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); } }
+.tc-btn.tc-reload small { letter-spacing: 0; font-size: 8px; }

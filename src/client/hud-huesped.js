@@ -39,7 +39,7 @@ const CSS = `
 .hq-ammo b{font-size:clamp(18px,3vw,28px);color:#fff}.hq-ammo b span{opacity:.6;font-size:.7em}.hq-ammo.low b{color:#ff6a6a}
 .hq-ammo i{display:none;height:4px;margin-top:3px;border-radius:2px;background:#ffffff33;overflow:hidden}.hq-ammo.rel i{display:block}.hq-ammo i u{display:block;height:100%;width:0;background:#7dff9a;text-decoration:none}
 .hq-ammo small{display:block;font-size:10px;color:#7dff9a;letter-spacing:.14em}
-.hq-ammo.touch{bottom:calc(58px + env(safe-area-inset-bottom,0px))}.hq-ammo.touch b{font-size:16px}
+.hq-ammo.touch{bottom:calc(66px + env(safe-area-inset-bottom,0px))}.hq-ammo.touch b{font-size:16px}
 @media (max-height:460px){.hq .hs{min-height:22px;padding:3px 8px}}
 `;
 const BF = [[1, 'Caparazón'], [2, 'Camuflaje'], [4, 'Sobrecarga'], [8, 'Frenesí'], [16, 'Floración'], [32, 'Metamorfosis'], [64, 'Desfase'], [128, 'Planeo'], [256, 'Barrera']];

@@ -81,7 +81,7 @@ button[hidden], span[hidden] { display: none !important; }
   .ev-tab { min-height: 32px; font-size: 10px; padding: 0 2px; letter-spacing: 0; } .ev-panel { gap: 6px; padding: 6px 8px 0; } .ev-buy { margin: auto -8px 0; padding: 5px 8px; } .ev-buy .ev-btn { min-width: 120px; }
   .ev-detail { grid-template-columns: minmax(84px, 30%) minmax(0, 1fr); gap: 8px; } .ev-prev { min-height: 110px; } .ev-desc { font-size: 11px; } .ev-stat { grid-template-columns: 70px minmax(0, 1fr) 40px; font-size: 10px; } .ev-w { min-height: 40px; padding: 4px 7px; }
 }
-@media (max-width: 720px) and (min-aspect-ratio: 1/1) { .ev-wrap { grid-template-columns: 56px minmax(0, 1fr) minmax(0, 1.25fr); gap: 8px; } .ev-list { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); } .ev-w b { font-size: 11px; } .ev-buy .ev-btn { min-width: 100px; } .ev-price { font-size: 11px; } }
+@media (max-width: 720px) and (min-aspect-ratio: 1/1) { .ev-wrap { grid-template-columns: 56px minmax(0, 1fr) minmax(0, 1.25fr); gap: 8px; } .ev-tab { flex: 1 1 30%; min-height: 30px; font-size: 10px; } .ev-list { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); } .ev-w b { font-size: 11px; } .ev-buy .ev-btn { min-width: 100px; } .ev-price { font-size: 11px; } }
 
 /* celular vertical */
 @media (max-aspect-ratio: 1/1) {
@@ -90,5 +90,6 @@ button[hidden], span[hidden] { display: none !important; }
   .ev-rail { overflow: visible; flex-direction: row; gap: 4px; } .ev-chip { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 4px 2px; gap: 1px; } .ev-cn b { font-size: 10px; letter-spacing: 0; } .ev-cn small { font-size: 9px; }
   .ev-evolve { gap: 4px; padding: 6px 10px; } .ev-next { max-height: 5.4em; }
   .ev-detail { grid-template-columns: minmax(96px, 34%) minmax(0, 1fr); }
+  .ev-tab { flex: 1 1 30%; letter-spacing: .02em; }
 }
 @media (prefers-reduced-motion: reduce) { .ev-stage.flash, .ev-stage.flash .ev-wave, .ev-stage.flash::before, .ev-tier.pop, .ev-cores.ready .ev-bar b { animation: none; } }

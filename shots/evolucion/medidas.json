@@ -23,7 +23,7 @@
     "id": "hacha_quitina",
     "tier": 0,
     "calls": 2,
-    "tris": 928
+    "tris": 984
    },
    {
     "id": "hacha_doble",
@@ -107,7 +107,7 @@
     "id": "punos",
     "tier": 0,
     "calls": 2,
-    "tris": 260
+    "tris": 544
    },
    {
     "id": "hoja_dim",
@@ -154,7 +154,7 @@
     "id": "hacha_quitina",
     "tier": 4,
     "calls": 7,
-    "tris": 2680
+    "tris": 2736
    },
    {
     "id": "hacha_doble",
@@ -238,7 +238,7 @@
     "id": "punos",
     "tier": 4,
     "calls": 7,
-    "tris": 1980
+    "tris": 2264
    },
    {
     "id": "hoja_dim",

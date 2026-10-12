@@ -19,7 +19,7 @@ const BTN = [
   ['esp', 'tc-esp', '✦', 'HAB.2', 'hold', false],
   ['s3', 'tc-s3', '❖', 'HAB.3', 'hold', false],
   ['ult', 'tc-ult', '★', 'ULTI', 'hold', false],
-  ['reload', 'tc-reload', '↻', 'RECARGAR', 'hold', false],
+  ['reload', 'tc-reload', '↻', 'RECARGA', 'hold', false],
   ['evo', 'tc-evo', '✺', 'EVOLUC.', 'hold', false],
   ['melee', 'tc-melee', '⚔', 'MELEE', 'hold', false],
   ['ability', 'tc-ability', '✚', 'EQUIPO', 'hold', false],
