@@ -151,3 +151,54 @@ test('evolución de armas: precisión da críticos y devuelve munición; tóxica
   const { g: g2, p: p2 } = mk('axioma'); p2.weapon = 5; const u2 = upgOf(p2, 5); u2.mod = 'vampirica'; u2.mut = 'parasito'; p2.ammo[5] = 10; const k = g2.spawnMonster('astilla', ahead(p2, 5)); g2.killMonster(k, p2); assert.ok(p2.ammo[5] > 10, 'parásito devuelve munición');
   void wstat;
 });
+
+import { MELEE_WEAPONS, MELEE_TYPES, EVO_COST, CORES } from '../src/sim/data.js';
+import { evolve } from '../src/sim/huespedes.js';
+
+test('catálogo cuerpo a cuerpo: espadas, hachas, martillos, lanzas y dagas; todas con stats y poder especial', () => {
+  const por = {}; for (const [id, w] of Object.entries(MELEE_WEAPONS)) { por[w.type] = (por[w.type] || 0) + 1; assert.ok(MELEE_TYPES[w.type] && w.name && w.desc && w.special && w.heavy.dmg > w.light.dmg && w.light.cd > 0, id); }
+  for (const t of ['espada', 'hacha', 'martillo', 'lanza', 'daga']) assert.equal(por[t], 3, t);
+  assert.ok(MELEE_WEAPONS.pica_cristal.light.range > MELEE_WEAPONS.daga_neurotoxica.light.range * 2);
+  assert.ok(MELEE_WEAPONS.martillo_sismico.heavy.dmg > MELEE_WEAPONS.sable_plasma.heavy.dmg && MELEE_WEAPONS.daga_neurotoxica.light.cd < MELEE_WEAPONS.martillo_sismico.light.cd);
+});
+
+test('equipar un arma cambia el estilo: el martillo pega más fuerte y más lento que la daga; la afinidad suma daño', () => {
+  const dano = (id, host) => { const { g, p } = mk(host); p.melee = id; const m = target(g, p, 'astilla', 3, 1e5); m.passive = true; tap(g, p, 'melee'); run(g, 0.3); return 1e5 - m.hp; };
+  const martillo = dano('martillo_sismico', 'micelio'), daga = dano('daga_neurotoxica', 'micelio');
+  assert.ok(martillo > daga * 1.5, `martillo ${martillo} vs daga ${daga}`);
+  assert.ok(dano('daga_neurotoxica', 'vesper') > daga * 1.1, 'afinidad (+15 %) de Vesper con dagas');
+});
+
+test('núcleos: se ganan matando, completando oleadas y jefes; evolucionar los gasta, niveles 1–4 con efectos reales', () => {
+  const { g, p } = mk('axioma'); const k = g.spawnMonster('geoda', ahead(p, 6)); g.killMonster(k, p);
+  assert.ok(p.cores >= 6, `núcleos por baja ${p.cores}`);
+  assert.equal(evolve(g, p), false, 'sin núcleos suficientes no evoluciona'); assert.equal(p.evo, 0);
+  p.cores = 40; assert.equal(evolve(g, p), true); assert.equal(p.evo, 1); assert.equal(p.cores, 0);
+  p.cores = 1000; evolve(g, p); evolve(g, p); evolve(g, p); assert.equal(p.evo, 4); assert.equal(evolve(g, p), false, 'tope en 4'); assert.equal(1000 - p.cores, EVO_COST[2] + EVO_COST[3] + EVO_COST[4]);
+  const s = g.snapshot().players[0]; assert.equal(s.evo, 4); assert.ok('co' in s && 'evn' in s && 'mw' in s);
+});
+
+test('evolución: cada nivel mejora de verdad (melee, daño recibido, enfriamientos, definitiva)', () => {
+  const golpe = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; const m = target(g, p, 'astilla', 3, 1e5); m.passive = true; tap(g, p, 'melee'); run(g, 0.3); return 1e5 - m.hp; };
+  const d = [0, 1, 3, 4].map(golpe); assert.ok(d[1] > d[0] * 1.05 && d[2] > d[1] * 1.1 && d[3] > d[2] * 1.1, `melee por nivel ${d.map((x) => x.toFixed(0))}`);
+  const recibido = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; p.hp = 100; p.shield = 0; g.hurtPlayer(p, 20); return 100 - p.hp; }; assert.ok(recibido(1) < recibido(0) * 0.95);
+  const cd = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; p.ul = 0; tap(g, p, 's3'); return p.s3Cd; }; assert.ok(cd(3) < cd(0) * 0.85, `cd ${cd(0)} → ${cd(3)}`);
+  const ulT = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; p.ul = 100; tap(g, p, 'ult'); return p.ultT; }; assert.ok(ulT(4) > ulT(0) * 1.25);
+  const carga = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; const m = target(g, p, 'astilla', 5, 1e5); g.damageMonster(m, 500, p); return p.ul; }; assert.ok(carga(2) > carga(0) * 1.2, 'más carga de definitiva');
+});
+
+test('fusión: el poder especial del arma sólo despierta al evolucionar (nivel 1+) y cambia el combate', () => {
+  const quema = (evo) => { const { g, p } = mk('axioma'); p.melee = 'sable_plasma'; p.evo = evo; const m = target(g, p, 'astilla', 3, 1e5); m.passive = true; tap(g, p, 'melee'); run(g, 0.3); return m.dotKind; };
+  assert.equal(quema(0), undefined, 'sin fusión no quema'); assert.equal(quema(1), 'burn', 'fusionado quema');
+  const sismo = (evo) => { const { g, p } = mk('micelio'); p.melee = 'martillo_sismico'; p.evo = evo; const a = target(g, p, 'astilla', 3, 1e5), b = target(g, p, 'astilla', 3, 1e5); a.passive = b.passive = true; b.pos = { x: p.pos.x + 5.5, y: p.pos.y, z: p.pos.z }; g.setInput(p.id, { melee: true }); run(g, 0.6); g.setInput(p.id, { melee: false }); run(g, 0.3); return 1e5 - b.hp; };
+  assert.ok(sismo(1) > 0 && sismo(0) === 0, 'el sismo del martillo alcanza a quien está al costado sólo si está fusionado');
+  const lej = (evo) => { const { g, p } = mk('umbra'); p.melee = 'lanza_sinaptica'; p.evo = evo; const a = target(g, p, 'astilla', 2.5, 1e5), b = target(g, p, 'astilla', 5.5, 1e5); a.passive = b.passive = true; tap(g, p, 'melee'); run(g, 0.3); return [1e5 - a.hp, 1e5 - b.hp]; };
+  const [a1, b1] = lej(1); assert.ok(a1 > 0 && b1 > 0, 'la lanza atraviesa en línea');
+});
+
+test('perfil: se pasa a la partida el arma equipada y el nivel; setLoadout/addPlayer los validan', () => {
+  const g = new Game({ mapId: 'm1', seed: 2 }); const p = g.addPlayer('x', null, { char: 'seraf', melee: 'lanza_sinaptica', evo: 3 });
+  assert.equal(p.melee, 'lanza_sinaptica'); assert.equal(p.evo, 3); const q = g.addPlayer('y', null, { char: 'vesper', melee: 'inventada', evo: 99 }); assert.equal(q.melee, ''); assert.equal(q.evo, 4);
+  g.setLoadout(p.id, 'axioma', null, { melee: 'hacha_doble', evo: 2 }); assert.equal(p.melee, 'hacha_doble'); assert.equal(p.evo, 2);
+  void CORES;
+});

@@ -54,6 +54,47 @@ export const CHARACTERS = {
     esp: { id: 'singularidad',  name: 'Singularidad',   cd: 16, desc: 'Un agujero que arrastra a las criaturas y estalla.' } },
 };
 
+
+/* ───────── ARMAS CUERPO A CUERPO: catálogo de espadas, hachas, martillos, lanzas y dagas. Cada Huésped tiene una propia (innata) y puede fusionarse con otra.
+   `special` se activa al fusionar (evolución 1+) y se potencia en la evolución 3+. `aff` = tipos con los que cada Huésped tiene afinidad (+15 %). ───────── */
+export const MELEE_TYPES = { espada: 'Espada', hacha: 'Hacha', martillo: 'Martillo', lanza: 'Lanza', daga: 'Daga', innata: 'Innata' };
+const L = (dmg, range, arc, cd, extra = {}) => ({ dmg, range, arc, cd, ...extra });
+export const MELEE_WEAPONS = {
+  // espadas
+  filo_oseo:      { type: 'espada',   name: 'Filo óseo',          cost: 0,   special: 'onda',    desc: 'Espada de hueso afilado. El golpe pesado lanza una onda cortante que atraviesa.', light: L(44, 3.8, 0.55, 0.34), heavy: L(125, 4.5, 0.5, 0.9, { knock: 10 }) },
+  sable_plasma:   { type: 'espada',   name: 'Sable de plasma',    cost: 60,  special: 'quema',   desc: 'Rápido. Cada tajo deja a la criatura ardiendo.', light: L(36, 3.6, 0.5, 0.26), heavy: L(105, 4.2, 0.5, 0.75, { knock: 6 }) },
+  hoja_umbral:    { type: 'espada',   name: 'Hoja del Umbral',    cost: 140, special: 'atraviesa', desc: 'Corta a través de las defensas y de varias criaturas a la vez.', light: L(50, 4.0, 0.5, 0.4, { pierce: true }), heavy: L(135, 4.8, 0.45, 0.95, { pierce: true }) },
+  // hachas
+  hacha_quitina:  { type: 'hacha',    name: 'Hacha de quitina',   cost: 40,  special: 'sangrado', desc: 'Pesada y brutal. Provoca sangrado (daño con el tiempo).', light: L(58, 3.6, 0.6, 0.5), heavy: L(160, 4.2, 0.55, 1.05, { knock: 8 }) },
+  hacha_doble:    { type: 'hacha',    name: 'Hacha doble',        cost: 110, special: 'barrido', desc: 'Doble filo: golpea en un arco enorme a muchas criaturas.', light: L(46, 3.8, 0.85, 0.5), heavy: L(130, 4.4, 0.9, 1.0) },
+  segur_vorax:    { type: 'hacha',    name: 'Segur Vórax',        cost: 180, special: 'rapina',  desc: 'Roba vida con cada tajo.', light: L(52, 3.6, 0.6, 0.46), heavy: L(150, 4.2, 0.55, 1.0) },
+  // martillos
+  martillo_sismico:{ type: 'martillo', name: 'Martillo sísmico',  cost: 70,  special: 'sismo',   desc: 'Lento y devastador. El golpe pesado hace temblar el suelo en área.', light: L(75, 3.8, 0.7, 0.7), heavy: L(200, 4.6, 0.8, 1.3, { knock: 24 }) },
+  maza_espora:    { type: 'martillo', name: 'Maza de esporas',    cost: 130, special: 'espora',  desc: 'Cada golpe suelta una nube de esporas que ralentiza y envenena.', light: L(62, 3.8, 0.7, 0.6), heavy: L(170, 4.4, 0.8, 1.2, { knock: 16 }) },
+  yunque_vital:   { type: 'martillo', name: 'Yunque vital',       cost: 200, special: 'aturde',  desc: 'Aturde casi por completo a lo que golpea.', light: L(70, 3.6, 0.65, 0.8), heavy: L(190, 4.4, 0.75, 1.3, { knock: 12 }) },
+  // lanzas
+  lanza_sinaptica:{ type: 'lanza',    name: 'Lanza sináptica',    cost: 50,  special: 'linea',   desc: 'Largo alcance: la punta atraviesa todo lo que está en línea.', light: L(48, 6.5, 0.22, 0.4, { pierce: true }), heavy: L(125, 8, 0.2, 0.95, { pierce: true }) },
+  pica_cristal:   { type: 'lanza',    name: 'Pica de cristal',    cost: 120, special: 'estocada', desc: 'El alcance más largo. El golpe pesado es una estocada con embestida.', light: L(44, 7.5, 0.18, 0.45), heavy: L(140, 9, 0.16, 1.0, { knock: 14 }) },
+  tridente_abisal:{ type: 'lanza',    name: 'Tridente abisal',    cost: 190, special: 'arrastra', desc: 'Arrastra a las criaturas hacia vos.', light: L(46, 6.0, 0.3, 0.42, { knock: -8 }), heavy: L(120, 7.5, 0.3, 1.0, { knock: -16 }) },
+  // dagas
+  daga_neurotoxica:{ type: 'daga',    name: 'Daga neurotóxica',   cost: 30,  special: 'veneno',  desc: 'Muy rápida. Cada corte envenena.', light: L(30, 3.0, 0.6, 0.2), heavy: L(85, 3.4, 0.55, 0.55) },
+  colmillo:       { type: 'daga',     name: 'Colmillo',           cost: 100, special: 'acuchilla', desc: 'Doble daño si golpeás por la espalda o a una criatura que no te mira.', light: L(34, 3.0, 0.6, 0.22), heavy: L(95, 3.4, 0.55, 0.6) },
+  aguja_fantasma: { type: 'daga',     name: 'Aguja fantasma',     cost: 170, special: 'destello', desc: 'El golpe pesado es un destello: te lanza hacia adelante cortando todo a su paso.', light: L(32, 3.0, 0.6, 0.2), heavy: L(100, 3.6, 0.5, 0.7) },
+};
+// armas innatas de cada Huésped (las de data.js → CHARACTERS[*].melee)
+export const NATIVE_MELEE = { axioma: 'cuchillas', vesper: 'garras', micelio: 'punos', umbra: 'hoja_dim', seraf: 'latigo' };
+export const MELEE_AFFINITY = { axioma: ['espada', 'hacha'], vesper: ['daga'], micelio: ['martillo', 'hacha'], umbra: ['lanza', 'espada'], seraf: ['lanza', 'daga'] };
+/* Evolución del Huésped con NÚCLEOS (se ganan matando criaturas, completando objetivos y oleadas, y jefes). Coste = núcleos para pasar al nivel siguiente. */
+export const EVO_COST = [0, 40, 90, 160, 280];
+export const EVO_TIERS = [
+  { name: 'Larva',       desc: 'Forma inicial.' },
+  { name: 'Despertar',   desc: 'Tu arma cuerpo a cuerpo se fusiona con vos y despierta su poder especial. +10 % de melee, −9 % de daño recibido.' },
+  { name: 'Fusión',      desc: 'La fusión se profundiza: +25 % de carga de la definitiva.' },
+  { name: 'Mutación',    desc: '+25 % de melee en total, habilidades 20 % más rápidas y el poder especial del arma se potencia.' },
+  { name: 'Forma final', desc: '+40 % de melee, +10 % de daño de todas tus armas y definitivas 30 % más largas.' },
+];
+export const CORES = { perCost: 1.2, eliteMul: 2, wave: 6, objective: 30, boss: 100 };
+
 /* ───────── LOS HUÉSPEDES: organismos biomecánicos jugables (docs/HUESPEDES.md). `host:true` = aparecen primero en la selección.
    Cada uno: arma inicial, melee (ligero/pesado), 3 habilidades (mov = hab. 1, esp = hab. 2, s3 = hab. 3), definitiva (ult), pasiva y stats 0–10. ───────── */
 const HOSTS = {

@@ -2,7 +2,7 @@
 import { dist, add, sub, mul, madd, norm, dot, cross, v3, clone, len } from './math.js';
 import { CHARACTERS, PLAYER } from './data.js';
 import { blocked } from './physics.js';
-import { hostMove, hostSpecial } from './huespedes.js';
+import { hostMove, hostSpecial, cdMul } from './huespedes.js';
 
 const a3 = (v) => [Math.round(v.x * 100) / 100, Math.round(v.y * 100) / 100, Math.round(v.z * 100) / 100];
 const flatDir = (p) => norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.heading);
@@ -28,7 +28,7 @@ export function useMove(g, p) {
     case 'fase': p.ext = madd(p.ext, h, -32); p.invulUntil = g.time + 1.0; p.desfaseUntil = g.time + 2; p.vel = madd(p.vel, p.up, 4); break;
     default: if (!hostMove(g, p, id)) return false;
   }
-  p.movCd = C.mov.cd; g.emit({ t: 'skill', pid: p.id, k: 'mov', id, p: a3(p.pos) });
+  p.movCd = C.mov.cd * cdMul(p); g.emit({ t: 'skill', pid: p.id, k: 'mov', id, p: a3(p.pos) });
   return true;
 }
 
@@ -67,7 +67,7 @@ export function useSpecial(g, p) {
     case 'singularidad': g.addProjectile({ owner: 'p', pid: p.id, kind: 'nova', pos: madd(o, d, 1.5), vel: mul(d, 30), dmg: 70, splash: 10, r: 0.7, life: 3, well: 4 }); break;
     default: if (!hostSpecial(g, p, id)) return false;
   }
-  p.espCd = C.esp.cd; g.emit({ t: 'skill', pid: p.id, k: 'esp', id, p: a3(p.pos) });
+  p.espCd = C.esp.cd * cdMul(p); g.emit({ t: 'skill', pid: p.id, k: 'esp', id, p: a3(p.pos) });
   return true;
 }
 void clone; void v3;

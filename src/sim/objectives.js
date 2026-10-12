@@ -73,6 +73,7 @@ function finish(g, o, ok) {
       g.dropPickup('hp', madd(p.pos, p.up, 2));
     }
     g.teamBuffUntil = g.time + 30; // +25 % de daño del equipo
+    for (const q of g.players) q.cores = (q.cores || 0) + 30;
     const frag = g.fragments++;
     g.emit({ t: 'objective', ph: 'done', kind: o.type, frag: Math.min(frag, FRAGMENTS.length - 1) });
   } else {
