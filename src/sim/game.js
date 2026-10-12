@@ -34,7 +34,7 @@ export class Game {
     this.state = 'playing'; // playing | won | lost
     this.wave = 0; this.waveTotal = WAVE_PLANS[mapId].length + 1;
     this.phase = 'intermission'; this.phaseT = calm; // calma inicial (la historia usa más)
-    this.queue = []; this.spawnT = 0; this.spawnGap = 1.5;
+    this.queue = []; this.omens = []; this.spawnT = 0; this.spawnGap = 1.5;
     this.boss = null;
     this.objects = []; this.pings = []; this.objective = null; this.fragments = 0; this.teamBuffUntil = 0; this.director = new Director(); this.curTypes = [];
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
@@ -85,7 +85,7 @@ export class Game {
     this.tick++; this.time += dt; this.dt = dt;
     if (this.state !== 'playing') return;
     this.director.update(this, dt);
-    this.updateWaves(dt);
+    this.updateWaves(dt); this.updateOmens();
     for (const p of this.players) this.updatePlayer(p, dt);
     updateObjective(this, dt); this.updateObjects(dt);
     if (this.pings.length) this.pings = this.pings.filter((q) => q.until > this.time);
@@ -132,14 +132,14 @@ export class Game {
     if (this.queue.length > 3 && this.director.wantsSurge()) { const sp = this.curTypes.filter((t) => ['obelisco', 'aurora', 'espiral', 'graviton', 'cuarzo'].includes(t)); if (sp.length) { this.queue.splice(1, 0, this.rng.pick(sp), this.rng.pick(sp)); this.emit({ t: 'surge' }); } }
     // rezagados: si pasan 40 s sin bajas y quedan criaturas lejos, el Vórtice las "empuja" hacia los jugadores (evita oleadas eternas)
     const left = this.monsters.filter((m) => !m.dead && !m.def.boss);
-    if (!this.queue.length && left.length && left.length === this.monsters.filter((m) => !m.dead).length) {
+    if (!this.queue.length && !this.omens.length && left.length && left.length === this.monsters.filter((m) => !m.dead).length) {
       this.straggleT = (this.straggleT || 0) + dt;
       if (this.straggleT > 40) {
         this.straggleT = 0; const ref = this.alivePlayers()[0];
         if (ref) for (const m of left) if (dist(m.pos, ref.pos) > 45) { m.pos = m.def.fly ? this.map.spawnAir(this.rng, ref.pos, ref.up) : this.map.spawnGround(this.rng, ref.pos); m.vel = v3(); this.emit({ t: 'blink', p: a3(m.pos) }); }
       }
     } else this.straggleT = 0;
-    if (!this.queue.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
+    if (!this.queue.length && !this.omens.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
       for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
@@ -189,15 +189,29 @@ export class Game {
     let guard = 0; while (budget >= 1 && guard++ < 80) { const t = this.rng.pick(types); if (MONSTERS[t].cost <= budget && !MONSTERS[t].boss) { this.queue.push(t); budget -= MONSTERS[t].cost; } }
     this.spawnGap = Math.min(this.spawnGap, 0.6);
   }
+  /** Las criaturas no aparecen de golpe: primero una señal (grieta/vibración, evento `omen`) y ~1,1 s después nacen. Nunca detrás del jugador ni pegadas a él. */
   spawnFromQueue() {
     const kind = this.queue.shift();
     const def = MONSTERS[kind];
     const ref = this.refPlayer();
-    let pos;
-    if (def.boss) pos = clone(this.map.bossAnchor);
-    else if (def.fly) pos = this.map.spawnAir(this.rng, ref.pos, ref.up);
-    else pos = this.map.spawnGround(this.rng, ref.pos);
-    this.spawnMonster(kind, pos);
+    if (def.boss) { this.spawnMonster(kind, clone(this.map.bossAnchor)); return; }
+    let pos = null;
+    for (let i = 0; i < 8; i++) {
+      pos = def.fly ? this.map.spawnAir(this.rng, ref.pos, ref.up) : this.map.spawnGround(this.rng, ref.pos);
+      const to = sub(pos, ref.pos), l = len(to);
+      if (l < 14) continue;                                                  // nunca encima del jugador
+      if (dot(norm(project(to, ref.up)), ref.heading) < -0.35 && i < 7) continue; // ni a su espalda (salvo último intento)
+      break;
+    }
+    const at = this.time + 1.1;
+    this.omens.push({ kind, pos: clone(pos), at, k: kind });
+    this.emit({ t: 'omen', k: kind, p: a3(pos), in: 1.1 });
+  }
+  updateOmens() {
+    if (!this.omens.length) return;
+    const keep = [];
+    for (const o of this.omens) { if (this.time >= o.at) this.spawnMonster(o.kind, o.pos, { omen: true }); else keep.push(o); }
+    this.omens = keep;
   }
   /** Arma al azar para un cofre de munición: de las ranuras de algún jugador vivo (no el Haz). */
   ammoPick() { const a = this.alivePlayers(), p = a.length ? a[Math.floor(this.rng.next() * a.length)] : this.players[0]; return p ? p.slots[1 + Math.floor(this.rng.next() * 4)] : 1; }
@@ -483,7 +497,7 @@ export class Game {
     this.emit({ t: 'kill', id: m.id, k: m.kind, p: a3(m.pos) });
     if (m.kind === 'racimo') this.explode(m.pos, 5.5, 22, 40, null);
     if (m.def.boss) { // al caer el corazón del vórtice todo lo demás se hace añicos
-      this.queue = []; bossDeath(this);
+      this.queue = []; this.omens = []; bossDeath(this);
       for (const o of this.monsters) if (!o.dead && o !== m) { o.dead = true; this.emit({ t: 'kill', id: o.id, k: o.kind, p: a3(o.pos) }); }
       return;
     }
@@ -684,7 +698,7 @@ export class Game {
     const boss = this.monsters.find((m) => m.def.boss && !m.dead);
     return {
       tick: this.tick, time: r2(this.time), map: this.mapId, state: this.state, phase: this.phase,
-      wave: this.wave, waveTotal: this.waveTotal, left: this.queue.length + this.monsters.length, intermission: r2(Math.max(0, this.phaseT)),
+      wave: this.wave, waveTotal: this.waveTotal, left: this.queue.length + this.omens.length + this.monsters.length, om: this.omens.map((o) => [...a3(o.pos), o.k, r2(o.at - this.time)]), intermission: r2(Math.max(0, this.phaseT)),
       fx: this.map.fx(this.time),
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
       players: this.players.map((p) => ({
