@@ -44,6 +44,9 @@ if (params.get('autoq') === '0') auto.enabled = false;
 
 /* ───────── entrada de teclado/ratón ───────── */
 const keys = new Set();
+// iPhone: sin zoom por pellizco ni doble toque, sin menú de selección (importante al anclar a la pantalla de inicio)
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault());
+let lastTap = 0; document.addEventListener('touchend', (e) => { const n = Date.now(); if (n - lastTap < 350) e.preventDefault(); lastTap = n; }, { passive: false });
 const mouse = { dx: 0, dy: 0, fire: false, ping: false, esp: false }; let pickReq = -1;
 const NOLOCK = params.get('nolock') === '1';
 let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), mouseSens = 0.0022;
@@ -185,7 +188,7 @@ function updateWeaponHud(me) {
   const key = me.sl.join(',') + '|' + JSON.stringify(me.up);
   if (session.slotKey !== key) {
     session.slotKey = key;
-    $('weapons').innerHTML = me.sl.map((w, i) => { const u = me.up[i], pips = u ? '▮'.repeat(u[0]) + '▮'.repeat(u[1]) + '▮'.repeat(u[2]) : ''; return `<div id="w${i}" data-i="${i}">${i + 1} · ${WEAPONS[w].name} <span id="a${i}"></span><i class="pips">${pips}${u && u[3] ? ' ◆' : ''}</i></div>`; }).join('');
+    $('weapons').innerHTML = me.sl.map((w, i) => { const u = me.up[i], pips = u ? '▮'.repeat(u[0]) + '▮'.repeat(u[1]) + '▮'.repeat(u[2]) : ''; return `<div id="w${i}" data-i="${i}">${i + 1}<em> · ${WEAPONS[w].name}</em><span class="nm"> </span> <span id="a${i}"></span><i class="pips">${pips}${u && u[3] ? ' ◆' : ''}</i></div>`; }).join('');
     $('weapons').querySelectorAll('div').forEach((d) => d.addEventListener('pointerdown', (e) => { if (session && session.touch) { wantWeapon = +d.dataset.i; touch.weapon = wantWeapon; e.stopPropagation(); } }));
   }
   me.sl.forEach((w, i) => { $('w' + i).classList.toggle('sel', me.w === w); $('a' + i).textContent = me.ammo[w] < 0 ? '∞' : me.ammo[w]; });
@@ -381,6 +384,10 @@ function hudDirector(state, me) {
     $('abfill').style.width = `${Math.round((1 - me.ab) * 100)}%`; ab.classList.toggle('cd', me.ab > 0.01);
     $('abkey').textContent = me.ab > 0.01 ? `${Math.ceil(me.ab * R.cd)} s` : (session && session.touch ? 'toca HABILIDAD' : 'Q listo');
   }
+  if (session && session.touch && me) { // recargas sobre los botones táctiles
+    const set = (sel, k, secs) => { const el = document.querySelector(sel); if (el) { if (k > 0.01) el.dataset.cd = Math.ceil(k * secs); else delete el.dataset.cd; } };
+    const Cc = CHARACTERS[me.char]; if (Cc) { set('.tc-mov', me.mv, Cc.mov.cd); set('.tc-esp', me.es, Cc.esp.cd); } if (me.role) set('.tc-ability', me.ab, ROLES[me.role].cd);
+  }
   const dn = $('downed');
   if (me && me.dead) { dn.classList.remove('hidden'); dn.textContent = me.lost ? 'PERDIDO… esperá la próxima oleada' : `CAÍDO · te desangrás ${Math.ceil(me.bleed)} s · ¡pedí ayuda con G!`; } else dn.classList.add('hidden');
   const bm = $('bossmech'), b = state.boss;
@@ -456,7 +463,7 @@ $('again').addEventListener('click', () => {
   if (session.mode === 'coop') { session.net.send({ t: 'restart' }); return; }
   startSolo(session.campaign || session.map, { campaign: session.campaign, intro: false });
 });
-if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !params.get('auto') && location.hostname !== 'localhost') navigator.serviceWorker.register('/sw.js').catch(() => {});
+if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !params.get('auto') && location.hostname !== 'localhost') navigator.serviceWorker.register('./sw.js').catch(() => {});
 
 // Modos automáticos para pruebas visuales y de rendimiento: ?auto=m1&bot=1&wave=3&god=1
 if (params.get('auto')) {

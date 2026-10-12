@@ -14,12 +14,20 @@ const HERO = {
   loadout: ['Equipo', 'Elegí entre 6 personajes, cada uno con un desplazamiento y un disparo especial propios, y armá tu arsenal con 14 armas. Tras cada oleada mejorás las armas que elegiste.', ['6 personajes', '15 armas', 'Mejoras']],
   options: ['Opciones', 'Calidad gráfica (Baja para iPhone), controles, sensibilidad, volumen y subtítulos.', ['PC', 'iPhone', 'Mando']],
 };
-const ART = { story: '/public/art/historia.jpg', arenas: '/public/art/arena-m1.jpg', coop: '/public/art/coop.jpg', loadout: '/public/art/opciones.jpg', bestiary: '/public/art/bestiario.jpg', options: '/public/art/opciones.jpg' };
+const ART = { story: './public/art/historia.jpg', arenas: './public/art/arena-m1.jpg', coop: './public/art/coop.jpg', loadout: './public/art/opciones.jpg', bestiary: './public/art/bestiario.jpg', options: './public/art/opciones.jpg' };
 
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); this.addBackButtons(); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); this.show('title'); this.updateStartLabel();
+  }
+  /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
+  addBackButtons() {
+    this.root.querySelectorAll('.screen').forEach((sc) => {
+      if (sc.id === 'title' || sc.id === 'main') return;
+      const b = document.createElement('button'); b.className = 'backbtn'; b.type = 'button'; b.innerHTML = '<span aria-hidden="true">‹</span> Volver'; b.setAttribute('aria-label', 'Volver al menú anterior');
+      b.addEventListener('click', (e) => { e.stopPropagation(); this.back(); }); sc.prepend(b);
+    });
   }
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
@@ -52,7 +60,7 @@ export class MenuUI {
   selectBeast(i) {
     const b = BESTIARY[i]; if (!b) return; $('bname').textContent = b.name; $('brole').textContent = b.role + (b.boss ? ' · jefe' : '');
     $('bdesc').textContent = b.desc; $('bstats').innerHTML = `<dt>Vida</dt><dd>${b.hp}</dd><dt>Tipo</dt><dd>${b.fly ? 'volador' : 'terrestre'}</dd><dt>Consejo</dt><dd>${b.tip}</dd>`;
-    const f = $('bview'), src = `/public/viewer.html?k=${b.kind}&turn=1&embed=1&big=1&q=${window.__api && window.__api.level === 'low' ? 'low' : 'medium'}`; if (f.dataset.k !== b.kind) { f.dataset.k = b.kind; f.src = new URL(src, location.href).href.replace(location.origin + '/public/', location.href.replace(/[^/]*$/, '') + 'public/'); }
+    const f = $('bview'), src = `./public/viewer.html?k=${b.kind}&turn=1&embed=1&big=1&q=${window.__api && window.__api.level === 'low' ? 'low' : 'medium'}`; if (f.dataset.k !== b.kind) { f.dataset.k = b.kind; f.src = new URL(src, document.baseURI).href; }
   }
   /* ───── equipo: personajes y armas ───── */
   buildLoadout() { buildHeroScreen(this); } // la pantalla de héroes vive en heroes-ui.js (+ public/heroes.css y public/hero-view.html)
