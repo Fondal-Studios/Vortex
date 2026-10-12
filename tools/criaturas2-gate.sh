@@ -9,7 +9,7 @@ KINDS=${@:-graviton obelisco aurora ariete espiral coloso madre}
 declare -A REST=( [graviton]=idle [obelisco]=idle [aurora]=idle [ariete]=idle [espiral]=idle )
 declare -A ATK=( [graviton]=charge [obelisco]=charge [aurora]=cast [ariete]=wind [espiral]=pull )
 declare -A FR=( [graviton]=39 [obelisco]=30 [aurora]=25 [ariete]=25 [espiral]=40 )
-declare -A CAM=( [graviton]="12 2 3 3.2 250" [obelisco]="7 1.0 2 1.6 250" [aurora]="9 1.5 3 3.2 250" [ariete]="8 1.4 3 1.2 250" [espiral]="9 1.5 3 3.0 250" )
+declare -A CAM=( [graviton]="9 1.5 2 3.2 250" [obelisco]="7 1.0 2 1.6 250" [aurora]="9 1.5 3 3.2 250" [ariete]="8 1.4 3 1.2 250" [espiral]="9 1.5 3 3.0 250" )
 retry() { for i in 1 2 3; do "$@" && return 0; sleep 3; done; return 1; }
 for k in $KINDS; do
   case $k in
@@ -69,4 +69,19 @@ PY
     ;;
   esac
 done
+if [ -n "$EXTRA" ]; then   # fotogramas de combate en 1ª persona (Baja y Media) y jefes en escena en Media
+  retry node tools/criaturas2-fp.mjs $T/fp_low.jpg low m1 "ariete:15:-5:wind,obelisco:26:-1:charge,aurora:20:4:cast,espiral:24:-11:pull,graviton:32:-4:charge" > $T/fp_low.txt
+  retry env W=960 HH=540 node tools/criaturas2-fp.mjs $T/fp_med.jpg medium m1 "ariete:14:-5:wind,obelisco:22:-1:charge,aurora:18:4:cast,espiral:24:-10:pull,graviton:30:-4:charge" > $T/fp_med.txt
+  retry env W=640 HH=360 CS_ANIM=0.6 node tools/criaturas2-escena.mjs coloso $T/cm idle 30 0 0 0 medium > $T/coloso_m.txt
+  retry env W=640 HH=360 CS_ANIM=0.6 node tools/criaturas2-escena.mjs madre $T/mm fire:1:0.9,open 30 0 0 0 medium > $T/madre_m.txt
+  python3 - <<'PY'
+from PIL import Image
+T='/tmp/cgate2'; D='/home/user/Shower-psico/shots/gate/criaturas'
+Image.open(f'{T}/fp_low.jpg').save(f'{D}/combate-baja.jpg',quality=85)
+Image.open(f'{T}/fp_med.jpg').save(f'{D}/combate-media.jpg',quality=85)
+W=Image.new('RGB',(1920,360))
+for i,f in enumerate(['cm_idle','mm_fire_1_0.9','mm_open']): W.paste(Image.open(f'{T}/{f}.jpg').resize((640,360)),(i*640,0))
+W.save(f'{D}/jefes-media.jpg',quality=85)
+PY
+fi
 cat $T/*.txt

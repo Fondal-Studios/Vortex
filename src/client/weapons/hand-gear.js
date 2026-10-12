@@ -130,7 +130,7 @@ function armGear(T, pose, H, low) {
     T.put('g', pg, at(0.07, ry(0.07) + 0.0071).toArray(), { k: K.SCR, c: gr(1), q: qb, u: -0.6 });
     for (const sg of [-1, 1]) T.box('g', [0.003, 0.0042, Hh + 0.006], at(0.07, ry(0.07) + 0.0068, sg * (W / 2 + 0.0055)).toArray(), { k: K.SEAM, c: gr(1), q: qb, sharp: true, u: -0.6 });
     // — manga corta: tubo que se deshace en polvo de cristal hacia el codo (el final nunca se ve como un corte; no domina la vista)
-    const m0 = 0.112, m1 = 0.235, mm = (m0 + m1) / 2, rr = (t) => (rx(t) + 0.0055) / (rx(mm) + 0.0055);
+    const m0 = 0.112, m1 = 0.38, mm = (m0 + m1) / 2, rr = (t) => (rx(t) + 0.0055) / (rx(mm) + 0.0055);
     T.push(new THREE.Matrix4().makeTranslation(...at(mm).toArray()).multiply(basis).multiply(new THREE.Matrix4().makeScale((rx(mm) + 0.0055) / 0.03, (m1 - m0) / 0.06, (ry(mm) + 0.0055) / 0.03)));
     T.cyl('g', [0.03 * Math.min(1.2, rr(m1)), 0.03 * rr(m0), 0.06], [0, 0, 0], { axis: 'y', k: K.SLV, c: gr(1), seg: low ? 10 : 18, u: -1.0, flow: [0, 1, 'y', 0.06], open: true });
     T.pop();

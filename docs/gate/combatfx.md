@@ -36,11 +36,34 @@ El dueño jugó y dijo: "Los disparos no tienen efectos, no se ven." Era cierto,
 | Gravedad / onda | Vórtice, Pulsar | succión ascendente / sub-grave 75 Hz + onda |
 | Cuchilla | Sierra | zumbido de hoja corto con compuerta |
 
-## Costos (medidos; ver `tools/combatfx-test.js`)
-Ver sección "Mediciones" al final.
+## Costos (medidos con `node tools/combatfx-test.js low`, WebGL por software)
+- **Baja (iPhone)**: partículas vivas máximo **150** (112 aditivas + 38 de humo; el pedido era ≤ 200; medido: Enjambre y Cometa llegan al tope), cintas vivas ≤ 140 (un solo draw call), destellos 12, anillos 8, marcas 6, esquirlas 6. **Sin PointLights nuevos** (se reutiliza la `muzzle` de Alta). El fogonazo de pantalla son 3 grupos de 3 sprites aditivos pegados a la cámara (9 sprites, pool fijo, 0 asignaciones por disparo).
+- **CPU por disparo** (`CombatFx.shot`): 0,1-1,5 ms típico; hasta ~5 ms en el PRIMER disparo de algunas armas (compilación JIT/primer uso). Las texturas de fogonazo se calientan 1,5 s después de cargar para que no haya tirón.
+- **Alta**: 1700 partículas / 900 cintas de tope; el bloom amplifica lo aditivo, por eso en Media/Alta el destello de pantalla se atenúa (opacidad ×0,5, halo ×0,6, lavado 0,15).
+- **Audio**: cada disparo crea 2-8 nodos de WebAudio efímeros (osciladores/ruido con envolvente); las armas de cadencia loca tienen compuerta de 40-50 ms.
+- Límite de la medición: en Alta el WebGL por software da 1-3 cuadros/s, así que la cifra de ms/tiro en Alta no es representativa de un teléfono o una PC real. **No se midió en un iPhone real.**
+
+## Defectos conocidos / lo flojo
+1. **La traza en 1ª persona es corta en pantalla** (el cañón del viewmodel apunta casi al centro). Se compensa con el origen desplazado, el fogonazo grande y el impacto; un hitscan al horizonte se ve como una línea de ~60-100 px, no de borde a borde.
+2. **Ráfaga y Gemelas** (cadencia alta) tienen el fogonazo más modesto a propósito (para no ser estroboscópico): se leen, pero son los menos espectaculares.
+3. En **Alta** algunos impactos sobre criaturas "abiertas" (esfera blanca) se ven lavados: la criatura Geoda abierta ya es muy brillante de por sí.
+4. **Sin prueba en dispositivo real**: la sensación de la patada de cámara/FOV y el volumen relativo de los sonidos están afinados "de oído" sobre cifras (pico/duración/brillo), no escuchados en un altavoz.
+5. El **ancho mínimo de cinta** (efectos.js) también afecta a chispas lejanas: a 100 m una chispa mide ~0,6 m (se ve; podría verse demasiado grande).
+6. `e2e coop` (tests/e2e.test.js) falló una vez por `page.goto` agotando 30 s con la máquina cargada por otros Chromium; los e2e de PC y de iPhone pasan.
+
+## Auto-puntuación (rúbrica de `docs/ARTGATE.md`; NO sustituye al crítico independiente)
+| Criterio | Nota | Por qué |
+|---|---|---|
+| Silueta y legibilidad | 8 | Las 25 armas se distinguen en una captura de 844×390 por color, dibujo del fogonazo y forma de traza (rayo, zigzag, onda, llamas, abanico, hoja). |
+| Modelado y detalle | 7 | Todo es sprites/cintas/partículas procedurales; funcional y variado, no "hecho a mano". |
+| Materiales y luz | 7 | Color por arma y luz por arma bien; en Alta el bloom quema a blanco algunos impactos. |
+| Coherencia | 8 | Colores canon (`WEAPON_COLORS`), mismo lenguaje cristal/energía. |
+| Animación y feedback | 9 | Fogonazo + traza + impacto + número + marcador + sonido + patada de cámara/FOV + sacudida, por arma, con "reducir movimiento". |
+| Costo | 8 | Baja ≤ 150 partículas, sin PointLights nuevos, sin errores de consola. |
+Mínimo = **7** (modelado y luz). Para llegar a 8 en todo haría falta un crítico que mire en dispositivo real y/o arte hecho a mano (sprites pintados) que hoy no existe.
 
 ## Rutas
-- Capturas definitivas: `shots/gate/combatfx/arma-NN-low.jpg` (25 armas) y `arma-NN-high.jpg` (18 armas), 844×390 (celular horizontal). Escenas: `escena-*.jpg`, `muerte-*.jpg`.
+- Capturas definitivas: `shots/gate/combatfx/arma-NN-low.jpg` (25 armas) y `arma-NN-high.jpg` (armas 0-6, 8, 10, 12, 14-16, 18, 20, 21, 23, 24 = 18 armas), 844×390 (celular horizontal). Escenas (1000×560, cámara lenta ×5): `escena-boom-*.jpg`, `muerte-*-*.jpg` (astilla, cristal, fuego, hielo, rayo). Los demás `escena-*`/`otros-*` son del agente anterior.
 - Herramientas nuevas: `tools/shot-combatfx-real.js` (captura en tiempo real, sin cámara lenta; congela los efectos 0,05 s después de un disparo NUEVO y reintenta si justo no hay destello), `tools/combatfx-test.js` (presupuesto y "reducir movimiento"), `tools/audio-combatfx-test.js` (renderiza cada sonido sin conexión: pico, duración, brillo).
 - Cómo repetirlo: `node tools/shot-combatfx-real.js todas low shots/gate/combatfx 844 390 500 0.05` (y `high`). `SIN_BLANCOS=1` dispara al horizonte. `node tools/combatfx-test.js low`. `node tools/audio-combatfx-test.js`.
 

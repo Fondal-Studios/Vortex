@@ -251,7 +251,7 @@ const FRAG = `
       float fl = 0.5 + 0.5 * sin(vAux * 18.0 - uTime * 3.4);
       vec3 c = mix(uColor, uAccent, fl * 0.45); col = c * (0.75 + 0.45 * fl + 1.2 * uFire + 0.7 * uUpg) + uWeap * 0.2;
     } else if (kd > 3.5 && kd < 4.5) {                // manga de tela: trama, venas de cristal que corren y se deshace en polvo de cristal al final
-      float fade = smoothstep(0.12, 0.95, 1.0 - vAux), nz = vn(vPos * 300.0) * 0.6 + vn(vPos * 640.0 + 3.0) * 0.4, lim = fade * 1.12 - 0.05;
+      float fade = smoothstep(0.7, 1.0, 1.0 - vAux), nz = vn(vPos * 300.0) * 0.6 + vn(vPos * 640.0 + 3.0) * 0.4, lim = fade * 1.12 - 0.05;
       if (nz < lim) discard;
       float dif0 = dot(N, L1) * 0.5 + 0.5, hemi = N.y * 0.5 + 0.5, dif2 = max(dot(N, L2), 0.0) * 0.3;
       float rib = 0.88 + 0.12 * sin(vPos.y * 420.0 + vPos.x * 110.0) * sin(vPos.z * 380.0);

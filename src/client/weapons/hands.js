@@ -84,7 +84,7 @@ function solveSupport(job) {
     for (const fi of [1, 2, 3, 4]) closeFinger(pose, fi, dist, { rad, abd: ABD[fi], base: [0.25, 0.3, 0.15] });
     fitThumb(pose, dist, V(cm[0] - R - 0.0095 * S, c[1] + 0.045, c[2] - R * 0.3), { rad: rad + 0.001 }); bendArm(pose, H, ...armDev(V(0.55, -0.75, 0.4), 1.2));
   } else {
-    const over = QP('over') !== '0';
+    const over = QP('over') === '1';   // por defecto: agarre INFERIOR (mano debajo/al costado del guardamano; nunca tapa cañón ni boca)
     if (over) pose.root = makeRoot(V(cm[0] + 0.05 - 0.3 * R, c[1] + R + margin, c[2] + 0.004), BASIS_OVER, new THREE.Euler(0, -0.5, 0), S); else
     pose.root = makeRoot(V(cm[0] + 0.062 - 0.3 * R, c[1] - R - margin, c[2] - 0.004), BASIS_UNDER, new THREE.Euler(0, -0.5, 0), S); pose.update();
     for (const fi of [1, 2, 3, 4]) closeFinger(pose, fi, dist, { rad, abd: ABD[fi] * 0.6, base: [0.2, 0.3, 0.15] });

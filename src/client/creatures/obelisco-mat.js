@@ -89,7 +89,7 @@ export function bioMaterial(o = {}) {
           diffuseColor.rgb = pow(max((flesh * (gFl + gMb) + chit * gCh + bone * gBo + cry * gCr) * uAlb, vec3(0.0)), vec3(uLift));
           { // HERIDAS (kit.setWound → uWound = 1 - hp/maxhp): manchas chamuscadas con borde incandescente que crecen con el daño
             float wd = clamp(uWound, 0.0, 1.0), wn = vn(q * 1.9 + 13.0 + n2 * 0.6), lo = 0.7 - 0.34 * wd;
-            gBlot = smoothstep(lo + 0.05, lo + 0.14, wn) * step(0.03, wd); gRim = smoothstep(lo - 0.015, lo + 0.05, wn) * (1.0 - smoothstep(lo + 0.05, lo + 0.14, wn)) * step(0.03, wd);
+            gBlot = smoothstep(lo + 0.035, lo + 0.07, wn) * step(0.03, wd); gRim = smoothstep(lo - 0.01, lo + 0.02, wn) * (1.0 - smoothstep(lo + 0.035, lo + 0.07, wn)) * step(0.03, wd);
             diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.28 + vec3(0.012), gBlot * 0.8 * (1.0 - gCr));
           }
           #ifndef FLAT_SHADED
@@ -120,7 +120,7 @@ export function bioMaterial(o = {}) {
           float flick = 0.75 + 0.25 * sin(uTime * 3.0 + vO.y * 3.0 + vO.x * 2.0);
           totalEmissiveRadiance += uGlowCol * (vS.y * uGlow * flick * (1.0 - gCr) + gVein * uVeinGlow * flick + gCrack * uCrackGlow * flick);
           totalEmissiveRadiance += vColor.rgb * gCr * uCry * (0.35 + vS.y * 1.6) * (0.85 + 0.15 * flick);
-          totalEmissiveRadiance += uGlowCol * (gRim * 1.5 + gBlot * 0.12) * uWound * flick * (1.0 - gCr);
+          totalEmissiveRadiance += uGlowCol * (gRim * 1.6 + gBlot * 0.05) * uWound * flick * (1.0 - gCr);
           totalEmissiveRadiance += vec3(1.0, 0.85, 0.7) * uHurt * 0.6;
         }`);
     if (hi) sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>

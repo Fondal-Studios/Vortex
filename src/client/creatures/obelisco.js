@@ -69,6 +69,8 @@ export default function build(kit, color) {
     hp.push(paint(blobGeo(0.62, 0.46, 0.58, 18, 12), FLESH2, 0, 0, (p, n) => ({ k: 0.75 + 0.35 * n.y })));
     hp[0] = place(hp[0], [0, 0.08, -0.1]);
     hp.push(crystals([-2, -1, 0, 1, 2].slice(0, LOW ? 3 : 5).map((a, i, arr) => { const ang = (a / 2) * 0.9; return { p: new V3(Math.sin(ang) * 0.34, 0.56 + Math.cos(ang) * 0.2, -0.22), d: new V3(-Math.sin(ang) * 0.9, 0.9, -0.5), r: 0.065, h: 0.5 + (i % 2) * 0.12, c: CRY }; }), { sides: 6 }));
+    // dos antenas-lanza de cristal sobre la nuca: silueta de «francotirador» que se ve a 40–60 m (finas: no afectan a la caja de impacto)
+    hp.push(crystals([-1, 1].map((sd) => ({ p: new V3(sd * 0.2, 0.5, -0.3), d: new V3(sd * 0.22, 1, -0.28), r: 0.045, h: 1.05, c: CRY, glow: 1.2 })), { sides: 5 }));
     mesh(merge(hp), head); }
   const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.34, 0.2); head.add(eyeRoot);
   const RE = 0.5;
