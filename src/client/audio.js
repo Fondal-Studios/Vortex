@@ -28,32 +28,102 @@ export class Sound {
   }
   tone({ f = 440, f2 = null, type = 'sine', dur = 0.15, vol = 0.3, at = null, att = 0.004, delay = 0 }) {
     if (!this.ctx || !this.enabled) return; const t = this.ctx.currentTime + delay;
-    const o = this.ctx.createOscillator(), e = this.ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+    vol *= this._vk || 1; const o = this.ctx.createOscillator(), e = this.ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
     if (f2) o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
     e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(1, t + att); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(e); e.connect(this._route(vol, at)); o.start(t); o.stop(t + dur + 0.05);
   }
   noise({ dur = 0.2, vol = 0.3, freq = 1500, q = 1, type = 'lowpass', freq2 = null, at = null, delay = 0 }) {
     if (!this.ctx || !this.enabled) return; const t = this.ctx.currentTime + delay;
-    const s = this.ctx.createBufferSource(); s.buffer = this.noiseBuf; const f = this.ctx.createBiquadFilter(); f.type = type; f.Q.value = q;
+    vol *= this._vk || 1; const s = this.ctx.createBufferSource(); s.buffer = this.noiseBuf; const f = this.ctx.createBiquadFilter(); f.type = type; f.Q.value = q;
     f.frequency.setValueAtTime(freq, t); if (freq2) f.frequency.exponentialRampToValueAtTime(freq2, t + dur);
     const e = this.ctx.createGain(); e.gain.setValueAtTime(1, t); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(f); f.connect(e); e.connect(this._route(vol, at)); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
   }
 
-  shot(w, at) {
+  /* ───── armas: cada una con su firma (grave + chasquido + cola), todo sintetizado ───── */
+  /** Deja pasar un sonido como máximo cada `gap` segundos por clave (armas de cadencia loca no saturan el audio). */
+  _gate(k, gap) { const t = this.ctx ? this.ctx.currentTime : 0; const g = this._gt || (this._gt = {}); if (g[k] != null && t - g[k] < gap) return false; g[k] = t; return true; }
+  /** Golpe grave: seno que cae de f a f2. */
+  thump(f, f2, dur, vol, at, delay = 0) { this.tone({ f, f2, type: 'sine', dur, vol, at, delay, att: 0.002 }); }
+  /** Chasquido: ráfaga muy corta de ruido agudo. */
+  crack(vol, at, freq = 3500, dur = 0.04, delay = 0) { this.noise({ dur, vol, freq, type: 'highpass', at, delay }); }
+  shot(w, at) { this._vk = 2.2; try { this._shot(w, at); } finally { this._vk = 1; } }
+  _shot(w, at) {
+    const T = (o) => this.tone({ ...o, at }), N = (o) => this.noise({ ...o, at }), r = Math.random;
     switch (w) {
-      case 0: this.tone({ f: 1100, f2: 300, type: 'triangle', dur: 0.12, vol: 0.25, at }); this.tone({ f: 2200, f2: 900, type: 'sine', dur: 0.08, vol: 0.12, at }); break;
-      case 1: this.noise({ dur: 0.3, vol: 0.5, freq: 3000, freq2: 300, at }); this.tone({ f: 160, f2: 50, type: 'sawtooth', dur: 0.25, vol: 0.4, at }); break;
-      case 2: this.tone({ f: 700, f2: 420, type: 'square', dur: 0.06, vol: 0.14, at }); this.noise({ dur: 0.05, vol: 0.1, freq: 6000, type: 'highpass', at }); break;
-      case 3: this.tone({ f: 120, f2: 40, type: 'sawtooth', dur: 0.4, vol: 0.45, at }); this.noise({ dur: 0.35, vol: 0.25, freq: 900, freq2: 120, at }); break;
-      case 4: this.tone({ f: 2600, f2: 120, type: 'sine', dur: 0.5, vol: 0.4, at }); this.tone({ f: 1300, f2: 60, type: 'triangle', dur: 0.6, vol: 0.25, at }); break;
+      case 0: // Haz: zap láser limpio
+        this.thump(150, 55, 0.14, 0.34, at); T({ f: 2400, f2: 240, type: 'sawtooth', dur: 0.11, vol: 0.2 }); T({ f: 4200, f2: 1500, dur: 0.05, vol: 0.08 }); this.crack(0.14, at, 5000, 0.03); N({ dur: 0.18, vol: 0.12, freq: 2500, freq2: 400 }); break;
+      case 1: // Prisma: estallido de esquirlas con campanitas
+        this.thump(130, 45, 0.22, 0.42, at); this.crack(0.3, at, 2800, 0.06); N({ dur: 0.3, vol: 0.34, freq: 3200, freq2: 300 });
+        [1760, 2349, 2960].forEach((f, i) => T({ f, f2: f * 0.94, dur: 0.2, vol: 0.07, delay: 0.012 * i })); break;
+      case 2: // Ráfaga: seco y corto
+        if (!this._gate('w2', 0.045)) return; this.thump(190, 80, 0.07, 0.24, at); this.crack(0.2, at, 4500, 0.035); T({ f: 1100, f2: 450, type: 'square', dur: 0.05, vol: 0.07 }); N({ dur: 0.08, vol: 0.08, freq: 2500, freq2: 800 }); break;
+      case 3: // Nova: cañón pesado
+        this.thump(95, 28, 0.55, 0.58, at); T({ f: 220, f2: 50, type: 'sawtooth', dur: 0.4, vol: 0.24 }); N({ dur: 0.6, vol: 0.4, freq: 1400, freq2: 90 }); this.crack(0.2, at, 1800, 0.06); T({ f: 300, f2: 900, dur: 0.25, vol: 0.08, delay: 0.05 }); break;
+      case 4: // Aguja: carga que sube y chasquido de riel
+        T({ f: 400, f2: 3200, dur: 0.09, vol: 0.15 }); this.crack(0.5, at, 1800, 0.09, 0.08); this.thump(120, 30, 0.5, 0.5, at, 0.08); T({ f: 2600, f2: 90, dur: 0.7, vol: 0.28, delay: 0.08 }); T({ f: 1500, f2: 1480, type: 'triangle', dur: 0.6, vol: 0.06, delay: 0.1 }); N({ dur: 0.5, vol: 0.25, freq: 5000, freq2: 300, delay: 0.08 }); break;
+      case 5: // Pulso: pistola de pulso, seca y firme
+        this.thump(210, 60, 0.14, 0.4, at); T({ f: 1300, f2: 520, type: 'square', dur: 0.08, vol: 0.12 }); this.crack(0.2, at, 3800, 0.04); T({ f: 800, f2: 300, dur: 0.15, vol: 0.12 }); break;
+      case 6: // Gemelas: dos cañones livianos
+        if (!this._gate('w6', 0.04)) return; T({ f: 950 + r() * 250, f2: 480, type: 'triangle', dur: 0.05, vol: 0.1 }); this.crack(0.14, at, 6000, 0.03); this.thump(250, 110, 0.05, 0.16, at); break;
+      case 7: // Solar: siseo de luz
+        if (!this._gate('w7', 0.045)) return; N({ dur: 0.1, vol: 0.5, freq: 1400 + r() * 1000, q: 2, type: 'bandpass' }); this.thump(120, 70, 0.07, 0.14, at); break;
+      case 8: // Fractal: arco que chisporrotea
+        T({ f: 3200, f2: 300, type: 'sawtooth', dur: 0.1, vol: 0.14 }); T({ f: 1700, f2: 200, type: 'square', dur: 0.14, vol: 0.08 }); this.thump(140, 60, 0.12, 0.26, at);
+        for (let i = 0; i < 4; i++) this.crack(0.13, at, 3500 + r() * 3000, 0.02 + r() * 0.02, 0.02 + i * 0.035); break;
+      case 9: // Enjambre: salva de cinco misiles
+        for (let i = 0; i < 5; i++) { N({ dur: 0.18, vol: 0.12, freq: 600, freq2: 2600, q: 2, type: 'bandpass', delay: i * 0.045 }); this.thump(180, 90, 0.06, 0.14, at, i * 0.045); } break;
+      case 10: // Cometa: lanzamiento grave con silbido ascendente
+        this.thump(80, 28, 0.5, 0.52, at); T({ f: 180, f2: 1100, dur: 0.35, vol: 0.12, delay: 0.02 }); N({ dur: 0.5, vol: 0.3, freq: 1800, freq2: 120 }); this.crack(0.15, at, 2000, 0.05); break;
+      case 11: // Vórtice: succión
+        T({ f: 70, f2: 420, dur: 0.45, vol: 0.3 }); T({ f: 140, f2: 840, type: 'triangle', dur: 0.45, vol: 0.1, delay: 0.03 }); N({ dur: 0.45, vol: 0.22, freq: 200, freq2: 3500 }); this.thump(60, 28, 0.4, 0.3, at, 0.2); break;
+      case 12: // Lanza: cristal que se parte
+        T({ f: 2300, f2: 1150, dur: 0.3, vol: 0.12 }); T({ f: 3450, f2: 1700, type: 'triangle', dur: 0.25, vol: 0.08 }); N({ dur: 0.15, vol: 0.12, freq: 7000, type: 'highpass' }); this.thump(110, 45, 0.2, 0.32, at); this.crack(0.25, at, 5000, 0.05); break;
+      case 13: // Cetro Vital: cálido, de vida
+        T({ f: 523, f2: 784, dur: 0.2, vol: 0.15 }); T({ f: 784, f2: 1175, dur: 0.22, vol: 0.09, delay: 0.04 }); N({ dur: 0.12, vol: 0.06, freq: 1200, freq2: 400 }); this.thump(180, 100, 0.1, 0.16, at); break;
+      case 14: // Eclipse: escopeta pesada + bombeo
+        this.thump(90, 26, 0.5, 0.62, at); N({ dur: 0.45, vol: 0.5, freq: 3500, freq2: 150 }); this.crack(0.45, at, 2500, 0.07); T({ f: 140, f2: 50, type: 'sawtooth', dur: 0.3, vol: 0.2 });
+        this.crack(0.2, at, 1800, 0.03, 0.28); T({ f: 400, f2: 180, type: 'square', dur: 0.06, vol: 0.1, delay: 0.28 }); this.crack(0.16, at, 2400, 0.03, 0.35); break;
+      case 15: // Voltaico: zumbido eléctrico
+        T({ f: 130, f2: 100, type: 'sawtooth', dur: 0.18, vol: 0.2 }); T({ f: 2800, f2: 700, type: 'square', dur: 0.12, vol: 0.1 }); this.thump(150, 60, 0.12, 0.2, at);
+        for (let i = 0; i < 5; i++) this.crack(0.12, at, 3000 + r() * 4000, 0.02 + r() * 0.025, 0.01 + i * 0.03); break;
+      case 16: // Glaciar: hielo que cruje
+        N({ dur: 0.1, vol: 0.13, freq: 5200, q: 4, type: 'bandpass' }); T({ f: 2640, f2: 2200, dur: 0.25, vol: 0.08 }); T({ f: 3520, dur: 0.2, vol: 0.05, delay: 0.02 }); this.thump(140, 50, 0.2, 0.3, at); N({ dur: 0.2, vol: 0.12, freq: 3000, freq2: 600 }); break;
+      case 17: // Plaga: burbujas viscosas
+        T({ f: 280, f2: 720, dur: 0.08, vol: 0.16 }); T({ f: 350, f2: 900, dur: 0.07, vol: 0.12, delay: 0.05 }); T({ f: 220, f2: 640, dur: 0.09, vol: 0.12, delay: 0.09 }); N({ dur: 0.2, vol: 0.15, freq: 700, freq2: 200 }); this.thump(110, 50, 0.1, 0.2, at); break;
+      case 18: // Brasa: llama crepitante
+        if (!this._gate('w18', 0.045)) return; N({ dur: 0.1, vol: 0.6, freq: 1200, freq2: 300 }); N({ dur: 0.06, vol: 0.25, freq: 200 + r() * 300, q: 3, type: 'bandpass' }); if (r() < 0.4) this.crack(0.08, at, 5000, 0.02); break;
+      case 19: // Sembradora: golpe seco, clic metálico y pitido de armado
+        this.thump(160, 45, 0.2, 0.52, at); this.crack(0.3, at, 1600, 0.05); T({ f: 800, f2: 700, type: 'square', dur: 0.05, vol: 0.1, delay: 0.04 }); T({ f: 1800, dur: 0.05, vol: 0.08, delay: 0.22 }); break;
+      case 20: // Sierra: zumbido de hoja
+        if (!this._gate('w20', 0.05)) return; T({ f: 180 + r() * 60, f2: 150, type: 'sawtooth', dur: 0.07, vol: 0.22 }); N({ dur: 0.05, vol: 0.3, freq: 3000, type: 'highpass' }); break;
+      case 21: // Pulsar: onda sub-grave en todas direcciones
+        this.thump(75, 24, 0.6, 0.68, at); T({ f: 700, f2: 90, dur: 0.45, vol: 0.25 }); N({ dur: 0.5, vol: 0.3, freq: 2500, freq2: 100 }); T({ f: 1400, f2: 700, type: 'triangle', dur: 0.4, vol: 0.06, delay: 0.05 }); break;
+      case 22: // Dardos: tres tics de cristal
+        for (let i = 0; i < 3; i++) { T({ f: 1700, f2: 1100, type: 'triangle', dur: 0.05, vol: 0.1, delay: i * 0.04 }); this.crack(0.1, at, 6000, 0.03, i * 0.04); } this.thump(200, 90, 0.08, 0.2, at); break;
+      case 23: // Réquiem: campana grave del vacío
+        this.thump(55, 24, 0.8, 0.6, at); T({ f: 110, dur: 0.8, vol: 0.15 }); T({ f: 165, dur: 0.7, vol: 0.08 }); N({ dur: 0.7, vol: 0.34, freq: 2200, freq2: 70 }); this.crack(0.3, at, 2000, 0.08); T({ f: 220, f2: 110, type: 'sawtooth', dur: 0.5, vol: 0.1 }); break;
+      case 24: { const pick = [0, 15, 16, 18, 3, 12, 8]; this._shot(pick[Math.floor(r() * pick.length)], at); break; }
+      default: this.thump(150, 55, 0.14, 0.3, at);
     }
   }
-  hit(at) { this.tone({ f: 900 + Math.random() * 300, f2: 400, type: 'triangle', dur: 0.05, vol: 0.12, at }); }
-  boom(at) { this.noise({ dur: 0.7, vol: 0.7, freq: 1800, freq2: 60, at }); this.tone({ f: 90, f2: 25, type: 'sine', dur: 0.6, vol: 0.6, at }); }
+  hit(at) { // golpe a una criatura: tic + golpe húmedo (tres variantes para que no se repita)
+    if (!this._gate('hit', 0.02)) return; const v = Math.random(); this._vk = 2.4; try { this._hit(at, v); } finally { this._vk = 1; }
+  }
+  _hit(at, v) {
+    if (v < 0.34) { this.tone({ f: 900 + Math.random() * 300, f2: 400, type: 'triangle', dur: 0.05, vol: 0.13, at }); this.thump(180, 90, 0.06, 0.14, at); }
+    else if (v < 0.67) { this.noise({ dur: 0.06, vol: 0.12, freq: 1600, freq2: 500, at }); this.tone({ f: 520, f2: 260, type: 'sine', dur: 0.07, vol: 0.12, at }); }
+    else { this.crack(0.1, at, 4500, 0.025); this.thump(240, 100, 0.07, 0.15, at); }
+  }
+  boom(at) { this._vk = 1.4; try { this._boom(at); } finally { this._vk = 1; } }
+  _boom(at) { // explosión: golpe sub-grave + estallido + retumbo largo
+    this.thump(70, 22, 0.85, 0.85, at); this.noise({ dur: 0.9, vol: 0.7, freq: 2600, freq2: 60, at }); this.crack(0.4, at, 1500, 0.08);
+    this.noise({ dur: 1.1, vol: 0.4, freq: 400, freq2: 40, at, delay: 0.1 }); this.tone({ f: 60, f2: 30, type: 'sawtooth', dur: 0.6, vol: 0.2, at });
+  }
   /** Marcador de impacto (sonido de UI, sin posición): 'hit' golpe normal · 'crit' crítico · 'armor' blindado · 'kill' eliminación. */
-  hitmark(kind = 'hit') {
+  hitmark(kind = 'hit') { this._vk = kind === 'hit' ? 3 : kind === 'armor' ? 2.5 : 1.8; try { this._hitmark(kind); } finally { this._vk = 1; } }
+  _hitmark(kind) {
     switch (kind) {
       case 'crit': this.tone({ f: 1500, f2: 2300, type: 'triangle', dur: 0.07, vol: 0.2 }); this.tone({ f: 2300, f2: 3200, type: 'sine', dur: 0.12, vol: 0.16, delay: 0.045 }); this.noise({ dur: 0.05, vol: 0.08, freq: 7000, type: 'highpass' }); break;
       case 'armor': this.tone({ f: 620, f2: 540, type: 'square', dur: 0.05, vol: 0.1 }); this.noise({ dur: 0.06, vol: 0.12, freq: 3200, q: 6, type: 'bandpass' }); break;
@@ -106,6 +176,10 @@ export class Sound {
       madre: () => { this.tone({ f: 65, f2: 40, type: 'sawtooth', dur: 1.4, vol: 0.55, at }); this.tone({ f: 130, f2: 190, type: 'sine', dur: 1.0, vol: 0.3, at }); },
     };
     (V[kind] || V.astilla)();
+    if (ev === 'die') { // la criatura se rompe: esquirlas de cristal + golpe sordo
+      this.noise({ dur: 0.28, vol: 0.26, freq: 4200, type: 'highpass', at }); this.tone({ f: 120, f2: 40, type: 'sine', dur: 0.3, vol: 0.34, at, att: 0.002 });
+      for (let i = 0; i < 3; i++) this.tone({ f: 1800 + Math.random() * 1600, f2: 900, type: 'triangle', dur: 0.12, vol: 0.06, at, delay: 0.02 + i * 0.035 });
+    }
   }
 
   /* ───── música generativa ───── */

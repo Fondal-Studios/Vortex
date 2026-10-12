@@ -27,7 +27,7 @@ export function handLod(name) {
   const p16 = dec(d.pos, Int16Array), n8 = dec(d.nor, Int8Array), w8 = dec(d.sw, Uint8Array);
   for (let i = 0; i < n * 3; i++) { H.pos[i] = p16[i] / 10000; H.nor[i] = n8[i] / 127; } for (let i = 0; i < n * 4; i++) H.sw[i] = w8[i] / 255;
   // ── coordenadas derivadas: aux (flujo normalizado: muñeca 0 · nudillos 1 · punta 2), uvm = (u, v, máscara de tatuaje), dedo dominante
-  H.aux = new Float32Array(n); H.uvm = new Float32Array(n * 3); H.fing = new Int8Array(n).fill(-1);
+  H.aux = new Float32Array(n); H.rs = new Float32Array(n * 4); H.uvm = new Float32Array(n * 3); H.fing = new Int8Array(n).fill(-1);
   const chains = FNAMES.map((f, fi) => { const b = FINGERS[f]; return { pts: [REST[b[0]], REST[b[1]], REST[b[2]], tips[f]], par: fi === 0 ? [0.4, 1.0, 1.5, 2.0] : [1.0, 1.333, 1.666, 2.0] }; });
   const P = V(), Ap = V(), s = V(), r = V();
   for (let i = 0; i < n; i++) {
@@ -39,8 +39,9 @@ export function handLod(name) {
       for (let k = 0; k < 3; k++) { s.copy(c.pts[k + 1]).sub(c.pts[k]); const L2 = s.lengthSq(); const t = Math.min(1, Math.max(0, r.copy(P).sub(c.pts[k]).dot(s) / L2)); Ap.copy(c.pts[k]).addScaledVector(s, t); const dd = Ap.distanceToSquared(P); if (dd < best) { best = dd; aux = c.par[k] + (c.par[k + 1] - c.par[k]) * t; r.copy(Ap); H._ax = r.x; H._ay = r.y; } }
       H.aux[i] = aux; const ax = H._ax, ay = H._ay;
       H.uvm[i * 3] = fb === 0 ? aux * 0.07 : P.z; H.uvm[i * 3 + 1] = ax + 0.011 * Math.atan2(P.x - ax, P.y - ay); H.uvm[i * 3 + 2] = 1;
+      H.rs[i * 4] = Math.atan2(P.x - ax, P.y - ay); H.rs[i * 4 + 1] = P.z; H.rs[i * 4 + 2] = H.nor[i * 3 + 1]; H.rs[i * 4 + 3] = fb; // rs: finger -> (ángulo alrededor del dedo, z, normal-y, dedo)
     } else {
-      H.aux[i] = Math.max(-1.2, Math.min(1, P.z / 0.0964)); H.uvm[i * 3] = P.z; H.uvm[i * 3 + 1] = P.x; H.uvm[i * 3 + 2] = smooth(-0.1, 0.4, H.nor[i * 3 + 1]);
+      H.aux[i] = Math.max(-1.2, Math.min(1, P.z / 0.0964)); H.rs[i * 4] = P.x; H.rs[i * 4 + 1] = P.z; H.rs[i * 4 + 2] = H.nor[i * 3 + 1]; H.rs[i * 4 + 3] = -1; H.uvm[i * 3] = P.z; H.uvm[i * 3 + 1] = P.x; H.uvm[i * 3 + 2] = smooth(-0.1, 0.4, H.nor[i * 3 + 1]);
     }
   }
   return (_lods[name] = H);

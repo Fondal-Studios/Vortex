@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { cfg } from './quality.js';
 import { qualityOf } from './weapons/kit.js';
 import { BUILD, WEAPON_COLORS } from './weapons/guns.js';
-import { VMFx, flashTexture } from './weapons/fx.js';
+import { VMFx, flashTexture, makeBeam } from './weapons/fx.js';
 import { applyUpgrades } from './weapons/mods.js';
 import { setHandStyle, HAND_STYLE, HAND_PRESETS, HU, TATTOOS, GLOVES } from './weapons/handmat.js';
 
@@ -33,7 +33,7 @@ export class Viewmodels {
   /** Reconstruye las armas con otro nivel de calidad ('low' | 'medium' | 'high'). */
   setQuality(name) {
     this.q = qualityOf(name); const cur = this.cur;
-    for (const it of this.items) if (it) { this.root.remove(it.rig); it.W.dispose(); it.flash.material.dispose(); it.glow.material.dispose(); }
+    for (const it of this.items) if (it) { this.root.remove(it.rig); it.W.dispose(); it.shape.material.dispose(); it.glow.material.dispose(); it.beam.material.dispose(); it.beam.geometry.dispose(); }
     this.items = []; this.fx.dispose(); this.fx = new VMFx(this.root, this.halo, this.q); if (cur >= 0) this._ensure(cur).rig.visible = true;
   }
   _ensure(i) {
@@ -41,7 +41,8 @@ export class Viewmodels {
     const W = BUILD[i](this.q, true), rig = new THREE.Group(); rig.add(W.group); W.group.userData.index = i; W.group.userData.muzzle = W.muzzle; if (this.upg[i]) applyUpgrades(W.group, this.upg[i]);
     const hex = WEAPON_COLORS[i], shape = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTexture(W.flash.shape), color: new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.55), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: hex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
-    for (const s of [glow, shape]) { s.position.set(...W.muzzle); s.renderOrder = 10; rig.add(s); }
+    for (const s of [glow, shape]) { s.position.set(...W.muzzle); s.renderOrder = 10; s.visible = false; rig.add(s); }
+    const beam = makeBeam(hex); beam.position.set(...W.muzzle); beam.visible = false; beam.renderOrder = 9; rig.add(beam);
     rig.visible = false; this.root.add(rig);
     const r = W.recoil, sp = { z: new Spring(r.k, r.c), y: new Spring(r.k, r.c), p: new Spring(r.k * 0.9, r.c), r: new Spring(r.k, r.c) };
     const tmpP = new THREE.Vector3(), tmpV = new THREE.Vector3(), pq = new THREE.Quaternion();
@@ -51,7 +52,7 @@ export class Viewmodels {
       shard: (p, v, hex2, s = 1) => this.fx.shard(toRoot(p), dirRoot(v), hex2, s),
       puff: (p, v, hex2, o) => this.fx.puff(toRoot(p), dirRoot(v), hex2, { ...o, size: (o && o.size || 0.08) * rig.scale.x * 1.6, grow: ((o && o.grow) || 0.2) * rig.scale.x * 1.6 }),
     };
-    it = { W, rig, sp, shape, glow, f: 0, ctx, auto: W.flash.shape === 'jet' };
+    it = { W, rig, sp, shape, glow, beam, f: 0, ctx, auto: W.flash.shape === 'jet' };
     if (this.ammo.n !== undefined) W.setAmmo(this.ammo.n, this.ammo.max);
     this.items[i] = it; return it;
   }
@@ -77,7 +78,7 @@ export class Viewmodels {
     const it = this.items[this.cur]; if (!it || this.phase === 'out') return;
     const { W, sp } = it, r = W.recoil;
     sp.z.v += r.z * Math.sqrt(r.k) * 1.2; sp.y.v += -r.y * Math.sqrt(r.k) * 1.2; sp.p.v += r.pitch * Math.sqrt(r.k) * 1.1; sp.r.v += (Math.random() - 0.5) * 2 * r.roll * Math.sqrt(r.k) * 1.2;
-    it.f = 1; it.shape.material.rotation = Math.random() * 6.28; it.rig.updateMatrix(); W.fire(it.ctx);
+    it.f = 1; it.shape.material.rotation = Math.random() * 6.28; it.rig.updateMatrix(); W.fire(it.ctx); it.beamJ = Math.random();
   }
   update(dt, { firing = false, hidden = false, look = [0, 0], speed = 0, ammo, maxAmmo } = {}) {
     dt = Math.min(dt, 0.1); this.t += dt; this.hidden = hidden;
@@ -112,8 +113,15 @@ export class Viewmodels {
     // fogonazo: destello con forma propia + halo
     it.f = Math.max(0, it.f - dt * W.flash.decay);
     const f = it.f, jit = it.auto ? 0.75 + Math.random() * 0.5 : 1; if (it.auto && f > 0.5) it.shape.material.rotation = Math.random() * 6.28;
-    it.shape.material.opacity = Math.min(1, f * 1.4); it.shape.scale.setScalar(W.flash.size * 0.4 * (0.55 + 0.6 * f) * jit);
-    it.glow.material.opacity = f * f * (W.flash.glow ?? 0.55); it.glow.scale.setScalar(W.flash.size * 0.4 * (0.5 + f) * jit * (W.flash.glow ?? 0.55));
+    const on = f > 0.012; it.shape.visible = it.glow.visible = it.beam.visible = on;
+    if (on) {
+      const fs = W.flash.size, gl = W.flash.glow ?? 0.55;
+      it.shape.material.opacity = Math.min(1, f * 1.5); it.shape.scale.setScalar(fs * 0.62 * (0.55 + 0.6 * f) * jit);
+      it.glow.material.opacity = Math.min(1, f * (0.35 + gl * 0.7)); it.glow.scale.setScalar(fs * 1.0 * (0.55 + 0.9 * f) * jit);
+      // haz de luz hacia donde va el disparo: 2 cintas cruzadas desde la boca (se ve igual en Baja)
+      const u = it.beam.material.uniforms; u.uI.value = Math.min(1, f * 1.3) * (W.flash.beam ?? 1); const w = (0.05 + fs * 0.05) * (0.7 + 0.5 * f), L = (W.flash.len ?? 3.2) * (0.5 + 0.5 * f); it.beam.scale.set(w, w, L);
+    }
+    this.fx.setLive();
   }
 }
 

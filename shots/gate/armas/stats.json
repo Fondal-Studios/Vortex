@@ -1,602 +1,82 @@
 {
  "00_low_844_idle": {
-  "calls": 14,
-  "tris": 3906,
+  "calls": 10,
+  "tris": 3636,
   "errs": []
  },
  "00_low_844_fire": {
-  "calls": 14,
-  "tris": 3906,
+  "calls": 15,
+  "tris": 3684,
   "errs": []
  },
  "00_low_1280_idle": {
-  "calls": 14,
-  "tris": 3906,
+  "calls": 10,
+  "tris": 3636,
   "errs": []
  },
  "00_low_1280_fire": {
-  "calls": 14,
-  "tris": 3906,
-  "errs": []
- },
- "00_high_844_idle": {
-  "calls": 28,
-  "tris": 12345,
-  "errs": []
- },
- "00_high_844_fire": {
-  "calls": 28,
-  "tris": 12345,
-  "errs": []
- },
- "00_high_1280_idle": {
-  "calls": 28,
-  "tris": 12345,
-  "errs": []
- },
- "00_high_1280_fire": {
-  "calls": 28,
-  "tris": 12345,
+  "calls": 15,
+  "tris": 3684,
   "errs": []
  },
  "01_low_844_idle": {
-  "calls": 14,
-  "tris": 5727,
+  "calls": 10,
+  "tris": 5296,
   "errs": []
  },
  "01_low_844_fire": {
   "calls": 14,
-  "tris": 5727,
+  "tris": 5304,
   "errs": []
  },
  "01_low_1280_idle": {
-  "calls": 14,
-  "tris": 5727,
+  "calls": 10,
+  "tris": 5296,
   "errs": []
  },
  "01_low_1280_fire": {
   "calls": 14,
-  "tris": 5727,
-  "errs": []
- },
- "01_high_844_idle": {
-  "calls": 28,
-  "tris": 18892,
-  "errs": []
- },
- "01_high_844_fire": {
-  "calls": 28,
-  "tris": 18892,
-  "errs": []
- },
- "01_high_1280_idle": {
-  "calls": 28,
-  "tris": 18892,
-  "errs": []
- },
- "01_high_1280_fire": {
-  "calls": 28,
-  "tris": 18892,
-  "errs": []
- },
- "02_low_844_idle": {
-  "calls": 13,
-  "tris": 6135,
-  "errs": []
- },
- "02_low_844_fire": {
-  "calls": 13,
-  "tris": 6135,
-  "errs": []
- },
- "02_low_1280_idle": {
-  "calls": 13,
-  "tris": 6135,
-  "errs": []
- },
- "02_low_1280_fire": {
-  "calls": 13,
-  "tris": 6135,
-  "errs": []
- },
- "02_high_844_idle": {
-  "calls": 27,
-  "tris": 19352,
-  "errs": []
- },
- "02_high_844_fire": {
-  "calls": 27,
-  "tris": 19352,
-  "errs": []
- },
- "02_high_1280_idle": {
-  "calls": 27,
-  "tris": 19352,
-  "errs": []
- },
- "02_high_1280_fire": {
-  "calls": 27,
-  "tris": 19352,
+  "tris": 5304,
   "errs": []
  },
  "03_low_844_idle": {
-  "calls": 14,
-  "tris": 7807,
+  "calls": 10,
+  "tris": 7376,
   "errs": []
  },
  "03_low_844_fire": {
-  "calls": 14,
-  "tris": 7807,
+  "calls": 15,
+  "tris": 7424,
   "errs": []
  },
  "03_low_1280_idle": {
-  "calls": 14,
-  "tris": 7807,
+  "calls": 10,
+  "tris": 7376,
   "errs": []
  },
  "03_low_1280_fire": {
-  "calls": 14,
-  "tris": 7807,
-  "errs": []
- },
- "03_high_844_idle": {
-  "calls": 28,
-  "tris": 21676,
-  "errs": []
- },
- "03_high_844_fire": {
-  "calls": 28,
-  "tris": 21676,
-  "errs": []
- },
- "03_high_1280_idle": {
-  "calls": 28,
-  "tris": 21676,
-  "errs": []
- },
- "03_high_1280_fire": {
-  "calls": 28,
-  "tris": 21676,
-  "errs": []
- },
- "04_low_844_idle": {
-  "calls": 16,
-  "tris": 6119,
-  "errs": []
- },
- "04_low_844_fire": {
-  "calls": 14,
-  "tris": 6011,
-  "errs": []
- },
- "04_low_1280_idle": {
-  "calls": 16,
-  "tris": 6119,
-  "errs": []
- },
- "04_low_1280_fire": {
-  "calls": 14,
-  "tris": 6011,
-  "errs": []
- },
- "04_high_844_idle": {
-  "calls": 30,
-  "tris": 18988,
-  "errs": []
- },
- "04_high_844_fire": {
-  "calls": 28,
-  "tris": 18880,
-  "errs": []
- },
- "04_high_1280_idle": {
-  "calls": 30,
-  "tris": 18988,
-  "errs": []
- },
- "04_high_1280_fire": {
-  "calls": 28,
-  "tris": 18880,
-  "errs": []
- },
- "05_low_844_idle": {
-  "calls": 13,
-  "tris": 3474,
-  "errs": []
- },
- "05_low_844_fire": {
-  "calls": 13,
-  "tris": 3474,
-  "errs": []
- },
- "05_low_1280_idle": {
-  "calls": 13,
-  "tris": 3474,
-  "errs": []
- },
- "05_low_1280_fire": {
-  "calls": 13,
-  "tris": 3474,
-  "errs": []
- },
- "05_high_844_idle": {
-  "calls": 27,
-  "tris": 10633,
-  "errs": []
- },
- "05_high_844_fire": {
-  "calls": 27,
-  "tris": 10633,
-  "errs": []
- },
- "05_high_1280_idle": {
-  "calls": 27,
-  "tris": 10633,
-  "errs": []
- },
- "05_high_1280_fire": {
-  "calls": 27,
-  "tris": 10633,
-  "errs": []
- },
- "06_low_844_idle": {
-  "calls": 14,
-  "tris": 3906,
-  "errs": []
- },
- "06_low_844_fire": {
-  "calls": 14,
-  "tris": 3906,
-  "errs": []
- },
- "06_low_1280_idle": {
-  "calls": 14,
-  "tris": 3906,
-  "errs": []
- },
- "06_low_1280_fire": {
-  "calls": 14,
-  "tris": 3906,
-  "errs": []
- },
- "06_high_844_idle": {
-  "calls": 28,
-  "tris": 13337,
-  "errs": []
- },
- "06_high_844_fire": {
-  "calls": 28,
-  "tris": 13337,
-  "errs": []
- },
- "06_high_1280_idle": {
-  "calls": 28,
-  "tris": 13337,
-  "errs": []
- },
- "06_high_1280_fire": {
-  "calls": 28,
-  "tris": 13337,
-  "errs": []
- },
- "07_low_844_idle": {
-  "calls": 11,
-  "tris": 5555,
-  "errs": []
- },
- "07_low_844_fire": {
-  "calls": 11,
-  "tris": 5555,
-  "errs": []
- },
- "07_low_1280_idle": {
-  "calls": 11,
-  "tris": 5555,
-  "errs": []
- },
- "07_low_1280_fire": {
-  "calls": 11,
-  "tris": 5555,
-  "errs": []
- },
- "07_high_844_idle": {
-  "calls": 25,
-  "tris": 16940,
-  "errs": []
- },
- "07_high_844_fire": {
-  "calls": 25,
-  "tris": 16940,
-  "errs": []
- },
- "07_high_1280_idle": {
-  "calls": 25,
-  "tris": 16940,
-  "errs": []
- },
- "07_high_1280_fire": {
-  "calls": 25,
-  "tris": 16940,
-  "errs": []
- },
- "08_low_844_idle": {
-  "calls": 10,
-  "tris": 5103,
-  "errs": []
- },
- "08_low_844_fire": {
-  "calls": 10,
-  "tris": 5103,
-  "errs": []
- },
- "08_low_1280_idle": {
-  "calls": 10,
-  "tris": 5103,
-  "errs": []
- },
- "08_low_1280_fire": {
-  "calls": 10,
-  "tris": 5103,
-  "errs": []
- },
- "08_high_844_idle": {
-  "calls": 24,
-  "tris": 16160,
-  "errs": []
- },
- "08_high_844_fire": {
-  "calls": 24,
-  "tris": 16160,
-  "errs": []
- },
- "08_high_1280_idle": {
-  "calls": 24,
-  "tris": 16160,
-  "errs": []
- },
- "08_high_1280_fire": {
-  "calls": 24,
-  "tris": 16160,
-  "errs": []
- },
- "09_low_844_idle": {
-  "calls": 12,
-  "tris": 5411,
-  "errs": []
- },
- "09_low_844_fire": {
-  "calls": 12,
-  "tris": 5411,
-  "errs": []
- },
- "09_low_1280_idle": {
-  "calls": 12,
-  "tris": 5411,
-  "errs": []
- },
- "09_low_1280_fire": {
-  "calls": 12,
-  "tris": 5411,
-  "errs": []
- },
- "09_high_844_idle": {
-  "calls": 26,
-  "tris": 17924,
-  "errs": []
- },
- "09_high_844_fire": {
-  "calls": 26,
-  "tris": 17924,
-  "errs": []
- },
- "09_high_1280_idle": {
-  "calls": 26,
-  "tris": 17924,
-  "errs": []
- },
- "09_high_1280_fire": {
-  "calls": 26,
-  "tris": 17924,
+  "calls": 15,
+  "tris": 7424,
   "errs": []
  },
  "10_low_844_idle": {
-  "calls": 11,
-  "tris": 6035,
+  "calls": 7,
+  "tris": 5604,
   "errs": []
  },
  "10_low_844_fire": {
   "calls": 11,
-  "tris": 6035,
+  "tris": 5612,
   "errs": []
  },
  "10_low_1280_idle": {
-  "calls": 11,
-  "tris": 6035,
+  "calls": 7,
+  "tris": 5604,
   "errs": []
  },
  "10_low_1280_fire": {
   "calls": 11,
-  "tris": 6035,
-  "errs": []
- },
- "10_high_844_idle": {
-  "calls": 25,
-  "tris": 17340,
-  "errs": []
- },
- "10_high_844_fire": {
-  "calls": 25,
-  "tris": 17340,
-  "errs": []
- },
- "10_high_1280_idle": {
-  "calls": 25,
-  "tris": 17340,
-  "errs": []
- },
- "10_high_1280_fire": {
-  "calls": 25,
-  "tris": 17340,
-  "errs": []
- },
- "11_low_844_idle": {
-  "calls": 12,
-  "tris": 5643,
-  "errs": []
- },
- "11_low_844_fire": {
-  "calls": 12,
-  "tris": 5643,
-  "errs": []
- },
- "11_low_1280_idle": {
-  "calls": 12,
-  "tris": 5643,
-  "errs": []
- },
- "11_low_1280_fire": {
-  "calls": 12,
-  "tris": 5643,
-  "errs": []
- },
- "11_high_844_idle": {
-  "calls": 26,
-  "tris": 17296,
-  "errs": []
- },
- "11_high_844_fire": {
-  "calls": 26,
-  "tris": 17296,
-  "errs": []
- },
- "11_high_1280_idle": {
-  "calls": 26,
-  "tris": 17296,
-  "errs": []
- },
- "11_high_1280_fire": {
-  "calls": 26,
-  "tris": 17296,
-  "errs": []
- },
- "12_low_844_idle": {
-  "calls": 12,
-  "tris": 6071,
-  "errs": []
- },
- "12_low_844_fire": {
-  "calls": 11,
-  "tris": 5919,
-  "errs": []
- },
- "12_low_1280_idle": {
-  "calls": 12,
-  "tris": 6071,
-  "errs": []
- },
- "12_low_1280_fire": {
-  "calls": 11,
-  "tris": 5919,
-  "errs": []
- },
- "12_high_844_idle": {
-  "calls": 26,
-  "tris": 17212,
-  "errs": []
- },
- "12_high_844_fire": {
-  "calls": 25,
-  "tris": 17060,
-  "errs": []
- },
- "12_high_1280_idle": {
-  "calls": 26,
-  "tris": 17212,
-  "errs": []
- },
- "12_high_1280_fire": {
-  "calls": 25,
-  "tris": 17060,
-  "errs": []
- },
- "13_low_844_idle": {
-  "calls": 13,
-  "tris": 5359,
-  "errs": []
- },
- "13_low_844_fire": {
-  "calls": 13,
-  "tris": 5359,
-  "errs": []
- },
- "13_low_1280_idle": {
-  "calls": 13,
-  "tris": 5359,
-  "errs": []
- },
- "13_low_1280_fire": {
-  "calls": 13,
-  "tris": 5359,
-  "errs": []
- },
- "13_high_844_idle": {
-  "calls": 27,
-  "tris": 18496,
-  "errs": []
- },
- "13_high_844_fire": {
-  "calls": 27,
-  "tris": 18496,
-  "errs": []
- },
- "13_high_1280_idle": {
-  "calls": 27,
-  "tris": 18496,
-  "errs": []
- },
- "13_high_1280_fire": {
-  "calls": 27,
-  "tris": 18496,
-  "errs": []
- },
- "14_low_844_idle": {
-  "calls": 15,
-  "tris": 5535,
-  "errs": []
- },
- "14_low_844_fire": {
-  "calls": 15,
-  "tris": 5535,
-  "errs": []
- },
- "14_low_1280_idle": {
-  "calls": 15,
-  "tris": 5535,
-  "errs": []
- },
- "14_low_1280_fire": {
-  "calls": 15,
-  "tris": 5535,
-  "errs": []
- },
- "14_high_844_idle": {
-  "calls": 29,
-  "tris": 17104,
-  "errs": []
- },
- "14_high_844_fire": {
-  "calls": 29,
-  "tris": 17104,
-  "errs": []
- },
- "14_high_1280_idle": {
-  "calls": 29,
-  "tris": 17104,
-  "errs": []
- },
- "14_high_1280_fire": {
-  "calls": 29,
-  "tris": 17104,
+  "tris": 5612,
   "errs": []
  }
 }

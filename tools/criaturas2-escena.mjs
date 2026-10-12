@@ -21,12 +21,14 @@ await pg.evaluate(({ kind, boss, D, H, S, Ly }) => {
     const m = g.spawnMonster(kind, pos, { noElite: true }); m.passive = true; m.hp = m.maxhp = 1e6; window.__m = m; g.phase = 'intermission'; g.phaseT = 1e6;
   } else { g.phase = 'wave'; }
   window.__cam = { D, H, S, Ly };
-  r.updateCamera = function () { // cámara propia
-    const m = window.__m || g.boss; if (!m) return; const c = window.__cam; const THREE_V = r.camera.position.constructor;
-    const mp = new THREE_V(m.pos.x, m.pos.y, m.pos.z), pp = new THREE_V(p.pos.x, p.pos.y, p.pos.z);
-    const dir = mp.clone().sub(pp); dir.y = 0; if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1); dir.normalize(); const right = new THREE_V(-dir.z, 0, dir.x);
-    this.camera.position.copy(mp).addScaledVector(dir, -c.D).addScaledVector(right, c.S); this.camera.position.y = mp.y - (m.def.fly ? 0 : 0.9 * m.r) + c.H;
-    this.camera.up.set(0, 1, 0); this.camera.lookAt(mp.x, mp.y - (m.def.fly ? 0 : 0.9 * m.r) + c.Ly, mp.z); this.camera.updateMatrixWorld(); this.eye = this.camera.position.clone(); this.aim = dir;
+  r.updateCamera = function () { // cámara propia, en el marco del jugador (arriba = p.up)
+    const m = window.__m || g.boss; if (!m) return; const c = window.__cam; const V = r.camera.position.constructor;
+    const mp = new V(m.pos.x, m.pos.y, m.pos.z), pp = new V(p.pos.x, p.pos.y, p.pos.z), up = new V(p.up.x, p.up.y, p.up.z).normalize();
+    const dir = mp.clone().sub(pp); dir.addScaledVector(up, -dir.dot(up)); if (dir.lengthSq() < 1e-4) dir.copy(new V(p.heading.x, p.heading.y, p.heading.z)); dir.normalize(); const right = new V().crossVectors(dir, up).normalize();
+    if (c.D < 0) { this.camera.position.copy(pp).addScaledVector(up, 0.6); this.camera.up.copy(up); this.camera.lookAt(mp.clone().addScaledVector(up, c.Ly)); this.camera.updateMatrixWorld(); this.eye = this.camera.position.clone(); this.aim = dir; return; }
+    const base = mp.clone().addScaledVector(up, m.def.fly ? 0 : -0.9 * m.r);
+    this.camera.position.copy(base).addScaledVector(dir, -c.D).addScaledVector(right, c.S).addScaledVector(up, c.H);
+    this.camera.up.copy(up); this.camera.lookAt(base.clone().addScaledVector(up, c.Ly)); this.camera.updateMatrixWorld(); this.eye = this.camera.position.clone(); this.aim = dir;
   };
   r.vm.root.visible = false;
 }, { kind, boss, D: +D, H: +H, S: +S, Ly: +Ly });

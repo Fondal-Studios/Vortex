@@ -241,9 +241,9 @@ function glowMaterial(hex, q) {
 function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0, key = 0) {
   const acc = new THREE.Color(hex).offsetHSL(0.45, 0.05, 0.02).multiplyScalar(0.9);
   mat.onBeforeCompile = (sh) => {
-    sh.uniforms.uAcc = { value: acc }; sh.uniforms.uEnvK = { value: env }; sh.uniforms.uFill = { value: fill }; sh.uniforms.uKey = { value: key };
+    sh.uniforms.uAcc = { value: acc }; sh.uniforms.uDom = { value: new THREE.Color(hex).multiplyScalar(0.9).addScalar(0.08) }; sh.uniforms.uEnvK = { value: env }; sh.uniforms.uFill = { value: fill }; sh.uniforms.uKey = { value: key };
     sh.vertexShader = 'attribute float aux; varying vec3 vOP; varying vec3 vON; varying float vDec;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vOP = position; vON = normal; vDec = aux;');
-    sh.fragmentShader = `varying vec3 vOP; varying vec3 vON; varying float vDec; uniform vec3 uAcc; uniform float uEnvK, uFill, uKey;
+    sh.fragmentShader = `varying vec3 vOP; varying vec3 vON; varying float vDec; uniform vec3 uAcc, uDom; uniform float uEnvK, uFill, uKey;
       float h3(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
       float gPanel, gWear, gEm;
       ` + sh.fragmentShader
@@ -282,7 +282,7 @@ function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0, key = 0) {
           float fr = pow(1.0 - clamp(dot(nn, V), 0.0, 1.0), 3.0);
           vec3 rc = 0.5 + 0.5 * cos(6.28318 * (fr * 0.7 + vOP.z * 1.3 + vec3(0.0, 0.33, 0.67)));
           totalEmissiveRadiance += mix(uAcc, rc, 0.6) * fr * ${TUNE.rim.toFixed(2)};
-          vec3 grad = mix(vec3(0.02, 0.015, 0.05), vec3(0.36, 0.42, 0.8), smoothstep(-0.45, 0.9, Rr.y));
+          vec3 grad = mix(vec3(0.02, 0.015, 0.05), mix(vec3(0.36, 0.42, 0.8), uDom, 0.5), smoothstep(-0.45, 0.9, Rr.y));
           vec3 hi = vec3(1.0, 0.96, 0.9) * pow(max(dot(Rr, normalize(vec3(0.3, 0.85, 0.45))), 0.0), 16.0) * 1.4
                   + vec3(1.0, 0.35, 0.8) * pow(max(dot(Rr, normalize(vec3(-0.8, 0.15, -0.3))), 0.0), 7.0) * 0.5
                   + vec3(0.5, 0.7, 1.0) * pow(max(dot(Rr, normalize(vec3(0.75, -0.1, 0.45))), 0.0), 9.0) * 0.18;

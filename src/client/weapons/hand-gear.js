@@ -57,43 +57,36 @@ export function meshGeom(H, pose, which, sel, { off = 0, kind = K.ORG, tone = 1,
     for (let i = 0; i < 6; i += 3) { const [p0, p1, p2] = [quad[i].p, quad[i + 1].p, quad[i + 2].p]; const u = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]], w = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]]; const gn = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]]; if (gn[0] * nn[0] + gn[1] * nn[1] + gn[2] * nn[2] < 0) { const x = quad[i + 1]; quad[i + 1] = quad[i + 2]; quad[i + 2] = x; } }
     verts.push(...quad);
   }
-  const m = verts.length, P = new Float32Array(m * 3), N = new Float32Array(m * 3), C = new Float32Array(m * 3), KD = new Float32Array(m).fill(kd), AX = new Float32Array(m), FW = isI ? new Float32Array(m * 3) : null;
-  verts.forEach((q, i) => { KD[i] = q.k ?? kd; P.set(q.p, i * 3); N.set(q.n, i * 3); if (organic) C.set(H.uvm.subarray(q.v * 3, q.v * 3 + 3), i * 3); else C.fill(tone, i * 3, i * 3 + 3); AX[i] = H.aux[q.v];
+  const m = verts.length, P = new Float32Array(m * 3), N = new Float32Array(m * 3), C = new Float32Array(m * 3), KD = new Float32Array(m).fill(kd), AX = new Float32Array(m), RS = new Float32Array(m * 4), FW = isI ? new Float32Array(m * 3) : null;
+  verts.forEach((q, i) => { KD[i] = q.k ?? kd; P.set(q.p, i * 3); N.set(q.n, i * 3); if (organic) C.set(H.uvm.subarray(q.v * 3, q.v * 3 + 3), i * 3); else C.fill(tone, i * 3, i * 3 + 3); AX[i] = H.aux[q.v]; RS.set(H.rs.subarray(q.v * 4, q.v * 4 + 4), i * 4);
     if (FW) for (let j = 0; j < 4; j++) { const bb = H.si[q.v * 4 + j]; if (bb >= 4 && bb <= 6) FW[i * 3 + (bb - 4)] += H.sw[q.v * 4 + j]; } });
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.BufferAttribute(N, 3)); g.setAttribute('color', new THREE.BufferAttribute(C, 3)); g.setAttribute('kind', new THREE.BufferAttribute(KD, 1)); g.setAttribute('aux', new THREE.BufferAttribute(AX, 1));
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.BufferAttribute(N, 3)); g.setAttribute('color', new THREE.BufferAttribute(C, 3)); g.setAttribute('kind', new THREE.BufferAttribute(KD, 1)); g.setAttribute('aux', new THREE.BufferAttribute(AX, 1)); g.setAttribute('rs', new THREE.BufferAttribute(RS, 4));
   if (FW) g.setAttribute('fw', new THREE.BufferAttribute(FW, 3));
   return g;
 }
 
 /**
- * Todas las piezas de una parte de la mano ('main' = todo menos el índice · 'index' = sólo el índice): piel/guante orgánico,
- * placas de cristal y correas adaptadas a la malla, uñas y (en 'main') muñequera + pantallita + brazalete + manga.
+ * Todas las piezas de una parte de la mano ('main' = todo menos el índice · 'index' = sólo el índice): piel/guante orgánico
+ * (las placas de armadura, correas y tendones se PINTAN en el shader sobre la malla, ver handmat.js), cristales de nudillos y del dorso,
+ * uñas y (en 'main') muñequera + pantallita + brazalete + manga.
  */
 export function handGeoms(T, H, pose, which, { arm = true } = {}) {
   const low = T.q.low, out = [], add = (g) => { if (g) out.push(g); }, isI = which === 'index';
-  // criterio sobre el CENTRO del triángulo (más estable que vértice a vértice): x, y, z de reposo, normal-y, flujo y dedo
-  const C = (a, b, c) => ({ x: (H.pos[a * 3] + H.pos[b * 3] + H.pos[c * 3]) / 3, y: (H.pos[a * 3 + 1] + H.pos[b * 3 + 1] + H.pos[c * 3 + 1]) / 3, z: (H.pos[a * 3 + 2] + H.pos[b * 3 + 2] + H.pos[c * 3 + 2]) / 3,
-    ny: (H.nor[a * 3 + 1] + H.nor[b * 3 + 1] + H.nor[c * 3 + 1]) / 3, nx: (H.nor[a * 3] + H.nor[b * 3] + H.nor[c * 3]) / 3, aux: (H.aux[a] + H.aux[b] + H.aux[c]) / 3, f: H.fing[a] === H.fing[b] || H.fing[a] === H.fing[c] ? H.fing[a] : H.fing[b] });
-  const where = (fn) => (a, b, c) => fn(C(a, b, c));
-  add(meshGeom(H, pose, which, () => true));                                       // piel / guante
-  // placa dorsal: armadura oscura adaptada a los metacarpianos con el borde luminoso
-  add(meshGeom(H, pose, which, where((c) => c.f < 0 && c.ny > 0.45 && c.z > 0.034 && c.z < 0.075 && c.x > -0.03 && c.x < 0.028), { off: 0.0036, kind: K.ARM, tone: 0.95, organic: false, edge: K.SEAM }));
-  // correa de muñeca (alrededor) y de nudillos (por el dorso)
-  add(meshGeom(H, pose, which, where((c) => c.f < 0 && c.z > 0.006 && c.z < 0.022), { off: 0.0026, kind: K.ARM, tone: 0.8, organic: false }));
-  add(meshGeom(H, pose, which, where((c) => c.ny > 0.1 && c.z > 0.08 && c.z < 0.092 && c.x > -0.046 && c.x < 0.04 && (c.f < 1 || c.aux < 1.12)), { off: 0.0024, kind: K.ARM, tone: 0.8, organic: false }));
-  // cristales facetados en los nudillos y en las falanges medias (siguen al hueso de cada dedo)
+  add(meshGeom(H, pose, which, () => true));                                       // piel / guante (+ placas pintadas)
+  // cristales facetados en los nudillos (siguen al hueso de cada dedo) y en las falanges medias (sólo Alta)
   const ik = (k, j) => k + (isI ? 8 + 16 * j : 0), thumbBones = FINGERS.thumb;
   for (let f = 1; f < 5; f++) {
     if (isI !== (f === 1)) continue;
-    const b = FINGERS[['thumb', 'index', 'middle', 'ring', 'pinky'][f]], sc = f === 4 ? 0.82 : f === 3 ? 0.94 : 1, p1 = REST[b[0]], p2 = REST[b[1]];
+    const b = FINGERS[['thumb', 'index', 'middle', 'ring', 'pinky'][f]], sc = f === 4 ? 0.8 : f === 3 ? 0.92 : 1, p1 = REST[b[0]], p2 = REST[b[1]];
     T.push(pose.B[b[0]]);
-    T.poly('g', 'oct', 0.0098 * sc, [p1.x, p1.y + 0.0108 * sc, p1.z + 0.004], { k: ik(K.CRY, 0), s: [1.0, 0.45, 1.5], u: 1.1, c: gr(1) });
-    T.pop(); T.push(pose.B[b[1]]);
-    if (!low || f === 1) T.poly('g', 'oct', 0.0074 * sc, [p2.x, p2.y + 0.0088 * sc, p2.z + 0.005], { k: ik(K.CRY, 1), s: [1.0, 0.4, 1.5], u: 1.4, c: gr(1) });
+    T.poly('g', 'oct', 0.0085 * sc, [p1.x, p1.y + 0.0085 * sc, p1.z + 0.003], { k: ik(K.CRY, 0), s: [0.95, 0.42, 1.45], u: 1.1, c: gr(1) });
     T.pop();
+    if (!low) { T.push(pose.B[b[1]]); T.poly('g', 'oct', 0.0058 * sc, [p2.x, p2.y + 0.0075 * sc, p2.z + 0.004], { k: ik(K.CRY, 1), s: [0.9, 0.38, 1.6], u: 1.4, c: gr(1) }); T.pop(); }
   }
   if (!isI) {
-    T.push(pose.B[thumbBones[1]]); const p = REST[thumbBones[1]]; T.poly('g', 'oct', 0.0105, [p.x + 0.003, p.y + 0.0105, p.z + 0.002], { k: K.CRY, s: [1.3, 0.45, 1.5], r: [0, 0.6, 0], u: 0.9, c: gr(1) }); T.pop();
+    T.push(pose.B[thumbBones[1]]); const p = REST[thumbBones[1]]; T.poly('g', 'oct', 0.0088, [p.x + 0.003, p.y + 0.0092, p.z + 0.002], { k: K.CRY, s: [1.3, 0.42, 1.5], r: [0, 0.6, 0], u: 0.9, c: gr(1) }); T.pop();
+    // gema central del dorso, sobre la placa pintada
+    T.push(pose.B[0]); const sy = surfY(H, -0.001, 0.057, 0.008); T.poly('g', 'oct', 0.0125, [-0.001, sy + 0.0035, 0.057], { k: K.CRY, s: [0.9, 0.34, 1.55], u: 1.0, c: gr(1) }); T.pop();
   }
   // uñas: lámina brillante sobre la yema
   for (let fi = 0; fi < 5; fi++) {
@@ -114,38 +107,38 @@ function armGear(T, pose, H, low) {
   const A = armFrame(H), d = A.dir.clone(), up = V(0, 1, 0).sub(d.clone().multiplyScalar(d.y)).normalize(), side = V().crossVectors(up, d).normalize();
   const at = (t, h = 0, s = 0) => A.c0.clone().addScaledVector(d, t).addScaledVector(up, h).addScaledVector(side, s);
   const qb = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(side, up, d.clone().negate()));
-  const rx = (t) => A.rx0 + (A.rx1 - A.rx0) * Math.min(1, t / 0.11) + 0.0035, ry = (t) => A.ry0 + (A.ry1 - A.ry0) * Math.min(1, t / 0.11) + 0.0035;
+  const lerpR = (a, b, t) => a + (b - a) * Math.min(1.3, t / 0.11);
+  const rx = (t) => lerpR(A.rx0, A.rx1, t) + 0.0035, ry = (t) => lerpR(A.ry0, A.ry1, t) + 0.0035;
+  const basis = new THREE.Matrix4().makeBasis(side, d, up.clone().negate()); // X->lado, Y->eje del brazo (hacia el codo), Z->abajo
   on(T, pose, ARM, () => {
-    // — muñequera (correa) con hebilla
-    const band = (t0, t1, grow, kind, c, u) => {
-      const t = (t0 + t1) / 2, geo = { s: [(rx(t) + grow) / 0.03, (t1 - t0) / 0.06, (ry(t) + grow) / 0.03] };
-      // el cilindro unitario tiene su eje en Y; lo giramos para que Y apunte a lo largo de `d` y su elipse use side/up
-      const m = new THREE.Matrix4().makeBasis(side, d, up.clone().negate()); // X->lado, Y->eje del brazo, Z->abajo (mano derecha)
-      T.push(new THREE.Matrix4().makeTranslation(...at(t).toArray()).multiply(m).multiply(new THREE.Matrix4().makeScale(...geo.s)));
-      T.cyl('g', [0.03, 0.03, 0.06], [0, 0, 0], { axis: 'y', k: kind, c, seg: low ? 9 : 14, u });
+    // anillo/tubo alrededor del antebrazo entre t0 y t1 (grow = holgura sobre la piel; r0/r1 = relación de radio en cada extremo)
+    const band = (t0, t1, grow, kind, c, u, { r0 = 1, r1 = 1, flow = null } = {}) => {
+      const t = (t0 + t1) / 2, rm = rx(t) + grow, rym = ry(t) + grow;
+      T.push(new THREE.Matrix4().makeTranslation(...at(t).toArray()).multiply(basis).multiply(new THREE.Matrix4().makeScale(rm / 0.03, (t1 - t0) / 0.06, rym / 0.03)));
+      T.cyl('g', [0.03 * r1, 0.03 * r0, 0.06], [0, 0, 0], { axis: 'y', k: kind, c, seg: low ? 10 : 16, u, flow: flow ? [flow[0], flow[1], 'y', 0.06] : null });
       T.pop();
     };
-    band(0.012, 0.034, 0.0016, K.ARM, gr(0.75), -0.3);
-    T.box('g', [0.016, 0.0095, 0.012], at(0.023, ry(0.023) + 0.0045).toArray(), { k: K.ARM, c: gr(1), q: qb, sharp: true, u: -0.3 });
-    // — pantallita de muñeca (marco + cristal oscuro con píxeles + costuras)
-    const pc = at(0.07, ry(0.07) + 0.0036);
-    T.box('g', [0.046, 0.0075, 0.05], pc.toArray(), { k: K.ARM, c: gr(0.9), q: qb, rad: 0.004, u: -0.6 });
-    T.box('g', [0.036, 0.0062, 0.04], at(0.07, ry(0.07) + 0.0082).toArray(), { k: K.SCR, c: gr(1), q: qb, rad: 0.002, u: -0.6 });
-    for (const sg of [-1, 1]) T.box('g', [0.0034, 0.0046, 0.046], at(0.07, ry(0.07) + 0.0075, sg * 0.0235).toArray(), { k: K.SEAM, c: gr(1), q: qb, sharp: true, u: -0.6 });
-    // — manga (tela) bajo el brazalete, acampanada, con aro luminoso
-    const t0 = 0.098, t1 = 0.2, tm = (t0 + t1) / 2, flare = 1.1;
-    T.push(new THREE.Matrix4().makeTranslation(...at(tm).toArray()).multiply(new THREE.Matrix4().makeBasis(side, d, up.clone().negate())).multiply(new THREE.Matrix4().makeScale((rx(0.1) + 0.006) * flare / 0.03, (t1 - t0) / 0.06, (ry(0.1) + 0.006) * flare / 0.03)));
-    T.cyl('g', [0.03, 0.037, 0.06], [0, 0, 0], { axis: 'y', k: K.SLV, c: gr(1), seg: low ? 9 : 14, u: -1.0 });
+    // — muñequera: correa mate con hebilla y dos hilos luminosos
+    band(0.010, 0.036, 0.0016, K.ARM, gr(0.75), -0.3);
+    band(0.0095, 0.0112, 0.0021, K.SEAM, gr(1), -0.3); band(0.0348, 0.0365, 0.0021, K.SEAM, gr(1), -0.3);
+    T.box('g', [0.016, 0.0085, 0.014], at(0.023, ry(0.023) + 0.0042).toArray(), { k: K.ARM, c: gr(1), q: qb, sharp: true, u: -0.3 });
+    // — pantallita de muñeca: marco, cristal con HUD (barras, ojo, barrido)
+    const pc = at(0.07, ry(0.07) + 0.0034), W = 0.036, Hh = 0.04;
+    T.box('g', [W + 0.008, 0.0065, Hh + 0.008], pc.toArray(), { k: K.ARM, c: gr(0.9), q: qb, rad: 0.0035, u: -0.6 });
+    const pg = new THREE.PlaneGeometry(W, Hh); const pp = pg.attributes.position, rs = new Float32Array(pp.count * 4);
+    for (let i = 0; i < pp.count; i++) { rs[i * 4] = pp.getX(i) / (W / 2); rs[i * 4 + 1] = -pp.getY(i) / (Hh / 2); rs[i * 4 + 3] = -3; }
+    pg.setAttribute('rs', new THREE.BufferAttribute(rs, 4)); pg.rotateX(-Math.PI / 2);
+    T.put('g', pg, at(0.07, ry(0.07) + 0.0071).toArray(), { k: K.SCR, c: gr(1), q: qb, u: -0.6 });
+    for (const sg of [-1, 1]) T.box('g', [0.003, 0.0042, Hh + 0.006], at(0.07, ry(0.07) + 0.0068, sg * (W / 2 + 0.0055)).toArray(), { k: K.SEAM, c: gr(1), q: qb, sharp: true, u: -0.6 });
+    // — manga: tubo que crece hacia el codo y se deshace en polvo de cristal (el final nunca se ve como un corte)
+    const m0 = 0.098, m1 = 0.34, mm = (m0 + m1) / 2, rr = (t) => (rx(t) + 0.0055) / (rx(mm) + 0.0055);
+    T.push(new THREE.Matrix4().makeTranslation(...at(mm).toArray()).multiply(basis).multiply(new THREE.Matrix4().makeScale((rx(mm) + 0.0055) / 0.03, (m1 - m0) / 0.06, (ry(mm) + 0.0055) / 0.03)));
+    T.cyl('g', [0.03 * Math.min(1.28, rr(m1)), 0.03 * rr(m0), 0.06], [0, 0, 0], { axis: 'y', k: K.SLV, c: gr(1), seg: low ? 10 : 18, u: -1.0, flow: [0, 1, 'y', 0.06] });
     T.pop();
-    T.push(new THREE.Matrix4().makeTranslation(...at(t0 - 0.002).toArray()).multiply(new THREE.Matrix4().makeBasis(side, up, d)).multiply(new THREE.Matrix4().makeScale((rx(0.1) + 0.006) * flare, (ry(0.1) + 0.006) * flare, 0.03)));
-    T.tor('g', [1, 0.095], [0, 0, 0], { k: K.SEAM, c: gr(1), seg: low ? 12 : 20 }); T.pop();
-    // — brazalete de armadura: dos placas laterales + vientre, abierto por el dorso, con costura luminosa y un cristal
-    const b0 = 0.108, b1 = 0.18, bm = (b0 + b1) / 2, bl = b1 - b0;
-    for (const sg of [-1, 1]) {
-      T.box('g', [0.0072, (ry(bm) * 2 + 0.006) * 0.8, bl], at(bm, -ry(bm) * 0.1, sg * (rx(bm) + 0.0075)).toArray(), { k: K.ARM, c: gr(0.8), q: qb, rad: 0.003, u: -0.8 });
-      T.box('g', [0.003, 0.003, bl * 0.96], at(bm, ry(bm) * 0.45, sg * (rx(bm) + 0.0085)).toArray(), { k: K.SEAM, c: gr(1), q: qb, sharp: true, u: -0.8 });
-    }
-    T.box('g', [rx(bm) * 1.5, 0.0068, bl], at(bm, -ry(bm) - 0.005).toArray(), { k: K.ARM, c: gr(0.7), q: qb, rad: 0.003, u: -0.8 });
-    T.poly('g', 'oct', 0.012, at(0.155, ry(0.155) + 0.011).toArray(), { k: K.CRY, s: [1, 0.6, 1.9], q: qb, c: gr(1), u: -0.9 });
+    // — brazalete de armadura: aro grueso con filos luminosos y cristales (sin picos)
+    band(0.100, 0.118, 0.0085, K.ARM, gr(0.8), -0.8); band(0.1175, 0.1215, 0.0092, K.SEAM, gr(1), -0.8);
+    band(0.150, 0.205, 0.0075, K.ARM, gr(0.72), -0.8, { r0: 1, r1: 1.04 }); band(0.1495, 0.1535, 0.0082, K.SEAM, gr(1), -0.8); band(0.2015, 0.2055, 0.0082, K.SEAM, gr(1), -0.8);
+    T.poly('g', 'oct', 0.012, at(0.178, ry(0.178) + 0.0105).toArray(), { k: K.CRY, s: [0.9, 0.5, 1.9], q: qb, c: gr(1), u: -0.9 });
+    if (!low) for (const sg of [-1, 1]) T.poly('g', 'oct', 0.0065, at(0.178, 0.0, sg * (rx(0.178) + 0.0105)).toArray(), { k: K.CRY, s: [0.5, 0.9, 1.7], q: qb, c: gr(1), u: -0.9 });
   });
 }

@@ -41,15 +41,15 @@ export const HAND_PRESETS = {
 };
 
 const VERT = `
-  attribute vec3 color; attribute float kind; attribute float aux;
+  attribute vec3 color; attribute float kind; attribute float aux; attribute vec4 rs;
   attribute vec3 fw; attribute vec3 fj2; attribute vec3 fj3; attribute vec3 fax;
   uniform float uTrig, uGlove;
-  varying vec3 vN, vView, vPos, vCol; varying float vKind, vAux;
+  varying vec3 vN, vView, vPos, vCol; varying float vKind, vAux; varying vec4 vRs;
   vec3 rotA(vec3 p, vec3 c, vec3 a, float t){ vec3 v = p - c; float ct = cos(t), st = sin(t); return c + v * ct + cross(a, v) * st + a * dot(a, v) * (1.0 - ct); }
   void main(){
     float kk = floor(kind + 0.5), isIdx = mod(floor(kk / 8.0), 2.0), cls = mod(kk, 8.0);
     vec3 p = position, n = normal;
-    vPos = position; vCol = color; vAux = aux; vKind = cls;
+    vPos = position; vCol = color; vAux = aux; vKind = cls; vRs = rs;
     if (isIdx > 0.5) {                   // dedo índice: 3 falanges que se flexionan alrededor de su eje (nudillo en el origen de la pieza)
       float u = clamp(uTrig, 0.0, 1.0), t1 = u * 0.30, t2 = u * 0.62, t3 = u * 0.42; vec3 a = normalize(fax);
       vec3 p1 = rotA(p, vec3(0.0), a, t1);
@@ -70,7 +70,7 @@ const VERT = `
 const FRAG = `
   uniform float uTime, uTat, uTatAmt, uGlove, uFire, uUpg;
   uniform vec3 uColor, uAccent, uSkin, uWeap;
-  varying vec3 vN, vView, vPos, vCol; varying float vKind, vAux;
+  varying vec3 vN, vView, vPos, vCol; varying float vKind, vAux; varying vec4 vRs;
   float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   vec2 h22(vec2 p){ return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
   float hsh(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -79,6 +79,12 @@ const FRAG = `
                mix(mix(hsh(i+vec3(0,0,1)),hsh(i+vec3(1,0,1)),f.x), mix(hsh(i+vec3(0,1,1)),hsh(i+vec3(1,1,1)),f.x), f.y), f.z); }
   vec3 pal(float t){ return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67))); }
   float seg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / (dot(ba, ba) + 1e-5), 0.0, 1.0); return length(pa - ba * h); }
+
+  float sdBox(vec2 p, vec2 b){ vec2 d = abs(p) - b; return length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0); }
+  // facetas de cristal (Voronoi): x = id de la faceta · y = distancia a la arista
+  vec2 facets(vec2 p){ vec2 i = floor(p), f = fract(p); float d1 = 9.0, d2 = 9.0, id = 0.0;
+    for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 g = vec2(float(x), float(y)); vec2 r = g + h22(i + g) - f; float d = dot(r, r); if (d < d1) { d2 = d1; d1 = d; id = h21(i + g); } else if (d < d2) d2 = d; }
+    return vec2(id, sqrt(d2) - sqrt(d1)); }
 
   // cada tatuaje devuelve vec3(línea 0..1, relleno 0..1, brillo 0..1); q = coordenadas de piel (metros del marco de la mano)
   vec3 tRunas(vec2 q, float aa){
@@ -174,11 +180,49 @@ const FRAG = `
       float sss = expo * smoothstep(0.7, 0.0, dif) * 0.22;
       col += uSkin * sss * vec3(1.0, 0.4, 0.3) + expo * uSkin * fres * vec3(0.3, 0.12, 0.09);   // dispersión bajo la piel
       if (uGlove > 0.5 && uGlove < 1.5) { float c = abs(vn(vec3(q * 80.0, uTime * 0.2)) - 0.5); col += pow(clamp(1.0 - c * 4.0, 0.0, 1.0), 3.0) * uColor * 0.45 + pal(fres * 1.5 + vAux * 0.6 + uTime * 0.1) * fres * 0.5; }
+      // — placas de armadura pintadas sobre la malla (dorso, correa de nudillos, falanges): bisel falso por gradiente de la distancia, filo luminoso interior
+      float plIn = 0.0;
+      if (uGlove < 1.5) {
+        float dsd = 9.0, typ = 0.0, w = vRs.w, back = smoothstep(0.2, 0.45, vRs.z);
+        if (w < -0.5) {
+          vec2 p = vec2(vRs.x + 0.001, vRs.y - 0.057);
+          dsd = max(sdBox(p, vec2(0.0205, 0.0225)), (abs(p.x) + abs(p.y) - 0.0338) * 0.7071); typ = 1.0;
+          float d2 = sdBox(vec2(vRs.x + 0.004, vRs.y - 0.0885), vec2(0.0375, 0.0042)); if (d2 < dsd) { dsd = d2; typ = 2.0; }
+        } else if (w > 0.5) {
+          float f = vAux, ac = vRs.x * 0.0088;
+          float dA = sdBox(vec2((f - 1.17) * 0.075, ac), vec2(0.0088, 0.0052)) - 0.0010, dB = sdBox(vec2((f - 1.475) * 0.075, ac), vec2(0.0079, 0.0050)) - 0.0010;
+          dsd = min(dA, dB); typ = 3.0;
+        }
+        dsd = mix(1.0, dsd, back);
+        float aaP = fwidth(dsd) * 1.1 + 1e-5;
+        plIn = smoothstep(aaP, -aaP, dsd);
+        if (plIn > 0.001) {
+          vec2 gd = vec2(dFdx(dsd), dFdy(dsd)); float gl = length(gd) + 1e-7;
+          float bev = smoothstep(0.0, -0.0022, dsd);                       // 0 en el filo, 1 en el interior
+          vec3 Np = normalize(N + vec3(gd / gl, 0.0) * (1.0 - bev) * 0.95);
+          float dp0 = dot(Np, L1) * 0.5 + 0.5, dpf = dp0 * dp0, hp = Np.y * 0.5 + 0.5, spp = pow(max(dot(Np, H), 0.0), 38.0);
+          vec3 pc;
+          if (typ < 1.5) {                                                 // cristal facetado del dorso
+            vec2 F = facets(vec2(vRs.x, vRs.y) * 210.0); float tl = (F.x - 0.5);
+            vec3 Nf2 = normalize(Np + vec3(tl, h21(vec2(F.x * 7.0, 1.0)) - 0.5, 0.0) * 0.55);
+            float d3 = dot(Nf2, L1) * 0.5 + 0.5, sp2 = pow(max(dot(Nf2, H), 0.0), 60.0);
+            vec3 cb = mix(uColor, uAccent, F.x * 0.75) * 0.34 + vec3(0.02, 0.03, 0.05);
+            pc = cb * (0.35 + 1.5 * d3 * d3) + vec3(sp2) * 0.9 + pal(F.x + fres + uTime * 0.07) * (0.12 + 0.3 * fres) + uColor * smoothstep(0.1, 0.0, F.y) * 0.35;
+          } else {                                                          // armadura oscura anodizada
+            vec3 cb = vec3(0.075, 0.08, 0.11) + uColor * 0.045;
+            pc = cb * (0.3 + 0.5 * hp + 1.3 * dpf) + vec3(spp) * 0.8 + uColor * pow(1.0 - ndv, 2.5) * 0.45;
+            pc += uColor * (1.0 - smoothstep(0.0, 0.0006 + aaP, abs(dsd + 0.0016))) * 0.9 * (typ > 2.5 ? 1.0 : 0.6);   // hilo luminoso inset
+          }
+          float line = 1.0 - smoothstep(0.0, 0.0007 + aaP, abs(dsd + 0.0013));
+          pc += mix(uColor, uAccent, 0.5 + 0.5 * sin(vAux * 12.0 - uTime * 3.0)) * line * (0.9 + 1.6 * uFire + 0.7 * uUpg) * (typ < 1.5 ? 1.4 : 0.8);
+          col = mix(col, pc, plIn);
+        }
+      }
       // — tatuaje
       if (uTatAmt > 0.5) {
         vec3 T;
         if (uTat < 0.5) T = tRunas(q, aa); else if (uTat < 1.5) T = tOjos(q, aa); else if (uTat < 2.5) T = tConst(q, aa); else T = tVenas(q, aa * 0.02);
-        T *= vCol.z;
+        T *= vCol.z * (1.0 - 0.7 * plIn);
         float flow = pow(0.5 + 0.5 * sin(vAux * 15.0 - uTime * 3.2), 5.0);                 // pulso que corre hacia los dedos
         float bias = (uGlove > 1.5 ? 1.0 : (uGlove > 0.5 ? 1.35 : 1.0));
         vec3 tc = mix(uColor, uAccent, clamp(T.z * 0.7 + flow * 0.35, 0.0, 1.0));
@@ -201,17 +245,29 @@ const FRAG = `
     } else if (kd > 2.5 && kd < 3.5) {                // costura luminosa
       float fl = 0.5 + 0.5 * sin(vAux * 18.0 - uTime * 3.4);
       vec3 c = mix(uColor, uAccent, fl); col = c * (1.2 + 0.6 * fl + 1.4 * uFire + 0.8 * uUpg) + uWeap * 0.35;
-    } else if (kd > 3.5 && kd < 4.5) {                // manga de tela
+    } else if (kd > 3.5 && kd < 4.5) {                // manga de tela: trama, venas de cristal que corren y se deshace en polvo de cristal al final
+      float fade = smoothstep(0.42, 1.0, vAux), nz = vn(vPos * 300.0) * 0.6 + vn(vPos * 640.0 + 3.0) * 0.4, lim = fade * 1.12 - 0.05;
+      if (nz < lim) discard;
       float dif0 = dot(N, L1) * 0.5 + 0.5, hemi = N.y * 0.5 + 0.5, dif2 = max(dot(N, L2), 0.0) * 0.3;
-      float rib = 0.9 + 0.1 * sin(vPos.y * 380.0 + vPos.x * 90.0);
-      vec3 base = (vec3(0.045, 0.05, 0.075) + uColor * 0.03) * rib;
-      col = base * (0.35 + 0.5 * hemi + 1.0 * dif0 * dif0 + dif2) + uAccent * fres * 0.25;
-    } else {                                          // pantallita de muñeca: píxeles que parpadean
-      vec3 px = floor(vPos * 260.0); float t = floor(uTime * 4.0);
-      float on = step(0.55, h21(px.xy + px.z * 1.7 + t * 3.1)) * step(0.3, h21(px.xz + 5.0));
-      float bar = step(fract(vAux * 90.0 - uTime * 0.7), 0.5);
-      col = vec3(0.01, 0.015, 0.03) + uColor * (0.25 + on * 1.5) * (0.6 + 0.4 * bar) + uAccent * fres * 0.8 + vec3(pow(max(dot(N, H), 0.0), 40.0)) * 0.6;
-      col *= 1.0 + uFire;
+      float rib = 0.88 + 0.12 * sin(vPos.y * 420.0 + vPos.x * 110.0) * sin(vPos.z * 380.0);
+      vec3 base = (vec3(0.05, 0.055, 0.085) + uColor * 0.035) * rib;
+      col = base * (0.35 + 0.5 * hemi + 1.0 * dif0 * dif0 + dif2) + uAccent * fres * 0.3;
+      float vn1 = abs(vn(vPos * 70.0 + vec3(0.0, 0.0, 2.0)) - 0.5), vein = 1.0 - smoothstep(0.012, 0.035, vn1);
+      float pulse = pow(0.5 + 0.5 * sin(vAux * 14.0 - uTime * 3.0), 4.0);
+      col += mix(uColor, uAccent, pulse) * vein * (0.5 + 0.9 * pulse + 1.3 * uFire + 0.6 * uUpg) * (1.0 - fade * 0.5);
+      col += mix(uColor, vec3(1.0), 0.4) * (1.0 - smoothstep(0.0, 0.11, nz - lim)) * fade * 2.2;   // borde incandescente del polvo
+    } else {                                          // pantallita de muñeca: HUD de cristal (barras, ojo cósmico, barrido)
+      vec2 sc = vRs.xy; float t = uTime;
+      float frame = 1.0 - smoothstep(0.0, 0.05, 0.92 - max(abs(sc.x), abs(sc.y)));
+      float bars = 0.0; for (int i = 0; i < 4; i++) { float fi = float(i), cx = -0.66 + fi * 0.44, hgt = 0.18 + 0.3 * (0.5 + 0.5 * sin(t * (1.3 + fi * 0.7) + fi * 2.1) + uFire * 0.4);
+        bars = max(bars, step(abs(sc.x - cx), 0.13) * step(0.62, sc.y) * step(sc.y, 0.62 + hgt)); }
+      vec2 e = (sc - vec2(0.0, -0.22)) * vec2(1.0, 1.35); float lid = 0.5 * (1.0 - e.x * e.x * 1.1);
+      float eye = smoothstep(0.045, 0.0, abs(abs(e.y) - max(lid, 0.0)) - 0.02) * step(abs(e.x), 0.93);
+      vec2 pc = e - vec2(0.18 * sin(t * 0.8), 0.04 * sin(t * 1.3)); float iris = smoothstep(0.30, 0.26, length(pc)) * step(abs(e.y), lid), pup = smoothstep(0.11, 0.08, length(pc * vec2(1.6, 1.0)));
+      float scan = smoothstep(0.08, 0.0, abs(sc.y - (fract(t * 0.35) * 2.0 - 1.0)));
+      float dots = step(0.5, fract(sc.x * 9.0)) * step(abs(sc.y + 0.88), 0.04);
+      vec3 ink = uColor * (frame * 1.2 + bars * 1.4 + eye * 1.1 + scan * 0.5 + dots * 0.8) + uAccent * (iris * (1.0 - pup) * 1.5 + pup * 0.0);
+      col = vec3(0.008, 0.012, 0.026) + ink * (0.9 + 0.9 * uFire) + uAccent * fres * 0.6 + vec3(pow(max(dot(N, H), 0.0), 40.0)) * 0.5;
     }
     col = 1.0 - exp(-col * 1.35);
     gl_FragColor = vec4(col, 1.0);

@@ -34,6 +34,20 @@ export function flashTexture(shape) {
 
 const GRAV = 3.2;
 
+/** Haz del disparo: dos cintas cruzadas (siempre se ven de frente) que salen de la boca hacia -Z y se desvanecen. Escala (ancho, ancho, largo). */
+export function makeBeam(hex) {
+  const P = [], U = [], I = [];
+  for (const ax of [0, 1]) { const o = P.length / 3; for (const [a, z, u, v] of [[-0.5, 0, 0, 0], [0.5, 0, 1, 0], [-0.5, -1, 0, 1], [0.5, -1, 1, 1]]) { P.push(ax ? 0 : a, ax ? a : 0, z); U.push(u, v); } I.push(o, o + 1, o + 2, o + 1, o + 3, o + 2); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); g.setIndex(I);
+  const c = new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.35);
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { uC: { value: c }, uI: { value: 0 } },
+    vertexShader: 'varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform vec3 uC; uniform float uI; varying vec2 vU; void main(){ float x = abs(vU.x - 0.5) * 2.0; float core = pow(1.0 - x, 2.0), fade = pow(1.0 - vU.y, 1.6); vec3 col = mix(uC, vec3(1.0), core * 0.7); gl_FragColor = vec4(col * (core * 1.4 + 0.15) * fade * uI, 1.0); }',
+  });
+  const me = new THREE.Mesh(g, m); me.frustumCulled = false; return me;
+}
+
 export class VMFx {
   constructor(root, halo, q) {
     this.root = root; this.halo = halo;
@@ -60,6 +74,8 @@ export class VMFx {
     this.pt = Array.from({ length: this.nP }, () => ({ life: 0, max: 1, p: new THREE.Vector3(), v: new THREE.Vector3(), s: 0.1, grow: 0, a: 0, col: new THREE.Color(), drag: 1.5, rise: 0 })); this.pI = 0;
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._e = new THREE.Euler(); this._c = new THREE.Color();
   }
+  /** Oculta las mallas de partículas cuando no hay nada vivo (ahorra llamadas de dibujo en reposo). */
+  setLive() { this.shMesh.visible = this.sh.some((s) => s.life > 0); this.points.visible = this.pt.some((s) => s.life > 0); }
   setScale(fovDeg, heightPx) { this.pMat.uniforms.uScale.value = heightPx / (2 * Math.tan(THREE.MathUtils.degToRad(fovDeg) / 2)); }
   shard(p, v, hex, size = 1) {
     const s = this.sh[this.shI++ % this.nS]; s.life = s.max = 0.55 + Math.random() * 0.35; s.p.copy(p); s.v.copy(v); s.s = size;

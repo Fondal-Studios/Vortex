@@ -21,6 +21,7 @@ const prep = (id, kinds, near) => pg.evaluate(async ({ id, kinds, near }) => {
 }, { id, kinds, near });
 for (const id of IDS) {
   await prep(id, ['geoda', 'lente', 'prisma', 'cuarzo'], false);
+  await pg.waitForTimeout(1500); await pg.evaluate(() => { const v = window.__api.renderer.vm; v.low = 0; }); await pg.waitForTimeout(300); // que el arma termine de subir
   await pg.mouse.down(); await pg.waitForTimeout(wait);
   // congela los efectos (no el juego) AFTER segundos después de un disparo NUEVO: la foto muestra ese instante exacto
   await pg.evaluate((after) => new Promise((res) => { const fx = window.__api.renderer.fx, C = fx.combat, P = Object.getPrototypeOf(C); if (!fx.__orig) { fx.__orig = fx.update.bind(fx); fx.update = (dt) => { if (!fx.__frozen) fx.__orig(dt); }; }

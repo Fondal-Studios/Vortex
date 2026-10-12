@@ -111,6 +111,7 @@ function addFinger(g, J2, J3, ax) {
 /** Empuja geometrías (en el espacio de resolución) a una parte del Kit (arreglo `part.g`), aplicando su matriz de pila (pivote) y el reflejo si hace falta. */
 function flush(part, M, geoms, { mirror = false, fin = null } = {}) {
   for (const g of geoms) {
+    if (!g.attributes.rs) { const n = g.attributes.position.count, r = new Float32Array(n * 4); for (let i = 0; i < n; i++) r[i * 4 + 3] = -2; g.setAttribute('rs', new THREE.BufferAttribute(r, 4)); }
     if (mirror) mirrorGeom(g);
     if (fin) { const J2 = fin.J2.clone(), J3 = fin.J3.clone(), A = fin.ax.clone(); addFinger(g, J2.applyMatrix4(M), J3.applyMatrix4(M), A); }
     g.applyMatrix4(M); part.g.push(g);
