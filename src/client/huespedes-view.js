@@ -11,7 +11,7 @@ const UP = [0, 1, 0], ZERO = [0, 0, 0];
 const smooth = (u) => u * u * (3 - 2 * u);
 
 /** Constructor de piezas: junta geometrías por articulación y las fusiona al final. */
-function makeBuilder(T, S) {
+export function makeBuilder(T, S) {
   const joints = {};
   const m4 = new T.Matrix4(), q = new T.Quaternion(), eu = new T.Euler(), v1 = new T.Vector3(), v2 = new T.Vector3(), v3 = new T.Vector3(), cc = new T.Color();
   const xf = (geo, p = ZERO, r = ZERO, s = [1, 1, 1]) => { eu.set(r[0], r[1], r[2]); q.setFromEuler(eu); m4.compose(v1.set(p[0], p[1], p[2]), q, v2.set(s[0], s[1], s[2])); geo.applyMatrix4(m4); return geo; };
@@ -98,7 +98,7 @@ function axioma(P, c) {
     P.limb(arm, 'body', ARM, [0, 0, 0], [0, -0.34, 0], 0.085, 0.07); P.limb(arm, 'glow', LN, [0.075 * s, -0.04, 0.01], [0.065 * s, -0.3, 0.01], 0.01, 0.01, 4);
     P.sph(fore, 'body', BONE, 0.075, [0, 0, 0]); P.box(fore, 'body', NEG, [0.15, 0.3, 0.16], [0, -0.16, 0]); P.box(fore, 'body', ARM, [0.13, 0.09, 0.18], [0, -0.33, 0.02]);
     // cuchilla: nace en el codo, corre por el antebrazo y sobrepasa el puño
-    P.blade(fore, 'body', NEG, [0, -0.25, 0.1], [0, -0.98, 0.1], 0.07, 0.03); P.blade(fore, 'glow', LN2, [0, -0.3, 0.1], [0, -0.97, 0.1], 0.016, 0.05); P.box(fore, 'glow', LN, [0.012, 0.22, 0.012], [0.07 * s, -0.16, 0.0]);
+    if (c.native !== false) { P.blade(fore, 'body', NEG, [0, -0.25, 0.1], [0, -0.98, 0.1], 0.07, 0.03); P.blade(fore, 'glow', LN2, [0, -0.3, 0.1], [0, -0.97, 0.1], 0.016, 0.05); } P.box(fore, 'glow', LN, [0.012, 0.22, 0.012], [0.07 * s, -0.16, 0.0]);
   }
   const R = (a) => a;
   return {
@@ -152,7 +152,7 @@ function vesper(P, c) {
     P.sph(arm, 'body', SK2, 0.075, [0, 0, 0]); P.limb(arm, 'body', SK2, [0, 0, 0], [0, -0.52, 0], 0.06, 0.042); P.limb(arm, 'glow', NV, [0.05 * s, -0.02, 0], [0.036 * s, -0.5, 0], 0.007, 0.007, 3);
     P.sph(fore, 'body', SK, 0.045, [0, 0, 0]); P.limb(fore, 'body', SK, [0, 0, 0], [0, -0.56, 0.02], 0.042, 0.03); P.limb(fore, 'glow', NV, [0.03 * s, -0.04, 0], [0.02 * s, -0.52, 0.02], 0.006, 0.006, 3);
     P.box(fore, 'body', SK2, [0.09, 0.08, 0.06], [0, -0.6, 0.02]);
-    for (const dx of [-0.035, 0, 0.035]) { P.limb(fore, 'body', CL, [dx, -0.64, 0.02], [dx * 1.6, -0.95, 0.1], 0.016, 0.003, 4); }
+    if (c.native !== false) for (const dx of [-0.035, 0, 0.035]) { P.limb(fore, 'body', CL, [dx, -0.64, 0.02], [dx * 1.6, -0.95, 0.1], 0.016, 0.003, 4); }
   }
   return {
     fx: { color: NV, kind: 'streak' },
@@ -247,7 +247,7 @@ function umbra(P, c) {
     arm.rest = [-0.15, 0, 0.16 * s]; fore.rest = [-0.4, 0, 0];
     P.oct(arm, 'body', VOID2, 0.1, [0, 0, 0], [1.1, 0.8, 1]); P.limb(arm, 'body', VOID, [0, -0.04, 0], [0, -0.32, 0], 0.045, 0.032); P.limb(arm, 'glow', VI, [0.035 * s, -0.06, 0], [0.026 * s, -0.3, 0], 0.005, 0.005, 3);
     if (s > 0) {
-      P.limb(fore, 'body', VOID2, [0, 0, 0], [0, -0.2, 0.02], 0.04, 0.035); P.blade(fore, 'body', VOID, [0, -0.15, 0.03], [0, -1.12, 0.1], 0.1, 0.03); P.blade(fore, 'glow', GH, [0, -0.2, 0.03], [0, -1.1, 0.1], 0.02, 0.05); P.oct(fore, 'glow', VI, 0.04, [0, -0.1, 0.03]);
+      P.limb(fore, 'body', VOID2, [0, 0, 0], [0, -0.2, 0.02], 0.04, 0.035); if (c.native !== false) { P.blade(fore, 'body', VOID, [0, -0.15, 0.03], [0, -1.12, 0.1], 0.1, 0.03); P.blade(fore, 'glow', GH, [0, -0.2, 0.03], [0, -1.1, 0.1], 0.02, 0.05); } P.oct(fore, 'glow', VI, 0.04, [0, -0.1, 0.03]);
     } else {
       P.limb(fore, 'body', VOID2, [0, 0, 0], [0, -0.3, 0.02], 0.04, 0.03); P.oct(fore, 'body', VOID, 0.08, [0, -0.4, 0.04], [1.2, 0.5, 1]); P.tor(fore, 'glow', GH, 0.12, 0.008, [0, -0.5, 0.05], [Math.PI / 2, 0, 0], 8);
       for (let i = 0; i < 3; i++) P.limb(fore, 'body', VOID, [(i - 1) * 0.04, -0.42, 0.06], [(i - 1) * 0.07, -0.64, 0.12], 0.012, 0.003, 3);
@@ -320,7 +320,7 @@ function seraf(P, c) {
     arm.rest = [-0.1, 0, 0.1 * s]; fore.rest = [-0.35, 0, 0];
     P.sph(arm, 'body', DK, 0.07, [0, 0, 0]); P.limb(arm, 'body', IV, [0, 0, 0], [0, -0.36, 0], 0.052, 0.04); P.sph(fore, 'body', IV2, 0.04, [0, 0, 0]); P.limb(fore, 'body', IV, [0, 0, 0], [0, -0.34, 0.01], 0.04, 0.032); P.box(fore, 'body', DK, [0.07, 0.09, 0.07], [0, -0.38, 0.01]);
     P.limb(fore, 'glow', GD, [0.032 * s, -0.04, 0], [0.026 * s, -0.32, 0.01], 0.005, 0.005, 3);
-    if (s > 0) { const wh = P.joint('whip', fore, [0, -0.42, 0.01]); let px = 0, py = 0, pz = 0; for (let i = 0; i < 8; i++) { const nx = Math.sin(i * 0.5) * 0.06, ny = py - 0.12, nz = pz + 0.03; P.limb(wh, 'glow', i < 2 ? GD2 : GD, [px, py, pz], [nx, ny, nz], 0.016 - i * 0.0017, 0.014 - i * 0.0017, 3); px = nx; py = ny; pz = nz; } P.oct(wh, 'glow', GD2, 0.025, [px, py, pz]); }
+    if (s > 0 && c.native !== false) { const wh = P.joint('whip', fore, [0, -0.42, 0.01]); let px = 0, py = 0, pz = 0; for (let i = 0; i < 8; i++) { const nx = Math.sin(i * 0.5) * 0.06, ny = py - 0.12, nz = pz + 0.03; P.limb(wh, 'glow', i < 2 ? GD2 : GD, [px, py, pz], [nx, ny, nz], 0.016 - i * 0.0017, 0.014 - i * 0.0017, 3); px = nx; py = ny; pz = nz; } P.oct(wh, 'glow', GD2, 0.025, [px, py, pz]); }
     else { for (let i = 0; i < 4; i++) P.limb(fore, 'glow', GD, [(i - 1.5) * 0.02, -0.42, 0.01], [(i - 1.5) * 0.045, -0.62, 0.02], 0.006, 0.002, 3); }
   }
   return {
@@ -341,7 +341,7 @@ function seraf(P, c) {
     custom(k, t, J) {
       const f = Math.sin(t * 1.5) * 0.12; for (const s of [-1, 1]) { const w = J[s > 0 ? 'wingR' : 'wingL']; w.g.rotation.z += s * (f + k.open * 0.75); w.g.rotation.y -= s * k.open * 0.9; w.g.rotation.x += k.open * -0.15; }
       J.skirt.g.rotation.x = Math.sin(t * 1.1) * 0.06; J.skirt.g.rotation.z = Math.sin(t * 0.9 + 1) * 0.06; J.skirt.g.scale.setScalar(1 + k.open * 0.15);
-      J.whip.g.scale.y = 1 + k.ext * 1.9; J.whip.g.rotation.z = Math.sin(t * 2) * (0.12 - k.ext * 0.08); J.whip.g.rotation.x = Math.sin(t * 1.7) * 0.1;
+      if (J.whip) { J.whip.g.scale.y = 1 + k.ext * 1.9; J.whip.g.rotation.z = Math.sin(t * 2) * (0.12 - k.ext * 0.08); J.whip.g.rotation.x = Math.sin(t * 1.7) * 0.1; }
       J.root.g.position.y += k.open * 0.1 + 0.02 * Math.sin(t * 1.3);
     },
   };
@@ -352,10 +352,10 @@ export const HOST_COLORS = { axioma: 0x3aa8ff, vesper: 0xb04bff, micelio: 0x7be0
 export const HOST_MODEL_IDS = Object.keys(BUILDERS);
 
 /** Construye un Huésped. quality: 'low' | 'medium' | 'high' (más segmentos). */
-export function buildHost(THREE, id, quality = 'low') {
+export function buildHost(THREE, id, quality = 'low', opts = {}) {
   const T = THREE, mk = BUILDERS[id]; if (!mk) throw new Error('Huésped desconocido: ' + id);
   const color = HOST_COLORS[id], S = quality === 'low' ? 5 : quality === 'medium' ? 7 : 9;
-  const P = makeBuilder(T, S), spec = mk(P, { color, S });
+  const P = makeBuilder(T, S), spec = mk(P, { color, S, native: opts.native !== false });
   const mats = {
     body: new T.MeshStandardMaterial({ vertexColors: true, metalness: 0.3, roughness: 0.5, flatShading: true, emissive: new T.Color(color).multiplyScalar(0.05) }),
     glow: new T.MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
@@ -420,5 +420,5 @@ export function buildHost(THREE, id, quality = 'low') {
   }
   function dispose() { group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); for (const m of Object.values(mats)) m.dispose(); fxMat.dispose(); }
   pose('idle'); update(0, 0);
-  return { group, update, pose, dispose, info: { id, draws: counts.draws, tris: Math.round(counts.tris) }, get poseName() { return st.name; } };
+  return { group, update, pose, dispose, joints: J, mats, info: { id, draws: counts.draws, tris: Math.round(counts.tris) }, get poseName() { return st.name; } };
 }

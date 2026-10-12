@@ -334,3 +334,25 @@ body.playing #trophies { top: calc(env(safe-area-inset-top, 0px) + 112px); botto
 
 /* Mientras se eligen las tarjetas, los botones táctiles se esconden y dejan pasar los toques (si no, tapaban la 3.ª tarjeta y no se podía tocar). */
 body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn, body.cards-open #touch .tc-stick { visibility: hidden; }
+
+/* ═══════════════ HUD táctil simple: 4 botones grandes + contextuales + modo avanzado ═══════════════ */
+@media (pointer: coarse) {
+  .tc-btn.tc-jump { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 0 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-melee { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 1 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-reload { right: calc(env(safe-area-inset-right, 0px) + 14px + 1 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-ult { right: calc(env(safe-area-inset-right, 0px) + 14px + 0 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-use { right: calc(env(safe-area-inset-right, 0px) + 14px + 3 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 0 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-evo { right: calc(env(safe-area-inset-right, 0px) + 14px + 3 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 1 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-mov { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-esp { right: calc(env(safe-area-inset-right, 0px) + 14px + 3 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-s3 { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 3 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-ads { right: calc(env(safe-area-inset-right, 0px) + 14px + 3 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 3 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-crouch { right: calc(env(safe-area-inset-right, 0px) + 14px + 1 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 3 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-ability { right: calc(env(safe-area-inset-right, 0px) + 14px + 0 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 3 * (var(--u) + var(--g))); width: var(--u); height: var(--u); }
+  .tc-btn.tc-fire { width: calc(2 * var(--u) + var(--g)); height: calc(2 * var(--u) + var(--g)); }
+  .tc-btn.tc-reload, .tc-btn.tc-melee { font-size: 9px; } .tc-btn.tc-reload { border-color: #7dff9a; } .tc-btn.tc-use { border-color: #7dff9a; } .tc-btn.tc-evo { border-color: #ff66c4; }
+  .tc-btn.tc-ping { top: calc(env(safe-area-inset-top, 0px) + 56px); }
+  .tc-btn { font-size: 9px; } .tc-btn small { font-size: 9px; }
+  #weapons { pointer-events: none; } #weapons div { padding-top: 8px !important; padding-bottom: 8px !important; }
+}
+.tc-btn.tc-ctx:not(.tc-off) { animation: tcpop .35s ease-out; } @keyframes tcpop { from { transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(.3); } }

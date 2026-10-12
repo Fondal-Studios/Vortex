@@ -1,0 +1,94 @@
+/* Pantalla «Evolución» (src/client/evolucion-ui.js). Mismo lenguaje que huespedes.css.
+   Horizontal = riel · escenario del Huésped (cabecera + 3D + núcleos y botón) · panel de armas con scroll interno.
+   Vertical = riel arriba, escenario, panel con scroll. Un único canvas (#evcanvas) cubre la pantalla y dibuja sobre #evstage y #evprev. */
+#evolucion { --c: #3aa8ff; overflow: hidden !important; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; padding-left: calc(env(safe-area-inset-left, 0px) + 14px) !important; padding-right: calc(env(safe-area-inset-right, 0px) + 14px) !important;
+  background: radial-gradient(70% 80% at 36% 58%, color-mix(in srgb, var(--c) 24%, transparent), transparent 72%), radial-gradient(40% 50% at 92% 8%, color-mix(in srgb, var(--c) 14%, transparent), transparent 70%); transition: background .4s; }
+#evcanvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 6; pointer-events: none; }
+.ev-wrap { flex: 1; min-width: 0; min-height: 0; display: grid; gap: 12px; grid-template-columns: clamp(64px, 8vw, 96px) minmax(0, 1fr) minmax(0, 1.3fr); grid-template-rows: minmax(0, 1fr); position: relative; z-index: 2; }
+.ev-nav:focus-visible { outline: 2px solid #fff; outline-offset: 2px; } .ev-nav.focus { box-shadow: 0 0 0 2px #fff, 0 0 18px var(--c); }
+button[hidden], span[hidden] { display: none !important; }
+
+/* riel de Huéspedes */
+.ev-rail { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2px; scrollbar-width: thin; }
+.ev-chip { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; padding: 6px 4px; border-radius: 12px; border: 1px solid #ffffff22; background: #ffffff0c; color: #dfe6ff; font: inherit; cursor: pointer; overflow: hidden; flex: 0 0 auto; transition: background .2s, border-color .2s; }
+.ev-chip::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, var(--c), transparent 80%); opacity: .16; pointer-events: none; }
+.ev-chip > * { position: relative; } .ev-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.ev-cn { display: flex; flex-direction: column; align-items: center; min-width: 0; max-width: 100%; line-height: 1.15; } .ev-cn b { font-size: 11px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; text-transform: uppercase; } .ev-cn small { font-size: 10px; color: #aeb8e0; letter-spacing: .04em; white-space: nowrap; }
+.ev-chip.sel { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, #ffffff0c); box-shadow: 0 0 16px color-mix(in srgb, var(--c) 45%, transparent); } .ev-chip.sel .ev-cn small { color: #fff; }
+.ev-chip.chosen::after { content: "✓"; position: absolute; right: 4px; top: 2px; font-size: 10px; color: var(--c); }
+
+/* centro: cabecera, escenario, evolución */
+.ev-center { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+.ev-head { flex: 0 0 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ev-h1 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.ev-head h2 { margin: 0; font-weight: 300; letter-spacing: .16em; text-transform: uppercase; font-size: clamp(20px, 2.4vw, 32px); line-height: 1.1; text-shadow: 0 0 24px var(--c); }
+.ev-tier { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #dfe6ff; white-space: nowrap; } .ev-tier b { color: var(--c); font-size: 15px; } .ev-tier.pop { animation: ev-pop .9s ease-out; }
+@keyframes ev-pop { 0% { transform: scale(1.6); text-shadow: 0 0 22px var(--c); } 100% { transform: scale(1); } }
+.ev-h2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 22px; }
+.ev-tag { font: 700 10px/1 "SF Pro Display", system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 4px 9px; border-radius: 99px; background: #ffffff1a; border: 1px solid #ffffff33; color: #fff; white-space: nowrap; }
+#evchosen { border-color: var(--c); color: var(--c); } .ev-use { cursor: pointer; min-height: 28px; } .ev-use:hover { background: #ffffff30; }
+.ev-pips { display: inline-flex; gap: 3px; margin-left: 2px; } .ev-pips i { width: 16px; height: 6px; border-radius: 3px; background: #ffffff2e; } .ev-pips i.on { background: var(--c); box-shadow: 0 0 8px var(--c); }
+.ev-stage { position: relative; flex: 1 1 0; min-height: 90px; border-radius: 18px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); cursor: grab; touch-action: none;
+  background: radial-gradient(60% 55% at 50% 62%, color-mix(in srgb, var(--c) 34%, #08040f) 0%, #08040f 78%), repeating-linear-gradient(60deg, #ffffff07 0 1px, transparent 1px 16px), repeating-linear-gradient(-60deg, #ffffff07 0 1px, transparent 1px 16px); box-shadow: inset 0 0 40px #0009, 0 0 28px color-mix(in srgb, var(--c) 30%, transparent); }
+.ev-stage:active { cursor: grabbing; }
+.ev-peek-tag { position: absolute; left: 8px; top: 8px; font: 700 10px/1 system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; padding: 4px 8px; border-radius: 99px; background: #000a; border: 1px solid var(--c); color: var(--c); pointer-events: none; }
+.ev-wave { position: absolute; left: 50%; top: 58%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 3px solid var(--c); opacity: 0; pointer-events: none; }
+.ev-stage.flash { animation: ev-flash 1s ease-out; } .ev-stage.flash .ev-wave { animation: ev-wave 1s ease-out; }
+.ev-stage.flash::before { content: attr(data-msg); position: absolute; left: 0; right: 0; top: 14%; text-align: center; font: 800 clamp(14px, 3vw, 22px)/1.1 "SF Pro Display", system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #fff; text-shadow: 0 0 16px var(--c), 0 0 4px #000; animation: ev-msg 1.1s ease-out forwards; pointer-events: none; z-index: 9; }
+@keyframes ev-flash { 0% { box-shadow: inset 0 0 120px #fff, 0 0 60px var(--c); } 100% { box-shadow: inset 0 0 40px #0009, 0 0 28px color-mix(in srgb, var(--c) 30%, transparent); } }
+@keyframes ev-wave { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(34); } }
+@keyframes ev-msg { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.ev-evolve { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 14px; background: #07030fb8; border: 1px solid #ffffff1c; min-width: 0; }
+.ev-cores { display: flex; align-items: center; gap: 10px; min-width: 0; } .ev-core-n { font-size: 12px; color: #dfe6ff; white-space: nowrap; } .ev-core-n b { color: #fff; font-size: 16px; } .ev-core-n i { font-style: normal; color: var(--c); }
+.ev-bar { flex: 1 1 auto; min-width: 30px; height: 8px; border-radius: 4px; background: #ffffff1c; position: relative; overflow: hidden; } .ev-bar b { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, #000), var(--c)); transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+.ev-cores.ready .ev-bar b { animation: ev-ready .8s ease-in-out infinite alternate; } @keyframes ev-ready { to { filter: brightness(1.7); } }
+.ev-next { font-size: 12px; line-height: 1.35; color: #c6cfef; max-height: 6.2em; overflow-y: auto; scrollbar-width: thin; } .ev-next b { color: #fff; display: block; font-size: 13px; } .ev-next span { display: block; } .ev-next em { display: block; font-style: normal; color: var(--c); margin-top: 2px; }
+.ev-actions { display: flex; gap: 8px; }
+.ev-btn { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 10px; border-radius: 22px; border: 1px solid #ffffff55; background: #ffffff16; color: #fff; font: 700 12px/1.1 "SF Pro Display", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: transform .15s; }
+.ev-btn:hover:not(:disabled) { background: #ffffff30; } .ev-btn:active:not(:disabled) { transform: scale(.97); } .ev-btn:disabled { opacity: .45; cursor: default; }
+.ev-main { background: var(--c); border-color: var(--c); color: #07030f; box-shadow: 0 0 22px color-mix(in srgb, var(--c) 55%, transparent); } .ev-main:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 82%, #fff); } .ev-main:disabled { background: #ffffff22; color: #cfd7f7; box-shadow: none; border-color: #ffffff33; }
+
+/* panel de armas (scroll interno) */
+.ev-panel { position: relative; display: flex; flex-direction: column; gap: 8px; background: #07030fb8; border-radius: 14px; padding: 8px 10px 0; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--c) transparent; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.ev-tabs { display: flex; flex-wrap: wrap; gap: 5px; flex: 0 0 auto; }
+.ev-tab { flex: 1 1 auto; min-height: 36px; padding: 0 8px; border-radius: 18px; border: 1px solid #ffffff33; background: #ffffff10; color: #dfe6ff; font: 700 11px/1 "SF Pro Display", system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.ev-tab.sel { background: var(--c); border-color: var(--c); color: #07030f; }
+.ev-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 6px; flex: 0 0 auto; }
+.ev-w { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; min-height: 44px; padding: 6px 9px; border-radius: 10px; border: 1px solid #ffffff22; border-left: 3px solid #ffffff44; background: #ffffff0c; color: #e6ebff; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+.ev-w b { font-size: 12px; letter-spacing: .02em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ev-w small { font-size: 10px; color: #98a3cf; letter-spacing: .05em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-w.buy small { color: #ffd45a; } .ev-w.eq { border-left-color: var(--c); } .ev-w.eq small { color: var(--c); }
+.ev-w.sel { background: color-mix(in srgb, var(--c) 22%, #ffffff0c); border-color: var(--c); }
+.ev-detail { display: grid; grid-template-columns: minmax(96px, 36%) minmax(0, 1fr); gap: 10px; flex: 0 0 auto; align-items: start; }
+.ev-prev { position: relative; aspect-ratio: 3 / 4; min-height: 130px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); cursor: grab; touch-action: none;
+  background: radial-gradient(60% 55% at 50% 55%, color-mix(in srgb, var(--c) 28%, #08040f), #08040f 80%); box-shadow: inset 0 0 28px #000a; } .ev-prev:active { cursor: grabbing; }
+.ev-info { min-width: 0; } .ev-info h3 { margin: 0 0 3px; font-size: 14px; font-weight: 700; letter-spacing: .04em; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ev-type { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--c); color: var(--c); font-weight: 700; }
+.ev-desc { margin: 0 0 6px; font-size: 12px; line-height: 1.4; color: #c6cfef; }
+.ev-aff { font-size: 11px; color: #98a3cf; margin: 0 0 6px; } .ev-aff.yes { color: #ffd45a; font-weight: 700; }
+.ev-stats { display: flex; flex-direction: column; gap: 4px; } .ev-stat { display: grid; grid-template-columns: 78px minmax(0, 1fr) 44px; align-items: center; gap: 6px; font-size: 11px; } .ev-sl { color: #cfd7f7; } .ev-stat em { font-style: normal; text-align: right; color: #fff; font-variant-numeric: tabular-nums; }
+.ev-sbar { position: relative; height: 7px; border-radius: 4px; background: #ffffff1c; } .ev-sbar b { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, #000), var(--c)); }
+.ev-sp { margin-top: 8px; padding: 7px 9px; border-radius: 10px; background: #ffffff0f; border-left: 3px solid var(--c); font-size: 11px; line-height: 1.4; } .ev-sp b { display: block; font-size: 12px; color: #fff; } .ev-sp span { color: #c6cfef; }
+.ev-buy { position: sticky; bottom: 0; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; margin: auto -10px 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px) * 0); background: linear-gradient(180deg, #07030f00, #07030ff0 22%); z-index: 3; border-top: 1px solid #ffffff14; }
+.ev-price { flex: 1 1 0; min-width: 0; font-size: 12px; color: #dfe6ff; line-height: 1.25; } .ev-price b { color: #ffd45a; } .ev-buy .ev-btn { flex: 0 0 auto; min-width: 140px; }
+
+/* celular horizontal / pantallas bajas */
+@media (max-height: 460px) {
+  #evolucion { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important; } .ev-wrap { gap: 10px; }
+  .ev-head h2 { font-size: 18px; } .ev-tier { font-size: 10px; } .ev-tier b { font-size: 13px; } .ev-head { gap: 1px; } .ev-h2 { min-height: 0; } .ev-tag { font-size: 9px; padding: 3px 7px; } .ev-use { min-height: 24px; } .ev-pips i { width: 12px; height: 5px; }
+  .ev-chip { min-height: 44px; padding: 4px 2px; gap: 1px; } .ev-cn b { font-size: 9px; letter-spacing: 0; } .ev-cn small { font-size: 9px; } .ev-dot { width: 8px; height: 8px; }
+  .ev-evolve { padding: 5px 8px; gap: 4px; } .ev-next { font-size: 10px; line-height: 1.25; max-height: 4.8em; } .ev-next b { font-size: 11px; } .ev-btn { min-height: 38px; font-size: 10px; letter-spacing: .04em; padding: 0 6px; }
+  .ev-core-n { font-size: 11px; } .ev-core-n b { font-size: 13px; }
+  .ev-tab { min-height: 32px; font-size: 10px; padding: 0 6px; } .ev-panel { gap: 6px; padding: 6px 8px 0; } .ev-buy { margin: auto -8px 0; padding: 5px 8px; } .ev-buy .ev-btn { min-width: 120px; }
+  .ev-detail { grid-template-columns: minmax(84px, 30%) minmax(0, 1fr); gap: 8px; } .ev-prev { min-height: 110px; } .ev-desc { font-size: 11px; } .ev-stat { grid-template-columns: 70px minmax(0, 1fr) 40px; font-size: 10px; } .ev-w { min-height: 40px; padding: 4px 7px; }
+}
+@media (max-width: 720px) and (min-aspect-ratio: 1/1) { .ev-wrap { grid-template-columns: 56px minmax(0, 1fr) minmax(0, 1.25fr); gap: 8px; } .ev-list { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); } .ev-w b { font-size: 11px; } .ev-buy .ev-btn { min-width: 100px; } .ev-price { font-size: 11px; } }
+
+/* celular vertical */
+@media (max-aspect-ratio: 1/1) {
+  #evolucion { padding-left: calc(env(safe-area-inset-left, 0px) + 12px) !important; padding-right: calc(env(safe-area-inset-right, 0px) + 12px) !important; }
+  .ev-wrap { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1.2fr) minmax(0, 1fr); gap: 8px; }
+  .ev-rail { overflow: visible; flex-direction: row; gap: 4px; } .ev-chip { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 4px 2px; gap: 1px; } .ev-cn b { font-size: 10px; letter-spacing: 0; } .ev-cn small { font-size: 9px; }
+  .ev-evolve { gap: 4px; padding: 6px 10px; } .ev-next { max-height: 5.4em; }
+  .ev-detail { grid-template-columns: minmax(96px, 34%) minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .ev-stage.flash, .ev-stage.flash .ev-wave, .ev-stage.flash::before, .ev-tier.pop, .ev-cores.ready .ev-bar b { animation: none; } }

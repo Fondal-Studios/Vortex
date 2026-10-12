@@ -58,3 +58,7 @@ export function shapeWeapon(w, st) {
   return w;
 }
 export const anyMut = (p, id) => Object.values(p.upg).some((u) => u && u.mut === id);
+
+/** Cargadores: balas por cargador de un arma (según su cadencia: lo rápido tiene cargador grande) y tiempo de recarga. */
+export const clipOf = (p, wid) => { const w = WEAPONS[wid]; const base = w.clip || Math.max(3, Math.min(40, Math.round(4 / w.rate))); return Math.max(1, Math.round(base * (1 + 0.15 * ((p.upg[wid] || {}).mag || 0)))); };
+export const reloadTime = (p, wid) => { const w = WEAPONS[wid]; return w.reload || Math.min(2.2, 1.0 + 0.025 * clipOf(p, wid)); };

@@ -9,7 +9,7 @@
 <link rel="manifest" href="/public/manifest.webmanifest"><link rel="apple-touch-icon" href="/public/icon-180.png">
 <title>Cristal Vórtice</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css">
+<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css">
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
 </head>
 <body>
@@ -57,6 +57,7 @@
       <button class="item" data-go="story" data-art="historia"><b>Historia</b><small>Un tren, un andén, una luz</small></button>
       <button class="item" data-go="arenas" data-art="arenas"><b>Arenas</b><small>Directo a la acción</small></button>
       <button class="item" data-go="huesped" data-art="equipo"><b>Huésped</b><small>Elegí tu organismo</small></button>
+      <button class="item" data-go="evolucion" data-art="equipo"><b>Evolución</b><small>Núcleos · armas fusionadas · mutaciones</small></button>
       <button class="item" data-go="loadout" data-art="equipo"><b>Equipo</b><small>Personajes · habilidades · armas</small></button>
       <button class="item" data-go="coop" data-art="coop"><b>Cooperativo</b><small>Hasta 4 Pasajeros</small></button>
       <button class="item" data-go="bestiary" data-art="bestiario"><b>Bestiario</b><small>15 organismos del Vórtice</small></button>
@@ -85,6 +86,8 @@
   </section>
   <!-- ═════ HUÉSPED: selección previa a la partida (src/client/huespedes-ui.js) ═════ -->
   <section id="huesped" class="screen" data-screen="huesped"></section>
+  <!-- ═════ EVOLUCIÓN: núcleos, nivel del Huésped y catálogo de armas (src/client/evolucion-ui.js) ═════ -->
+  <section id="evolucion" class="screen" data-screen="evolucion"></section>
   <!-- ═════ EQUIPO: personajes y armas ═════ -->
   <section id="loadout" class="screen" data-screen="loadout">
     <div class="lo-left">
@@ -112,7 +115,7 @@
       <div class="or">o unite con el código</div>
       <input id="roomcode" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
       <button id="joinroom" class="btn">Unirse</button>
-      <p class="hint">Elegí tu rol en Opciones. Si un compañero cae, acercate 3 s (E) para reanimarlo: el Soporte lo hace el doble de rápido. Resolvé los objetivos juntos y usá T para señalar.</p>
+      <p class="hint">Elegí tu rol en Opciones. Si un compañero cae, acercate 3 s (E) para reanimarlo: el Soporte lo hace el doble de rápido. Resolvé los objetivos juntos y usá B para señalar.</p>
     </div>
   </section>
   <!-- ═════ BESTIARIO ═════ -->
@@ -145,6 +148,7 @@
       <label>Giroscopio <select id="tgy"><option value="0">Apagado</option><option value="1">Encendido</option></select></label>
       <label>Intensidad del giroscopio <input id="tgs" type="range" min="2" max="30"></label>
       <label>Apuntar (ADS) <select id="tadsm"><option value="mantener">Mantener pulsado</option><option value="alternar">Tocar para alternar</option></select></label>
+      <label>Modo avanzado (habilidades, apuntar, agachar) <select id="tadv"><option value="0">No: sólo 4 botones</option><option value="1">Sí: todos los botones</option></select></label>
       <label>Dedos <select id="tfing"><option value="2">2 dedos</option><option value="3">3 dedos</option><option value="4">4 dedos (garra)</option></select></label>
       <label>Tamaño de los botones <input id="ths" type="range" min="60" max="160"></label>
       <label>Transparencia de los botones <input id="tho" type="range" min="25" max="100"></label>
@@ -161,6 +165,7 @@
   <div class="list"><button class="item" id="resume"><b>Continuar</b></button>
   <button class="item" id="showctl"><b>Ver controles</b></button>
   <button class="item" id="editctl"><b>Editar botones</b></button>
+  <button class="item" id="advtoggle"><b>Habilidades: no</b></button>
   <label class="item sel">Gráficos <select id="qsel2"></select></label>
   <label class="item sel">Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label>
   <button class="item" id="quit"><b>Salir al menú</b></button></div></div></div>

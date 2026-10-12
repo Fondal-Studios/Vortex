@@ -1,8 +1,8 @@
 // Preferencias del jugador (se guardan en el navegador, por dispositivo). Versionadas: si cambia el formato se migra sin perder lo anterior.
 const KEY = 'cristal.ajustes.v2', OLD_SENS = 'cristal.sens.touch.v1';
 export const DEFAULTS = Object.freeze({
-  sensX: 0.0062,      // rad por píxel (horizontal): ≈ 0.36°/px → un giro de 180° con ~500 px de deslizamiento
-  sensY: 0.0052,      // rad por píxel (vertical)
+  sensX: 0.0042,      // rad por píxel (horizontal): ≈ 0.24°/px → un giro de 180° con ~750 px (dos deslizamientos cómodos); más calmo que antes
+  sensY: 0.0034,      // rad por píxel (vertical)
   adsMul: 0.6,        // multiplicador al apuntar (ADS) con miras comunes
   scopeMul: 0.38,     // multiplicador con mira óptica (armas de largo alcance)
   accel: false,       // aceleración de cámara (opcional; por defecto velocidad FIJA)
@@ -12,6 +12,7 @@ export const DEFAULTS = Object.freeze({
   aim: null,          // ayuda de puntería 0..3 (null = según dispositivo)
   fingers: 2,         // 2, 3 o 4 dedos
   hudScale: 1, hudOpacity: 0.85,
+  advanced: false,    // modo avanzado: muestra HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO y SEÑALAR (básico = sólo disparo, recargar, melee y salto)
   adsMode: 'mantener', // 'mantener' | 'alternar'
   layout: {},         // { botón: { dx, dy, s } }: posiciones y tamaños personalizados
 });
@@ -19,6 +20,7 @@ let cache = null;
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
   if (o.sensX == null) { try { const old = parseFloat(localStorage.getItem(OLD_SENS)); if (old > 0) o.sensX = Math.min(0.012, old * 1.35); } catch { /* ok */ } } // migración
+  if (o.ver !== 3) { delete o.sensX; delete o.sensY; o.ver = 3; }   // v3: sensibilidad por defecto más baja (la anterior se sentía nerviosa)
   cache = { ...DEFAULTS, ...o, layout: { ...(o.layout || {}) } };
   return cache;
 }

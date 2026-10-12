@@ -15,25 +15,26 @@ const BTN = [
   ['ads', 'tc-ads', '◎', 'APUNTAR', 'hold', false],
   ['jump', 'tc-jump', '⤒', 'SALTO', 'hold', false],
   ['crouch', 'tc-crouch', '⤓', 'AGACHAR', 'toggle', false],
-  ['dash', 'tc-dash', '»', 'CORRER', 'toggle', false],
   ['mov', 'tc-mov', '⇢', 'HAB.1', 'hold', false],
   ['esp', 'tc-esp', '✦', 'HAB.2', 'hold', false],
   ['s3', 'tc-s3', '❖', 'HAB.3', 'hold', false],
   ['ult', 'tc-ult', '★', 'ULTI', 'hold', false],
+  ['reload', 'tc-reload', '↻', 'RECARGAR', 'hold', false],
+  ['evo', 'tc-evo', '✺', 'EVOLUC.', 'hold', false],
   ['melee', 'tc-melee', '⚔', 'MELEE', 'hold', false],
   ['ability', 'tc-ability', '✚', 'EQUIPO', 'hold', false],
   ['use', 'tc-use', '✋', 'USAR', 'hold', false],
   ['ping', 'tc-ping', '◆', '', 'hold', false],
-  ['prev', 'tc-prev', '‹', '', 'tap', false],
-  ['next', 'tc-next', '›', '', 'tap', false],
   ['pause', 'tc-pause', '❚❚', '', 'tap', false],
 ];
-// Qué botones se ven según la cantidad de dedos
-const SHOW = {
-  2: ['fire', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 's3', 'ult', 'melee', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
-  3: ['fire', 'fireL', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 's3', 'ult', 'melee', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
-  4: ['fire', 'fireL', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 's3', 'ult', 'melee', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
-};
+// Modo básico: SÓLO 4 botones (disparo, recargar, melee, salto) + pausa. Lo demás:
+//  · contextuales (CTX): aparecen sólo cuando sirven (definitiva cargada, algo para usar, evolución lista);
+//  · modo avanzado (setting `advanced`): habilidades 1/2/3, apuntar, agachar, equipo y señalar.
+// Correr es automático (palanca al máximo) y el arma se cambia tocando/deslizando la barra de armas de abajo.
+const BASIC = ['fire', 'reload', 'melee', 'jump', 'pause'];
+const ADV = ['mov', 'esp', 's3', 'ads', 'crouch', 'ability', 'ping'];
+const CTX = ['ult', 'use', 'evo'];
+const SHOW = (fingers, advanced) => [...BASIC, ...(fingers >= 3 ? ['fireL'] : []), ...(advanced ? ADV : [])];
 const STICK_R = 58;             // radio del recorrido de la palanca (px CSS)
 const STICK_DEAD = 0.1;         // zona muerta (fracción)
 
@@ -47,8 +48,8 @@ export class TouchControls {
   /* ───── estado de entrada ───── */
   reset(first = false) {
     this.mx = 0; this.mz = 0; this.dyaw = 0; this.dpitch = 0; this.weapon = -1;
-    this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, ability: false, use: false, ping: false };
-    this.dashStick = false; this.adsToggled = false;
+    this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, reload: false, evo: false, ability: false, use: false, ping: false };
+    this.dashStick = false; this.adsToggled = false; this.ctx = this.ctx || {};
     if (!first) { this.ptrs.clear(); this.stick.classList.add('hidden'); this.host.querySelectorAll('.on').forEach((b) => b.classList.remove('on')); }
   }
   get fire() { return this.st.fire || this.st.fireL; }
@@ -80,17 +81,23 @@ export class TouchControls {
 
   /* ───── diseño personalizado ───── */
   applyLayout() {
-    const s = settings(), vis = new Set(SHOW[s.fingers] || SHOW[2]);
+    const s = settings(), vis = new Set(SHOW(s.fingers, !!s.advanced));
     this.host.style.setProperty('--hud-op', String(s.hudOpacity)); this.host.style.setProperty('--hud-s', String(s.hudScale));
-    for (const [id] of BTN) { const el = this.$(`[data-a="${id}"]`), l = s.layout[id] || {}; if (!el) continue; el.style.setProperty('--dx', `${l.dx || 0}px`); el.style.setProperty('--dy', `${l.dy || 0}px`); el.style.setProperty('--s', String((l.s || 1) * s.hudScale)); el.classList.toggle('tc-off', !vis.has(id)); }
+    for (const [id] of BTN) { const el = this.$(`[data-a="${id}"]`), l = s.layout[id] || {}; if (!el) continue; el.style.setProperty('--dx', `${l.dx || 0}px`); el.style.setProperty('--dy', `${l.dy || 0}px`); el.style.setProperty('--s', String((l.s || 1) * s.hudScale)); el.classList.toggle('tc-off', CTX.includes(id) ? !(this.ctx[id] || this.editing || this.ctxForce) : !(vis.has(id) || this.editing && ADV.includes(id) && s.advanced)); el.classList.toggle('tc-ctx', CTX.includes(id)); }
     const op = this.$('#tcOp'); if (op) op.value = Math.round(s.hudOpacity * 100);
   }
   edit(on) {
     this.editing = on; this.host.classList.toggle('editing', on); this.editBox.classList.toggle('hidden', !on); this.sel = null;
     this.host.querySelectorAll('.tc-btn.sel').forEach((b) => b.classList.remove('sel')); if (!on) save();
     if (on) this.reset();
+    this.applyLayout();
   }
   setSelectedSize(k) { if (!this.sel) return; const s = settings(); (s.layout[this.sel] ||= {}).s = k; this.applyLayout(); }
+  /** Botones contextuales: { ult, use, evo } = ¿sirven ahora? Sólo repinta cuando algo cambia. */
+  setContext(c) {
+    this.ctx = this.ctx || {}; let ch = false; for (const k of CTX) { const v = !!c[k]; if (this.ctx[k] !== v) { this.ctx[k] = v; ch = true; if (!v && this.st[k]) { this.st[k] = false; this.host.querySelector(`[data-a="${k}"]`)?.classList.remove('on'); } } }
+    if (ch) this.applyLayout();
+  }
   /** Cantidad de dedos (2/3/4): muestra u oculta los botones extra. */
   setFingers(n) { setSetting('fingers', n); this.applyLayout(); }
 
@@ -107,6 +114,7 @@ export class TouchControls {
       this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ }
       this.press(p); return;
     }
+    { const wi = this.weaponAt(e.clientX, e.clientY, false); if (wi >= 0) { p.kind = 'wbar'; p.last = wi; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ } this.weapon = wi; return; } } // barra de armas: tocar elige, deslizar cambia
     if (e.clientX < W * 0.5) { // zona izquierda: SÓLO palanca
       if ([...this.ptrs.values()].some((q) => q.kind === 'move')) return;
       p.kind = 'move'; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ }
@@ -114,6 +122,13 @@ export class TouchControls {
     }
     if ([...this.ptrs.values()].some((q) => q.kind === 'look')) return; // un solo dedo de cámara a la vez
     p.kind = 'look'; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ }
+  }
+  /** Casilla de la barra de armas (#weapons) bajo el punto, o -1. `loose`: al deslizar, sólo cuenta la posición horizontal. */
+  weaponAt(x, y, loose) {
+    const bar = document.getElementById('weapons'); if (!bar || bar.offsetParent === null && getComputedStyle(bar).position !== 'fixed') return -1;
+    const br = bar.getBoundingClientRect(); if (br.width < 4 || (!loose && (x < br.left - 4 || x > br.right + 4 || y < br.top - 12 || y > br.bottom + 12))) return -1;
+    let best = -1, bd = 1e9; [...bar.children].forEach((c, i) => { const r = c.getBoundingClientRect(), d = x < r.left ? r.left - x : x > r.right ? x - r.right : 0; if (d < bd) { bd = d; best = +c.dataset.i >= 0 ? +c.dataset.i : i; } });
+    return !loose && bd > 6 ? -1 : best;
   }
   press(p) {
     const el = p.el, a = p.act;
@@ -131,7 +146,7 @@ export class TouchControls {
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : null, list = evs && evs.length ? evs : [e]; // todos los puntos intermedios: precisión en microajustes
     for (const ev of list) {
       const dx = ev.clientX - p.x, dy = ev.clientY - p.y; p.x = ev.clientX; p.y = ev.clientY;
-      if (p.kind === 'move') this.stickMove(p);
+      if (p.kind === 'wbar') { const wi = this.weaponAt(p.x, p.y, true); if (wi >= 0 && wi !== p.last) { p.last = wi; this.weapon = wi; } } else if (p.kind === 'move') this.stickMove(p);
       else if (p.kind === 'look' || (p.kind === 'btn' && p.look)) this.look(p, dx, dy, ev.timeStamp || performance.now());
     }
   }
@@ -194,7 +209,7 @@ export class TouchControls {
 
   /** Entrada de este cuadro (los acumulados de giro se consumen). */
   read() {
-    const s = this.st, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: s.fire || s.fireL, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: s.melee, ads: s.ads, crouch: s.crouch };
+    const s = this.st, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: s.fire || s.fireL, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: s.melee, reload: s.reload, evo: s.evo, ads: s.ads, crouch: s.crouch };
     this.dyaw = this.dpitch = 0; this.weapon = -1; return i;
   }
 }

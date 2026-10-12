@@ -35,6 +35,11 @@ const CSS = `
 .tc-btn[data-ring]::before{content:"";position:absolute;inset:-5px;border-radius:50%;pointer-events:none;background:conic-gradient(var(--rc,#5cf2ff) calc(var(--p,1) * 360deg),#ffffff26 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
 .tc-btn.ready{box-shadow:0 0 12px var(--rc,#5cf2ff)}.tc-btn.act{background:#ff66c4aa!important;box-shadow:0 0 18px #ff66c4}
 .tc-btn.tc-ult.ready{animation:hqpulse .8s ease-in-out infinite alternate}
+.hq-ammo{position:absolute;left:50%;transform:translateX(-50%);bottom:150px;min-width:110px;text-align:center;pointer-events:none;font-weight:800;letter-spacing:.06em;text-shadow:0 0 8px #000,0 0 3px #000}
+.hq-ammo b{font-size:clamp(18px,3vw,28px);color:#fff}.hq-ammo b span{opacity:.6;font-size:.7em}.hq-ammo.low b{color:#ff6a6a}
+.hq-ammo i{display:none;height:4px;margin-top:3px;border-radius:2px;background:#ffffff33;overflow:hidden}.hq-ammo.rel i{display:block}.hq-ammo i u{display:block;height:100%;width:0;background:#7dff9a;text-decoration:none}
+.hq-ammo small{display:block;font-size:10px;color:#7dff9a;letter-spacing:.14em}
+.hq-ammo.touch{bottom:calc(46px + env(safe-area-inset-bottom,0px))}.hq-ammo.touch b{font-size:16px}
 @media (max-height:460px){.hq .hs{min-height:22px;padding:3px 8px}}
 `;
 const BF = [[1, 'Caparazón'], [2, 'Camuflaje'], [4, 'Sobrecarga'], [8, 'Frenesí'], [16, 'Floración'], [32, 'Metamorfosis'], [64, 'Desfase'], [128, 'Planeo'], [256, 'Barrera']];
@@ -45,6 +50,7 @@ export function createHuespedHud(rootEl) {
   const doc = rootEl.ownerDocument || document;
   if (!doc.getElementById(STYLE_ID)) { const s = doc.createElement('style'); s.id = STYLE_ID; s.textContent = CSS; doc.head.appendChild(s); }
   const el = doc.createElement('div'); el.className = 'hq'; el.id = 'huesped'; rootEl.appendChild(el);
+  const am = doc.createElement('div'); am.className = 'hq-ammo'; am.innerHTML = '<b></b><small></small><i><u></u></i>'; rootEl.appendChild(am);
   let built = '', cache = {};
   const rows = {};
   const build = (C, touch) => {
@@ -70,7 +76,7 @@ export function createHuespedHud(rootEl) {
   /** me = jugador propio del snapshot (o null). touch = ¿hay botones táctiles? */
   function update(me, touch = false, hudVisible = true) {
     const C = me && CHARACTERS[me.char];
-    if (!C || !hudVisible || me.dead) { el.style.display = 'none'; return; }
+    if (!C || !hudVisible || me.dead) { el.style.display = 'none'; am.style.display = 'none'; return; }
     el.style.display = ''; el.classList.toggle('touch', !!touch);
     const key = `${me.char}|${touch}`; if (key !== built) { built = key; build(C, touch); }
     const cd = (sec, frac, def) => (sec != null ? +sec || 0 : (+frac || 0) * (def ? def.cd : 0));
@@ -92,6 +98,13 @@ export function createHuespedHud(rootEl) {
     { // combo de melee
       const sig = `c${cmb}`; if (cache.cmb !== sig) { cache.cmb = sig; for (const host of [rows.pips, rows.tcm]) host.querySelectorAll('.pip').forEach((p, i) => p.classList.toggle('on', i < cmb)); }
       setBtn('.tc-melee', cmb / 3, RING.melee, 0, cmb >= 3, false, 'Melee');
+    }
+    { // munición: «cargador / reserva» (reserva -1 = ∞) y barrita mientras recarga
+      const has = me.cl != null && me.cm != null; am.style.display = has ? '' : 'none'; am.classList.toggle('touch', !!touch);
+      if (has) { const rl = +me.rl || 0, rs = me.rs == null ? '' : me.rs < 0 ? '∞' : me.rs, sig = `${me.cl}|${me.cm}|${rs}|${rl > 0}`;
+        if (cache.am !== sig) { cache.am = sig; am.querySelector('b').innerHTML = `${me.cl}${rs === '' ? '' : ` <span>/ ${rs}</span>`}`; am.classList.toggle('low', me.cm > 0 && me.cl <= Math.max(1, me.cm * 0.25)); am.classList.toggle('rel', rl > 0); am.querySelector('small').textContent = rl > 0 ? 'RECARGANDO' : (me.cl === 0 ? 'RECARGÁ' : ''); }
+        am.querySelector('u').style.width = `${Math.round(Math.min(1, rl) * 100)}%`;
+        setBtn('.tc-reload', rl > 0 ? rl : (me.cm > 0 ? me.cl / me.cm : 1), '#7dff9a', 0, me.cl === 0 && rl === 0, rl > 0, 'Recargar'); }
     }
     { // estados activos
       const sig = `b${bf}`; if (cache.bf !== sig) { cache.bf = sig; rows.hb.innerHTML = BF.filter(([m]) => bf & m).map(([, n]) => `<u>${n}</u>`).join(''); }

@@ -16,16 +16,22 @@ const SKILLS = {
 };
 const BUDGET = 12; // draw calls extra por efecto
 
-test('hostfx: las 20 habilidades, los estados y el melee de los 5 Huéspedes corren sin errores y dentro de presupuesto', { skip: !hasChromium, timeout: 1500000 }, async () => {
+
+/** Abre un Chromium nuevo por prueba (con la máquina cargada un navegador largo puede caerse) y verifica cero errores de consola. */
+async function conPagina(fn) {
   const { launch } = await import('../tools/browser.js');
   const srv = await startServer({ port: 0 }); const b = await launch(); const pg = await b.newPage({ viewport: { width: 640, height: 360 } });
   const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) errs.push(m.text()); });
   try {
-    await pg.goto(`http://localhost:${srv.port}/public/hostfx-demo.html?q=low`);
-    await pg.waitForFunction(() => window.__ready, null, { timeout: 120000 });
+    await pg.goto(`http://localhost:${srv.port}/public/hostfx-demo.html?q=low`); await pg.waitForFunction(() => window.__ready, null, { timeout: 120000 });
+    await fn(pg); assert.deepEqual(errs, [], 'sin errores de consola/JS: ' + errs.join(' | '));
+  } finally { await b.close(); await srv.close(); }
+}
+for (const HOST of Object.keys(SKILLS)) {
+  test(`hostfx: habilidades de ${HOST} (draw calls ≤ 12 extra, partículas ≤ 150, sin errores)`, { skip: !hasChromium, timeout: 900000 }, async () => {
+    await conPagina(async (pg) => {
     const report = [];
-    let geoAfterWarm = null;
-    for (const [host, list] of Object.entries(SKILLS)) {
+    for (const [host, list] of [[HOST, SKILLS[HOST]]]) {
       for (const [k, id] of list) {
         const r = await pg.evaluate(([host, k, id]) => {
           // medición A/B: la misma secuencia SIN y CON el efecto; el costo del efecto = máxima diferencia de draw calls cuadro a cuadro
@@ -41,9 +47,15 @@ test('hostfx: las 20 habilidades, los estados y el melee de los 5 Huéspedes cor
         assert.ok(r.pk - r.base <= BUDGET, `${host}/${id}: ${r.pk - r.base} draw calls extra (máx ${BUDGET})`);
         assert.ok(r.part <= 150, `${id}: ${r.part} partículas vivas en Baja (máx 150)`);
         report.push({ host, id, extra: r.pk - r.base, part: r.part });
-        if (geoAfterWarm === null && host === 'axioma') geoAfterWarm = r.geos;
       }
     }
+      console.log('hostfx', HOST, JSON.stringify(report.map((x) => `${x.id}:${x.extra}`)));
+    });
+  });
+}
+
+test('hostfx: estados persistentes (bf) propios y de aliados, simbionte y marcas', { skip: !hasChromium, timeout: 900000 }, async () => {
+  await conPagina(async (pg) => {
     // estados persistentes (bf) para uno mismo y para un aliado, en 3.ª y 1.ª persona
     const st = await pg.evaluate(() => {
       const out = {}; const d = window.__demo;
@@ -61,6 +73,12 @@ test('hostfx: las 20 habilidades, los estados y el melee de los 5 Huéspedes cor
     });
     for (const [k, v] of Object.entries(st)) if (typeof v === 'object') { assert.ok(v.extra <= BUDGET * 2, `estado ${k}: ${v.extra} draw calls extra (propio + aliado, máx ${BUDGET * 2})`); assert.ok(v.on > v.off, `estado ${k}: no se ve al activarse (${v.on} → ${v.off})`); }
     assert.ok(st.simbiontes > st.simbiontesOff, 'el simbionte y las marcas aparecen y se van');
+    console.log('hostfx estados', JSON.stringify(Object.fromEntries(Object.entries(st).filter(([, v]) => typeof v === 'object').map(([k, v]) => [k, v.extra]))));
+  });
+});
+
+test('hostfx: melee de los 5 Huéspedes (evento de la sim + tecla V)', { skip: !hasChromium, timeout: 900000 }, async () => {
+  await conPagina(async (pg) => {
     // melee: por evento de la sim (todos los tipos, todos los Huéspedes) y por la tecla V
     const me = await pg.evaluate(() => {
       const d = window.__demo, out = {};
@@ -80,10 +98,15 @@ test('hostfx: las 20 habilidades, los estados y el melee de los 5 Huéspedes cor
       assert.equal(v.tecla, 'light', `melee ${h}: la tecla V (toque corto) debía iniciar un golpe ligero local`);
       assert.equal(v.apagado, 0, `melee ${h}: el viewmodel melee no se apagó`);
     }
-    // sin geometrías nuevas por cuadro: repetir los efectos no debe aumentar las geometrías de la GPU
-    const g2 = await pg.evaluate(() => { const d = window.__demo; d.setup('axioma', { third: true }); for (let i = 0; i < 3; i++) { d.skill('impulso', 'mov'); d.skill('espinas', 'esp'); d.frame(1 / 20, 20); } return d.r.gl.info.memory.geometries; });
-    assert.ok(g2 <= geoAfterWarm + 40, `geometrías creciendo (${geoAfterWarm} → ${g2}): ¿se crean mallas por evento?`);
-    console.log('hostfx draw calls extra por efecto:', JSON.stringify(report.map((x) => `${x.id}:${x.extra}`)), '| estados:', JSON.stringify(Object.fromEntries(Object.entries(st).filter(([, v]) => typeof v === 'object').map(([k, v]) => [k, v.extra]))), '| melee:', JSON.stringify(Object.fromEntries(Object.entries(me).map(([k, v]) => [k, v.extra]))));
-    assert.deepEqual(errs, [], 'sin errores de consola/JS: ' + errs.join(' | '));
-  } finally { await b.close(); await srv.close(); }
+    console.log('hostfx melee', JSON.stringify(Object.fromEntries(Object.entries(me).map(([k, v]) => [k, v.extra]))));
+  });
 });
+
+test('hostfx: sin geometrías nuevas por evento (pools)', { skip: !hasChromium, timeout: 900000 }, async () => {
+  await conPagina(async (pg) => {
+    const g1 = await pg.evaluate(() => { const d = window.__demo; d.setup('axioma', { third: true }); d.skill('impulso', 'mov'); d.skill('espinas', 'esp'); d.frame(1 / 20, 20); return d.r.gl.info.memory.geometries; });
+    const g2 = await pg.evaluate(() => { const d = window.__demo; for (let i = 0; i < 4; i++) { d.skill('impulso', 'mov'); d.skill('espinas', 'esp'); d.frame(1 / 20, 20); } return d.r.gl.info.memory.geometries; });
+    assert.ok(g2 <= g1, `geometrías creciendo (${g1} → ${g2}): ¿se crean mallas por evento?`);
+  });
+});
+

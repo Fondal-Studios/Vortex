@@ -1,0 +1,234 @@
+{
+ "hosts": {
+  "out": [
+   {
+    "id": "axioma",
+    "tier": 0,
+    "calls": 18,
+    "tris": 1724
+   },
+   {
+    "id": "axioma",
+    "tier": 4,
+    "calls": 48,
+    "tris": 4888
+   },
+   {
+    "id": "vesper",
+    "tier": 0,
+    "calls": 19,
+    "tris": 1266
+   },
+   {
+    "id": "vesper",
+    "tier": 4,
+    "calls": 46,
+    "tris": 3854
+   },
+   {
+    "id": "micelio",
+    "tier": 0,
+    "calls": 13,
+    "tris": 2152
+   },
+   {
+    "id": "micelio",
+    "tier": 4,
+    "calls": 35,
+    "tris": 6644
+   },
+   {
+    "id": "umbra",
+    "tier": 0,
+    "calls": 26,
+    "tris": 2958
+   },
+   {
+    "id": "umbra",
+    "tier": 4,
+    "calls": 47,
+    "tris": 6954
+   },
+   {
+    "id": "seraf",
+    "tier": 0,
+    "calls": 23,
+    "tris": 3564
+   },
+   {
+    "id": "seraf",
+    "tier": 4,
+    "calls": 60,
+    "tris": 7560
+   }
+  ],
+  "W": 1500,
+  "H": 660,
+  "worst": {
+   "calls": 60,
+   "tris": 7560,
+   "id": "seraf4"
+  }
+ },
+ "hostsladder": {
+  "out": [
+   {
+    "id": "axioma",
+    "tier": 0,
+    "calls": 18,
+    "tris": 1724
+   },
+   {
+    "id": "axioma",
+    "tier": 1,
+    "calls": 23,
+    "tris": 2784
+   },
+   {
+    "id": "axioma",
+    "tier": 2,
+    "calls": 30,
+    "tris": 3024
+   },
+   {
+    "id": "axioma",
+    "tier": 3,
+    "calls": 39,
+    "tris": 3608
+   },
+   {
+    "id": "axioma",
+    "tier": 4,
+    "calls": 48,
+    "tris": 4888
+   },
+   {
+    "id": "vesper",
+    "tier": 0,
+    "calls": 19,
+    "tris": 1266
+   },
+   {
+    "id": "vesper",
+    "tier": 1,
+    "calls": 24,
+    "tris": 2298
+   },
+   {
+    "id": "vesper",
+    "tier": 2,
+    "calls": 28,
+    "tris": 2538
+   },
+   {
+    "id": "vesper",
+    "tier": 3,
+    "calls": 41,
+    "tris": 2918
+   },
+   {
+    "id": "vesper",
+    "tier": 4,
+    "calls": 46,
+    "tris": 3854
+   },
+   {
+    "id": "micelio",
+    "tier": 0,
+    "calls": 13,
+    "tris": 2152
+   },
+   {
+    "id": "micelio",
+    "tier": 1,
+    "calls": 19,
+    "tris": 3976
+   },
+   {
+    "id": "micelio",
+    "tier": 2,
+    "calls": 19,
+    "tris": 4768
+   },
+   {
+    "id": "micelio",
+    "tier": 3,
+    "calls": 27,
+    "tris": 5368
+   },
+   {
+    "id": "micelio",
+    "tier": 4,
+    "calls": 35,
+    "tris": 6644
+   },
+   {
+    "id": "umbra",
+    "tier": 0,
+    "calls": 26,
+    "tris": 2958
+   },
+   {
+    "id": "umbra",
+    "tier": 1,
+    "calls": 28,
+    "tris": 4322
+   },
+   {
+    "id": "umbra",
+    "tier": 2,
+    "calls": 32,
+    "tris": 5074
+   },
+   {
+    "id": "umbra",
+    "tier": 3,
+    "calls": 41,
+    "tris": 5402
+   },
+   {
+    "id": "umbra",
+    "tier": 4,
+    "calls": 47,
+    "tris": 6954
+   },
+   {
+    "id": "seraf",
+    "tier": 0,
+    "calls": 23,
+    "tris": 3564
+   },
+   {
+    "id": "seraf",
+    "tier": 1,
+    "calls": 28,
+    "tris": 5520
+   },
+   {
+    "id": "seraf",
+    "tier": 2,
+    "calls": 33,
+    "tris": 5968
+   },
+   {
+    "id": "seraf",
+    "tier": 3,
+    "calls": 46,
+    "tris": 6344
+   },
+   {
+    "id": "seraf",
+    "tier": 4,
+    "calls": 60,
+    "tris": 7560
+   }
+  ],
+  "W": 1400,
+  "H": 1650,
+  "worst": {
+   "calls": 60,
+   "tris": 7560,
+   "id": "seraf4"
+  }
+ }
+}

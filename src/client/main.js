@@ -103,13 +103,13 @@ function readInput() {
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyR'), melee: keys.has('KeyV'), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyT') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
     i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.dpitch += g.dpitch * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.ads = i.ads || g.ads;
-    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.mov = i.mov || g.mov; i.esp = i.esp || g.esp; i.s3 = i.s3 || g.s3; i.ult = i.ult || g.ult; i.melee = i.melee || g.melee; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
+    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.mov = i.mov || g.mov; i.esp = i.esp || g.esp; i.s3 = i.s3 || g.s3; i.ult = i.ult || g.ult; i.reload = i.reload || g.reload; i.melee = i.melee || g.melee; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
     if (g.next && !padLatch.next) i.weapon = (((session ? session.mySlot || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.mySlot || 0 : 0) - 1) % 5 + 5) % 5;
     if (cardsOpen) { if (g.next && !padLatch.next) pickReq = 1; if (g.prev && !padLatch.prev) pickReq = 0; if (g.jump && !padLatch.jump) pickReq = 2; if (pickReq >= 0) i.pick = pickReq; }
     padLatch.next = g.next; padLatch.prev = g.prev; padLatch.jump = g.jump;
@@ -147,7 +147,7 @@ function assistAim(inp, state, me, dt, firing = false) {
 /* ───────── sesión y campaña ───────── */
 function startSolo(mapId, opts = {}) {
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
-  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, practice: !!opts.practice });
+  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice });
   const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots });
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
@@ -185,9 +185,8 @@ function beginIntro(kind) {
   session.intro = kind; $('hud').classList.add('hidden'); if (session.touch) touch.show(false);
   if (kind === 'full' && !params.get('classic_intro')) { // Prólogo 3D «La Estación» (src/client/prologo.js); ?skipprologo=1 lo salta, ?classic_intro=1 vuelve al cine 2D
     if (params.get('skipprologo')) { startWake(Story.WAKE); return; }
-    if (session.touch) touch.show(true);
     const end = (skipped) => { if (!session) return; session.prologo = null; if (skipped) skipIntro(true); else startWake(Story.WAKE); };
-    session.prologo = startPrologue({ THREE, renderer, host: Equipo.char, touch: !!session.touch, sound, touchCtl: session.touch ? touch : null, manual: true, nolock: NOLOCK, onDone: () => end(false), onSkip: () => end(true) });
+    session.prologo = startPrologue({ THREE, renderer, host: Equipo.char, touch: !!session.touch, sound, manual: true, nolock: NOLOCK, onDone: () => end(false), onSkip: () => end(true) });
   } else if (kind === 'full') {
     $('cine').classList.remove('hidden'); sound.train(11);
     const total = Story.INTRO_TRAIN.reduce((a, l) => a + l[2], 0);
@@ -208,8 +207,8 @@ function showTutorial(force = false) {
   if ((seen && !force) || !session || session.headless) return;
   const touchUI = !!session.touch, el = $('tutorial');
   const rows = touchUI
-    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARO', 'botón grande', 'disparar (mantené para ráfaga)'], ['HAB.1', 'HAB.2 · HAB.3', 'habilidades de tu Huésped (el anillo muestra la recarga)'], ['ULTI', 'MELEE', 'definitiva (cuando carga) · golpe cuerpo a cuerpo'], ['HABILIDAD', '◆', 'ayuda de equipo · señalar'], ['‹ ›', 'o tocá la barra', 'cambiar de arma']]
-    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar'], ['F', 'G · clic der.', 'habilidad 1 · habilidad 2'], ['Z', 'R', 'habilidad 3 · definitiva'], ['V', 'mantener = fuerte', 'golpe cuerpo a cuerpo'], ['Q', 'E · T', 'habilidad de equipo · usar · señalar'], ['1–5', 'rueda', 'cambiar de arma'], ['Esc', '', 'pausa']];
+    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARO', 'botón grande', 'disparar (mantené para ráfaga)'], ['RECARGAR', 'MELEE · SALTO', 'los 4 botones básicos'], ['ULTI', 'USAR', 'aparecen solos cuando sirven · «Habilidades» en Pausa muestra el resto'], ['HABILIDAD', '◆', 'ayuda de equipo · señalar'], ['‹ ›', 'o tocá la barra', 'cambiar de arma']]
+    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar'], ['F', 'G · clic der.', 'habilidad 1 · habilidad 2'], ['Z', 'T', 'habilidad 3 · definitiva'], ['V', 'R', 'golpe cuerpo a cuerpo (mantener = fuerte) · recargar'], ['Q', 'E · B', 'habilidad de equipo · usar · señalar'], ['1–5', 'rueda', 'cambiar de arma'], ['Esc', '', 'pausa']];
   el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Sobreviví las oleadas. Cumplí el objetivo de cada oleada y elegí una <b>mejora de arma</b> al terminarla.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   el.classList.remove('hidden'); const close = () => { el.classList.add('hidden'); try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
   $('tutok').onclick = close; later(close, force ? 20000 : 16000);
@@ -362,7 +361,7 @@ function audioAndHud(state, me, dt) {
       case 'purge': sound.gravity(); banner('¡PURGA! La Madre está abierta: ¡disparale!', 2400); flash(); break;
       case 'gestate': banner('La Madre pone huevos: ¡rompelos antes de que eclosionen!', 2400); break;
       case 'hatch': sound.boom(e.p); break;
-      case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con T', 2200); break;
+      case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con B', 2200); break;
       case 'surge': banner('El Vórtice se enfurece…', 1800); break;
       case 'feed': if (!session.feedT || performance.now() - session.feedT > 160) { session.feedT = performance.now(); sound.pickup(); } break; // mapa 4: un impacto alimentó un capullo (el aro de puntos del capullo muestra cuánto)
       case 'gnaw': if (!session.gnawT || performance.now() - session.gnawT > 9000) { session.gnawT = performance.now(); banner('¡Las criaturas están royendo un capullo! Defendelo', 2200); sound.hurt(); } break;
@@ -454,8 +453,14 @@ function hudDirector(state, me) {
   }
   if (!huespedHud) { try { huespedHud = createHuespedHud($('hud')); } catch (err) { console.warn('HUD de Huésped no disponible', err.message); huespedHud = { update() {} }; } }
   huespedHud.update(me, !!(session && session.touch), !(session && session.intro));
+  if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
+    const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
+    const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)));
+    const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ul || 0) >= (C.ult.charge || 100) - 0.01 || (+me.ua || 0) > 0.05));
+    touch.setContext({ ult: ultOn, use, evo: me.co != null && me.evn != null && me.co >= me.evn });
+  }
   const dn = $('downed');
-  if (me && me.dead) { dn.classList.remove('hidden'); dn.textContent = me.lost ? 'PERDIDO… esperá la próxima oleada' : `CAÍDO · te desangrás ${Math.ceil(me.bleed)} s · ¡pedí ayuda con T!`; } else dn.classList.add('hidden');
+  if (me && me.dead) { dn.classList.remove('hidden'); dn.textContent = me.lost ? 'PERDIDO… esperá la próxima oleada' : `CAÍDO · te desangrás ${Math.ceil(me.bleed)} s · ¡pedí ayuda con B!`; } else dn.classList.add('hidden');
   const bm = $('bossmech'), b = state.boss;
   if (b) {
     let t = '';
@@ -548,6 +553,9 @@ function bindTouchSettings() {
   bind('tgs', () => Math.round(S.gyroSens * 10), (v) => setSetting('gyroSens', v / 10));
   bind('tadsm', () => S.adsMode, (v) => setSetting('adsMode', v));
   bind('tfing', () => String(S.fingers), (v) => touch.setFingers(+v));
+  bind('tadv', () => (S.advanced ? '1' : '0'), (v) => { setSetting('advanced', v === '1'); syncAdv(); });
+  const syncAdv = () => { const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Habilidades: ${settings().advanced ? 'sí' : 'no'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
+  const ab = $('advtoggle'); if (ab) { ab.addEventListener('click', (e) => { e.stopPropagation(); setSetting('advanced', !settings().advanced); syncAdv(); touch.applyLayout(); }); } syncAdv();
   bind('ths', () => Math.round(S.hudScale * 100), (v) => setSetting('hudScale', v / 100));
   bind('tho', () => Math.round(S.hudOpacity * 100), (v) => setSetting('hudOpacity', v / 100));
   const gy = $$('tgy'); if (gy) { gy.value = S.gyro ? '1' : '0'; gy.addEventListener('change', async () => { const ok = await touch.enableGyro(gy.value === '1'); if (!ok) { gy.value = '0'; banner('Giroscopio no disponible en este dispositivo o sin permiso', 2800); } }); if (S.gyro) touch.startGyro(); }

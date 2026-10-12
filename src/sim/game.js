@@ -8,7 +8,7 @@ import { makeObjective, updateObjective } from './objectives.js';
 import { initColoso, initMadre, initArgos, bossDeath } from './bossmech.js';
 import { useMove, useSpecial } from './characters.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
-import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut } from './loadout.js';
+import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
 import { Director } from './director.js';
 import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
 import { ROLES, ROLE_IDS } from './data.js';
@@ -21,7 +21,8 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false } = {}) {
+    this.magazines = !!magazines;   // cargadores y recarga (el juego real los usa; las pruebas viejas no)
     this.practice = !!practice; this.practiceT = 0;
     this.map = MAPS[mapId];
     if (!this.map) throw new Error('mapa desconocido: ' + mapId);
@@ -55,9 +56,9 @@ export class Game {
     const up = len(g) > 1e-6 ? norm(mul(g, -1)) : v3(0, 1, 0);
     const p = {
       id: this.nextId++, name, role, char: char || null, slots: cleanSlots(opts.slots || (char && CHARACTERS[char] && CHARACTERS[char].slots)), upg: {}, cards: [], movCd: 0, espCd: 0, movPrev: false, espPrev: false, invulUntil: 0, abilityCd: 0, carry: 0, bleed: 0, lost: false, abilityPrev: false, interactPrev: false, interactEdge: false, pingPrev: false, pos, vel: v3(), up, heading: norm(project(v3(0, 0, -1), up), v3(1, 0, 0)), pitch: 0,
-      hp: PLAYER.hp, shield: PLAYER.shield, dead: false, weapon: 0, ammo: WEAPONS.map((w) => w.start),
+      hp: PLAYER.hp, shield: PLAYER.shield, dead: false, weapon: 0, ammo: WEAPONS.map((w) => w.start), clip: WEAPONS.map(() => 1e9), reloadT: 0, reloadW: -1, reloadPrev: false,
       cd: 0, ext: v3(), reviveT: 0, lastHurt: -99, flipUntil: 0, portalCd: 0, grounded: false, kills: 0, score: 0, respawnAt: 0,
-      input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false, melee: false, s3: false, ult: false, evo: false },
+      input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false, melee: false, s3: false, ult: false, evo: false, reload: false },
     };
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     initHost(p);
@@ -71,7 +72,7 @@ export class Game {
     const i = p.input;
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.evo = !!inp.evo; i.s3 = !!inp.s3; i.ult = !!inp.ult;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.evo = !!inp.evo; i.s3 = !!inp.s3; i.ult = !!inp.ult;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
   }
@@ -341,6 +342,7 @@ export class Game {
     if (inp.ability && !p.abilityPrev) useAbility(this, p); p.abilityPrev = inp.ability;
     if (inp.ping && !p.pingPrev) this.doPing(p); p.pingPrev = inp.ping;
     updateHost(this, p, dt);
+    if (this.magazines) this.updateReload(p, dt);
     if (inp.fire && p.cd <= 0 && !p.carry) this.firePlayer(p);
     // recoger
     for (const k of this.pickups) if (!k.dead && dist(k.pos, p.pos) < 2.6) this.collect(p, k);
@@ -371,13 +373,34 @@ export class Game {
   }
 
   /* ─────────── armas ─────────── */
+  /** Inicia la recarga del arma actual (si hace falta y hay reserva). */
+  startReload(p) {
+    const w = WEAPONS[p.weapon], cap = clipOf(p, p.weapon);
+    if (!this.magazines || p.reloadT > 0 || p.dead) return false;
+    if (Math.min(p.clip[p.weapon], cap) >= cap) return false;
+    if (w.per > 0 && p.ammo[p.weapon] < w.per * (Math.min(p.clip[p.weapon], cap) + 1)) return false;   // no hay reserva fuera del cargador
+    p.reloadT = reloadTime(p, p.weapon); p.reloadW = p.weapon; p.reloadTotal = p.reloadT;
+    this.emit({ t: 'reload', pid: p.id, w: p.weapon, secs: r2(p.reloadT) });
+    return true;
+  }
+  updateReload(p, dt) {
+    const inp = p.input;
+    if (inp.reload && !p.reloadPrev) this.startReload(p); p.reloadPrev = inp.reload;
+    if (p.reloadT > 0) {
+      if (p.reloadW !== p.weapon) { p.reloadT = 0; return; }                // cambiar de arma cancela
+      p.reloadT -= dt;
+      if (p.reloadT <= 0) { p.reloadT = 0; const w = WEAPONS[p.weapon], cap = clipOf(p, p.weapon); p.clip[p.weapon] = w.per > 0 ? Math.min(cap, Math.floor(p.ammo[p.weapon] / w.per)) : cap; this.emit({ t: 'reloaded', pid: p.id, w: p.weapon }); }
+    } else if (this.magazines && p.clip[p.weapon] < 1 && !p.dead) this.startReload(p);   // recarga automática al vaciarse
+  }
   firePlayer(p) {
     const w0 = WEAPONS[p.weapon], st = wstat(p, p.weapon);
+    if (this.magazines) { if (p.reloadT > 0) return; if (p.clip[p.weapon] > clipOf(p, p.weapon)) p.clip[p.weapon] = clipOf(p, p.weapon); if (p.clip[p.weapon] < 1 && !(w0.per > 0 && p.ammo[p.weapon] < w0.per)) { this.startReload(p); return; } }
     if (w0.per > 0 && p.ammo[p.weapon] < w0.per) { // sin munición → Haz
       p.weapon = 0; return;
     }
     p.cd = Math.max(p.cd, -this.dt) + w0.rate / st.rate; // arrastra el sobrante: la cadencia no se redondea al tick
     if (w0.per > 0) p.ammo[p.weapon] -= w0.per;
+    if (this.magazines) p.clip[p.weapon]--;
     const origin = this.eyePos(p);
     const base = this.aimDir(p);
     const w = { ...w0, dmg: w0.dmg * st.dmg, mod: st.mod, pierce: w0.pierce || st.mod === 'perfora', chain: w0.chain || (st.mod === 'cadena' ? 2 : 0) };
@@ -706,6 +729,11 @@ export class Game {
   /* ─────────── snapshot (lo que ve el cliente) ─────────── */
   drainEvents() { const e = this.events; this.events = []; return e; }
 
+  clipSnap(p) {
+    if (!this.magazines) return {};
+    const w = WEAPONS[p.weapon], cap = clipOf(p, p.weapon), cl = Math.min(p.clip[p.weapon], cap);
+    return { cl, cm: cap, rs: w.per > 0 ? Math.max(0, Math.floor(p.ammo[p.weapon] / w.per) - cl) : -1, rl: p.reloadT > 0 ? r2(1 - p.reloadT / (p.reloadTotal || 1)) : 0 };
+  }
   snapshot() {
     const boss = this.monsters.find((m) => m.def.boss && !m.dead);
     return {
@@ -715,7 +743,7 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), sl: p.slots, up: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mut || c.mod || '', c.mod || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...this.clipSnap(p), sl: p.slots, up: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mut || c.mod || '', c.mod || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,

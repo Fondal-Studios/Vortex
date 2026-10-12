@@ -191,12 +191,13 @@ export class Renderer {
     // Sólo el vector "arriba" se suaviza, y únicamente cuando la gravedad cambia (inversión de gravedad, zonas, marea).
     const up0 = V(me.up);
     if (!this.camInit || !this.upSm) { this.upSm = up0.clone(); this.camInit = true; }
-    else if (this.upSm.dot(up0) < 0.9999) this.upSm.lerp(up0, 1 - Math.exp(-11 * dt)).normalize();
-    const up = this.upSm, h0 = look ? V(look.h) : V(me.h), pitch = look ? look.pitch : me.pitch;
+    else if (this.upSm.dot(up0) < 0.99999) this.upSm.lerp(up0, 1 - Math.exp(-5 * dt)).normalize();   // sólo el «alabeo» (horizonte) se suaviza: giro suave y calmo al cambiar la gravedad
+    // La MIRA (adonde apunta y dispara) usa siempre la gravedad real de la simulación: el punto de mira nunca se desfasa.
+    const up = up0, h0 = look ? V(look.h) : V(me.h), pitch = look ? look.pitch : me.pitch;
     const h = h0.clone().addScaledVector(up, -h0.dot(up)); if (h.lengthSq() < 1e-6) h.copy(h0); h.normalize();
     const aim = h.clone().multiplyScalar(Math.cos(pitch)).addScaledVector(up, Math.sin(pitch)).normalize();
-    const right = new THREE.Vector3().crossVectors(h, up).normalize();
-    const camUp = new THREE.Vector3().crossVectors(right, aim).normalize();
+    const camUp = this.upSm.clone().addScaledVector(aim, -this.upSm.dot(aim)); if (camUp.lengthSq() < 1e-4) camUp.copy(up).addScaledVector(aim, -up.dot(aim)); camUp.normalize();
+    const right = new THREE.Vector3().crossVectors(aim, camUp).normalize();
     const m = new THREE.Matrix4().makeBasis(right, camUp, aim.clone().negate());
     this.camQ.setFromRotationMatrix(m);
     this.camera.quaternion.copy(this.camQ);

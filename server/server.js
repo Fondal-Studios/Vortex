@@ -36,7 +36,7 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
   const send = (ws, o) => { if (ws.readyState === 1) ws.send(typeof o === 'string' ? o : JSON.stringify(o)); };
 
   function makeRoom(code, mapId) {
-    const room = { code, mapId, game: new Game({ mapId, seed: (Math.random() * 1e9) | 0, calm: 16 }), clients: new Map(), acc: 0, last: Date.now() };
+    const room = { code, mapId, game: new Game({ mapId, seed: (Math.random() * 1e9) | 0, calm: 16, magazines: true }), clients: new Map(), acc: 0, last: Date.now() };
     rooms.set(code, room);
     return room;
   }
@@ -69,7 +69,7 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
         if (pid && ws.room.game.phase === 'intermission') { ws.room.game.setLoadout(pid, m.char, Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined); const p = ws.room.game.players.find((q) => q.id === pid); if (p) { ws.char = p.char; ws.slots = p.slots; } }
       } else if (m.t === 'restart' && ws.room && ws.room.game.state !== 'playing') {
         const room = ws.room;
-        room.game = new Game({ mapId: room.mapId, seed: (Math.random() * 1e9) | 0, calm: 8 });
+        room.game = new Game({ mapId: room.mapId, seed: (Math.random() * 1e9) | 0, calm: 8, magazines: true });
         for (const [c] of room.clients) { const p = room.game.addPlayer(c.pname, null, { char: c.char, slots: c.slots }); room.clients.set(c, p.id); send(c, { t: 'welcome', pid: p.id, room: room.code, map: room.mapId, dt: SIM_DT }); }
       }
     });
