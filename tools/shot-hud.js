@@ -13,7 +13,7 @@ for (const [vn, w, h, touch] of VPS) {
   if (touch) await pg.evaluate(() => { const s = window.__api.session; s.touch = true; window.__api.touch.show(true); });
   await pg.waitForTimeout(800);
   const CHK = () => {
-    const sel = ['.trophy', '#cards', '#downed', '#top', '#bossbar', '#objective', '#bars', '#weapons', '#skills', '#huesped', '#ability', '#coop', '#practice', '#banner', '.tc-fire', '.tc-fireL', '.tc-ads', '.tc-crouch', '.tc-jump', '.tc-dash', '.tc-mov', '.tc-esp', '.tc-s3', '.tc-ult', '.tc-melee', '.tc-ability', '.tc-use', '.tc-ping', '.tc-prev', '.tc-next', '.tc-pause', '.tc-edit'];
+    const sel = ['.trophy', '#cards', '#downed', '#top', '#bossbar', '#objective', '#bars', '#weapons', '#skills', '#huesped', '#ability', '#coop', '#practice', '#banner', '.tc-fire', '.tc-fireL', '.tc-ads', '.tc-crouch', '.tc-jump', '.tc-mov', '.tc-esp', '.tc-s3', '.tc-ult', '.tc-melee', '.tc-reload', '.tc-evo', '.hq-ammo', '.tc-ability', '.tc-use', '.tc-ping', '.tc-pause', '.tc-edit'];
     const items = []; for (const s of sel) for (const el of document.querySelectorAll(s)) { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || el.offsetParent === null && cs.position !== 'fixed') continue; const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue; items.push({ s, x: r.x, y: r.y, w: r.width, h: r.height, touchBtn: s.startsWith('.tc-') }); }
     const out = []; const W = innerWidth, H = innerHeight;
     for (let i = 0; i < items.length; i++) {
@@ -24,14 +24,25 @@ for (const [vn, w, h, touch] of VPS) {
   };
   const res = await pg.evaluate(CHK);
   console.log(vn, `${w}x${h}`, res.n, 'elementos', res.out.length ? '\n  ' + res.out.join('\n  ') : 'sin solapes'); overlaps += res.out.length;
+  if (touch) await pg.evaluate(() => { window.__api.touch.ctxForce = true; window.__api.touch.applyLayout(); }); // enseña también los contextuales (ULTI, USAR, EVOLUC.)
   if (touch) { // los 3 preajustes de dedos (2/3/4) y el editor de botones: sin solapes ni salidas de pantalla; los 3 botones nuevos presentes
     for (const n of [2, 3, 4]) {
       await pg.evaluate((n) => window.__api.touch.setFingers(n), n); await pg.waitForTimeout(150);
-      const r = await pg.evaluate(CHK); const need = await pg.evaluate(() => ['melee', 's3', 'ult', 'mov', 'esp'].filter((k) => { const e = document.querySelector('.tc-' + k); return !e || e.offsetParent === null; }));
+      const r = await pg.evaluate(CHK); const need = await pg.evaluate(() => ['fire', 'reload', 'melee', 'jump', 'ult', 'use', 'evo'].filter((k) => { const e = document.querySelector('.tc-' + k); return !e || e.offsetParent === null; }));
       console.log(vn, `  ${n} dedos`, r.btn, 'botones', need.length ? 'FALTAN ' + need.join(',') : '', r.out.length ? '\n    ' + r.out.join('\n    ') : 'sin solapes'); overlaps += r.out.length + need.length;
       if (n === 3) await pg.screenshot({ path: `${OUT}/${vn}-3dedos.jpg`, type: 'jpeg', quality: 70 });
     }
     await pg.evaluate(() => window.__api.touch.setFingers(2));
+    // modo avanzado: HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO, SEÑALAR además de los básicos; sin solapes; y en básico NO se ven
+    { const basicHidden = await pg.evaluate(() => ['mov', 'esp', 's3', 'ads', 'crouch', 'ability', 'ping'].filter((k) => { const e = document.querySelector('.tc-' + k); return e && e.offsetParent !== null; }));
+      console.log(vn, '  modo básico oculta lo avanzado:', basicHidden.length ? 'FALLA ven ' + basicHidden.join(',') : 'ok'); overlaps += basicHidden.length;
+      await pg.evaluate(() => { window.__api.touch.ctxForce = false; window.__api.touch.applyLayout(); }); await pg.waitForTimeout(100);
+      await pg.screenshot({ path: `${OUT}/${vn}-basico.jpg`, type: 'jpeg', quality: 70 });
+      await pg.evaluate(() => { window.__api.touch.ctxForce = true; document.querySelector('#tadv').value = '1'; document.querySelector('#tadv').dispatchEvent(new Event('input')); }); await pg.waitForTimeout(150);
+      const r2 = await pg.evaluate(CHK); const need2 = await pg.evaluate(() => ['mov', 'esp', 's3', 'ads', 'crouch'].filter((k) => { const e = document.querySelector('.tc-' + k); return !e || e.offsetParent === null; }));
+      console.log(vn, '  modo avanzado', r2.btn, 'botones', need2.length ? 'FALTAN ' + need2.join(',') : '', r2.out.length ? '\n    ' + r2.out.join('\n    ') : 'sin solapes'); overlaps += r2.out.length + need2.length;
+      await pg.screenshot({ path: `${OUT}/${vn}-avanzado.jpg`, type: 'jpeg', quality: 70 });
+      await pg.evaluate(() => { document.querySelector('#tadv').value = '0'; document.querySelector('#tadv').dispatchEvent(new Event('input')); }); await pg.waitForTimeout(100); }
     // editor: arrastrar el botón de melee cambia su posición guardada, y el editor no tapa botones
     await pg.evaluate(() => { window.__api.session.paused = true; window.__api.touch.edit(true); }); await pg.waitForTimeout(200);
     const r = await pg.evaluate(CHK); console.log(vn, '  editor', r.out.length ? '\n    ' + r.out.join('\n    ') : 'sin solapes'); overlaps += r.out.length;

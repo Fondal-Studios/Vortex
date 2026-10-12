@@ -71,8 +71,10 @@ test('e2e iPhone (emulado): calidad Baja automática, palanca, mirar, disparar, 
     const b1 = await me(); assert.ok(Math.hypot(b1.x - a.x, b1.z - a.z) > 3, 'la palanca mueve al jugador');
     await T('touchStart', [{ x: 650, y: 150, id: 2 }]); for (let i = 1; i <= 8; i++) { await T('touchMove', [{ x: 650 + i * 12, y: 150, id: 2 }]); await pg.waitForTimeout(30); } await T('touchEnd', []); await simWait(pg, 0.3);
     const c = await me(); assert.ok(Math.hypot(c.h.x - b1.h.x, c.h.z - b1.h.z) > 0.2, 'arrastrar a la derecha gira la vista');
-    const box = await pg.locator('.tc-next').boundingBox(); await pg.touchscreen.tap(box.x + 10, box.y + 10); await simWait(pg, 0.4);
-    assert.equal((await me()).w, 1, 'el botón › pasa al arma 2');
+    const box = await pg.locator('#weapons div[data-i="1"]').boundingBox(); await pg.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2); await simWait(pg, 0.4);
+    assert.equal((await me()).w, 1, 'tocar la barra de armas pasa al arma 2');
+    for (const k of ['fire', 'reload', 'melee', 'jump']) assert.ok(await pg.locator('.tc-' + k).isVisible(), 'botón básico visible: ' + k);
+    for (const k of ['mov', 'esp', 's3', 'ads', 'crouch']) assert.ok(!(await pg.locator('.tc-' + k).isVisible()), 'el modo básico esconde ' + k);
     await pg.evaluate(() => { window.__api.session.game.players[0].ammo[1] = 20; });
     const f = await pg.locator('.tc-fire').boundingBox(); await T('touchStart', [{ x: f.x + 40, y: f.y + 40, id: 3 }]); await simWait(pg, 1.5); await T('touchEnd', []);
     assert.ok((await me()).a[1] < 20, 'el botón DISPARO dispara');

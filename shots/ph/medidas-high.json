@@ -1,0 +1,30 @@
+[
+ {
+  "t": 2,
+  "calls": 272,
+  "triangles": 768796,
+  "shot": 1,
+  "sub": "Martes. 18:42. Andén 3."
+ },
+ {
+  "t": 9,
+  "calls": 268,
+  "triangles": 768768,
+  "shot": 2,
+  "sub": "Otro día igual. Los auriculares puestos, la cabeza en otra parte"
+ },
+ {
+  "t": 21,
+  "calls": 268,
+  "triangles": 768768,
+  "shot": 4,
+  "sub": "Se sentía en los pies antes que en los oídos."
+ },
+ {
+  "t": 23.3,
+  "calls": 272,
+  "triangles": 768796,
+  "shot": 5,
+  "sub": "Alguien"
+ }
+]

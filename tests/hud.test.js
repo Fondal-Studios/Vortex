@@ -13,6 +13,8 @@ test('HUD móvil y de PC: sin solapes entre botones ni elementos fuera de pantal
   // los botones nuevos (MELEE, HAB.3, ULTI) existen en los 3 preajustes de dedos y el editor puede moverlos
   for (const vn of ['iphoneSE', 'iphone13', 'iphone15pm']) {
     for (const n of [2, 3, 4]) assert.match(out, new RegExp(`${vn}\\s+${n} dedos \\d+ botones\\s*sin solapes`), `${vn}: ${n} dedos sin solapes`);
+    assert.match(out, new RegExp(`${vn}\\s+modo básico oculta lo avanzado: ok`), `${vn}: el modo básico sólo muestra lo básico`);
+    assert.match(out, new RegExp(`${vn}\\s+modo avanzado \\d+ botones\\s*sin solapes`), `${vn}: modo avanzado sin solapes`);
     assert.match(out, new RegExp(`${vn}\\s+editor mueve MELEE: -30px 20px ok`), `${vn}: el editor mueve MELEE`);
   }
 });

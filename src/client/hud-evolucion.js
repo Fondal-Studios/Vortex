@@ -1,5 +1,5 @@
 // HUD de la evolución en partida (docs/HUESPEDES.md → «Evolución»): contador de núcleos de la partida (co), nivel actual (evo), barra hacia el
-// siguiente nivel (evn) y, cuando co ≥ evn, el aviso «¡Podés evolucionar!» con la tecla B y un botón táctil/clic que envía input.evo.
+// siguiente nivel (evn) y, cuando co ≥ evn, el aviso «¡Podés evolucionar!» con la tecla N (B ya es «marcar» y T la definitiva) y un botón táctil/clic que envía input.evo.
 // Al llegar el evento {t:'evolve', pid, tier} de la simulación: destello, onda y texto «EVOLUCIÓN: <nombre del nivel>».
 //   const evoHud = createEvoHud($('hud'));
 //   evoHud.update(me, touch, hudVisible);          // una vez por cuadro (me = jugador propio del snapshot)
@@ -7,6 +7,8 @@
 //   evoHud.held()                                  // true mientras se aprieta el botón (main.js lo suma a input.evo)
 import { EVO_TIERS, CHARACTERS } from '../sim/data.js';
 
+/** Tecla de evolucionar en PC (B quedó para marcar, T para la definitiva, R recargar). */
+export const EVO_KEY = { code: 'KeyN', label: 'N' };
 const STYLE_ID = 'evohud-style';
 const CSS = `
 #evohud{position:absolute;left:calc(14px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;align-items:flex-start;pointer-events:none;font-size:12px;max-width:min(46vw,260px);z-index:6}
@@ -40,7 +42,7 @@ export function createEvoHud(rootEl) {
   const doc = rootEl.ownerDocument || document;
   if (!doc.getElementById(STYLE_ID)) { const s = doc.createElement('style'); s.id = STYLE_ID; s.textContent = CSS; doc.head.appendChild(s); }
   const el = doc.createElement('div'); el.id = 'evohud'; el.setAttribute('aria-live', 'polite');
-  el.innerHTML = '<div class="eh-row"><i aria-hidden="true">◆</i><b class="eh-n">0</b><span class="eh-lv"></span><span class="eh-bar"><u></u></span></div><button type="button" class="eh-go" aria-label="Evolucionar"><span>¡Podés evolucionar!</span><kbd>B</kbd></button>';
+  el.innerHTML = '<div class="eh-row"><i aria-hidden="true">◆</i><b class="eh-n">0</b><span class="eh-lv"></span><span class="eh-bar"><u></u></span></div><button type="button" class="eh-go" aria-label="Evolucionar"><span>¡Podés evolucionar!</span><kbd>' + EVO_KEY.label + '</kbd></button>';
   rootEl.appendChild(el);
   const fx = doc.createElement('div'); fx.id = 'evofx'; fx.setAttribute('aria-hidden', 'true'); rootEl.appendChild(fx);
   const n = el.querySelector('.eh-n'), lv = el.querySelector('.eh-lv'), bar = el.querySelector('.eh-bar u'), go = el.querySelector('.eh-go');

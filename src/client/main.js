@@ -6,6 +6,8 @@ import { settings, setSetting, sensFromSlider, sliderFromSens } from './settings
 import { WEAPON_COLORS } from './shotfx.js';
 import { createCombatHud } from './hud-combat.js';
 import { createHuespedHud } from './hud-huesped.js';
+import { createEvoHud, EVO_KEY } from './hud-evolucion.js';
+import * as Perfil from './perfil.js';
 import { createCaida } from './caida.js';
 import { MAPS } from '../sim/maps.js';
 import { blocked } from '../sim/physics.js';
@@ -96,14 +98,14 @@ addEventListener('touchstart', () => { sound.init(); sound.resume(); }, { passiv
 /* ───────── ayuda de puntería (todas las entradas: ratón, táctil y mando) ───────── */
 const AIM_KEY = 'cristal.aim.v1'; let aimLevel = isTouchDevice() ? 2 : 1; try { const v = parseInt(localStorage.getItem(AIM_KEY), 10); if (v >= 0 && v <= 3) aimLevel = v; } catch { /* ok */ }
 const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSel.addEventListener('change', () => { aimLevel = +aimSel.value; try { localStorage.setItem(AIM_KEY, String(aimLevel)); } catch { /* ok */ } }); }
-let combatHud = null, huespedHud = null, caida = null;
+let combatHud = null, huespedHud = null, caida = null, evoHud = null;
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
 function readInput() {
-  if (session && session.touch) { const ti = touch.read(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { const ti = touch.read(); ti.evo = !!(evoHud && evoHud.held()); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held()), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
@@ -148,7 +150,7 @@ function assistAim(inp, state, me, dt, firing = false) {
 function startSolo(mapId, opts = {}) {
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
   const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice });
-  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots });
+  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char) }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
   session = { practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
@@ -294,6 +296,7 @@ function frame(now) {
     if (session.sendT > 1 / 30) { net.send({ t: 'in', i: { ...inp, dyaw: session.inAcc.dyaw, dpitch: session.inAcc.dpitch } }); session.inAcc = { dyaw: 0, dpitch: 0 }; session.sendT = 0; }
   }
   const me = state.players.find((p) => p.id === session.pid) || state.players[0];
+  if (me) session.lastMe = me; // para guardar los núcleos al salir (bankProfile)
   if (params.get('look') === 'boss' && me) {
     const b = state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre' || m.k === 'argos');
     if (b) { const up = v3(...me.up), d = norm(v3(b.p[0] - me.pos[0], b.p[1] - me.pos[1], b.p[2] - me.pos[2])), h = norm(project(d, up), v3(...me.h)); session.look = { h: [h.x, h.y, h.z], pitch: Math.asin(Math.max(-1, Math.min(1, d.x * up.x + d.y * up.y + d.z * up.z))) }; }
@@ -361,6 +364,7 @@ function audioAndHud(state, me, dt) {
       case 'purge': sound.gravity(); banner('¡PURGA! La Madre está abierta: ¡disparale!', 2400); flash(); break;
       case 'gestate': banner('La Madre pone huevos: ¡rompelos antes de que eclosionen!', 2400); break;
       case 'hatch': sound.boom(e.p); break;
+      case 'evolve': if (mine && evoHud) { evoHud.celebrate(e.tier); sound.objective(true); flash(); } break; // evolución: destello, onda y texto (hud-evolucion.js)
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con B', 2200); break;
       case 'surge': banner('El Vórtice se enfurece…', 1800); break;
       case 'feed': if (!session.feedT || performance.now() - session.feedT > 160) { session.feedT = performance.now(); sound.pickup(); } break; // mapa 4: un impacto alimentó un capullo (el aro de puntos del capullo muestra cuánto)
@@ -453,6 +457,8 @@ function hudDirector(state, me) {
   }
   if (!huespedHud) { try { huespedHud = createHuespedHud($('hud')); } catch (err) { console.warn('HUD de Huésped no disponible', err.message); huespedHud = { update() {} }; } }
   huespedHud.update(me, !!(session && session.touch), !(session && session.intro));
+  if (!evoHud) { try { evoHud = createEvoHud($('hud')); } catch (err) { console.warn('HUD de evolución no disponible', err.message); evoHud = { update() {}, celebrate() {}, held() { return false; } }; } }
+  evoHud.update(me, !!(session && session.touch), !(session && session.intro));
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
     const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)));
@@ -498,7 +504,10 @@ let flashSeq = 0;
 function flash() { const f = $('flash'); f.classList.add('on'); const my = ++flashSeq; later(() => { if (my === flashSeq) f.classList.remove('on'); }, 90); }
 
 /* ───────── final / campaña ───────── */
+/** Suma los núcleos de la partida al banco del perfil y guarda la evolución (una sola vez por partida solitaria). */
+function bankProfile(me) { if (!session || session.mode !== 'solo' || session.banked || !me) return; session.banked = true; try { Perfil.cerrarPartida(Equipo.char, me); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
 function endGame(state, me) {
+  bankProfile(me);
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);
   const won = state.state === 'won'; window.__ended = state.state;
   const stats = `Oleada ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n');
@@ -538,7 +547,7 @@ $('sens').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.val
 $('sens0').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.value; });
 $('vol').addEventListener('input', (e) => sound.setVolume(+e.target.value / 10));
 $('subsel').addEventListener('change', (e) => { $('sub').style.display = e.target.value === '1' ? '' : 'none'; });
-$('quit').addEventListener('click', () => location.reload());
+$('quit').addEventListener('click', () => { bankProfile(session && session.lastMe); location.reload(); });
 /* ───── ajustes de controles táctiles y cámara (se guardan por jugador) ───── */
 function bindTouchSettings() {
   const S = settings(), $$ = (id) => $(id), pct = (v) => `${Math.round(v * 100)} %`;
