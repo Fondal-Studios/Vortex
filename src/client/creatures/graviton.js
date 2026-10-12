@@ -17,9 +17,9 @@ export default function build(kit, color) {
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
   const R = LOW ? 8 : HI ? 16 : 12;
   const FLESH = 0x4a3a62, MANTLE = 0x3a3a92, CORE = 0xff6ae0, CRYS = 0x7a90ff;
-  const bioO = bioMaterial({ glow: 0xff5ad8, vein: 0x120a2a, rim: 0x3a2a7a, scale: 1.4, bump: 0.9, wet: 0.7, sheen: 0.15, breath: 0.012 }); const UO = bioO.userData.u; UO.uVeinGlow.value = 0.25;
+  const bioO = bioMaterial({ glow: 0xff5ad8, vein: 0x120a2a, rim: 0x3a2a7a, scale: 1.4, bump: 0.9, wet: 0.7, sheen: 0.15, breath: 0.012, albedo: LOW ? undefined : 0.5, lift: LOW ? undefined : 1.05 }); const UO = bioO.userData.u; UO.uVeinGlow.value = 0.25;
   const bioM = bioMaterial({ glow: 0x8a6aff, vein: 0x180c3a, rim: 0x5a4aff, scale: 1.1, bump: 0.5, wet: 0.8, alpha: 0.5, depthWrite: false, double: true, fres: 1.7, breath: 0.02, sheen: 0.0 }); const UM = bioM.userData.u; UM.uVeinGlow.value = 0.55; UM.uCrackGlow.value = 0.0;
-  const bioT = bioMaterial({ glow: 0x8a6aff, vein: 0x180c3a, rim: 0x4a3aaa, scale: 2.2, tent: 10, breath: 0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.35;
+  const bioT = bioMaterial({ glow: 0x8a6aff, vein: 0x180c3a, rim: 0x4a3aaa, scale: 2.2, tent: 10, breath: 0, albedo: LOW ? undefined : 0.5, lift: LOW ? undefined : 1.05 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.35;
 
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body); root.scale.setScalar(1.35); // un poco más grande que la unidad: se lee a 20–30 m (el hitscan del sim es generoso: 1.05·r + 0.35) body.position.y = 0.55;
   const head = new THREE.Group(); body.add(head);

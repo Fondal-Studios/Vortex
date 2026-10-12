@@ -88,7 +88,7 @@ $('touch').addEventListener('pointerdown', () => { if (session && session.intro)
 addEventListener('touchstart', () => { sound.init(); sound.resume(); }, { passive: true });
 
 /* ───────── ayuda de puntería (todas las entradas: ratón, táctil y mando) ───────── */
-const AIM_KEY = 'cristal.aim.v1'; let aimLevel = 2; try { const v = parseInt(localStorage.getItem(AIM_KEY), 10); if (v >= 0 && v <= 3) aimLevel = v; } catch { /* ok */ }
+const AIM_KEY = 'cristal.aim.v1'; let aimLevel = isTouchDevice() ? 2 : 1; try { const v = parseInt(localStorage.getItem(AIM_KEY), 10); if (v >= 0 && v <= 3) aimLevel = v; } catch { /* ok */ }
 const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSel.addEventListener('change', () => { aimLevel = +aimSel.value; try { localStorage.setItem(AIM_KEY, String(aimLevel)); } catch { /* ok */ } }); }
 let combatHud = null;
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
@@ -191,10 +191,22 @@ function startWake(lines) {
   subs.play(lines, finishIntro);
 }
 function skipIntro() { if (!session || !session.intro) return; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
+/** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). No pausa la partida. */
+function showTutorial(force = false) {
+  let seen = false; try { seen = localStorage.getItem('cristal.tut.v2') === '1'; } catch { /* ok */ }
+  if ((seen && !force) || !session || session.headless) return;
+  const touchUI = !!session.touch, el = $('tutorial');
+  const rows = touchUI
+    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARO', 'botón grande', 'disparar (mantené para ráfaga)'], ['ESPECIAL', 'DESPLAZ.', 'las 2 habilidades de tu héroe'], ['HABILIDAD', '◆', 'ayuda de equipo · señalar'], ['‹ ›', 'o tocá la barra', 'cambiar de arma']]
+    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar'], ['Clic der.', 'F', 'especial de tu héroe · desplazamiento'], ['Q', 'E · G', 'habilidad de equipo · usar · señalar'], ['1–5', 'rueda', 'cambiar de arma'], ['Esc', '', 'pausa']];
+  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Sobreviví las oleadas. Cumplí el objetivo de cada oleada y elegí una <b>mejora de arma</b> al terminarla.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
+  el.classList.remove('hidden'); const close = () => { el.classList.add('hidden'); try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
+  $('tutok').onclick = close; later(close, force ? 20000 : 16000);
+}
 function finishIntro() {
   if (!session) return; session.intro = null; renderer.setGuide(false); renderer.wakeT = renderer.wakeDur = 0; $('hud').classList.remove('hidden');
   if (session.touch) touch.show(true); else if (!session.headless && !NOLOCK && !params.get('auto') && !locked) lockPointer();
-  banner(Story.MAP_BANNER[session.map] || '', 6000);
+  banner(Story.MAP_BANNER[session.map] || '', 6000); later(() => showTutorial(), 1200);
 }
 
 function buildWeaponHud() {
@@ -374,7 +386,7 @@ function objectiveEvent(e) {
 function hudDirector(state, me) {
   const o = state.obj, box = $('objective');
   if (o && o.state === 'active') {
-    box.classList.remove('hidden', 'done', 'fail');
+    box.classList.remove('hidden', 'done', 'fail'); if (session.objKey !== o.type + state.wave) { session.objKey = o.type + state.wave; session.objT0 = performance.now(); } box.classList.toggle('compact', performance.now() - session.objT0 > 9000);
     $('objtitle').textContent = `${OBJ_ICON[o.type] || '◆'} ${o.title}`; $('objdesc').textContent = o.desc;
     $('objfill').style.width = `${Math.round(o.prog * 100)}%`; $('objtime').textContent = `${Math.ceil(o.left)} s`;
   } else box.classList.add('hidden');
@@ -392,11 +404,12 @@ function hudDirector(state, me) {
     if (session.cardKey !== key) {
       session.cardKey = key; const WC = WEAPON_COLORS.map((c) => '#' + c.toString(16).padStart(6, '0'));
       $('cardlist').innerHTML = me.cards.map((c, i) => {
-        const [w, k, mod] = c, W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.up[idx] || [0, 0, 0, null], isMod = k === 'mod', lvl = isMod ? '' : `NIVEL ${(u[{ dmg: 0, rate: 1, mag: 2 }[k]] || 0) + 1}`;
-        return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${W.name}</div><div class="un">${isMod ? WEAPON_MODS[mod].name : UPGRADE_KINDS[k].name}</div><div class="ud">${isMod ? WEAPON_MODS[mod].desc : UPGRADE_KINDS[k].desc}</div><div class="lv">${isMod ? '★ ESPECIAL' : lvl}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
+        const [w, k, mod] = c, W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.up[idx] || [0, 0, 0, null], isMod = k === 'mod';
+        const ix = { dmg: 0, rate: 1, mag: 2 }[k], cur = isMod ? 0 : (u[ix] || 0), eff = { dmg: `daño ${Math.round(W.dmg * (1 + 0.22 * cur))} → ${Math.round(W.dmg * (1 + 0.22 * (cur + 1)))}`, rate: `${(1 / (W.rate / (1 + 0.14 * cur))).toFixed(1)} → ${(1 / (W.rate / (1 + 0.14 * (cur + 1)))).toFixed(1)} disparos/s`, mag: W.max === Infinity ? 'munición ∞' : `máx. ${Math.ceil(W.max * (1 + 0.3 * cur))} → ${Math.ceil(W.max * (1 + 0.3 * (cur + 1)))}` }[k];
+        return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${W.name}</div><div class="un">${isMod ? WEAPON_MODS[mod].name : UPGRADE_KINDS[k].name}</div><div class="ud">${isMod ? WEAPON_MODS[mod].desc : eff}</div><div class="lv">${isMod ? '★ ESPECIAL' : `NIVEL ${cur} → ${cur + 1}`}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
       }).join('');
       $('cardlist').querySelectorAll('.ucard').forEach((b) => b.addEventListener('pointerdown', () => { pickReq = +b.dataset.i; }));
-      $('cardhint').textContent = 'El arma mejorada se ve distinta en tu mano. Si no elegís, se aplica la primera.';
+      $('cardhint').textContent = session.mode === 'solo' ? 'La partida espera tu elección. El arma mejorada se ve distinta en tu mano.' : 'Elegí rápido: si no elegís, se aplica la primera. El arma mejorada se ve distinta en tu mano.';
     }
   }
   const ab = $('ability');
@@ -419,6 +432,16 @@ function hudDirector(state, me) {
     else t = b.pressure >= 1 ? 'PRESIÓN MÁXIMA · ¡purgá las dos válvulas!' : `PRESIÓN ${Math.round(b.pressure * 100)} % · mantené las 2 válvulas a la vez`;
     bm.textContent = t; bm.classList.toggle('hidden', !t);
   } else bm.classList.add('hidden');
+  // aliados: nombre + vida sobre la cabeza; los caídos muestran el progreso de reanimación (visibles aunque estén lejos)
+  { const ah = $('allies'), others = (session.mode === 'coop' || state.players.length > 1) && me ? state.players.filter((q) => q.id !== me.id) : [], V4 = renderer.camera && renderer.camera.position.constructor;
+    while (ah.children.length > others.length) ah.lastChild.remove(); while (ah.children.length < others.length) { const d = document.createElement('div'); d.className = 'ally'; ah.appendChild(d); }
+    if (V4) others.forEach((q, i) => {
+      const el = ah.children[i], v = new V4(q.pos[0] + q.up[0] * 2.3, q.pos[1] + q.up[1] * 2.3, q.pos[2] + q.up[2] * 2.3).project(renderer.camera), ok = v.z < 1;
+      const key = `${q.name}|${q.dead}|${q.lost}|${Math.round(q.hp / 10)}|${Math.round(q.rv * 10)}`; if (el.dataset.k !== key) { el.dataset.k = key; el.className = 'ally' + (q.dead ? ' down' : ''); el.innerHTML = q.dead ? `<b>${q.lost ? '✖ PERDIDO' : '✚ REANIMAR ' + Math.round(q.rv / 3 * 100) + '%'}</b><em>${q.name}</em>` : `<em>${q.name}</em><u><s style="width:${Math.max(0, Math.min(100, q.hp))}%"></s></u>`; }
+      const x = Math.max(0.06, Math.min(0.94, v.z < 1 ? v.x * 0.5 + 0.5 : 0.5)), y = Math.max(0.1, Math.min(0.88, v.z < 1 ? -v.y * 0.5 + 0.5 : 0.5));
+      el.style.display = ok || q.dead ? '' : 'none'; el.style.left = `${x * 100}%`; el.style.top = `${y * 100}%`;
+    });
+  }
   // marcadores de ping proyectados a la pantalla
   const host = $('pings'), cam = renderer.camera; if (!cam) return;
   const V3 = cam.position.constructor, lst = state.pings || [];
@@ -479,6 +502,7 @@ $('sens0').addEventListener('input', (e) => { touch.setSens(0.0009 * +e.target.v
 $('vol').addEventListener('input', (e) => sound.setVolume(+e.target.value / 10));
 $('subsel').addEventListener('change', (e) => { $('sub').style.display = e.target.value === '1' ? '' : 'none'; });
 $('quit').addEventListener('click', () => location.reload());
+$('showctl').addEventListener('click', (e) => { e.stopPropagation(); showTutorial(true); });
 $('tomenu').addEventListener('click', () => location.reload());
 $('again').addEventListener('click', () => {
   if (session.mode === 'coop') { session.net.send({ t: 'restart' }); return; }

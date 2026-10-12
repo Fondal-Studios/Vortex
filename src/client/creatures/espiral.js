@@ -54,7 +54,7 @@ export default function build(kit, color) {
     hp.push(place(paint(new THREE.TorusGeometry(0.2, 0.07, 8, LOW ? 14 : 24), 0x5a1c50, 0, 0, () => ({ k: 0.9 })), [0, -0.08, 0.5]));
     const mh = new THREE.Mesh(merge(hp), bioB); head.add(mh); }
   const EC = eyeCluster({ max: 2, quality: level, iris: 0xffffff, sclera: 0x8a7a60 }); head.add(EC.object);
-  for (const sd of [-1, 1]) EC.add({ p: new V3(sd * 0.4, 0.16, 0.3), n: new V3(sd * 0.8, 0.1, 0.55), r: 0.16, tint: 0xffa830, lag: 7 });
+  for (const sd of [-1, 1]) EC.add({ p: new V3(sd * 0.33, 0.4, 0.22), n: new V3(sd * 0.6, 0.62, 0.5), r: 0.16, tint: 0xffa830, lag: 7 });
   const mouth = new THREE.Group(); mouth.position.set(0, -0.08, 0.5); head.add(mouth);
   const throat = new THREE.Mesh(new THREE.CircleGeometry(1, 28), new THREE.ShaderMaterial({
     uniforms: { uTime, uOpen: { value: 0 }, uC: { value: new THREE.Color(0xff5ad0) }, uC2: { value: new THREE.Color(color) } }, transparent: true, depthWrite: false, side: THREE.DoubleSide,
@@ -70,7 +70,7 @@ export default function build(kit, color) {
   // tentáculos: corona de 10 (6 largos + 4 cortos) alrededor de la boca, una malla
   const tspecs = [];
   for (let i = 0; i < NTE; i++) { const a = i * TAU / NTE, long = i % 2 === 0, len = long ? 1.9 : 1.2;
-    tspecs.push({ p: new V3(Math.cos(a) * 0.42, Math.sin(a) * 0.3 - 0.05, 0.3), d: new V3(Math.cos(a) * 0.6, Math.sin(a) * 0.5 - 0.1, 1), len, r0: long ? 0.085 : 0.065, r1: 0.01, c: 0x44163e, ph: i * 0.9 }); }
+    tspecs.push({ p: new V3(Math.cos(a) * 0.42, Math.sin(a) * 0.3 - 0.2, 0.3), d: new V3(Math.cos(a) * 0.6, Math.sin(a) * 0.32 - 0.22, 1), len, r0: long ? 0.085 : 0.065, r1: 0.01, c: 0x44163e, ph: i * 0.9 }); }
   head.add(new THREE.Mesh(tentacleBundle(tspecs, { seg: LOW ? 8 : 16, radial: LOW ? 5 : 7, color: 0x44163e, tipColor: 0xffc860, tipGlow: 1 }), bioT));
   const trig = tentacleRig(bioT);
   const funnelG = new THREE.Group(); funnelG.position.set(0, -0.08, 0.5); funnelG.rotation.x = Math.PI / 2; head.add(funnelG);

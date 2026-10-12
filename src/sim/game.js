@@ -113,7 +113,8 @@ export class Game {
     if (this.practice) return this.updatePractice(dt);
     const plan = WAVE_PLANS[this.mapId];
     if (this.phase === 'intermission') {
-      this.phaseT -= dt;
+      const choosing = this.wave > 0 && this.players.some((p) => !p.dead && p.cards.length);
+      if (!(choosing && this.players.length === 1 && this.phaseT <= 3.5)) this.phaseT -= dt; // en solitario la partida espera tu elección
       if (this.phaseT > 4 && this.wave > 0 && this.players.every((p) => !p.cards.length)) this.phaseT = 4; // todos eligieron su mejora
       if (this.phaseT <= 0) this.startWave(this.wave + 1, plan);
       return;
@@ -138,7 +139,7 @@ export class Game {
     } else this.straggleT = 0;
     if (!this.queue.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
-      this.phase = 'intermission'; this.phaseT = 12; this.objective = null;
+      this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
       for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
       this.emit({ t: 'clear', wave: this.wave });
       for (const p of this.alivePlayers()) {

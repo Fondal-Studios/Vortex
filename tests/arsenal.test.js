@@ -46,11 +46,14 @@ test('mejoras: 3 tarjetas válidas al terminar la oleada; cada nivel sube daño/
   const { g: g3, p: p3 } = arena(); for (let i = 0; i < 5; i++) applyCard(p3, { w: 0, k: 'dmg' }); const t3 = target(g3, p3); g3.setInput(p3.id, { fire: true }); g3.step(1 / 60); assert.ok((5000 - t3.hp) / d0 > 2, 'nivel 5 ≈ ×2,1 de daño');
 });
 
-test('flujo de oleada: tras limpiar se ofrecen tarjetas, elegir una la aplica; si no elegís, la primera se aplica al empezar la siguiente', () => {
+test('flujo de oleada: tras limpiar se ofrecen tarjetas; en solitario la partida ESPERA tu elección; en cooperativo, si nadie elige, se aplica la primera', () => {
   const g = new Game({ mapId: 'm1', seed: 1 }); const p = g.addPlayer(); p.hp = 1e9; run(g, 6.5);
   for (let i = 0; i < 6000 && g.phase === 'wave'; i++) { for (const m of g.monsters) g.damageMonster(m, 1e9, p); g.step(1 / 60); }
-  assert.equal(p.cards.length, 3); const first = p.cards[0]; run(g, 13); assert.equal(g.wave, 2); assert.equal(p.cards.length, 0);
-  const u = p.upg[first.w]; assert.ok(u && (u[first.k] > 0 || u.mod === first.mod), 'se aplicó la primera tarjeta');
+  assert.equal(p.cards.length, 3); const first = p.cards[0]; run(g, 40); assert.equal(g.wave, 1, 'solo: espera'); assert.equal(p.cards.length, 3);
+  g.setInput(p.id, { pick: 0 }); run(g, 6); assert.equal(g.wave, 2); const u = p.upg[first.w]; assert.ok(u && (u[first.k] > 0 || u.mod === first.mod), 'se aplicó la tarjeta elegida');
+  const c = new Game({ mapId: 'm1', seed: 2 }); const a = c.addPlayer('a'), b2 = c.addPlayer('b'); a.hp = b2.hp = 1e9; run(c, 6.5);
+  for (let i = 0; i < 6000 && c.phase === 'wave'; i++) { for (const m of c.monsters) c.damageMonster(m, 1e9, a); c.step(1 / 60); }
+  const f2 = a.cards[0]; run(c, 25); assert.equal(c.wave, 2, 'coop: no espera para siempre'); assert.equal(a.cards.length, 0); assert.ok(a.upg[f2.w]);
 });
 
 test('personajes: 6, cada uno con desplazamiento y disparo especial propios, con recarga', () => {

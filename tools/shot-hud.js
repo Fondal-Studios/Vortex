@@ -13,12 +13,12 @@ for (const [vn, w, h, touch] of VPS) {
   if (touch) await pg.evaluate(() => { const s = window.__api.session; s.touch = true; window.__api.touch.show(true); });
   await pg.waitForTimeout(800);
   const res = await pg.evaluate(() => {
-    const sel = ['#top', '#bossbar', '#objective', '#bars', '#weapons', '#skills', '#ability', '#coop', '#practice', '#banner', '.tc-fire', '.tc-jump', '.tc-dash', '.tc-mov', '.tc-esp', '.tc-ability', '.tc-use', '.tc-ping', '.tc-prev', '.tc-next', '.tc-pause'];
+    const sel = ['.trophy', '#cards', '#downed', '#top', '#bossbar', '#objective', '#bars', '#weapons', '#skills', '#ability', '#coop', '#practice', '#banner', '.tc-fire', '.tc-jump', '.tc-dash', '.tc-mov', '.tc-esp', '.tc-ability', '.tc-use', '.tc-ping', '.tc-prev', '.tc-next', '.tc-pause'];
     const items = []; for (const s of sel) for (const el of document.querySelectorAll(s)) { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || el.offsetParent === null && cs.position !== 'fixed') continue; const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue; items.push({ s, x: r.x, y: r.y, w: r.width, h: r.height, touchBtn: s.startsWith('.tc-') }); }
     const out = []; const W = innerWidth, H = innerHeight;
     for (let i = 0; i < items.length; i++) {
       const a = items[i]; if (a.x < -1 || a.y < -1 || a.x + a.w > W + 1 || a.y + a.h > H + 1) out.push(`FUERA DE PANTALLA ${a.s}`);
-      for (let j = i + 1; j < items.length; j++) { const c = items[j]; const ox = Math.min(a.x + a.w, c.x + c.w) - Math.max(a.x, c.x), oy = Math.min(a.y + a.h, c.y + c.h) - Math.max(a.y, c.y); if (ox > 4 && oy > 4 && (a.touchBtn || c.touchBtn)) out.push(`SOLAPE ${a.s} × ${c.s} (${Math.round(ox)}×${Math.round(oy)})`); }
+      for (let j = i + 1; j < items.length; j++) { const c = items[j]; const ox = Math.min(a.x + a.w, c.x + c.w) - Math.max(a.x, c.x), oy = Math.min(a.y + a.h, c.y + c.h) - Math.max(a.y, c.y); const ign = new Set(['#banner', '#cards', '#downed']); if (ox > 4 && oy > 4 && !(ign.has(a.s) || ign.has(c.s))) out.push(`SOLAPE ${a.s} × ${c.s} (${Math.round(ox)}×${Math.round(oy)})`); }
     }
     return { out, n: items.length };
   });

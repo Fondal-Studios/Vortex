@@ -14,13 +14,13 @@ export class TouchControls {
     const h = this.host; h.innerHTML = `
       <div class="tc-zone tc-left"></div><div class="tc-zone tc-right"></div>
       <div class="tc-stick hidden"><i></i></div>
-      <button class="tc-btn tc-fire" data-a="fire">DISPARO</button>
-      <button class="tc-btn tc-jump" data-a="jump">SALTO</button>
-      <button class="tc-btn tc-dash" data-a="dash">CORRER</button>
-      <button class="tc-btn tc-ability" data-a="ability">HABILIDAD</button>
-      <button class="tc-btn tc-mov" data-a="mov">DESPLAZ.</button>
-      <button class="tc-btn tc-esp" data-a="esp">ESPECIAL</button>
-      <button class="tc-btn tc-use" data-a="use">USAR</button>
+      <button class="tc-btn tc-fire" data-a="fire"><span class="ic">◉</span><small>DISPARO</small></button>
+      <button class="tc-btn tc-jump" data-a="jump"><span class="ic">⤒</span><small>SALTO</small></button>
+      <button class="tc-btn tc-dash" data-a="dash"><span class="ic">»</span><small>CORRER</small></button>
+      <button class="tc-btn tc-ability" data-a="ability"><span class="ic">✚</span><small>EQUIPO</small></button>
+      <button class="tc-btn tc-mov" data-a="mov"><span class="ic">⇢</span><small>DESPL.</small></button>
+      <button class="tc-btn tc-esp" data-a="esp"><span class="ic">✦</span><small>ESPECIAL</small></button>
+      <button class="tc-btn tc-use" data-a="use"><span class="ic">✋</span><small>USAR</small></button>
       <button class="tc-btn tc-ping" data-a="ping">◆</button>
       <button class="tc-btn tc-prev" data-a="prev">‹</button><button class="tc-btn tc-next" data-a="next">›</button>
       <button class="tc-pause" data-a="pause">❚❚</button>`;

@@ -113,5 +113,5 @@ let got = new Set(); try { got = new Set(JSON.parse(localStorage.getItem(KEY) ||
 export function trophy(id, title, desc, sound) {
   if (got.has(id)) return; got.add(id); try { localStorage.setItem(KEY, JSON.stringify([...got])); } catch { /* ok */ }
   const d = document.createElement('div'); d.className = 'trophy'; d.innerHTML = `<i>🏆</i><div><b>${title}</b><small>${desc}</small></div>`; $('trophies').appendChild(d);
-  if (sound) sound.ui('trophy'); setTimeout(() => d.remove(), 5000);
+  if (sound) sound.ui('trophy'); setTimeout(() => d.remove(), 2600);
 }
