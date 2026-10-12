@@ -90,7 +90,7 @@ function makeMap1() {
       for (let i = 0; i < 10; i++) {
         const a = rng.range(0, 6.2832), rr = Math.sqrt(rng.next()) * (is.r - 2.5);
         const p = v3(is.x + Math.cos(a) * rr, is.hang ? is.y0 - 1.3 : is.top + 1.4, is.z + Math.sin(a) * rr);
-        if (dist(p, ref) > 16 || i === 9) return p;
+        if (dist(p, ref) > 30 || i === 9) return p;
       }
     },
     spawnAir(rng, ref, up) {

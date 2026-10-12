@@ -50,6 +50,7 @@ export class Renderer {
     this.mapRoot = new THREE.Group(); this.scene.add(this.mapRoot);
     this.ents = { mon: new Map(), proj: new Map(), pick: new Map(), ply: new Map() };
     this.entRoot = new THREE.Group(); this.scene.add(this.entRoot);
+    this.barRoot = new THREE.Group(); this.scene.add(this.barRoot); this.barGeo = new THREE.PlaneGeometry(1, 1);
     this.objects = new ObjectsView(this.scene, this.fx);
     this.dyn = []; // objetos del mapa con animación
     this.shake = 0; this.camQ = new THREE.Quaternion(); this.camInit = false;
@@ -211,6 +212,22 @@ export class Renderer {
     obj.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, fwd));
   }
 
+  /** Barra de vida sobre cada criatura herida o élite (siempre mira a la cámara; se ve a través de objetos). */
+  updateBar(e, m) {
+    const boss = m.k === 'coloso' || m.k === 'madre' || m.k === 'argos';
+    const show = !boss && (m.hp < m.mh - 0.5 || m.el) && this.camera.position.distanceTo(V(m.p)) < 75;
+    if (!show) { if (e.bar) e.bar.visible = false; return; }
+    if (!e.bar) {
+      const g = new THREE.Group(), mk = (c, o, ro) => { const mt = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthTest: false, depthWrite: false }); const q = new THREE.Mesh(this.barGeo, mt); q.renderOrder = ro; return q; };
+      g.userData = { bg: mk(0x05030f, 0.7, 996), fill: mk(0x66ff88, 0.95, 997), edge: mk(0xffffff, 0.0, 995) }; g.add(g.userData.edge, g.userData.bg, g.userData.fill); this.barRoot.add(g); e.bar = g;
+    }
+    const g = e.bar, u = g.userData, w = Math.max(1.4, Math.min(4.6, m.r * 1.7)), hh = Math.max(0.16, w * 0.085), frac = Math.max(0, Math.min(1, m.hp / m.mh));
+    g.visible = true; g.quaternion.copy(this.camera.quaternion);
+    g.position.copy(V(m.p)).addScaledVector(V(m.u), m.r * 1.25 + 0.9);
+    u.edge.scale.set(w + hh * 0.5, hh * 1.5, 1); u.bg.scale.set(w, hh, 1); u.fill.scale.set(Math.max(0.001, w * frac), hh * 0.8, 1); u.fill.position.set(-w * (1 - frac) / 2, 0, 0.001);
+    u.fill.material.color.setHex(m.ef & 4 ? 0xff9a3a : m.ef & 2 ? 0xa6ff4a : frac > 0.6 ? 0x66ff88 : frac > 0.3 ? 0xffd23f : 0xff4a5a);
+    u.edge.material.opacity = m.el ? 0.8 : 0; u.edge.material.color.setHex(0xff3a5a);
+  }
   syncMonsters(state, dt) {
     const seen = new Set();
     // solo las N criaturas más cercanas tienen modelo completo; el resto, proxy barato (clave para iPhone)
@@ -230,6 +247,7 @@ export class Renderer {
       if (m.el && !e.elite) { e.elite = true; const sp = new THREE.Sprite(this.halo_(0xff3a5a)); sp.scale.setScalar(3.4); sp.material.opacity = 0.55; sp.name = 'elite'; e.object.add(sp); }
       o.position.lerp(V(m.p), 0.6); o.scale.setScalar(scale);
       this.orient(o, m.u, m.f);
+      this.updateBar(e, m);
       const boss = m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'; this.tmpV.copy(this.camera.position).sub(o.position); const far = !boss && (this.tmpV.length() > cfg().lod + m.r * 2 || !full.has(m.id));
       if (far !== e.far) { e.far = far; e.object.children[0].visible = !far; e.proxy.visible = far; }
       if (far) { e.proxy.scale.setScalar(0.9); continue; }
@@ -241,7 +259,7 @@ export class Renderer {
       const spd = e.prev ? Math.hypot(m.p[0] - e.prev[0], m.p[1] - e.prev[1], m.p[2] - e.prev[2]) / Math.max(dt, 1e-3) : 0; e.prev = m.p; e.spd += ((spd / Math.max(1, m.r * 6)) - e.spd) * Math.min(1, 6 * dt);
       e.tick(dt, { id: m.id, s: m.s, o: m.o, c: m.c, hp: m.hp / m.mh, sd: m.sd, st: m.st, a: m.a }, this.t, { look: this.tmpV.clone().normalize(), speed: e.spd, dist: this.tmpV.length() });
     }
-    for (const [id, e] of this.ents.mon) if (!seen.has(id)) { this.ents.mon.delete(id); e.dyingT = 0; e.dyingMax = e.kind === 'coloso' || e.kind === 'madre' || e.kind === 'argos' ? 1.8 : 0.5; e.base = e.object.scale.clone(); this.dying.push(e); }
+    for (const [id, e] of this.ents.mon) if (!seen.has(id)) { if (e.bar) { this.barRoot.remove(e.bar); e.bar = null; } this.ents.mon.delete(id); e.dyingT = 0; e.dyingMax = e.kind === 'coloso' || e.kind === 'madre' || e.kind === 'argos' ? 1.8 : 0.5; e.base = e.object.scale.clone(); this.dying.push(e); }
   }
   /** Muerte: la criatura se desploma y se desinfla mientras salen esquirlas (ver evento 'kill'). */
   updateDying(dt) {

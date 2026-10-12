@@ -10,7 +10,7 @@ export function playMatch({ mapId, seed, players = 1, skill = +process.env.SKILL
     for (const [id, think] of bots) g.setInput(id, think(dt));
     g.step(dt);
     if (!(g.wave in waveAt)) waveAt[g.wave] = +g.time.toFixed(1);
-    const left = g.queue.length + g.monsters.length + (g.boss && !g.boss.dead ? Math.round(g.boss.hp / 20) : 0);
+    const left = g.queue.length + g.monsters.length + (g.boss && !g.boss.dead ? Math.round(g.boss.hp / 20) : 0) + g.objects.reduce((a, o) => a + (o.hostile && o.hp > 0 ? Math.round(o.hp / 20) : 0), 0) + (g.boss && g.boss.stagger > 0 ? 1 : 0);
     if (left !== lastLeft || g.phase === 'intermission') { lastLeft = left; lastProgress = g.time; }
     maxStall = Math.max(maxStall, g.time - lastProgress);
     for (const p of g.players) if (!Number.isFinite(p.pos.x)) throw new Error('NaN en jugador');

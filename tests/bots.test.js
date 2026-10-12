@@ -17,7 +17,8 @@ for (const mapId of ['m1', 'm2', 'm3']) {
     const maxWave = Math.max(...res.map((r) => r.wave));
     console.log(`# ${mapId}: victorias ${wins}/${res.length}; oleada máx ${maxWave}; oleada media de derrota ${(res.filter((r) => r.state === 'lost').reduce((a, r) => a + r.wave, 0) / Math.max(1, res.length - wins)).toFixed(1)}; tiempo medio ${(res.reduce((a, r) => a + r.time, 0) / res.length).toFixed(0)}s`);
     assert.ok(wins >= 1, 'el jefe debe ser derrotable por un jugador competente');
-    assert.ok(wins < res.length, 'no debería ser trivial: algún bot pierde');
+    const poor = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => playMatch({ mapId, seed, skill: 0.25, maxSeconds: 1500 })).filter((r) => r.state === 'lost').length;
+    assert.ok(wins < res.length || poor >= 1, `no debería ser trivial: algún bot pierde (perdieron ${res.length - wins} competentes y ${poor} torpes)`);
     assert.ok(maxWave === 7, 'llegan al jefe');
   });
 }

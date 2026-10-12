@@ -46,7 +46,7 @@ const face = (m, dir) => { if (len(dir) > 1e-6) m.fwd = norm(dir); };
 const sp = (m) => m.def.speed * m.speedMul;
 
 function shoot(game, m, from, dir, speed, dmg, kind = 'shard', r = 0.7, life = 7) {
-  game.addProjectile({ owner: 'm', kind, pos: clone(from), vel: mul(norm(dir), speed), dmg, r, life });
+  game.addProjectile({ owner: 'm', kind, pos: clone(from), vel: mul(norm(dir), kind === 'ray' ? speed : speed * 0.85), dmg, r, life: kind === 'ray' ? life : life / 0.85 });
 }
 
 function summon(game, m, kind, n, spread = 4) {

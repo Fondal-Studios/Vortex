@@ -104,7 +104,7 @@ test('Madre Geoda (jefe M2): se purga en las válvulas (sólo entonces se abre),
 
 test('Obelisco (francotirador): se aleja, traza línea 1.6 s, fija el blanco y dispara un rayo veloz que se puede esquivar', () => {
   const { g, p } = arena(); const m = spawn(g, p, 'obelisco', 20); let charged = 0, ray = null, lockSeen = false;
-  watch(g, 12, () => { if (m.state === 'charge') { charged++; lockSeen ||= !!m.aim; } ray ||= g.projectiles.find((q) => q.kind === 'ray'); });
+  watch(g, 20, () => { if (m.state === 'charge') { charged++; lockSeen ||= !!m.aim; } ray ||= g.projectiles.find((q) => q.kind === 'ray'); });
   assert.ok(dist(m.pos, p.pos) > 30, 'se planta lejos'); assert.ok(charged > 60 * 1.2 && lockSeen, 'telegrafía >1 s');
   assert.ok(ray && len(ray.vel) > 100, 'rayo veloz');
   // esquivable: un jugador que se mueve de lado durante la carga no es alcanzado

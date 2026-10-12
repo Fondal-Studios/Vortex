@@ -3,6 +3,9 @@ import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS } from '../sim/data.js';
 import { Equipo } from './equipo.js';
 import { WEAPON_COLORS } from './shotfx.js';
+import { createCombatHud } from './hud-combat.js';
+import { MAPS } from '../sim/maps.js';
+import { blocked } from '../sim/physics.js';
 import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.js';
 import { Renderer } from './render.js';
 import { Sound } from './audio.js';
@@ -84,6 +87,10 @@ let tapSkip = 0;
 $('touch').addEventListener('pointerdown', () => { if (session && session.intro) skipIntro(); }, true);
 addEventListener('touchstart', () => { sound.init(); sound.resume(); }, { passive: true });
 
+/* ───────── ayuda de puntería (todas las entradas: ratón, táctil y mando) ───────── */
+const AIM_KEY = 'cristal.aim.v1'; let aimLevel = 2; try { const v = parseInt(localStorage.getItem(AIM_KEY), 10); if (v >= 0 && v <= 3) aimLevel = v; } catch { /* ok */ }
+const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSel.addEventListener('change', () => { aimLevel = +aimSel.value; try { localStorage.setItem(AIM_KEY, String(aimLevel)); } catch { /* ok */ } }); }
+let combatHud = null;
 function readInput() {
   if (session && session.touch) return touch.read();
   const SENS = mouseSens;
@@ -106,19 +113,28 @@ function readInput() {
 }
 const padLatch = { next: false, prev: false, pause: false, jump: false }; let padDt = 0.016;
 
-/** Asistencia de puntería táctil: empuja suavemente la mira hacia la criatura más cercana al centro. */
-function assistAim(inp, state, me, dt) {
-  if (!me || me.dead) return;
+/** Ayuda de puntería: (1) fricción: la mira se vuelve más lenta sobre un blanco; (2) imán: empuja suave hacia la criatura más cercana al centro. Nivel 0 = apagada, 1 baja, 2 media, 3 alta. Marca `session.onTarget` para el color de la mira. */
+function assistAim(inp, state, me, dt, firing = false) {
+  session.onTarget = false; if (!me || me.dead) return;
   const up = v3(...me.up), h = v3(...me.h), eye = { x: me.pos[0] + up.x * 0.6, y: me.pos[1] + up.y * 0.6, z: me.pos[2] + up.z * 0.6 };
   const cp = Math.cos(me.pitch), aim = { x: h.x * cp + up.x * Math.sin(me.pitch), y: h.y * cp + up.y * Math.sin(me.pitch), z: h.z * cp + up.z * Math.sin(me.pitch) };
-  let best = null, bd = 0.2;
+  const map = MAPS[state.map], walls = map && map.walls;
+  let best = null, bd = 1, bestOn = false;
   for (const m of state.monsters) {
-    const to = norm(sub({ x: m.p[0], y: m.p[1], z: m.p[2] }, eye)), ang = Math.acos(Math.max(-1, Math.min(1, dot(to, aim))));
-    if (ang < bd && !m.c) { bd = ang; best = to; }
+    if (m.c) continue; const mp = { x: m.p[0], y: m.p[1], z: m.p[2] }, to = norm(sub(mp, eye)), ang = Math.acos(Math.max(-1, Math.min(1, dot(to, aim)))), dd = Math.hypot(mp.x - eye.x, mp.y - eye.y, mp.z - eye.z);
+    const size = Math.atan2((m.r || 1) * 1.1, Math.max(1, dd)); // radio angular del blanco
+    if (ang < size) bestOn = true;
+    const score = ang / Math.max(0.02, size * 2.2 + 0.04); if (score < bd) { bd = score; best = { to, ang, size, mp }; }
   }
-  if (!best) return;
-  const tan = norm(project(best, up), h), yawErr = Math.atan2(dot(cross(h, tan), up), dot(h, tan)), pitchErr = Math.asin(Math.max(-1, Math.min(1, dot(best, up)))) - me.pitch;
-  const k = 3.5 * dt; inp.dyaw += -yawErr * k; inp.dpitch += pitchErr * k;
+  session.onTarget = bestOn;
+  if (!best || aimLevel === 0) return;
+  if (walls) { const o = { x: eye.x, y: eye.y, z: eye.z }; for (let t = 1.5; t < Math.hypot(best.mp.x - eye.x, best.mp.y - eye.y, best.mp.z - eye.z); t += 1.5) if (blocked(map, { x: o.x + best.to.x * t, y: o.y + best.to.y * t, z: o.z + best.to.z * t })) return; }
+  const lv = [0, 0.5, 1, 1.6][aimLevel], cone = 0.12 + 0.05 * lv;
+  if (best.ang > cone) return;
+  const tan = norm(project(best.to, up), h), yawErr = Math.atan2(dot(cross(h, tan), up), dot(h, tan)), pitchErr = Math.asin(Math.max(-1, Math.min(1, dot(best.to, up)))) - me.pitch;
+  const near = Math.max(0, 1 - best.ang / cone), fric = 1 - Math.min(0.7, 0.28 * lv * near * 1.6); // fricción
+  inp.dyaw *= fric; inp.dpitch *= fric;
+  const k = (firing ? 5.5 : 2.4) * lv * dt * near; inp.dyaw += -yawErr * k; inp.dpitch += pitchErr * k; // imán
 }
 
 /* ───────── sesión y campaña ───────── */
@@ -221,13 +237,13 @@ function frame(now) {
   let state = null;
   if (session.mode === 'solo') {
     const g = session.game, paused = (!locked && !session.headless && !session.touch) || session.paused || !!session.intro;
-    const L = session.touch && !session.bot ? lite(g) : null;
+    const L = !session.bot ? lite(g) : null;
     if (!paused && !session.ended) {
       session.acc += dt;
       while (session.acc >= SIM_DT) {
         session.acc -= SIM_DT;
         let inp = session.bot ? session.bot(SIM_DT) : readInput();
-        if (L) assistAim(inp, L, L.players[0], SIM_DT);
+        if (L) assistAim(inp, L, L.players[0], SIM_DT, inp.fire);
         g.setInput(session.pid, inp); g.step(SIM_DT);
         if (g.players[0].godmode) { g.players[0].hp = 100; g.players[0].shield = 100; }
         if (session.horde) hordeTopUp(g);
@@ -245,7 +261,7 @@ function frame(now) {
     const inp = session.intro ? { mx: 0, mz: 0, dyaw: 0, dpitch: 0 } : readInput();
     const me = state.players.find((p) => p.id === session.pid);
     session.inAcc = session.inAcc || { dyaw: 0, dpitch: 0 };
-    if (session.touch && me && !session.intro) assistAim(inp, state, me, dt);
+    if (me && !session.intro) assistAim(inp, state, me, dt, inp.fire);
     session.inAcc.dyaw += inp.dyaw; session.inAcc.dpitch += inp.dpitch;
     if (me) predictLook(me, inp.dyaw, inp.dpitch);
     if (session.sendT > 1 / 30) { net.send({ t: 'in', i: { ...inp, dyaw: session.inAcc.dyaw, dpitch: session.inAcc.dpitch } }); session.inAcc = { dyaw: 0, dpitch: 0 }; session.sendT = 0; }
@@ -264,7 +280,7 @@ function frame(now) {
   audioAndHud(state, me, dt);
   if (!session.ended && (state.state === 'won' || state.state === 'lost')) endGame(state, me);
 }
-const lite = (g) => ({ monsters: g.monsters.map((m) => ({ p: [m.pos.x, m.pos.y, m.pos.z], c: m.cloak })), players: g.players.map((p) => ({ pos: [p.pos.x, p.pos.y, p.pos.z], up: [p.up.x, p.up.y, p.up.z], h: [p.heading.x, p.heading.y, p.heading.z], pitch: p.pitch, dead: p.dead })) });
+const lite = (g) => ({ map: g.mapId, monsters: g.monsters.map((m) => ({ p: [m.pos.x, m.pos.y, m.pos.z], c: m.cloak })), players: g.players.map((p) => ({ pos: [p.pos.x, p.pos.y, p.pos.z], up: [p.up.x, p.up.y, p.up.z], h: [p.heading.x, p.heading.y, p.heading.z], pitch: p.pitch, dead: p.dead })) });
 
 function predictLook(me, dyaw, dpitch) {
   const L = session.look, up = v3(...me.up);
@@ -276,10 +292,13 @@ function predictLook(me, dyaw, dpitch) {
 }
 
 function audioAndHud(state, me, dt) {
+  if (!combatHud) { try { combatHud = createCombatHud($('hud'), { sound }); } catch (err) { console.warn('HUD de combate no disponible', err.message); combatHud = { onEvent() {}, update() {} }; } }
+  $('cross').classList.toggle('lock', !!session.onTarget);
   if (me && renderer.camera) { const r = new (renderer.camera.position.constructor)(1, 0, 0).applyQuaternion(renderer.camera.quaternion); sound.setListener({ x: me.pos[0], y: me.pos[1], z: me.pos[2] }, r); }
   sound.intensity += (Math.min(1, state.monsters.length / 25) - sound.intensity) * Math.min(1, dt);
   for (const e of state.events) {
     const mine = me && e.pid === me.id;
+    if (combatHud) combatHud.onEvent(e, me, renderer.camera);
     switch (e.t) {
       case 'shot': sound.shot(e.w, mine ? null : e.o); break;
       case 'hit': sound.hit(e.p); break;
@@ -317,6 +336,7 @@ function audioAndHud(state, me, dt) {
       case 'phase': sound.voice(state.boss && state.boss.name.startsWith('Col') ? 'coloso' : 'madre', 'phase'); banner(`FASE ${e.n}`, 1800); flash(); break;
     }
   }
+  if (combatHud) combatHud.update(dt, state, me);
   canvas.classList.toggle('flip', !!(me && me.flip));
   canvas.classList.toggle('tide', !!(state.fx && (state.fx.zero || state.fx.warn)));
   if (state.fx && state.fx.warn && !session.tideWarned) { session.tideWarned = true; banner('LA MAREA SE APROXIMA… sin gravedad', 2500); }

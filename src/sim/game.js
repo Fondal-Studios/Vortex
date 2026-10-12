@@ -1,5 +1,5 @@
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
-import { G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, WAVE_SCALE } from './data.js';
+import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, WAVE_SCALE } from './data.js';
 import { MAPS } from './maps.js';
 import { collide, blocked } from './physics.js';
 import { AI } from './ai.js';
@@ -395,7 +395,7 @@ export class Game {
       if (m.dead) continue;
       const oc = sub(m.pos, o), tca = dot(oc, d);
       if (tca < 0 || tca > w.range) continue;
-      const d2 = dot(oc, oc) - tca * tca, rr = m.r * 1.05;
+      const d2 = dot(oc, oc) - tca * tca, rr = m.r * 1.05 + 0.35 + tca * 0.012; // margen de puntería: más generoso a distancia
       if (d2 > rr * rr) continue;
       hits.push({ m, t: tca - Math.sqrt(rr * rr - d2) });
     }
@@ -507,7 +507,7 @@ export class Game {
     if (m.dead) return;
     const ts = this.map.timeScaleAt(m.pos);
     const slowed = this.time < (m.slowUntil || 0) && !m.def.boss;
-    const dtm = dt * ts * (slowed ? 0.5 : 1);
+    const dtm = dt * ts * (slowed ? 0.5 : 1) * (m.def.boss ? BOSS_PACE : MONSTER_PACE);
     if (this.time < (m.dotUntil || 0)) { // veneno / fuego: daño continuo
       m.hp -= m.dotDps * dt; m.hurt = Math.max(m.hurt, 0.05);
       if (m.hp <= 0) { this.killMonster(m, this.players.find((q) => q.id === m.dotBy) || null); return; }
@@ -566,7 +566,7 @@ export class Game {
         if (blocked(this.map, pr.pos)) { dead = true; hitP = 'solid'; }
         else if (pr.owner === 'm') { for (const p of this.players) if (!p.dead && dist(p.pos, pr.pos) < PLAYER.radius + pr.r) { this.hurtPlayer(p, pr.dmg); dead = true; hitP = 'player'; this.emit({ t: 'splat', p: a3(pr.pos) }); break; } }
         else if (pr.pierce) { for (const m of this.monsters) if (!m.dead && !pr.hit.includes(m.id) && dist(m.pos, pr.pos) < m.r + pr.r) { pr.hit.push(m.id); this.damageMonster(m, pr.dmg, this.players.find((q) => q.id === pr.pid), m.pos); } }
-        else { for (const m of this.monsters) if (!m.dead && dist(m.pos, pr.pos) < m.r + pr.r) { dead = true; hitP = 'monster'; break; } }
+        else { for (const m of this.monsters) if (!m.dead && dist(m.pos, pr.pos) < m.r + pr.r + (pr.owner === 'p' ? 0.5 : 0)) { dead = true; hitP = 'monster'; break; } }
       }
       dead = dead || pr.life <= 0 || !finite(pr.pos) || this.map.outOfBounds(pr.pos);
       const owner = this.players.find((q) => q.id === pr.pid);

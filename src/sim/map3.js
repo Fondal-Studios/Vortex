@@ -71,7 +71,7 @@ export function makeMap3() {
       for (let i = 0; i < 14; i++) {
         const ci = Math.floor(r.next() * N), cj = Math.floor(r.next() * N), p = cellC(ci, cj, 1.4);
         const d = Math.hypot(p.x - ref.x, p.z - ref.z);
-        if (d > 18 && d < 70) return p;
+        if (d > 30 && d < 75) return p;
       }
       return cellC(Math.floor(r.next() * N), Math.floor(r.next() * N), 1.4);
     },

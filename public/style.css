@@ -253,3 +253,9 @@ html, body { overscroll-behavior: none; -webkit-user-select: none; user-select: 
   #practice { top: calc(env(safe-area-inset-top, 0px) + 44px) !important; max-width: 70vw; white-space: normal; text-align: center; }
   .tc-btn[data-cd]::after { content: attr(data-cd); position: absolute; inset: 0; display: grid; place-items: center; background: #000a; border-radius: 50%; font-size: 14px; font-weight: 800; }
 }
+
+/* Mira más grande, con punto central; se pone dorada/roja cuando apuntás a una criatura */
+#cross { width: 34px; height: 34px; margin: -17px; }
+#cross i { transform: scale(.5); border-width: 2px; opacity: .9; }
+#cross::before { content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: var(--a); box-shadow: 0 0 6px var(--a), 0 0 2px #000; }
+#cross.lock i { border-color: #ff4a5a; box-shadow: 0 0 14px #ff4a5a; transform: scale(.72); } #cross.lock::before { background: #ff4a5a; box-shadow: 0 0 8px #ff4a5a; }

@@ -150,3 +150,6 @@ export const FRAGMENTS = [
   'Fragmento 6 — «Si llegás al final, no te voy a decir adiós. Los Heraldos no podemos. Pero voy a escuchar el tren.»',
 ];
 export const BOSS_MECH = { shield: 0.05, stagger: 2.5, rayCd: [0, 14, 11, 9], rayT: 4, madreClosed: 0.15 };
+
+/** Ritmo de las criaturas: 1 = velocidad original. Todas (movimiento, ataques y avisos) corren a este ritmo: más tiempo para reaccionar. Los jefes un poco más rápido. */
+export const MONSTER_PACE = 0.7, BOSS_PACE = 0.9;
