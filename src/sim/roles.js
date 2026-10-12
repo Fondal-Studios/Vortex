@@ -38,4 +38,4 @@ export function useAbility(g, p) {
 
 /** Pasivos de rol */
 export const reviveRate = (helper) => (helper.role === 'soporte' ? 2 : 1);
-export const speedMul = (p) => (p.role === 'explorador' ? 1.08 : 1) * (p.carry ? 0.75 : 1);
+export const speedMul = (p) => (p.role === 'explorador' ? 1.08 : 1) * (p.carry ? 0.75 : 1) * (p.spdMul || 1);

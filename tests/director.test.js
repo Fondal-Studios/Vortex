@@ -20,7 +20,7 @@ test('roles: 4 roles distintos, cada uno con habilidad y recarga; se asignan por
   for (const r of ROLE_IDS) assert.ok(ROLES[r].cd > 5 && ROLES[r].ability && ROLES[r].desc);
   const g = new Game({ mapId: 'm1' });
   const roles = [g.addPlayer('a'), g.addPlayer('b'), g.addPlayer('c', 'explorador'), g.addPlayer('d', 'inventado')].map((p) => p.role);
-  assert.deepEqual(roles.slice(0, 3), ['vanguardia', 'soporte', 'explorador']);
+  assert.deepEqual(roles.slice(0, 3), ['vanguardia', 'explorador', 'explorador']); // por defecto: Axioma, Vesper (equipos de sus Huéspedes)
   assert.ok(ROLE_IDS.includes(roles[3]));
   g.setRole(g.players[0].id, 'ingeniero'); assert.equal(g.players[0].role, 'ingeniero');
 });

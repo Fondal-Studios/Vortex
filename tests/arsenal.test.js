@@ -56,20 +56,20 @@ test('flujo de oleada: tras limpiar se ofrecen tarjetas; en solitario la partida
   const f2 = a.cards[0]; run(c, 25); assert.equal(c.wave, 2, 'coop: no espera para siempre'); assert.equal(a.cards.length, 0); assert.ok(a.upg[f2.w]);
 });
 
-test('personajes: 6, cada uno con desplazamiento y disparo especial propios, con recarga', () => {
-  assert.equal(CHARACTER_IDS.length, 6);
+test('personajes: 10 (5 Huéspedes + 5 veteranos), cada uno con desplazamiento y disparo especial propios, con recarga', () => {
+  assert.equal(CHARACTER_IDS.length, 10);
   for (const id of CHARACTER_IDS) {
     const C = CHARACTERS[id]; assert.ok(C.mov.id && C.esp.id && C.mov.cd > 0 && C.esp.cd > 0 && C.desc);
     const { g, p } = arena(); g.setLoadout(p.id, id); const m = target(g, p, 'geoda', 9); const pos0 = { ...p.pos }, v0 = p.vel.y;
     g.setInput(p.id, { mov: true, esp: true }); g.step(1 / 60); g.setInput(p.id, { mov: false, esp: false });
     assert.ok(p.movCd > 0 && p.espCd > 0, `${id} recarga`);
-    run(g, 0.4); const moved = dist(p.pos, pos0) > 1.5 || p.vel.y > v0 + 5 || p.invulUntil > g.time; assert.ok(moved, `${id}: el desplazamiento mueve`);
-    assert.ok(m.hp < 5000 || id === 'forja' || id === 'umbra' || id === 'lumen' || m.mark, `${id} dañó`);
+    run(g, 0.4); const moved = dist(p.pos, pos0) > 1.5 || p.vel.y > v0 + 5 || p.invulUntil > g.time || g.objects.some((o) => o.type === 'wall'); assert.ok(moved, `${id}: el desplazamiento mueve`);
+    assert.ok(m.hp < 5000 || id === 'forja' || id === 'umbra' || id === 'lumen' || id === 'vesper' || id === 'micelio' || m.mark, `${id} dañó`);
   }
 });
 test('Fase da 1 s de invulnerabilidad; Paso no atraviesa muros', () => {
   const { g, p } = arena(); g.setLoadout(p.id, 'umbra'); p.hp = 100; p.shield = 0; g.setInput(p.id, { mov: true }); g.step(1 / 60); g.hurtPlayer(p, 50); assert.equal(p.hp, 100);
-  run(g, 1.2); p.shield = 0; g.hurtPlayer(p, 50); assert.equal(p.hp, 50);
+  run(g, 1.2); p.shield = 0; g.hurtPlayer(p, 50); assert.ok(Math.abs(p.hp - (100 - 50 * 0.65 / CHARACTERS.umbra.hp)) < 0.01, `pasiva Desfase: ${p.hp}`);
   const g3 = new Game({ mapId: 'm3', seed: 1 }); const q = g3.addPlayer('x', null, { char: 'lumen' }); g3.phaseT = 1e9;
   const wall = g3.map.walls[0]; q.pos = v3(wall.c.x - wall.h.x - 3, 0.9, wall.c.z); q.heading = v3(1, 0, 0); q.vel = v3();
   g3.setInput(q.id, { mov: true }); g3.step(1 / 60); assert.ok(q.pos.x < wall.c.x - wall.h.x + 0.5, `no cruzó el muro (${q.pos.x} vs ${wall.c.x - wall.h.x})`);

@@ -53,7 +53,65 @@ export const CHARACTERS = {
     mov: { id: 'fase',          name: 'Fase',           cd: 8,  desc: 'Salto hacia atrás con 1 s de invulnerabilidad.' },
     esp: { id: 'singularidad',  name: 'Singularidad',   cd: 16, desc: 'Un agujero que arrastra a las criaturas y estalla.' } },
 };
+
+/* ───────── LOS HUÉSPEDES: organismos biomecánicos jugables (docs/HUESPEDES.md). `host:true` = aparecen primero en la selección.
+   Cada uno: arma inicial, melee (ligero/pesado), 3 habilidades (mov = hab. 1, esp = hab. 2, s3 = hab. 3), definitiva (ult), pasiva y stats 0–10. ───────── */
+const HOSTS = {
+  axioma: { team: 'vanguardia', name: 'Axioma', title: 'El Organismo de Guerra', role: 'asalto', host: true, preset: 'jugador1', seed: null, color: 0x3aa8ff, hp: 1, speed: 1, slots: [2, 5, 3, 4],
+    desc: 'Asalto equilibrado. Fusil de proyectiles óseos y cuchillas en los antebrazos. El Huésped inicial: versátil y accesible.',
+    story: 'Cosido por un laboratorio que ya no existe, despierta con una orden grabada en los huesos: sobrevivir. Todavía no sabe quién le dio la orden.',
+    stats: { dano: 7, resistencia: 6, movilidad: 6, control: 4, utilidad: 4, dificultad: 2 },
+    melee: { light: { dmg: 46, range: 3.6, arc: 0.55, cd: 0.34 }, heavy: { dmg: 130, range: 4.4, arc: 0.45, cd: 0.9, knock: 14 } },
+    mov: { id: 'impulso', name: 'Impulso muscular', cd: 6, desc: 'Esquiva y embiste: arrolla lo que toca.' },
+    esp: { id: 'espinas', name: 'Descarga de espinas', cd: 8, desc: 'Espinas perforantes en línea recta: atraviesan todo.' },
+    s3: { id: 'caparazon', name: 'Caparazón', cd: 16, desc: 'Durante 4 s absorbe el 70 % del daño y refleja parte.' },
+    ult: { id: 'sobrecarga', name: 'Sobrecarga Evolutiva', cd: 0, charge: 100, desc: '10 s: +35 % velocidad, +60 % cadencia, melee más rápido.' },
+    passive: { id: 'carnivoro', name: 'Voracidad', desc: 'Cada baja con melee restaura 14 de vida/escudo y 8 de carga.' } },
+  vesper: { team: 'explorador', name: 'Vesper', title: 'La Depredadora', role: 'asesina', host: true, preset: 'jugador4', seed: null, color: 0xb04bff, hp: 0.78, speed: 1.18, slots: [6, 4, 5, 1],
+    desc: 'Asesina de movilidad extrema. Agujas neurotóxicas, garras dobles. Daño explosivo, poca resistencia.',
+    story: 'Cazó en un mundo donde la presa pensaba. Desde la estación, la presa es otra cosa y ella lo sabe: algo la persigue desde adentro.',
+    stats: { dano: 9, resistencia: 3, movilidad: 10, control: 3, utilidad: 3, dificultad: 7 },
+    melee: { light: { dmg: 38, range: 3.4, arc: 0.6, cd: 0.26 }, heavy: { dmg: 110, range: 4, arc: 0.5, cd: 0.7, knock: 6 } },
+    mov: { id: 'paso', name: 'Desplazamiento', cd: 4.5, desc: 'Teletransporte instantáneo de corto alcance hacia donde mirás.' },
+    esp: { id: 'camuflaje', name: 'Camuflaje refractivo', cd: 14, desc: '5 s casi invisible: las criaturas pierden tu rastro. Atacar lo rompe, con daño extra.' },
+    s3: { id: 'marca', name: 'Marca biológica', cd: 10, desc: 'Marca al enemigo apuntado: recibe +40 % de daño 8 s.' },
+    ult: { id: 'frenesi', name: 'Frenesí Depredador', cd: 0, charge: 100, desc: '8 s: cada baja reinicia el desplazamiento y salta a la siguiente víctima marcada.' },
+    passive: { id: 'desprevenido', name: 'Presa distraída', desc: '+50 % de daño a criaturas que no te están mirando o que no te han detectado.' } },
+  micelio: { team: 'vanguardia', name: 'Micelio', title: 'El Devorador', role: 'tanque', host: true, preset: 'jugador2', seed: null, color: 0x7be03a, hp: 1.7, speed: 0.86, slots: [3, 10, 17, 20],
+    desc: 'Tanque y control territorial. Cañón de esporas y puños sísmicos. Absorbe castigo y domina oleadas.',
+    story: 'Era un jardín antes de ser un cuerpo. La estación lo comió y él se la devolvió con raíces. Todavía tiene hambre.',
+    stats: { dano: 5, resistencia: 10, movilidad: 3, control: 8, utilidad: 6, dificultad: 4 },
+    melee: { light: { dmg: 58, range: 3.8, arc: 0.7, cd: 0.5 }, heavy: { dmg: 170, range: 5, arc: 0.8, cd: 1.1, knock: 22 } },
+    mov: { id: 'barrera', name: 'Barrera orgánica', cd: 12, desc: 'Hace crecer un muro vivo delante de vos: bloquea balas y criaturas.' },
+    esp: { id: 'esporas', name: 'Nube de esporas', cd: 11, desc: 'Nube que ralentiza y envenena durante 6 s.' },
+    s3: { id: 'biomasa', name: 'Absorción de biomasa', cd: 15, desc: 'Absorbe a las criaturas cercanas: cura según cuántas haya.' },
+    ult: { id: 'floracion', name: 'Floración Total', cd: 0, charge: 100, desc: '12 s: el terreno a tu alrededor se vuelve hostil (daño, lentitud) y vos regenerás.' },
+    passive: { id: 'callo', name: 'Callo acumulativo', desc: 'Cada golpe recibido da +4 % de resistencia (hasta 40 %) que se disipa en 6 s.' } },
+  umbra: { team: 'ingeniero', name: 'Umbra', title: 'El Errante del Vacío', role: 'control', host: true, preset: null, seed: 'umbra-3', color: 0xb98cff, hp: 0.95, speed: 1.02, slots: [8, 10, 9, 6],
+    desc: 'Control dimensional. Rifle de distorsión y hoja que atraviesa defensas. Usa el escenario como arma.',
+    story: 'Habita varios planos a la vez; en este solo es una sombra con bordes de más. Fue el primero en notar que el tren no estaba en ningún horario.',
+    stats: { dano: 6, resistencia: 5, movilidad: 7, control: 10, utilidad: 8, dificultad: 9 },
+    melee: { light: { dmg: 42, range: 3.8, arc: 0.5, cd: 0.38, pierce: true }, heavy: { dmg: 120, range: 4.6, arc: 0.4, cd: 0.9, pierce: true } },
+    mov: { id: 'fase', name: 'Fase', cd: 8, desc: 'Salto hacia atrás con 1 s de invulnerabilidad (pasiva: menos daño al desplazarte).' },
+    esp: { id: 'singularidad', name: 'Campo gravitatorio', cd: 14, desc: 'Un agujero que agrupa criaturas y estalla.' },
+    s3: { id: 'tiempo', name: 'Distorsión temporal', cd: 18, desc: 'Burbuja de 5 s donde las criaturas se mueven al 25 %.' },
+    ult: { id: 'colapso', name: 'Colapso del Umbral', cd: 0, charge: 100, desc: 'Singularidad grande de 6 s: arrastra, daña y detiene el tiempo local.' },
+    passive: { id: 'desfase', name: 'Desfase', desc: '-35 % de daño recibido durante 2 s después de usar Fase o un desplazamiento.' } },
+  seraf: { team: 'soporte', name: 'Seraf', title: 'La Simbiosis Prohibida', role: 'híbrido', host: true, preset: 'jugador3', seed: null, color: 0xffd45a, hp: 0.92, speed: 1.06, slots: [9, 11, 7, 20],
+    desc: 'Híbrido de apoyo, daño y evolución. Emisor biológico y látigo extensible. El más técnico y espectacular.',
+    story: 'Su simbionte no era un arma: era una pregunta. Seraf todavía no sabe si el organismo la usa a ella o ella a él, y eso la hace muy buena.',
+    stats: { dano: 6, resistencia: 5, movilidad: 6, control: 6, utilidad: 10, dificultad: 8 },
+    melee: { light: { dmg: 40, range: 6.5, arc: 0.28, cd: 0.4 }, heavy: { dmg: 115, range: 8, arc: 0.22, cd: 0.95, knock: -10 } },
+    mov: { id: 'planeo', name: 'Alas membranosas', cd: 7, desc: 'Impulso aéreo con planeo: casi no caés durante 2 s.' },
+    esp: { id: 'pulso', name: 'Pulso vital', cd: 9, desc: 'Daña a las criaturas alrededor y te devuelve vida y carga.' },
+    s3: { id: 'simbionte', name: 'Simbionte', cd: 20, desc: 'Invoca un organismo aliado 10 s que ataca y distrae.' },
+    ult: { id: 'metamorfosis', name: 'Metamorfosis', cd: 0, charge: 100, desc: '12 s: forma alada. Tus disparos perforan y curan, el látigo ataca en área.' },
+    passive: { id: 'adaptacion', name: 'Adaptación', desc: 'Cada tipo de criatura que eliminás (hasta 5) da +2 % de daño contra ese tipo.' } },
+};
+for (const [k, v] of Object.entries(HOSTS)) CHARACTERS[k] = { ...(CHARACTERS[k] || {}), ...v };   // umbra extiende al héroe previo
+for (const k of Object.keys(CHARACTERS)) if (!CHARACTERS[k].host) CHARACTERS[k].legacy = true;
 export const CHARACTER_IDS = Object.keys(CHARACTERS);
+export const HOST_IDS = Object.keys(HOSTS);
 
 /* ───────── Mejoras de armas: tras cada oleada se ofrecen 3 tarjetas; cada nivel se ve en el modelo del arma ───────── */
 export const UPGRADE_KINDS = {

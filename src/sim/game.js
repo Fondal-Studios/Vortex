@@ -1,5 +1,5 @@
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
-import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, WAVE_SCALE } from './data.js';
+import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE } from './data.js';
 import { MAPS } from './maps.js';
 import { collide, blocked } from './physics.js';
 import { AI } from './ai.js';
@@ -7,6 +7,7 @@ import { useAbility, roleFor, reviveRate, speedMul } from './roles.js';
 import { makeObjective, updateObjective } from './objectives.js';
 import { initColoso, initMadre, initArgos, bossDeath } from './bossmech.js';
 import { useMove, useSpecial } from './characters.js';
+import { initHost, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard } from './loadout.js';
 import { Director } from './director.js';
 import { ROLES, ROLE_IDS } from './data.js';
@@ -43,18 +44,19 @@ export class Game {
   addPlayer(name = 'Pasajero', role = null, opts = {}) {
     if (this.players.length >= 4) return null;
     const idx = this.players.length;
-    const char = CHARACTERS[opts.char] ? opts.char : (role == null ? CHARACTER_IDS[idx % CHARACTER_IDS.length] : null);
-    if (char && (role == null || !ROLE_IDS.includes(role))) role = CHARACTERS[char].role;
+    const char = CHARACTERS[opts.char] ? opts.char : (role == null ? HOST_IDS[idx % HOST_IDS.length] : null);
+    if (char && (role == null || !ROLE_IDS.includes(role))) role = CHARACTERS[char].team || CHARACTERS[char].role;
     if (!ROLE_IDS.includes(role)) role = roleFor(idx);
     const pos = clone(this.map.playerSpawn(idx));
     const g = this.map.gravityAt(pos, this.time);
     const up = len(g) > 1e-6 ? norm(mul(g, -1)) : v3(0, 1, 0);
     const p = {
-      id: this.nextId++, name, role, char: char || null, slots: cleanSlots(opts.slots), upg: {}, cards: [], movCd: 0, espCd: 0, movPrev: false, espPrev: false, invulUntil: 0, abilityCd: 0, carry: 0, bleed: 0, lost: false, abilityPrev: false, interactPrev: false, interactEdge: false, pingPrev: false, pos, vel: v3(), up, heading: norm(project(v3(0, 0, -1), up), v3(1, 0, 0)), pitch: 0,
+      id: this.nextId++, name, role, char: char || null, slots: cleanSlots(opts.slots || (char && CHARACTERS[char] && CHARACTERS[char].slots)), upg: {}, cards: [], movCd: 0, espCd: 0, movPrev: false, espPrev: false, invulUntil: 0, abilityCd: 0, carry: 0, bleed: 0, lost: false, abilityPrev: false, interactPrev: false, interactEdge: false, pingPrev: false, pos, vel: v3(), up, heading: norm(project(v3(0, 0, -1), up), v3(1, 0, 0)), pitch: 0,
       hp: PLAYER.hp, shield: PLAYER.shield, dead: false, weapon: 0, ammo: WEAPONS.map((w) => w.start),
       cd: 0, ext: v3(), reviveT: 0, lastHurt: -99, flipUntil: 0, portalCd: 0, grounded: false, kills: 0, score: 0, respawnAt: 0,
-      input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false },
+      input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false, melee: false, s3: false, ult: false },
     };
+    initHost(p);
     this.players.push(p);
     return p;
   }
@@ -65,13 +67,13 @@ export class Game {
     const i = p.input;
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.s3 = !!inp.s3; i.ult = !!inp.ult;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].role; } if (Array.isArray(slots)) p.slots = cleanSlots(slots); }
+  setLoadout(id, char, slots) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -281,7 +283,7 @@ export class Game {
       let nvu = vUp;
       if (inp.jump && p.grounded) nvu = PLAYER.jump;
       p.vel = madd(nvt, up, nvu);
-      p.vel = madd(p.vel, g, dt);
+      p.vel = madd(p.vel, g, dt * (this.time < (p.glideUntil || 0) ? 0.12 : 1));
       const sp = len(p.vel); if (sp > 62) p.vel = mul(p.vel, 62 / sp);
     }
     // integrar en 2 subpasos y colisionar
@@ -319,6 +321,7 @@ export class Game {
     p.interactEdge = inp.interact && !p.interactPrev; p.interactPrev = inp.interact;
     if (inp.ability && !p.abilityPrev) useAbility(this, p); p.abilityPrev = inp.ability;
     if (inp.ping && !p.pingPrev) this.doPing(p); p.pingPrev = inp.ping;
+    updateHost(this, p, dt);
     if (inp.fire && p.cd <= 0 && !p.carry) this.firePlayer(p);
     // recoger
     for (const k of this.pickups) if (!k.dead && dist(k.pos, p.pos) < 2.6) this.collect(p, k);
@@ -339,6 +342,7 @@ export class Game {
     if (p.dead || dmg <= 0 || this.time < p.invulUntil) return;
     for (const o of this.objects) if (o.type === 'dome' && dist(p.pos, o.pos) < o.r) { dmg *= 0.6; break; }
     if (p.role === 'vanguardia') dmg *= 0.92;
+    dmg = hostDamageIn(this, p, dmg); hostDamaged(this, p);
     this.director.hurt(dmg);
     p.lastHurt = this.time;
     const sh = Math.min(p.shield, dmg); p.shield -= sh; dmg -= sh;
@@ -455,16 +459,17 @@ export class Game {
   damageMonster(m, dmg, by, at) {
     if (m.dead) return;
     let mul_ = 1;
-    if (m.kind === 'geoda') mul_ = m.open ? 1 : 0.2;
+    if (m.kind === 'geoda') mul_ = m.open ? 1 : (this.pierceNow ? 0.7 : 0.2);
     if (m.kind === 'madre') mul_ = m.open ? 1 : 0.15;
     if (m.kind === 'espejo') { m.cloak = false; m.reveal = 2.2; }
     if (m.stun) mul_ *= 1.5;
     if (m.kind === 'coloso' || m.kind === 'argos') { if (m.shield) mul_ *= BOSS_MECH.shield; if (m.stagger > 0) mul_ *= BOSS_MECH.stagger; }
-    if (this.time < (m.markUntil || 0)) mul_ *= 1.3;
+    if (this.time < (m.markUntil || 0)) mul_ *= m.markMul || 1.3;
+    if (by && by.input) mul_ *= hostOut(this, by, m);
     if (by && this.time < this.teamBuffUntil) mul_ *= 1.25;
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
-    if (by) by.score += 0;
+    if (by && by.input) hostHit(this, by, m, dmg * mul_);
     this.emit({ t: 'hit', id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1 });
     if (m.hp <= 0) this.killMonster(m, by);
   }
@@ -472,6 +477,7 @@ export class Game {
   killMonster(m, by) {
     if (m.dead) return;
     m.dead = true; this.stats.kills++; this.straggleT = 0;
+    if (by && by.input) hostKill(this, by, m);
     if (by) { by.kills++; by.score += m.def.score; if (wstat(by, by.weapon).mod === 'vampirica' && !by.dead) by.hp = Math.min(PLAYER.hp, by.hp + 6); }
     if (m.parent) { const par = this.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); }
     this.emit({ t: 'kill', id: m.id, k: m.kind, p: a3(m.pos) });
@@ -508,13 +514,13 @@ export class Game {
     if (m.dead) return;
     const ts = this.map.timeScaleAt(m.pos);
     const slowed = this.time < (m.slowUntil || 0) && !m.def.boss;
-    const dtm = dt * ts * (slowed ? 0.5 : 1) * (m.def.boss ? BOSS_PACE : MONSTER_PACE);
+    const dtm = dt * ts * (slowed ? 0.5 : 1) * (this.time < (m.chronoUntil || 0) && !m.def.boss ? 0.25 : 1) * (m.def.boss ? BOSS_PACE : MONSTER_PACE);
     if (this.time < (m.dotUntil || 0)) { // veneno / fuego: daño continuo
       m.hp -= m.dotDps * dt; m.hurt = Math.max(m.hurt, 0.05);
       if (m.hp <= 0) { this.killMonster(m, this.players.find((q) => q.id === m.dotBy) || null); return; }
     }
     m.t += dtm; m.hurt = Math.max(0, m.hurt - dt);
-    const targets = this.alivePlayers();
+    const targets = this.alivePlayers().filter((q) => this.time >= (q.cloakUntil || 0) || dist(q.pos, m.pos) < 6);   // camuflaje: te pierden salvo muy cerca
     if (m.passive && targets.length) { const d = sub(targets[0].pos, m.pos), up = m.up || v3(0, 1, 0); m.fwd = norm(project(d, up), m.fwd); }
     else if (targets.length) AI[m.def.ai](this, m, dtm, targets);
     if (m.dead) return;
@@ -552,8 +558,8 @@ export class Game {
   updateProjectiles(dt) {
     const keep = [];
     for (const pr of this.projectiles) {
-      if (pr.owner === 'm' && this.objects.some((o) => o.type === 'dome' && dist(pr.pos, o.pos) < o.r)) { this.emit({ t: 'splat', p: a3(pr.pos) }); continue; }
-      const ts = pr.owner === 'm' ? this.map.timeScaleAt(pr.pos) : 1;
+      if (pr.owner === 'm' && (this.objects.some((o) => o.type === 'dome' && dist(pr.pos, o.pos) < o.r) || inWall(this, pr.pos))) { this.emit({ t: 'splat', p: a3(pr.pos) }); continue; }
+      const ts = pr.owner === 'm' ? this.map.timeScaleAt(pr.pos) * (inChrono(this, pr.pos) ? 0.25 : 1) : 1;
       pr.age += dt; pr.life -= dt;
       if (pr.accel) pr.vel = madd(pr.vel, norm(pr.vel), pr.accel * dt * ts);
       if (pr.homing && pr.owner === 'p') { // teledirigido: gira hacia la criatura más cercana delante
@@ -626,6 +632,7 @@ export class Game {
   }
   updateObjects(dt) {
     for (const o of [...this.objects]) {
+      if (hostObject(this, o, dt)) continue;
       if (o.type === 'dome') { o.life -= dt; if (o.life <= 0) this.removeObject(o); }
       else if (o.type === 'turret') {
         o.life -= dt; o.cd -= dt;
@@ -682,7 +689,7 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, sl: p.slots, up: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mod || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), sl: p.slots, up: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mod || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
