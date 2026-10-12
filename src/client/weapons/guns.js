@@ -34,7 +34,7 @@ export function vents(k, n, [x, y, z], [w, h, d], step, c = DARK, axis = 'z') {
 export const screw = (k, pos, axis = 'x', r = 0.0045) => k.cyl('b', [r, r, 0.004], pos, { axis, seg: 6, c: STEEL });
 /** Pantalla en una cara: posición, normal inclinada. */
 export function placeScreen(G, parent, pos, rot, scale = 1) {
-  const m = G.scr.mesh; m.position.set(...pos); m.rotation.set(...rot); m.scale.setScalar(scale); parent.add(m);
+  const m = G.scr.mesh; m.position.set(pos[0] - 0.0035, pos[1], pos[2]); m.material.polygonOffset = true; m.material.polygonOffsetFactor = m.material.polygonOffsetUnits = -6; /* ARTE: la pantalla quedaba dentro del marco (cuadro negro) */ m.rotation.set(...rot); m.scale.setScalar(scale); parent.add(m);
 }
 /** Marco oscuro para la pantalla. */
 export function bezel(k, pos, rot, w, h) { k.box('b', [w, h, 0.006], pos, { c: DARK, r: rot, rad: 0.002 }); }

@@ -189,7 +189,7 @@ export function forge(index, q, hands, S) {
   const info = S.build(k, G, hands) || {}; if (!S.noRear) { k.part('main'); autoRear(k, G); }
   if (hands && info.gh) { k.part('trigger', info.pivot); triggerFinger(k, info.gh, info.pivot, info.reach ?? 0.03); }
   const P = {}; for (const n of Object.keys(k.parts)) { P[n] = k.build(n, mats); group.add(P[n]); P[n].userData.base = P[n].position.clone(); } bindTrigger(P);
-  if (info.screen) { const m = scr.mesh, sc = info.screen; m.position.set(...sc.pos); m.position.x -= 0.009; m.material.side = THREE.DoubleSide; m.material.polygonOffset = true; m.material.polygonOffsetFactor = m.material.polygonOffsetUnits = -4; /* ARTE: la pantalla quedaba enterrada en el cuerpo (cuadro negro) */ m.rotation.set(...sc.rot); m.scale.setScalar(sc.scale || 1.2); (P[sc.on || 'main'] || group).add(m); }
+  if (info.screen) { const m = scr.mesh, sc = info.screen; m.position.set(...sc.pos); m.rotation.set(...sc.rot); m.scale.setScalar(sc.scale || 1.2); (P[sc.on || 'main'] || group).add(m); }
   if (info.gh) group.userData.grip = [0, info.gh.top - 0.05, info.gh.zc];
   group.userData.fore = info.fore || null;
   const W = {

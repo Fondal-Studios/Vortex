@@ -1,12 +1,92 @@
 [
  {
-  "name": "melee-axioma-combo",
-  "base": 83,
-  "pico": 92,
+  "name": "melee-axioma-pesado",
+  "base": 89,
+  "pico": 105,
+  "extra": 16,
+  "particulas": 9,
+  "segs": 5,
+  "mallas": 9,
+  "tris": 51928
+ },
+ {
+  "name": "melee-vesper-combo",
+  "base": 89,
+  "pico": 98,
   "extra": 9,
-  "particulas": 2,
-  "segs": 3,
+  "particulas": 0,
+  "segs": 5,
   "mallas": 7,
+  "tris": 51604
+ },
+ {
+  "name": "melee-vesper-pesado",
+  "base": 89,
+  "pico": 105,
+  "extra": 16,
+  "particulas": 6,
+  "segs": 7,
+  "mallas": 9,
+  "tris": 51756
+ },
+ {
+  "name": "melee-micelio-combo",
+  "base": 89,
+  "pico": 99,
+  "extra": 10,
+  "particulas": 7,
+  "segs": 2,
+  "mallas": 8,
+  "tris": 52382
+ },
+ {
+  "name": "melee-micelio-pesado",
+  "base": 89,
+  "pico": 105,
+  "extra": 16,
+  "particulas": 18,
+  "segs": 2,
+  "mallas": 9,
+  "tris": 52466
+ },
+ {
+  "name": "melee-umbra-combo",
+  "base": 90,
+  "pico": 101,
+  "extra": 11,
+  "particulas": 0,
+  "segs": 4,
+  "mallas": 10,
   "tris": 51762
+ },
+ {
+  "name": "melee-umbra-pesado",
+  "base": 89,
+  "pico": 108,
+  "extra": 19,
+  "particulas": 6,
+  "segs": 6,
+  "mallas": 12,
+  "tris": 51914
+ },
+ {
+  "name": "melee-seraf-combo",
+  "base": 89,
+  "pico": 99,
+  "extra": 10,
+  "particulas": 3,
+  "segs": 2,
+  "mallas": 8,
+  "tris": 52136
+ },
+ {
+  "name": "melee-seraf-pesado",
+  "base": 89,
+  "pico": 106,
+  "extra": 17,
+  "particulas": 11,
+  "segs": 3,
+  "mallas": 10,
+  "tris": 52286
  }
 ]

@@ -51,12 +51,12 @@ export function m4Animate(it, o, u, t, dt) {
   u.body.scale.set(u.r * 0.62 * (1 + k * 0.25) * hungerPulse, u.r * 0.85 * (1 + k * 0.2) * hungerPulse, u.r * 0.62 * (1 + k * 0.25) * hungerPulse);
   u.body.position.x = Math.sin(t * 60) * u.shake * 0.12; u.body.position.y = u.r * 0.85;
   tmp.copy(HUNGRY).lerp(FED, Math.min(1, k * 1.2)); if (bloom) tmp.copy(BLOOM); if (u.shake > 0.05) tmp.lerp(GNAW, Math.min(1, u.shake));
-  u.bodyMat.emissive.copy(tmp); u.bodyMat.emissiveIntensity = 0.5 + k * 1.1 + (bloom ? 0.8 : 0) + u.pop * 1.5 + 0.25 * beat;
+  u.bodyMat.emissive.copy(tmp); u.bodyMat.emissiveIntensity = 0.5 + k * 0.7 + (bloom ? 0.3 : 0) + u.pop * 1.0 + 0.2 * beat;
   u.bodyMat.color.copy(tmp).multiplyScalar(0.35);
   u.petalMat.emissive.copy(tmp); u.petalMat.emissiveIntensity = u.bodyMat.emissiveIntensity * 0.8; u.petalMat.color.copy(tmp).multiplyScalar(0.4);
   const open = bloom ? 1.25 : 0.1 + k * 0.85;
   u.petals.forEach((p, i) => { p.parent.rotation.z = -open * 0.9 + Math.sin(t * 2 + i) * 0.03; });
-  u.halo.material.opacity = 0.06 + k * 0.16 + (bloom ? 0.14 : 0) + u.pop * 0.3; u.halo.material.color.copy(tmp);
+  u.halo.material.opacity = 0.05 + k * 0.08 + (bloom ? 0.06 : 0) + u.pop * 0.15; u.halo.material.color.copy(tmp);
   u.beam.material.opacity = bloom ? 0.34 : 0.08 + k * 0.14; u.beam.material.color.copy(tmp);
   u.ring.material.color.copy(tmp); u.ring.rotation.z = t * (bloom ? 0.8 : 0.3);
   const lit = bloom ? 12 : Math.floor(k * 12 + 1e-6);

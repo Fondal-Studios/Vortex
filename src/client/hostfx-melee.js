@@ -93,7 +93,7 @@ export function createHostMelee(renderer, D) {
   const cam = renderer.camera, fx = D.fx;
   const rig = new THREE.Group(); rig.name = 'hostmelee'; rig.visible = false; cam.add(rig);
   const disposables = [];
-  let worldSide = 1, host = null, built = null, engage = 0, idleT = 9, swing = null, charge = null, freeze = 0, comboIdx = 0, comboT = 9, T = 0, lastPredict = null, vmOff = 0, cdUntil = 0, impactKick = 0;
+  let gunHidden = false, worldSide = 1, host = null, built = null, engage = 0, idleT = 9, swing = null, charge = null, freeze = 0, comboIdx = 0, comboT = 9, T = 0, lastPredict = null, vmOff = 0, cdUntil = 0, impactKick = 0;
   const limbs = {}; // R / L: { g, body, wpn, glow, trail:[] }
   // sprites: destello de impacto y marcador (X de impacto / ejecución)
   const canvasTex = (draw, s = 128) => { const c = document.createElement('canvas'); c.width = c.height = s; draw(c.getContext('2d'), s); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; disposables.push(t); return t; };
@@ -238,7 +238,7 @@ export function createHostMelee(renderer, D) {
       case 'seraf': D.ring(P, n, 0.3, 3 * k, 0.35, a, { th: 0.12 }); D.sparks(P, 0xffffff, 8 * k, 18, 0.4, { dir: n, cone: 1.3, c2: c }); D.spray(P, c, 6 * k, 6, 0.6, 0.6, { shape: SHAPE.star, c2: a, spin: 4 }); break;
       default: D.sparks(P, 0xffffff, 10 * k, 18, 0.4, { dir: n, cone: 1.5, c2: c }); D.spray(P, 0xe9eef2, 4 * k, 8, 0.6, 0.7, { shape: SHAPE.shard, grav: 9, spin: 8, c2: c, grow: -0.4 });
     }
-    if (exec) { fx.shatter(P, a, { size: 0.45, n: 5, speed: 9, dir: n }); D.ring(P, null, 0.4, 5, 0.5, 0xff7a3a, { th: 0.09 }); }
+    if (exec) { fx.shatter(P, a, { size: 0.45, n: 3, speed: 9, dir: n }); D.ring(P, null, 0.4, 5, 0.5, 0xff7a3a, { th: 0.09 }); }
     if (heavy && h !== 'micelio') D.ring(P, n, 0.3, 2.6 * k, 0.4, c, { th: 0.12 });
   }
   /** Tajo en el mundo (otros jugadores y 3.ª persona): estelas cortas con la forma del arma de cada Huésped. */
@@ -287,7 +287,7 @@ export function createHostMelee(renderer, D) {
     if (!built) return; void mineChar;
     const active = !!(swing || charge); idleT = active ? 0 : idleT + dt; const want = fp && me && !me.dead && (active || idleT < 0.35) ? 1 : 0; engage += (want - engage) * Math.min(1, dt * (want ? 18 : 8)); if (Math.abs(engage - want) < 0.01) engage = want;
     // el arma del viewmodel baja mientras dura el melee
-    const vm = renderer.vm; if (vm && vm.root) { const off = -0.95 * sm(engage); vm.root.position.y += off - vmOff; vmOff = off; }
+    const vm = renderer.vm; if (vm && vm.root) { const off = -0.95 * sm(engage); vm.root.position.y += off - vmOff; vmOff = off; const hide = engage > 0.6; if (hide !== gunHidden) { gunHidden = hide; vm.root.visible = hide ? false : !renderer.third; } } // con los brazos arriba el arma ni se dibuja (ahorra sus draw calls)
     rig.visible = engage > 0.02; if (!rig.visible) { trailMesh.visible = false; if (whip) whip.mesh.visible = false; limbs.R && (limbs.R.g.visible = limbs.L.g.visible = false); return; } limbs.R.g.visible = limbs.L.g.visible = true;
     rig.scale.copy(vm && vm.root ? vm.root.scale : _a.set(1, 1, 1)); rig.scale.z = 1;
     // hit-stop visual: sólo congela la animación
@@ -302,7 +302,7 @@ export function createHostMelee(renderer, D) {
     if (mk.t > 0) { mk.t -= dt; const u = 1 - Math.max(0, mk.t) / mk.max; markSpr.visible = mk.t > 0; markSpr.material.opacity = 1 - u * u; markSpr.scale.setScalar(mk.size * (u < 0.2 ? 0.6 + 2 * u : 1 + 0.3 * (u - 0.2))); } else markSpr.visible = false;
     if (impactKick > 0) impactKick = 0;
   }
-  function clear() { swing = null; charge = null; engage = 0; idleT = 9; freeze = 0; fl.t = mk.t = 0; flashSpr.visible = markSpr.visible = false; rig.visible = false; trailMesh.visible = false; const vm = renderer.vm; if (vm && vm.root) { vm.root.position.y -= vmOff; vmOff = 0; } pend.length = 0; hist.R.length = hist.L.length = 0; if (whip) whip.mesh.visible = false; }
+  function clear() { swing = null; charge = null; engage = 0; idleT = 9; freeze = 0; fl.t = mk.t = 0; flashSpr.visible = markSpr.visible = false; rig.visible = false; trailMesh.visible = false; const vm = renderer.vm; if (vm && vm.root) { vm.root.position.y -= vmOff; vmOff = 0; if (gunHidden) vm.root.visible = !renderer.third; } gunHidden = false; pend.length = 0; hist.R.length = hist.L.length = 0; if (whip) whip.mesh.visible = false; }
   function stats() { let m = 0; if (rig.visible) rig.traverse((o) => { if ((o.isMesh || o.isSprite) && o.visible && o.parent && o.parent.visible !== false) m++; }); return { meshes: m, swing: swing ? swing.kind : null, charge: !!charge, engage: +engage.toFixed(2) }; }
   return {
     onEvent, update, key, clear, stats, dispose() { clear(); dispose1(); cam.remove(rig); for (const d of disposables) d.dispose(); },

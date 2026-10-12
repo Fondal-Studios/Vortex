@@ -81,15 +81,15 @@ export function createCaida({ renderer, root, sound = null } = {}) {
   /* ── escena: halo + líneas de profundidad ── */
   const scene = renderer.scene, group = new THREE.Group(); group.visible = false; group.frustumCulled = false; scene.add(group);
   const haloMat = new THREE.ShaderMaterial({ vertexShader: HALO_VS, fragmentShader: HALO_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { uOp: { value: 0 }, uT: { value: 0 }, uR: { value: 20 }, uShape: { value: 0 }, uSize: { value: 100 }, uCol: { value: new THREE.Color(1, 0.62, 0.12) }, uHot: { value: new THREE.Color(1, 0.9, 0.55) } } });
-  const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), haloMat); halo.rotation.x = -Math.PI / 2; halo.frustumCulled = false; group.add(halo);
+  const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), haloMat); halo.rotation.x = -Math.PI / 2; halo.frustumCulled = false; halo.renderOrder = 50; group.add(halo);
   const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
   const loopMat = new THREE.LineBasicMaterial({ color: 0xffb02e, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
   const parts = { circle: rimParts('circle'), square: rimParts('square') };
   const rim = new THREE.Group(); group.add(rim); rim.frustumCulled = false; let rimShape = null;
   const setShape = (shape) => {
     if (rimShape === shape) return; rimShape = shape; rim.clear(); const P = parts[shape];
-    const ls = new THREE.LineSegments(P.lines, lineMat); ls.frustumCulled = false; rim.add(ls);
-    for (const dep of [0, 0.15, 6, 14, 26, 40]) { const l = new THREE.LineLoop(P.loop, loopMat); l.position.y = -dep; l.frustumCulled = false; rim.add(l); }
+    const ls = new THREE.LineSegments(P.lines, lineMat); ls.frustumCulled = false; ls.renderOrder = 51; rim.add(ls);
+    for (const dep of [0, 0.15, 6, 14, 26, 40]) { const l = new THREE.LineLoop(P.loop, loopMat); l.position.y = -dep; l.frustumCulled = false; l.renderOrder = 51; rim.add(l); }
   };
   // columna de luz del punto de reaparición
   const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 40, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0x7fe9ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
