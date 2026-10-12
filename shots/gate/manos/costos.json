@@ -1,0 +1,252 @@
+{
+ "low_0": {
+  "calls": 2,
+  "tris": 1386,
+  "errs": []
+ },
+ "low_1": {
+  "calls": 3,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_2": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_3": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_4": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_5": {
+  "calls": 2,
+  "tris": 1386,
+  "errs": []
+ },
+ "low_6": {
+  "calls": 2,
+  "tris": 1386,
+  "errs": []
+ },
+ "low_7": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_8": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_9": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_10": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_11": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_12": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_13": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_14": {
+  "calls": 3,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_15": {
+  "calls": 3,
+  "tris": 2966,
+  "errs": []
+ },
+ "low_16": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_17": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_18": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_19": {
+  "calls": 2,
+  "tris": 1386,
+  "errs": []
+ },
+ "low_20": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_21": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_22": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_23": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "low_24": {
+  "calls": 2,
+  "tris": 2566,
+  "errs": []
+ },
+ "high_0": {
+  "calls": 2,
+  "tris": 4250,
+  "errs": []
+ },
+ "high_1": {
+  "calls": 3,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_2": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_3": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_4": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_5": {
+  "calls": 2,
+  "tris": 4250,
+  "errs": []
+ },
+ "high_6": {
+  "calls": 2,
+  "tris": 4250,
+  "errs": []
+ },
+ "high_7": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_8": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_9": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_10": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_11": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_12": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_13": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_14": {
+  "calls": 3,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_15": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_16": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_17": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_18": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_19": {
+  "calls": 2,
+  "tris": 4250,
+  "errs": []
+ },
+ "high_20": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_21": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_22": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_23": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ },
+ "high_24": {
+  "calls": 2,
+  "tris": 7850,
+  "errs": []
+ }
+}

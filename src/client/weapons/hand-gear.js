@@ -79,9 +79,8 @@ export function handGeoms(T, H, pose, which, { arm = true } = {}) {
     if (isI !== (f === 1)) continue;
     const b = FINGERS[['thumb', 'index', 'middle', 'ring', 'pinky'][f]], sc = f === 4 ? 0.8 : f === 3 ? 0.92 : 1, p1 = REST[b[0]], p2 = REST[b[1]];
     T.push(pose.B[b[0]]);
-    T.poly('g', 'oct', 0.0085 * sc, [p1.x, p1.y + 0.0085 * sc, p1.z + 0.003], { k: ik(K.CRY, 0), s: [0.95, 0.42, 1.45], u: 1.1, c: gr(1) });
+    T.poly('g', 'oct', 0.0072 * sc, [p1.x, p1.y + 0.0075 * sc, p1.z + 0.003], { k: ik(K.CRY, 0), s: [0.95, 0.4, 1.5], u: 1.1, c: gr(1) });
     T.pop();
-    if (!low) { T.push(pose.B[b[1]]); T.poly('g', 'oct', 0.0058 * sc, [p2.x, p2.y + 0.0075 * sc, p2.z + 0.004], { k: ik(K.CRY, 1), s: [0.9, 0.38, 1.6], u: 1.4, c: gr(1) }); T.pop(); }
   }
   if (!isI) {
     T.push(pose.B[thumbBones[1]]); const p = REST[thumbBones[1]]; T.poly('g', 'oct', 0.0088, [p.x + 0.003, p.y + 0.0092, p.z + 0.002], { k: K.CRY, s: [1.3, 0.42, 1.5], r: [0, 0.6, 0], u: 0.9, c: gr(1) }); T.pop();
@@ -115,7 +114,7 @@ function armGear(T, pose, H, low) {
     const band = (t0, t1, grow, kind, c, u, { r0 = 1, r1 = 1, flow = null } = {}) => {
       const t = (t0 + t1) / 2, rm = rx(t) + grow, rym = ry(t) + grow;
       T.push(new THREE.Matrix4().makeTranslation(...at(t).toArray()).multiply(basis).multiply(new THREE.Matrix4().makeScale(rm / 0.03, (t1 - t0) / 0.06, rym / 0.03)));
-      T.cyl('g', [0.03 * r1, 0.03 * r0, 0.06], [0, 0, 0], { axis: 'y', k: kind, c, seg: low ? 10 : 16, u, flow: flow ? [flow[0], flow[1], 'y', 0.06] : null });
+      T.cyl('g', [0.03 * r1, 0.03 * r0, 0.06], [0, 0, 0], { axis: 'y', k: kind, c, seg: low ? 10 : 16, u, flow: flow ? [flow[0], flow[1], 'y', 0.06] : null, open: kind === K.SEAM });
       T.pop();
     };
     // — muñequera: correa mate con hebilla y dos hilos luminosos
@@ -130,15 +129,14 @@ function armGear(T, pose, H, low) {
     pg.setAttribute('rs', new THREE.BufferAttribute(rs, 4)); pg.rotateX(-Math.PI / 2);
     T.put('g', pg, at(0.07, ry(0.07) + 0.0071).toArray(), { k: K.SCR, c: gr(1), q: qb, u: -0.6 });
     for (const sg of [-1, 1]) T.box('g', [0.003, 0.0042, Hh + 0.006], at(0.07, ry(0.07) + 0.0068, sg * (W / 2 + 0.0055)).toArray(), { k: K.SEAM, c: gr(1), q: qb, sharp: true, u: -0.6 });
-    // — manga: tubo que crece hacia el codo y se deshace en polvo de cristal (el final nunca se ve como un corte)
-    const m0 = 0.098, m1 = 0.34, mm = (m0 + m1) / 2, rr = (t) => (rx(t) + 0.0055) / (rx(mm) + 0.0055);
+    // — manga corta: tubo que se deshace en polvo de cristal hacia el codo (el final nunca se ve como un corte; no domina la vista)
+    const m0 = 0.112, m1 = 0.235, mm = (m0 + m1) / 2, rr = (t) => (rx(t) + 0.0055) / (rx(mm) + 0.0055);
     T.push(new THREE.Matrix4().makeTranslation(...at(mm).toArray()).multiply(basis).multiply(new THREE.Matrix4().makeScale((rx(mm) + 0.0055) / 0.03, (m1 - m0) / 0.06, (ry(mm) + 0.0055) / 0.03)));
-    T.cyl('g', [0.03 * Math.min(1.28, rr(m1)), 0.03 * rr(m0), 0.06], [0, 0, 0], { axis: 'y', k: K.SLV, c: gr(1), seg: low ? 10 : 18, u: -1.0, flow: [0, 1, 'y', 0.06] });
+    T.cyl('g', [0.03 * Math.min(1.2, rr(m1)), 0.03 * rr(m0), 0.06], [0, 0, 0], { axis: 'y', k: K.SLV, c: gr(1), seg: low ? 10 : 18, u: -1.0, flow: [0, 1, 'y', 0.06], open: true });
     T.pop();
-    // — brazalete de armadura: aro grueso con filos luminosos y cristales (sin picos)
-    band(0.100, 0.118, 0.0085, K.ARM, gr(0.8), -0.8); band(0.1175, 0.1215, 0.0092, K.SEAM, gr(1), -0.8);
-    band(0.150, 0.205, 0.0075, K.ARM, gr(0.72), -0.8, { r0: 1, r1: 1.04 }); band(0.1495, 0.1535, 0.0082, K.SEAM, gr(1), -0.8); band(0.2015, 0.2055, 0.0082, K.SEAM, gr(1), -0.8);
-    T.poly('g', 'oct', 0.012, at(0.178, ry(0.178) + 0.0105).toArray(), { k: K.CRY, s: [0.9, 0.5, 1.9], q: qb, c: gr(1), u: -0.9 });
-    if (!low) for (const sg of [-1, 1]) T.poly('g', 'oct', 0.0065, at(0.178, 0.0, sg * (rx(0.178) + 0.0105)).toArray(), { k: K.CRY, s: [0.5, 0.9, 1.7], q: qb, c: gr(1), u: -0.9 });
+    // — brazalete: aro de armadura con un filo luminoso fino y un cristal (sin picos)
+    band(0.098, 0.126, 0.0072, K.ARM, gr(0.8), -0.8); band(0.1255, 0.1285, 0.0079, K.SEAM, gr(1), -0.8);
+    T.poly('g', 'oct', 0.0105, at(0.112, ry(0.112) + 0.0088).toArray(), { k: K.CRY, s: [0.9, 0.5, 1.9], q: qb, c: gr(1), u: -0.9 });
+    if (!low) for (const sg of [-1, 1]) T.poly('g', 'oct', 0.0058, at(0.112, 0.0, sg * (rx(0.112) + 0.0085)).toArray(), { k: K.CRY, s: [0.5, 0.9, 1.7], q: qb, c: gr(1), u: -0.9 });
   });
 }

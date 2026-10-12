@@ -21,12 +21,12 @@ export default function build(kit, color) {
   const bioB = bioMaterial({ glow: 0xffc860, vein: 0x12041a, rim: 0x6a2a68, scale: 3.0, bump: 0.8, wet: 0.7, sheen: 0.2, breath: 0.02 }); const UB = bioB.userData.u; UB.uVeinGlow.value = 0.12;
   const NTE = LOW ? 6 : 10;
   const bioT = bioMaterial({ glow: 0xffc860, vein: 0x12041a, rim: 0x6a2a68, scale: 4.0, tent: NTE, breath: 0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.12;
-  const SHELL = 0x1a1238, SHELL2 = 0x2c1c58, FLESH = 0x3c1236;
+  const SHELL = 0x3a2a78, SHELL2 = 0x5c46b0, FLESH = 0x3c1236;
 
   /* ── concha: tubo en espiral logarítmica (se ensancha hasta la abertura) con costillas de cámara ── */
   const Phi = 3.25 * Math.PI, bb = 0.2, Rend = 0.78, cc = 0.5, R0 = Rend * Math.exp(-bb * Phi);
   const spiralPt = (phi, off = 0) => { const Rr = Rend * Math.exp(-bb * (Phi - phi)) + off, psi = phi - Phi - Math.PI / 2; return new V3(0, Rr * Math.sin(psi), Rr * Math.cos(psi)); };
-  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body); root.scale.setScalar(1.4); // un poco más grande que la unidad: se lee a 20–30 m (el hitscan del sim es generoso: 1.05·r + 0.35)
   const shell = new THREE.Group(); shell.position.set(0, 0.5, -0.38); body.add(shell);
   const NSEG = LOW ? 40 : 90;
   const pts = []; for (let i = 0; i <= 60; i++) pts.push(spiralPt(Phi * i / 60));
@@ -37,7 +37,7 @@ export default function build(kit, color) {
     // cresta de cristales sobre el borde exterior de la espiral
     const items = []; const NSP = LOW ? 7 : 12;
     for (let i = 0; i < NSP; i++) { const t = 0.35 + 0.62 * i / (NSP - 1), phi = Phi * t, Rr = Rend * Math.exp(-bb * (Phi - phi)), rr = rho(t), psi = phi - Phi - Math.PI / 2; const dir = new V3(0, Math.sin(psi), Math.cos(psi)); const sx = (i % 2 ? 0.14 : -0.14) * (Rr / Rend);
-      items.push({ p: new V3(sx, dir.y * (Rr + rr * 0.92), dir.z * (Rr + rr * 0.92)), d: dir.clone().add(new V3(sx * 3, 0, 0)), r: 0.06 * (Rr / Rend + 0.4), h: 0.3 * (Rr / Rend + 0.3), c: 0x8a6aff }); }
+      items.push({ p: new V3(sx, dir.y * (Rr + rr * 0.92), dir.z * (Rr + rr * 0.92)), d: dir.clone().add(new V3(sx * 3, 0, 0)), r: 0.06 * (Rr / Rend + 0.4), h: 0.3 * (Rr / Rend + 0.3), c: 0xb48cff }); }
     sp.push(crystals(items, { sides: 5 }));
     const m = new THREE.Mesh(merge(sp), bioS); shell.add(m);
     // interior luminoso de las cámaras (se ve por la abertura)

@@ -35,8 +35,8 @@ export const GRAPH = 0x0e0c14, STEEL = 0x8a90b4, PALE = 0xd0d6ff;
 export function palette(hex, post = false) {
   const h = hueOf(hex), k = post ? 0.68 : 1, warm = h > 0.0 && h < 0.17 ? 1.4 : 1; // los naranjas/amarillos oscuros se ven marrones: se suben de valor // con post-proceso (Media/Alta) la exposición es casi el doble: los valores bajan para no lavarse
   return {
-    hex, dk: post ? 0x050408 : 0x08070c, gm: hsl(h, 0.4, 0.13 * k), gm2: hsl(h, 0.4, 0.07 * k), gm3: hsl(h, 0.35, 0.21 * k), dom: hsl(h, 0.95, Math.min(0.56, 0.4 * k * warm)), dom2: hsl(h, 0.9, Math.min(0.34, 0.25 * k * warm)), dom3: hsl(h, 0.95, Math.min(0.66, 0.55 * k * warm)),
-    lt: hsl(h, 0.3, 0.6 * k), st: post ? 0x5e6482 : 0x8a90b4, pale: post ? 0x9aa0cc : 0xd0d6ff, acc: hsl(h + 0.5, 0.9, 0.5 * k), acc2: hsl(h + 0.33, 0.85, 0.45 * k),
+    hex, dk: post ? 0x050408 : 0x08070c, gm: hsl(h, 0.45, 0.085 * k), gm2: hsl(h, 0.45, 0.045 * k), gm3: hsl(h, 0.4, 0.14 * k), dom: hsl(h, 0.95, Math.min(0.56, 0.4 * k * warm)), dom2: hsl(h, 0.9, Math.min(0.34, 0.25 * k * warm)), dom3: hsl(h, 0.95, Math.min(0.66, 0.55 * k * warm)),
+    lt: hsl(h, 0.3, 0.6 * k), st: post ? 0x3f4562 : 0x5b6182, pale: post ? 0x9aa0cc : 0xd0d6ff, acc: hsl(h + 0.5, 0.9, 0.5 * k), acc2: hsl(h + 0.33, 0.85, 0.45 * k),
   };
 }
 
@@ -157,6 +157,23 @@ export function crownRing(k, P, c, R, n, { tube = 0.005, gemR = 0.008, kind = 0,
   });
 }
 
+/** Placa trasera automática: busca la cara más atrasada del cuerpo (la que ve el tirador) y le pone marco hundido, ventilas, tira de luz y tornillos.
+ *  Se salta si la cara es muy chica (no hay donde poner detalle). Costo: ~120 tris en Alta, ~40 en Baja, sin llamadas de dibujo nuevas. */
+export function autoRear(k, G) {
+  const main = k.parts.main; if (!main || !main.b.length) return; const P = G.P;
+  let zmax = -9; for (const g of main.b) { const a = g.attributes.position.array; for (let i = 2; i < a.length; i += 3) if (a[i] > zmax) zmax = a[i]; }
+  let x0 = 9, x1 = -9, y0 = 9, y1 = -9, n = 0;
+  for (const g of main.b) { const a = g.attributes.position.array; for (let i = 0; i < a.length; i += 3) if (a[i + 2] > zmax - 0.012) { x0 = Math.min(x0, a[i]); x1 = Math.max(x1, a[i]); y0 = Math.min(y0, a[i + 1]); y1 = Math.max(y1, a[i + 1]); n++; } }
+  const w = x1 - x0, h = y1 - y0; if (n < 4 || w < 0.04 || h < 0.05) return;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, z = zmax + 0.002, low = G.low, pw = Math.min(w * 0.8, 0.07), ph = h * 0.72;
+  k.cbox('b', [pw + 0.012, ph + 0.012, 0.006], [cx, cy, z + 0.001], { c: P.gm3, ch: 0.004 });                       // marco
+  k.cbox('b', [pw, ph, 0.006], [cx, cy, z + 0.004], { c: P.dk, ch: 0.003 });                                          // hueco oscuro
+  const slats = low ? 3 : 5; for (let i = 0; i < slats; i++) k.box('b', [pw * 0.8, 0.0035, 0.004], [cx, cy - ph * 0.3 + i * (ph * 0.42 / slats) - ph * 0.0, z + 0.008], { c: P.gm, sharp: true });   // ventilas
+  k.box('l', [pw * 0.16, ph * 0.5, 0.004], [cx, cy + ph * 0.05, z + 0.008], { k: 3 });                                  // bobina vertical (se enciende al disparar)
+  k.box('l', [pw * 0.5, 0.006, 0.004], [cx, cy + ph * 0.38, z + 0.008], { k: 2 });                                      // luz de estado
+  if (!low) for (const sx of [-1, 1]) for (const sy of [-1, 1]) k.cyl('b', [0.004, 0.004, 0.004], [cx + sx * (pw / 2 + 0.003), cy + sy * (ph / 2 + 0.003), z + 0.005], { axis: 'z', seg: 6, c: P.st });
+}
+
 /* ═══════════════════════════ fábrica ═══════════════════════════ */
 
 /**
@@ -169,7 +186,7 @@ export function forge(index, q, hands, S) {
   const G = { hex, k, mats, scr, q, heat: 0, boost: 0, ammo: 1, P: palette(hex, !q.low), low: q.low, high: q.high };
   const st = { t: 0, curl: 0, kick: new Spring(S.kk?.[0] ?? 180, S.kk?.[1] ?? 14), pulse: 0, rot: 0, seq: -9, ctx: null, side: 0, n: 0, s1: new Spring(500, 24), s2: new Spring(500, 24), t0: 9, firing: false, w: 0 };
   k.part('main');
-  const info = S.build(k, G, hands) || {};
+  const info = S.build(k, G, hands) || {}; if (!S.noRear) { k.part('main'); autoRear(k, G); }
   if (hands && info.gh) { k.part('trigger', info.pivot); triggerFinger(k, info.gh, info.pivot, info.reach ?? 0.03); }
   const P = {}; for (const n of Object.keys(k.parts)) { P[n] = k.build(n, mats); group.add(P[n]); P[n].userData.base = P[n].position.clone(); } bindTrigger(P);
   if (info.screen) { const m = scr.mesh, sc = info.screen; m.position.set(...sc.pos); m.rotation.set(...sc.rot); m.scale.setScalar(sc.scale || 1.2); (P[sc.on || 'main'] || group).add(m); }

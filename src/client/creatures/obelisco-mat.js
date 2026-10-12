@@ -19,15 +19,16 @@ const guard = (src) => src.replace('#include <opaque_fragment>', `#include <opaq
 
 export function bioMaterial(o = {}) {
   const lvl = cfg().humans, hi = lvl !== 'low', Cls = hi ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
-  const mat = new Cls({ vertexColors: true, roughness: 0.5, metalness: 0, side: o.double ? THREE.DoubleSide : THREE.FrontSide, envMapIntensity: o.env ?? 0.2 });
-  if (hi) { mat.specularIntensity = o.spec ?? 0.45; mat.clearcoat = o.coat ?? 0.45; mat.clearcoatRoughness = 0.25; mat.sheen = o.sheen ?? 0.12; mat.sheenColor = new THREE.Color(o.rim ?? 0x805060); mat.sheenRoughness = 0.5; }
+  const mat = new Cls({ vertexColors: true, roughness: 0.5, metalness: 0, side: o.double ? THREE.DoubleSide : THREE.FrontSide, envMapIntensity: o.env ?? (hi ? 0.07 : 0.2) });
+  // Media/Alta: la escena tiene sol, bloom y entorno muy claros → el albedo/relleno/clearcoat se bajan para que no quede pastel (calibrado EN ESCENA, ver docs/gate/criaturas-2.md)
+  if (hi) { mat.specularIntensity = o.spec ?? 0.25; mat.clearcoat = o.coat ?? 0.15; mat.clearcoatRoughness = 0.25; mat.sheen = o.sheen ?? 0.08; mat.sheenColor = new THREE.Color(o.rim ?? 0x805060); mat.sheenRoughness = 0.5; }
   if (o.alpha != null && o.alpha < 1) { mat.transparent = true; mat.opacity = o.alpha; mat.depthWrite = o.depthWrite ?? true; }
   const NT = o.tent || 0;
   const u = {
-    uTime, uHurt: { value: 0 }, uGlow: { value: o.glowAmt ?? 0 }, uPulse: { value: 0 }, uBreath: { value: o.breath ?? 0.012 },
+    uTime, uHurt: { value: 0 }, uWound: { value: 0 }, uGlow: { value: o.glowAmt ?? 0 }, uPulse: { value: 0 }, uBreath: { value: o.breath ?? 0.012 },
     uGlowCol: { value: new THREE.Color(o.glow ?? 0xffa040) }, uVein: { value: new THREE.Color(o.vein ?? 0x2a0610) }, uRim: { value: new THREE.Color(o.rim ?? 0x703050) },
     uPS: { value: o.scale ?? 1 }, uBump: { value: o.bump ?? 1 }, uCry: { value: 1 }, uWet: { value: o.wet ?? 0.4 }, uVeinGlow: { value: o.veinGlow ?? 0 }, uCrackGlow: { value: o.crackGlow ?? 0 },
-    uFres: { value: o.fres ?? 0 }, uBell: { value: new THREE.Vector3(0, 1, 0) }, uRadial: { value: o.radial ?? 0 }, uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? 0.55 }, uLift: { value: o.lift ?? (hi ? 0.9 : 0.6) }, uSelf: { value: o.self ?? (hi ? 0.05 : 0.22) }, uRimK: { value: o.rimK ?? 1.0 },
+    uFres: { value: o.fres ?? 0 }, uBell: { value: new THREE.Vector3(0, 1, 0) }, uRadial: { value: o.radial ?? 0 }, uRidge: { value: o.ridge ?? 40 }, uMetal: { value: o.metal ?? 0.12 }, uAlb: { value: o.albedo ?? (hi ? 0.34 : 0.55) }, uLift: { value: o.lift ?? (hi ? 1.18 : 0.6) }, uSelf: { value: o.self ?? (hi ? 0.012 : 0.22) }, uRimK: { value: o.rimK ?? (hi ? 0.45 : 1.0) },
   };
   if (NT) { u.uTA = { value: Array.from({ length: NT }, () => new THREE.Vector4(0.3, 1.5, 0, 1)) }; u.uTB = { value: Array.from({ length: NT }, () => new THREE.Vector4(0, 0, 0, 0)) }; }
   mat.userData.u = u;
@@ -52,10 +53,10 @@ export function bioMaterial(o = {}) {
           transformed += B.xyz * (B.w * w * L) + d * ((A.w - 1.0) * k * L); }` : ''}`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        uniform float uTime, uHurt, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb, uFres, uRadial, uLift, uSelf, uRimK;
+        uniform float uTime, uHurt, uWound, uGlow, uPS, uBump, uCry, uWet, uVeinGlow, uCrackGlow, uRidge, uMetal, uAlb, uFres, uRadial, uLift, uSelf, uRimK;
         uniform vec3 uGlowCol, uVein, uRim;
         varying vec3 vO; varying vec2 vS; varying vec2 vU; varying float vSc;
-        float gFl, gCh, gBo, gCr, gVein, gCrack, gH, gN2, gN3;
+        float gFl, gCh, gBo, gCr, gVein, gCrack, gH, gN2, gN3, gBlot, gRim;
         ${NOISE}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
@@ -86,6 +87,11 @@ export function bioMaterial(o = {}) {
           float ann = sin(vU.y * uRidge * 0.6 + n1 * 2.0);
           gH = gFl * (n3 * 0.45 + n2 * 0.35 - vein * 0.6 + ann * 0.12) + gCh * (n3 * 0.4 + n2 * 0.3 - crack * 0.9 + ann * 0.3) + gBo * (rg * 0.55 + n3 * 0.3) + gMb * n3 * 0.3;
           diffuseColor.rgb = pow(max((flesh * (gFl + gMb) + chit * gCh + bone * gBo + cry * gCr) * uAlb, vec3(0.0)), vec3(uLift));
+          { // HERIDAS (kit.setWound → uWound = 1 - hp/maxhp): manchas chamuscadas con borde incandescente que crecen con el daño
+            float wd = clamp(uWound, 0.0, 1.0), wn = vn(q * 1.9 + 13.0 + n2 * 0.6), lo = 0.7 - 0.34 * wd;
+            gBlot = smoothstep(lo + 0.05, lo + 0.14, wn) * step(0.03, wd); gRim = smoothstep(lo - 0.015, lo + 0.05, wn) * (1.0 - smoothstep(lo + 0.05, lo + 0.14, wn)) * step(0.03, wd);
+            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.28 + vec3(0.012), gBlot * 0.8 * (1.0 - gCr));
+          }
           #ifndef FLAT_SHADED
           if (uFres > 0.0) { float fr0 = 1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))); diffuseColor.a *= clamp(0.35 + uFres * pow(fr0, 2.0) + gVein * 0.5, 0.0, 1.0); }
           #endif
@@ -114,7 +120,8 @@ export function bioMaterial(o = {}) {
           float flick = 0.75 + 0.25 * sin(uTime * 3.0 + vO.y * 3.0 + vO.x * 2.0);
           totalEmissiveRadiance += uGlowCol * (vS.y * uGlow * flick * (1.0 - gCr) + gVein * uVeinGlow * flick + gCrack * uCrackGlow * flick);
           totalEmissiveRadiance += vColor.rgb * gCr * uCry * (0.35 + vS.y * 1.6) * (0.85 + 0.15 * flick);
-          totalEmissiveRadiance += vec3(1.0, 0.85, 0.7) * uHurt * 0.9;
+          totalEmissiveRadiance += uGlowCol * (gRim * 1.5 + gBlot * 0.12) * uWound * flick * (1.0 - gCr);
+          totalEmissiveRadiance += vec3(1.0, 0.85, 0.7) * uHurt * 0.6;
         }`);
     if (hi) sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
         #ifdef USE_CLEARCOAT

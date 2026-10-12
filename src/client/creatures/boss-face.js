@@ -12,12 +12,12 @@ export function makeFacer({ rate = 2.6, limit = 1.35 } = {}) {
   let init = false;
   return {
     q,
-    /** dir: hacia dónde mirar (espacio del root). rateMul: más rápido (p. ej. al disparar). */
-    step(dt, dir, rateMul = 1) {
+    /** dir: hacia dónde mirar (espacio del root). rateMul: más rápido (p. ej. al disparar). lim: ángulo máx. respecto al frente del motor (el visor del bestiario usa ~1.1 para que se pueda girar el jefe). */
+    step(dt, dir, rateMul = 1, lim = limit) {
       d.copy(dir); if (d.lengthSq() < 1e-6) d.set(0, 0, 1); d.normalize();
       // como mucho `limit` rad respecto al frente que da el motor (así por detrás sigue viéndose el lomo; no gira 180°)
       const ang = Math.acos(Math.max(-1, Math.min(1, d.z)));
-      if (ang > limit) { const k = Math.sin(limit) / Math.max(Math.sin(ang), 1e-4); d.set(d.x * k, d.y * k, Math.cos(limit)); }
+      if (ang > lim) { const k = Math.sin(lim) / Math.max(Math.sin(ang), 1e-4); d.set(d.x * k, d.y * k, Math.cos(lim)); }
       // «arriba» continuo: se arrastra el arriba anterior para que no haya vuelcos al cruzar los polos
       u.copy(up).addScaledVector(d, -up.dot(d)); if (u.lengthSq() < 0.04) { u.copy(Math.abs(d.y) > 0.9 ? X : Y); u.addScaledVector(d, -u.dot(d)); } u.normalize(); up.copy(u);
       r.crossVectors(u, d).normalize(); u.crossVectors(d, r).normalize();

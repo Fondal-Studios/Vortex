@@ -282,20 +282,20 @@ function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0, key = 0) {
           float fr = pow(1.0 - clamp(dot(nn, V), 0.0, 1.0), 3.0);
           vec3 rc = 0.5 + 0.5 * cos(6.28318 * (fr * 0.7 + vOP.z * 1.3 + vec3(0.0, 0.33, 0.67)));
           totalEmissiveRadiance += mix(uAcc, rc, 0.6) * fr * ${TUNE.rim.toFixed(2)};
-          vec3 grad = mix(vec3(0.02, 0.015, 0.05), mix(vec3(0.36, 0.42, 0.8), uDom, 0.5), smoothstep(-0.45, 0.9, Rr.y));
+          vec3 grad = mix(vec3(0.02, 0.015, 0.05), mix(vec3(0.3, 0.34, 0.62), uDom, 0.55) * 0.62, smoothstep(-0.2, 0.95, Rr.y));
           vec3 hi = vec3(1.0, 0.96, 0.9) * pow(max(dot(Rr, normalize(vec3(0.3, 0.85, 0.45))), 0.0), 16.0) * 1.4
                   + vec3(1.0, 0.35, 0.8) * pow(max(dot(Rr, normalize(vec3(-0.8, 0.15, -0.3))), 0.0), 7.0) * 0.5
                   + vec3(0.5, 0.7, 1.0) * pow(max(dot(Rr, normalize(vec3(0.75, -0.1, 0.45))), 0.0), 9.0) * 0.18;
           vec3 tc = diffuseColor.rgb * 2.2 + 0.03; totalEmissiveRadiance += diffuseColor.rgb * (uFill + uKey * max(dot(nn, normalize(vec3(-0.35, 0.75, 0.55))), 0.0));
           float spec = 0.3 + 0.7 * fr + 0.25 * (1.0 - roughnessFactor);
-          totalEmissiveRadiance += uAcc * gEm * 1.1 + (grad * tc * 0.9 + hi * mix(vec3(1.0), tc, 0.5)) * spec * uEnvK * (gWear > 0.5 ? 1.6 : 1.0) * mix(0.5, 1.0, gPanel); }`)
+          totalEmissiveRadiance += uAcc * gEm * 1.1 + (grad * tc * 0.9 + hi * mix(vec3(0.16), tc, 0.5)) * spec * uEnvK * (gWear > 0.5 ? 1.6 : 1.0) * mix(0.5, 1.0, gPanel); }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = clamp(roughnessFactor + (1.0 - gPanel) * 0.35 + gWear * 0.2, 0.05, 1.0);`);
   };
   mat.customProgramCacheKey = () => 'wsurf2';
 }
 
-export const TUNE = { met: 0.6, iri: 0.12, thick: [150, 500], rough: 0.5, cc: 0.0, env: 0.6, rim: 0.3, fake: 1, metLow: 0.7, emi: 1, fill: 0.4, key: 1 };
+export const TUNE = { met: 0.6, iri: 0.12, thick: [150, 500], rough: 0.5, cc: 0.0, env: 0.3, rim: 0.3, fake: 1, metLow: 0.7, emi: 1, fill: 0.4, key: 1 };
 /** Los tres materiales de un arma. body: metal anodizado iridiscente; glove: tela técnica; glow: cristal. */
 export function makeMats(q, hex) {
   let body;

@@ -21,7 +21,7 @@ export default function build(kit, color) {
   const bioM = bioMaterial({ glow: 0x8a6aff, vein: 0x180c3a, rim: 0x5a4aff, scale: 1.1, bump: 0.5, wet: 0.8, alpha: 0.5, depthWrite: false, double: true, fres: 1.7, breath: 0.02, sheen: 0.0 }); const UM = bioM.userData.u; UM.uVeinGlow.value = 0.55; UM.uCrackGlow.value = 0.0;
   const bioT = bioMaterial({ glow: 0x8a6aff, vein: 0x180c3a, rim: 0x4a3aaa, scale: 2.2, tent: 10, breath: 0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.35;
 
-  const root = new THREE.Group(), body = new THREE.Group(); root.add(body); body.position.y = 0.55;
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body); root.scale.setScalar(1.35); // un poco más grande que la unidad: se lee a 20–30 m (el hitscan del sim es generoso: 1.05·r + 0.35) body.position.y = 0.55;
   const head = new THREE.Group(); body.add(head);
   const mesh = (g, m = bioO, parent = head) => { const o = new THREE.Mesh(g, m); parent.add(o); return o; };
 
@@ -53,7 +53,7 @@ export default function build(kit, color) {
     // reborde óseo sobre el ojo grande
     fp.push(paint(loft([new V3(-0.3, 0.12, 0.4), new V3(0, 0.2, 0.5), new V3(0.3, 0.12, 0.4)], { seg: 8, radial: 5, r: () => 0.045, round: [0.2, 0.2] }), 0x5a5a8a, 1, 0));
     mesh(merge(fp), bioO, head); }
-  const E1 = bigEye({ r: 0.21, iris: 0xffc040, pupil: 'goat', lidColor: 0x4a3a62, scleraColor: 0x8a8070, quality: level, irisR: 0.56 }); E1.object.position.set(0, -0.05, 0.43); head.add(E1.object);
+  const E1 = bigEye({ r: 0.21, iris: 0xffc040, pupil: 'goat', lidColor: 0x7a68a8, scleraColor: 0x8a8070, quality: level, irisR: 0.56 }); E1.object.position.set(0, -0.05, 0.43); head.add(E1.object);
   const EC = eyeCluster({ max: 2, quality: level, iris: 0xffffff, sclera: 0x7a7088 }); head.add(EC.object);
   EC.add({ p: new V3(-0.4, 0.02, 0.3), n: new V3(-0.8, 0.1, 0.55), r: 0.085, tint: 0x8aa0ff, lag: 9 }); EC.add({ p: new V3(0.4, -0.2, 0.28), n: new V3(0.8, -0.1, 0.55), r: 0.065, tint: 0x8aa0ff, lag: 7 });
   const beakUp = new THREE.Group(), beakLo = new THREE.Group(); beakUp.position.set(0, -0.44, 0.34); beakLo.position.set(0, -0.44, 0.34); head.add(beakUp, beakLo);
@@ -101,12 +101,12 @@ export default function build(kit, color) {
       const horiz = i < nH; const j = horiz ? i : i - nH, n = horiz ? nH : (rings.object.count - nH);
       if (horiz) {
         if (charge) { const k = ((cT * 2.4 + j / n) % 1); rings.set(i, { r: lerp(3.0, 0.45, k), a: (1 - Math.abs(k * 2 - 1)) * (0.4 + ce * 0.9) * 0.55, color: 0x8a9aff }); }
-        else if (shock.t < 0.9) { const k = clamp(shock.t / 0.9 - j * 0.12, 0, 1); rings.set(i, { r: 0.5 + k * 5.5, a: (1 - k) * 0.6, color: 0x8a9aff }); }
+        else if (shock.t < 0.9) { const k = clamp(shock.t / 0.9 - j * 0.12, 0, 1); rings.set(i, { r: 0.5 + k * 10, a: (1 - k) * 0.6, color: 0x8a9aff }); }
         else { const k = ((t * 0.33 + j / n) % 1); rings.set(i, { r: 0.7 + k * 2.4, a: Math.sin(k * Math.PI) * 0.22, color: 0x8a9aff }); }
       } else {
         const rz = -Math.PI / 2 + 1.1 + j * 1.0 - Math.PI / 2 + Math.PI / 2;
         if (charge) { const k = ((cT * 1.9 + j / n) % 1); rings.set(i, { r: lerp(2.4, 0.4, k), a: Math.sin(k * Math.PI) * (0.3 + ce * 0.7) * 0.5, rx: 1.1, rz: j * 1.0 + t * 0.4, color: 0xd0a0ff }); }
-        else if (shock.t < 0.9) { const k = clamp(shock.t / 0.9 - 0.05 * j, 0, 1); rings.set(i, { r: 0.5 + k * 4.2, a: (1 - k) * 0.5, rx: 1.1, rz: j * 1.0, color: 0xd0a0ff }); }
+        else if (shock.t < 0.9) { const k = clamp(shock.t / 0.9 - 0.05 * j, 0, 1); rings.set(i, { r: 0.5 + k * 8, a: (1 - k) * 0.5, rx: 1.1, rz: j * 1.0, color: 0xd0a0ff }); }
         else { const k = ((t * 0.27 + j / n) % 1); rings.set(i, { r: 0.6 + k * 1.8, a: Math.sin(k * Math.PI) * 0.14, rx: 1.1, rz: j * 1.0 + t * 0.2, color: 0xd0a0ff }); }
       }
     }

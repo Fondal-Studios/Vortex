@@ -6,13 +6,14 @@ import fs from 'node:fs';
 const ids = (process.argv[2] || [...Array(15).keys()].join(',')).split(',').map(Number);
 const quals = (process.argv[3] || 'low,high').split(',');
 const out = process.argv[4] || 'shots/gate/armas';
+const EXTRA = process.argv[5] || ''; // consulta extra (ej. over=0)
 fs.mkdirSync(out, { recursive: true });
 const srv = await startServer({ port: 0 }); const b = await launch();
-const res = {};
+const SF = `${out}/stats.json`; const res = fs.existsSync(SF) ? JSON.parse(fs.readFileSync(SF)) : {}; // se acumula entre corridas
 for (const w of ids) for (const q of quals) for (const [W, H] of [[844, 390], [1280, 720]]) {
   const pg = await b.newPage({ viewport: { width: W, height: H } });
   const errs = []; pg.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errs.push(m.text()); }); pg.on('pageerror', (e) => errs.push('PAGEERR ' + e.message));
-  await pg.goto(`http://localhost:${srv.port}/public/weapons.html?cap=1&w=${w}&q=${q}&view=fp`);
+  await pg.goto(`http://localhost:${srv.port}/public/weapons.html?cap=1&w=${w}&q=${q}&view=fp${EXTRA ? '&' + EXTRA : ''}`);
   await pg.waitForFunction(() => window.__weaponsReady && window.__step, null, { timeout: 120000 });
   const id = String(w).padStart(2, '0');
   for (const mode of ['idle', 'fire']) {
@@ -24,6 +25,6 @@ for (const w of ids) for (const q of quals) for (const [W, H] of [[844, 390], [1
   }
   await pg.close();
 }
-fs.writeFileSync(`${out}/stats.json`, JSON.stringify(res, null, 1));
+fs.writeFileSync(SF, JSON.stringify(res, null, 1));
 console.log(Object.entries(res).filter(([k]) => k.endsWith('844_idle') || k.endsWith('1280_idle')).map(([k, v]) => `${k} ${v.calls}c ${v.tris}t ${v.errs.length ? 'ERR ' + v.errs[0] : ''}`).join('\n'));
 await b.close(); await srv.close();

@@ -39,7 +39,7 @@ export default function build(kit, color) {
       bp.push(paint(loft(pts, { seg: 18, radial: 4, r: () => 0.02, round: [0, 0] }), BONE, 2, 0, () => ({ k: 0.9 }))); }
     mesh(merge(bp), backG, bioF); }
   const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.04, 0.42); eyeRoot.scale.setScalar(1.3); body.add(eyeRoot);
-  const BE = bigEye({ r: 0.26, iris: 0xb8ff40, quality: level, lidColor: 0x6a1c30, scleraColor: 0x8a7a60, irisR: 0.5, brow: 0.15 }); eyeRoot.add(BE.object);
+  const BE = bigEye({ r: 0.26, iris: 0xb8ff40, quality: level, lidColor: 0xb03a52, scleraColor: 0x8a7a60, irisR: 0.5, brow: 0.15 }); eyeRoot.add(BE.object);
   const mouth = mawBio(bioF, { w: 0.26, len: 0.24, teeth: LOW ? 5 : 9, tooth: 0.09, flesh: FLESH, shell: 0, gum: 0xa02848, gumGlow: 0.5 }); mouth.object.position.set(0, -0.3, 0.34); mouth.object.rotation.x = 0.5; body.add(mouth.object);
   const NS = LOW ? 4 : 5, sacs = [];
   const sacIM = new THREE.InstancedMesh(paint(blobGeo(1, 1, 1, 14, 10), 0xe8a0a8, 4, 0.0), bioM, NS), embIM = new THREE.InstancedMesh(paint(blobGeo(1, 1, 1, 10, 8), 0x40a020, 0, 1.0), bio, NS);
@@ -52,7 +52,7 @@ export default function build(kit, color) {
     const g = patch((u, v) => { const w = W * Math.pow(Math.sin(Math.PI * (0.1 + 0.9 * v)), 0.75) * (0.55 + 0.45 * Math.sin(v * 2.4 + 0.3)), x = (u - 0.5) * 2 * w, y = v * L, xr = x / Math.max(w, 0.01),
         z = 0.55 * v * v * 0.5 + (0.3 * xr * xr) * Math.min(1, v * 2.4) - 0.07 * Math.exp(-Math.pow(xr * 4.5, 2)) * Math.min(1, v * 3) - 0.04 * Math.sin(v * 22) * (1 - Math.abs(2 * u - 1)); return new V3(x, y, z); }, LOW ? 8 : 12, LOW ? 8 : 14, { thick: 0.07, inner: true });
     return paint(g, SHELL, 1, 0, (p, n, uv) => { const mid = Math.exp(-Math.pow((uv[0] - 0.5) * 7, 2)), edge = sstep(0.78, 1, Math.abs(uv[0] * 2 - 1)), inside = n.z > 0.05;
-      if (inside) return { cls: 0, c: new THREE.Color(0x2e0614).lerp(new THREE.Color(0x8a1a38), Math.min(1, uv[1] * 1.6)).lerp(new THREE.Color(0xc02a50), sstep(0.6, 1, uv[1]) * 0.8), k: 0.7 + 0.3 * uv[1] + 0.2 * mid, g: 0.1 + 0.45 * uv[1] };
+      if (inside) return { cls: 0, c: new THREE.Color(0x24030f).lerp(new THREE.Color(0x7a0f30), Math.min(1, uv[1] * 1.6)).lerp(new THREE.Color(0xa81848), sstep(0.6, 1, uv[1]) * 0.8), k: 0.6 + 0.3 * uv[1] + 0.2 * mid, g: 0.0 };
       return { cls: 1, c: new THREE.Color(SHELL).lerp(new THREE.Color(0x1c5a34), 0.35 * uv[1] + 0.5 * edge + 0.3 * mid), k: 0.65 + 0.8 * uv[1] + 0.4 * mid, g: (mid * 0.7 + edge * 0.7) * (0.45 + 0.55 * uv[1]) }; }); })();
   const innerG = (() => { const L = 0.85, W = 0.34;
     const g = patch((u, v) => { const w = W * Math.pow(Math.sin(Math.PI * (0.12 + 0.88 * v)), 0.8), x = (u - 0.5) * 2 * w, y = v * L, z = 0.35 * v * v + 0.06 * Math.pow(x / Math.max(w, 0.01), 2); return new V3(x, y, z); }, 6, 9, { thick: 0.04, inner: true });
@@ -92,7 +92,7 @@ export default function build(kit, color) {
   const sOp = new Spring(0, 120, 11), sHit = new Spring(0, 150, 8), sKick = new Spring(0, 80, 7);
   let op = 0, p2 = 0, p3 = 0, prevS = '', prevHp = 1, hit = 0, prevPh = 1, flashT = 0, shock = 0, birth = 0, fireT = 0, gesT = 0, ventAcc = 0, larvAcc = 0, spasmPrev = 0, prSm = 0;
   const colA = new THREE.Color(color), colHot = new THREE.Color(0xff4a60), dc = new THREE.Color();
-  const look0 = new V3(0, 0, 1), P = new V3(), tmpV = new V3(), velV = new V3(), lookR = new V3(), eulS = new THREE.Euler(), qS = new THREE.Quaternion(), F = makeFacer({ rate: 2.2 });
+  const look0 = new V3(0, 0, 1), P = new V3(), tmpV = new V3(), velV = new V3(), lookR = new V3(), eulS = new THREE.Euler(), qS = new THREE.Quaternion(), F = makeFacer({ rate: 2.2, limit: 3.2 });
   const sstp = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
   return { root, mats, tick(dt, st, t, ctx = {}) {
@@ -116,9 +116,9 @@ export default function build(kit, color) {
     const trem = (vent ? 0.02 : 0) + prSm * 0.012 + hurtLow * 0.006;
     rig.position.y = Math.sin(t * 0.5 + id) * 0.04; rig.position.x = Math.sin(t * 47) * trem;
     // la flor gira entera para MIRAR a la cámara en 3D (el motor solo la orienta en horizontal; sin esto el ojo/punto débil queda de canto)
-    F.step(dt, look, 1 + (isOpen ? 0.4 : 0)); rig.quaternion.copy(F.q).multiply(qS.setFromEuler(eulS.set(Math.sin(t * 0.37) * 0.03 + Math.sin(t * 53) * trem * 0.5, 0, Math.sin(t * 0.3) * 0.05 + kick * 0.04)));
+    F.step(dt, ctx.noface ? look0 : look, 1 + (isOpen ? 0.4 : 0), ctx.viewer ? 1.1 : 3.2); rig.quaternion.copy(F.q).multiply(qS.setFromEuler(eulS.set(Math.sin(t * 0.37) * 0.03 + Math.sin(t * 53) * trem * 0.5, 0, Math.sin(t * 0.3) * 0.05 + kick * 0.04)));
     lookR.copy(look); F.toRig(lookR);
-    const bs = 1 + (breath - 0.5) * (0.03 + prSm * 0.03) + shock * 0.04 - hk * 0.03 + kick * 0.02 + prSm * 0.07 + spasm * 0.03; body.scale.setScalar(bs); body.rotation.z += dt * (0.05 + rage * 0.1) * (isOpen ? 0.2 : 1);
+    const bs = 1 + (breath - 0.5) * (0.03 + prSm * 0.05) + shock * 0.04 - hk * 0.03 + kick * 0.02 + prSm * 0.11 + spasm * 0.03; body.scale.setScalar(bs); body.rotation.z += dt * (0.05 + rage * 0.1) * (isOpen ? 0.2 : 1);
 
     /* pétalos: onda de apertura, vibración al disparar / con la presión, rotos/colgando con la salud baja */
     const shoot = (isOpen || vent || gest) ? 0 : Math.sin((fireT / cyc) * Math.PI * 2) * 0.5 + 0.5;
@@ -140,7 +140,7 @@ export default function build(kit, color) {
     /* núcleo: ojo, boca, sacos que paren; en 'gestate' se contrae en espasmos */
     const exp = sstp(0.3, 0.9, opS);
     coreM.scale.set(1 + (breath - 0.5) * 0.06 + hk * 0.08 - spasm * 0.12, 1 + (breath - 0.5) * 0.06 - hk * 0.05 - spasm * 0.12, 1 + spasm * 0.08); backG.scale.set(1 - spasm * 0.18, 1 - spasm * 0.18, 1 + spasm * 0.1 + prSm * 0.05);
-    BE.update(dt, lookR, { open: clamp(exp * (1 - hit * 0.6) * (0.95 + 0.05 * Math.sin(t)), 0.0, 1) * 0.95 + 0.04 + (vent ? 0.25 : 0), pupil: 0.8 + 0.12 * Math.sin(t * 4) * exp + p3 * 0.2 - prSm * 0.25, glow: 0.4 + exp * (1.0 + 0.6 * Math.sin(t * 3) + p3 * 1.0) + flashT + prSm * 0.6, hurt: U.uHurt.value, shake: hurtLow * 0.05 + (vent ? 0.04 : 0), blinkRate: 0.7 + rage * 1.2 + prSm * 2, track: 7, brow: 0.15 + prSm * 0.2 });
+    BE.update(dt, lookR, { open: clamp(exp * (1 - hit * 0.6) * (0.95 + 0.05 * Math.sin(t)), 0.0, 1) * 0.95 + 0.04 + (vent ? 0.25 : 0), pupil: 0.56 + 0.1 * Math.sin(t * 4) * exp + p3 * 0.14 - prSm * 0.18, glow: 0.4 + exp * (1.0 + 0.6 * Math.sin(t * 3) + p3 * 1.0) + flashT + prSm * 0.6, hurt: U.uHurt.value, shake: hurtLow * 0.05 + (vent ? 0.04 : 0), blinkRate: 0.7 + rage * 1.2 + prSm * 2, track: 7, brow: 0.15 + prSm * 0.2 });
     const bp = Math.pow(Math.max(0, Math.sin(birth * 2.6)), 3), mo = clamp(exp * (0.25 + 0.55 * bp + 0.2 * breath) + hit * 0.3 * exp + (vent ? 0.35 : 0) + (gest ? 0.35 + 0.5 * spasm : 0), 0, 1); mouth.set(mo);
     sacs.forEach((S, i) => {
       const w = Math.pow(Math.max(0, Math.sin(birth * 2.6 - i * 0.7)), 2), sw = 0.9 + 0.2 * Math.sin(t * 2 + S.ph) + w * 0.35 * exp + spasm * 0.2, gs = Math.max(0.001, Math.max(exp, gest ? 0.9 : 0)) * (0.85 + 0.25 * exp);
@@ -152,11 +152,11 @@ export default function build(kit, color) {
 
     /* materiales: venas laten al ritmo de la presión; vientre brillante al abrirse (punto débil) */
     const beat = 0.5 + 0.5 * Math.sin(t * pulseHz * TAU * 0.5 + id);
-    U.uVeinGlow.value = 0.18 + prSm * (0.6 + 0.9 * beat) + exp * 0.2 + flashT * 0.4 + (vent ? 0.4 : 0); U.uCrackGlow.value = 0.2 + p2 * 0.2 + p3 * 0.4 + prSm * 1.0 + (vent ? 0.8 : 0) + shoot * 0.3; U.uGlow.value = prSm * 0.4 + flashT * 0.3 + (1 - op) * shoot * 0.3; U.uCry.value = 0.6 + (1 - op) * (0.2 + shoot * 0.9) + p3 * 0.3 + flashT + prSm * 0.8 + 0.12 * Math.sin(t * 4);
+    U.uVeinGlow.value = 0.18 + prSm * (0.6 + 0.9 * beat) + exp * 0.2 + flashT * 0.4 + (vent ? 0.4 : 0); U.uCrackGlow.value = 0.2 + p2 * 0.2 + p3 * 0.4 + prSm * 1.8 * (0.7 + 0.3 * beat) + (vent ? 0.8 : 0) + shoot * 0.3; U.uGlow.value = prSm * (0.35 + 0.9 * beat) * (1 - op * 0.6) + flashT * 0.3 + (1 - op) * shoot * 0.3; U.uCry.value = 0.6 + (1 - op) * (0.2 + shoot * 0.9) + p3 * 0.3 + flashT + prSm * 0.8 + 0.12 * Math.sin(t * 4);
     U.uPulse.value = prSm * 0.5 + (vent ? 0.4 : 0); bioT.userData.u.uHurt.value = U.uHurt.value; UT.uVeinGlow.value = 0.15 + prSm * 0.5 * beat;
     UF.uHurt.value = U.uHurt.value; UF.uGlow.value = 0.05 + exp * (0.2 + 0.2 * Math.sin(t * 3.4) + p3 * 0.2) + flashT * 0.3 + prSm * 0.3 * beat + spasm * 0.7; UF.uVeinGlow.value = 0.3 + exp * 0.3 + prSm * 0.9 * beat + spasm * 0.8; UF.uPulse.value = exp * 0.4 + spasm * 0.8 + prSm * 0.4;
     UM.uHurt.value = U.uHurt.value; UM.uVeinGlow.value = 0.4 + exp * 0.4 + spasm * 0.9; UM.uGlow.value = 0.1 + exp * (0.4 * bp) + spasm * 0.7;
-    const colG = dc.copy(colA).lerp(colHot, p3 * 0.5); U.uGlowCol.value.copy(colG);
+    const colG = dc.copy(colA).lerp(colHot, clamp(p3 * 0.5 + prSm * prSm * 0.85, 0, 1)); U.uGlowCol.value.copy(colG);
 
     /* destellos de disparo: giran como las espirales (m.t*1.6 rad/s) */
     for (let i = 0; i < NA; i++) { const a = t * 1.6 + (i / NA) * TAU, r = 0.55, f = (1 - op) * (0.3 + 0.4 * Math.pow(0.5 + 0.5 * Math.sin(a * 2 - fireT * 4), 2)) * (i < ph + 3 ? 1 : 0) * (1 + shoot * 0.5) * (1 - (vent || gest ? 1 : 0));

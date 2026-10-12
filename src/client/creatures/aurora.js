@@ -21,7 +21,7 @@ export default function build(kit, color) {
   const NA = 4, NTn = LOW ? 5 : 9, NW = LOW ? 2 : 6;
   const bioT = bioMaterial({ glow: 0xff58c8, vein: 0x0a2a3a, rim: 0x20c8d0, scale: 2.0, tent: NA + NTn + NW, alpha: 0.78, depthWrite: false, double: true, fres: 1.0, breath: 0, sheen: 0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.5;
 
-  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body); root.scale.setScalar(1.45); // un poco más grande que la unidad: se lee a 20–30 m (el hitscan del sim es generoso: 1.05·r + 0.35)
   const bell = new THREE.Group(); bell.position.y = 0.55; body.add(bell);
   const mesh = (g, m, parent) => { const o = new THREE.Mesh(g, m); parent.add(o); return o; };
   const H = 0.85;
@@ -96,8 +96,8 @@ export default function build(kit, color) {
     halo.rotation.z = t * (0.6 + inhale * 4 + exhale * 6); halo.position.y = 1.62 + Math.sin(t * 1.1) * 0.05 + jet * 0.5; haloG.position.copy(halo.position); haloG.material.opacity = 0.12 + bright * 0.3; haloG.scale.setScalar(1.6 + bright * 0.8); halo.scale.setScalar(1 + inhale * 0.2 + exhale * 0.4);
     UO.uCry.value = 0.6 + bright * 1.0;
     // ondas de luz expansivas (curación) y esporas que se dispersan
-    for (let i = 0; i < 3; i++) { const k = clamp(relT / 0.95 - i * 0.14, 0, 1); waves.set(i, { r: 0.8 + ease(k) * 5.2, a: relT < 1.2 && k < 1 ? (1 - k) * 0.7 : 0, y: 0.5 }); }
-    for (let i = 0; i < 2; i++) { const k = clamp(relT / 0.8 - 0.08 - i * 0.2, 0, 1); waves.set(3 + i, { r: 0.6 + ease(k) * 4.2, a: relT < 1.2 && k < 1 && k > 0 ? (1 - k) * 0.55 : 0, y: 0.5 + 0.5 * i, color: 0xff9ad8 }); }
+    for (let i = 0; i < 3; i++) { const k = clamp(relT / 0.95 - i * 0.14, 0, 1); waves.set(i, { r: 0.8 + ease(k) * 8.4, a: relT < 1.2 && k < 1 ? (1 - k) * 0.7 : 0, y: 0.5 }); }
+    for (let i = 0; i < 2; i++) { const k = clamp(relT / 0.8 - 0.08 - i * 0.2, 0, 1); waves.set(3 + i, { r: 0.6 + ease(k) * 7.0, a: relT < 1.2 && k < 1 && k > 0 ? (1 - k) * 0.55 : 0, y: 0.5 + 0.5 * i, color: 0xff9ad8 }); }
     waves.flush();
     const pa = spG.attributes.position.array;
     for (let i = 0; i < NS; i++) { const ix = i * 3, bx = pa[ix], bz = pa[ix + 2], rr = Math.hypot(bx, bz) + 0.001;

@@ -254,6 +254,7 @@ export class CombatFx {
     const cam = r.camera, it = r.vm && r.vm.items ? r.vm.items[r.vm.cur] : null, v = new THREE.Vector3();
     if (it && it.W && it.W.muzzle && it.rig) { v.set(it.W.muzzle[0], it.W.muzzle[1], it.W.muzzle[2]).applyMatrix4(it.rig.matrix); this.mzLocal.copy(v); }
     else { v.set(0.3, -0.25, -1.2); this.mzLocal.copy(v); }
+    v.set(clamp(v.x, -0.5, 0.6), clamp(v.y, -0.5, 0.2), clamp(v.z, -1.6, -0.55)); this.mzLocal.copy(v); // si el arma está subiendo/bajando, el fogonazo no se va de la pantalla
     cam.updateMatrixWorld(); return cam.localToWorld(v);
   }
   /** ¿El jugador pidió menos movimiento? (ajuste del sistema o `cristal.reduceMotion`=1). Se relee cada 2 s. */
@@ -273,9 +274,9 @@ export class CombatFx {
 
   shot(e, origin) {
     const fx = this.fx, w = e.w, name = WN[w] || 'haz', mine = e.pid === this.myId;
-    const mo = origin ? origin.clone() : V(e.o), c = WEAPON_COLORS[w] || 0xffffff;
+    const fp = mine && this.cam && !(this.r && this.r.third), mo = origin ? origin.clone() : V(e.o), c = WEAPON_COLORS[w] || 0xffffff;
     // en 1ª persona la traza nace un poco a la derecha y abajo de la boca: así se ve como una línea desde el arma y no como un punto (el cañón apunta casi al centro)
-    const o = mine && this.cam ? mo.clone().addScaledVector(_u.set(1, 0, 0).applyQuaternion(this.cam.quaternion), 0.2).addScaledVector(_w.set(0, 1, 0).applyQuaternion(this.cam.quaternion), -0.13) : mo.clone();
+    const o = fp ? this.cam.localToWorld(_t.set(this.mzLocal.x + 0.3, this.mzLocal.y - 0.22, Math.max(this.mzLocal.z, -0.75))).clone() : mo.clone();
     const all = (e.to || []).map(V); let name2 = name, cc = c;
     if (e.fx) { name2 = e.fx === 'explosiva' ? 'quimeraexp' : e.fx; cc = e.fx === 'voltaico' ? 0x66aaff : e.fx === 'glaciar' ? 0x9fe8ff : e.fx === 'brasa' ? 0xff7a1a : 0xff66c4; }
     const cap = this.tipCap(), tips = all.length > cap ? all.filter((_, i) => i % Math.ceil(all.length / cap) === 0).slice(0, cap) : all;
@@ -283,7 +284,7 @@ export class CombatFx {
     const S = WS[name2] || WS.haz; this.fastGate = (WEAPONS[w] ? WEAPONS[w].rate : 1) < 0.12;
     const x = { o, mo, tips, c: cc, mine, aim, name, e, w, S, k: mine ? 0.6 : 1 };
     this.muzzle(name2, { ...x, o: mo });
-    if (mine) this.firstPerson(name2, x);
+    if (fp) this.firstPerson(name2, x);
     const fn = TRACE[name2]; if (fn && tips.length) fn.call(this, x);
     // punta de cada traza: impacto en el mundo (superficie) o brillo sobre la criatura
     for (const t of tips) {
@@ -306,13 +307,13 @@ export class CombatFx {
   firstPerson(name, x) {
     const r = this.r, S = x.S, rm = this.reduced, it = r && r.vm && r.vm.items ? r.vm.items[r.vm.cur] : null;
     const shape = it && it.W && it.W.flash ? it.W.flash.shape : 'star', cf = this.camFlash; if (!cf) return;
-    const col = _color.setHex(x.c), k = this.nextCF = ((this.nextCF || 0) + 1) % cf.length, F = cf[k];
+    const col = _color.setHex(S.tint || x.c), k = this.nextCF = ((this.nextCF || 0) + 1) % cf.length, F = cf[k];
     const rate = WEAPONS[x.w] ? WEAPONS[x.w].rate : 0.3, calm = rate < 0.12 ? 0.5 : 1; // armas de ráfaga: destello más suave (no estroboscópico)
-    F.life = F.max = (S.fd || 0.1) * 1.3; F.size = Math.min(S.fl, 0.95) * 0.95; F.wash = (rm ? 0.25 : 0.7) * S.wash * calm;
+    F.life = F.max = (S.fd || 0.1) * 1.3; F.size = Math.min(S.fl, 0.95) * 0.95; F.wash = (rm ? 0.25 : this.tier === 0 ? 0.7 : 0.15) * S.wash * calm; // Baja no tiene luz de fogonazo: el lavado hace de luz
     F.pat.material.map = flashTexture(shape); F.pat.material.color.copy(col).lerp(_white, 0.2); F.glow.material.color.copy(col); F.wash_.material.color.copy(col);
     F.pat.material.rotation = Math.random() * 6.283; F.group.position.copy(this.mzLocal); F.group.visible = true;
     // luz de fogonazo (la PointLight de Alta; en Baja el "lavado" hace de luz)
-    if (r.muzzle) { r.muzzle.color.setHex(x.c); r.muzzle.position.copy(this.mzLocal).add(_t.set(0, 0.05, -0.6)); r.muzzle.intensity = Math.max(r.muzzle.intensity, S.light * (rm ? 0.4 : 1)); }
+    if (r.muzzle) { r.muzzle.color.setHex(S.tint || x.c); r.muzzle.position.copy(this.mzLocal).add(_t.set(0, 0.05, -0.6)); r.muzzle.intensity = Math.max(r.muzzle.intensity, S.light * (rm ? 0.4 : 1)); }
     // patada de cámara y golpe de FOV (respetan "reducir movimiento")
     const K = this.K, km = rm ? 0.15 : 1, kick = (S.kick || 0.3) * Math.PI / 180 * km;
     K.p = Math.min(K.p + kick, 0.045 * km + 0.002); K.y += (Math.random() - 0.5) * kick * 0.7; K.r += (Math.random() - 0.5) * kick * 0.8; K.fov = Math.min(K.fov + (rm ? 0 : S.fov || 0.2), 3.2);
@@ -334,6 +335,7 @@ export class CombatFx {
   /** Fogonazos de pantalla pegados a la cámara (pool fijo, aditivos, sin luces). */
   buildCamFlash(r) {
     this.camFlash = []; const cam = r.camera, tex = r.halo || this.fx.tex.glow;
+    setTimeout(() => { for (const sh of ['star', 'fan', 'jet', 'ball', 'bolt', 'frost', 'blob', 'ember', 'saw', 'pulse', 'quad', 'scythe', 'chaos', 'ring']) { try { flashTexture(sh); } catch { /* sin canvas */ } } }, 1500); // calienta las texturas de fogonazo (si no, el primer disparo de cada arma las dibuja y se nota un tirón)
     for (let i = 0; i < 3; i++) {
       const mk = (map, ro) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map, color: 0xffffff, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 })); s.renderOrder = ro; return s; };
       const group = new THREE.Group(), wash_ = mk(tex, 28), glow = mk(tex, 29), pat = mk(flashTexture('star'), 30);
@@ -346,8 +348,9 @@ export class CombatFx {
     for (const F of this.camFlash) {
       if (!F.group.visible) continue; F.life -= dt; const u = clamp(1 - F.life / F.max, 0, 1), f = 1 - u * u * 0.9;
       if (F.life <= 0) { F.group.visible = false; F.pat.material.opacity = F.glow.material.opacity = F.wash_.material.opacity = 0; continue; }
-      F.pat.scale.setScalar(F.size * (1.1 + 0.5 * u)); F.pat.material.opacity = clamp(f * 0.95, 0, 1);
-      F.glow.scale.setScalar(F.size * (2.2 + 0.8 * u)); F.glow.material.opacity = clamp(f * 0.6, 0, 1);
+      const hk = this.tier === 0 ? 1 : 0.5; // con bloom (Media/Alta) lo aditivo se quema: menos opacidad y halo más chico
+      F.pat.scale.setScalar(F.size * (1.1 + 0.5 * u) * (hk < 1 ? 0.85 : 1)); F.pat.material.opacity = clamp(f * 0.95 * hk, 0, 1);
+      F.glow.scale.setScalar(F.size * (2.2 + 0.8 * u) * (hk < 1 ? 0.6 : 1)); F.glow.material.opacity = clamp(f * 0.6 * hk, 0, 1);
       F.wash_.scale.setScalar(5); F.wash_.material.opacity = f * F.wash;
     }
   }
@@ -367,8 +370,9 @@ export class CombatFx {
     // lejos hay que agrandar para que se vea (a 30 m un estallido de 1 m es un punto); cerca, achicar para no tapar la pantalla
     if (this.cam) k *= Math.pow(clamp(this.cam.position.distanceTo(p) / 14, 0.6, 2.0), 0.7);
     // base común: brillo de color + estrella blanca + onda sobre la superficie. Se ve a 30 m.
-    fx.flash(p, c, 1.05 * k, 0.17, { op: 0.95 });
-    fx.flash(p, 0xffffff, 0.7 * k, 0.1, { burst: true });
+    const cf = creature ? 0.7 : 1; // sobre criaturas hay muchas capas más (fluido, números, muerte): el brillo base se contiene para no quemar la pantalla
+    fx.flash(p, c, 1.05 * k * cf, 0.17, { op: 0.95 });
+    fx.flash(p, _color.setHex(c).lerp(_white, 0.5).getHex(), 0.7 * k * cf, 0.1, { burst: true });
     if (!fast || Math.random() < 0.4) fx.ring(p, n, c, clamp(1.35 * k, 0.9, 3.2), 0.32, { r0: 0.2, shock: true, op: 0.9 });
     switch (style) {
       case 'spark': fx.sparks(p, 0xfff2b0, 8 * k, 12, 0.4, { dir: n, cone: 2.0, c2: 0xff7a2a, w: 0.07 }); break;
@@ -447,7 +451,7 @@ export class CombatFx {
       default: break;
     }
     // 4) destello y onda (más grandes si es élite o jefe)
-    fx.flash(p, elite ? 0xffd23f : mc, boss ? 9 : (elite ? 3.6 : 2.2 + r * 0.9), boss ? 0.5 : 0.25, { burst: true });
+    fx.flash(p, elite ? 0xffd23f : mc, boss ? 7 : (elite ? 3 : 1.6 + r * 0.6), boss ? 0.5 : 0.25, { burst: true });
     fx.ring(p, up, mc, (boss ? 22 : elite ? 9 : 3 + r * 2), boss ? 0.9 : 0.5, { r0: 0.5, shock: true, op: 0.9 });
     if (elite) { fx.ringChroma(p, null, 11, 0.7, { op: 0.9 }); fx.ring(p, up, 0xff3a5a, 14, 0.8, { r0: 0.5, shock: true }); fx.spray(p, 0xffe27a, 14, 12, 1.1, 1.0, { shape: SHAPE.star, spin: 4, c2: 0xff3a5a, grow: -0.5 }); fx.sparks(p, 0xffe9a0, 14, 15, 0.6, { c2: 0xff3a5a }); }
     if (boss) { fx.ringChroma(p, null, 38, 1.4, { op: 0.9 }); fx.blast(p, mc, 36, 1.4); fx.spray(p, 0xffffff, 40, 26, 1.4, 1.6, { shape: SHAPE.star, spin: 3, c2: mc, grow: -0.4, raw: true }); }
@@ -614,7 +618,7 @@ const WS = {
   enjambre: { fl: 0.8, fd: 0.12, wash: 0.2, light: 36, kick: 0.9, fov: 0.7, pw: 1.0 },
   cometa:   { fl: 0.95, fd: 0.15, wash: 0.28, light: 48, kick: 1.4, fov: 1.2, pw: 1.3 },
   vortice:  { fl: 1.0, fd: 0.16, wash: 0.26, light: 44, kick: 1.2, fov: 1.0, pw: 1.2 },
-  lanza:    { fl: 0.9, fd: 0.14, wash: 0.22, light: 42, kick: 1.4, fov: 1.4, pw: 1.3 },
+  lanza:    { tint: 0x7ac8ff, fl: 0.9, fd: 0.14, wash: 0.22, light: 42, kick: 1.4, fov: 1.4, pw: 1.3 },
   cetro:    { w: 0.05, hw: 0.2, life: 0.16, fl: 0.55, fd: 0.09, wash: 0.1, light: 22, kick: 0.2, fov: 0.1, pw: 0.8 },
   eclipse:  { w: 0.05, hw: 0.2, life: 0.26, fl: 1.2, fd: 0.16, wash: 0.4, light: 66, kick: 2.7, fov: 2.6, pw: 1.0 },
   voltaico: { fl: 0.7, fd: 0.1, wash: 0.16, light: 32, kick: 0.5, fov: 0.35, pw: 1.1 },
@@ -625,7 +629,7 @@ const WS = {
   sierra:   { w: 0.06, hw: 0.3, life: 0.1, fl: 0.7, fd: 0.06, wash: 0.1, light: 24, kick: 0.1, fov: 0.05, pw: 0.7 },
   pulsar:   { fl: 1.1, fd: 0.18, wash: 0.36, light: 60, kick: 1.6, fov: 2.0, pw: 1.4 },
   dardos:   { w: 0.04, hw: 0.17, life: 0.2, hd: 0.1, hl: 6, hs: 500, fl: 0.6, fd: 0.1, wash: 0.14, light: 28, kick: 0.65, fov: 0.4, pw: 0.9 },
-  requiem:  { w: 0.09, hw: 0.42, life: 0.5, fl: 1.1, fd: 0.2, wash: 0.3, light: 56, kick: 1.9, fov: 1.9, pw: 1.4 },
+  requiem:  { tint: 0x8a5cff, w: 0.09, hw: 0.42, life: 0.5, fl: 1.1, fd: 0.2, wash: 0.3, light: 56, kick: 1.9, fov: 1.9, pw: 1.4 },
   quimera:  { w: 0.06, hw: 0.28, life: 0.24, hd: 0.15, hl: 8, hs: 420, fl: 0.7, fd: 0.12, wash: 0.16, light: 32, kick: 0.5, fov: 0.4, pw: 1.1 },
   quimeraexp: { w: 0.08, hw: 0.4, life: 0.3, hd: 0.2, hl: 8, hs: 360, fl: 0.9, fd: 0.14, wash: 0.22, light: 44, kick: 1.0, fov: 0.8, pw: 1.4 },
 };
@@ -645,9 +649,9 @@ const TIPS = { haz: 'spark', prisma: 'crystal', rafaga: 'spark', aguja: 'ring', 
 
 /** Rayo estándar: halo de color + núcleo blanco + cabeza luminosa que viaja. Persiste S.life segundos. */
 function ray(C, x, t, o = {}) {
-  const fx = C.fx, S = x.S, L = x.o.distanceTo(t), life = S.life * (o.lm || 1), c = o.c || x.c;
-  fx.line(x.o, t, c, S.hw * (o.hm || 1), life, { a0: 0.85, a1: 0.7, shrink: 0.3, fade: 0.55, c2: o.c2 });
-  fx.line(x.o, t, 0xffffff, S.w * (o.wm || 1), life * 0.8, { a0: 1, a1: 1, shrink: 0.25, fade: 0.45 });
+  const fx = C.fx, S = x.S, L = x.o.distanceTo(t), life = S.life * (o.lm || 1) * 1.2, c = o.c || x.c, bw = x.mine ? 1.3 : 1;
+  fx.line(x.o, t, c, S.hw * (o.hm || 1) * bw, life, { a0: 0.85, a1: 0.7, shrink: 0.3, fade: 0.55, c2: o.c2 });
+  fx.line(x.o, t, 0xffffff, S.w * (o.wm || 1) * bw, life * 0.8, { a0: 1, a1: 1, shrink: 0.25, fade: 0.45 });
   if (S.hs && !o.nohead) fx.dart(x.o, t, c, S.hd * (o.hm || 1), Math.max(S.hs, L / 0.09), S.hl, {});
 }
 /** Chorro de llamas: bolas grandes y suaves en cono delante de la boca (cadencia muy alta: se emite por tandas). */

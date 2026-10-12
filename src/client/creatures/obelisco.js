@@ -13,11 +13,12 @@ export default function build(kit, color) {
   const { Spring } = kit;
   const level = cfg().humans, LOW = level === 'low', HI = level === 'high';
   const R = LOW ? 7 : HI ? 14 : 10;
-  const bio = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x40d8ff, scale: 1.3, bump: 1.0, wet: 0.6, ridge: 50, sheen: 0.1, breath: 0.012 });
+  const bio = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x40d8ff, scale: 1.3, bump: 1.0, wet: 0.6, ridge: 50, sheen: 0.1, breath: 0.012, lift: LOW ? 0.8 : 1.25, rimK: LOW ? 0.6 : 0.45, albedo: LOW ? undefined : 0.28 });
+  const VG = LOW ? 0.3 : 0.85, CG = LOW ? 0.2 : 0.6; // Media/Alta: venas y grietas más luminosas (si no, queda pálido-grisáceo)
   const U = bio.userData.u; U.uVeinGlow.value = 0.35; U.uCrackGlow.value = 0.2;
   const bioT = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, rim: 0x40d8ff, scale: 1.3, tent: 12, breath: 0.0 }); const UT = bioT.userData.u; UT.uVeinGlow.value = 0.3;
-  const FLESH = 0x0f4252, FLESH2 = 0x1c6274, CHIT = 0x0c2c3a, BONE = 0x7ca8b0, CRY = 0x20d0ff;
-  const root = new THREE.Group(), body = new THREE.Group(); body.scale.setScalar(0.78); body.position.y = -0.7; root.add(body); // origen = centro de la esfera de colisión: el suelo queda en y=-1
+  const FLESH = 0x0e3c4c, FLESH2 = 0x1a5a6c, CHIT = 0x0a2634, BONE = 0x46707a, CRY = 0x20d0ff;
+  const root = new THREE.Group(), body = new THREE.Group(); body.scale.setScalar(0.84); body.position.y = -0.72; root.add(body); // origen = centro de la esfera de colisión: el suelo queda en y=-1
   const mesh = (geo, parent, m = bio) => { const o = new THREE.Mesh(geo, m); parent.add(o); return o; };
 
   /* ── base: montículo de carne con esquirlas de hueso, raíces (haz de tentáculos) y patas-ancla ── */
@@ -41,7 +42,7 @@ export default function build(kit, color) {
   }
 
   /* ── tallo: vértebras de carne con costillas, placas dorsales y cristales ── */
-  const NS = LOW ? 4 : 5, segs = [], segLen = 0.5, SR = [0.62, 0.54, 0.47, 0.4, 0.34];
+  const NS = LOW ? 3 : 4, segs = [], segLen = 0.42, SR = [0.7, 0.62, 0.54, 0.46];
   let parent = body;
   for (let i = 0; i < NS; i++) {
     const g = new THREE.Group(); g.position.y = i === 0 ? 0.28 : segLen; parent.add(g); const Ri = SR[i], parts = [];
@@ -51,10 +52,10 @@ export default function build(kit, color) {
     // costillas: arcos de hueso que rodean el tallo por delante y los lados
     for (let k = 0; k < (LOW ? 1 : 2); k++) {
       const yk = 0.18 + 0.3 * k, pts = []; for (let s = 0; s <= 8; s++) { const f = s / 8, ph = -2.1 + f * 4.2; pts.push(new V3(Math.sin(ph) * (Ri + 0.05), yk - 0.1 * Math.pow(ph / 2.1, 2) + 0.03 * Math.sin(f * 6 + i), Math.cos(ph) * (Ri + 0.05))); }
-      parts.push(paint(loft(pts, { seg: 14, radial: 5, r: (t) => 0.05 * (0.3 + Math.sin(t * Math.PI) * 0.9), ry: () => 0.8, round: [0.1, 0.1] }), BONE, 2, 0.0, (p, n, uv) => ({ g: 0.1 })));
+      parts.push(paint(loft(pts, { seg: 14, radial: 5, r: (t) => 0.036 * (0.3 + Math.sin(t * Math.PI) * 0.9), ry: () => 0.8, round: [0.1, 0.1] }), BONE, 2, 0.0, (p, n, uv) => ({ g: 0.1 })));
     }
     // faldón óseo festoneado en la base de cada vértebra y placa de pecho
-    parts.push(paint(loft(line([0, -0.02, 0], [0, 0.16, 0]), { seg: 3, radial: R + 6, r: (t) => Ri * (1.22 - 0.22 * t), mod: (t, a) => 1 + 0.07 * Math.sin(a * 7 + i) * (1 - t) }), BONE, 2, 0, (p, n, uv) => ({ g: 0.5 * (1 - uv[1]) })));
+    parts.push(paint(loft(line([0, -0.02, 0], [0, 0.16, 0]), { seg: 3, radial: R + 6, r: (t) => Ri * (1.13 - 0.13 * t), mod: (t, a) => 1 + 0.07 * Math.sin(a * 7 + i) * (1 - t) }), BONE, 2, 0, (p, n, uv) => ({ g: 0.5 * (1 - uv[1]) })));
     const cp = domePlate(Ri * 0.38, 0.2, 0.09, { ridge: 0.8, thick: 0.02, nu: 5, nv: 5 }); parts.push(paint(aimY(cp, new V3(0, 0.34, Ri * 0.97), new V3(0, 0.1, 1)), BONE, 2, 0, () => ({ k: 1.0 })));
     // placa dorsal de quitina + espina con cristal
     const dp = domePlate(Ri * 0.45, 0.25, 0.11, { ridge: 0.7, thick: 0.025, nu: 6, nv: 6 });
@@ -65,18 +66,18 @@ export default function build(kit, color) {
   /* ── cabeza: flor-ojo ── */
   const head = new THREE.Group(); head.position.y = segLen * 0.95; segs[NS - 1].add(head);
   { const hp = [];
-    hp.push(paint(blobGeo(0.52, 0.38, 0.5, 16, 10), FLESH, 0, 0, (p, n) => ({ k: 0.75 + 0.35 * n.y })));
+    hp.push(paint(blobGeo(0.62, 0.46, 0.58, 18, 12), FLESH2, 0, 0, (p, n) => ({ k: 0.75 + 0.35 * n.y })));
     hp[0] = place(hp[0], [0, 0.08, -0.1]);
     hp.push(crystals([-2, -1, 0, 1, 2].slice(0, LOW ? 3 : 5).map((a, i, arr) => { const ang = (a / 2) * 0.9; return { p: new V3(Math.sin(ang) * 0.34, 0.56 + Math.cos(ang) * 0.2, -0.22), d: new V3(-Math.sin(ang) * 0.9, 0.9, -0.5), r: 0.065, h: 0.5 + (i % 2) * 0.12, c: CRY }; }), { sides: 6 }));
     mesh(merge(hp), head); }
-  const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.34, 0.12); head.add(eyeRoot);
-  const RE = 0.6;
-  const E = bigEye({ r: RE, iris: 0x18c8ff, quality: level, lidColor: 0x3a2a40, scleraColor: 0x59626a, irisR: 0.5 }); eyeRoot.add(E.object);
+  const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.34, 0.2); head.add(eyeRoot);
+  const RE = 0.5;
+  const E = bigEye({ r: RE, iris: 0xffc02a, quality: level, lidColor: 0x2a7f95, scleraColor: 0xb8b4a0, irisR: 0.5 }); eyeRoot.add(E.object);
   const lensPt = new THREE.Object3D(); lensPt.position.z = RE * 1.1; E.ball.add(lensPt);
   // pétalos-garra de quitina (se abren al apuntar): 1 solo InstancedMesh
   const NP = LOW ? 5 : HI ? 8 : 7, petals = [];
   const petalGeo = (() => { const pts = [new V3(0, 0, 0), new V3(0, 0.45, 0.05), new V3(0, 0.85, 0.2), new V3(0, 1.12, 0.42)];
-    const g = loft(pts, { seg: 10, radial: 6, r: (t) => lerp(0.11, 0.008, Math.pow(t, 0.8)) * (1 + 0.15 * Math.sin(t * 20)), ry: () => 2.6, round: [0.05, 0] });
+    const g = loft(pts, { seg: 10, radial: 6, r: (t) => lerp(0.2, 0.01, Math.pow(t, 0.75)) * (1 + 0.12 * Math.sin(t * 20)), ry: () => 0.26, round: [0.05, 0] });
     return merge([paint(g, CHIT, 1, 0, (p, n, uv) => ({ c: new THREE.Color(CHIT).lerp(new THREE.Color(CRY), sstep(0.7, 1, uv[1])), cls: 1 + 2 * sstep(0.78, 0.92, uv[1]), k: 0.8 + 0.7 * uv[1], g: sstep(0.5, 1, uv[1]) * 0.6 }))]); })();
   const petalIM = new THREE.InstancedMesh(petalGeo, bio, NP); petalIM.frustumCulled = false; petalIM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   const petalRing = new THREE.Group(); petalRing.position.copy(eyeRoot.position); petalRing.position.z -= 0.06; head.add(petalRing); petalRing.add(petalIM);
@@ -90,7 +91,7 @@ export default function build(kit, color) {
   let feelRig = null; if (!LOW) { const m = bioMaterial({ glow: 0x2de0ff, vein: 0x0a1020, tent: 2, breath: 0 }); mesh(tentacleBundle(feelSpecs, { seg: 12, radial: 6, color: FLESH, tipColor: 0x40e0ff, tipGlow: 1 }), head, m); feelRig = { rig: tentacleRig(m), mat: m }; }
 
   /* ── cola de escorpión con aguijón de biocristal ── */
-  const NT = LOW ? 4 : 5, tail = [], CURL = [-0.95, 0.5, 0.45, 0.42, 0.38], tl = 0.46;
+  const NT = LOW ? 3 : 4, tail = [], CURL = [-0.95, 0.55, 0.5, 0.46], tl = 0.42;
   const tailRoot = new THREE.Group(); tailRoot.position.set(0, 0.4, -0.62); body.add(tailRoot);
   let tp = tailRoot, stingGlow;
   for (let i = 0; i < NT; i++) {
@@ -114,7 +115,7 @@ export default function build(kit, color) {
   const sYaw = new Spring(0, 40, 7), sPit = new Spring(0, 40, 7), sRec = new Spring(0, 160, 9), sTail = new Spring(0, 70, 6), sHit = new Spring(0, 120, 7);
   let ct = -1, wasCharge = false, open = 0, heat = 0, prevHp = 1, hit = 0, shotFlash = 0, lockedAim = null, lockAmt = 0;
   const aimW = new V3(), aimL = new V3(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), pa = new V3(), up = new V3(), cc = new THREE.Color(), cA = new THREE.Color(0x40e8ff), cB = new THREE.Color(0xe8fbff), cR = new THREE.Color(0xff2a3a);
-  const irisA = new THREE.Color(0x18c8ff), irisR = new THREE.Color(0xff5030), look0 = new V3(0, 0.1, 1), Zv = new V3(0, 0, 1), bendDown = new V3(0, -1, 0);
+  const irisA = new THREE.Color(0xffc02a), irisR = new THREE.Color(0xff2a18), look0 = new V3(0, 0.1, 1), Zv = new V3(0, 0, 1), bendDown = new V3(0, -1, 0);
 
   return { root, mats, tick(dt, st, t, ctx = {}) {
     dt = clamp(dt, 0, 0.05);
@@ -154,8 +155,8 @@ export default function build(kit, color) {
     for (const P of petals) { P.h2.rotation.x = lerp(1.05 - 0.15 * Math.sin(t * 1.9 + P.off), 0.12, open) + hit * 0.3 + Math.sin(t * 2.7 + P.off) * 0.04 + rec * 0.4; }
     updatePetals(0.95 * (1 + open * 0.15));
     cc.copy(cA).lerp(cB, heat); if (lockAmt > 0.01) cc.lerp(cR, lockAmt * 0.5);
-    glowM.color.copy(cc); glowM.opacity = (heat * 0.4 + shotFlash * 0.8) * (0.75 + 0.25 * Math.sin(t * (14 + heat * 40)));
-    halo.scale.setScalar(RE * (2.2 + heat * 1.0 + shotFlash * 2.0));
+    glowM.color.copy(cc); glowM.opacity = (0.22 + 0.06 * Math.sin(t * 1.7 + id) + heat * 0.4 + shotFlash * 0.8) * (0.75 + 0.25 * Math.sin(t * (14 + heat * 40)));
+    halo.scale.setScalar(RE * (3.4 + heat * 1.4 + shotFlash * 2.4)); // brillo de baliza: se ve a 40–60 m
     coreM.opacity = clamp(heat * 1.0 + shotFlash, 0, 1); core.scale.setScalar(RE * (0.05 + heat * 0.15 + shotFlash * 0.25) * (1 + 0.12 * Math.sin(t * 30)));
     // cola: se alza y apunta el aguijón al blanco
     const tw = sTail.step(dt, 0);
@@ -165,7 +166,7 @@ export default function build(kit, color) {
       g.rotation.z = Math.sin(t * 1.1 + i * 0.5) * 0.05 + (hurtLow ? Math.sin(t * 8 + i) * 0.04 : 0); }
     const sg = stingGlow.material; sg.color.copy(cc); sg.opacity = clamp(heat * 0.6 + shotFlash, 0, 1) * (0.7 + 0.3 * Math.sin(t * 25)); stingGlow.scale.setScalar(0.14 + heat * 0.22 + shotFlash * 0.2);
     // materiales: venas y cristales laten; todo se enciende al cargar
-    U.uCry.value = 0.8 + heat * 1.6 + shotFlash * 2 + 0.25 * Math.sin(t * 5) + (1 - hp) * 0.4; U.uVeinGlow.value = 0.3 + heat * 0.9 + shotFlash * 0.8 + 0.1 * Math.sin(t * 3 + id); U.uCrackGlow.value = 0.2 + heat * 1.0; U.uGlow.value = heat * 0.5 + shotFlash * 0.6; U.uPulse.value = heat * 0.5 + hurtLow * 0.3;
+    U.uCry.value = 0.8 + heat * 1.6 + shotFlash * 2 + 0.25 * Math.sin(t * 5) + (1 - hp) * 0.4; U.uVeinGlow.value = VG + heat * 0.9 + shotFlash * 0.8 + 0.1 * Math.sin(t * 3 + id); U.uCrackGlow.value = CG + heat * 1.0; U.uGlow.value = heat * 0.5 + shotFlash * 0.6; U.uPulse.value = heat * 0.5 + hurtLow * 0.3;
     UT.uVeinGlow.value = U.uVeinGlow.value; UT.uHurt.value = U.uHurt.value;
     // raíces / patas: ancladas, agarran con fuerza al cargar y se crispan al daño
     for (let i = 0; i < nr; i++) rootRig.set(i, 0.07 + hit * 0.3 + hurtLow * 0.12 + k * 0.03, 1.1 + hurtLow * 3 + i * 0.1, bendDown, 0.1 + k * 0.25 + hit * 0.1, 1);
@@ -178,7 +179,7 @@ export default function build(kit, color) {
     if (on) {
       lensPt.getWorldPosition(pa); root.worldToLocal(pa);
       beam.position.copy(pa); coreBeam.position.copy(pa); beam.quaternion.setFromUnitVectors(Zv, aimL); coreBeam.quaternion.copy(beam.quaternion);
-      const L = 70 / 0.78, flick = locked ? 1 : 0.55 + 0.45 * Math.sin(t * 60), w = locked ? 0.03 + Math.min(0.03, (e - 1.2) * 0.1) : 0.008 + k * 0.01;
+      const L = 70 / 0.84, flick = locked ? 1 : 0.55 + 0.45 * Math.sin(t * 60), w = locked ? 0.03 + Math.min(0.03, (e - 1.2) * 0.1) : 0.008 + k * 0.01;
       beam.scale.set(w * (locked ? 2.6 : 1.6), w * (locked ? 2.6 : 1.6), L); coreBeam.scale.set(w * 0.8, w * 0.8, L);
       beamM.color.copy(cA).lerp(cR, clamp(k * 1.2, 0, 1)); beamM.opacity = (locked ? 0.7 : 0.22 + k * 0.2) * flick; coreBeamM.opacity = locked ? 0.95 : 0.3 * flick;
       beam.visible = coreBeam.visible = true;

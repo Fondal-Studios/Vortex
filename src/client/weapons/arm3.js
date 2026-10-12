@@ -125,12 +125,12 @@ export function cetro(q, hands) {
       k.prof('b', [[-0.1, 0.05], [-0.26, 0.03], [-0.3, -0.04], [-0.22, -0.06], [-0.1, -0.015]], 0.04, 0, { c: P.dom2, bevel: 0.005, holes: [[[-0.13, 0.036], [-0.23, 0.022], [-0.26, -0.03], [-0.2, -0.04], [-0.12, -0.008]]] });
       const gh = grip(k, P, -0.012, { len: 0.17 }); let pivot = null; if (hands) { pivot = rightHand(k, gh, hex); supportHand(k, [0, 0.04, -0.5], 0.026, hex); }
       // fuste: varilla de savia central y dos tallos entrelazados con espinas
-      k.limb('l', [0, 0.04, 0.0], [0, 0.04, -0.84], 0.009, 0.009, { k: 0, seg: 6 });
+      k.limb('l', [0, 0.04, 0.0], [0, 0.04, -0.84], 0.014, 0.014, { k: 0, seg: 6 }); for (const z of [-0.28, -0.62]) k.gem('l', [0.03, 0.055], [0, 0.04, z], { k: 1, n: 6, axis: 'z', tip: 0.35 }); // bulbos de savia
       const NS = low ? 9 : 13, step = 0.84 / NS;
       for (let i = 0; i <= NS; i++) {
         for (const s of [0, 1]) {
-          const f = (i0) => { const ph = i0 * 0.9 + s * PI; return [Math.cos(ph) * 0.017, 0.04 + Math.sin(ph) * 0.017, -i0 * step]; };
-          if (i < NS) { k.limb('b', f(i), f(i + 1), 0.0125, 0.0125, { c: s ? P.dom : P.dom2, seg: 6, ball: !low }); }
+          const f = (i0) => { const ph = i0 * 0.9 + s * PI; return [Math.cos(ph) * 0.026, 0.04 + Math.sin(ph) * 0.026, -i0 * step]; };
+          if (i < NS) { k.limb('b', f(i), f(i + 1), 0.019, 0.019, { c: s ? P.dom : P.dom2, seg: 6, ball: !low }); }
           if (i % 3 === 1 && !low) { const p = f(i), ph = i * 0.9 + s * PI; k.gem('b', [0.0045, 0.016], [p[0] + Math.cos(ph) * 0.012, p[1] + Math.sin(ph) * 0.012, p[2]], { n: 3, axis: 'y', c: P.pale, r: [0, 0, ph - PI / 2] }); }
         }
       }

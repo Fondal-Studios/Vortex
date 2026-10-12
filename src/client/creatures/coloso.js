@@ -60,7 +60,7 @@ export default function build(kit, color) {
 
   /* ── ojos: gran ojo central + enjambre instanciado ── */
   const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.1, 0.6); body.add(eyeRoot);
-  const BE = bigEye({ r: 0.3, iris: color, quality: level, lidColor: 0x4a2a4a, scleraColor: 0x7a6a58, irisR: 0.52, brow: 0.18 }); eyeRoot.add(BE.object);
+  const BE = bigEye({ r: 0.3, iris: color, quality: level, lidColor: 0xa87038, scleraColor: 0x7a6a58, irisR: 0.52, brow: 0.18 }); eyeRoot.add(BE.object);
   const eyeLens = new THREE.Object3D(); eyeLens.position.set(0, 0, 0.34); eyeRoot.add(eyeLens);
   const EC = eyeCluster({ max: LOW ? 14 : 26, quality: level, iris: 0xffffff, sclera: 0x8a7a6a }); body.add(EC.object);
   const eyeInfo = [];
@@ -119,7 +119,7 @@ export default function build(kit, color) {
   const mats = [bio, bioT, shards.mat, ...BE.mats, ...EC.mats];
   const sKick = new Spring(0, 90, 7), sHit = new Spring(0, 140, 8), sRoll = new Spring(0, 40, 5);
   let p2 = 0, p3 = 0, wind = 0, wt = 0, prevS = '', burst = 0, hit = 0, prevHp = 1, prevPh = 1, flashT = 0, rayT = 0, ray = 0, stg = 0, stgT = 0, sdAmt = 0, crack = 0, shFlash = 0, prevSd = false, smokeAcc = 0, emberAcc = 0, shBurst = 0;
-  const F = makeFacer({ rate: 2.2 }), lookR = new V3(), aimR = new V3(), eulS = new THREE.Euler(), qS = new THREE.Quaternion(), Q = new THREE.Quaternion(), S = new V3(), P = new V3(), up = new V3(0, 1, 0), look0 = new V3(0, 0, 1), aimL = new V3(), aimW = new V3(), qa = new THREE.Quaternion(), M = new THREE.Matrix4();
+  const F = makeFacer({ rate: 2.2, limit: 3.2 }), lookR = new V3(), aimR = new V3(), eulS = new THREE.Euler(), qS = new THREE.Quaternion(), Q = new THREE.Quaternion(), S = new V3(), P = new V3(), up = new V3(0, 1, 0), look0 = new V3(0, 0, 1), aimL = new V3(), aimW = new V3(), qa = new THREE.Quaternion(), M = new THREE.Matrix4();
   const baseSkin = new THREE.Color(FLESH), rageSkin = new THREE.Color(0x5a1a30), colA = new THREE.Color(color), colHot = new THREE.Color(0xff5a40), dc = new THREE.Color(), tmp = new V3(), dirT = new V3(), vel = new V3();
 
   return { root, mats, tick(dt, st, t, ctx = {}) {
@@ -146,7 +146,7 @@ export default function build(kit, color) {
     rig.position.y = Math.sin(t * 0.6 + id) * 0.05 + Math.sin(t * 1.1) * 0.015 - stg * 0.55 + Math.sin(stgT * 2.1) * 0.05 * stg;
     // el leviatán gira entero para MIRAR a la cámara en 3D (el motor solo lo orienta en horizontal; visto desde abajo se veía el lomo, no el ojo).
     // Durante el rayo mira hacia el pilar marcado (el haz sale del ojo y debe verse hacia dónde va).
-    F.step(dt, sn === 'ray' ? aimL : look, 1 + wind * 1.5);
+    F.step(dt, ctx.noface ? look0 : sn === 'ray' ? aimL : look, 1 + wind * 1.5, ctx.viewer ? 1.1 : 3.2);
     rig.quaternion.copy(F.q).multiply(qS.setFromEuler(eulS.set(Math.sin(t * 0.45 + 1) * 0.03 + kick * 0.05 + stg * 0.32 - ray * 0.05, stg * Math.sin(stgT * 0.9) * 0.18, roll * 0.6 + stg * (0.5 + 0.08 * Math.sin(stgT * 1.7)) + sway)));
     lookR.copy(look); F.toRig(lookR); aimR.copy(aimL); F.toRig(aimR);
     body.position.z = -wind * 0.12 + kick * 0.08 - burst * 0.05 - ray * 0.12;
@@ -161,7 +161,7 @@ export default function build(kit, color) {
 
     /* ojo central: se abre al cargar el rayo; aturdido: pesado y desorientado */
     const aimEye = tmp.copy(aimR); const eyeLookDir = sn === 'ray' ? aimEye : lookR;
-    BE.update(dt, stg > 0.3 ? tmp.set(Math.sin(t * 2.2) * 0.8, Math.cos(t * 1.7) * 0.6, 1) : eyeLookDir, { open: clamp(0.78 + wind * 0.2 + ray * 0.22 - hit * 0.4 - (1 - hp) * 0.08 - stg * 0.5, 0.08, 1), pupil: lerp(0.8, 0.4, wind) * (1 - p3 * 0.1) + 0.05 * Math.sin(t * 2 + id) - ray * 0.3 + stg * 0.35, glow: 0.4 + wind * 1.6 + p3 * 0.5 + flashT + ray * 2.5 * (0.4 + rayK), hurt: U.uHurt.value, shake: wind * 0.01 + stg * 0.15, blinkRate: 0.5 + rage + stg * 2, track: 8, brow: 0.18 + ray * 0.2 });
+    BE.update(dt, stg > 0.3 ? tmp.set(Math.sin(t * 2.2) * 0.8, Math.cos(t * 1.7) * 0.6, 1) : eyeLookDir, { open: clamp(0.78 + wind * 0.2 + ray * 0.22 - hit * 0.4 - (1 - hp) * 0.08 - stg * 0.5, 0.08, 1), pupil: lerp(0.56, 0.32, wind) * (1 - p3 * 0.1) + 0.05 * Math.sin(t * 2 + id) - ray * 0.3 + stg * 0.35, glow: 0.4 + wind * 1.6 + p3 * 0.5 + flashT + ray * 2.5 * (0.4 + rayK), hurt: U.uHurt.value, shake: wind * 0.01 + stg * 0.15, blinkRate: 0.5 + rage + stg * 2, track: 8, brow: 0.18 + ray * 0.2 });
     BE.iris.userData.u.uIris.value.set(color).lerp(dc.setHex(0x80e0ff), ray * 0.8);
     /* ojos del enjambre */
     for (const e of eyeInfo) { const tg = ph >= e.ph ? 1 : 0; e.s = damp(e.s, tg, 3.2, dt); EC.setScale(e.id, e.s * (1 + 0.04 * Math.sin(t * 3 + e.id))); }

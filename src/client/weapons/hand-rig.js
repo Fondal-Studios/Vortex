@@ -26,6 +26,9 @@ export function handLod(name) {
   const H = { name, n, tris: d.tris, pos: new Float32Array(n * 3), nor: new Float32Array(n * 3), si: dec(d.si, Uint8Array), sw: new Float32Array(n * 4), ix: dec(d.ix, Uint16Array) };
   const p16 = dec(d.pos, Int16Array), n8 = dec(d.nor, Int8Array), w8 = dec(d.sw, Uint8Array);
   for (let i = 0; i < n * 3; i++) { H.pos[i] = p16[i] / 10000; H.nor[i] = n8[i] / 127; } for (let i = 0; i < n * 4; i++) H.sw[i] = w8[i] / 255;
+  // afinar el antebrazo hacia el codo: con las armas a escala grande, un brazo «real» domina la vista
+  { const bins = new Map(), key = (z) => Math.round(z / 0.004); for (let i = 0; i < n; i++) { const z = H.pos[i * 3 + 2]; if (z > 0.002) continue; const k = key(z); let b = bins.get(k); if (!b) bins.set(k, (b = { x: 0, y: 0, n: 0 })); b.x += H.pos[i * 3]; b.y += H.pos[i * 3 + 1]; b.n++; }
+    for (let i = 0; i < n; i++) { const z = H.pos[i * 3 + 2]; if (z > -0.012) continue; const b = bins.get(key(z)); if (!b) continue; const t = smooth(0, 1, (-z - 0.012) / 0.07), f = 1 - 0.22 * t, cx = b.x / b.n, cy = b.y / b.n; H.pos[i * 3] = cx + (H.pos[i * 3] - cx) * f; H.pos[i * 3 + 1] = cy + (H.pos[i * 3 + 1] - cy) * f; } }
   // ── coordenadas derivadas: aux (flujo normalizado: muñeca 0 · nudillos 1 · punta 2), uvm = (u, v, máscara de tatuaje), dedo dominante
   H.aux = new Float32Array(n); H.rs = new Float32Array(n * 4); H.uvm = new Float32Array(n * 3); H.fing = new Int8Array(n).fill(-1);
   const chains = FNAMES.map((f, fi) => { const b = FINGERS[f]; return { pts: [REST[b[0]], REST[b[1]], REST[b[2]], tips[f]], par: fi === 0 ? [0.4, 1.0, 1.5, 2.0] : [1.0, 1.333, 1.666, 2.0] }; });

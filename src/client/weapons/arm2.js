@@ -65,9 +65,9 @@ export function gemelas(q, hands) {
       k.gem('l', [0.011, 0.045], [0, 0.045, -0.3], { k: 1, n: 5, axis: 'z' });
       holo(k, P, [0, 0.1, 0.07], 0.9);
       for (const sx of [-1, 1]) {
-        k.part(sx < 0 ? 'barL' : 'barR', [sx * 0.044, 0.045, 0]);
-        k.cyl('b', [0.02, 0.02, 0.44], [sx * 0.044, 0.045, -0.37], { c: P.gm3, seg: 8 }); k.cyl('b', [0.029, 0.029, 0.07], [sx * 0.044, 0.045, -0.565], { c: P.dom, seg: 8 }); k.cyl('l', [0.015, 0.015, 0.01], [sx * 0.044, 0.045, -0.604], { k: 1 });
-        for (const z of [-0.3, -0.4, -0.5]) k.tor('l', [0.023, 0.003], [sx * 0.044, 0.045, z], { k: 0, seg: 10 });
+        k.part(sx < 0 ? 'barL' : 'barR', [sx * 0.058, 0.045, 0]);
+        k.cyl('b', [0.02, 0.02, 0.44], [sx * 0.058, 0.045, -0.37], { c: P.gm3, seg: 8 }); k.cyl('b', [0.029, 0.029, 0.07], [sx * 0.058, 0.045, -0.565], { c: P.dom, seg: 8 }); k.cyl('l', [0.015, 0.015, 0.01], [sx * 0.058, 0.045, -0.604], { k: 1 });
+        for (const z of [-0.3, -0.4, -0.5]) k.tor('l', [0.023, 0.003], [sx * 0.058, 0.045, z], { k: 0, seg: 10 });
       }
       return { gh, pivot, screen: { on: 'main', pos: [-0.0518, 0.045, 0.075], rot: [0, -PI / 2 + 0.3, 0], scale: 1.15 }, fore: null };
     },
@@ -130,6 +130,12 @@ export function fractal(q, hands) {
         const p0 = [0, 0.045, z], p1 = [-s * len * 0.7, 0.045 + c * len, z - 0.03], p2 = [-s * len * 1.1 - sgn * 0.02, 0.045 + c * len * 1.3, z - 0.075], p3 = [-s * len * 0.9 + sgn * 0.03, 0.045 + c * len * 1.25, z - 0.06];
         k.limb('l', p0, p1, 0.0085, 0.006, { k: 3, seg: 5 }); k.limb('l', p1, p2, 0.006, 0.0035, { k: 3, seg: 5 }); k.limb('l', p1, p3, 0.006, 0.0035, { k: 3, seg: 5 });
         k.gem('l', [0.007, 0.014], p2, { k: 3, n: 4, axis: 'y' }); k.gem('l', [0.007, 0.014], p3, { k: 3, n: 4, axis: 'y' });
+      }
+      // masa: carapáce superior con rombos y aletas laterales (se ven desde atrás y de arriba)
+      k.loft('b', [{ z: -0.12, w: 0.07, h: 0.026, y: 0.092, ch: 0.008 }, { z: -0.42, w: 0.064, h: 0.028, y: 0.092, ch: 0.008 }, { z: -0.74, w: 0.04, h: 0.02, y: 0.086, ch: 0.006 }], { c: P.dom2, u: DEC.rombos });
+      for (const sx of [-1, 1]) {
+        armor(k, P, sx, [[0.4, 0.016], [0.4, 0.075], [0.58, 0.088], [0.78, 0.06], [0.72, 0.022]], 0.04, { c: P.dom, c2: P.dom2, dec: DEC.nervadura, w: 0.006 });
+        k.gem('l', [0.012, 0.05], [sx * 0.046, 0.058, -0.6], { k: 1, n: 5, axis: 'z', tip: 0.3, r: [0, 0, sx * 0.3] });
       }
       // diapasón del emisor
       for (const sx of [-1, 1]) k.loft('b', [{ z: -0.8, w: 0.01, h: 0.05, x: sx * 0.03, y: 0.045, ch: 0.002 }, { z: -0.92, w: 0.006, h: 0.034, x: sx * 0.03, y: 0.045, ch: 0.002 }], { c: P.pale });

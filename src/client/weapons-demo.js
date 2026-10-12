@@ -64,6 +64,7 @@ window.__measure = () => {
     for (const x of [bb.min.x, bb.max.x]) for (const y of [bb.min.y, bb.max.y]) for (const z of [bb.min.z, bb.max.z]) { tmp.set(x, y, z).applyMatrix4(o.matrixWorld).project(cam); box.x0 = Math.min(box.x0, tmp.x); box.x1 = Math.max(box.x1, tmp.x); box.y0 = Math.min(box.y0, tmp.y); box.y1 = Math.max(box.y1, tmp.y); } });
   return { muzzle: [mz.x, mz.y], box, view: JSON.parse(JSON.stringify(it.W.view)) };
 };
+window.__vm = vm;
 window.__view = (o) => { const v = vm.items[W].W.view; Object.assign(v, o); return v; };
 window.__stats = () => ({ calls: gl.info.render.calls, tris: gl.info.render.triangles });
 window.__weaponsReady = true;

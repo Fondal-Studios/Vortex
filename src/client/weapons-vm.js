@@ -39,8 +39,8 @@ export class Viewmodels {
   _ensure(i) {
     let it = this.items[i]; if (it) return it;
     const W = BUILD[i](this.q, true), rig = new THREE.Group(); rig.add(W.group); W.group.userData.index = i; W.group.userData.muzzle = W.muzzle; if (this.upg[i]) applyUpgrades(W.group, this.upg[i]);
-    const hex = WEAPON_COLORS[i], shape = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTexture(W.flash.shape), color: new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.55), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: hex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
+    const hex = WEAPON_COLORS[i], shape = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTexture(W.flash.shape), color: new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.55), blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0 }));
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: hex, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0 }));
     for (const s of [glow, shape]) { s.position.set(...W.muzzle); s.renderOrder = 10; s.visible = false; rig.add(s); }
     const beam = makeBeam(hex); beam.position.set(...W.muzzle); beam.visible = false; beam.renderOrder = 9; rig.add(beam);
     rig.visible = false; this.root.add(rig);
@@ -111,13 +111,13 @@ export class Viewmodels {
     const u = this.upg[this.cur]; HU.uUpg.value = u ? Math.min(1, ((u.dmg | 0) + (u.rate | 0) + (u.mag | 0) + (u.mod ? 1 : 0)) / 15) : 0; // el tatuaje crece con las mejoras del arma
     W.update(dt, this.t, firing, it.ctx);
     // fogonazo: destello con forma propia + halo
-    it.f = Math.max(0, it.f - dt * W.flash.decay);
+    it.f = Math.max(0, it.f - dt * W.flash.decay * 0.8);
     const f = it.f, jit = it.auto ? 0.75 + Math.random() * 0.5 : 1; if (it.auto && f > 0.5) it.shape.material.rotation = Math.random() * 6.28;
     const on = f > 0.012; it.shape.visible = it.glow.visible = it.beam.visible = on;
     if (on) {
-      const fs = W.flash.size, gl = W.flash.glow ?? 0.55;
+      const fs0 = W.flash.size, fs = fs0 > 1 ? 1 + (fs0 - 1) * 0.2 : fs0, gl = W.flash.glow ?? 0.55;
       it.shape.material.opacity = Math.min(1, f * 1.5); it.shape.scale.setScalar(fs * 0.62 * (0.55 + 0.6 * f) * jit);
-      it.glow.material.opacity = Math.min(1, f * (0.35 + gl * 0.7)); it.glow.scale.setScalar(fs * 1.0 * (0.55 + 0.9 * f) * jit);
+      const hi = this.q.high ? 0.55 : 1; it.glow.material.opacity = Math.min(0.8, f * (0.3 + gl * 0.5)) * hi; it.glow.scale.setScalar(fs * 0.62 * (0.55 + 0.8 * f) * jit);
       // haz de luz hacia donde va el disparo: 2 cintas cruzadas desde la boca (se ve igual en Baja)
       const u = it.beam.material.uniforms; u.uI.value = Math.min(1, f * 1.3) * (W.flash.beam ?? 1); const w = (0.05 + fs * 0.05) * (0.7 + 0.5 * f), L = (W.flash.len ?? 3.2) * (0.5 + 0.5 * f); it.beam.scale.set(w, w, L);
     }
