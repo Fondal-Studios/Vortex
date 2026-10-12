@@ -59,24 +59,104 @@
   "tris": 7424,
   "errs": []
  },
- "10_low_844_idle": {
-  "calls": 7,
-  "tris": 5604,
+ "05_low_844_idle": {
+  "calls": 9,
+  "tris": 3204,
   "errs": []
  },
- "10_low_844_fire": {
+ "05_low_844_fire": {
+  "calls": 14,
+  "tris": 3252,
+  "errs": []
+ },
+ "05_low_1280_idle": {
+  "calls": 9,
+  "tris": 3204,
+  "errs": []
+ },
+ "05_low_1280_fire": {
+  "calls": 14,
+  "tris": 3252,
+  "errs": []
+ },
+ "06_low_844_idle": {
+  "calls": 10,
+  "tris": 3636,
+  "errs": []
+ },
+ "06_low_844_fire": {
+  "calls": 15,
+  "tris": 3684,
+  "errs": []
+ },
+ "06_low_1280_idle": {
+  "calls": 10,
+  "tris": 3636,
+  "errs": []
+ },
+ "06_low_1280_fire": {
+  "calls": 14,
+  "tris": 3684,
+  "errs": []
+ },
+ "08_low_844_idle": {
+  "calls": 6,
+  "tris": 4672,
+  "errs": []
+ },
+ "08_low_844_fire": {
+  "calls": 10,
+  "tris": 4720,
+  "errs": []
+ },
+ "08_low_1280_idle": {
+  "calls": 6,
+  "tris": 4672,
+  "errs": []
+ },
+ "08_low_1280_fire": {
+  "calls": 10,
+  "tris": 4720,
+  "errs": []
+ },
+ "12_low_844_idle": {
+  "calls": 8,
+  "tris": 5640,
+  "errs": []
+ },
+ "12_low_844_fire": {
   "calls": 11,
-  "tris": 5612,
+  "tris": 5496,
   "errs": []
  },
- "10_low_1280_idle": {
-  "calls": 7,
-  "tris": 5604,
+ "12_low_1280_idle": {
+  "calls": 8,
+  "tris": 5640,
   "errs": []
  },
- "10_low_1280_fire": {
+ "12_low_1280_fire": {
   "calls": 11,
-  "tris": 5612,
+  "tris": 5496,
+  "errs": []
+ },
+ "13_low_844_idle": {
+  "calls": 9,
+  "tris": 4928,
+  "errs": []
+ },
+ "13_low_844_fire": {
+  "calls": 13,
+  "tris": 4936,
+  "errs": []
+ },
+ "13_low_1280_idle": {
+  "calls": 9,
+  "tris": 4928,
+  "errs": []
+ },
+ "13_low_1280_fire": {
+  "calls": 13,
+  "tris": 4936,
   "errs": []
  }
 }

@@ -5,10 +5,11 @@ import { startServer } from '../server/server.js';
 import fs from 'node:fs';
 const spec = JSON.parse(fs.readFileSync(new URL('./compose-spec.json', import.meta.url)));
 const ids = (process.argv[2] || Object.keys(spec).join(',')).split(',').map(Number);
-const srv = await startServer({ port: 0 }); const b = await launch(); const out = {};
+const OUT = new URL('./compose-out.json', import.meta.url); const out = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT)) : {};
+const srv = await startServer({ port: 0 }); const b = await launch();
 for (const w of ids) {
   const sp = spec[w], pg = await b.newPage({ viewport: { width: 1000, height: 480 } });
-  await pg.goto(`http://localhost:${srv.port}/public/weapons.html?cap=1&w=${w}&q=low&view=fp&fov=${sp.fov || 80}`);
+  for (let t = 0; t < 3; t++) { try { await pg.goto(`http://localhost:${srv.port}/public/weapons.html?cap=1&w=${w}&q=low&view=fp&fov=${sp.fov || 80}`, { timeout: 120000 }); break; } catch (e) { if (t === 2) throw e; } }
   await pg.waitForFunction(() => window.__weaponsReady && window.__step, null, { timeout: 120000 });
   await pg.evaluate(() => window.__step(40, 0.016, []));
   let px = 0.3, py = -0.25;
@@ -23,7 +24,7 @@ for (const w of ids) {
   }
   m = await meas(px, py);
   out[w] = { pos: [+px.toFixed(3), +py.toFixed(3), sp.z ?? -0.6], scale: sp.s, zs: sp.zs, rot: [sp.pitch ?? -0.03, sp.yaw, -0.03], muzzle: m.muzzle.map((v) => +v.toFixed(2)), box: Object.fromEntries(Object.entries(m.box).map(([k, v]) => [k, +v.toFixed(2)])) };
-  console.error(w, JSON.stringify(out[w]));
+  console.error(w, JSON.stringify(out[w])); fs.writeFileSync(OUT, JSON.stringify(out, null, 1));
   await pg.close();
 }
-console.log(JSON.stringify(out, null, 1)); await b.close(); await srv.close();
+await b.close(); await srv.close();

@@ -9,11 +9,12 @@ import { HU } from './handmat.js';
 import { Pose, handLod, collectSolids, TriGrid, distTris, distCyl, closeFinger, fitThumb, FINGERS, REST, ARM } from './hand-rig.js';
 import { handGeoms, armFrame } from './hand-gear.js';
 
-export const HAND_SCALE = 1.42; // las armas son ~1.6x el tamaño real: la mano sigue esa escala
+export const HAND_SCALE = +(((typeof location !== "undefined" && new URLSearchParams(location.search).get("hs2")) || 1.42)); // las armas son ~1.6x el tamaño real: la mano sigue esa escala
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const CP = V(0, -0.0245, 0.05);                 // centro de la palma (en el marco local de la mano)
 const BASIS_GRIP = [V(0, 1, 0), V(1, 0, 0), V(0, 0, -1)];   // X (pulgar) -> +y · Y (dorso) -> +x · Z (dedos) -> -z : mano derecha agarrando una empuñadura vertical
 const BASIS_UNDER = [V(0, 0, -1), V(0, -1, 0), V(-1, 0, 0)]; // palma hacia arriba, dedos hacia -x (mano derecha en el mundo espejo = izquierda real)
+const BASIS_OVER = [V(0, 0, 1), V(0, 1, 0), V(-1, 0, 0)];   // palma hacia abajo (mano por encima del tubo), pulgar hacia el tirador, dedos hacia -x
 const ABD = [0, -0.1, 0.07, 0.2, 0.3]; // aducción de reposo por dedo para que queden paralelos
 
 function makeRoot(pc, basis, euler, S) {
@@ -58,6 +59,8 @@ function gripMetrics(k, g) {
   return { gx, zF };
 }
 const dbgOn = () => !!globalThis.__HANDDBG;
+const QP = (k) => { try { return new URLSearchParams(location.search).get(k); } catch { return null; } };   // pruebas: ?arm=x,y,z,ang (dirección del codo, sólo desarrollo)
+const armDev = (def, ang) => { const a = QP('arm'); if (!a) return [def, ang]; const v = a.split(',').map(Number); return [V(v[0], v[1], v[2]), v[3] || ang]; };
 
 function solveRight(job) {
   const { k, g, H, S } = job, pose = new Pose(H), t0 = performance.now(), rad = 0.0092 * S;
@@ -79,12 +82,14 @@ function solveSupport(job) {
   if (axis === 'y') {
     pose.root = makeRoot(V(cm[0] + R + margin, c[1], c[2] - R + 0.006 + 0.0464 * S), BASIS_GRIP, new THREE.Euler(0, -0.5, 0), S); pose.update();
     for (const fi of [1, 2, 3, 4]) closeFinger(pose, fi, dist, { rad, abd: ABD[fi], base: [0.25, 0.3, 0.15] });
-    fitThumb(pose, dist, V(cm[0] - R - 0.0095 * S, c[1] + 0.045, c[2] - R * 0.3), { rad: rad + 0.001 }); bendArm(pose, H, V(0.5, -0.5, 0.7));
+    fitThumb(pose, dist, V(cm[0] - R - 0.0095 * S, c[1] + 0.045, c[2] - R * 0.3), { rad: rad + 0.001 }); bendArm(pose, H, ...armDev(V(0.5, -0.5, 0.7), 0.7));
   } else {
+    const over = QP('over') === '1';
+    if (over) pose.root = makeRoot(V(cm[0] + 0.05 - 0.3 * R, c[1] + R + margin, c[2] + 0.004), BASIS_OVER, new THREE.Euler(0, -0.5, 0), S); else
     pose.root = makeRoot(V(cm[0] + 0.062 - 0.3 * R, c[1] - R - margin, c[2] - 0.004), BASIS_UNDER, new THREE.Euler(0, -0.5, 0), S); pose.update();
     for (const fi of [1, 2, 3, 4]) closeFinger(pose, fi, dist, { rad, abd: ABD[fi] * 0.6, base: [0.2, 0.3, 0.15] });
-    fitThumb(pose, dist, V(cm[0] + R + 0.0095 * S, c[1] + R * 0.25, c[2] - 0.06 - 0.02 * S), { rad: rad + 0.001 });
-    bendArm(pose, H, V(0.7 * flip, -0.45, 0.55));
+    fitThumb(pose, dist, over ? V(cm[0] - 0.01, c[1] - R * 0.2, c[2] + R + 0.02) : V(cm[0] + R + 0.0095 * S, c[1] + R * 0.25, c[2] - 0.06 - 0.02 * S), { rad: rad + 0.001 });
+    bendArm(pose, H, ...armDev(V(0.7 * flip, -0.45, 0.55), 0.7));
   }
   if (dbgOn()) console.log('  [mano izq]', (performance.now() - t0).toFixed(0) + 'ms', 'sólidos', solids.length / 9);
   return pose;

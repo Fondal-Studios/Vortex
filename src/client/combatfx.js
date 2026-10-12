@@ -308,8 +308,8 @@ export class CombatFx {
     const shape = it && it.W && it.W.flash ? it.W.flash.shape : 'star', cf = this.camFlash; if (!cf) return;
     const col = _color.setHex(x.c), k = this.nextCF = ((this.nextCF || 0) + 1) % cf.length, F = cf[k];
     const rate = WEAPONS[x.w] ? WEAPONS[x.w].rate : 0.3, calm = rate < 0.12 ? 0.5 : 1; // armas de ráfaga: destello más suave (no estroboscópico)
-    F.life = F.max = (S.fd || 0.1) * 1.3; F.size = S.fl * 1.25; F.wash = (rm ? 0.25 : 1) * S.wash * calm;
-    F.pat.material.map = flashTexture(shape); F.pat.material.color.copy(col).lerp(_white, 0.35); F.glow.material.color.copy(col); F.wash_.material.color.copy(col);
+    F.life = F.max = (S.fd || 0.1) * 1.3; F.size = Math.min(S.fl, 0.95) * 0.95; F.wash = (rm ? 0.25 : 0.7) * S.wash * calm;
+    F.pat.material.map = flashTexture(shape); F.pat.material.color.copy(col).lerp(_white, 0.2); F.glow.material.color.copy(col); F.wash_.material.color.copy(col);
     F.pat.material.rotation = Math.random() * 6.283; F.group.position.copy(this.mzLocal); F.group.visible = true;
     // luz de fogonazo (la PointLight de Alta; en Baja el "lavado" hace de luz)
     if (r.muzzle) { r.muzzle.color.setHex(x.c); r.muzzle.position.copy(this.mzLocal).add(_t.set(0, 0.05, -0.6)); r.muzzle.intensity = Math.max(r.muzzle.intensity, S.light * (rm ? 0.4 : 1)); }
@@ -346,8 +346,8 @@ export class CombatFx {
     for (const F of this.camFlash) {
       if (!F.group.visible) continue; F.life -= dt; const u = clamp(1 - F.life / F.max, 0, 1), f = 1 - u * u * 0.9;
       if (F.life <= 0) { F.group.visible = false; F.pat.material.opacity = F.glow.material.opacity = F.wash_.material.opacity = 0; continue; }
-      F.pat.scale.setScalar(F.size * (1.1 + 0.5 * u)); F.pat.material.opacity = clamp(f * 1.3, 0, 1);
-      F.glow.scale.setScalar(F.size * (2.2 + 0.8 * u)); F.glow.material.opacity = clamp(f * 1.0, 0, 1);
+      F.pat.scale.setScalar(F.size * (1.1 + 0.5 * u)); F.pat.material.opacity = clamp(f * 0.95, 0, 1);
+      F.glow.scale.setScalar(F.size * (2.2 + 0.8 * u)); F.glow.material.opacity = clamp(f * 0.6, 0, 1);
       F.wash_.scale.setScalar(5); F.wash_.material.opacity = f * F.wash;
     }
   }
@@ -364,14 +364,16 @@ export class CombatFx {
   /** Impactos por estilo (para criaturas y mundo). k = escala por daño/arma. Base común (destello + estallido + onda) y firma por estilo. */
   impact(style, p, n, c, k = 1, creature = false) {
     const fx = this.fx; k = clamp(k, 0.5, 2.8); const lowT = this.tier === 0, fast = this.fastGate;
+    // lejos hay que agrandar para que se vea (a 30 m un estallido de 1 m es un punto); cerca, achicar para no tapar la pantalla
+    if (this.cam) k *= Math.pow(clamp(this.cam.position.distanceTo(p) / 14, 0.6, 2.0), 0.7);
     // base común: brillo de color + estrella blanca + onda sobre la superficie. Se ve a 30 m.
-    fx.flash(p, c, 1.7 * k, 0.17, { op: 0.95 });
-    fx.flash(p, 0xffffff, 1.1 * k, 0.1, { burst: true });
-    if (!fast || Math.random() < 0.4) fx.ring(p, n, c, 2.4 * k, 0.32, { r0: 0.2, shock: true, op: 0.9 });
+    fx.flash(p, c, 1.05 * k, 0.17, { op: 0.95 });
+    fx.flash(p, 0xffffff, 0.7 * k, 0.1, { burst: true });
+    if (!fast || Math.random() < 0.4) fx.ring(p, n, c, clamp(1.35 * k, 0.9, 3.2), 0.32, { r0: 0.2, shock: true, op: 0.9 });
     switch (style) {
       case 'spark': fx.sparks(p, 0xfff2b0, 8 * k, 12, 0.4, { dir: n, cone: 2.0, c2: 0xff7a2a, w: 0.07 }); break;
       case 'crystal': fx.spray(p, c, 6 * k, 8, 0.6, 0.6, { shape: SHAPE.shard, spin: 9, grav: 6, dir: n, cone: 1.5, grow: -0.4, c2: 0xffffff, raw: !lowT }); fx.spray(p, 0xffffff, 2, 3, 0.4, 0.9, { shape: SHAPE.star, drag: 4, spin: 3, raw: true }); break;
-      case 'ring': fx.ring(p, n, c, 3.4 * k, 0.4, { r0: 0.2, shock: true }); fx.sparks(p, c, 6 * k, 11, 0.34, { dir: n, cone: 1.8, w: 0.07 }); break;
+      case 'ring': fx.ring(p, n, c, clamp(2.2 * k, 1.2, 4), 0.4, { r0: 0.2, shock: true }); fx.sparks(p, c, 6 * k, 11, 0.34, { dir: n, cone: 1.8, w: 0.07 }); break;
       case 'frost': fx.spray(p, 0xdff8ff, 7 * k, 6, 0.8, 0.65, { shape: SHAPE.shard, spin: 6, grav: 3, dir: n, cone: 1.7, c2: 0x66b8ff, grow: -0.3 }); fx.spray(p, 0xcfeaff, 3, 2, 1.2, 1.2, { smoke: true, shape: SHAPE.smoke, grow: 1.3, drag: 2.5, c2: 0x6a9ad0, spin: 1 }); fx.spray(p, 0xffffff, 2, 2, 0.5, 0.9, { shape: SHAPE.star, drag: 3, spin: 2 }); break;
       case 'poison': fx.spray(p, 0x9dff5a, 5 * k, 4, 0.9, 0.8, { shape: SHAPE.bubble, up: 1.2, drag: 2, c2: 0x2aa04a, grow: 0.3 }); fx.spray(p, 0x7dff4a, 5 * k, 7, 0.7, 0.4, { shape: SHAPE.ember, grav: 14, dir: n, cone: 1.6, c2: 0x1a7a2a }); break;
       case 'fire': fx.spray(p, 0xffe08a, 6 * k, 5, 0.6, 1.1, { c2: 0xd02a0a, grow: 0.4, dir: n, cone: 1.5, up: 1.5 }); fx.spray(p, 0xffc040, 4 * k, 7, 0.9, 0.34, { shape: SHAPE.ember, grav: -2, c2: 0xff3a10 }); fx.spray(p, 0x3a2420, 2, 1.5, 1.0, 1.0, { smoke: true, shape: SHAPE.smoke, grow: 1.5, up: 2, c2: 0x0c0808, spin: 1 }); break;

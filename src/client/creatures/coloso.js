@@ -11,6 +11,7 @@ import { bioMaterial } from './obelisco-mat.js';
 import { bigEye, eyeCluster, mawBio, softDot, clamp, lerp, damp, rnd } from './obelisco-lib.js';
 import { V3, paint, place, aimY, merge, loft, line, prof, domePlate, patch, blobGeo, spikes, crystals, tentacleBundle, tentacleRig, sstep } from './obelisco-geo.js';
 import { shieldBubble, orbitShards, chargeBeam, particleBank } from './coloso-fx.js';
+import { makeFacer } from './boss-face.js';
 
 const TAU = Math.PI * 2;
 
@@ -118,7 +119,7 @@ export default function build(kit, color) {
   const mats = [bio, bioT, shards.mat, ...BE.mats, ...EC.mats];
   const sKick = new Spring(0, 90, 7), sHit = new Spring(0, 140, 8), sRoll = new Spring(0, 40, 5);
   let p2 = 0, p3 = 0, wind = 0, wt = 0, prevS = '', burst = 0, hit = 0, prevHp = 1, prevPh = 1, flashT = 0, rayT = 0, ray = 0, stg = 0, stgT = 0, sdAmt = 0, crack = 0, shFlash = 0, prevSd = false, smokeAcc = 0, emberAcc = 0, shBurst = 0;
-  const Q = new THREE.Quaternion(), S = new V3(), P = new V3(), up = new V3(0, 1, 0), look0 = new V3(0, 0, 1), aimL = new V3(), aimW = new V3(), qa = new THREE.Quaternion(), M = new THREE.Matrix4();
+  const F = makeFacer({ rate: 2.2 }), lookR = new V3(), aimR = new V3(), eulS = new THREE.Euler(), qS = new THREE.Quaternion(), Q = new THREE.Quaternion(), S = new V3(), P = new V3(), up = new V3(0, 1, 0), look0 = new V3(0, 0, 1), aimL = new V3(), aimW = new V3(), qa = new THREE.Quaternion(), M = new THREE.Matrix4();
   const baseSkin = new THREE.Color(FLESH), rageSkin = new THREE.Color(0x5a1a30), colA = new THREE.Color(color), colHot = new THREE.Color(0xff5a40), dc = new THREE.Color(), tmp = new V3(), dirT = new V3(), vel = new V3();
 
   return { root, mats, tick(dt, st, t, ctx = {}) {
@@ -143,8 +144,11 @@ export default function build(kit, color) {
     /* flotar; aturdido: se ladea y cae unos metros */
     const sway = Math.sin(t * 5.3) * 0.02 * rayK + hit * 0.03 * Math.sin(t * 40);
     rig.position.y = Math.sin(t * 0.6 + id) * 0.05 + Math.sin(t * 1.1) * 0.015 - stg * 0.55 + Math.sin(stgT * 2.1) * 0.05 * stg;
-    rig.rotation.z = roll * 0.6 + stg * (0.5 + 0.08 * Math.sin(stgT * 1.7)) + sway; rig.rotation.x = Math.sin(t * 0.45 + 1) * 0.03 + kick * 0.05 + stg * 0.32 - ray * 0.05;
-    rig.rotation.y = stg * Math.sin(stgT * 0.9) * 0.18;
+    // el leviatán gira entero para MIRAR a la cámara en 3D (el motor solo lo orienta en horizontal; visto desde abajo se veía el lomo, no el ojo).
+    // Durante el rayo mira hacia el pilar marcado (el haz sale del ojo y debe verse hacia dónde va).
+    F.step(dt, sn === 'ray' ? aimL : look, 1 + wind * 1.5);
+    rig.quaternion.copy(F.q).multiply(qS.setFromEuler(eulS.set(Math.sin(t * 0.45 + 1) * 0.03 + kick * 0.05 + stg * 0.32 - ray * 0.05, stg * Math.sin(stgT * 0.9) * 0.18, roll * 0.6 + stg * (0.5 + 0.08 * Math.sin(stgT * 1.7)) + sway)));
+    lookR.copy(look); F.toRig(lookR); aimR.copy(aimL); F.toRig(aimR);
     body.position.z = -wind * 0.12 + kick * 0.08 - burst * 0.05 - ray * 0.12;
     const bs = 1 + (breath - 0.5) * 0.035 + wind * 0.045 + burst * 0.03 - hit * 0.02 + hk * 0.03 + ray * 0.03 * Math.sin(t * 22) * rayK; body.scale.set(bs * (1 + hit * 0.01) * BS, bs * (1 - wind * 0.03) * BS, bs * BS);
 
@@ -156,12 +160,12 @@ export default function build(kit, color) {
     shards.mat.userData.u.uHurt.value = 0;
 
     /* ojo central: se abre al cargar el rayo; aturdido: pesado y desorientado */
-    const aimEye = tmp.copy(aimL); const eyeLookDir = sn === 'ray' ? aimEye : look;
+    const aimEye = tmp.copy(aimR); const eyeLookDir = sn === 'ray' ? aimEye : lookR;
     BE.update(dt, stg > 0.3 ? tmp.set(Math.sin(t * 2.2) * 0.8, Math.cos(t * 1.7) * 0.6, 1) : eyeLookDir, { open: clamp(0.78 + wind * 0.2 + ray * 0.22 - hit * 0.4 - (1 - hp) * 0.08 - stg * 0.5, 0.08, 1), pupil: lerp(0.8, 0.4, wind) * (1 - p3 * 0.1) + 0.05 * Math.sin(t * 2 + id) - ray * 0.3 + stg * 0.35, glow: 0.4 + wind * 1.6 + p3 * 0.5 + flashT + ray * 2.5 * (0.4 + rayK), hurt: U.uHurt.value, shake: wind * 0.01 + stg * 0.15, blinkRate: 0.5 + rage + stg * 2, track: 8, brow: 0.18 + ray * 0.2 });
     BE.iris.userData.u.uIris.value.set(color).lerp(dc.setHex(0x80e0ff), ray * 0.8);
     /* ojos del enjambre */
     for (const e of eyeInfo) { const tg = ph >= e.ph ? 1 : 0; e.s = damp(e.s, tg, 3.2, dt); EC.setScale(e.id, e.s * (1 + 0.04 * Math.sin(t * 3 + e.id))); }
-    EC.update(dt, sn === 'ray' ? aimL : look, { open: clamp(1 - hit * 0.7 - (1 - hp) * 0.1 + wind * 0.3 - stg * 0.4, 0.2, 1), dilate: 1 - wind * 0.35 - p3 * 0.1 - ray * 0.3 + stg * 0.4, glow: 0.4 + p3 * 0.4 + wind * 1.2 + ray * 1.4, jitter: (1 - wind * 0.9 + rage) * (1 - ray * 0.9) + stg * 6, blinkRate: 0.8 + rage * 1.5 + stg * 2, track: 1 + wind * 2 + ray * 4 - stg * 0.7, maxAng: sn === 'ray' ? 1.7 : stg > 0.3 ? 2.2 : 1.2 });
+    EC.update(dt, sn === 'ray' ? aimR : lookR, { open: clamp(1 - hit * 0.7 - (1 - hp) * 0.1 + wind * 0.3 - stg * 0.4, 0.2, 1), dilate: 1 - wind * 0.35 - p3 * 0.1 - ray * 0.3 + stg * 0.4, glow: 0.4 + p3 * 0.4 + wind * 1.2 + ray * 1.4, jitter: (1 - wind * 0.9 + rage) * (1 - ray * 0.9) + stg * 6, blinkRate: 0.8 + rage * 1.5 + stg * 2, track: 1 + wind * 2 + ray * 4 - stg * 0.7, maxAng: sn === 'ray' ? 1.7 : stg > 0.3 ? 2.2 : 1.2 });
     /* iris de placas */
     const openP = clamp(0.45 + wind * 0.2 + ray * 0.55 + stg * 0.1, 0, 1);
     for (const P0 of plates) { P0.h2.rotation.x = lerp(1.0, 0.12, openP) + Math.sin(t * 1.6 + P0.off) * 0.04 * (1 - openP * 0.5) + hit * 0.2 * Math.sin(P0.i * 2.3 + t * 25) + stg * 0.15 * Math.sin(stgT * 3 + P0.i); P0.h1.updateMatrix(); P0.h2.updateMatrix(); mA.multiplyMatrices(P0.h1.matrix, P0.h2.matrix); plateIM.setMatrixAt(P0.i, mA); }
@@ -172,7 +176,7 @@ export default function build(kit, color) {
     /* anillos: giran, se expanden al avisar, se ALINEAN al cargar el rayo (concéntricos al eje del haz) y caen desordenados al aturdirse */
     const spd = (1 + rage * 1.2 + p3 * 0.8 + wind * 5 + burst * 3 + ray * 2.5) * (1 - 0.85 * stg);
     // base de alineación: ejes de los anillos → +z local del haz (rotación del grupo 'tilt' a la dirección aimL)
-    const qAim = Q.setFromUnitVectors(new V3(0, 0, 1), aimL);
+    const qAim = Q.setFromUnitVectors(new V3(0, 0, 1), aimR);
     rings.forEach((Rg, i) => {
       Rg.spin.rotation.z += dt * Rg.sp * spd;
       const free = new THREE.Euler(Rg.base.x + Math.sin(t * 0.3 + i * 2) * 0.12 + hk * 0.06, Rg.base.y + t * Rg.pre * (1 + rage) + Math.sin(t * 0.5 + i) * 0.1, Rg.base.z);

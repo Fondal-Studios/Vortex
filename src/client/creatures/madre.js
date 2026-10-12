@@ -11,6 +11,7 @@ import { bioMaterial } from './obelisco-mat.js';
 import { bigEye, mawBio, softDot, clamp, lerp, damp, rnd } from './obelisco-lib.js';
 import { V3, paint, place, aimY, merge, loft, line, prof, patch, blobGeo, spikes, crystals, crystalGeo, tentacleBundle, tentacleRig, sstep } from './obelisco-geo.js';
 import { particleBank } from './coloso-fx.js';
+import { makeFacer } from './boss-face.js';
 
 const TAU = Math.PI * 2;
 
@@ -37,7 +38,7 @@ export default function build(kit, color) {
     for (let i = 0; i < (LOW ? 4 : 6); i++) { const z = -0.45 + i * 0.18, pts = []; for (let j = 0; j <= 10; j++) { const a = (j / 10) * Math.PI * 2; pts.push(new V3(Math.cos(a) * (0.42 * Math.sqrt(Math.max(0.02, 1 - (z / 0.62) ** 2)) + 0.03), Math.sin(a) * (0.42 * Math.sqrt(Math.max(0.02, 1 - (z / 0.62) ** 2)) + 0.03), z)); }
       bp.push(paint(loft(pts, { seg: 18, radial: 4, r: () => 0.02, round: [0, 0] }), BONE, 2, 0, () => ({ k: 0.9 }))); }
     mesh(merge(bp), backG, bioF); }
-  const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.04, 0.42); body.add(eyeRoot);
+  const eyeRoot = new THREE.Group(); eyeRoot.position.set(0, 0.04, 0.42); eyeRoot.scale.setScalar(1.3); body.add(eyeRoot);
   const BE = bigEye({ r: 0.26, iris: 0xb8ff40, quality: level, lidColor: 0x6a1c30, scleraColor: 0x8a7a60, irisR: 0.5, brow: 0.15 }); eyeRoot.add(BE.object);
   const mouth = mawBio(bioF, { w: 0.26, len: 0.24, teeth: LOW ? 5 : 9, tooth: 0.09, flesh: FLESH, shell: 0, gum: 0xa02848, gumGlow: 0.5 }); mouth.object.position.set(0, -0.3, 0.34); mouth.object.rotation.x = 0.5; body.add(mouth.object);
   const NS = LOW ? 4 : 5, sacs = [];
@@ -46,14 +47,18 @@ export default function build(kit, color) {
   for (let i = 0; i < NS; i++) sacs.push({ a: (i / NS) * TAU + 0.3, ph: i * 1.7 });
 
   /* ── pétalos exteriores (quitina), interiores (carne), espinas y puntas: InstancedMesh ── */
-  const outerG = (() => { const L = 1.3, W = 1.15;
-    const g = patch((u, v) => { const w = W * Math.pow(Math.sin(Math.PI * (0.1 + 0.9 * v)), 0.75) * (0.55 + 0.45 * Math.sin(v * 2.4 + 0.3)), x = (u - 0.5) * 2 * w, y = v * L, z = 0.55 * v * v * 0.5 + 0.1 * Math.pow(x / Math.max(w, 0.01), 2) * Math.min(1, v * 3) - 0.045 * Math.sin(v * 22) * (1 - Math.abs(2 * u - 1)); return new V3(x, y, z); }, LOW ? 6 : 10, LOW ? 8 : 14, { thick: 0.07, inner: true });
-    return paint(g, SHELL, 1, 0, (p, n, uv) => { const mid = Math.exp(-Math.pow((uv[0] - 0.5) * 7, 2)), edge = sstep(0.78, 1, Math.abs(uv[0] * 2 - 1)); return { c: new THREE.Color(SHELL).lerp(new THREE.Color(0x1c5a34), 0.4 * uv[1] + 0.4 * edge), k: 0.6 + 0.8 * uv[1] + 0.3 * mid, g: (mid * 0.6 + edge * 0.5) * (0.4 + 0.6 * uv[1]) }; }); })();
+  // pétalo exterior: concha ACOPADA (borde curvado hacia dentro), nervio central en relieve, lomo de quitina verde-negra y cara interior de carne rosada
+  const outerG = (() => { const L = 1.45, W = 1.15;
+    const g = patch((u, v) => { const w = W * Math.pow(Math.sin(Math.PI * (0.1 + 0.9 * v)), 0.75) * (0.55 + 0.45 * Math.sin(v * 2.4 + 0.3)), x = (u - 0.5) * 2 * w, y = v * L, xr = x / Math.max(w, 0.01),
+        z = 0.55 * v * v * 0.5 + (0.3 * xr * xr) * Math.min(1, v * 2.4) - 0.07 * Math.exp(-Math.pow(xr * 4.5, 2)) * Math.min(1, v * 3) - 0.04 * Math.sin(v * 22) * (1 - Math.abs(2 * u - 1)); return new V3(x, y, z); }, LOW ? 8 : 12, LOW ? 8 : 14, { thick: 0.07, inner: true });
+    return paint(g, SHELL, 1, 0, (p, n, uv) => { const mid = Math.exp(-Math.pow((uv[0] - 0.5) * 7, 2)), edge = sstep(0.78, 1, Math.abs(uv[0] * 2 - 1)), inside = n.z > 0.05;
+      if (inside) return { cls: 0, c: new THREE.Color(0x2e0614).lerp(new THREE.Color(0x8a1a38), Math.min(1, uv[1] * 1.6)).lerp(new THREE.Color(0xc02a50), sstep(0.6, 1, uv[1]) * 0.8), k: 0.7 + 0.3 * uv[1] + 0.2 * mid, g: 0.1 + 0.45 * uv[1] };
+      return { cls: 1, c: new THREE.Color(SHELL).lerp(new THREE.Color(0x1c5a34), 0.35 * uv[1] + 0.5 * edge + 0.3 * mid), k: 0.65 + 0.8 * uv[1] + 0.4 * mid, g: (mid * 0.7 + edge * 0.7) * (0.45 + 0.55 * uv[1]) }; }); })();
   const innerG = (() => { const L = 0.85, W = 0.34;
     const g = patch((u, v) => { const w = W * Math.pow(Math.sin(Math.PI * (0.12 + 0.88 * v)), 0.8), x = (u - 0.5) * 2 * w, y = v * L, z = 0.35 * v * v + 0.06 * Math.pow(x / Math.max(w, 0.01), 2); return new V3(x, y, z); }, 6, 9, { thick: 0.04, inner: true });
     return paint(g, FLESH2, 0, 0, (p, n, uv) => ({ c: new THREE.Color(FLESH).lerp(new THREE.Color(0xd04a5a), uv[1]), k: 0.8 + 0.5 * uv[1], g: 0.3 * uv[1] })); })();
   const spkG = crystalGeo(new V3(0, 0, 0), new V3(0, 1, 0), 0.5, 1, LIME, { sides: 5, glow: 1, tip: 0.5 });
-  const NP = LOW ? 6 : 8, NI = LOW ? 0 : 6;
+  const NP = LOW ? 6 : 8, NI = LOW ? 4 : 6;
   const outerIM = new THREE.InstancedMesh(outerG, bio, NP), innerIM = new THREE.InstancedMesh(innerG, bioF, Math.max(1, NI)), spkIM = new THREE.InstancedMesh(spkG, bio, NP * 3 + NI);
   for (const o of [outerIM, innerIM, spkIM]) { o.frustumCulled = false; o.instanceMatrix.setUsage(THREE.DynamicDrawUsage); body.add(o); } innerIM.count = NI; spkIM.count = NP * 3 + NI;
   const petals = [], inner = [];
@@ -87,7 +92,7 @@ export default function build(kit, color) {
   const sOp = new Spring(0, 120, 11), sHit = new Spring(0, 150, 8), sKick = new Spring(0, 80, 7);
   let op = 0, p2 = 0, p3 = 0, prevS = '', prevHp = 1, hit = 0, prevPh = 1, flashT = 0, shock = 0, birth = 0, fireT = 0, gesT = 0, ventAcc = 0, larvAcc = 0, spasmPrev = 0, prSm = 0;
   const colA = new THREE.Color(color), colHot = new THREE.Color(0xff4a60), dc = new THREE.Color();
-  const look0 = new V3(0, 0, 1), P = new V3(), tmpV = new V3(), velV = new V3();
+  const look0 = new V3(0, 0, 1), P = new V3(), tmpV = new V3(), velV = new V3(), lookR = new V3(), eulS = new THREE.Euler(), qS = new THREE.Quaternion(), F = makeFacer({ rate: 2.2 });
   const sstp = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
   return { root, mats, tick(dt, st, t, ctx = {}) {
@@ -109,7 +114,10 @@ export default function build(kit, color) {
 
     /* flotación, temblor y respiración (más hinchada con la presión) */
     const trem = (vent ? 0.02 : 0) + prSm * 0.012 + hurtLow * 0.006;
-    rig.position.y = Math.sin(t * 0.5 + id) * 0.04; rig.position.x = Math.sin(t * 47) * trem; rig.rotation.z = Math.sin(t * 0.3) * 0.05 + kick * 0.04; rig.rotation.x = Math.sin(t * 0.37) * 0.03 + Math.sin(t * 53) * trem * 0.5;
+    rig.position.y = Math.sin(t * 0.5 + id) * 0.04; rig.position.x = Math.sin(t * 47) * trem;
+    // la flor gira entera para MIRAR a la cámara en 3D (el motor solo la orienta en horizontal; sin esto el ojo/punto débil queda de canto)
+    F.step(dt, look, 1 + (isOpen ? 0.4 : 0)); rig.quaternion.copy(F.q).multiply(qS.setFromEuler(eulS.set(Math.sin(t * 0.37) * 0.03 + Math.sin(t * 53) * trem * 0.5, 0, Math.sin(t * 0.3) * 0.05 + kick * 0.04)));
+    lookR.copy(look); F.toRig(lookR);
     const bs = 1 + (breath - 0.5) * (0.03 + prSm * 0.03) + shock * 0.04 - hk * 0.03 + kick * 0.02 + prSm * 0.07 + spasm * 0.03; body.scale.setScalar(bs); body.rotation.z += dt * (0.05 + rage * 0.1) * (isOpen ? 0.2 : 1);
 
     /* pétalos: onda de apertura, vibración al disparar / con la presión, rotos/colgando con la salud baja */
@@ -117,11 +125,11 @@ export default function build(kit, color) {
     let sIdx = 0;
     petals.forEach((P0) => {
       const delay = P0.i * 0.045, k = sstp(delay, delay + 0.6, opS);
-      const closed = 1.62 - (P0.i % 2) * 0.06, open = 0.3 + P0.off * 0.6 + hurtLow * 0.25 * (P0.i % 3 === 0 ? 1 : 0);
+      const closed = 1.8 - (P0.i % 2) * 0.1, open = -0.22 + P0.off * 0.6 + hurtLow * 0.25 * (P0.i % 3 === 0 ? 1 : 0);
       const th = lerp(closed, open, k) + (1 - k) * (shoot * 0.03 + Math.sin(t * 40 + P0.i) * 0.004 * (1 + rage) + prSm * Math.sin(t * 31 + P0.i * 2) * 0.012) + hk * 0.1 * Math.sin(P0.i * 2.3 + t * 30) + (k > 0.05 ? Math.sin(t * 1.3 + P0.i) * 0.04 * k : 0) + (vent ? Math.sin(t * 28 + P0.i * 1.7) * 0.03 : 0) - spasm * 0.12;
       P0.p.rotation.x = th; P0.p.rotation.y = Math.sin(t * 0.9 + P0.i) * 0.03 * k + (hurtLow && P0.i % 3 === 0 ? Math.sin(t * 7 + P0.i) * 0.05 : 0);
       P0.h.updateMatrix(); P0.p.updateMatrix(); mA.multiplyMatrices(P0.h.matrix, P0.p.matrix);
-      const L = P0.big ? 1.0 : 0.88; mB.multiplyMatrices(mA, mC.makeScale(1.0, L, 1.0)); outerIM.setMatrixAt(P0.i, mB);
+      const L = P0.big ? 1.0 : 0.88, sxw = lerp(1.1, 0.8, k); mB.multiplyMatrices(mA, mC.makeScale(sxw, L, 1.0)); outerIM.setMatrixAt(P0.i, mB);
       // punta de cristal + dos espinas laterales (aparecen en fases)
       mB.multiplyMatrices(mA, compose(0, 1.2 * L * 0.98, 0.24 * L * 0.9, 0.35, 0.12, 0.42 * (1 + p2 * 0.3 + p3 * 0.5 + 0.1 * Math.sin(t * 4 + P0.i)), 0.12)); spkIM.setMatrixAt(P0.i, mB);
       for (let q = 0; q < 2; q++) { const z = Math.max(0.001, p2); mB.multiplyMatrices(mA, compose((q ? 1 : -1) * 0.2, 0.55 * L + q * 0.15, 0.12, 0.5, 0.07 * z, (0.28 + q * 0.06) * z, 0.07 * z)); spkIM.setMatrixAt(NP + P0.i * 2 + q, mB); }
@@ -132,7 +140,7 @@ export default function build(kit, color) {
     /* núcleo: ojo, boca, sacos que paren; en 'gestate' se contrae en espasmos */
     const exp = sstp(0.3, 0.9, opS);
     coreM.scale.set(1 + (breath - 0.5) * 0.06 + hk * 0.08 - spasm * 0.12, 1 + (breath - 0.5) * 0.06 - hk * 0.05 - spasm * 0.12, 1 + spasm * 0.08); backG.scale.set(1 - spasm * 0.18, 1 - spasm * 0.18, 1 + spasm * 0.1 + prSm * 0.05);
-    BE.update(dt, look, { open: clamp(exp * (1 - hit * 0.6) * (0.95 + 0.05 * Math.sin(t)), 0.0, 1) * 0.95 + 0.04 + (vent ? 0.25 : 0), pupil: 0.8 + 0.12 * Math.sin(t * 4) * exp + p3 * 0.2 - prSm * 0.25, glow: 0.4 + exp * (1.0 + 0.6 * Math.sin(t * 3) + p3 * 1.0) + flashT + prSm * 0.6, hurt: U.uHurt.value, shake: hurtLow * 0.05 + (vent ? 0.04 : 0), blinkRate: 0.7 + rage * 1.2 + prSm * 2, track: 7, brow: 0.15 + prSm * 0.2 });
+    BE.update(dt, lookR, { open: clamp(exp * (1 - hit * 0.6) * (0.95 + 0.05 * Math.sin(t)), 0.0, 1) * 0.95 + 0.04 + (vent ? 0.25 : 0), pupil: 0.8 + 0.12 * Math.sin(t * 4) * exp + p3 * 0.2 - prSm * 0.25, glow: 0.4 + exp * (1.0 + 0.6 * Math.sin(t * 3) + p3 * 1.0) + flashT + prSm * 0.6, hurt: U.uHurt.value, shake: hurtLow * 0.05 + (vent ? 0.04 : 0), blinkRate: 0.7 + rage * 1.2 + prSm * 2, track: 7, brow: 0.15 + prSm * 0.2 });
     const bp = Math.pow(Math.max(0, Math.sin(birth * 2.6)), 3), mo = clamp(exp * (0.25 + 0.55 * bp + 0.2 * breath) + hit * 0.3 * exp + (vent ? 0.35 : 0) + (gest ? 0.35 + 0.5 * spasm : 0), 0, 1); mouth.set(mo);
     sacs.forEach((S, i) => {
       const w = Math.pow(Math.max(0, Math.sin(birth * 2.6 - i * 0.7)), 2), sw = 0.9 + 0.2 * Math.sin(t * 2 + S.ph) + w * 0.35 * exp + spasm * 0.2, gs = Math.max(0.001, Math.max(exp, gest ? 0.9 : 0)) * (0.85 + 0.25 * exp);
