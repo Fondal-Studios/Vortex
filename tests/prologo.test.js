@@ -27,10 +27,10 @@ test('prólogo cinematográfico: se recorre entero, la cámara es libre sólo en
       const BEATS = { FREE0: 28.3, IMPACT: 35.0 };
       let camQ0 = null;
       // sin ventana: intentar mirar no hace nada (T < 28.3)
-      P.seek(10); P.setInput({ dyaw: 0.8, dpitch: 0.4 }); P.step(1 / 30); seen.looksOutside = Math.abs(S().look.yaw) + Math.abs(S().look.pitch);
       let guard = 0;
       while (!S().finished && guard++ < 3000) {
         const s = S();
+        if (s.T < BEATS.FREE0 - 0.1) { P.setInput({ dyaw: 0.05, dpitch: 0.02 }); seen.looksOutside += Math.abs(s.look.yaw) + Math.abs(s.look.pitch); }
         if (s.freeLook && s.T > BEATS.FREE0 + 1 && s.T < BEATS.FREE0 + 1.2) P.setInput({ dyaw: 0.9, dpitch: -0.2 });
         P.step(1 / 30); const n = S();
         seen.shots.add(n.shot); seen.freeFlags.push([n.T, n.freeLook]); if (n.trainOn) { seen.trainSeen = true; seen.trainMax = Math.max(seen.trainMax, n.trainX); }
