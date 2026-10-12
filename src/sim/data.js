@@ -182,6 +182,14 @@ export const WAVE_PLANS = {
     ['astilla', 'prisma', 'lente', 'racimo', 'espejo', 'ariete', 'obelisco', 'cuarzo', 'geoda', 'aurora'],
     ['astilla', 'prisma', 'lente', 'racimo', 'espejo', 'ariete', 'obelisco', 'cuarzo', 'geoda', 'aurora', 'graviton', 'espiral'],
   ],
+  m4: [
+    ['astilla', 'racimo'],
+    ['astilla', 'racimo', 'prisma', 'lente'],
+    ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete'],
+    ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete', 'cuarzo', 'obelisco'],
+    ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete', 'cuarzo', 'obelisco', 'geoda', 'aurora'],
+    ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete', 'cuarzo', 'obelisco', 'geoda', 'aurora', 'graviton', 'espiral'],
+  ],
   m2: [
     ['astilla', 'racimo'],
     ['astilla', 'racimo', 'lente', 'espejo'],
@@ -191,7 +199,7 @@ export const WAVE_PLANS = {
     ['astilla', 'racimo', 'lente', 'espejo', 'geoda', 'obelisco', 'prisma', 'cuarzo', 'ariete', 'graviton', 'aurora', 'espiral'],
   ],
 };
-export const BOSS_OF = { m1: 'coloso', m2: 'madre', m3: 'argos' };
+export const BOSS_OF = { m1: 'coloso', m2: 'madre', m3: 'argos', m4: 'argos' };
 
 export const PLAYER = { bleed: 25, hp: 100, shield: 100, radius: 0.9, eye: 0.6, speed: 11, dash: 1.7, jump: 11.5, shieldDelay: 3, shieldRate: 35 };
 
@@ -209,10 +217,12 @@ export const OBJECTIVE_PLAN = {
   m1: { 2: 'ancla', 4: 'sintonia', 5: 'nucleo', 6: 'ancla' },
   m2: { 2: 'sintonia', 3: 'ancla', 4: 'nucleo', 6: 'sintonia' },
   m3: { 2: 'ancla', 3: 'sintonia', 5: 'nucleo', 6: 'ancla' },
+  m4: { 2: 'cultivo', 3: 'ancla', 5: 'nucleo', 6: 'ancla' }, // 5: si el puente aún no creció, el mapa lo cambia por otro Cultivo
 };
 export const OBJECTIVE_INFO = {
   ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Mantené a alguien dentro del círculo para cargarla y cubrila: las criaturas la roen.', limit: 110 },
   sintonia: { title: 'SINTONÍA', desc: 'Pisá todas las placas a la vez durante 3 s. Solo: cada placa queda viva 10 s tras salir.', limit: 110 },
+  cultivo:  { title: 'CULTIVO: PUENTE VIVO', desc: 'Alimentá los 3 capullos disparándoles hasta que florezcan: cada uno hace crecer un tramo del puente al Umbral. Las criaturas los roen: defendelos.', limit: 260 },
   nucleo:   { title: 'NÚCLEO DE MEMORIA', desc: 'Uno lleva el núcleo al altar (lento y sin disparar); el resto lo cubre. Pasalo con E cerca.', limit: 150 },
 };
 // Fragmentos de recuerdo: los cuenta el Heraldo cada vez que se cumple un objetivo (el sentido de la historia)

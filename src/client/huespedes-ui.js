@@ -13,7 +13,7 @@ const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 const ROLE_ES = { asalto: 'Asalto', asesina: 'Asesina', tanque: 'Tanque', control: 'Control', 'híbrido': 'Híbrido' };
 const STAT_ES = { dano: 'Daño', resistencia: 'Resistencia', movilidad: 'Movilidad', control: 'Control', utilidad: 'Utilidad', dificultad: 'Dificultad' };
 const STAT_KEYS = ['dano', 'resistencia', 'movilidad', 'control', 'utilidad', 'dificultad'];
-const FRAME = { axioma: [1.02, 2.3], vesper: [1.05, 2.4], micelio: [1.22, 2.8], umbra: [1.45, 3.2], seraf: [1.1, 2.7] }; // [centro y, alto a encuadrar]
+const FRAME = { axioma: [1.02, 2.3], vesper: [1.05, 2.4], micelio: [1.2, 3.1], umbra: [1.45, 3.2], seraf: [1.1, 2.7] }; // [centro y, alto a encuadrar]
 const LEVEL = (d) => (d <= 3 ? 'Fácil' : d <= 6 ? 'Media' : d <= 8 ? 'Alta' : 'Experta');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const roleName = (c) => ROLE_ES[c.role] || (ROLES[c.role] && ROLES[c.role].name) || c.role;
@@ -44,6 +44,7 @@ export function buildHuespedScreen(menu) {
   root.classList.add('hs');
   const chip = (id) => { const c = CHARACTERS[id]; return `<button class="hs-chip hs-nav" type="button" data-id="${id}" style="--c:${hex(c.color)}" aria-pressed="false"><i class="hs-dot"></i><span class="hs-cn"><b>${c.name}</b><small>${esc(roleName(c))}</small></span><em class="hs-ok" aria-hidden="true">✓</em></button>`; };
   root.innerHTML = `
+    <button class="backbtn" type="button" aria-label="Volver al menú anterior"><span aria-hidden="true">‹</span> Volver</button>
     <div class="hs-wrap">
       <nav class="hs-rail" id="hsrail" aria-label="Huéspedes">
         <div class="hs-hosts">${hosts().map(chip).join('')}</div>
@@ -61,6 +62,7 @@ export function buildHuespedScreen(menu) {
       <aside class="hs-info" id="hsinfo" aria-label="Información del Huésped"></aside>
     </div>`;
   const $ = (s) => root.querySelector(s);
+  $('.backbtn').addEventListener('click', (e) => { e.stopPropagation(); menu.back(); });
   const hs = menu.hs = { sel: null, host: null, THREE: null, renderer: null, failed: false, running: false, yaw: 0, user: 0, idle: 0, drag: null, demoT: [], quality: 'low' };
   const avg = avgStats();
 
@@ -74,7 +76,7 @@ export function buildHuespedScreen(menu) {
       gl.setPixelRatio(Math.min(devicePixelRatio || 1, hs.quality === 'low' ? 1.5 : 2)); gl.setClearColor(0x000000, 0);
       gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.2;
       const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
-      const hemi = new THREE.HemisphereLight(0xc4ccff, 0x2a0f3a, 1.3), key = new THREE.DirectionalLight(0xfff1e0, 2.4), rim = new THREE.DirectionalLight(0xffffff, 3), kick = new THREE.DirectionalLight(0xffffff, 1);
+      const hemi = new THREE.HemisphereLight(0xd4daff, 0x3a1f55, 2.1), key = new THREE.DirectionalLight(0xfff1e0, 3.2), rim = new THREE.DirectionalLight(0xffffff, 2.4), kick = new THREE.DirectionalLight(0xffffff, 1);
       key.position.set(2.2, 3.4, 4); rim.position.set(-3, 2.4, -3.5); kick.position.set(3, 0.4, -2); scene.add(hemi, key, rim, kick);
       const add = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide };
       const pad = new THREE.Mesh(new THREE.CircleGeometry(1.6, 40), new THREE.MeshBasicMaterial({ color: 0xffffff, ...add, opacity: 0.18 })); pad.rotation.x = -Math.PI / 2; pad.position.y = 0.005;
@@ -95,7 +97,7 @@ export function buildHuespedScreen(menu) {
   function setModel(id) {
     if (hs.host) { hs.scene.remove(hs.host.group); hs.host.dispose(); hs.host = null; }
     const C = CHARACTERS[id], col = new hs.THREE.Color(C.color);
-    hs.rim.color.copy(col); hs.kick.color.copy(col).lerp(new hs.THREE.Color(0xffffff), 0.2); for (const m of [hs.pad, hs.ring, hs.ring2]) m.material.color.copy(col);
+    hs.rim.color.copy(col).lerp(new hs.THREE.Color(0xffffff), 0.45); hs.kick.color.copy(col).lerp(new hs.THREE.Color(0xffffff), 0.2); for (const m of [hs.pad, hs.ring, hs.ring2]) m.material.color.copy(col);
     if (C.host) { hs.host = buildHost(hs.THREE, id, hs.quality); hs.scene.add(hs.host.group); hs.user = 0; hs.idle = 0; }
     frame();
   }

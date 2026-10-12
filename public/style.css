@@ -331,3 +331,6 @@ body.playing #trophies { top: calc(env(safe-area-inset-top, 0px) + 112px); botto
 @media (max-aspect-ratio: 1/1) { /* vertical: una columna, tarjetas compactas */
   #cardlist { grid-template-columns: 1fr; } .ucard { max-width: 460px; padding: 10px 14px; } .ucard .un { font-size: 19px; } .ucard .ud { font-size: 13px; } #cards h3 { font-size: 17px; letter-spacing: .12em; } }
 @media (max-height: 460px) and (min-aspect-ratio: 1/1) { #cards .cards-in { gap: 6px; } .ucard kbd { display: none; } .ucard { padding: 6px 8px; } .ucard .lv { margin-top: 3px; } }
+
+/* Mientras se eligen las tarjetas, los botones táctiles se esconden y dejan pasar los toques (si no, tapaban la 3.ª tarjeta y no se podía tocar). */
+body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn, body.cards-open #touch .tc-stick { visibility: hidden; }

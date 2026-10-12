@@ -1,0 +1,182 @@
+[
+ {
+  "name": "1a-espera",
+  "calls": 22,
+  "triangles": 26736,
+  "geometries": 47,
+  "textures": 8,
+  "scene": 0,
+  "obj": "Mirá a tu alrededor"
+ },
+ {
+  "name": "1b-espera-cartel",
+  "calls": 14,
+  "triangles": 26444,
+  "geometries": 47,
+  "textures": 8,
+  "scene": 0,
+  "obj": "Mirá a tu alrededor"
+ },
+ {
+  "name": "2a-tren-llega",
+  "calls": 31,
+  "triangles": 27578,
+  "geometries": 54,
+  "textures": 9,
+  "scene": 1,
+  "obj": "Algo viene por el túnel"
+ },
+ {
+  "name": "2b-persona-se-tambalea",
+  "calls": 32,
+  "triangles": 27580,
+  "geometries": 54,
+  "textures": 9,
+  "scene": 1,
+  "obj": "Algo viene por el túnel"
+ },
+ {
+  "name": "2c-cae-inclinada",
+  "calls": 31,
+  "triangles": 27578,
+  "geometries": 54,
+  "textures": 9,
+  "scene": 1,
+  "obj": "Algo viene por el túnel"
+ },
+ {
+  "name": "2d-cae-en-el-aire",
+  "calls": 31,
+  "triangles": 27578,
+  "geometries": 54,
+  "textures": 9,
+  "scene": 1,
+  "obj": "Algo viene por el túnel"
+ },
+ {
+  "name": "2e-en-las-vias",
+  "calls": 33,
+  "triangles": 27626,
+  "geometries": 55,
+  "textures": 9,
+  "scene": 1,
+  "obj": "¡Ayudala! Acercate al borde del andén"
+ },
+ {
+  "name": "3a-ruptura-inicio",
+  "calls": 31,
+  "triangles": 27578,
+  "geometries": 56,
+  "textures": 9,
+  "scene": 2,
+  "obj": "Observá la ruptura"
+ },
+ {
+  "name": "3b-ruptura-membrana",
+  "calls": 31,
+  "triangles": 27578,
+  "geometries": 56,
+  "textures": 9,
+  "scene": 2,
+  "obj": "Observá la ruptura"
+ },
+ {
+  "name": "3c-ruptura-tejido",
+  "calls": 18,
+  "triangles": 27058,
+  "geometries": 56,
+  "textures": 9,
+  "scene": 2,
+  "obj": "Observá la ruptura"
+ },
+ {
+  "name": "3d-ruptura-final",
+  "calls": 14,
+  "triangles": 26444,
+  "geometries": 56,
+  "textures": 9,
+  "scene": 2,
+  "obj": "Observá la ruptura"
+ },
+ {
+  "name": "4a-entidad",
+  "calls": 16,
+  "triangles": 28924,
+  "geometries": 58,
+  "textures": 10,
+  "scene": 3,
+  "obj": "Algo se acerca"
+ },
+ {
+  "name": "4b-espora-y-mano",
+  "calls": 20,
+  "triangles": 29862,
+  "geometries": 61,
+  "textures": 11,
+  "scene": 3,
+  "obj": "Algo se acerca"
+ },
+ {
+  "name": "4c-organismo-listo",
+  "calls": 26,
+  "triangles": 30448,
+  "geometries": 64,
+  "textures": 11,
+  "scene": 3,
+  "obj": "Disparale al capullo del otro andén (0/3)"
+ },
+ {
+  "name": "4d-blanco",
+  "calls": 25,
+  "triangles": 30436,
+  "geometries": 64,
+  "textures": 11,
+  "scene": 3,
+  "obj": "Disparale al capullo del otro andén (0/3)"
+ },
+ {
+  "name": "4e-disparo-en-vuelo",
+  "calls": 25,
+  "triangles": 30436,
+  "geometries": 64,
+  "textures": 11,
+  "scene": 3,
+  "obj": "Disparale al capullo del otro andén (0/3)"
+ },
+ {
+  "name": "4f-impacto",
+  "calls": 25,
+  "triangles": 30436,
+  "geometries": 64,
+  "textures": 11,
+  "scene": 3,
+  "obj": "Disparale al capullo del otro andén (1/3)"
+ },
+ {
+  "name": "5a-decision",
+  "calls": 25,
+  "triangles": 31270,
+  "geometries": 68,
+  "textures": 11,
+  "scene": 4,
+  "obj": "Activá el mecanismo"
+ },
+ {
+  "name": "5b-mecanismo-activado",
+  "calls": 25,
+  "triangles": 31270,
+  "geometries": 68,
+  "textures": 11,
+  "scene": 4,
+  "obj": "Atravesá el umbral"
+ },
+ {
+  "name": "5c-umbral-abierto",
+  "calls": 23,
+  "triangles": 31236,
+  "geometries": 68,
+  "textures": 11,
+  "scene": 4,
+  "obj": "Atravesá el umbral"
+ }
+]

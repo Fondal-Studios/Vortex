@@ -1,0 +1,12 @@
+[
+ {
+  "name": "axioma-sobrecarga",
+  "base": 64,
+  "pico": 67,
+  "extra": 3,
+  "particulas": 10,
+  "segs": 29,
+  "mallas": 3,
+  "tris": 37012
+ }
+]

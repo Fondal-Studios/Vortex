@@ -12,6 +12,7 @@ const nearest = (targets, pos) => {
 const dmgMul = (g) => 1 + 0.04 * (g.wave - 1);
 
 function groundMove(game, m, dt, wish, speed, accel = 10) {
+  if (game.map.steer && m.grounded) wish = game.map.steer(game, m, wish); // mapa 4: seguir rampas/puentes y no caminar al vacío
   const g = game.map.gravityAt(m.pos, game.time);
   const zero = len(g) < 0.5;
   if (!zero) m.up = norm(mul(g, -1));

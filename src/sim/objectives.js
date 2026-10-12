@@ -1,9 +1,11 @@
 // Objetivos de oleada (ancla, sintonía, núcleo) — puzzles cooperativos con recompensa de equipo. Ver docs/DISENO_DIRECTOR.md
 import { dist, clone, madd, clamp, norm, sub } from './math.js';
 import { OBJECTIVE_PLAN, OBJECTIVE_INFO, FRAGMENTS, PLAYER, WEAPONS } from './data.js';
+import { startCultivo, cultivoObjective } from './cultivo.js';
 
 export function makeObjective(g, n) {
-  const kind = (OBJECTIVE_PLAN[g.mapId] || {})[n];
+  let kind = (OBJECTIVE_PLAN[g.mapId] || {})[n];
+  if (kind && g.map.objectiveFor) kind = g.map.objectiveFor(kind, g); // p. ej. mapa 4: sin puente no hay Núcleo, hay Cultivo
   if (!kind) return null;
   const info = OBJECTIVE_INFO[kind], sp = g.map.spots, np = g.players.length;
   const o = { type: kind, state: 'active', t: 0, limit: info.limit, prog: 0, title: info.title, desc: info.desc, ids: [], solo: np <= 1, sync: 0 };
@@ -16,6 +18,7 @@ export function makeObjective(g, n) {
     const core = g.addObject('core', clone(sp.core), { carrier: 0, objective: true }), altar = g.addObject('altar', clone(sp.altar), { r: 3.4, objective: true });
     o.ids.push(core.id, altar.id); o.d0 = dist(core.pos, altar.pos);
   }
+  if (kind === 'cultivo') startCultivo(g, o);
   g.emit({ t: 'objective', ph: 'start', kind, title: info.title, desc: info.desc });
   return o;
 }
@@ -56,6 +59,7 @@ export function updateObjective(g, dt) {
     }
     o.prog = clamp(1 - dist(core.pos, altar.pos) / (o.d0 || 1), 0, 1);
   }
+  else if (o.type === 'cultivo') { if (cultivoObjective(g, o, dt)) return finish(g, o, true); }
   if (o.t > o.limit) finish(g, o, false);
 }
 

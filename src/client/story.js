@@ -9,6 +9,51 @@ export const INTRO_TRAIN = [
   ['N', 'El anuncio avisó que el tren no se detenía en esta estación.', 3.0],
   ['N', 'Alguien gritó. Después, la luz.', 2.2],
 ];
+/* ───────── PRÓLOGO «LA ESTACIÓN» (escena 3D, src/client/prologo.js) ─────────
+   Todo es el Pasajero pensando en voz baja ('N'). Cada bloque es [quién, texto, duración s]. Termina en el faro que
+   después, en WAKE, el Heraldo llama «te atropelló un tren». INTRO_TRAIN queda sólo para el cine clásico (?classic_intro=1). */
+export const PROLOGO = {
+  espera: [
+    ['N', 'Martes. 18:42. Andén 3.', 2.8],
+    ['N', 'Otro día igual. Los auriculares puestos, la cabeza en otra parte.', 3.6],
+  ],
+  cartel: [['N', '«Exprés sin parada». O sea: nadie sube, nadie baja. Perfecto.', 3.6]],
+  tren: [
+    ['N', 'El anuncio raspa los parlantes: el próximo tren no se detiene.', 3.4],
+    ['N', 'Se siente en los pies antes que en los oídos.', 2.8],
+  ],
+  borde: [['N', 'Una mujer se tambalea justo en el borde…', 2.6]],
+  caida: [['N', '¡Se cayó! ¡Cayó a las vías!', 2.2], ['N', 'Alguien grita. Creo que soy yo.', 2.6]],
+  ruptura: [
+    ['N', 'El tiempo se estira como un chicle viejo.', 3.0],
+    ['N', 'Las luces se alargan, el sonido se arrastra. El tren atraviesa algo que no estaba ahí.', 4.4],
+    ['N', 'Las paredes respiran.', 2.4],
+  ],
+  contacto: [
+    ['N', 'De las vías sube algo vivo. Tiene un ojo enorme y me mira.', 3.8],
+    ['N', 'Me ofrece una cosa tibia. Se me pega a la mano. Late.', 3.8],
+  ],
+  disparo: [['N', 'Sabe para qué sirve. Apuntá al capullo del otro andén y disparale.', 4.2]],
+  impacto: [['N', 'Mi mano disparó sola… casi.', 2.2]],
+  decision: [
+    ['N', 'Entre las nervaduras quedó un mecanismo. Y al fondo, un umbral latiendo.', 4.0],
+    ['N', 'Quedarme a ver cómo termina, o cruzar. Elegir también es esperar menos.', 3.8],
+  ],
+  abierto: [['N', 'Se abrió. Del otro lado hay luz. Y un faro, muy cerca.', 3.4]],
+};
+/** Objetivos en pantalla del prólogo: [título, pista PC, pista táctil]. */
+export const PROLOGO_OBJ = {
+  mirar: ['Mirá a tu alrededor', 'Mové el ratón (o las flechas) para mirar', 'Deslizá el pulgar derecho para mirar'],
+  caminar: ['Caminá hasta el cartel de horarios', 'W A S D para caminar', 'Palanca izquierda para caminar'],
+  leer: ['Leé la pantalla', 'Quedate frente al cartel', 'Quedate frente al cartel'],
+  tren: ['Algo viene por el túnel', 'Mirá hacia el fondo de la vía', 'Mirá hacia el fondo de la vía'],
+  ayudar: ['¡Ayudala! Acercate al borde del andén', 'W A S D hasta la marca brillante', 'Palanca izquierda hasta la marca brillante'],
+  ruptura: ['Observá la ruptura', 'Esto no es normal. Seguí mirando.', 'Esto no es normal. Seguí mirando.'],
+  contacto: ['Algo se acerca', 'Quedate quieto: te está eligiendo', 'Quedate quieto: te está eligiendo'],
+  disparar: ['Disparale al capullo del otro andén', 'Apuntá con el ratón · clic izquierdo para disparar', 'Apuntá con el pulgar · tocá DISPARO'],
+  activar: ['Activá el mecanismo', 'Acercate al pedestal y pulsá E', 'Acercate al pedestal y tocá USAR'],
+  cruzar: ['Atravesá el umbral', 'Caminá hacia el anillo luminoso', 'Caminá hacia el anillo luminoso'],
+};
 export const WAKE = [
   ['N', 'No dolió. Eso fue lo raro.', 2.4],
   ['H', 'Shh. No te levantes de golpe. Todavía te estás… ensamblando.', 3.8],

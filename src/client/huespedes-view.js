@@ -72,18 +72,18 @@ function makeBuilder(T, S) {
 // En los cuadros de pose, `arm`/`fore` valen para el lado R y se espejan solos en el L (salvo que se dé `armL` explícito).
 
 function axioma(P, c) {
-  const NEG = 0x0b0e16, ARM = 0x161c2b, LN = c.color, LN2 = 0x9fd8ff, BONE = 0x2a3347;
+  const NEG = 0x15171f, ARM = 0x262a36, LN = c.color, LN2 = 0xbfe6ff, BONE = 0x3d4559;
   const root = P.joint('root', null), torso = P.joint('torso', root, [0, 1.0, 0]), head = P.joint('head', torso, [0, 0.64, 0.02]);
   // piernas: grandes, acorazadas, con tendones azules
   for (const s of [-1, 1]) {
     P.limb(root, 'body', ARM, [0.17 * s, 0.98, 0], [0.2 * s, 0.54, 0.05], 0.115, 0.085); P.limb(root, 'body', NEG, [0.2 * s, 0.54, 0.05], [0.19 * s, 0.1, -0.02], 0.085, 0.06);
     P.oct(root, 'body', BONE, 0.1, [0.2 * s, 0.54, 0.12], [1, 1.1, 0.7]); P.box(root, 'body', NEG, [0.15, 0.09, 0.3], [0.19 * s, 0.045, 0.07]);
-    P.limb(root, 'glow', LN, [0.27 * s, 0.95, 0.02], [0.27 * s, 0.6, 0.06], 0.012, 0.012, 4); P.limb(root, 'glow', LN, [0.25 * s, 0.5, 0.0], [0.24 * s, 0.14, -0.04], 0.011, 0.011, 4);
+    P.limb(root, 'glow', LN, [0.27 * s, 0.95, 0.02], [0.27 * s, 0.6, 0.06], 0.02, 0.02, 4); P.limb(root, 'glow', LN, [0.25 * s, 0.5, 0.0], [0.24 * s, 0.14, -0.04], 0.018, 0.018, 4);
   }
   P.box(root, 'body', ARM, [0.46, 0.2, 0.3], [0, 1.0, 0]); P.box(root, 'glow', LN, [0.3, 0.015, 0.02], [0, 1.06, 0.15]);
   // tronco: pecho ancho en cuña, costillas con líneas azules, lomo con espinas dorsales
   P.box(torso, 'body', ARM, [0.5, 0.34, 0.34], [0, 0.15, 0]); P.box(torso, 'body', NEG, [0.7, 0.3, 0.38], [0, 0.46, 0]); P.box(torso, 'body', BONE, [0.34, 0.3, 0.1], [0, 0.46, 0.2], [0.25, 0, 0]);
-  for (let i = 0; i < 4; i++) { P.box(torso, 'glow', LN, [0.34 - i * 0.03, 0.014, 0.02], [0, 0.04 + i * 0.1, 0.18], [0.1, 0, 0]); }
+  for (let i = 0; i < 4; i++) { P.box(torso, 'glow', LN, [0.34 - i * 0.03, 0.025, 0.03], [0, 0.04 + i * 0.1, 0.18], [0.1, 0, 0]); }
   P.limb(torso, 'glow', LN, [0, 0.34, 0.2], [0, 0.6, 0.24], 0.016, 0.016, 4); P.oct(torso, 'glow', LN2, 0.045, [0, 0.46, 0.25], [1, 1.3, 0.6]);
   for (let i = 0; i < 5; i++) P.cone(torso, 'body', BONE, 0.04, 0.2 - i * 0.015, [0, 0.62 - i * 0.12, -0.2 - i * 0.015], [-1.1, 0, 0], 4);
   for (const s of [-1, 1]) { P.limb(torso, 'body', ARM, [0.12 * s, 0.6, -0.17], [0.15 * s, 0.05, -0.2], 0.035, 0.035, 5); P.limb(torso, 'glow', LN, [0.12 * s, 0.6, -0.2], [0.15 * s, 0.05, -0.23], 0.01, 0.01, 4); }
@@ -121,7 +121,7 @@ function axioma(P, c) {
 }
 
 function vesper(P, c) {
-  const SK = 0x19101f, SK2 = 0x2b1b3a, NV = c.color, NV2 = 0xe2b8ff, CL = 0xd9cbe8;
+  const SK = 0x2a1a38, SK2 = 0x472a62, NV = c.color, NV2 = 0xe2b8ff, CL = 0xe6dcf2;
   const root = P.joint('root', null), torso = P.joint('torso', root, [0, 1.02, 0.05]), head = P.joint('head', torso, [0, 0.66, 0.12]);
   torso.rest = [0.32, 0, 0];
   // piernas digitígradas largas con garras
@@ -174,7 +174,7 @@ function vesper(P, c) {
 }
 
 function micelio(P, c) {
-  const CH = 0x2e2418, CH2 = 0x4a3a22, MOSS = 0x2c4a1e, GR = c.color, CAP = [0xc9732a, 0x7be03a, 0xe8c25a, 0xa8421e], SPORE = 0xc6ff7a;
+  const CH = 0x4a3a2a, CH2 = 0x7a6040, MOSS = 0x3f6a2a, GR = c.color, CAP = [0xc9732a, 0x7be03a, 0xe8c25a, 0xa8421e], SPORE = 0xc6ff7a;
   const root = P.joint('root', null), torso = P.joint('torso', root, [0, 1.0, 0]), head = P.joint('head', torso, [0, 0.9, 0.2]);
   torso.rest = [0.22, 0, 0];
   // piernas-tocón con raíces
@@ -229,7 +229,7 @@ function micelio(P, c) {
 }
 
 function umbra(P, c) {
-  const VOID = 0x0c0716, VOID2 = 0x24123f, VI = c.color, GH = 0x40ffc0, LIL = 0x5a3b8a;
+  const VOID = 0x1d1230, VOID2 = 0x3b2468, VI = c.color, GH = 0x40ffc0, LIL = 0x7a58b8;
   const root = P.joint('root', null), torso = P.joint('torso', root, [0, 1.1, 0]), head = P.joint('head', torso, [0, 0.82, 0]);
   // sin piernas: cuerpo que se afila hacia el vacío, con hojas flotando alrededor
   P.cone(root, 'body', VOID2, 0.24, 0.95, [0, 0.58, 0], [Math.PI, 0, 0], 6); P.cone(root, 'glow', VI, 0.012, 0.3, [0, 0.1, 0], [Math.PI, 0, 0], 4);
@@ -357,7 +357,7 @@ export function buildHost(THREE, id, quality = 'low') {
   const color = HOST_COLORS[id], S = quality === 'low' ? 5 : quality === 'medium' ? 7 : 9;
   const P = makeBuilder(T, S), spec = mk(P, { color, S });
   const mats = {
-    body: new T.MeshStandardMaterial({ vertexColors: true, metalness: 0.55, roughness: 0.42, flatShading: true, emissive: new T.Color(color).multiplyScalar(0.06) }),
+    body: new T.MeshStandardMaterial({ vertexColors: true, metalness: 0.3, roughness: 0.5, flatShading: true, emissive: new T.Color(color).multiplyScalar(0.05) }),
     glow: new T.MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
     mem: new T.MeshStandardMaterial({ vertexColors: true, metalness: 0, roughness: 0.55, flatShading: true, transparent: true, opacity: 0.55, side: T.DoubleSide, depthWrite: false, emissive: new T.Color(color).multiplyScalar(0.3) }),
   };

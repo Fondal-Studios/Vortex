@@ -15,11 +15,12 @@ import { SHAPE, GAM, INT } from './effects.js';
 import { createHostMelee } from './hostfx-melee.js';
 
 const TAU = Math.PI * 2, Y = new THREE.Vector3(0, 1, 0);
-const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3();
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _f = new THREE.Vector3(), _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3();
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const rnd = (a = 1) => Math.random() * a, srnd = (a = 1) => (Math.random() - 0.5) * 2 * a;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const eo = (u) => 1 - (1 - u) * (1 - u) * (1 - u);
+const orientCone = (q, dir) => q.setFromUnitVectors(Y, dir); // el eje +Y de la geometría de casquete apunta a `dir`
 const colCache = new Map();
 const C = (hex) => { let c = colCache.get(hex); if (!c) { c = new THREE.Color(hex); colCache.set(hex, c); } return c; };
 const ADD = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide };
@@ -137,13 +138,13 @@ export function createHostFx(renderer, opts = {}) {
     return mergeGeometries([part(new THREE.CapsuleGeometry(0.3, 0.55, 3, 10), 0, 1.22, 0), part(new THREE.SphereGeometry(0.19, 12, 9), 0, 1.74, 0.02), part(new THREE.CapsuleGeometry(0.13, 0.55, 3, 8), -0.16, 0.42, 0), part(new THREE.CapsuleGeometry(0.13, 0.55, 3, 8), 0.16, 0.42, 0),
       part(new THREE.CapsuleGeometry(0.09, 0.5, 3, 8), -0.36, 1.3, 0.28, Math.PI / 2.2), part(new THREE.CapsuleGeometry(0.09, 0.5, 3, 8), 0.34, 1.34, 0.32, Math.PI / 2.4)]);
   })();
-  const gCoreSphere = new THREE.SphereGeometry(1, 20, 14);
-  disposables.push({ dispose() { [gSphere, gAura, gDisc, gPlane, gWing, gGhost, gCoreSphere].forEach((g) => g.dispose()); } });
+  const gCoreSphere = new THREE.SphereGeometry(1, 20, 14), gCap = new THREE.SphereGeometry(1, 28, 10, 0, TAU, 0, Math.PI / 3);
+  disposables.push({ dispose() { [gSphere, gAura, gDisc, gPlane, gWing, gGhost, gCoreSphere, gCap].forEach((g) => g.dispose()); } });
   const shellMat = () => new THREE.ShaderMaterial({ ...ADD, uniforms: { uC: { value: new THREE.Color() }, uC2: { value: new THREE.Color() }, uO: { value: 1 }, uT: { value: 0 }, uPow: { value: 2.2 }, uBase: { value: 0.05 }, uGl: { value: 0 }, uSt: { value: 0 }, uHex: { value: 0 }, uGam: GAM, uInt: INT }, vertexShader: SHELL_VS, fragmentShader: SHELL_FS });
   const mkShell = (geo, order = 3) => () => { const m = new THREE.Mesh(geo, shellMat()); m.visible = false; m.renderOrder = order; m.frustumCulled = false; root.add(m); return m; };
-  const sphereP = mkPool(6, mkShell(gSphere)), auraP = mkPool(3, mkShell(gAura)), ghostP = mkPool(6, mkShell(gGhost));
+  const capP = mkPool(2, mkShell(gCap)), sphereP = mkPool(6, mkShell(gSphere)), auraP = mkPool(3, mkShell(gAura)), ghostP = mkPool(6, mkShell(gGhost));
   const mkDisc = () => { const m = new THREE.Mesh(gDisc, new THREE.ShaderMaterial({ ...ADD, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, uniforms: { uC: { value: new THREE.Color() }, uC2: { value: new THREE.Color() }, uO: { value: 1 }, uT: { value: 0 }, uMode: { value: 0 }, uK: { value: 0.1 }, uGam: GAM, uInt: INT }, vertexShader: DISC_VS, fragmentShader: DISC_FS })); m.visible = false; m.renderOrder = 2; m.frustumCulled = false; root.add(m); return m; };
-  const discP = mkPool(12, mkDisc), markP = mkPool(4, mkDisc);
+  const discP = mkPool(12, mkDisc), markP = mkPool(4, () => { const m = mkDisc(); m.material.depthTest = false; m.renderOrder = 8; return m; }); // las marcas se ven a través de la criatura (visión del cazador)
   const mkWall = () => { const m = new THREE.Mesh(gPlane, new THREE.ShaderMaterial({ ...ADD, uniforms: { uC: { value: new THREE.Color() }, uC2: { value: new THREE.Color() }, uO: { value: 1 }, uT: { value: 0 }, uG: { value: 0 }, uGam: GAM, uInt: INT }, vertexShader: WALL_VS, fragmentShader: WALL_FS })); m.visible = false; m.renderOrder = 3; m.frustumCulled = false; root.add(m); return m; };
   const wallP = mkPool(3, mkWall);
   const mkWing = () => { const m = new THREE.Mesh(gWing, new THREE.ShaderMaterial({ ...ADD, uniforms: { uC: { value: new THREE.Color() }, uC2: { value: new THREE.Color() }, uO: { value: 1 }, uFlap: { value: 0 }, uGam: GAM, uInt: INT }, vertexShader: WING_VS, fragmentShader: WING_FS })); m.visible = false; m.renderOrder = 3; m.frustumCulled = false; root.add(m); return m; };
@@ -155,14 +156,14 @@ export function createHostFx(renderer, opts = {}) {
   const vigW = new Float32Array(8), vigKick = new Float32Array(8), vigWant = new Float32Array(8);
   const kickVig = (mode, k) => { vigKick[mode] = Math.max(vigKick[mode], reduced() ? k * 0.5 : k); };
   // espinas / pétalos: UNA InstancedMesh (1 draw call), 48 instancias
-  const NT = 48, thGeo = new THREE.ConeGeometry(0.16, 1, 5).translate(0, 0.5, 0), thMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true, emissive: 0x222233, transparent: true, opacity: 0.95 });
+  const NT = 48, thGeo = new THREE.ConeGeometry(0.16, 1, 5).translate(0, 0.5, 0), thMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true, emissive: 0x3a4a66, transparent: true, opacity: 0.97 });
   const thorns = new THREE.InstancedMesh(thGeo, thMat, NT); thorns.instanceMatrix.setUsage(THREE.DynamicDrawUsage); thorns.frustumCulled = false; thorns.visible = false; thorns.renderOrder = 2; root.add(thorns);
   for (let i = 0; i < NT; i++) thorns.setColorAt(i, C(0xffffff)); thorns.instanceColor.setUsage(THREE.DynamicDrawUsage);
-  const th = []; for (let i = 0; i < NT; i++) th.push({ on: false, p: new THREE.Vector3(), q: new THREE.Quaternion(), len: 1, w: 1, age: 0, life: 1, grow: 0.18, sway: 0, held: false });
+  const th = []; for (let i = 0; i < NT; i++) th.push({ on: false, p: new THREE.Vector3(), q: new THREE.Quaternion(), vel: new THREE.Vector3(), fly: false, fade: 0.3, len: 1, w: 1, age: 0, life: 1, grow: 0.18, sway: 0, held: false });
   let thRR = 0; disposables.push({ dispose() { thGeo.dispose(); thMat.dispose(); thorns.dispose(); } });
   const thorn = (pos, dir, len, w, color, life, o = {}) => {
     let t = th.find((x) => !x.on); if (!t) { t = th[thRR]; thRR = (thRR + 1) % NT; }
-    t.on = true; t.p.copy(pos); t.q.setFromUnitVectors(Y, _e.copy(dir).normalize()); t.len = len; t.w = w; t.age = 0; t.life = life; t.grow = o.grow || 0.18; t.sway = o.sway || 0; t.held = !!o.held; t.color = color;
+    t.on = true; t.p.copy(pos); t.q.setFromUnitVectors(Y, _e.copy(dir).normalize()); t.len = len; t.w = w; t.age = 0; t.life = life; t.grow = o.grow || 0.18; t.sway = o.sway || 0; t.held = !!o.held; t.color = color; t.fly = !!o.vel; t.fade = o.fade || 0.3; if (o.vel) t.vel.copy(o.vel);
     thorns.setColorAt(th.indexOf(t), C(color)); thorns.instanceColor.needsUpdate = true; thorns.visible = true; return t;
   };
   const thornsUpdate = (dt) => {
@@ -170,8 +171,8 @@ export function createHostFx(renderer, opts = {}) {
     for (let i = 0; i < NT; i++) {
       const t = th[i];
       if (!t.on) { _m.makeScale(0, 0, 0); thorns.setMatrixAt(i, _m); continue; }
-      t.age += dt; if (!t.held && t.age >= t.life) { t.on = false; _m.makeScale(0, 0, 0); thorns.setMatrixAt(i, _m); continue; } any = true;
-      const gu = clamp(t.age / t.grow, 0, 1), sk = t.held ? 1 : clamp((t.life - t.age) / 0.3, 0, 1), s = eo(gu) * sk;
+      t.age += dt; if (t.fly) t.p.addScaledVector(t.vel, dt); if (!t.held && t.age >= t.life) { t.on = false; _m.makeScale(0, 0, 0); thorns.setMatrixAt(i, _m); continue; } any = true;
+      const gu = clamp(t.age / t.grow, 0, 1), sk = t.held ? 1 : clamp((t.life - t.age) / t.fade, 0, 1), s = eo(gu) * sk;
       _q.copy(t.q); if (t.sway) { _s.set(Math.sin(T * 2 + i) * t.sway, 0, Math.cos(T * 1.7 + i * 2) * t.sway); _q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(_s.x, 0, _s.z))); }
       _m.compose(t.p, _q, _s.set(t.w * s, t.len * s, t.w * s)); thorns.setMatrixAt(i, _m);
     }
@@ -223,7 +224,7 @@ export function createHostFx(renderer, opts = {}) {
   const streaks = (dir, color, n, len = 7) => { for (let i = 0; i < n; i++) { _a.copy(cam.position); _b.set(0, 0, -1).applyQuaternion(cam.quaternion); _c.set(1, 0, 0).applyQuaternion(cam.quaternion); _d.set(0, 1, 0).applyQuaternion(cam.quaternion); _a.addScaledVector(_b, 3 + rnd(9)).addScaledVector(_c, srnd(6.5)).addScaledVector(_d, srnd(4)); if (Math.hypot(_c.dot(_e.copy(_a).sub(cam.position)), _d.dot(_e)) < 1.6) continue; _e.copy(_a).addScaledVector(dir, -len * (0.6 + rnd(0.8))); fx.line(_e, _a, color, 0.05 + rnd(0.04), 0.2 + rnd(0.1), { a0: 0, a1: 0.8, shrink: 0.4 }); } };
   const monsters = () => (lastState && lastState.monsters) || [];
   const nearestAimed = (I, maxD = 70, minDot = 0.9) => { let best = null, bd = 0; for (const m of monsters()) { _a.set(m.p[0], m.p[1], m.p[2]).sub(I.eye); const l = _a.length(); if (l > maxD) continue; const d = _a.normalize().dot(I.aim); if (d > minDot && d > bd) { bd = d; best = m; } } return best; };
-  const aimPoint = (I, e, dist, floating) => { if (e && e.to) return V(e.to); const m = nearestAimed(I, dist + 12, 0.96); if (m && floating) return V(m.p); return (floating ? I.eye.clone().addScaledVector(I.aim, dist) : I.ground.clone().addScaledVector(I.h, dist)); };
+  const aimPoint = (I, e, dist, floating) => { if (e && e.to) return V(e.to); const m = nearestAimed(I, dist + 12, 0.96); if (m && floating) return V(m.p).addScaledVector(I.up, (m.r || 1) * 1.2 + 2.5); return (floating ? I.eye.clone().addScaledVector(I.aim, dist) : I.ground.clone().addScaledVector(I.h, dist)); };
 
   /* ═══════════════════════ HABILIDADES ═══════════════════════ */
   const SK = {};
@@ -237,22 +238,28 @@ export function createHostFx(renderer, opts = {}) {
     trail(pid, 0.5, col, acc, 1.6, 0.1, 0.4); trail(pid, 0.4, 0xffffff, col, 0.6, 0.4, 0.28);
     if (I.self) { addLoop(0.45, () => streaks(h, col, 3, 8)); shake(I, 0.3); }
   };
-  SK.espinas = (I) => { // salva de 7 espinas óseas + espinas plantadas en el suelo
-    const { col, acc, aim, up, h, right } = I, o = I.eye.clone().addScaledVector(aim, 1.1);
-    fx.flash(o, 0xe8f6ff, 3, 0.14, { burst: true }); sparks(o, 0xffffff, 8, 18, 0.3, { dir: aim, cone: 0.5, c2: col });
-    for (let i = 0; i < 7; i++) { _a.copy(aim).addScaledVector(right, (i - 3) * 0.05).addScaledVector(up, srnd(0.015)).normalize(); _b.copy(o).addScaledVector(_a, 30); fx.dart(o, _b.clone(), i % 2 ? 0xffffff : col, 0.11, 150 + rnd(40), 2.6, { c2: acc }); }
-    for (let i = 0; i < 9; i++) later(0.03 * i, () => { const d = 4 + i * 2.1; _c.copy(I.ground).addScaledVector(h, d).addScaledVector(right, srnd(1.4)); thorn(_c, _d.copy(up).addScaledVector(h, 0.25 + rnd(0.2)).addScaledVector(right, srnd(0.25)), 1.0 + rnd(0.7), 0.5 + rnd(0.3), i % 3 ? 0xe9eef2 : col, 1.1); });
+  SK.espinas = (I) => { // salva de espinas óseas: abanico de hueso que sale de los antebrazos + espinas clavadas en el suelo
+    const { col, acc, aim, up, h, right } = I, o = I.eye.clone().addScaledVector(aim, 1.1).addScaledVector(up, -0.15);
+    fx.flash(o, 0xe8f6ff, 3.4, 0.14, { burst: true }); sparks(o, 0xffffff, 8, 18, 0.3, { dir: aim, cone: 0.5, c2: col });
+    orientCone(_q, aim); shell(capP, o, _q.clone(), 1, 17, 0.26, col, { c2: 0xffffff, op: 0.7, pow: 1.4, base: 0.05, st: 7, fade: 1.1 }); // el abanico
+    for (let i = 0; i < 9; i++) { // 9 espinas voladoras (sólidas: se ven de frente y de costado)
+      _a.copy(aim).addScaledVector(right, (i - 4) * 0.045).addScaledVector(up, srnd(0.02)).normalize(); const sp = 70 + rnd(25);
+      thorn(o, _a, 2.4, 1.0, i % 2 ? 0xffffff : col, 28 / sp, { vel: _b.copy(_a).multiplyScalar(sp), grow: 0.02, fade: 0.05 });
+      _c.copy(o).addScaledVector(_a, 28); fx.dart(o, _c.clone(), 0xffffff, 0.09, sp, 3, { c2: acc });
+      later(28 / sp, () => { const e = o.clone().addScaledVector(_a.copy(aim).addScaledVector(right, (i - 4) * 0.045).normalize(), 28); fx.flash(e, col, 1.8, 0.14); sparks(e, 0xffffff, 3, 8, 0.3, { c2: col }); });
+    }
+    for (let i = 0; i < 10; i++) later(0.03 * i, () => { const d = 4 + i * 1.9; _c.copy(I.ground).addScaledVector(h, d).addScaledVector(right, srnd(1.8)); thorn(_c, _d.copy(up).addScaledVector(h, 0.25 + rnd(0.2)).addScaledVector(right, srnd(0.25)), 2.6 + rnd(1.6), 1.5 + rnd(0.5), i % 3 ? 0xe9eef2 : col, 1.3); });
     ring(I.ground.clone().addScaledVector(h, 1.5), up, 0.3, 3, 0.35, col, { th: 0.12 }); shake(I, 0.25);
   };
   SK.caparazon = (I) => { // la coraza hexagonal brota alrededor del cuerpo
-    const { col, up } = I;
+    const { col, up } = I; forceState(I.pid, BF.CAPARAZON, 4);
     shell(sphereP, I.pos, null, 0.6, 1.9, 0.45, col, { c2: 0xffffff, op: 0.9, pow: 1.5, base: 0.06, hex: 1, fade: 1.0 });
     ring(I.ground, up, 0.4, 3.4, 0.45, col, { th: 0.12 }); fx.flash(I.pos, 0xdff4ff, 3, 0.2, { burst: true });
     spray(I.pos, col, 10, 7, 0.5, 0.7, { shape: SHAPE.shard, c2: 0xffffff, grow: -0.4, spin: 6 });
     if (I.self) kickVig(1, 0.9); shake(I, 0.2);
   };
   SK.sobrecarga = (I) => { // ULT: el organismo revienta de energía
-    const { col, acc, up } = I;
+    const { col, acc, up } = I; forceState(I.pid, BF.SOBRECARGA, 10);
     ring(I.ground, up, 0.5, 9, 0.6, col, { th: 0.1 }); ring(I.ground, up, 0.3, 6, 0.5, acc, { th: 0.12 });
     fx.flash(I.pos, 0xffffff, 6, 0.25, { burst: true }); column(I.ground, up, 9, acc, 0.5, 1.2); column(I.ground, up, 7, col, 0.6, 0.7);
     for (let i = 0; i < 6; i++) { _a.set(srnd(), rnd(0.8), srnd()).normalize(); bolt(I.pos, _b.copy(I.pos).addScaledVector(_a, 5 + rnd(3)), i % 2 ? acc : 0xffffff, 0.14, 0.18, 0.7, 4); }
@@ -271,7 +278,7 @@ export function createHostFx(renderer, opts = {}) {
     sparks(pos, 0xffffff, 8, 14, 0.4, { c2: acc }); if (I.self) { streaks(h, col, 6, 12); shake(I, 0.12); kickVig(7, 0.5); }
   };
   SK.camuflaje = (I) => { // la piel se vuelve refracción
-    const { col, up, pid } = I;
+    const { col, up, pid } = I; forceState(pid, BF.CAMUFLAJE, 5);
     ring(I.ground, up, 0.4, 5, 0.5, col, { th: 0.1 }); disc(discP, I.pos, null, 0.5, 4.5, 0.5, 0, 0xffffff, col, { op: 0.5, k: 0.07 });
     afterimage(I.pos, I.h, up, col, 0x5cf0ff, 0, 0.8, 0.6, { gl: 0.9, r1: 1.18 });
     spray(I.pos, col, 10, 5, 0.7, 0.6, { c2: 0x5cf0ff, grow: -0.5 }); if (I.self) kickVig(2, 1.0); void pid;
@@ -284,7 +291,7 @@ export function createHostFx(renderer, opts = {}) {
     if (I.self) kickVig(7, 0.3);
   };
   SK.frenesi = (I) => { // ULT: furia depredadora
-    const { col, acc, up } = I;
+    const { col, acc, up } = I; forceState(I.pid, BF.FRENESI, 8);
     ring(I.ground, up, 0.5, 10, 0.6, acc, { th: 0.1 }); ring(I.ground, up, 0.3, 6, 0.45, col, { th: 0.12 }); fx.flash(I.pos, acc, 6, 0.28, { burst: true }); column(I.ground, up, 8, acc, 0.5, 1.1);
     for (let i = 0; i < 5; i++) { _a.copy(I.pos).addScaledVector(I.right, srnd(1.5)).addScaledVector(up, rnd(1.5)); _b.copy(_a).addScaledVector(I.right, srnd(2.5)).addScaledVector(up, -1.2 - rnd(1)); fx.line(_a, _b, i % 2 ? 0xffffff : acc, 0.1, 0.4, { a0: 1, a1: 0, shrink: 0.6 }); }
     spray(I.pos, acc, 14, 11, 0.7, 0.8, { c2: col, grow: -0.5 }); kickVig(4, 1.0); shake(I, 0.5);
@@ -293,27 +300,27 @@ export function createHostFx(renderer, opts = {}) {
   SK.barrera = (I, e) => { startWall(I, e); };
   SK.esporas = (I, e) => { // la nube verde se asienta y envenena
     const { col, acc, up } = I, c = e && e.to ? V(e.to) : I.ground.clone().addScaledVector(I.h, 6), R = 5.5, life = 6;
-    disc(discP, c, up, 1.5, R, life, 3, col, acc, { op: 0.85, fade: 1.6, k: 0.1 }); ring(c, up, 0.5, R, 0.5, acc, { th: 0.1 });
+    disc(discP, c, up, 1.5, R, life, 3, col, acc, { op: 1, fade: 1.3, k: 0.1 }); ring(c, up, 0.5, R, 0.5, acc, { th: 0.1 });
     fx.flash(c.clone().addScaledVector(up, 1), acc, 3.4, 0.25, { burst: true }); spray(c, col, 10, 9, 0.7, 0.9, { c2: acc, up: 2, grow: 0.3 });
-    addLoop(life, (dt, u) => { if (Math.random() < dt * 14 * Q()) { _a.copy(c).addScaledVector(_b.set(srnd(), 0, srnd()).normalize(), rnd(R * 0.8)).addScaledVector(up, 0.3 + rnd(1.2)); fx.smoke.spawn(_a.x, _a.y, _a.z, srnd(0.3), 0.3, srnd(0.3), C(0x3a6a1a), C(0x142208), 1.6 + rnd(0.8), 1.8, 0, 1, 0.8, SHAPE.smoke, srnd(1), 0.8 * (1 - u)); }
-      if (Math.random() < dt * 7) { _a.copy(c).addScaledVector(_b.set(srnd(), 0, srnd()).normalize(), rnd(R * 0.9)).addScaledVector(up, 0.2); fx.add.spawn(_a.x, _a.y, _a.z, srnd(0.3), 1 + rnd(1), srnd(0.3), C(acc), C(col), 0.5 + rnd(0.3), 1.6, 0, 0.5, -0.3, SHAPE.bubble, srnd(2), 1 - u); } });
+    addLoop(life, (dt, u) => { if (Math.random() < dt * 9 * Q()) { _a.copy(c).addScaledVector(_b.set(srnd(), 0, srnd()).normalize(), rnd(R * 0.8)).addScaledVector(up, 0.3 + rnd(1.2)); fx.add.spawn(_a.x, _a.y, _a.z, srnd(0.3), 0.3, srnd(0.3), C(0x6ad02a), C(0x1c4a0c), 2.4 + rnd(1.0), 1.8, 0, 1, 0.8, SHAPE.soft, srnd(1), 0.5 * (1 - u)); }
+      if (Math.random() < dt * 6) { _a.copy(c).addScaledVector(_b.set(srnd(), 0, srnd()).normalize(), rnd(R * 0.9)).addScaledVector(up, 0.2); fx.add.spawn(_a.x, _a.y, _a.z, srnd(0.3), 1 + rnd(1), srnd(0.3), C(acc), C(col), 0.9 + rnd(0.5), 1.6, 0, 0.5, -0.3, SHAPE.bubble, srnd(2), 1 - u); } });
   };
   SK.biomasa = (I) => { // tentáculos de savia traen la vida de las criaturas cercanas
     const { col, acc, up } = I; let n = 0;
     const near = monsters().filter((m) => V(m.p).distanceTo(I.pos) < 18).sort((a, b) => V(a.p).distanceTo(I.pos) - V(b.p).distanceTo(I.pos)).slice(0, N(6));
-    for (const m of near) { const from = V(m.p); n++; addLoop(0.55, (dt, u) => { const k = known.get(I.pid); const to = k ? _d.copy(k.pos) : I.pos; _a.copy(from); for (let s = 1; s <= 5; s++) { _b.copy(from).lerp(to, s / 5 * eo(Math.min(1, u * 2.2))); _b.addScaledVector(up, Math.sin(s / 5 * Math.PI) * 1.2 + Math.sin(T * 14 + s * 2) * 0.25); fx.line(_a, _b, s % 2 ? acc : col, 0.16, 0.08, { a0: 1, a1: 0.7 }); _a.copy(_b); } if (u > 0.4 && Math.random() < 0.6) fx.add.spawn(from.x + (to.x - from.x) * u, from.y + (to.y - from.y) * u, from.z + (to.z - from.z) * u, 0, 0, 0, C(0xffffff), C(col), 0.5, 0.25, 0, 0, -0.5, SHAPE.ember, 0, 1); }); }
+    for (const m of near) { const from = V(m.p); n++; addLoop(0.55, (dt, u) => { const k = known.get(I.pid); const to = k ? _d.copy(k.pos) : I.pos; _a.copy(from); for (let s = 1; s <= 5; s++) { _b.copy(from).lerp(to, s / 5 * eo(Math.min(1, u * 2.2))); _b.addScaledVector(up, Math.sin(s / 5 * Math.PI) * 1.2 + Math.sin(T * 14 + s * 2) * 0.25); fx.line(_a, _b, s % 2 ? acc : col, 0.3, 0.08, { a0: 1, a1: 0.8 }); _a.copy(_b); } if (u > 0.4 && Math.random() < 0.6) fx.add.spawn(from.x + (to.x - from.x) * u, from.y + (to.y - from.y) * u, from.z + (to.z - from.z) * u, 0, 0, 0, C(0xffffff), C(col), 0.5, 0.25, 0, 0, -0.5, SHAPE.ember, 0, 1); }); }
     later(0.5, () => { ring(I.ground, up, 0.4, 3.6, 0.5, acc, { th: 0.1 }); shell(sphereP, I.pos, null, 0.8, 2.2, 0.5, acc, { c2: 0xffffff, op: 0.6, pow: 2.2 }); spray(I.pos, 0xffffff, 8 + n, 4, 0.8, 0.6, { shape: SHAPE.star, up: 3, c2: acc, spin: 3 }); if (I.self) kickVig(5, 0.8); });
     fx.flash(I.pos, col, 2.5, 0.2);
   };
   SK.floracion = (I) => { // ULT: el terreno florece
-    const { col, acc, up } = I;
+    const { col, acc, up } = I; forceState(I.pid, BF.FLORACION, 12);
     ring(I.ground, up, 0.5, 11, 0.6, acc, { th: 0.1 }); fx.flash(I.pos, acc, 6, 0.3, { burst: true }); column(I.ground, up, 9, col, 0.6, 1.2);
     for (let i = 0; i < 12; i++) later(i * 0.02, () => { const a = i / 12 * TAU; _c.copy(I.ground).addScaledVector(I.right, Math.cos(a) * 6.5).addScaledVector(I.h, Math.sin(a) * 6.5); thorn(_c, _d.copy(up).addScaledVector(_e.copy(_c).sub(I.ground).normalize(), -0.2), 1.5 + rnd(1), 0.9, i % 2 ? col : acc, 1.3, { grow: 0.35 }); });
     spray(I.pos, acc, 16, 10, 1.0, 0.8, { c2: col, up: 3, grow: 0.2 }); kickVig(5, 1.0); shake(I, 0.5);
   };
   /* ── UMBRA: violeta pálido / cian. Vacío, tiempo. ── */
   SK.fase = (I) => { // salto atrás: el cuerpo se pliega y deja un eco
-    const { col, acc, up, h, prev, pos } = I;
+    const { col, acc, up, h, prev, pos } = I; forceState(I.pid, BF.DESFASE, 2);
     afterimage(prev, h, up, acc, col, 0, 0.85, 0.5, { gl: 0.6, r1: 0.35, sx: 0.5 });
     for (let i = 1; i <= 3; i++) afterimage(prev.clone().lerp(pos, i / 4), h, up, i % 2 ? col : acc, 0xffffff, 0.04 * i, 0.5 - 0.1 * i, 0.4, { gl: 0.5 });
     ring(prev.clone().addScaledVector(up, -0.85), up, 3.6, 0.3, 0.45, acc, { th: 0.1 }); ring(I.ground, up, 0.3, 3.4, 0.4, col, { th: 0.12 });
@@ -392,7 +399,7 @@ export function createHostFx(renderer, opts = {}) {
   function startWall(I, e) {
     const old = walls.get(I.pid); if (old) endWall(I.pid, true);
     const m = wallP.take(); m.visible = true; m.held = true; const c = (e && e.to ? V(e.to) : I.ground.clone().addScaledVector(I.h, 3.4)); m.position.copy(c); basisQ(I.right.clone(), I.up.clone(), I.h.clone().negate(), m.quaternion);
-    m.rotation.reorder('YXZ'); m.scale.set(8, 3.4, 1); setU(m, { uC: I.col, uC2: I.acc, uG: 0, uO: 0.85 });
+    m.scale.set(8, 3.4, 1); setU(m, { uC: I.col, uC2: I.acc, uG: 0, uO: 0.85 });
     const w = { m, t: 0, c, I: { col: I.col, acc: I.acc, up: I.up.clone(), right: I.right.clone() }, dead: false, patch: null };
     const pt = discP.take(); pt.visible = true; pt.held = true; w.patch = pt; pt.position.copy(c).addScaledVector(I.up, 0.04); basisQ(I.right.clone().cross(I.up).normalize(), I.right.clone(), I.up.clone(), pt.quaternion); pt.scale.setScalar(5); setU(pt, { uC: I.col, uC2: I.acc, uMode: 3, uO: 0.6, uK: 0.1 });
     walls.set(I.pid, w);
@@ -412,7 +419,7 @@ export function createHostFx(renderer, opts = {}) {
     const rm = reduced(); vigWant.fill(0); const seen = new Set();
     for (const p of state.players) {
       seen.add(p.id); const k = known.get(p.id); if (!k) continue; const S = stOf(p.id), bf = p.dead ? 0 : bfOf(p), pal = palOf(p.char), col = pal.c, acc = pal.a;
-      const self = (me && p.id === me.id) && !renderer.third, up = k.upV, pos = k.pos, h = k.h, feet = _e.copy(pos).addScaledVector(up, -0.85), on = (b) => (bf & b) !== 0, was = (b) => (S.bits & b) !== 0;
+      const self = (me && p.id === me.id) && !renderer.third, up = k.upV, pos = k.pos, h = k.h, feet = _f.copy(pos).addScaledVector(up, -0.85), on = (b) => (bf & b) !== 0, was = (b) => (S.bits & b) !== 0;
       const hurtK = S.pulse = Math.max(0, S.pulse - dt * 3);
       // caparazón
       if (on(BF.CAPARAZON)) {
@@ -423,20 +430,20 @@ export function createHostFx(renderer, opts = {}) {
       // camuflaje
       if (on(BF.CAMUFLAJE)) {
         if (!S.m.cam) S.m.cam = takeHeld(ghostP); const m = S.m.cam; m.visible = !self; m.position.copy(feet); orient(m.quaternion, h, up); m.scale.setScalar(1.06);
-        const fl = rm ? 1 : 0.65 + 0.35 * Math.sin(T * 17) * Math.sin(T * 5.3); setU(m, { uC: 0x5cf0ff, uC2: col, uPow: 1.2, uBase: 0.04, uGl: rm ? 0.3 : 0.9, uSt: 22, uO: 0.34 * fl, uT: T });
+        const fl = rm ? 1 : 0.65 + 0.35 * Math.sin(T * 17) * Math.sin(T * 5.3); setU(m, { uC: 0x5cf0ff, uC2: col, uPow: 1.0, uBase: 0.1, uGl: rm ? 0.3 : 0.9, uSt: 26, uO: 0.62 * fl, uT: T });
         if (self) vigWant[2] = 0.5;
       } else if (was(BF.CAMUFLAJE)) { freeHeld(S.m.cam); S.m.cam = null; ring(feet, up, 0.5, 4.5, 0.4, col, { th: 0.1 }); disc(discP, pos, null, 0.5, 3.5, 0.35, 0, 0xffffff, acc, { op: 0.5, k: 0.07 }); sparks(pos, acc, 8, 12, 0.4, { c2: 0xffffff }); if (self) kickVig(2, 0.7); }
       // sobrecarga (aura + rayos + brasas)
       if (on(BF.SOBRECARGA)) {
-        if (!S.m.aura) S.m.aura = takeHeld(auraP); const m = S.m.aura; m.visible = !self; m.position.copy(feet); orient(m.quaternion, h, up); m.scale.setScalar(1.12 + 0.05 * Math.sin(T * 9));
-        setU(m, { uC: acc, uC2: 0xffffff, uPow: 1.5, uBase: 0.06, uSt: 12, uGl: 0.25, uO: 0.55 + (rm ? 0 : 0.15 * Math.sin(T * 13)), uT: T });
+        if (!S.m.aura) S.m.aura = takeHeld(auraP); const m = S.m.aura; m.visible = !self; m.position.copy(feet); orient(m.quaternion, h, up); m.scale.setScalar(1.3 + 0.05 * Math.sin(T * 9));
+        setU(m, { uC: acc, uC2: 0xfff0c0, uPow: 0.9, uBase: 0.16, uSt: 14, uGl: 0.25, uO: 0.8 + (rm ? 0 : 0.2 * Math.sin(T * 13)), uT: T });
         S.tEmit -= dt; if (S.tEmit <= 0) { S.tEmit = rm ? 0.5 : 0.2; _a.set(srnd(), rnd(0.8) + 0.2, srnd()).normalize(); bolt(_b.copy(pos).addScaledVector(up, 0.2), _c.copy(pos).addScaledVector(_a, 1.5 + rnd(0.8)), acc, 0.07, 0.1, 0.35, 3); fx.add.spawn(pos.x + srnd(0.4), pos.y - 0.4, pos.z + srnd(0.4), 0, 2.5, 0, C(0xffd7a0), C(col), 0.5, 0.7, 0, 0.5, -0.5, SHAPE.ember, 0, 1); }
         if (self) vigWant[3] = 0.55;
       } else if (was(BF.SOBRECARGA)) { freeHeld(S.m.aura); S.m.aura = null; ring(feet, up, 3, 0.5, 0.45, acc, { th: 0.1, op: 0.7 }); spray(pos, acc, 8, 8, 0.6, 0.7, { c2: col, grow: -0.5 }); }
       // frenesí (anillo rojo en el suelo + estela + brasas)
       if (on(BF.FRENESI)) {
-        if (!S.m.fre) S.m.fre = takeHeld(discP); const m = S.m.fre; m.position.copy(feet).addScaledVector(up, 0.05); basisQ(_a.copy(k.right).cross(up).normalize(), k.right, up, m.quaternion); m.scale.setScalar(1.9 + (rm ? 0 : 0.2 * Math.sin(T * 8)));
-        setU(m, { uC: acc, uC2: col, uMode: 0, uK: 0.09, uO: 0.8, uT: T }); S.tEmit -= dt;
+        if (!S.m.fre) S.m.fre = takeHeld(discP); const m = S.m.fre; m.position.copy(feet).addScaledVector(up, 0.05); basisQ(_a.copy(k.right).cross(up).normalize(), k.right, up, m.quaternion); m.scale.setScalar(2.3 + (rm ? 0 : 0.25 * Math.sin(T * 8)));
+        setU(m, { uC: acc, uC2: col, uMode: 0, uK: 0.14, uO: 1, uT: T }); S.tEmit -= dt;
         if (S.tEmit <= 0) { S.tEmit = 0.09; if (k.speed > 2 && S.last.distanceToSquared(pos) > 0.04) fx.line(S.last, pos, acc, 0.5, 0.35, { a0: 0.9, a1: 0, shrink: 0.7, c2: col }); S.last.copy(pos); fx.add.spawn(pos.x + srnd(0.5), pos.y - 0.5, pos.z + srnd(0.5), 0, 2, 0, C(acc), C(col), 0.45, 0.6, 0, 0.5, -0.5, SHAPE.ember, 0, 1); }
         if (self) vigWant[4] = 0.55;
       } else if (was(BF.FRENESI)) { freeHeld(S.m.fre); S.m.fre = null; ring(feet, up, 2.5, 0.5, 0.35, acc, { th: 0.1, op: 0.6 }); }
@@ -454,9 +461,9 @@ export function createHostFx(renderer, opts = {}) {
         const big = (bf & BF.METAMORFOSIS) !== 0, sc = big ? 1.5 : 1.15; if (!S.m.wl) { S.m.wl = takeHeld(wingP); S.m.wr = takeHeld(wingP); S.wAge = 0; } S.wAge += dt;
         const open = eo(Math.min(1, S.wAge / 0.3)), flap = (big ? 0.35 : 0.12) * Math.sin(T * (big ? 5 : 3.2)) + (big ? 0.15 : 0.35), gl = bf & BF.PLANEO && !big ? 0.1 : 0;
         for (const [m, sd] of [[S.m.wl, -1], [S.m.wr, 1]]) {
-          m.visible = true; m.position.copy(pos).addScaledVector(up, 0.25).addScaledVector(h, -0.18); basisQ(_a.copy(h).cross(up).multiplyScalar(-sd).normalize(), up, _b.copy(h).negate().multiplyScalar(1).normalize(), m.quaternion); // x local → afuera del lado sd
-          m.quaternion.setFromRotationMatrix(_m.makeBasis(_a.copy(k.right).multiplyScalar(sd), up, _b.copy(h).negate().multiplyScalar(-1))); m.scale.set(sc * open, sc * open, sc * open);
-          setU(m, { uC: big ? acc : col, uC2: big ? col : 0xffffff, uO: (big ? 0.7 : 0.55) * open, uFlap: (rm ? 0.25 : flap + gl) * sd });
+          m.visible = true; m.position.copy(pos).addScaledVector(up, 0.25).addScaledVector(h, -0.18);
+          m.quaternion.setFromRotationMatrix(_m.makeBasis(_a.copy(k.right), _b.copy(up), _c.copy(h).negate())); m.scale.set(sc * open * sd, sc * open, sc * open); // x = afuera (la izquierda se espeja con escala negativa)
+          setU(m, { uC: big ? acc : col, uC2: big ? col : 0xffffff, uO: (big ? 0.7 : 0.55) * open, uFlap: rm ? 0.25 : flap + gl });
         }
         if (big) { if (!S.m.halo) S.m.halo = takeHeld(discP); const m = S.m.halo; m.position.copy(pos).addScaledVector(up, 1.45); basisQ(_a.copy(k.right).cross(up).normalize(), k.right, up, m.quaternion); m.scale.setScalar(0.55); setU(m, { uC: col, uC2: acc, uMode: 0, uK: 0.1, uO: 0.8, uT: T }); }
         S.tEmit -= dt; if (S.tEmit <= 0) { S.tEmit = big ? 0.1 : 0.2; fx.add.spawn(pos.x + srnd(1.2), pos.y + rnd(1), pos.z + srnd(1.2), srnd(0.3), -0.8, srnd(0.3), C(col), C(acc), 0.5, 1.2, 0, 0.4, -0.3, SHAPE.shard, srnd(5), 1); }
@@ -495,7 +502,6 @@ export function createHostFx(renderer, opts = {}) {
   }
 
   /* ═══════════════════════ eventos, cuadro, limpieza ═══════════════════════ */
-  const SOUND_SKIP = new Set(['marca']);
   const melee = createHostMelee(renderer, { fx, hostPal: palOf, getSound: () => sound, known: (pid) => known.get(pid), info, shake, spray, sparks, ring, reduced, nearestAimed, sphereP, setU, kickVig, thorn, getState: () => lastState, getMe: () => meId, bolt });
   disposables.push(melee);
   function onEvent(e, me, state) {
@@ -505,7 +511,7 @@ export function createHostFx(renderer, opts = {}) {
     if (e.t === 'ultend') { const I = info(e.pid, e, me); endUlt(I, e.id); return false; }
     if (e.t !== 'skill' || !SK[e.id]) return false;
     const I = info(e.pid, e, me); SK[e.id](I, e, state);
-    if (sound && !SOUND_SKIP.has(e.id) || (sound && e.id === 'marca')) sound.host(e.id, I.self ? null : (e.p || null));
+    if (sound) sound.host(e.id, I.self ? null : (e.p || null));
     return true;
   }
   function endUlt(I, id) {
@@ -527,7 +533,7 @@ export function createHostFx(renderer, opts = {}) {
   function marksUpdate(dt, state) { // retículas sobre las criaturas marcadas (campo mk de la criatura)
     const want = new Set(); let n = 0;
     for (const m of state.monsters) { if (!m.mk) continue; if (++n > markP.items.length) break; want.add(m.id); let mk = markers.get(m.id); if (!mk) { mk = takeHeld(markP); markers.set(m.id, mk); const pal = HOST_PAL.vesper; setU(mk, { uC: pal.a, uC2: 0xffffff, uMode: 6, uK: 0.1 }); fx.flash(V(m.p), pal.a, 3, 0.2, { burst: true }); }
-      mk.position.set(m.p[0], m.p[1], m.p[2]); mk.quaternion.copy(cam.quaternion); mk.scale.setScalar(clamp((m.r || 1) * 1.5 + 0.8, 1.2, 4.5) * (1 + (reduced() ? 0 : 0.05 * Math.sin(T * 6)))); mk.rotateZ(T * (reduced() ? 0.2 : 0.8)); setU(mk, { uT: T, uO: 0.75 }); }
+      mk.position.set(m.p[0], m.p[1], m.p[2]); _a.copy(cam.position).sub(mk.position).normalize(); mk.position.addScaledVector(_a, (m.r || 1) * 0.9); mk.quaternion.copy(cam.quaternion); mk.scale.setScalar(clamp((m.r || 1) * 1.5 + 0.8, 1.2, 4.5) * (1 + (reduced() ? 0 : 0.05 * Math.sin(T * 6)))); mk.rotateZ(T * (reduced() ? 0.2 : 0.8)); setU(mk, { uT: T, uO: 0.75 }); }
     for (const [id, mk] of markers) if (!want.has(id)) { freeHeld(mk); markers.delete(id); }
   }
   function update(dt, state, me) {
@@ -540,12 +546,12 @@ export function createHostFx(renderer, opts = {}) {
   }
   function clear() {
     loops.length = delays.length = 0; forced.clear();
-    for (const p of [sphereP, auraP, ghostP, discP, markP, wallP, wingP, coreP]) for (const m of p.items) { m.visible = false; m.held = false; }
+    for (const p of [capP, sphereP, auraP, ghostP, discP, markP, wallP, wingP, coreP]) for (const m of p.items) { m.visible = false; m.held = false; }
     for (const t of th) { t.on = false; t.held = false; } thornsUpdate(0); states.clear(); walls.clear(); markers.clear(); vigW.fill(0); vigKick.fill(0); vig.visible = false; melee.clear();
   }
   function dispose() {
     clear(); scene.remove(root);
-    for (const p of [sphereP, auraP, ghostP, discP, markP, wallP, wingP, coreP]) for (const m of p.items) m.material.dispose();
+    for (const p of [capP, sphereP, auraP, ghostP, discP, markP, wallP, wingP, coreP]) for (const m of p.items) m.material.dispose();
     for (const d of disposables) d.dispose();
   }
   function stats() {

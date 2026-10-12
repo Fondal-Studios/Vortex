@@ -249,9 +249,9 @@ export function buildStation(T, { level = 'low' } = {}) {
     g.fillStyle = mode === 'alerta' ? '#ff4040' : '#35e0c8'; g.font = 'bold 34px sans-serif'; g.textBaseline = 'top'; g.fillText('ANDÉN 3', 18, 12);
     g.font = 'bold 30px monospace'; g.textAlign = 'right'; const mm = 42 + Math.floor(t / 60); g.fillText(`18:${String(mm % 60).padStart(2, '0')}`, w - 18, 14); g.textAlign = 'left';
     g.fillStyle = '#183440'; g.fillRect(14, 58, w - 28, 2);
-    const rows = mode === 'normal' ? [['18:38', 'CENTRO SUR', 'EN HORA'], ['18:42', 'EXPRESO  ·  SIN PARADA', 'AVISO'], ['18:47', 'CENTRO SUR', 'EN HORA'], ['18:55', 'CENTRO SUR', 'EN HORA']]
-      : mode === 'alerta' ? [['18:42', 'TREN SIN PARADA', '¡ALÉJESE!'], ['', 'MANTÉNGASE DETRÁS', 'DE LA LÍNEA'], ['', 'AMARILLA', ''], ['18:42', '¡¡ ATENCIÓN !!', '']]
-        : [['18:42', 'HAY ALGO EN LA VÍA', '??'], ['18:42', 'V 1 V E S', '18:42'], ['18:42', 'NO MIRES A', 'LOS OJOS'], ['--:--', 'TODOS SIGUEN AQUÍ', '--']];
+    const rows = mode === 'normal' ? [['18:38', 'CENTRO SUR', 'EN HORA'], ['18:42', 'EXPRESO SIN PARADA', '!'], ['18:47', 'CENTRO SUR', 'EN HORA'], ['18:55', 'CENTRO SUR', 'EN HORA']]
+      : mode === 'alerta' ? [['18:42', 'TREN SIN PARADA', '¡CUIDADO!'], ['', 'NO CRUCE LA LÍNEA', ''], ['', 'AMARILLA', ''], ['18:42', '¡¡ ATENCIÓN !!', '']]
+        : [['18:42', 'HAY ALGO EN LA VÍA', '??'], ['18:42', 'V 1 V E S', '18:42'], ['18:42', 'NO MIRES A LOS OJOS', ''], ['--:--', 'TODOS SIGUEN AQUÍ', '--']];
     g.font = '24px monospace';
     rows.forEach((r, i) => { const y = 72 + i * 44; const blink = mode !== 'normal' && Math.floor(t * 3) % 2 === 0; g.fillStyle = (mode === 'alerta' && blink) ? '#ffffff' : (mode === 'carne' ? (blink ? '#ff9ac8' : '#c8ffe8') : (i === 1 ? '#ffcf40' : '#a8d8e0')); g.fillText(r[0], 18, y); g.fillText(r[1], 108, y); g.textAlign = 'right'; g.fillText(r[2], w - 18, y); g.textAlign = 'left'; });
     if (mode === 'carne') { for (let i = 0; i < 8; i++) { g.fillStyle = `rgba(${(i * 70) % 255},40,${(i * 30) % 255},.35)`; g.fillRect(((t * 90 + i * 83) % w), (i * 37 + t * 20) % h, 60, 5); } }
@@ -270,14 +270,14 @@ export function buildStation(T, { level = 'low' } = {}) {
     g.fillStyle = '#e6bd1c'; g.fillRect(256, 128, 256, 128); g.fillStyle = '#101418'; g.font = 'bold 30px sans-serif'; g.fillText('CUIDADO', 290, 170); g.fillText('BORDE DEL ANDÉN', 270, 214);
   }, false));
   const sg = [], sign = (w, h, x, y, z, u0, v0, u1, v1, ry) => { const g = new T.PlaneGeometry(w, h); const uv = g.attributes.uv; uv.setXY(0, u0, v1); uv.setXY(1, u1, v1); uv.setXY(2, u0, v0); uv.setXY(3, u1, v0); if (ry) g.rotateY(ry); g.translate(x, y, z); sg.push(g); };
-  for (const x of [-16, -6, 8, 18]) { sign(2.6, 1.3, x, 4.3, 1.0, 0, 0.5, 1, 1, 0); sign(2.6, 1.3, x, 4.3, 1.0, 0, 0.5, 1, 1, Math.PI); }
+  for (const x of [-16, -6, 8, 18]) { sign(2.6, 1.3, x, 4.3, 1.03, 0, 0.5, 1, 1, 0); sign(2.6, 1.3, x, 4.3, 0.97, 0, 0.5, 1, 1, Math.PI); pb(0.05, 0.5, 0.05, x - 1.0, 5.15, 1.0, 0x222428); pb(0.05, 0.5, 0.05, x + 1.0, 5.15, 1.0, 0x222428); }
   sign(2.4, 1.2, 22.8, 2.2, 5.4, 0, 0, 0.5, 0.5, -Math.PI / 2); sign(2.4, 1.2, -22.8, 2.2, 5.4, 0, 0, 0.5, 0.5, Math.PI / 2);
   sign(2.4, 1.2, -9, 3.0, 6.94, 0.5, 0, 1, 0.5, Math.PI);
-  const signMesh = track(new T.Mesh(mergeGeometries(sg), new T.MeshBasicMaterial({ map: signTex, toneMapped: false, side: T.DoubleSide, color: 0xe0e0e0 }))); group.add(signMesh);
+  const signMesh = track(new T.Mesh(mergeGeometries(sg), new T.MeshBasicMaterial({ map: signTex, toneMapped: false, color: 0xe0e0e0 }))); group.add(signMesh);
 
   /* — público: siluetas fusionadas en un solo mesh — */
-  const crowdSpec = [[-6.2, 1.05, 3.1, 0x7a3a8a], [-4.9, 1.25, 3.4, 0xc0b060], [-14, 1.2, 3.0, 0x3a6a8a], [-17, 2.3, 3.2, 0xa04040], [-9.5, 5.6, 0.2, 0x4a8a5a],
-    [8, 1.0, 3.4, 0x90a0b0], [6.5, 1.3, 3.3, 0xb08060], [16, 1.1, 0.0, 0x6a5aa0], [-2, 5.6, 0, 0x808890], [-20, 3.2, 1.0, 0xc08a30],
+  const crowdSpec = [[-6.2, 1.05, 3.1, 0x7a3a8a], [-4.9, 1.25, 3.4, 0xc0b060], [-14, 1.2, 3.0, 0x3a6a8a], [-17, 5.8, 3.2, 0xa04040], [-9.5, 5.6, 0.2, 0x4a8a5a],
+    [8, 1.0, 3.4, 0x90a0b0], [6.5, 1.3, 3.3, 0xb08060], [16, 1.1, 0.0, 0x6a5aa0], [-2, 5.6, 0, 0x808890], [-19, 6.0, 3.0, 0xc08a30],
     [-8, -6.2, 0, 0x6aa0a0], [-5.5, -6.1, 0, 0xa06a8a], [2, -6.3, 0, 0x7a8a40], [9, -6.2, 0, 0x4a5a90], [14, -9.5, 0, 0x904a4a], [-16, -6.4, 0, 0x5a7a5a]];
   const nCrowd = hi ? crowdSpec.length : 11, cg = [], rc = rng(31), skins = [0xd8a487, 0xb98060, 0x8a5a3c, 0xf0c8a8];
   for (let i = 0; i < nCrowd; i++) {
@@ -314,7 +314,7 @@ export function buildStation(T, { level = 'low' } = {}) {
   }
   for (let i = 0; i < nRidge; i++) { // nervaduras en el piso que salen del borde del andén
     const x = -22 + tr() * 44, z = 0.8 + tr() * 4.5, ry = tr() * 3.14, g = new T.SphereGeometry(1, 12, 8);
-    g.applyMatrix4(compose([x, 0.05, z], [1.4 + tr() * 2.2, 0.14, 0.22 + tr() * 0.2], [0, ry, 0])); g.deleteAttribute('uv'); addT(g, [x, 0.0, z], tr(), 3);
+    g.applyMatrix4(compose([x, 0.05, z], [0.9 + tr() * 1.5, 0.1, 0.16 + tr() * 0.14], [0, ry, 0])); g.deleteAttribute('uv'); addT(g, [x, 0.0, z], tr(), 3);
   }
   const tissueMat = track(fleshMaterial(T, U, U.uGrow)), tissueMesh = track(new T.Mesh(mergeGeometries(tg), tissueMat)); tissueMesh.frustumCulled = false; group.add(tissueMesh);
 
@@ -344,8 +344,8 @@ export function buildStation(T, { level = 'low' } = {}) {
       col.setRGB(1.6, 1.7, 1.55).lerp(new T.Color(2.2, 0.35, 1.6), hue).multiplyScalar(v); fixMesh.setColorAt(i, col);
     }
     fixMesh.instanceMatrix.needsUpdate = true; fixMesh.instanceColor.needsUpdate = true;
-    lights.forEach((L, i) => { const v = fix[Math.min(fix.length - 1, 1 + i * 3)].flick; L.intensity = (60 + 20 * (1 - dark)) * (0.5 + 0.5 * v) * (1 - dark * 0.5); L.color.setHSL(0.45 + 0.4 * hue, 0.5 * (1 - hue) + 0.8 * hue, 0.85 - 0.3 * hue); });
-    hemi.intensity = 0.95 - 0.35 * dark; hemi.color.setHSL(0.45 + 0.4 * hue, 0.25 + 0.5 * hue, 0.8);
+    lights.forEach((L, i) => { const v = fix[Math.min(fix.length - 1, 1 + i * 3)].flick; L.intensity = (60 + 20 * (1 - dark)) * (0.5 + 0.5 * v) * (1 - dark * 0.6) * (1 - 0.45 * hue); L.color.setHSL(0.45 + 0.4 * hue, 0.5 * (1 - hue) + 0.8 * hue, 0.85 - 0.35 * hue); });
+    hemi.intensity = (0.95 - 0.4 * dark) * (1 - 0.4 * hue); hemi.color.setHSL(0.45 + 0.4 * hue, 0.25 + 0.5 * hue, 0.75 - 0.2 * hue);
     // lámparas del túnel: se prenden cuando el tren las ilumina
     const tx = ctl.trainX ?? -999;
     for (let i = 0; i < lampX.length; i++) { const d = Math.abs(lampX[i] - tx), on = Math.max(0, 1 - d / 26); col.setRGB(1.5, 1.35, 1.0).multiplyScalar(0.06 + on * 1.4 * (0.75 + 0.25 * hash(Math.floor(t * 15) + i))); lamps.setColorAt(i, col); }
@@ -406,13 +406,15 @@ export function buildBio(T, U, halo) {
 
   /* entidad: tallo + corola de pétalos + tentáculos + un ojo enorme (local: base en y=-1.25) */
   const eg = [];
-  { const st = new T.CylinderGeometry(0.28, 0.55, 4.8, 12, 14), p = st.attributes.position;
-    for (let i = 0; i < p.count; i++) { const y = p.getY(i), k = (y + 2.4) / 4.8; p.setXYZ(i, p.getX(i) * (1 + 0.25 * Math.sin(k * 14)), y, p.getZ(i) * (1 + 0.25 * Math.sin(k * 14)) + Math.sin(k * 3) * 0.55); }
+  { const st = new T.CylinderGeometry(0.34, 0.7, 4.8, 12, 14), p = st.attributes.position;
+    for (let i = 0; i < p.count; i++) { const y = p.getY(i), k = (y + 2.4) / 4.8, f = 1 + 0.18 * Math.sin(k * 14); p.setXYZ(i, p.getX(i) * f, y, p.getZ(i) * f + 0.5 * k * k); }
     st.computeVertexNormals(); st.translate(0, -1.25 + 2.4, 0); eg.push(attr(st, [0, -1.25, 0], 0, 4)); }
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; const g = new T.SphereGeometry(1, 10, 8); g.applyMatrix4(compose([Math.cos(a) * 0.55, 3.55, Math.sin(a) * 0.55 + 0.5], [0.32, 1.2, 0.52], [Math.sin(a) * 0.7, -a, -Math.cos(a) * 0.7])); eg.push(attr(g, [0, -1.25, 0], 0.1 + i * 0.05, 4)); }
-  for (let i = 0; i < 5; i++) { const a = (i / 5) * 6.283 + 0.3, g = new T.CylinderGeometry(0.03, 0.12, 2.6, 6, 8), p = g.attributes.position; for (let k = 0; k < p.count; k++) { const y = p.getY(k) + 1.3; p.setX(k, p.getX(k) + Math.sin(y * 1.6 + i) * 0.25 * y); } g.computeVertexNormals(); g.applyMatrix4(compose([Math.cos(a) * 0.65, 3.2, Math.sin(a) * 0.65 + 0.5], [1, 1, 1], [0, -a, 0.5])); eg.push(attr(g, [0, -1.25, 0], 0.3 + i * 0.05, 4)); }
+  for (let i = 0; i < 8; i++) { // corola: pétalos en abanico alrededor del ojo, mirando hacia +z (el andén)
+    const a = (i / 8) * 6.283, g = new T.SphereGeometry(1, 10, 8);
+    g.applyMatrix4(compose([Math.cos(a) * 0.95, 3.4 + Math.sin(a) * 0.95, 0.45], [0.3, 0.9, 0.3], [0, 0, a - Math.PI / 2])); eg.push(attr(g, [0, -1.25, 0], 0.1 + i * 0.04, 4)); }
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283 + 0.3, g = new T.CylinderGeometry(0.03, 0.12, 2.8, 6, 8), p = g.attributes.position; for (let k = 0; k < p.count; k++) { const y = p.getY(k) + 1.4; p.setX(k, p.getX(k) + Math.sin(y * 1.6 + i) * 0.25 * y); } g.computeVertexNormals(); g.applyMatrix4(compose([Math.cos(a) * 0.5, 2.4, Math.sin(a) * 0.5 + 0.55], [1, 1, 1], [0, -a, 0.35])); eg.push(attr(g, [0, -1.25, 0], 0.3 + i * 0.05, 4)); }
   const entity = new T.Group(); const entMesh = new T.Mesh(mergeGeometries(eg), tr(fleshMaterial(T, U, grows.entity))); entMesh.frustumCulled = false; entity.add(entMesh);
-  const entEye = mkEye(0.5, eyeTex); entEye.position.set(0, 3.5, 0.55); entity.add(entEye);
+  const entEye = mkEye(0.62, eyeTex); entEye.position.set(0, 3.4, 0.7); entity.add(entEye);
 
   /* capullo-blanco: vaina colgante con núcleo brillante y púas de cristal */
   const target = new T.Group(), tg = [];
@@ -455,9 +457,9 @@ export function buildBio(T, U, halo) {
   const hMesh = new T.Mesh(mergeGeometries(hg), tr(fleshMaterial(T, U, grows.hand, { tint: [1.2, 0.9, 0.9] }))); hMesh.frustumCulled = false; hand.add(hMesh);
   const barrelG = new T.ConeGeometry(0.03, 0.34, 6); barrelG.rotateX(-Math.PI / 2); barrelG.translate(0, 0.06, -0.38);
   const barrel = new T.Mesh(barrelG, tr(new T.MeshStandardMaterial({ color: 0x2fe6d2, emissive: 0x20c0b0, emissiveIntensity: 1.1, roughness: 0.15, metalness: 0.3 }))); hand.add(barrel);
-  const hEye = mkEye(0.028, eyeTex2); hEye.position.set(0, 0.115, -0.1); hand.add(hEye);
+  const hEye = mkEye(0.028, eyeTex2); hEye.position.set(0, 0.115, -0.1); hEye.rotation.x = -1.0; hand.add(hEye);
   const muzzle = new T.Object3D(); muzzle.position.set(0, 0.06, -0.55); hand.add(muzzle);
   const hSprite = new T.Sprite(tr(new T.SpriteMaterial({ map: halo, color: 0x66fff0, blending: T.AdditiveBlending, depthWrite: false, transparent: true, depthTest: false }))); hSprite.position.copy(muzzle.position); hSprite.scale.setScalar(0.0); hand.add(hSprite);
-  hand.position.set(0.3, -0.27, -0.42); hand.rotation.set(0.03, 0.12, 0);
+  hand.position.set(0.3, -0.27, -0.42); hand.rotation.set(0.03, 0.12, 0); hand.scale.setScalar(0.75);
   return { grows, entity, entEye, target, targetCore: core, targetHalo: tHalo, umbral, umbralMem: memU, pedestal, orb, orbMat, pHalo, hand, handBarrel: barrel, handEye: hEye, muzzle, handFlash: hSprite, dispose() { for (const d of disposables) d.dispose && d.dispose(); [entity, target, umbral, pedestal, hand].forEach((g) => g.traverse((o) => o.geometry && o.geometry.dispose())); } };
 }

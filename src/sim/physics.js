@@ -12,6 +12,7 @@ export function collide(map, pos, vel, r, up) {
     const s = solids[i];
     let nx = 0, ny = 0, nz = 0, hit = false;
     if (s.type === 'cyl') {
+      if (pos.x - s.c.x > s.r + r || s.c.x - pos.x > s.r + r || pos.z - s.c.z > s.r + r || s.c.z - pos.z > s.r + r || pos.y > s.y1 + r || pos.y < s.y0 - r) continue; // descarte rápido (mapas con muchos discos)
       const dx = pos.x - s.c.x, dz = pos.z - s.c.z, d = Math.hypot(dx, dz);
       const k = d > s.r ? s.r / d : 1;
       const cx = s.c.x + dx * k, cz = s.c.z + dz * k, cy = clamp(pos.y, s.y0, s.y1);

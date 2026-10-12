@@ -16,6 +16,7 @@ import { kit } from './organism.js';
 import heraldo from './creatures/heraldo.js';
 import { cfg, LEVELS, setCurrent } from './quality.js';
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
+import { createHostFx } from './hostfx.js';
 const WEAPONS_MAX = WEAPONS.map((w) => w.max);
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
@@ -62,6 +63,7 @@ export class Renderer {
     this.muzzle = new THREE.PointLight(0xffd9a0, 0, 28, 1.6); this.camera.add(this.muzzle); this.muzzle.position.set(0.3, -0.2, -1);
     this.scene.add(this.hemi, this.sun, this.rim);
     this.vm = new Viewmodels(this.camera, this.halo);
+    try { this.hostfx = createHostFx(this); } catch (err) { console.warn('Efectos de Huéspedes no disponibles', err.message); this.hostfx = null; } // habilidades y melee de los 5 Huéspedes (hostfx.js)
     this.dying = [];
     this.setupPost();
     this.resize();
@@ -117,12 +119,17 @@ export class Renderer {
     const warm = mapId === 'm2', dream = mapId === 'm3';
     this.hemi.color.setHex(warm ? 0xffb0d8 : dream ? 0xd0b8ff : 0xaab8ff); this.hemi.groundColor.setHex(warm ? 0x3a0a2a : dream ? 0x2a1050 : 0x1a0f3a); this.sun.color.setHex(warm ? 0xffd2c0 : 0xe8f0ff); this.rim.color.setHex(warm ? 0x66ffd8 : 0xff66c4);
     this.sunDir = null; // el entorno fija la dirección del sol; luego las sombras la siguen
-    if (mapId === 'm3') this.loadMap3(MAPS.m3); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
-    if (mapId !== 'm3') import('./env/eyes.js').then((m) => {
+    if (mapId === 'm3') this.loadMap3(MAPS.m3); else if (mapId === 'm4') this.loadMap4(MAPS.m4); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
+    if (mapId !== 'm3' && mapId !== 'm4') import('./env/eyes.js').then((m) => {
       if (this.mapId !== mapId || !m.addCosmicEyes) return; const q = cfg().decor;
       if (mapId === 'm1') m.addCosmicEyes(this, this.mapRoot, { mode: 'sky', count: q ? 40 : 12, radius: 1000, minR: 450, size: 2.6, y0: -150, y1: 700 });
       else m.addCosmicEyes(this, this.mapRoot, { mode: 'shell', shellR: MAPS.m2.R, count: q ? 46 : 12 });
     }).catch(() => { /* sin ojos cósmicos */ });
+  }
+  /** Jardín de Carne (mapa 4): env/map4.js construye suelo de tejido, vegetación reactiva, cielo y niebla (ya incluye los ojos cósmicos). */
+  loadMap4(map) {
+    const mapId = 'm4';
+    import('./env/map4.js').then((m) => { if (this.mapId === mapId) m.buildMap4(this, map); }).catch((e) => { console.error('mapa 4:', e); });
   }
   /** Laberinto Celestial: usa env/map3.js si existe; si no, un laberinto básico de cajas. */
   loadMap3(map) {
@@ -170,6 +177,7 @@ export class Renderer {
     this.syncPlayers(state, myId, dt);
     this.objects.sync(state, dt, state.map, this.camera.position);
     this.handleEvents(state, me);
+    if (this.hostfx) this.hostfx.update(dt, state, me);
     this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
@@ -364,7 +372,8 @@ export class Renderer {
     const bossP = (state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre' || m.k === 'argos') || {}).p;
     const C = this.fx.combat; C.frame(this, state, me); // efectos de combate: estelas, estados sobre criaturas, objetos
     const OWN = new Set(['pulsar', 'arc', 'beam', 'tshot', 'well', 'minePlace', 'skill']); // eventos que ahora dibuja combatfx.js (el dibujo viejo de objects.js se omite)
-    for (const e of state.events) {
+    let evs = state.events; if (this.hostfx && evs.length) { evs = []; for (const e of state.events) if (!this.hostfx.onEvent(e, me, state)) evs.push(e); } // hostfx.js resuelve las habilidades / melee de los Huéspedes
+    for (const e of evs) {
       if (!OWN.has(e.t)) this.objects.onEvent(e, this.fx, bossP);
       if (e.t === 'shot') for (const [pid, pe] of this.ents.ply) if (pid === e.pid) pe.shotT = 0.25;
       switch (e.t) {

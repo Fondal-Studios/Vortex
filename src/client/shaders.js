@@ -160,14 +160,21 @@ export function shellMaterial(hue = 0.3, iters = 5) {
         float beat = heart(uTime), sweep = exp(-pow((lat * 5.0 - fract(uTime / 1.55) * 6.5 + 0.8) * 0.9, 2.0));
         float mott = 0.35 + 1.3 * fbm(p * 0.7 + t * 2.0);                       // la luz del núcleo pasa entre manchas de bruma
         float dif = max(dot(N, L), 0.0) * mott;
-        vec3 flesh = mix(vec3(0.15, 0.035, 0.13), vec3(0.40, 0.10, 0.27), body);
-        flesh = mix(flesh, vec3(0.62, 0.34, 0.52), pust * 0.5 + 0.2 * smoothstep(0.55, 0.8, vnoise(q * 28.0)));
+        vec3 flesh = mix(vec3(0.21, 0.055, 0.17), vec3(0.58, 0.16, 0.36), body);
+        flesh = mix(flesh, vec3(0.78, 0.46, 0.62), pust * 0.5 + 0.2 * smoothstep(0.55, 0.8, vnoise(q * 28.0)));
+        // ARTE (legibilidad del suelo): baldosas de tejido de ~5 m (proyección cúbica) con borde luminoso y tono propio por baldosa
+        vec3 ad = abs(dir); vec2 gp = ad.x > ad.y && ad.x > ad.z ? vP.yz : (ad.y > ad.z ? vP.xz : vP.xy); gp /= 5.0;
+        vec2 gf = abs(fract(gp) - 0.5); float gd = 0.5 - max(gf.x, gf.y), gw = max(length(fwidth(gp)), 0.002);
+        float tile = 1.0 - smoothstep(0.012, 0.012 + gw * 1.6, gd);
+        vec2 gi = floor(gp); float tone = hash13(vec3(gi, ad.x > ad.y && ad.x > ad.z ? 1.0 : (ad.y > ad.z ? 2.0 : 3.0)));
+        flesh *= 0.78 + 0.5 * tone;
         vec3 glass = mix(vec3(0.03, 0.16, 0.34), vec3(0.12, 0.50, 0.70), vnoise(q * 12.0));
         vec3 alb = mix(flesh, glass, crys);
         float gloss = mix(0.3, 1.0, max(crys, pust));
         vec3 H = normalize(L + V); float spec = pow(max(dot(N, H), 0.0), mix(24.0, 120.0, gloss)) * gloss;
         float ao = 0.55 + 0.75 * smoothstep(0.2, 1.1, hgt);                          // grietas más oscuras, relieves más claros
         vec3 col = alb * ao * (0.12 + 0.80 * dif) + vec3(1.0, 0.8, 0.7) * spec * 0.28;
+        col += mix(vec3(0.15, 0.85, 0.95), vec3(1.0, 0.45, 0.7), tone) * tile * (0.34 + 0.22 * beat) * (1.0 - crys * 0.6) * (1.0 - smoothstep(60.0, 200.0, dist));
         float fl = step(0.985, hash13(floor(q * 90.0))) * crys * (0.5 + 0.5 * sin(uTime * 3.0 + dot(floor(q * 90.0), vec3(1.0, 2.0, 3.0))));
         col += vec3(0.7, 1.0, 1.0) * fl * 0.9;                                    // destellos de cristal
         float thin = pust * 0.7 + (1.0 - body) * 0.25;

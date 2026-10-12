@@ -38,7 +38,7 @@ export function floorMaterial(U, { full = true } = {}) {
           vec2 tg = th > 0.5 ? vec2(1.0 - tf.x, tf.y) : tf;
           float arc = min(abs(length(tg) - 0.5), abs(length(tg - 1.0) - 0.5)) * 4.0;
           float groove = ln(arc, 0.07, 0.04 + aa);
-          vec3 alb = vec3(0.085, 0.072, 0.17) * (0.75 + 0.5 * th) + zc * 0.025;
+          vec3 alb = vec3(0.11, 0.095, 0.21) * (0.75 + 0.5 * th) + zc * 0.03;
           alb *= 0.85 + 0.3 * vnoise(vec3(p * 0.9, 1.0));
           alb = mix(alb, vec3(0.012, 0.010, 0.03), seam * 0.8 + groove * 0.5);
           vec3 emi = zc * groove * (0.14 + 0.10 * sin(t * 0.9 + th * TAU)) * 0.9 + zc * seam * 0.05;
@@ -56,7 +56,7 @@ export function floorMaterial(U, { full = true } = {}) {
             float pulse = pow(0.5 + 0.5 * sin(cd * 0.42 + t * 1.7), 4.0);
             float core = ln(dl, 0.09, 0.05 + aa), halo = exp(-dl * 1.5) * 0.35;
             float ch = 0.5 + 0.5 * sin((q.x + q.y) * 1.3 - t * 0.0);
-            emi += zc * (core * (0.55 + 1.6 * pulse) + halo * (0.18 + 0.5 * pulse)) * (0.7 + 0.3 * ch);
+            emi += mix(zc, vec3(1.0), 0.25) * (core * (0.75 + 1.6 * pulse) + halo * (0.18 + 0.5 * pulse)) * (0.7 + 0.3 * ch);
             alb = mix(alb, alb * 0.5, core);
             // nodo en el centro de la celda: anillo + runa + puntas
             float nr = length(q), na = atan(q.y, q.x);
@@ -145,6 +145,7 @@ export function wallMaterial(U, { full = true } = {}) {
         vec3 V = cameraPosition - vWP; float dist = length(V); V /= dist;
         vec3 n0 = normalize(vN); float t = uTime;
         vec3 zc = zoneCol(vWP.xz);
+        zc = mix(zc, vec3(dot(zc, vec3(0.34))) * vec3(0.80, 0.95, 1.30), 0.42); // ARTE: el color de zona tiñe los muros sin inundar la vista de un solo tono
         bool side = abs(n0.y) < 0.5, top = n0.y > 0.5;
         vec2 uv = side ? vec2(dot(vWP.xz, vec2(-n0.z, n0.x)), vWP.y) : vWP.xz;
         vec3 T = side ? vec3(-n0.z, 0.0, n0.x) : vec3(1.0, 0.0, 0.0), B = side ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
@@ -175,7 +176,7 @@ export function wallMaterial(U, { full = true } = {}) {
         // luz del sol (sombra aproximada con el suelo al pie del muro) y destellos
         float sunF = mix(texture2D(uBake, (vWP.xz + n0.xz * 1.6 + 80.0) / 160.0).g, 1.0, smoothstep(2.0, 12.0, vWP.y));
         float ndl = max(dot(n, uSunL), 0.0);
-        col += (vec3(0.03, 0.025, 0.07) + mix(vec3(0.8, 0.6, 0.5), irid, 0.5) * ndl * sunF * 0.28) * (0.4 + 0.6 * fh);
+        col += (vec3(0.03, 0.025, 0.07) + mix(vec3(0.55, 0.55, 0.75), irid, 0.5) * ndl * sunF * 0.20) * (0.4 + 0.6 * fh);
         vec3 R = reflect(-V, n);
         vec3 sky = mix(vec3(0.08, 0.05, 0.2), vec3(0.45, 0.4, 0.95), clamp(R.y * 0.5 + 0.5, 0.0, 1.0));
         col += sky * fres * 0.38 + irid * fres * 0.30;
@@ -186,7 +187,7 @@ export function wallMaterial(U, { full = true } = {}) {
         if (side) {
           // franjas de adorno y glifos en dos hileras
           float trim = (1.0 - smoothstep(0.0, 0.05 + aaU, abs(uv.y - 1.1) - 0.04)) + (1.0 - smoothstep(0.0, 0.05 + aaU, abs(uv.y - 10.6) - 0.04));
-          col += zc * trim * 0.9;
+          col += zc * trim * 0.55;
           vec2 gc = vec2(uv.x / 3.4, (uv.y - 3.6) / 3.2); vec2 gid = floor(gc), gf = fract(gc);
           float gh = hash21(gid * 1.37 + vec2(floor(n0.x + 0.5) * 5.1 + floor(n0.z + 0.5) * 9.7, floor(vSize.x * 0.5 + 0.25) * 0.013 + floor(vSize.z * 0.5 + 0.25) * 0.017));
           if (gid.y >= 0.0 && gid.y < 2.0 && gh > 0.58) {
@@ -212,7 +213,7 @@ export function wallMaterial(U, { full = true } = {}) {
         // resplandor de la base y bruma baja
         col = mix(col, zc * 0.25 + vec3(0.05, 0.04, 0.10), exp(-vWP.y * 0.45) * 0.30);
         col = mix(col, hazeCol(-V), 1.0 - exp(-dist * dist * ${HAZE_D.toFixed(7)}));
-        gl_FragColor = vec4(col * ${gain(0.5)}, 1.0);
+        gl_FragColor = vec4(col * ${gain(0.42, 0.82)}, 1.0);
       }`,
   }));
 }

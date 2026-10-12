@@ -19,6 +19,8 @@ import * as Story from './story.js';
 import { uTime } from './shaders.js';
 import { MenuUI, showLoading, trophy } from './ui.js';
 import { Pad } from './gamepad.js';
+import * as THREE from 'three';
+import { startPrologue } from './prologo.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -33,6 +35,7 @@ let level = initialQuality(params);
 const canvas = $('c');
 const renderer = new Renderer(canvas, { level, pixelRatio: params.get('pr') ? +params.get('pr') : null });
 const sound = new Sound();
+if (renderer.hostfx) renderer.hostfx.setSound(sound); // hostfx.js reproduce los sonidos de habilidades y melee de los Huéspedes
 if (CAP) { // no suena nada en vivo: se registra cada sonido con su tiempo virtual para sintetizar la banda sonora
   window.__evlog = []; for (const m of ['ui', 'chirp', 'train', 'heartbeat', 'shot', 'boom', 'hit', 'voice', 'hurt', 'pickup', 'gravity', 'portal', 'wave', 'ability', 'objective', 'ping', 'ray', 'purge', 'stagger', 'down', 'init', 'resume', 'startMusic', 'setListener']) sound[m] = (...a) => { if (m !== 'init' && m !== 'resume' && m !== 'setListener' && m !== 'startMusic') window.__evlog.push({ t: window.__capT || 0, m, a: JSON.parse(JSON.stringify(a)) }); };
 }
@@ -96,7 +99,7 @@ const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSe
 let combatHud = null, huespedHud = null, caida = null;
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
 function readInput() {
-  if (session && session.touch) return touch.read();
+  if (session && session.touch) { const ti = touch.read(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
@@ -180,7 +183,12 @@ function enter(mapId) {
 let cine = null;
 function beginIntro(kind) {
   session.intro = kind; $('hud').classList.add('hidden'); if (session.touch) touch.show(false);
-  if (kind === 'full') {
+  if (kind === 'full' && !params.get('classic_intro')) { // Prólogo 3D «La Estación» (src/client/prologo.js); ?skipprologo=1 lo salta, ?classic_intro=1 vuelve al cine 2D
+    if (params.get('skipprologo')) { startWake(Story.WAKE); return; }
+    if (session.touch) touch.show(true);
+    const end = (skipped) => { if (!session) return; session.prologo = null; if (skipped) skipIntro(true); else startWake(Story.WAKE); };
+    session.prologo = startPrologue({ THREE, renderer, host: Equipo.char, touch: !!session.touch, sound, touchCtl: session.touch ? touch : null, manual: true, nolock: NOLOCK, onDone: () => end(false), onSkip: () => end(true) });
+  } else if (kind === 'full') {
     $('cine').classList.remove('hidden'); sound.train(11);
     const total = Story.INTRO_TRAIN.reduce((a, l) => a + l[2], 0);
     cine = Story.trainCine($('cine'), total, () => { const f = $('flash'); f.classList.add('on'); sound.heartbeat(); later(() => f.classList.remove('on'), 1200); }, CAP);
@@ -193,7 +201,7 @@ function startWake(lines) {
   renderer.setGuide(true); renderer.startWake(4); sound.heartbeat();
   subs.play(lines, finishIntro);
 }
-function skipIntro() { if (!session || !session.intro) return; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
+function skipIntro(force) { if (!session || !session.intro || (session.prologo && !force)) return; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
 /** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). No pausa la partida. */
 function showTutorial(force = false) {
   let seen = false; try { seen = localStorage.getItem('cristal.tut.v2') === '1'; } catch { /* ok */ }
@@ -247,6 +255,7 @@ function frame(now) {
   if (CAP) { capT += dt; window.__capT = capT; for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= capT * 1000) { const f = timers[i].fn; timers.splice(i, 1); f(); } if (cine && cine.tick) cine.tick(dt); }
   window.__fps = (window.__fps || 60) * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;
   uTime.value += 0; subs.update(dt); padDt = dt;
+  if (session && session.prologo) { if (!params.get('prologo_manual')) session.prologo.tick(dt); return; } // prólogo 3D: dibuja él mismo
   if (!session) { for (const a of pad.menuEvents(dt)) ui.act(a); menuSpin(dt); return; }
   if (session && !session.touch && (!locked || session.ended) && !session.headless) for (const a of pad.menuEvents(dt)) { if (a === 'ok' && !$('pause').classList.contains('hidden')) lockPointer(); if (a === 'back' && !$('end').classList.contains('hidden')) location.reload(); }
   auto.tick(dt, level);
@@ -355,8 +364,13 @@ function audioAndHud(state, me, dt) {
       case 'hatch': sound.boom(e.p); break;
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con T', 2200); break;
       case 'surge': banner('El Vórtice se enfurece…', 1800); break;
+      case 'feed': if (!session.feedT || performance.now() - session.feedT > 160) { session.feedT = performance.now(); sound.pickup(); } break; // mapa 4: un impacto alimentó un capullo (el aro de puntos del capullo muestra cuánto)
+      case 'gnaw': if (!session.gnawT || performance.now() - session.gnawT > 9000) { session.gnawT = performance.now(); banner('¡Las criaturas están royendo un capullo! Defendelo', 2200); sound.hurt(); } break;
+      case 'bloom': sound.objective(true); banner(`¡CAPULLO FLORECIDO! (${e.k + 1}/${e.n}) Crece un tramo del puente`, 3000); break;
+      case 'bridge': if (e.ph === 'open') { sound.objective(true); banner('¡EL PUENTE AL UMBRAL ESTÁ COMPLETO! Cruzá hasta la isla del este', 3600); flash(); } else if (e.ph === 'start') sound.gravity(e.p); break;
+      case 'hint': banner(e.lvl === 1 ? 'Pista: un capullo está marcado. Disparale para alimentarlo' : e.lvl === 2 ? 'Pista: cada capullo que florece hace crecer un tramo del puente entre la Cámara del Latido (este) y el Umbral' : 'Pista: el puente nacerá en el lugar marcado, entre la Cámara del Latido y el Umbral', 4200); break;
       case 'tshot': break;
-      case 'skill': if (mine) { sound.ability(); } break;
+      case 'skill': if (mine && !(renderer.hostfx && renderer.hostfx.handles(e))) { sound.ability(); } break; // las de los Huéspedes suenan desde hostfx.js
       case 'upgrade': if (mine) { sound.pickup(); banner('¡Arma mejorada!', 1400); } break;
       case 'gaze': sound.ray(); banner('¡ARGOS TE MIRA! Cubrite detrás de un muro', 2200); break;
       case 'ojobreak': sound.boom(e.p); break;
@@ -389,7 +403,7 @@ function audioAndHud(state, me, dt) {
 }
 
 /* ───────── HUD del director: objetivo, habilidad, jefe, ping, caído ───────── */
-const OBJ_ICON = { ancla: '⚓', sintonia: '◈', nucleo: '✦' };
+const OBJ_ICON = { ancla: '⚓', sintonia: '◈', nucleo: '✦', cultivo: '✿' };
 function objectiveEvent(e) {
   if (e.ph === 'start') { banner(`${e.title}: ${e.desc}`, 5200); sound.objective(true); }
   else if (e.ph === 'done') {
@@ -414,7 +428,7 @@ function hudDirector(state, me) {
     set('skm', C.mov.name, me.mv, touchUI ? '' : 'F'); set('ske', C.esp.name, me.es, touchUI ? '' : 'CLIC DER');
   }
   const wantCards = !!(me && me.cards && me.cards.length && state.phase === 'intermission');
-  if (wantCards !== cardsOpen) { cardsOpen = wantCards; $('cards').classList.toggle('hidden', !wantCards); session.cardKey = ''; }
+  if (wantCards !== cardsOpen) { cardsOpen = wantCards; $('cards').classList.toggle('hidden', !wantCards); session.cardKey = ''; document.body.classList.toggle('cards-open', wantCards); if (wantCards && session.touch) touch.reset(); }
   if (wantCards) {
     const key = JSON.stringify(me.cards) + me.sl.join(',');
     if (session.cardKey !== key) {
@@ -553,11 +567,12 @@ $('again').addEventListener('click', () => {
 if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !params.get('auto') && location.hostname !== 'localhost') navigator.serviceWorker.register('./sw.js').catch(() => {});
 
 // Modos automáticos para pruebas visuales y de rendimiento: ?auto=m1&bot=1&wave=3&god=1
+if (params.get('prologo') && !params.get('auto')) loadAnd(() => startSolo('m1', { campaign: 'm1' })); // ?prologo=1 fuerza el prólogo (entra directo a la campaña)
 if (params.get('auto')) {
   startSolo(params.get('auto'), { bot: params.get('bot') === '1', wave: +params.get('wave') || 0, god: params.get('god') === '1', horde: params.get('horde') === '1', seed: +params.get('seed') || 7, skill: +params.get('skill') || 1.2, difficulty: +params.get('difficulty') || 1, intro: false });
   window.__session = session; window.__renderer = renderer;
 }
-window.__api = { ui, pad, get session() { return session; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
+window.__api = { ui, pad, get session() { return session; }, get caida() { return caida; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
 window.__frame = frame; window.__step = (ms) => frame(last + ms); window.__ui = ui; if (!params.get('cap')) requestAnimationFrame(frame);
 
 // En un sitio estático (sin servidor) el cooperativo no está disponible: se avisa y se deshabilita.

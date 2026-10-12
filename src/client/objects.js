@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { kit } from './organism.js';
 import { buildOjo } from './creatures/ojo.js';
+import { M4_BUILD, m4Animate, m4Event, m4Frame } from './env/map4-objs.js'; // mapa 4: capullos del Cultivo y puente vivo
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const Y = new THREE.Vector3(0, 1, 0);
@@ -117,6 +118,7 @@ const BUILD = {
     return g;
   },
 };
+Object.assign(BUILD, M4_BUILD);
 const SIZE_HINT = { turret: 1 };
 
 export class ObjectsView {
@@ -156,7 +158,9 @@ export class ObjectsView {
       g.position.copy(pos);
       const up = o.t === 'dome' || o.t === 'core' || o.t === 'well' || o.t === 'ojo' ? Y : upAt(map, o.p); g.quaternion.setFromUnitVectors(Y, up);
       this.animate(it, o, u, up);
+      this.fadeNear(it, o, u);
     }
+    m4Frame(state);
     for (const [id, it] of this.items) if (!seen.has(id)) { this.root.remove(it.g); if (it.g.userData.h) it.g.userData.h.dispose(); else it.g.traverse((x) => { if (x.material) x.material.dispose && x.material.dispose(); }); this.items.delete(id); }
     // rayo del jefe hacia cada pilar marcado
     const boss = state.monsters && state.monsters.find((m) => m.k === 'coloso');
@@ -174,6 +178,18 @@ export class ObjectsView {
       if (tr.life <= 0) { this.root.remove(tr.m); tr.m.material.dispose(); this.tracers.splice(i, 1); }
     }
   }
+  /** Arte (legibilidad): los haces/anillos aditivos se apagan cuando la cámara está dentro o pegada a ellos
+   *  (antes tapaban un cuarto de la pantalla con un bloque blanco "quemado"). */
+  fadeNear(it, o, u) {
+    if (!this.cam || !u || !(u.beam || u.ring)) return;
+    const r = o.r || 2, c = this.cam, p = it.g.position, hd = Math.hypot(c.x - p.x, c.z - p.z) + Math.abs(c.y - p.y) * 0.15;
+    const sm = (a, b, x) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+    if (u.beam) { // el haz: sólo se ve desde fuera (si animate() no lo reescribió este cuadro, reusamos la base guardada)
+      const m = u.beam.material, ud = m.userData; if (ud.last === undefined || m.opacity !== ud.last) ud.base = m.opacity;
+      m.opacity = ud.last = ud.base * 0.7 * sm(r * 0.6, r * 1.8, hd);
+    }
+    if (u.ring) { const m = u.ring.material; if (m.userData.o0 === undefined) m.userData.o0 = m.opacity; m.opacity = Math.min(0.55, m.userData.o0) * sm(0.6, 4, Math.abs(hd - r)); }
+  }
   animate(it, o, u, up) {
     const t = this.t, pulse = 0.5 + 0.5 * Math.sin(t * 4 + o.id);
     switch (o.t) {
@@ -188,7 +204,7 @@ export class ObjectsView {
       case 'plate': {
         const on = o.s === 'on'; const col = on ? 0x7dff9a : 0x7a5cff;
         u.disc.material.color.setHex(col); u.ring.material.color.setHex(on ? 0xc8ffd2 : 0xb9a4ff); u.beam.material.color.setHex(col);
-        u.disc.material.opacity = on ? 0.55 + pulse * 0.2 : 0.3; u.beam.material.opacity = on ? 0.35 : 0.12 + (o.v || 0) * 0.2; u.ring.rotation.z = t;
+        u.disc.material.opacity = on ? 0.3 + pulse * 0.1 : 0.2; u.beam.material.opacity = on ? 0.35 : 0.12 + (o.v || 0) * 0.2; u.ring.rotation.z = t;
         break;
       }
       case 'core': {
@@ -226,11 +242,13 @@ export class ObjectsView {
       case 'ojo': { u.h.tick(this.dt, { hp: o.hp, maxhp: o.mx || 1, t }); if (this.cam) it.g.lookAt(this.cam); break; }
       case 'mine': { const pu = 0.5 + 0.5 * Math.sin(t * 8); u.body.material.emissiveIntensity = 0.4 + pu; u.ring.material.opacity = 0.15 + 0.2 * pu; break; }
       case 'turret': { u.head.rotation.y = t * 2; u.head.material.opacity = 0.7 + pulse * 0.3; break; }
+      case 'capullo': case 'puente': m4Animate(it, o, u, t, this.dt); break;
       default: break;
     }
   }
   /** Eventos puntuales del director. */
   onEvent(e, fx, pos) {
+    if (m4Event(e, fx, this)) return;
     if (e.t === 'tshot') this.beam(e.o, e.to, 0x66bbff, 0.12, 0.05);
     else if (e.t === 'reflect') this.beam(e.from, e.to, 0xffffff, 0.6, 0.5);
     else if (e.t === 'pulse') fx.blast(V(e.p), 0x7dff9a, 12, 0.8);

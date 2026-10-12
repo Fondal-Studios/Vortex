@@ -39,6 +39,7 @@ function mazeStep(game, from, target) {
 
 /** Siguiente punto de ruta hacia `target`; en M1 usa los portales para cambiar de isla. */
 function routeTo(game, p, target) {
+  if (game.map.navStep) { const st = game.map.navStep(p.pos, target); return st && st !== 'none' ? v3(st.x, st.y, st.z) : target; } // mapa 4: grafo de plataformas
   if (game.map.maze) return mazeStep(game, p.pos, target);
   if (game.mapId !== 'm1') return target;
   const map = game.map, here = map.islandAt(p.pos), there = map.islandAt(target);
@@ -72,6 +73,10 @@ function taskFor(game, p) {
   }
   if (!o || o.state !== 'active') return null;
   const ob = o.ids.map((id) => game.objects.find((x) => x.id === id)).filter(Boolean);
+  if (o.type === 'cultivo') { // ir al capullo sin florecer más cercano y darle de comer a tiros
+    let best = null, bd = Infinity; for (const c of ob) if (c.type === 'capullo' && !c.on) { const d = dist(c.pos, p.pos); if (d < bd) { bd = d; best = c; } }
+    return best ? { pt: best.pos, stay: 16 } : null;
+  }
   if (o.type === 'ancla') return ob[0] && idx === 0 ? { pt: ob[0].pos, stay: ob[0].r * 0.5 } : null;
   if (o.type === 'sintonia') {
     if (o.solo) { const v = ob.slice().sort((a, b) => a.hold - b.hold)[0]; return v ? { pt: v.pos, stay: 1 } : null; }
@@ -135,6 +140,7 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
       else if (d < 45 && p.ammo[2] > 0) w = 2;
       else if (d < 25 && p.ammo[1] > 0) w = 1;
     }
+    if (w > 0 && p.slots && !(p.ammo[p.slots[w]] >= 1)) w = 0; // la ranura elegida no tiene munición: usar el Haz (si no, el arma vuelve al Haz y el bot la reselecciona cada cuadro sin disparar)
     if (w !== p.weapon) inp.weapon = w;
 
     // puntería con giro limitado y error
@@ -192,6 +198,7 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
       if (off > 18) { const out = Math.max(0, dot(wishMove, mul(inward, -1))); wishMove = add(wishMove, mul(inward, out + 2)); }
       if (off > 18) inp.dash = false;
     }
+    if (game.map.guard) wishMove = game.map.guard(p.pos, project(wishMove, p.up), 5.5); // no caminar al vacío (mapa 4)
     wishMove = project(wishMove, p.up);
     const l = len(wishMove);
     if (l > 0.05) { const n = mul(wishMove, 1 / Math.max(1, l)); inp.mz = dot(n, p.heading); inp.mx = dot(n, right); }

@@ -232,19 +232,19 @@ export class Sound {
   }
   /** Fin de una definitiva: el cuerpo se "desinfla". */
   hostEnd(id, at) { this._vk = 1.6; try { this.tone({ f: 500, f2: 70, type: 'sawtooth', dur: 0.5, vol: 0.2, at }); this.noise({ dur: 0.5, vol: 0.2, freq: 3000, freq2: 120, at }); } finally { this._vk = 1; } }
-  /** Melee por Huésped. kind: light|heavy|air|exec. hit: nº de impactos (0 = al aire). */
-  melee(host, kind, at, hit = 0) { this._vk = 2.2; try { this._melee(host, kind, at, hit); } finally { this._vk = 1; } }
-  _melee(host, kind, at, hit) {
-    const T = (o) => this.tone({ ...o, at }), N = (o) => this.noise({ ...o, at }), big = kind === 'heavy' || kind === 'air' || kind === 'exec', k = big ? 1.5 : 1, r = Math.random;
-    if (kind !== 'exec') switch (host) { // el golpe al aire (barrido)
+  /** Melee por Huésped. kind: light|heavy|air (barrido) · hit (sólo el golpe) · exec (ejecución). hit: nº de impactos (0 = al aire). */
+  melee(host, kind, at, hit = 0, heavy = false) { this._vk = 2.2; try { this._melee(host, kind, at, hit, heavy); } finally { this._vk = 1; } }
+  _melee(host, kind, at, hit, heavy) {
+    const T = (o) => this.tone({ ...o, at }), N = (o) => this.noise({ ...o, at }), big = heavy || kind === 'heavy' || kind === 'air' || kind === 'exec', k = big ? 1.5 : 1, r = Math.random;
+    if (kind !== 'exec' && kind !== 'hit') switch (host) { // el golpe al aire (barrido)
       case 'vesper': N({ dur: 0.07 * k, vol: 0.3, freq: 4200, freq2: 7000, type: 'bandpass', q: 2 }); T({ f: 1500, f2: 600, type: 'sawtooth', dur: 0.06, vol: 0.08 }); if (big) N({ dur: 0.08, vol: 0.28, freq: 4800, type: 'bandpass', q: 2, delay: 0.07 }); break;
       case 'micelio': N({ dur: 0.22 * k, vol: 0.28, freq: 300, freq2: 120, q: 0.8 }); T({ f: 90, f2: 50, dur: 0.18 * k, vol: 0.22 }); break;
       case 'umbra': T({ f: 200, f2: 900, type: 'sine', dur: 0.2 * k, vol: 0.18 }); T({ f: 1200, f2: 300, type: 'triangle', dur: 0.2 * k, vol: 0.07, delay: 0.03 }); N({ dur: 0.18, vol: 0.14, freq: 6000, freq2: 1500, type: 'highpass' }); break;
       case 'seraf': N({ dur: 0.15 * k, vol: 0.18, freq: 900, freq2: 3000, type: 'bandpass', q: 1.5 }); N({ dur: 0.03, vol: 0.55, freq: 3500, type: 'highpass', delay: 0.11 * k }); T({ f: 2400, f2: 500, type: 'square', dur: 0.04, vol: 0.1, delay: 0.11 * k }); break;
       default: N({ dur: 0.12 * k, vol: 0.28, freq: 1400, freq2: 4200, type: 'bandpass', q: 1.2 }); T({ f: 2600, f2: 1900, type: 'triangle', dur: 0.1, vol: 0.06, delay: 0.02 }); // axioma: cuchilla que sale
     }
-    if (hit > 0 || kind === 'exec') { // el golpe
-      const d = 0.06 * k;
+    if (hit > 0 || kind === 'exec' || kind === 'hit') { // el golpe
+      const d = kind === 'hit' ? 0 : 0.06 * k;
       this.thump(big ? 110 : 150, 45, 0.18 * k, big ? 0.6 : 0.4, at, d);
       switch (host) {
         case 'vesper': this.crack(0.3, at, 5000, 0.04, d); T({ f: 900 + r() * 200, f2: 300, type: 'sawtooth', dur: 0.08, vol: 0.1, delay: d }); break;

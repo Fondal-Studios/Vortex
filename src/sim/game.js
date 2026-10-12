@@ -10,6 +10,7 @@ import { useMove, useSpecial } from './characters.js';
 import { initHost, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut } from './loadout.js';
 import { Director } from './director.js';
+import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
 import { ROLES, ROLE_IDS } from './data.js';
 
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -24,6 +25,7 @@ export class Game {
     this.practice = !!practice; this.practiceT = 0;
     this.map = MAPS[mapId];
     if (!this.map) throw new Error('mapa desconocido: ' + mapId);
+    if (this.map.instance) this.map = this.map.instance(); // mapas que cambian durante la partida (mapa 4: el puente crece)
     this.mapId = mapId;
     this.rng = makeRng(seed);
     this.difficulty = difficulty * (mapId === 'm2' ? 1.35 : 1); // la Cámara Fractal es más exigente (el bot ganaba 8/8)
@@ -38,6 +40,7 @@ export class Game {
     this.boss = null;
     this.objects = []; this.pings = []; this.objective = null; this.fragments = 0; this.teamBuffUntil = 0; this.director = new Director(); this.curTypes = [];
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
+    this.cult = this.map.cultivo ? initCult(this) : null; // acertijo del mapa 4 (src/sim/cultivo.js)
   }
 
   /* ─────────── jugadores ─────────── */
@@ -87,7 +90,7 @@ export class Game {
     this.director.update(this, dt);
     this.updateWaves(dt); this.updateOmens();
     for (const p of this.players) this.updatePlayer(p, dt);
-    updateObjective(this, dt); this.updateObjects(dt);
+    updateObjective(this, dt); this.updateObjects(dt); if (this.cult) tickCultivo(this, dt);
     if (this.pings.length) this.pings = this.pings.filter((q) => q.until > this.time);
     for (const m of this.monsters) this.updateMonster(m, dt);
     this.updateProjectiles(dt);
@@ -643,6 +646,7 @@ export class Game {
   removeObject(o) { if (o) this.objects = this.objects.filter((x) => x !== o); }
   damageObject(o, dmg, by, at) {
     if (o.hp <= 0) return;
+    if (o.type === 'capullo') return feedCapullo(this, o, dmg, by, at); // se alimenta, no se rompe
     o.hp -= dmg; this.emit({ t: 'hit', id: o.id, p: a3(at || o.pos), d: r2(dmg), arm: false });
     if (o.hp <= 0 && o.type === 'ojo') { this.emit({ t: 'ojobreak', p: a3(o.pos) }); this.removeObject(o); this.dropPickup('hp', o.pos); return; }
     if (o.hp <= 0 && o.type === 'sac') {

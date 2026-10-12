@@ -9,7 +9,7 @@ import { buildHuespedScreen, showHuesped } from './huespedes-ui.js';
 const $ = (id) => document.getElementById(id);
 const HERO = {
   story: ['Historia', 'Te atropella un tren y despertás en el Vórtice con armas en las manos. Un bicho extraño te explica la única regla: sobrevivir a todo para volver al mundo de los vivos.', ['Solo', '2 capítulos', '2 jefes']],
-  arenas: ['Arenas', 'Salteá la historia y andá directo a la acción en cualquiera de los dos mapas, con oleadas progresivas y un jefe cada uno.', ['Solo', 'Oleadas', 'Jefes']],
+  arenas: ['Arenas', 'Salteá la historia y andá directo a la acción en cualquiera de los cuatro mapas, con oleadas progresivas y un jefe cada uno. Nuevo: Jardín de Carne, un planeta vivo donde los caminos crecen.', ['Solo', 'Oleadas', 'Jefes']],
   coop: ['Cooperativo', 'Creá una sala o unite con un código. Hasta 4 Pasajeros, hordas que escalan con el grupo y reanimación entre compañeros.', ['1–4 jugadores', 'Wi-Fi / LAN']],
   bestiary: ['Bestiario', 'Quince organismos mitad carne, mitad cristal. Girá cada criatura en 3D y leé sus patrones, avisos y debilidades.', ['12 criaturas', '3 jefes']],
   huesped: ['Huésped', 'Elegí tu Huésped: uno de los 5 organismos biomecánicos (o un Veterano). Mirá su modelo en 3D, sus estadísticas y sus habilidades antes de entrar a la partida.', ['5 Huéspedes', 'Veteranos', 'Demostración']],
@@ -42,7 +42,7 @@ export class MenuUI {
     this.screen = name;
     this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name));
     this.idx = name === 'bestiary' ? 0 : 0; this.focus(this.idx, true);
-    $('prompts').style.opacity = name === 'title' ? 0 : 1;
+    $('prompts').style.opacity = name === 'title' || name === 'huesped' ? 0 : 1;
     if (name === 'bestiary') this.selectBeast(0);
     if (name === 'loadout') this.renderLoadout();
     if (name === 'huesped') showHuesped(this);

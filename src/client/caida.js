@@ -96,12 +96,18 @@ export function createCaida({ renderer, root, sound = null } = {}) {
   beacon.visible = false; beacon.frustumCulled = false; scene.add(beacon);
 
   /* ── estado ── */
-  const S = { t: 0, prev: null, vel: new THREE.Vector3(), vFall: 0, peak: 0, fallT: 0, voidSeen: 0, k: 0, mapId: null, respawnT: 0, landBlock: 0, msgT: 0, hp: 100, init: false, rmT: -9, rm: false, spawnP: new THREE.Vector3(), safeP: null, lastGround: null };
+  const S = { lands: 0, falls: 0, t: 0, prev: null, vel: new THREE.Vector3(), vFall: 0, peak: 0, fallT: 0, voidSeen: 0, k: 0, mapId: null, respawnT: 0, landBlock: 0, msgT: 0, hp: 100, init: false, rmT: -9, rm: false, spawnP: new THREE.Vector3(), safeP: null, lastGround: null };
   const reduced = () => {
     if (S.t - S.rmT > 2) { S.rmT = S.t; let v = false; try { v = localStorage.getItem('cristal.reduceMotion') === '1'; } catch { /* sin almacenamiento */ } try { if (!v && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) v = true; } catch { /* sin matchMedia */ } S.rm = v; host.classList.toggle('rm', v); }
     return S.rm;
   };
   const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+  /** «Arriba» del jugador. Usa me.up si es un vector válido; si el snapshot no lo trae bien (hoy `up` se pisa con las mejoras de armas) lo deduce de la gravedad del mapa. */
+  const upOf = (me, map, t) => {
+    const u = me.up; if (Array.isArray(u) && u.length >= 3 && typeof u[0] === 'number' && typeof u[1] === 'number' && typeof u[2] === 'number' && Math.hypot(u[0], u[1], u[2]) > 0.5) return V(u).normalize();
+    if (map && map.gravityAt) { try { const g = map.gravityAt({ x: me.pos[0], y: me.pos[1], z: me.pos[2] }, t || 0), l = Math.hypot(g.x, g.y, g.z); if (l > 1e-6) return new THREE.Vector3(-g.x / l, -g.y / l, -g.z / l); } catch { /* sin gravedad */ } }
+    return S.lastUp ? S.lastUp.clone() : new THREE.Vector3(0, 1, 0);
+  };
 
   /** Consulta el suelo bajo `pos` (según `up`): { has, d (m hasta el suelo), edge (m al borde; <0 = afuera), isl }. */
   function ground(map, pos, up) {
@@ -124,7 +130,7 @@ export function createCaida({ renderer, root, sound = null } = {}) {
     anim(E.msg, [{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.08 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }], { duration: ms, fill: 'forwards' });
   }
   function landed(k, pos, up) {
-    const rm = reduced(); k = clamp(k, 0.2, 1);
+    const rm = reduced(); k = clamp(k, 0.2, 1); S.lands++;
     if (sound && sound.landing) sound.landing(k);
     anim(E.land, [{ opacity: rm ? 0.25 * k : 0.7 * k }, { opacity: 0 }], { duration: 380, fill: 'forwards' });
     if (!rm) { renderer.shake = Math.max(renderer.shake || 0, 0.55 * k); try { if (navigator.vibrate) navigator.vibrate(Math.round(30 + 50 * k)); } catch { /* sin vibración */ } }
@@ -138,7 +144,7 @@ export function createCaida({ renderer, root, sound = null } = {}) {
     S.landBlock = 0.5; S.peak = 0;
   }
   function fellOut(map, pos, up) {
-    S.respawnT = 5; S.landBlock = 1; S.peak = 0; S.fallT = 0; S.k = 0;
+    S.falls++; S.respawnT = 5; S.landBlock = 1; S.peak = 0; S.fallT = 0; S.k = 0;
     show('¡CAÍSTE AL VACÍO!', 'Perdés 25 de vida y volvés a tu punto de inicio');
     anim(E.flash, [{ opacity: 0.9 }, { opacity: 0 }], { duration: 700, fill: 'forwards' });
     if (sound) { if (sound.abyss) sound.abyss(); if (sound.wind) sound.wind(0); }
@@ -150,7 +156,7 @@ export function createCaida({ renderer, root, sound = null } = {}) {
   function onEvent(e, me) {
     if (!e || e.t !== 'fall' || !me || e.pid !== me.id) return;
     // v = velocidad de caída (m/s); sin dato usamos una caída media
-    const v = Number.isFinite(e.v) ? Math.abs(e.v) : 24, up = V(me.up);
+    const v = Number.isFinite(e.v) ? Math.abs(e.v) : 24, up = upOf(me, MAPS[S.mapId], 0);
     landed(smooth(12, 40, v), V(e.p || me.pos), up); S.landBlock = 0.6;
   }
 
@@ -162,13 +168,13 @@ export function createCaida({ renderer, root, sound = null } = {}) {
   function update(dt, state, me) {
     S.t += dt; const rm = reduced();
     if (!me || me.dead || !state || !state.map) { S.prev = null; hide(); return; }
-    const map = MAPS[state.map], pos = V(me.pos), up = V(me.up).normalize();
+    const map = MAPS[state.map], pos = V(me.pos), up = upOf(me, map, state.time); S.lastUp = up.clone();
     if (S.mapId !== state.map) { S.mapId = state.map; S.prev = null; S.fallT = 0; S.peak = 0; }
     const dts = clamp(dt, 1 / 240, 0.1);
     let tele = false;
     if (S.prev) {
       const disp = pos.distanceTo(S.prev), prevGround = ground(map, S.prev, up);
-      if (disp > 6 && disp / dts > 90) { // salto de posición: portal, habilidad o reaparición
+      if (disp > 6 && (disp / dts > 90 || disp > 25)) { // salto de posición: portal, habilidad o reaparición
         const nearPortal = map && map.portals && map.portals.some((p) => Math.hypot(S.prev.x - p.a.x, S.prev.y - p.a.y, S.prev.z - p.a.z) < 5 || Math.hypot(S.prev.x - p.b.x, S.prev.y - p.b.y, S.prev.z - p.b.z) < 5);
         const hpDrop = S.hp - me.hp >= 15, wasFalling = S.fallT > 0.5 || (!prevGround.has && S.voidSeen > 0.3) || (map && map.outOfBounds && map.outOfBounds({ x: S.prev.x, y: S.prev.y - 3, z: S.prev.z, }));
         tele = true;
@@ -234,7 +240,7 @@ export function createCaida({ renderer, root, sound = null } = {}) {
       const f = clamp(S.respawnT / 5, 0, 1);
       beacon.visible = true; beacon.position.copy(S.spawnP).addScaledVector(up, 18); beacon.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up); beacon.material.opacity = 0.35 * f * (0.7 + 0.3 * Math.sin(S.t * 6));
       const cam = renderer.camera, tgt = S.safeP;
-      if (cam && cam.matrixWorldInverse && tgt && Math.hypot(pos.x - tgt.x, pos.z - tgt.z) > 9) {
+      if (cam && cam.matrixWorldInverse && tgt && Math.hypot(pos.x - tgt.x, pos.z - tgt.z) > 3) {
         const m = cam.matrixWorldInverse.elements, x = m[0] * tgt.x + m[4] * tgt.y + m[8] * tgt.z + m[12], z = m[2] * tgt.x + m[6] * tgt.y + m[10] * tgt.z + m[14];
         const ang = Math.atan2(x, -z), R = Math.min(innerWidth, innerHeight) * 0.28;
         E.arrow.style.display = 'block'; E.arrow.style.transform = `translate(${Math.sin(ang) * R}px, ${-Math.cos(ang) * R}px)`; E.arrowIn.style.transform = `rotate(${(ang * 180 / Math.PI - 90).toFixed(0)}deg)`;
