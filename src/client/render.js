@@ -172,7 +172,7 @@ export class Renderer {
     this.handleEvents(state, me);
     this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
-    this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 60);
+    this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
     if (me) this.updateCamera(me, dt, look);
     if (this.lost) return;
     if (this.composer) this.composer.render(); else this.gl.render(this.scene, this.camera);
@@ -363,13 +363,13 @@ export class Renderer {
         case 'shot': {
           const col = WEAPON_COLORS[e.w] || 0xffffff, mine = e.pid === (me && me.id);
           { const pe = this.ents.ply.get(e.pid); if (pe) pe.shotT = 0.35; }
-          if (mine) { this.vm.shoot(); this.muzzle.intensity = 18; this.muzzle.color.setHex(col); }
-          shotEffects(this, e, mine && this.aim ? this.camera.localToWorld(new THREE.Vector3(0.3, -0.25, -1.2)) : V(e.o), WEAPON_IDS);
+          if (mine) this.vm.shoot(); // (la luz de fogonazo, el destello de pantalla y la patada de cámara los dispara combatfx.firstPerson)
+          shotEffects(this, e, mine && this.aim ? C.muzzleWorld(this) : V(e.o), WEAPON_IDS); void col;
           break;
         }
         case 'hit': case 'splat': case 'blink': case 'pulsar': case 'arc': case 'beam': case 'tshot': case 'well': case 'minePlace': case 'skill': C.event(e); break;
         case 'kill': { C.event(e); const boss = e.k === 'coloso' || e.k === 'madre' || e.k === 'argos'; if (boss) this.shake = 2; break; }
-        case 'boom': C.event(e); this.shake = Math.max(this.shake, Math.min(1, 12 / (near(e.p) + 4))); break;
+        case 'boom': C.event(e); this.shake = Math.max(this.shake, Math.min(1, 12 / (near(e.p) + 4)) * (C.reduced ? 0.2 : 1)); break;
         case 'portal': this.fx.blast(V(e.p), 0x66ffff, 4, 0.5); break;
         case 'summon': this.fx.blast(V(e.p), 0xff7a45, 6, 0.7); break;
         case 'gravity': this.fx.blast(V(e.p), 0x6a7bff, 60, 1.0); break;

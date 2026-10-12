@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import { launch } from './browser.js';
 import { startServer } from '../server/server.js';
-const arg = process.argv[2] || '0,2,8,15'; const q = process.argv[3] || 'low'; const out = process.argv[4] || 'shots/gate/combatfx'; const W = +process.argv[5] || 844, H = +process.argv[6] || 390; const wait = +process.argv[7] || 700;
+const arg = process.argv[2] || '0,2,8,15'; const q = process.argv[3] || 'low'; const out = process.argv[4] || 'shots/gate/combatfx'; const W = +process.argv[5] || 844, H = +process.argv[6] || 390; const wait = +process.argv[7] || 700; const AFTER = process.argv[8] != null ? +process.argv[8] : 0.07; // segundos de efectos tras el disparo en que se congela la foto
 const IDS = arg === 'todas' ? [...Array(25).keys()] : arg.split(',').filter((x) => /^\d+$/.test(x)).map(Number); const SC = arg.split(',').filter((x) => !/^\d+$/.test(x));
 fs.mkdirSync(out, { recursive: true });
 const srv = await startServer({ port: 0 }); const b = await launch(); const base = `http://localhost:${srv.port}`; const errors = [];
@@ -22,9 +22,11 @@ const prep = (id, kinds, near) => pg.evaluate(async ({ id, kinds, near }) => {
 for (const id of IDS) {
   await prep(id, ['geoda', 'lente', 'prisma', 'cuarzo'], false);
   await pg.mouse.down(); await pg.waitForTimeout(wait);
-  // espera un disparo muy reciente (<80 ms de tiempo de efectos) para que la foto muestre el momento del disparo
-  await pg.evaluate(() => new Promise((res) => { const C = window.__api.renderer.fx.combat; let n = 0; const iv = setInterval(() => { n++; const s = C.shots[C.shots.length - 1]; if ((s && C.t - s.t < 0.06) || n > 400) { clearInterval(iv); res(); } }, 8); }));
-  await pg.screenshot({ path: `${out}/arma-${String(id).padStart(2, '0')}-${q}.jpg`, type: 'jpeg', quality: 82 }); await pg.mouse.up(); await pg.waitForTimeout(250);
+  // congela los efectos (no el juego) AFTER segundos después de un disparo NUEVO: la foto muestra ese instante exacto
+  await pg.evaluate((after) => new Promise((res) => { const fx = window.__api.renderer.fx, C = fx.combat, P = Object.getPrototypeOf(C); if (!fx.__orig) { fx.__orig = fx.update.bind(fx); fx.update = (dt) => { if (!fx.__frozen) fx.__orig(dt); }; }
+    fx.__frozen = false; delete C.frame; delete C.event; C.__t0 = null; C.shot = function (...a) { C.__t0 = C.t; return P.shot.apply(this, a); }; let n = 0;
+    const iv = setInterval(() => { n++; if ((C.__t0 != null && C.t - C.__t0 >= after) || n > 900) { fx.__frozen = true; C.frame = () => {}; C.event = () => {}; C.shot = () => {}; clearInterval(iv); res(); } }, 3); }), AFTER);
+  await pg.screenshot({ path: `${out}/arma-${String(id).padStart(2, '0')}-${q}.jpg`, type: 'jpeg', quality: 82 }); await pg.mouse.up(); await pg.evaluate(() => { const fx = window.__api.renderer.fx, C = fx.combat; fx.__frozen = false; delete C.frame; delete C.event; delete C.shot; }); await pg.waitForTimeout(250);
   const st = await pg.evaluate(() => { const f = window.__api.renderer.fx; return { add: f.add.live, smoke: f.smoke.live, segs: f.strips.n, fps: Math.round(1 / Math.max(1e-3, window.__api.renderer.fx.combat.dt)) }; });
   console.log('FXSTAT arma', id, JSON.stringify(st));
 }

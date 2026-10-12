@@ -9,6 +9,7 @@
 // complementario (acc). Regla de la biblia: 1 dominante + 1 acento + 1 neutro oscuro; el emisivo sólo donde la pieza HACE algo.
 import * as THREE from 'three';
 import { Kit, makeMats, AmmoScreen } from './kit.js';
+import { VIEWS } from './compose.js';
 import { rightHand, triggerFinger, supportHand, trigCurl, bindTrigger } from './hands.js';
 
 export const WEAPON_COLORS = [0x66ffee, 0xff8fd0, 0xffd34a, 0xff7a45, 0xa98bff, 0x5fd0ff, 0xff4fd8, 0xffa030, 0xc8ff4a, 0xff5a5a, 0x7aa8ff, 0xb050ff, 0x40ffc0, 0x6aff6a, 0x9060ff,
@@ -175,7 +176,7 @@ export function forge(index, q, hands, S) {
   if (info.gh) group.userData.grip = [0, info.gh.top - 0.05, info.gh.zc];
   group.userData.fore = info.fore || null;
   const W = {
-    group, muzzle: S.muzzle, eject: S.eject || null, flash: S.flash, recoil: S.recoil, view: S.view,
+    group, muzzle: S.muzzle, eject: S.eject || null, flash: S.flash, recoil: S.recoil, view: VIEWS[index] ? JSON.parse(JSON.stringify(VIEWS[index])) : S.view,
     update(dt, t, firing, ctx) {
       if (ctx) st.ctx = ctx;
       st.t = t; st.firing = !!firing; st.kick.step(dt); st.t0 += dt; G.heat = Math.max(0, G.heat - dt * (S.cool ?? 0.4)); G.boost = Math.max(0, G.boost - dt * (S.bdec ?? 6));

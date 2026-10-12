@@ -55,5 +55,15 @@ if (P.get('cap') === '1') {
   // modo captura: window.__step(n, dt, [cuadros en que se dispara]) avanza el reloj a mano y dibuja el último cuadro
   window.__step = (n, dt = 1 / 60, shots = []) => { for (let i = 0; i < n; i++) step(dt, shots.includes(i), i === n - 1); return n; };
 } else requestAnimationFrame(loop);
+// medición de composición: boca y caja del arma en pantalla (NDC -1..1) · __view(obj) cambia la composición en caliente
+window.__measure = () => {
+  if (!vm) return null; const it = vm.items[W]; if (!it) return null; cam.updateMatrixWorld(true);
+  const m = it.W.muzzle, v = new THREE.Vector3(m[0], m[1], m[2]); it.W.group.localToWorld(v); const mz = v.clone().project(cam);
+  const box = { x0: 9, x1: -9, y0: 9, y1: -9 }; const tmp = new THREE.Vector3();
+  it.W.group.traverse((o) => { if (!o.isMesh || !o.geometry) return; const pos = o.geometry.attributes.position; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); const bb = o.geometry.boundingBox;
+    for (const x of [bb.min.x, bb.max.x]) for (const y of [bb.min.y, bb.max.y]) for (const z of [bb.min.z, bb.max.z]) { tmp.set(x, y, z).applyMatrix4(o.matrixWorld).project(cam); box.x0 = Math.min(box.x0, tmp.x); box.x1 = Math.max(box.x1, tmp.x); box.y0 = Math.min(box.y0, tmp.y); box.y1 = Math.max(box.y1, tmp.y); } });
+  return { muzzle: [mz.x, mz.y], box, view: JSON.parse(JSON.stringify(it.W.view)) };
+};
+window.__view = (o) => { const v = vm.items[W].W.view; Object.assign(v, o); return v; };
 window.__stats = () => ({ calls: gl.info.render.calls, tris: gl.info.render.triangles });
 window.__weaponsReady = true;

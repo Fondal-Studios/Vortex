@@ -13,7 +13,7 @@ const flat = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 function los(game, a, b) {
   if (!game.map.walls) return true;
   const d = sub(b, a), l = len(d); if (l < 1) return true; const n = mul(d, 1 / l);
-  for (let t = 1.5; t < l; t += 1.5) if (blocked(game.map, add(a, mul(n, t)))) return false;
+  for (let t = 1.5; t < l - 2.5; t += 1.5) if (blocked(game.map, add(a, mul(n, t)))) return false; // el último tramo se ignora: las criaturas atraviesan muros
   return true;
 }
 /** Laberinto (mapa 3): siguiente punto de ruta por celdas (búsqueda en anchura) hacia `target`. */

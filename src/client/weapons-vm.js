@@ -8,6 +8,9 @@ import { VMFx, flashTexture } from './weapons/fx.js';
 import { applyUpgrades } from './weapons/mods.js';
 import { setHandStyle, HAND_STYLE, HAND_PRESETS, HU, TATTOOS, GLOVES } from './weapons/handmat.js';
 
+/** FOV propio del viewmodel (vertical, grados). La cámara del juego usa ~82° (en un celular apaisado el arma se ve diminuta);
+ *  el arma se dibuja como si se viera con este ángulo más cerrado: la raíz se ensancha en x/y (no en z) alrededor de la cámara. */
+export const VM_FOV = 60;
 export { WEAPON_COLORS, applyUpgrades, setHandStyle, HAND_PRESETS, TATTOOS, GLOVES };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
@@ -78,6 +81,7 @@ export class Viewmodels {
   }
   update(dt, { firing = false, hidden = false, look = [0, 0], speed = 0, ammo, maxAmmo } = {}) {
     dt = Math.min(dt, 0.1); this.t += dt; this.hidden = hidden;
+    const kf = Math.tan((this.camera.fov || 82) * Math.PI / 360) / Math.tan(VM_FOV * Math.PI / 360); this.root.scale.set(kf, kf, 1);
     if (ammo !== undefined) this.setAmmo(ammo, maxAmmo === undefined ? ammo : maxAmmo);
     this.fx.setScale(this.camera.fov || 82, (typeof window !== 'undefined' ? window.innerHeight : 720) * 0.8);
     // cambio de arma: baja la actual, sube la nueva con un giro

@@ -11,7 +11,7 @@ import { CombatFx } from './combatfx.js';
 
 /** Presupuesto por calidad (0 = Baja/iPhone, 1 = Media, 2 = Alta). Baja: ≤150 partículas vivas entre las dos capas. */
 export const TIERS = [
-  { live: 112, smoke: 38, segs: 120, rings: 6, flashes: 8, decals: 4, chunks: 6, nums: 10, dens: 0.4 },
+  { live: 112, smoke: 38, segs: 140, rings: 8, flashes: 12, decals: 6, chunks: 6, nums: 10, dens: 0.4 },
   { live: 560, smoke: 120, segs: 420, rings: 10, flashes: 12, decals: 8, chunks: 12, nums: 16, dens: 0.75 },
   { live: 1700, smoke: 300, segs: 900, rings: 14, flashes: 16, decals: 12, chunks: 18, nums: 24, dens: 1 },
 ];
@@ -112,7 +112,7 @@ class Strips {
         void main(){ vC = aC; vA = aA; vSd = aSide; vEnd = aEnd;
           vec4 p0 = modelViewMatrix * vec4(position, 1.0); vec4 p1 = modelViewMatrix * vec4(aO, 1.0);
           vec3 d = p1.xyz - p0.xyz; vec3 n = cross(d, p0.xyz); float l = length(n); n = l < 1e-5 ? vec3(1.0, 0.0, 0.0) : n / l;
-          float sg = aEnd > 0.5 ? -1.0 : 1.0; float wd = min(aW, max(-p0.z, 0.5) * 0.05); p0.xyz += n * aSide * sg * wd; gl_Position = projectionMatrix * p0; }`,
+          float sg = aEnd > 0.5 ? -1.0 : 1.0; float zz = max(-p0.z, 0.5); float wd = clamp(aW, zz * 0.0055, zz * 0.05); p0.xyz += n * aSide * sg * wd; gl_Position = projectionMatrix * p0; }`,
       fragmentShader: `uniform float uGam; uniform float uInt; varying vec3 vC; varying float vA; varying float vSd; varying float vEnd;
         void main(){ float s = abs(vSd); float core = exp(-s * s * 10.0); float glow = pow(1.0 - s, 1.8);
           vec3 c = mix(vC, vec3(1.0), core * 0.8); gl_FragColor = vec4(pow(max(c, vec3(0.0)), vec3(uGam)), vA * uInt * (glow * 0.5 + core * 0.8)); }`,
@@ -320,6 +320,7 @@ export class Effects {
   }
 
   update(dt) {
+    dt = Math.min(dt, 0.05); // en equipos lentos los efectos cortos (fogonazos, trazas) deben llegar a dibujarse al menos un cuadro
     this.t += dt; GAM.value = OUT.linear ? 1 : 1 / 2.2; INT.value = OUT.linear ? 0.6 : 1; const KI = INT.value;
     this.add.update(dt, this.gx, this.gy, this.gz); this.smoke.update(dt, this.gx * 0.3, this.gy * 0.3, this.gz * 0.3); this.strips.update(dt);
     for (const m of this.chunks) if (m.visible) { m.life -= dt; m.vel.multiplyScalar(1 - 0.8 * dt); m.vel.x += this.gx * 9 * dt; m.vel.y += this.gy * 9 * dt; m.vel.z += this.gz * 9 * dt; m.position.addScaledVector(m.vel, dt); m.rotation.x += m.spin.x * dt; m.rotation.y += m.spin.y * dt; m.rotation.z += m.spin.z * dt; m.material.opacity = Math.min(1, m.life * 1.5); if (m.life <= 0) m.visible = false; }

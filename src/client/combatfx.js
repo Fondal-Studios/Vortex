@@ -6,6 +6,7 @@ import { WEAPONS, CHARACTERS } from '../sim/data.js';
 import { WEAPON_COLORS } from './shotfx.js';
 import { COLORS } from './models.js';
 import { SHAPE, GAM } from './effects.js';
+import { flashTexture } from './weapons/fx.js'; // sólo lectura: el dibujo del fogonazo de cada arma (estrella, abanico, rayo, hielo...)
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const WN = WEAPONS.map((w) => w.id);
@@ -13,7 +14,7 @@ const PROJ_W = new Set([3, 9, 10, 11, 12, 19]);
 const rnd = (a = 1) => Math.random() * a;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0);
-const _color = new THREE.Color();
+const _color = new THREE.Color(), _white = new THREE.Color(0xffffff);
 const _u = new THREE.Vector3(), _w = new THREE.Vector3(), _d = new THREE.Vector3(), _t = new THREE.Vector3(), _q = new THREE.Vector3();
 function perp(dir, u, w) { u.crossVectors(dir, Math.abs(dir.y) < 0.9 ? Y : X).normalize(); w.crossVectors(dir, u).normalize(); }
 function segDist(p, a, b) { _d.copy(b).sub(a); const l2 = _d.lengthSq() || 1e-6; const t = clamp(_t.copy(p).sub(a).dot(_d) / l2, 0, 1); return _q.copy(a).addScaledVector(_d, t).distanceTo(p); }
@@ -103,7 +104,7 @@ export class CombatFx {
     this.fx = fx; this.tier = fx.tier; this.nums = new DamageNumbers(fx.scene);
     this.cam = null; this.me = null; this.myId = -9; this.state = null; this.up = new THREE.Vector3(0, 1, 0);
     this.mon = new Map(); this.prevMon = new Map(); this.proj = new Map(); this.shots = []; this.booms = []; this.ended = []; this.skills = []; this.arcs = [];
-    this.timers = []; this.t = 0; this.lastNow = 0; this.dt = 1 / 60; this._sz = new THREE.Vector2(); this.acc = new Map(); this.lastHit = new Map(); this.tick = 0;
+    this.timers = []; this.gateT = new Map(); this.mzLocal = new THREE.Vector3(0.3, -0.25, -1.2); this.K = { p: 0, y: 0, r: 0, fov: 0, sh: 0, base: 82, lastFov: -1 }; this.camFlash = null; this.t = 0; this.lastNow = 0; this.dt = 1 / 60; this._sz = new THREE.Vector2(); this.acc = new Map(); this.lastHit = new Map(); this.tick = 0;
     fx.updaters.push((dt) => this.update(dt));
   }
   configure(tier) { this.tier = tier; this.nums.setCap(this.fx.T.nums); this.timers.length = 0; this.nums.items.length = 0; }
@@ -115,6 +116,8 @@ export class CombatFx {
   /* ───────── cuadro: estado → partículas continuas ───────── */
   frame(r, state, me) {
     const fx = this.fx, now = performance.now() / 1000; this.dt = clamp(now - (this.lastNow || now - 1 / 60), 1 / 240, 0.1); this.lastNow = now; this.tick++;
+    if (!this.camFlash && r.camera) this.buildCamFlash(r);
+    if (!r.__cfxHook && r.updateCamera) { r.__cfxHook = true; const orig = r.updateCamera.bind(r); r.updateCamera = (...a) => { orig(...a); this.postCamera(this.dt); }; } // patada de cámara: se aplica DESPUÉS de colocar la cámara
     this.r = r; this.cam = r.camera; this.state = state; this.me = me || null; this.myId = me ? me.id : -9;
     // arriba "de verdad" del lugar (la gravedad cambia: mapa 1 plano, mapa 2 esfera hueca, inversión, marea sin peso)
     const zero = !!(state.fx && state.fx.zero);
@@ -246,14 +249,41 @@ export class CombatFx {
   }
 
   /* ═══════════════════════ DISPARO ═══════════════════════ */
+  /** Posición en el mundo de la boca del arma en primera persona (la misma que dibuja el viewmodel). */
+  muzzleWorld(r) {
+    const cam = r.camera, it = r.vm && r.vm.items ? r.vm.items[r.vm.cur] : null, v = new THREE.Vector3();
+    if (it && it.W && it.W.muzzle && it.rig) { v.set(it.W.muzzle[0], it.W.muzzle[1], it.W.muzzle[2]).applyMatrix4(it.rig.matrix); this.mzLocal.copy(v); }
+    else { v.set(0.3, -0.25, -1.2); this.mzLocal.copy(v); }
+    cam.updateMatrixWorld(); return cam.localToWorld(v);
+  }
+  /** ¿El jugador pidió menos movimiento? (ajuste del sistema o `cristal.reduceMotion`=1). Se relee cada 2 s. */
+  get reduced() {
+    if (this._rmT == null || this.t - this._rmT > 2) {
+      this._rmT = this.t; let v = false;
+      try { v = localStorage.getItem('cristal.reduceMotion') === '1'; } catch { /* sin almacenamiento */ }
+      try { if (!v && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) v = true; } catch { /* sin matchMedia */ }
+      this._rm = v;
+    }
+    return !!this._rm;
+  }
+  /** Cuántos tiros dibujar por salva (Baja dibuja menos perdigones). */
+  tipCap() { return this.tier === 0 ? 5 : this.tier === 1 ? 8 : 12; }
+  /** Deja pasar un efecto como máximo cada `dt` segundos por clave (armas de cadencia loca). */
+  gate(key, dt) { const l = this.gateT.get(key); if (l != null && this.t - l < dt) return false; this.gateT.set(key, this.t); return true; }
+
   shot(e, origin) {
     const fx = this.fx, w = e.w, name = WN[w] || 'haz', mine = e.pid === this.myId;
-    const o = origin ? origin.clone() : V(e.o), c = WEAPON_COLORS[w] || 0xffffff;
-    const tips = (e.to || []).map(V); let name2 = name, cc = c;
+    const mo = origin ? origin.clone() : V(e.o), c = WEAPON_COLORS[w] || 0xffffff;
+    // en 1ª persona la traza nace un poco a la derecha y abajo de la boca: así se ve como una línea desde el arma y no como un punto (el cañón apunta casi al centro)
+    const o = mine && this.cam ? mo.clone().addScaledVector(_u.set(1, 0, 0).applyQuaternion(this.cam.quaternion), 0.2).addScaledVector(_w.set(0, 1, 0).applyQuaternion(this.cam.quaternion), -0.13) : mo.clone();
+    const all = (e.to || []).map(V); let name2 = name, cc = c;
     if (e.fx) { name2 = e.fx === 'explosiva' ? 'quimeraexp' : e.fx; cc = e.fx === 'voltaico' ? 0x66aaff : e.fx === 'glaciar' ? 0x9fe8ff : e.fx === 'brasa' ? 0xff7a1a : 0xff66c4; }
-    const aim = tips.length ? _d.copy(tips[0]).sub(o).normalize().clone() : (mine && this.r && this.r.aim ? this.r.aim.clone() : (this.cam ? _d.set(0, 0, -1).applyQuaternion(this.cam.quaternion).clone() : new THREE.Vector3(0, 0, -1)));
-    const x = { o, tips, c: cc, mine, aim, name, e, w, k: mine ? 0.6 : 1 };
-    this.muzzle(name2, x);
+    const cap = this.tipCap(), tips = all.length > cap ? all.filter((_, i) => i % Math.ceil(all.length / cap) === 0).slice(0, cap) : all;
+    const aim = all.length ? _d.copy(all[0]).sub(o).normalize().clone() : (mine && this.r && this.r.aim ? this.r.aim.clone() : (this.cam ? _d.set(0, 0, -1).applyQuaternion(this.cam.quaternion).clone() : new THREE.Vector3(0, 0, -1)));
+    const S = WS[name2] || WS.haz; this.fastGate = (WEAPONS[w] ? WEAPONS[w].rate : 1) < 0.12;
+    const x = { o, mo, tips, c: cc, mine, aim, name, e, w, S, k: mine ? 0.6 : 1 };
+    this.muzzle(name2, { ...x, o: mo });
+    if (mine) this.firstPerson(name2, x);
     const fn = TRACE[name2]; if (fn && tips.length) fn.call(this, x);
     // punta de cada traza: impacto en el mundo (superficie) o brillo sobre la criatura
     for (const t of tips) {
@@ -261,40 +291,99 @@ export class CombatFx {
       this.tipFx(name2, t, n, cc, !!onMon, x);
     }
   }
-  /** Fogonazo (distinto por arma): destello, chispas/humo, y luz momentánea (en la boca del arma). */
+  /** Fogonazo en el mundo (el de la boca para los demás jugadores; para mí, uno chico: el grande es de pantalla). */
   muzzle(name, x) {
     const fx = this.fx, o = x.o, k = x.k, c = x.c, a = x.aim, S = MZ[name] || MZ.haz;
-    fx.flash(o, S.c || c, S.size * (x.mine ? 0.22 : 1), S.life || 0.09, { burst: S.burst !== false, op: (S.op == null ? 0.95 : S.op) * (x.mine ? 0.8 : 1) });
-    if (S.sparks) fx.sparks(o, S.sc || c, S.sparks * (x.mine ? 0.6 : 1), S.sp || 12, 0.3, { dir: a, cone: S.cone || 0.9, c2: S.c2, grav: 6 });
-    if (S.smoke) fx.spray(o, S.smc || 0x504860, S.smoke, 2.2, 0.8, 0.9, { smoke: true, dir: a, cone: 0.8, grow: 1.6, drag: 3, shape: SHAPE.smoke, c2: 0x1a1424, spin: 2 });
+    fx.flash(o, S.c || c, S.size * (x.mine ? 0.3 : 1.3), (S.life || 0.09) * 1.5, { burst: S.burst !== false, op: (S.op == null ? 0.95 : S.op) * (x.mine ? 0.8 : 1) });
+    if (S.sparks) fx.sparks(o, S.sc || c, S.sparks * (x.mine ? 0.8 : 1), S.sp || 12, 0.3, { dir: a, cone: S.cone || 0.9, c2: S.c2, grav: 6 });
+    if (S.smoke && this.gate('sm' + name, 0.12)) fx.spray(o, S.smc || 0x504860, S.smoke, 2.2, 0.8, 0.9, { smoke: true, dir: a, cone: 0.8, grow: 1.6, drag: 3, shape: SHAPE.smoke, c2: 0x1a1424, spin: 2, raw: this.tier > 0 });
     if (S.ring && !x.mine) fx.ring(o, a, S.c || c, S.ring, 0.28, { r0: 0.2, op: 0.7, shock: true });
-    if (S.glow) fx.spray(o, c, S.glow, 3, 0.35, 0.8, { dir: a, cone: 0.6, grow: -0.6, c2: S.c2 });
+    if (S.glow && this.gate('gl' + name, 0.06)) fx.spray(o, c, S.glow, 3, 0.35, 0.8, { dir: a, cone: 0.6, grow: -0.6, c2: S.c2 });
+    void k;
   }
-  /** Lo que pasa donde termina la traza. */
+  /** Lo que se ve y se siente en primera persona: fogonazo grande en pantalla (con el dibujo propio de cada arma),
+   *  lavado de color (la "luz" del disparo, también en Baja), luz de fogonazo, patada de cámara y golpe de FOV. */
+  firstPerson(name, x) {
+    const r = this.r, S = x.S, rm = this.reduced, it = r && r.vm && r.vm.items ? r.vm.items[r.vm.cur] : null;
+    const shape = it && it.W && it.W.flash ? it.W.flash.shape : 'star', cf = this.camFlash; if (!cf) return;
+    const col = _color.setHex(x.c), k = this.nextCF = ((this.nextCF || 0) + 1) % cf.length, F = cf[k];
+    const rate = WEAPONS[x.w] ? WEAPONS[x.w].rate : 0.3, calm = rate < 0.12 ? 0.5 : 1; // armas de ráfaga: destello más suave (no estroboscópico)
+    F.life = F.max = (S.fd || 0.1) * 1.3; F.size = S.fl * 1.25; F.wash = (rm ? 0.25 : 1) * S.wash * calm;
+    F.pat.material.map = flashTexture(shape); F.pat.material.color.copy(col).lerp(_white, 0.35); F.glow.material.color.copy(col); F.wash_.material.color.copy(col);
+    F.pat.material.rotation = Math.random() * 6.283; F.group.position.copy(this.mzLocal); F.group.visible = true;
+    // luz de fogonazo (la PointLight de Alta; en Baja el "lavado" hace de luz)
+    if (r.muzzle) { r.muzzle.color.setHex(x.c); r.muzzle.position.copy(this.mzLocal).add(_t.set(0, 0.05, -0.6)); r.muzzle.intensity = Math.max(r.muzzle.intensity, S.light * (rm ? 0.4 : 1)); }
+    // patada de cámara y golpe de FOV (respetan "reducir movimiento")
+    const K = this.K, km = rm ? 0.15 : 1, kick = (S.kick || 0.3) * Math.PI / 180 * km;
+    K.p = Math.min(K.p + kick, 0.045 * km + 0.002); K.y += (Math.random() - 0.5) * kick * 0.7; K.r += (Math.random() - 0.5) * kick * 0.8; K.fov = Math.min(K.fov + (rm ? 0 : S.fov || 0.2), 3.2);
+  }
+  /** Sacudida de cámara (explosiones, jefes). mag ~ 0..1. */
+  addShake(mag) { this.K.sh = Math.min(1.6, Math.max(this.K.sh, mag)); }
+  /** Se llama una vez por cuadro DESPUÉS de colocar la cámara (render.js la engancha sola). */
+  postCamera(dt) {
+    const K = this.K, cam = this.cam; if (!cam || !cam.isPerspectiveCamera) return; const rm = this.reduced;
+    K.p *= Math.exp(-dt * 11); K.y *= Math.exp(-dt * 11); K.r *= Math.exp(-dt * 11); K.fov *= Math.exp(-dt * 9); K.sh *= Math.exp(-dt * 3.4);
+    if (cam.fov !== K.lastFov) K.base = cam.fov;
+    const fov = K.base + (rm ? 0 : K.fov);
+    if (Math.abs(fov - cam.fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); } K.lastFov = cam.fov;
+    const s = rm ? K.sh * 0.1 : K.sh, tt = this.t * 51;
+    if (K.p > 1e-5 || Math.abs(K.y) > 1e-5 || Math.abs(K.r) > 1e-5 || s > 1e-4) {
+      cam.rotateX(K.p + Math.sin(tt) * 0.012 * s); cam.rotateY(K.y + Math.sin(tt * 1.3 + 1) * 0.012 * s); cam.rotateZ(K.r + Math.sin(tt * 0.9 + 2) * 0.02 * s);
+    }
+  }
+  /** Fogonazos de pantalla pegados a la cámara (pool fijo, aditivos, sin luces). */
+  buildCamFlash(r) {
+    this.camFlash = []; const cam = r.camera, tex = r.halo || this.fx.tex.glow;
+    for (let i = 0; i < 3; i++) {
+      const mk = (map, ro) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map, color: 0xffffff, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 })); s.renderOrder = ro; return s; };
+      const group = new THREE.Group(), wash_ = mk(tex, 28), glow = mk(tex, 29), pat = mk(flashTexture('star'), 30);
+      wash_.position.set(0, 0, -0.6); glow.position.set(0, 0, -0.06); pat.position.set(0, 0, -0.08); group.add(wash_, glow, pat); group.visible = false; cam.add(group);
+      this.camFlash.push({ group, wash_, glow, pat, life: 0, max: 0.1, size: 0.5, wash: 0.1 });
+    }
+  }
+  updateCamFlash(dt) {
+    if (!this.camFlash) return;
+    for (const F of this.camFlash) {
+      if (!F.group.visible) continue; F.life -= dt; const u = clamp(1 - F.life / F.max, 0, 1), f = 1 - u * u * 0.9;
+      if (F.life <= 0) { F.group.visible = false; F.pat.material.opacity = F.glow.material.opacity = F.wash_.material.opacity = 0; continue; }
+      F.pat.scale.setScalar(F.size * (1.1 + 0.5 * u)); F.pat.material.opacity = clamp(f * 1.3, 0, 1);
+      F.glow.scale.setScalar(F.size * (2.2 + 0.8 * u)); F.glow.material.opacity = clamp(f * 1.0, 0, 1);
+      F.wash_.scale.setScalar(5); F.wash_.material.opacity = f * F.wash;
+    }
+  }
+  /** Lo que pasa donde termina la traza: destello + estallido + onda + chispas/esquirlas + quemadura, según arma y material. */
   tipFx(name, t, n, c, onMon, x) {
-    const fx = this.fx, st = (TIPS[name] || 'spark');
-    this.impact(st, t, n, c, 1.1, onMon);
-    if (!onMon) { const sz = st === 'fire' ? 1.4 : st === 'frost' ? 1.6 : 1.1; const dc = st === 'frost' ? 0xbfe8ff : st === 'poison' ? 0x1a4a14 : st === 'fire' ? 0x180a04 : st === 'void' ? 0x1a0a30 : 0x101018; if (x.w !== 7 && x.w !== 18 && x.w !== 2 && x.w !== 6 && Math.random() < 0.7) fx.decal(t, n, dc, sz, st === 'frost' ? 3 : 4.5, { op: st === 'frost' ? 0.55 : 0.75 }); }
+    const fx = this.fx, st = (TIPS[name] || 'spark'), S = x.S, pw = S.pw || 1;
+    this.impact(st, t, n, c, 1.15 * pw, onMon);
+    if (!onMon) { // en pared/suelo: quemadura breve
+      const sz = (st === 'fire' ? 1.7 : st === 'frost' ? 1.9 : 1.4) * pw, dc = st === 'frost' ? 0xbfe8ff : st === 'poison' ? 0x1a4a14 : st === 'fire' ? 0x180a04 : st === 'void' ? 0x1a0a30 : 0x101018;
+      if (x.w !== 7 && x.w !== 18 && x.w !== 2 && x.w !== 6 && Math.random() < 0.7) fx.decal(t, n, dc, sz, st === 'frost' ? 3 : 4.5, { op: st === 'frost' ? 0.6 : 0.8 });
+    }
   }
 
-  /** Impactos por estilo (para criaturas y mundo). k = escala por daño. */
+  /** Impactos por estilo (para criaturas y mundo). k = escala por daño/arma. Base común (destello + estallido + onda) y firma por estilo. */
   impact(style, p, n, c, k = 1, creature = false) {
-    const fx = this.fx; k = clamp(k, 0.5, 2.6);
+    const fx = this.fx; k = clamp(k, 0.5, 2.8); const lowT = this.tier === 0, fast = this.fastGate;
+    // base común: brillo de color + estrella blanca + onda sobre la superficie. Se ve a 30 m.
+    fx.flash(p, c, 1.7 * k, 0.17, { op: 0.95 });
+    fx.flash(p, 0xffffff, 1.1 * k, 0.1, { burst: true });
+    if (!fast || Math.random() < 0.4) fx.ring(p, n, c, 2.4 * k, 0.32, { r0: 0.2, shock: true, op: 0.9 });
     switch (style) {
-      case 'spark': fx.sparks(p, 0xfff2b0, 6 * k, 11, 0.38, { dir: n, cone: 2.0, c2: 0xff7a2a }); fx.flash(p, c, 0.9 * k, 0.09, { burst: true }); break;
-      case 'crystal': fx.spray(p, c, 6 * k, 8, 0.6, 0.55, { shape: SHAPE.shard, spin: 9, grav: 6, dir: n, cone: 1.5, grow: -0.4, c2: 0xffffff }); fx.spray(p, 0xffffff, 2, 3, 0.4, 0.9, { shape: SHAPE.star, drag: 4, spin: 3 }); fx.flash(p, c, 1.1 * k, 0.1, { burst: true }); break;
-      case 'ring': fx.ring(p, n, c, 2.1 * k, 0.32, { r0: 0.2, shock: true }); fx.sparks(p, c, 5 * k, 10, 0.32, { dir: n, cone: 1.8 }); fx.flash(p, 0xffffff, 0.8 * k, 0.08); break;
-      case 'frost': fx.spray(p, 0xdff8ff, 7 * k, 6, 0.8, 0.6, { shape: SHAPE.shard, spin: 6, grav: 3, dir: n, cone: 1.7, c2: 0x66b8ff, grow: -0.3 }); fx.spray(p, 0xcfeaff, 3, 2, 1.2, 1.1, { smoke: true, shape: SHAPE.smoke, grow: 1.3, drag: 2.5, c2: 0x6a9ad0, spin: 1 }); fx.spray(p, 0xffffff, 2, 2, 0.5, 0.9, { shape: SHAPE.star, drag: 3, spin: 2 }); break;
-      case 'poison': fx.spray(p, 0x9dff5a, 5 * k, 4, 0.9, 0.7, { shape: SHAPE.bubble, up: 1.2, drag: 2, c2: 0x2aa04a, grow: 0.3 }); fx.spray(p, 0x7dff4a, 5 * k, 7, 0.7, 0.35, { shape: SHAPE.ember, grav: 14, dir: n, cone: 1.6, c2: 0x1a7a2a }); fx.flash(p, 0x7dff4a, 0.8 * k, 0.1); break;
-      case 'fire': fx.spray(p, 0xffe08a, 6 * k, 5, 0.6, 0.9, { c2: 0xd02a0a, grow: 0.4, dir: n, cone: 1.5, up: 1.5 }); fx.spray(p, 0xffc040, 4 * k, 7, 0.9, 0.3, { shape: SHAPE.ember, grav: -2, c2: 0xff3a10 }); fx.spray(p, 0x3a2420, 2, 1.5, 1.0, 0.9, { smoke: true, shape: SHAPE.smoke, grow: 1.5, up: 2, c2: 0x0c0808, spin: 1 }); fx.flash(p, 0xff9a3a, 1.2 * k, 0.12); break;
-      case 'shock': this.bolt(p, _t.copy(p).addScaledVector(n, 1).add(_u.set(rnd(4) - 2, rnd(4) - 2, rnd(4) - 2)), 0x8ac0ff, { w: 0.07, step: 1.1, jit: 0.5, life: 0.12 }); fx.sparks(p, 0xcfe8ff, 7 * k, 12, 0.3, { dir: n, cone: 2.2, c2: 0x4a8aff }); fx.flash(p, 0x66aaff, 1.2 * k, 0.1, { burst: true }); break;
-      case 'void': fx.spray(p, 0x2a1050, 4, 2.5, 0.9, 1.1, { smoke: true, shape: SHAPE.smoke, grow: 1.5, drag: 2, c2: 0x0a0414, spin: 2 }); fx.ring(p, n, 0xb98cff, 2.4 * k, 0.4, { r0: 2.4 * k, ease: 1.1, op: 0.8 }); fx.sparks(p, 0xe8d8ff, 4 * k, 9, 0.4, { dir: n, cone: 2 }); fx.flash(p, 0xb98cff, 0.9 * k, 0.1); break;
-      case 'blast': fx.sparks(p, 0xffd080, 6 * k, 12, 0.4, { dir: n, cone: 2.2, c2: 0xff5a1a }); fx.flash(p, 0xffa24a, 1.4 * k, 0.12, { burst: true }); fx.spray(p, 0xffa24a, 4, 5, 0.5, 1.0, { c2: 0xa0200a, grow: 0.4 }); break;
-      case 'slash': fx.sparks(p, 0xffd0d8, 9 * k, 13, 0.4, { dir: n, cone: 2.4, c2: 0xff3a5a, tail: 0.07, w: 0.06 }); fx.flash(p, 0xff5a7a, 1.0 * k, 0.09, { burst: true }); break;
-      case 'life': fx.spray(p, 0x7dff9a, 5 * k, 5, 0.7, 0.55, { shape: SHAPE.star, spin: 3, dir: n, cone: 1.6, c2: 0x2aa06a, grow: -0.5 }); fx.flash(p, 0x7dff9a, 0.9 * k, 0.1); break;
-      case 'poisonlight': fx.sparks(p, 0xb6ff6a, 6 * k, 11, 0.35, { dir: n, cone: 2, c2: 0x2aa04a }); fx.flash(p, 0x9dff5a, 1.0 * k, 0.1, { burst: true }); break;
-      default: fx.sparks(p, c, 5 * k, 9, 0.3, { dir: n, cone: 2 });
+      case 'spark': fx.sparks(p, 0xfff2b0, 8 * k, 12, 0.4, { dir: n, cone: 2.0, c2: 0xff7a2a, w: 0.07 }); break;
+      case 'crystal': fx.spray(p, c, 6 * k, 8, 0.6, 0.6, { shape: SHAPE.shard, spin: 9, grav: 6, dir: n, cone: 1.5, grow: -0.4, c2: 0xffffff, raw: !lowT }); fx.spray(p, 0xffffff, 2, 3, 0.4, 0.9, { shape: SHAPE.star, drag: 4, spin: 3, raw: true }); break;
+      case 'ring': fx.ring(p, n, c, 3.4 * k, 0.4, { r0: 0.2, shock: true }); fx.sparks(p, c, 6 * k, 11, 0.34, { dir: n, cone: 1.8, w: 0.07 }); break;
+      case 'frost': fx.spray(p, 0xdff8ff, 7 * k, 6, 0.8, 0.65, { shape: SHAPE.shard, spin: 6, grav: 3, dir: n, cone: 1.7, c2: 0x66b8ff, grow: -0.3 }); fx.spray(p, 0xcfeaff, 3, 2, 1.2, 1.2, { smoke: true, shape: SHAPE.smoke, grow: 1.3, drag: 2.5, c2: 0x6a9ad0, spin: 1 }); fx.spray(p, 0xffffff, 2, 2, 0.5, 0.9, { shape: SHAPE.star, drag: 3, spin: 2 }); break;
+      case 'poison': fx.spray(p, 0x9dff5a, 5 * k, 4, 0.9, 0.8, { shape: SHAPE.bubble, up: 1.2, drag: 2, c2: 0x2aa04a, grow: 0.3 }); fx.spray(p, 0x7dff4a, 5 * k, 7, 0.7, 0.4, { shape: SHAPE.ember, grav: 14, dir: n, cone: 1.6, c2: 0x1a7a2a }); break;
+      case 'fire': fx.spray(p, 0xffe08a, 6 * k, 5, 0.6, 1.1, { c2: 0xd02a0a, grow: 0.4, dir: n, cone: 1.5, up: 1.5 }); fx.spray(p, 0xffc040, 4 * k, 7, 0.9, 0.34, { shape: SHAPE.ember, grav: -2, c2: 0xff3a10 }); fx.spray(p, 0x3a2420, 2, 1.5, 1.0, 1.0, { smoke: true, shape: SHAPE.smoke, grow: 1.5, up: 2, c2: 0x0c0808, spin: 1 }); break;
+      case 'shock': this.bolt(p, _t.copy(p).addScaledVector(n, 1.4).add(_u.set(rnd(5) - 2.5, rnd(5) - 2.5, rnd(5) - 2.5)), 0x8ac0ff, { w: 0.1, step: 1.1, jit: 0.5, life: 0.16 }); fx.sparks(p, 0xcfe8ff, 8 * k, 13, 0.34, { dir: n, cone: 2.2, c2: 0x4a8aff, w: 0.07 }); break;
+      case 'void': fx.spray(p, 0x2a1050, 4, 2.5, 0.9, 1.2, { smoke: true, shape: SHAPE.smoke, grow: 1.5, drag: 2, c2: 0x0a0414, spin: 2 }); fx.ring(p, n, 0xb98cff, 2.8 * k, 0.45, { r0: 2.8 * k, ease: 1.1, op: 0.9 }); fx.sparks(p, 0xe8d8ff, 5 * k, 9, 0.4, { dir: n, cone: 2 }); break;
+      case 'blast': fx.sparks(p, 0xffd080, 7 * k, 13, 0.45, { dir: n, cone: 2.2, c2: 0xff5a1a, w: 0.07 }); fx.spray(p, 0xffa24a, 4, 5, 0.5, 1.1, { c2: 0xa0200a, grow: 0.4 }); break;
+      case 'slash': fx.sparks(p, 0xffd0d8, 10 * k, 14, 0.42, { dir: n, cone: 2.4, c2: 0xff3a5a, tail: 0.08, w: 0.07 }); break;
+      case 'life': fx.spray(p, 0x7dff9a, 5 * k, 5, 0.7, 0.6, { shape: SHAPE.star, spin: 3, dir: n, cone: 1.6, c2: 0x2aa06a, grow: -0.5 }); break;
+      case 'poisonlight': fx.sparks(p, 0xb6ff6a, 7 * k, 12, 0.36, { dir: n, cone: 2, c2: 0x2aa04a, w: 0.07 }); break;
+      default: fx.sparks(p, c, 6 * k, 9, 0.3, { dir: n, cone: 2 });
     }
+    void creature;
   }
 
   /* ═══════════════════════ GOLPE A UNA CRIATURA ═══════════════════════ */
@@ -315,7 +404,13 @@ export class CombatFx {
     else { fx.spray(p, mc, 5 * k, 6, 0.6, 0.8, { c2: 0xffffff, grow: 0.5 }); fx.ring(p, nrm, mc, 1.6 * k, 0.28, { r0: 0.2, shock: true, op: 0.7 }); }
     // capa 2: el arma deja su firma
     if (!e.arm) this.impact(style, p, nrm, WEAPON_COLORS[w] || mc, k * 0.8, true);
-    if (crit) { fx.flash(p, 0xffe27a, 2.6, 0.14, { burst: true }); fx.ring(p, null, 0xffe27a, 2.6, 0.3, { r0: 0.3, shock: true }); fx.sparks(p, 0xffe9a0, 10, 14, 0.45, { c2: 0xff8a2a }); }
+    fx.flash(p, mc, 1.5 * k, 0.15, { op: 0.9 }); // brillo del material herido (se ve a distancia)
+    const mineHit = sh ? sh.pid === this.myId : true;
+    if (crit) { // crítico: estallido dorado grande, onda con color separado, estrellas, golpe de FOV y sacudida chica
+      fx.flash(p, 0xffe27a, 4.4, 0.22, { burst: true }); fx.flash(p, 0xffffff, 2.4, 0.12); fx.ring(p, null, 0xffe27a, 4.6, 0.4, { r0: 0.3, shock: true }); fx.ringChroma(p, null, 3.4, 0.34, { r0: 0.3, op: 0.8 });
+      fx.sparks(p, 0xffe9a0, 14, 16, 0.5, { c2: 0xff8a2a, w: 0.08 }); fx.spray(p, 0xffe27a, 6, 8, 0.6, 0.8, { shape: SHAPE.star, spin: 4, c2: 0xff8a2a, raw: true });
+      if (mineHit) { this.K.fov = Math.min(this.K.fov + 0.7, 3.2); this.addShake(0.12); }
+    }
     else if (heavy) { fx.ring(p, nrm, WEAPON_COLORS[w] || mc, 3.2, 0.35, { r0: 0.3, shock: true }); }
     // número de daño
     const col = e.arm ? NUMCOL.armor : crit ? 0xffd23f : boost ? 0xffa23a : (NUMCOL[style] || NUMCOL.phys);
@@ -325,6 +420,7 @@ export class CombatFx {
 
   /* ═══════════════════════ MUERTE ═══════════════════════ */
   kill(e) {
+    this.addShake(0.06);
     const fx = this.fx, p = V(e.p), k = e.k, m = this.prevMon.get(e.id) || this.mon.get(e.id) || null, mc = COLORS[k] || 0xffffff, mat = MATERIAL[k] || 'energy';
     const boss = k === 'coloso' || k === 'madre' || k === 'argos', r = m ? m.r : 1, elite = !!(m && m.el), lh = this.lastHit.get(e.id); this.lastHit.delete(e.id);
     const style = lh && this.t - lh.t < 0.5 ? lh.style : 'spark', up = this.up, size = boss ? 1.6 : clamp(r * 0.45, 0.3, 1.1);
@@ -359,6 +455,7 @@ export class CombatFx {
   /* ═══════════════════════ EXPLOSIONES Y ÁREAS ═══════════════════════ */
   boom(e) {
     const fx = this.fx, p = V(e.p), r = e.r || 5, up = this.up;
+    if (this.cam) this.addShake(clamp(r / 9, 0.3, 1.4) * clamp(16 / (this.cam.position.distanceTo(p) + 6), 0.12, 1));
     let src = null; for (const en of this.ended) if (en.p.distanceTo(p) < r + 4) { src = en; break; }
     let w = src ? src.w : -1; const sk = this.skills.find((s) => s.id === 'onda' && s.p.distanceTo(p) < 12);
     const rac = !src && [...this.prevMon.values()].some((m) => m.k === 'racimo' && !this.mon.has(m.id) && V(m.p).distanceTo(p) < 2);
@@ -495,12 +592,42 @@ export class CombatFx {
   update(dt) {
     this.t += dt;
     for (let i = this.timers.length - 1; i >= 0; i--) { const tm = this.timers[i]; tm.t -= dt; if (tm.t <= 0) { this.timers.splice(i, 1); try { tm.fn(); } catch { /* efecto tardío sin objetivo */ } } }
-    this.nums.update(dt, this.cam, this.up);
+    this.nums.update(dt, this.cam, this.up); this.updateCamFlash(dt);
   }
 }
 
 /* ═══════════════════════ Tablas por arma ═══════════════════════ */
-/** Fogonazo de boca: destello, chispas, humo. size en metros del sprite. */
+/** Ficha visual de cada arma. w/hw = ancho del núcleo/halo de la traza (m), life = cuánto dura la línea (s), hd/hl/hs = cabeza viajera (ancho, cola, m/s),
+ *  fl/fd = tamaño (m) y duración del fogonazo de pantalla, wash = lavado de color (luz), light = luz de fogonazo (Alta), kick/fov = patada de cámara (grados) y golpe de FOV, pw = fuerza del impacto. */
+const WS = {
+  haz:      { w: 0.06, hw: 0.26, life: 0.24, hd: 0.15, hl: 10, hs: 520, fl: 0.5, fd: 0.1, wash: 0.1, light: 26, kick: 0.35, fov: 0.25, pw: 1.0 },
+  prisma:   { w: 0.04, hw: 0.17, life: 0.22, hd: 0.1, hl: 5, hs: 360, fl: 0.75, fd: 0.13, wash: 0.2, light: 36, kick: 1.5, fov: 1.2, pw: 0.85 },
+  rafaga:   { w: 0.045, hw: 0.2, life: 0.18, hd: 0.12, hl: 7, hs: 700, fl: 0.42, fd: 0.07, wash: 0.1, light: 22, kick: 0.3, fov: 0.12, pw: 0.8 },
+  nova:     { fl: 1.0, fd: 0.16, wash: 0.3, light: 50, kick: 1.7, fov: 1.5, pw: 1.4 },
+  aguja:    { w: 0.12, hw: 0.55, life: 0.6, fl: 1.1, fd: 0.2, wash: 0.34, light: 60, kick: 2.1, fov: 2.2, pw: 1.5 },
+  pulso:    { w: 0.065, hw: 0.28, life: 0.24, hd: 0.2, hl: 6, hs: 420, fl: 0.6, fd: 0.1, wash: 0.13, light: 28, kick: 0.75, fov: 0.5, pw: 1.1 },
+  gemelas:  { w: 0.04, hw: 0.16, life: 0.16, hd: 0.1, hl: 6, hs: 700, fl: 0.38, fd: 0.06, wash: 0.08, light: 20, kick: 0.2, fov: 0.1, pw: 0.7 },
+  solar:    { w: 0.05, hw: 0.3, life: 0.1, fl: 0.55, fd: 0.07, wash: 0.1, light: 24, kick: 0.15, fov: 0.05, pw: 0.7 },
+  fractal:  { fl: 0.7, fd: 0.12, wash: 0.16, light: 34, kick: 0.5, fov: 0.35, pw: 1.1 },
+  enjambre: { fl: 0.8, fd: 0.12, wash: 0.2, light: 36, kick: 0.9, fov: 0.7, pw: 1.0 },
+  cometa:   { fl: 0.95, fd: 0.15, wash: 0.28, light: 48, kick: 1.4, fov: 1.2, pw: 1.3 },
+  vortice:  { fl: 1.0, fd: 0.16, wash: 0.26, light: 44, kick: 1.2, fov: 1.0, pw: 1.2 },
+  lanza:    { fl: 0.9, fd: 0.14, wash: 0.22, light: 42, kick: 1.4, fov: 1.4, pw: 1.3 },
+  cetro:    { w: 0.05, hw: 0.2, life: 0.16, fl: 0.55, fd: 0.09, wash: 0.1, light: 22, kick: 0.2, fov: 0.1, pw: 0.8 },
+  eclipse:  { w: 0.05, hw: 0.2, life: 0.26, fl: 1.2, fd: 0.16, wash: 0.4, light: 66, kick: 2.7, fov: 2.6, pw: 1.0 },
+  voltaico: { fl: 0.7, fd: 0.1, wash: 0.16, light: 32, kick: 0.5, fov: 0.35, pw: 1.1 },
+  glaciar:  { w: 0.055, hw: 0.26, life: 0.22, hd: 0.15, hl: 7, hs: 520, fl: 0.6, fd: 0.1, wash: 0.12, light: 26, kick: 0.3, fov: 0.2, pw: 1.0 },
+  plaga:    { w: 0.05, hw: 0.2, life: 0.18, fl: 0.55, fd: 0.09, wash: 0.1, light: 22, kick: 0.2, fov: 0.1, pw: 0.9 },
+  brasa:    { w: 0.04, hw: 0.28, life: 0.1, fl: 0.5, fd: 0.07, wash: 0.1, light: 26, kick: 0.15, fov: 0.05, pw: 0.7 },
+  mina:     { fl: 0.8, fd: 0.12, wash: 0.2, light: 36, kick: 1.0, fov: 0.8, pw: 1.2 },
+  sierra:   { w: 0.06, hw: 0.3, life: 0.1, fl: 0.7, fd: 0.06, wash: 0.1, light: 24, kick: 0.1, fov: 0.05, pw: 0.7 },
+  pulsar:   { fl: 1.1, fd: 0.18, wash: 0.36, light: 60, kick: 1.6, fov: 2.0, pw: 1.4 },
+  dardos:   { w: 0.04, hw: 0.17, life: 0.2, hd: 0.1, hl: 6, hs: 500, fl: 0.6, fd: 0.1, wash: 0.14, light: 28, kick: 0.65, fov: 0.4, pw: 0.9 },
+  requiem:  { w: 0.09, hw: 0.42, life: 0.5, fl: 1.1, fd: 0.2, wash: 0.3, light: 56, kick: 1.9, fov: 1.9, pw: 1.4 },
+  quimera:  { w: 0.06, hw: 0.28, life: 0.24, hd: 0.15, hl: 8, hs: 420, fl: 0.7, fd: 0.12, wash: 0.16, light: 32, kick: 0.5, fov: 0.4, pw: 1.1 },
+  quimeraexp: { w: 0.08, hw: 0.4, life: 0.3, hd: 0.2, hl: 8, hs: 360, fl: 0.9, fd: 0.14, wash: 0.22, light: 44, kick: 1.0, fov: 0.8, pw: 1.4 },
+};
+/** Fogonazo de boca (mundo): destello, chispas, humo. size en metros del sprite. */
 const MZ = {
   haz: { size: 1.3, sparks: 3, glow: 3 }, prisma: { size: 2.2, sparks: 6, sc: 0xffd0f0, c2: 0x66e8ff, smoke: 1, ring: 1.8 }, rafaga: { size: 1.0, sparks: 2, sc: 0xffe9a0, life: 0.06 },
   nova: { size: 3.2, sparks: 8, smoke: 3, ring: 3, c2: 0xff3a10, life: 0.14 }, aguja: { size: 3.6, sparks: 6, ring: 3.6, life: 0.2, c: 0xe8e0ff }, pulso: { size: 1.7, sparks: 3, ring: 1.6 },
@@ -514,53 +641,72 @@ const MZ = {
 /** Estilo de impacto en la punta de cada traza. */
 const TIPS = { haz: 'spark', prisma: 'crystal', rafaga: 'spark', aguja: 'ring', pulso: 'ring', gemelas: 'spark', solar: 'fire', fractal: 'poisonlight', cetro: 'life', eclipse: 'void', voltaico: 'shock', glaciar: 'frost', plaga: 'poison', brasa: 'fire', sierra: 'slash', dardos: 'crystal', requiem: 'void', quimeraexp: 'blast', quimera: 'ring' };
 
-/** Trazas por arma (cada una con identidad propia). `this` = CombatFx. x = { o, tips, c, mine, aim, k } */
+/** Rayo estándar: halo de color + núcleo blanco + cabeza luminosa que viaja. Persiste S.life segundos. */
+function ray(C, x, t, o = {}) {
+  const fx = C.fx, S = x.S, L = x.o.distanceTo(t), life = S.life * (o.lm || 1), c = o.c || x.c;
+  fx.line(x.o, t, c, S.hw * (o.hm || 1), life, { a0: 0.85, a1: 0.7, shrink: 0.3, fade: 0.55, c2: o.c2 });
+  fx.line(x.o, t, 0xffffff, S.w * (o.wm || 1), life * 0.8, { a0: 1, a1: 1, shrink: 0.25, fade: 0.45 });
+  if (S.hs && !o.nohead) fx.dart(x.o, t, c, S.hd * (o.hm || 1), Math.max(S.hs, L / 0.09), S.hl, {});
+}
+/** Chorro de llamas: bolas grandes y suaves en cono delante de la boca (cadencia muy alta: se emite por tandas). */
+function stream(C, x, c1, c2, o = {}) {
+  const fx = C.fx, t = x.tips[0]; if (!t) return;
+  const d = _d.copy(t).sub(x.o).normalize().clone(), L = Math.min(x.o.distanceTo(t), o.reach || 20);
+  ray(C, x, _q.copy(x.o).addScaledVector(d, L).clone(), { hm: 0.9, nohead: true });
+  if (!C.gate('st' + x.name, o.every || 0.05)) return;
+  const n = C.tier === 0 ? 3 : 7;
+  fx.spray(x.o.clone().addScaledVector(d, 1.2), c1, n, o.sp || 22, 0.55, o.size || 1.2, { dir: d, cone: 0.15, c2, grow: 1.6, drag: 1.2, up: 0.5, amp: 0.9, raw: true });
+  fx.spray(x.o.clone().addScaledVector(d, 1.2), 0xffffff, 1, o.sp || 22, 0.3, 0.6, { dir: d, cone: 0.1, c2: c1, grow: 0.5, drag: 1.5, raw: true });
+}
+
+/** Trazas por arma (cada una con identidad propia). `this` = CombatFx. x = { o, tips, c, mine, aim, k, S } */
 const TRACE = {
-  haz(x) { for (const t of x.tips) { this.fx.dart(x.o, t, 0x66ffee, 0.12, clamp(x.o.distanceTo(t) / 0.1, 150, 420), 12); this.fx.line(x.o, t, 0x66ffee, 0.06, 0.16, { a0: 0.6, a1: 0.2, shrink: 0.4 }); } },
+  haz(x) { for (const t of x.tips) ray(this, x, t); },
   prisma(x) {
-    const cs = [0xff7ad8, 0x7affea, 0xffe27a]; x.tips.forEach((t, i) => { for (let j = 0; j < 3; j++) { _u.set(rnd(2) - 1, rnd(2) - 1, rnd(2) - 1).multiplyScalar(0.18 * (j - 1)); this.fx.dart(x.o, _q.copy(t).add(_u), cs[(j + i) % 3], 0.07, 300, 7); } });
-    this.fx.spray(x.o, 0xffc0f0, 6, 8, 0.5, 0.5, { shape: SHAPE.shard, spin: 8, dir: x.aim, cone: 0.5, c2: 0x66e8ff, grav: 3 });
+    const cs = [0xff7ad8, 0x7affea, 0xffe27a]; x.tips.forEach((t, i) => ray(this, x, t, { c: cs[i % 3], lm: 0.9, hs: 1 }));
+    this.fx.spray(x.o, 0xffc0f0, 6, 8, 0.5, 0.6, { shape: SHAPE.shard, spin: 8, dir: x.aim, cone: 0.5, c2: 0x66e8ff, grav: 3, raw: this.tier > 0 });
   },
-  rafaga(x) { for (const t of x.tips) this.fx.dart(x.o, t, 0xffe066, 0.06, Math.max(380, x.o.distanceTo(t) / 0.08), 5, { }); if (!x.mine) this.fx.spray(x.o, 0xffe9a0, 1, 3, 0.4, 0.2, { shape: SHAPE.ember, grav: 12, raw: true }); },
+  rafaga(x) { for (const t of x.tips) ray(this, x, t, { c: 0xffe066 }); if (!x.mine && this.gate('cas', 0.1)) this.fx.spray(x.o, 0xffe9a0, 1, 3, 0.4, 0.25, { shape: SHAPE.ember, grav: 12, raw: true }); },
   aguja(x) {
     for (const t of x.tips) {
-      const L = x.o.distanceTo(t); this.fx.line(x.o, t, 0xe8e0ff, 0.2, 0.42, { a0: 1, a1: 1, shrink: 0.4 }); this.fx.line(x.o, t, 0xb9a4ff, 0.8, 0.6, { a0: 0.35, a1: 0.35, shrink: 0.2 });
-      this.helix(x.o, t, 0xcfc0ff, { radius: 0.7, turns: 0.9, w: 0.08, life: 0.5 }); const d = _d.copy(t).sub(x.o).normalize().clone(), n = Math.min(6, Math.floor(L / 14));
-      for (let i = 1; i <= n; i++) { const q = x.o.clone().lerp(t, i / (n + 1)); this.later(i * 0.025, () => this.fx.ring(q, d, 0xb9a4ff, 2.4, 0.4, { r0: 0.3, op: 0.7 })); }
+      const L = x.o.distanceTo(t); ray(this, x, t, { c: 0xe8e0ff, c2: 0x6a4aff, nohead: true }); this.fx.line(x.o, t, 0xb9a4ff, 1.0, 0.7, { a0: 0.3, a1: 0.3, shrink: 0.2, fade: 0.5 });
+      this.helix(x.o, t, 0xcfc0ff, { radius: 0.7, turns: 0.9, w: 0.08, life: 0.55 }); const d = _d.copy(t).sub(x.o).normalize().clone(), n = Math.min(this.tier === 0 ? 4 : 7, Math.floor(L / 14));
+      for (let i = 1; i <= n; i++) { const q = x.o.clone().lerp(t, i / (n + 1)); this.later(i * 0.025, () => this.fx.ring(q, d, 0xb9a4ff, 2.6, 0.42, { r0: 0.3, op: 0.8 })); }
       if (!x.mine) this.fx.ringChroma(x.o, d, 3.2, 0.35, { r0: 0.3, op: 0.8 });
     }
   },
-  pulso(x) { for (const t of x.tips) { this.fx.dart(x.o, t, 0x7dfcff, 0.16, Math.max(260, x.o.distanceTo(t) / 0.12), 6); this.fx.line(x.o, t, 0x7dfcff, 0.06, 0.1, { a0: 0.4, a1: 0.1, shrink: 0.3 }); const n = Math.min(8, Math.floor(x.o.distanceTo(t) / 8)); for (let i = 1; i <= n; i++) { _q.copy(x.o).lerp(t, i / (n + 1)); this.fx.add.spawn(_q.x, _q.y, _q.z, 0, 0, 0, new THREE.Color(0x9ffcff), new THREE.Color(0x2a7aff), 0.5, 0.3 + i * 0.02, 0, 1, -0.7, SHAPE.soft, 0); } } },
-  gemelas(x) { x.tips.forEach((t, i) => this.fx.dart(x.o, t, i & 1 ? 0xffd23f : 0xffa040, 0.05, Math.max(380, x.o.distanceTo(t) / 0.08), 4)); },
-  solar(x) { const n = this.tier === 0 ? 5 : 11; for (const t of x.tips.slice(0, 1)) { const L = Math.min(x.o.distanceTo(t), 22), d = _d.copy(t).sub(x.o).normalize().clone(); this.fx.spray(x.o.clone().addScaledVector(d, 1.5), 0xffc84a, n, 24, 0.6, 0.9, { dir: d, cone: 0.12, c2: 0xd0300a, grow: 1.4, drag: 1.3, up: 0.5, amp: 0.55 }); this.fx.line(x.o, _q.copy(x.o).addScaledVector(d, L), 0xff9a2a, 0.5, 0.1, { a0: 0.25, a1: 0.05, shrink: 0.3 }); } },
-  fractal(x) { for (const t of x.tips) { const pts = this.bolt(x.o, t, 0x9dff5a, { w: 0.11, step: 3.4, jit: 0.45, forks: 3, life: 0.2 }); this.later(0.05, () => this.bolt(x.o, t, 0xd6ff9a, { w: 0.06, step: 3.4, jit: 0.45, forks: 2, life: 0.12 })); if (pts && this.tier > 0) for (let i = 1; i < pts.length - 1; i += 2) this.fx.spray(pts[i], 0xd6ff9a, 1, 1, 0.4, 0.6, { shape: SHAPE.star, spin: 3, raw: true }); } },
-  enjambre(x) { for (let i = 0; i < 5; i++) { _u.set(rnd(2) - 1, rnd(2) - 1, rnd(2) - 1).multiplyScalar(0.5); this.fx.flash(_q.copy(x.o).add(_u), 0xff9ad8, 0.9, 0.1); } },
-  cometa(x) { this.fx.spray(x.o, 0xffe6a0, 6, 7, 0.6, 0.7, { shape: SHAPE.star, dir: x.aim, cone: 0.5, spin: 4, c2: 0xff5a2a }); },
-  vortice(x) { for (let i = 0; i < 10; i++) { perp(x.aim, _u, _w); const a = rnd(6.283), r = 1.4; _t.copy(x.o).addScaledVector(_u, Math.cos(a) * r).addScaledVector(_w, Math.sin(a) * r); this.fx.add.spawn(_t.x, _t.y, _t.z, (x.o.x - _t.x) * 4, (x.o.y - _t.y) * 4, (x.o.z - _t.z) * 4, new THREE.Color(i & 1 ? 0xb98cff : 0x66ffee), new THREE.Color(0x2a1a8a), 0.5, 0.3, 0, 0.5, -0.6, SHAPE.soft, 0); } this.fx.ring(x.o, x.aim, 0xb98cff, 0.4, 0.3, { r0: 2.4, ease: 1.2 }); },
-  lanza(x) { this.fx.spray(x.o, 0xe8f6ff, 6, 9, 0.5, 0.6, { shape: SHAPE.shard, spin: 8, dir: x.aim, cone: 0.35, c2: 0x66b8ff }); this.fx.line(x.o, _q.copy(x.o).addScaledVector(x.aim, 6), 0xe8f6ff, 0.5, 0.15, { a0: 1, a1: 0 }); },
-  cetro(x) { for (const t of x.tips) { this.wave(x.o, t, 0x7dff9a, { amp: 0.55, freq: 0.9, w: 0.09, life: 0.14 }); this.wave(x.o, t, 0xd6ffe0, { amp: 0.35, freq: 1.3, w: 0.045, life: 0.12 }); if (this.nearMon(t, 1.2)) { const n = _d.copy(x.o).sub(t); const L = n.length(); this.fx.add.spawn(t.x, t.y, t.z, n.x / L * 12, n.y / L * 12, n.z / L * 12, new THREE.Color(0xaaffcc), new THREE.Color(0x2aa06a), 0.6, Math.min(0.5, L / 12), 0, 0.2, -0.5, SHAPE.star, 3); } } },
+  pulso(x) { for (const t of x.tips) { ray(this, x, t); const n = Math.min(this.tier === 0 ? 3 : 8, Math.floor(x.o.distanceTo(t) / 8)); for (let i = 1; i <= n; i++) { _q.copy(x.o).lerp(t, i / (n + 1)); this.fx.add.spawn(_q.x, _q.y, _q.z, 0, 0, 0, new THREE.Color(0x9ffcff), new THREE.Color(0x2a7aff), 0.7, 0.3 + i * 0.02, 0, 1, -0.7, SHAPE.soft, 0); } } },
+  gemelas(x) { x.tips.forEach((t, i) => ray(this, x, t, { c: i & 1 ? 0xffd23f : 0xffa040 })); },
+  solar(x) { stream(this, x, 0xffc84a, 0xd0300a, { reach: 22, size: 1.4, sp: 22, every: 0.05 }); },
+  fractal(x) { for (const t of x.tips) { const pts = this.bolt(x.o, t, 0x9dff5a, { w: 0.14, step: 3.4, jit: 0.45, forks: 3, life: 0.26 }); this.later(0.05, () => this.bolt(x.o, t, 0xd6ff9a, { w: 0.08, step: 3.4, jit: 0.45, forks: 2, life: 0.16 })); this.fx.line(x.o, t, 0x9dff5a, 0.4, 0.2, { a0: 0.3, a1: 0.3, shrink: 0.3 }); if (pts && this.tier > 0) for (let i = 1; i < pts.length - 1; i += 2) this.fx.spray(pts[i], 0xd6ff9a, 1, 1, 0.4, 0.6, { shape: SHAPE.star, spin: 3, raw: true }); } },
+  enjambre(x) { for (let i = 0; i < 5; i++) { _u.set(rnd(2) - 1, rnd(2) - 1, rnd(2) - 1).multiplyScalar(0.5); this.fx.flash(_q.copy(x.o).add(_u), 0xff9ad8, 1.0, 0.12); } this.fx.spray(x.o, 0xffe0f0, 5, 10, 0.5, 0.7, { dir: x.aim, cone: 0.6, c2: 0xff3aa8, raw: this.tier > 0 }); },
+  nova(x) { this.fx.spray(x.o, 0xffa040, 8, 12, 0.5, 1.0, { dir: x.aim, cone: 0.5, c2: 0xa01808, grow: 0.8, raw: true }); this.fx.ring(_q.copy(x.o).addScaledVector(x.aim, 2), x.aim, 0xff7a45, 3.2, 0.3, { r0: 0.4, shock: true }); },
+  cometa(x) { this.fx.spray(x.o, 0xffe6a0, 6, 7, 0.6, 0.8, { shape: SHAPE.star, dir: x.aim, cone: 0.5, spin: 4, c2: 0xff5a2a, raw: true }); this.fx.ring(_q.copy(x.o).addScaledVector(x.aim, 2), x.aim, 0xffb35c, 3.4, 0.3, { r0: 0.4, shock: true }); },
+  vortice(x) { for (let i = 0; i < 10; i++) { perp(x.aim, _u, _w); const a = rnd(6.283), r = 1.4; _t.copy(x.o).addScaledVector(_u, Math.cos(a) * r).addScaledVector(_w, Math.sin(a) * r); this.fx.add.spawn(_t.x, _t.y, _t.z, (x.o.x - _t.x) * 4, (x.o.y - _t.y) * 4, (x.o.z - _t.z) * 4, new THREE.Color(i & 1 ? 0xb98cff : 0x66ffee), new THREE.Color(0x2a1a8a), 0.6, 0.3, 0, 0.5, -0.6, SHAPE.soft, 0); } this.fx.ring(x.o, x.aim, 0xb98cff, 0.4, 0.3, { r0: 2.8, ease: 1.2 }); },
+  lanza(x) { this.fx.spray(x.o, 0xe8f6ff, 6, 9, 0.5, 0.7, { shape: SHAPE.shard, spin: 8, dir: x.aim, cone: 0.35, c2: 0x66b8ff, raw: true }); this.fx.line(x.o, _q.copy(x.o).addScaledVector(x.aim, 8), 0xe8f6ff, 0.6, 0.2, { a0: 1, a1: 0 }); this.fx.ring(_q.copy(x.o).addScaledVector(x.aim, 2), x.aim, 0x9fe8ff, 3.2, 0.3, { r0: 0.4, shock: true }); },
+  cetro(x) { for (const t of x.tips) { this.wave(x.o, t, 0x7dff9a, { amp: 0.55, freq: 0.9, w: 0.12, life: 0.18 }); this.wave(x.o, t, 0xd6ffe0, { amp: 0.35, freq: 1.3, w: 0.06, life: 0.15 }); this.fx.line(x.o, t, 0x7dff9a, 0.3, 0.16, { a0: 0.35, a1: 0.35, shrink: 0.3 }); if (this.nearMon(t, 1.2)) { const n = _d.copy(x.o).sub(t); const L = n.length(); this.fx.add.spawn(t.x, t.y, t.z, n.x / L * 12, n.y / L * 12, n.z / L * 12, new THREE.Color(0xaaffcc), new THREE.Color(0x2aa06a), 0.7, Math.min(0.5, L / 12), 0, 0.2, -0.5, SHAPE.star, 3); } } },
   eclipse(x) {
-    for (const t of x.tips) { this.fx.line(x.o, t, 0xff5a7a, 0.55, 0.22, { w1: 0.05, a0: 0.9, a1: 0.2, shrink: 0.5, c2: 0x6a0a50 }); this.fx.line(x.o, t, 0xffd0dc, 0.12, 0.14, { a0: 1, a1: 0.3, shrink: 0.3 }); }
-    this.fx.ring(_q.copy(x.o).addScaledVector(x.aim, 3), x.aim, 0xff5a7a, 6, 0.3, { r0: 0.6, shock: true }); this.fx.spray(x.o, 0xff5a7a, 10, 20, 0.45, 0.8, { dir: x.aim, cone: 0.28, c2: 0x3a0a30, drag: 2 });
+    for (const t of x.tips) { this.fx.line(x.o, t, 0xff5a7a, 0.6, 0.26, { w1: 0.05, a0: 0.95, a1: 0.25, shrink: 0.5, fade: 0.6, c2: 0x6a0a50 }); this.fx.line(x.o, t, 0xffd0dc, 0.14, 0.18, { a0: 1, a1: 0.4, shrink: 0.3 }); }
+    this.fx.ring(_q.copy(x.o).addScaledVector(x.aim, 3), x.aim, 0xff5a7a, 7, 0.32, { r0: 0.6, shock: true }); this.fx.spray(x.o, 0xff5a7a, 10, 20, 0.45, 0.9, { dir: x.aim, cone: 0.28, c2: 0x3a0a30, drag: 2, raw: this.tier > 0 });
   },
-  voltaico(x) { for (const t of x.tips) { this.bolt(x.o, t, 0x7ab4ff, { w: 0.12, step: 2.8, jit: 0.6, forks: 2, life: 0.2 }); this.later(0.045, () => this.bolt(x.o, t, 0xcfe8ff, { w: 0.07, step: 2.4, jit: 0.6, forks: 1, life: 0.12 })); } },
+  voltaico(x) { for (const t of x.tips) { this.bolt(x.o, t, 0x7ab4ff, { w: 0.16, step: 2.8, jit: 0.6, forks: 2, life: 0.24 }); this.later(0.045, () => this.bolt(x.o, t, 0xcfe8ff, { w: 0.09, step: 2.4, jit: 0.6, forks: 1, life: 0.14 })); this.fx.line(x.o, t, 0x4a8aff, 0.4, 0.18, { a0: 0.3, a1: 0.3, shrink: 0.3 }); } },
   glaciar(x) {
-    for (const t of x.tips) { const L = x.o.distanceTo(t); this.fx.line(x.o, t, 0xdff8ff, 0.14, 0.14, { a0: 1, a1: 0.7, shrink: 0.4 }); this.fx.line(x.o, t, 0x66b8ff, 0.6, 0.2, { a0: 0.35, a1: 0.2, shrink: 0.3 });
-      const n = Math.min(this.tier === 0 ? 2 : 6, Math.floor(L / 6)); for (let i = 1; i <= n; i++) { _q.copy(x.o).lerp(t, i / (n + 1)); this.fx.add.spawn(_q.x + rnd(0.6) - 0.3, _q.y + rnd(0.6) - 0.3, _q.z + rnd(0.6) - 0.3, rnd(1) - 0.5, rnd(1) - 0.5, rnd(1) - 0.5, new THREE.Color(0xe6fbff), new THREE.Color(0x66b8ff), 0.5, 0.9, 2.5, 0.8, -0.4, SHAPE.shard, 5); } }
+    for (const t of x.tips) { const L = x.o.distanceTo(t); ray(this, x, t, { c: 0x9fe8ff, c2: 0x3a8aff });
+      const n = Math.min(this.tier === 0 ? 2 : 6, Math.floor(L / 6)); for (let i = 1; i <= n; i++) { _q.copy(x.o).lerp(t, i / (n + 1)); this.fx.add.spawn(_q.x + rnd(0.6) - 0.3, _q.y + rnd(0.6) - 0.3, _q.z + rnd(0.6) - 0.3, rnd(1) - 0.5, rnd(1) - 0.5, rnd(1) - 0.5, new THREE.Color(0xe6fbff), new THREE.Color(0x66b8ff), 0.6, 0.9, 2.5, 0.8, -0.4, SHAPE.shard, 5); } }
   },
-  plaga(x) { for (const t of x.tips) { this.wave(x.o, t, 0x9dff5a, { amp: 0.4, freq: 0.6, w: 0.07, life: 0.16, c2: 0x2aa04a }); const L = x.o.distanceTo(t), n = Math.min(this.tier === 0 ? 2 : 5, Math.floor(L / 7)); for (let i = 1; i <= n; i++) { _q.copy(x.o).lerp(t, i / (n + 1)); this.fx.add.spawn(_q.x, _q.y, _q.z, rnd(1) - 0.5, rnd(1) - 0.5, rnd(1) - 0.5, new THREE.Color(0x9dff5a), new THREE.Color(0x2aa04a), 0.55, 0.9, i & 1 ? 7 : -0.5, 0.6, 0.3, SHAPE.bubble, 0); } } },
-  brasa(x) { const t = x.tips[0]; if (!t) return; const L = Math.min(x.o.distanceTo(t), 18), d = _d.copy(t).sub(x.o).normalize().clone(); this.fx.spray(x.o.clone().addScaledVector(d, 1.5), 0xff9a2a, this.tier === 0 ? 4 : 8, 20, 0.5, 0.8, { dir: d, cone: 0.16, c2: 0xa01008, grow: 1.0, drag: 1.5, up: 0.8, amp: 0.6 }); this.fx.spray(x.o.clone().addScaledVector(d, 1.5), 0xffe08a, 3, 16, 0.9, 0.28, { dir: d, cone: 0.3, shape: SHAPE.ember, grav: -3, c2: 0xff3a10 }); if (this.tier > 0) this.fx.spray(_q.copy(x.o).addScaledVector(d, L * 0.6), 0x2a2020, 1, 3, 1.2, 1.1, { smoke: true, shape: SHAPE.smoke, up: 3, grow: 1.4, c2: 0x0a0606, spin: 1, raw: true }); },
-  mina(x) { this.fx.ring(_q.copy(x.o).addScaledVector(x.aim, 1.5), x.aim, 0xffd23f, 2.6, 0.3, { r0: 0.3, shock: true }); },
+  plaga(x) { for (const t of x.tips) { this.wave(x.o, t, 0x9dff5a, { amp: 0.4, freq: 0.6, w: 0.1, life: 0.2, c2: 0x2aa04a }); this.fx.line(x.o, t, 0x7dff4a, 0.3, 0.18, { a0: 0.3, a1: 0.3, shrink: 0.3 }); const L = x.o.distanceTo(t), n = Math.min(this.tier === 0 ? 2 : 5, Math.floor(L / 7)); for (let i = 1; i <= n; i++) { _q.copy(x.o).lerp(t, i / (n + 1)); this.fx.add.spawn(_q.x, _q.y, _q.z, rnd(1) - 0.5, rnd(1) - 0.5, rnd(1) - 0.5, new THREE.Color(0x9dff5a), new THREE.Color(0x2aa04a), 0.65, 0.9, i & 1 ? 7 : -0.5, 0.6, 0.3, SHAPE.bubble, 0); } } },
+  brasa(x) { stream(this, x, 0xff9a2a, 0xa01008, { reach: 18, size: 1.1, sp: 20, every: 0.05 }); if (this.tier > 0 && this.gate('brs', 0.2) && x.tips[0]) { const d = _d.copy(x.tips[0]).sub(x.o).normalize().clone(); this.fx.spray(_q.copy(x.o).addScaledVector(d, 10), 0x2a2020, 1, 3, 1.2, 1.1, { smoke: true, shape: SHAPE.smoke, up: 3, grow: 1.4, c2: 0x0a0606, spin: 1, raw: true }); } },
+  mina(x) { this.fx.ring(_q.copy(x.o).addScaledVector(x.aim, 1.5), x.aim, 0xffd23f, 3, 0.3, { r0: 0.3, shock: true }); this.fx.spray(x.o, 0xffe27a, 5, 9, 0.4, 0.6, { dir: x.aim, cone: 0.5, c2: 0xff9a2a, raw: true }); },
   sierra(x) { // hoja de luz: media luna giratoria delante del arma
     const d = x.aim, c = _q.copy(x.o).addScaledVector(d, 4.5).clone(); perp(d, _u, _w); const ph = rnd(6.283), n = this.tier === 0 ? 5 : 9, R = 3.4; let prev = null;
-    for (let i = 0; i <= n; i++) { const a = ph + (i / n - 0.5) * 2.2, q = c.clone().addScaledVector(_u, Math.cos(a) * R).addScaledVector(_w, Math.sin(a) * R); if (prev) this.fx.line(prev, q, 0xff5a7a, 0.34, 0.1, { w1: 0.34, a0: 0.9, a1: 0.9, shrink: 0.5, c2: 0xffd0dc }); prev = q; }
-    this.fx.flash(c, 0xff7a9a, 3.6, 0.08, { burst: true, op: 0.6 });
+    for (let i = 0; i <= n; i++) { const a = ph + (i / n - 0.5) * 2.2, q = c.clone().addScaledVector(_u, Math.cos(a) * R).addScaledVector(_w, Math.sin(a) * R); if (prev) { this.fx.line(prev, q, 0xff5a7a, 0.4, 0.12, { w1: 0.4, a0: 0.9, a1: 0.9, shrink: 0.5, c2: 0xffd0dc }); this.fx.line(prev, q, 0xffffff, 0.12, 0.1, { a0: 1, a1: 1, shrink: 0.4 }); } prev = q; }
+    this.fx.flash(c, 0xff7a9a, 3.6, 0.1, { burst: true, op: 0.7 });
   },
-  dardos(x) { x.tips.forEach((t) => { this.fx.dart(x.o, t, 0x66ffcc, 0.08, Math.max(280, x.o.distanceTo(t) / 0.1), 8); this.fx.line(x.o, t, 0xe0fff6, 0.03, 0.12, { a0: 0.7, a1: 0.1, shrink: 0.3 }); const n = Math.min(this.tier === 0 ? 1 : 3, Math.floor(x.o.distanceTo(t) / 10)); for (let i = 1; i <= n; i++) { _q.copy(x.o).lerp(t, i / (n + 1)); this.fx.add.spawn(_q.x, _q.y, _q.z, rnd(1) - 0.5, rnd(1) - 0.5, rnd(1) - 0.5, new THREE.Color(0xe0fff6), new THREE.Color(0x2aa0a0), 0.45, 0.5, 2, 1, -0.5, SHAPE.shard, 6); } }); },
+  dardos(x) { x.tips.forEach((t) => { ray(this, x, t, { c: 0x66ffcc, c2: 0x1aa0a0 }); const n = Math.min(this.tier === 0 ? 1 : 3, Math.floor(x.o.distanceTo(t) / 10)); for (let i = 1; i <= n; i++) { _q.copy(x.o).lerp(t, i / (n + 1)); this.fx.add.spawn(_q.x, _q.y, _q.z, rnd(1) - 0.5, rnd(1) - 0.5, rnd(1) - 0.5, new THREE.Color(0xe0fff6), new THREE.Color(0x2aa0a0), 0.55, 0.5, 2, 1, -0.5, SHAPE.shard, 6); } }); },
   requiem(x) {
-    for (const t of x.tips) { const d = _d.copy(t).sub(x.o).normalize().clone(), L = x.o.distanceTo(t); this.fx.line(x.o, t, 0x6a3aff, 0.7, 0.4, { a0: 0.4, a1: 0.4, shrink: 0.3, c2: 0x2a0a60 }); this.fx.line(x.o, t, 0xe8d8ff, 0.1, 0.3, { a0: 1, a1: 1, shrink: 0.4 });
-      const n = Math.min(5, Math.floor(L / 25)); for (let i = 1; i <= n; i++) { const q = x.o.clone().lerp(t, i / (n + 1)); this.later(i * 0.03, () => this.fx.ring(q, d, 0xb98cff, 2.2, 0.45, { r0: 0.3, op: 0.6 })); } }
+    for (const t of x.tips) { const d = _d.copy(t).sub(x.o).normalize().clone(), L = x.o.distanceTo(t); ray(this, x, t, { c: 0xb98cff, c2: 0x2a0a60, nohead: true }); this.fx.line(x.o, t, 0x6a3aff, 1.0, 0.5, { a0: 0.35, a1: 0.35, shrink: 0.3, fade: 0.5, c2: 0x2a0a60 });
+      const n = Math.min(this.tier === 0 ? 3 : 6, Math.floor(L / 25)); for (let i = 1; i <= n; i++) { const q = x.o.clone().lerp(t, i / (n + 1)); this.later(i * 0.03, () => this.fx.ring(q, d, 0xb98cff, 2.4, 0.45, { r0: 0.3, op: 0.7 })); } }
   },
-  quimeraexp(x) { for (const t of x.tips) { this.fx.dart(x.o, t, 0xff66c4, 0.14, 240, 7); this.fx.ring(t, _d.copy(x.o).sub(t).normalize(), 0xff66c4, 5, 0.4, { r0: 0.4, shock: true }); } },
-  quimera(x) { for (const t of x.tips) { this.fx.dart(x.o, t, 0xff66c4, 0.1, 280, 6); this.fx.flash(x.o, 0xffffff, 1.4, 0.06, { burst: true }); } },
+  quimeraexp(x) { for (const t of x.tips) { ray(this, x, t, { c: 0xff66c4 }); this.fx.ring(t, _d.copy(x.o).sub(t).normalize(), 0xff66c4, 5, 0.4, { r0: 0.4, shock: true }); } },
+  quimera(x) { for (const t of x.tips) { ray(this, x, t, { c: 0xff66c4 }); } },
 };

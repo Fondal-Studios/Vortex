@@ -16,7 +16,7 @@ for (const w of ids) for (const q of quals) for (const [W, H] of [[844, 390], [1
   await pg.waitForFunction(() => window.__weaponsReady && window.__step, null, { timeout: 120000 });
   const id = String(w).padStart(2, '0');
   for (const mode of ['idle', 'fire']) {
-    await pg.evaluate(([m]) => window.__step(m === 'idle' ? 60 : 40, 0.016, m === 'idle' ? [] : [37]), [mode]);
+    await pg.evaluate(([m]) => window.__step(m === 'idle' ? 60 : 40, 0.016, m === 'idle' ? [] : [39]), [mode]);
     await pg.waitForTimeout(100);
     const st = await pg.evaluate(() => window.__stats());
     await pg.screenshot({ path: `${out}/w${id}_${q}_${W}_${mode}.jpg`, type: 'jpeg', quality: 88 });
