@@ -11,7 +11,7 @@
 import { v3, add, mul, makeRng } from './math.js';
 import { G } from './data.js';
 
-export const M4 = { THICK: 6, STEP: 1.8, RISE: 0.5, BR: 3.2, voidY: -60, PETALS: 6 };
+export const M4 = { THICK: 6, STEP: 1.8, RISE: 0.5, BR: 3.8, voidY: -60, PETALS: 6 };
 const DOWN = v3(0, -G, 0);
 
 /** Plataformas. `pit`: platos en anillo con un foso en el centro (zona de riesgo). */
@@ -100,8 +100,8 @@ function buildLayout() {
   covers.push({ x: 0, z: 0, r: 3.8, h: 1.7, top: 0, kind: 'grada' });
   const add1 = (id, dx, dz, r, h, kind) => { const p = P[id]; covers.push({ x: p.x + dx, z: p.z + dz, r, h, top: p.top, kind }); };
   add1('sie', 3, -4, 1.6, 1.4, 'quiste'); add1('sie', -5, 3, 1.2, 5, 'pilar');
-  add1('gar', 4, 3, 1.3, 6, 'pilar'); add1('gar', -3, -5, 1.8, 1.4, 'quiste');
-  add1('viv', -4, -3, 1.9, 1.5, 'quiste'); add1('viv', 5, 2, 1.3, 6, 'pilar');
+  add1('gar', 4, 3, 1.3, 6, 'pilar'); add1('gar', 5, -6, 1.8, 1.4, 'quiste');
+  add1('viv', -4, -3, 1.9, 1.5, 'quiste'); add1('viv', -6, 5, 1.3, 6, 'pilar');
   add1('mir', -4, 4, 2.0, 1.5, 'quiste'); add1('mir', 4, 3, 1.8, 1.5, 'quiste');
   add1('tra', 2, 2, 1.2, 4, 'pilar');
   add1('umb', 4, -3, 1.2, 6, 'pilar'); add1('umb', -3, 4, 1.7, 1.4, 'quiste');
@@ -250,19 +250,35 @@ export function makeMap4() {
       if (!zf || !zt) return null;
       const platF = P[zf], single = platF && !platF.pit;
       if (zf === zt && single) return null;
-      const nav = this.nav, N = nav.N, A = nav.byZone[zf] || [], B = nav.byZone[zt] || [];
+      const nav = this.nav, N = nav.N;
+      // nodos «visibles» desde un punto: en un disco convexo todos; en un pétalo o una conexión sólo los cercanos (si no, cortaría las curvas)
+      const cand = (zone, at) => {
+        const list = nav.byZone[zone] || [], pl = P[zone]; if (pl && !pl.pit) return list;
+        const lim = pl ? pl.r * 0.36 * 1.35 : 4.4; /* pétalo: sólo el propio (los vecinos están a 10,5 u) */ let out = list.filter((k) => Math.hypot(nav.nodes[k].x - at.x, nav.nodes[k].z - at.z) <= lim);
+        if (!out.length) { let bk = -1, bd = 1e9; for (const k of list) { const d = Math.hypot(nav.nodes[k].x - at.x, nav.nodes[k].z - at.z); if (d < bd) { bd = d; bk = k; } } out = bk < 0 ? [] : [bk]; }
+        return out;
+      };
+      const A = cand(zf, from), B = cand(zt, to);
       let best = nav.INF, ba = -1, bb = -1;
       for (const a of A) { const da = Math.hypot(nav.nodes[a].x - from.x, nav.nodes[a].z - from.z); for (const b of B) { const c = da + nav.D[a * N + b] + Math.hypot(nav.nodes[b].x - to.x, nav.nodes[b].z - to.z); if (c < best) { best = c; ba = a; bb = b; } } }
       if (ba < 0 || best >= nav.INF * 0.5) return 'none';
       if (ba === bb) return null;
+      // en la Cámara del Latido el atajo en línea recta puede cruzar el foso: si pasa cerca, primero al centro del pétalo propio
+      const safe = (wp) => {
+        if (!platF || !platF.pit) return wp;
+        const hole = platF.r * 0.296, ax = from.x, az = from.z, bx = wp.x, bz = wp.z, dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+        const t = Math.max(0, Math.min(1, ((platF.x - ax) * dx + (platF.z - az) * dz) / l2)), d = Math.hypot(ax + dx * t - platF.x, az + dz * t - platF.z);
+        if (d >= hole + 1.6) return wp;
+        const own = nav.nodes[ba]; return Math.hypot(own.x - from.x, own.z - from.z) > 1.5 ? { x: own.x, y: own.y + 0.9, z: own.z } : wp;
+      };
       let cur = ba, guard = 0;
       while (cur !== bb && guard++ < 6) {
         const nx = nav.nxt[cur * N + bb]; if (nx < 0) return 'none';
         const nd = nav.nodes[nx];
-        if (Math.hypot(nd.x - from.x, nd.z - from.z) > 2.4 || nx === bb) return { x: nd.x, y: nd.y + 0.9, z: nd.z };
+        if (Math.hypot(nd.x - from.x, nd.z - from.z) > 2.4 || nx === bb) return safe({ x: nd.x, y: nd.y + 0.9, z: nd.z });
         cur = nx;
       }
-      const nd = nav.nodes[bb]; return { x: nd.x, y: nd.y + 0.9, z: nd.z };
+      const nd = nav.nodes[bb]; return safe({ x: nd.x, y: nd.y + 0.9, z: nd.z });
     },
     /** Dirección que debe seguir una criatura terrestre (reemplaza `wish` sólo si apunta hacia el jugador y hay que dar un rodeo). */
     steer(game, m, wish) {

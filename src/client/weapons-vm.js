@@ -39,7 +39,7 @@ export class Viewmodels {
   _ensure(i) {
     let it = this.items[i]; if (it) return it;
     const W = BUILD[i](this.q, true), rig = new THREE.Group(); rig.add(W.group); W.group.userData.index = i; W.group.userData.muzzle = W.muzzle; if (this.upg[i]) applyUpgrades(W.group, this.upg[i]);
-    const hex = WEAPON_COLORS[i], shape = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTexture(W.flash.shape), color: new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.55), blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0 }));
+    const hex = WEAPON_COLORS[i], shape = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTexture(W.flash.shape), color: new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.3), blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0 }));
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: hex, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0 }));
     for (const s of [glow, shape]) { s.position.set(...W.muzzle); s.renderOrder = 10; s.visible = false; rig.add(s); }
     const beam = makeBeam(hex); beam.position.set(...W.muzzle); beam.visible = false; beam.renderOrder = 9; rig.add(beam);
@@ -116,7 +116,7 @@ export class Viewmodels {
     const on = f > 0.012; it.shape.visible = it.glow.visible = it.beam.visible = on;
     if (on) {
       const fs0 = W.flash.size, fs = fs0 > 1 ? 1 + (fs0 - 1) * 0.2 : fs0, gl = W.flash.glow ?? 0.55;
-      it.shape.material.opacity = Math.min(1, f * 1.5); it.shape.scale.setScalar(fs * 0.62 * (0.55 + 0.6 * f) * jit);
+      it.shape.material.opacity = Math.min(0.85, f * 1.2); it.shape.scale.setScalar(fs * 0.62 * (0.55 + 0.6 * f) * jit);
       const hi = this.q.high ? 0.55 : 1; it.glow.material.opacity = Math.min(0.8, f * (0.3 + gl * 0.5)) * hi; it.glow.scale.setScalar(fs * 0.62 * (0.55 + 0.8 * f) * jit);
       // haz de luz hacia donde va el disparo: 2 cintas cruzadas desde la boca (se ve igual en Baja)
       const u = it.beam.material.uniforms; u.uI.value = Math.min(1, f * 1.3) * (W.flash.beam ?? 1); const w = (0.05 + fs * 0.05) * (0.7 + 0.5 * f), L = (W.flash.len ?? 3.2) * (0.5 + 0.5 * f); it.beam.scale.set(w, w, L);

@@ -5,6 +5,8 @@ import { launch } from './browser.js';
 import { startServer } from '../server/server.js';
 const OUT = process.argv[2] || 'shots/cartas'; fs.mkdirSync(OUT, { recursive: true });
 export const SIZES = [['movil-844x390', 844, 390, true], ['movil-667x375', 667, 375, true], ['vertical-390x844', 390, 844, true], ['pc-1280x720', 1280, 720, false], ['pc-1920x1080', 1920, 1080, false]];
+// Las capturas son sólo para mirar: si el equipo va lento y una tarda demasiado, no se cae toda la prueba.
+const snap = async (pg, o) => { try { await pg.screenshot({ timeout: 40000, ...o }); } catch (e) { console.log('(captura omitida: ' + e.message.split('\n')[0] + ')'); } };
 const srv = await startServer({ port: 0 }); const b = await launch(); const base = `http://localhost:${srv.port}`; const errors = []; let bad = 0;
 
 // Revisa que todo elemento visible dentro de `rootSel` esté dentro del viewport. Devuelve la lista de problemas.
@@ -31,18 +33,18 @@ for (const [vn, w, h, touch] of SIZES) {
   // 0) tutorial real (aparece solo la primera vez): debe entrar entero; se cierra para seguir
   { await pg.waitForFunction(() => !document.querySelector('#tutorial').classList.contains('hidden'), null, { timeout: 15000 }).catch(() => {});
     const r = await pg.evaluate(BOX, '#tutorial'); console.log(vn, 'tutorial', r.o.length ? '\n  ' + r.o.join('\n  ') : 'ok', r.sc ? '(se desplaza por dentro)' : ''); bad += r.o.length;
-    await pg.screenshot({ timeout: 120000, path: `${OUT}/${vn}-tutorial.jpg`, type: 'jpeg', quality: 70 }); await pg.evaluate(() => { const t = document.querySelector('#tutok'); if (t) t.click(); document.querySelector('#tutorial').classList.add('hidden'); }); }
+    await snap(pg, { path: `${OUT}/${vn}-tutorial.jpg`, type: 'jpeg', quality: 70 }); await pg.evaluate(() => { const t = document.querySelector('#tutok'); if (t) t.click(); document.querySelector('#tutorial').classList.add('hidden'); }); }
   // 1) tarjetas con datos reales: dos mejoras normales y una especial (la descripción más larga)
   await pg.evaluate(() => { const g = window.__api.session.game, p = g.players[0]; g.wave = 2; g.phase = 'intermission'; g.phaseT = 1e9; p.cards = [{ w: p.slots[0], k: 'dmg' }, { w: p.slots[1], k: 'rate' }, { w: p.slots[2], k: 'mod', mod: 'cadena' }]; });
   await pg.waitForTimeout(900);
   let res = await pg.evaluate(CHECK, ['#cards', true]); // (la función se pasa tal cual)
   console.log(vn, 'tarjetas', res.length ? '\n  ' + res.join('\n  ') : 'ok'); bad += res.length;
-  await pg.screenshot({ timeout: 120000, path: `${OUT}/${vn}-tarjetas.jpg`, type: 'jpeg', quality: 78 });
+  await snap(pg, { path: `${OUT}/${vn}-tarjetas.jpg`, type: 'jpeg', quality: 78 });
   // tarjetas con la mejor «peor caso»: textos largos
   await pg.evaluate(() => { document.querySelectorAll('.ucard .ud').forEach((d) => { d.textContent += ' Texto de prueba más largo para comprobar que la tarjeta crece sin salirse de la pantalla en ningún tamaño.'; }); });
   res = await pg.evaluate(CHECK, ['#cards', false]); // aquí se permite desplazarse, pero nunca desbordar a los lados
   const lateral = res.filter((x) => /desborde horizontal|texto cortado/.test(x)); console.log(vn, 'tarjetas (texto largo)', lateral.length ? '\n  ' + lateral.join('\n  ') : 'ok', '| desplazable:', await pg.evaluate(() => { const c = document.querySelector('#cards'); return c.scrollHeight > c.clientHeight + 1 ? 'sí' : 'no'; })); bad += lateral.length;
-  await pg.screenshot({ timeout: 120000, path: `${OUT}/${vn}-tarjetas-largas.jpg`, type: 'jpeg', quality: 70 });
+  await snap(pg, { path: `${OUT}/${vn}-tarjetas-largas.jpg`, type: 'jpeg', quality: 70 });
   // tocar/clicar la 3.ª tarjeta debe elegirla (antes los botones táctiles la tapaban)
   { const bx = await pg.locator('.ucard').nth(2).boundingBox(); const px = bx.x + bx.width / 2, py = bx.y + bx.height / 2;
     const top = await pg.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return !!(e && e.closest && e.closest('.ucard')); }, [px, py]);
@@ -64,7 +66,7 @@ for (const [vn, w, h, touch] of SIZES) {
     // los carteles de pausa/final pueden desplazarse por dentro, pero la caja debe estar entera en la pantalla
     const r = await pg.evaluate(BOX, sel);
     console.log(vn, label, r.o.length ? '\n  ' + r.o.join('\n  ') : 'ok', r.sc ? '(se desplaza por dentro)' : ''); bad += r.o.length;
-    await pg.screenshot({ timeout: 120000, path: `${OUT}/${vn}-${id}.jpg`, type: 'jpeg', quality: 70 });
+    await snap(pg, { path: `${OUT}/${vn}-${id}.jpg`, type: 'jpeg', quality: 70 });
   }
   await ctx.close();
 }

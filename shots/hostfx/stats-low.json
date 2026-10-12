@@ -1,12 +1,12 @@
 [
  {
-  "name": "axioma-sobrecarga",
-  "base": 64,
-  "pico": 67,
-  "extra": 3,
-  "particulas": 10,
-  "segs": 29,
-  "mallas": 3,
-  "tris": 37012
+  "name": "melee-axioma-combo",
+  "base": 83,
+  "pico": 92,
+  "extra": 9,
+  "particulas": 2,
+  "segs": 3,
+  "mallas": 7,
+  "tris": 51762
  }
 ]

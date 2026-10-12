@@ -18,7 +18,7 @@ const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const ADD = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide };
 
 /* ───────────────────────── geometría de brazos (bakeada con color por vértice) ───────────────────────── */
-const col = (g, hex) => { const c = new THREE.Color(hex), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; };
+const col = (g, hex) => { const c = new THREE.Color(hex).multiplyScalar(g.userData.k || 1), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; };
 const fin = (g, hex, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); if (sx !== 1 || sy !== 1 || sz !== 1) g.scale(sx, sy, sz); if (rx) g.rotateX(rx); if (ry) g.rotateY(ry); if (rz) g.rotateZ(rz); g.translate(x, y, z); return col(g, hex); };
 /** Cilindro a lo largo de -Z (de z0 a z1). */
 const cyl = (r0, r1, z0, z1, hex, x = 0, y = 0, sx = 1, sy = 1) => { const g = new THREE.CylinderGeometry(r1, r0, Math.abs(z1 - z0), 10, 1); g.rotateX(Math.PI / 2); return fin(g, hex, x, y, (z0 + z1) / 2, sx, sy, 1); };
@@ -31,9 +31,9 @@ const merge = (parts) => mergeGeometries(parts, false);
 /** Por Huésped: { body, weapon, tipZ (fin del arma con ext=1), baseZ, dur (ligero), restExt, ... } */
 const STYLE = {
   axioma: {
-    dur: { light: 0.4, heavy: 0.75, air: 0.7 }, restExt: 0, wz: -0.14, len: 0.64, wpn: 'bone',
+    dur: { light: 0.4, heavy: 0.75, air: 0.7 }, restExt: 0, wz: -0.14, len: 0.78, wpn: 'bone',
     body: () => merge([cyl(0.04, 0.03, 0.0, -0.34, 0x2a3340), cyl(0.045, 0.045, -0.1, -0.2, 0x4a5a70), box(0.085, 0.045, 0.1, 0, 0, -0.4, 0x3a4658), box(0.07, 0.012, 0.09, 0, 0.026, -0.4, 0x3aa8ff), box(0.012, 0.012, 0.25, 0.03, 0.036, -0.17, 0x3aa8ff), sph(0.026, 0, 0.01, -0.47, 0x3a4658, 1.5, 0.8, 0.9)]),
-    weapon: () => merge([cone(0.02, 1, 0xdfe8f0, 0.032, 0.04, 0, 1.0, 0.35), cone(0.02, 1, 0xdfe8f0, -0.032, 0.04, 0, 1.0, 0.35)]), // 2 cuchillas planas
+    weapon: () => merge([cone(0.05, 1, 0xdfe8f0, 0.04, 0.045, 0, 1.0, 0.3), cone(0.05, 1, 0xdfe8f0, -0.04, 0.045, 0, 1.0, 0.3)]), // 2 cuchillas planas
   },
   vesper: {
     dur: { light: 0.3, heavy: 0.6, air: 0.6 }, restExt: 0.45, wz: -0.5, len: 0.28, wpn: 'bone',
@@ -143,7 +143,7 @@ export function createHostMelee(renderer, D) {
   function dispose1() { if (!built) return; for (const k of ['R', 'L']) { const l = limbs[k]; if (!l) continue; rig.remove(l.g); l.body.geometry.dispose(); l.body.material.dispose(); if (l.wpn) { l.wpn.geometry.dispose(); l.wpn.material.dispose(); } if (l.glow) { l.glow.geometry.dispose(); l.glow.material.dispose(); } } if (whip) { rig.remove(whip.mesh); whip.g.dispose(); whip.m.dispose(); whip = null; } built = null; limbs.R = limbs.L = null; }
   function build(char) {
     dispose1(); const S = styleOf(char), pal = D.hostPal(char); host = char; built = S;
-    const skinMat = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.15, emissive: pal.c, emissiveIntensity: 0.05 });
+    const skinMat = () => new THREE.MeshStandardMaterial({ vertexColors: true, color: 0x8c8c8c, roughness: 0.5, metalness: 0.2, emissive: pal.c, emissiveIntensity: 0.07 });
     const wpnMat = () => S.wpn === 'glow' ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.2, metalness: 0.3, emissive: pal.c, emissiveIntensity: 0.9 }) : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.25, metalness: 0.75, emissive: pal.c, emissiveIntensity: 0.55 });
     const glowMat = () => new THREE.ShaderMaterial({ ...ADD, uniforms: { uC: { value: new THREE.Color(pal.a) }, uO: { value: 0.7 }, uGam: GAM, uInt: INT }, vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }', fragmentShader: 'uniform vec3 uC; uniform float uO; uniform float uGam; uniform float uInt; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.4); gl_FragColor = vec4(pow(uC, vec3(uGam)), f * uO * uInt); }' });
     const bodyGeo = S.body(), wpnGeo = S.weapon();
@@ -223,14 +223,14 @@ export function createHostMelee(renderer, D) {
     const P = impactPoint(sw, me), dir = sw.d ? V(sw.d).normalize() : me.aim, n = dir.clone().negate();
     worldImpact(host, P, n, pal, heavy, sw.exec, me.up);
     freeze = rm ? 0.03 : sw.exec ? 0.11 : heavy ? 0.075 : 0.045;
-    fl.t = fl.max = sw.exec ? 0.32 : 0.16; fl.size = (sw.exec ? 1.4 : heavy ? 0.9 : 0.6); flashSpr.material.color.set(sw.exec ? 0xffd2a0 : pal.a).lerp(WHITE, 0.35); flashSpr.position.set(srnd(0.08), -0.04 + srnd(0.04), -1.2); flashSpr.visible = true; flashSpr.material.rotation = rnd(6);
+    fl.t = fl.max = sw.exec ? 0.32 : 0.16; fl.size = (sw.exec ? 0.9 : heavy ? 0.6 : 0.4); flashSpr.material.color.set(sw.exec ? 0xffd2a0 : pal.a).lerp(WHITE, 0.35); flashSpr.position.set(srnd(0.08), -0.04 + srnd(0.04), -1.2); flashSpr.visible = true; flashSpr.material.rotation = rnd(6);
     mk.t = mk.max = sw.exec ? 0.55 : 0.28; mk.size = sw.exec ? 0.26 : 0.12; mk.tex = sw.exec ? execTex : hitTex; markSpr.material.map = mk.tex; markSpr.material.color.set(sw.exec ? 0xff5a3a : 0xffffff); markSpr.position.set(0, 0, -1.0); markSpr.visible = true; markSpr.material.opacity = 1;
     D.shake(me, (sw.exec ? 0.7 : heavy ? 0.45 : 0.22) * (host === 'micelio' ? 1.3 : 1)); if (fx.combat && !rm) fx.combat.K.fov = Math.min(fx.combat.K.fov + (heavy ? 1.6 : 0.6), 3.2);
     const snd = D.getSound(); if (snd) snd.melee(host, sw.exec ? 'exec' : 'hit', null, sw.hit || 1, heavy);
   }
   function worldImpact(h, P, n, pal, heavy, exec, up) { // chispas, destello y marca en el mundo (también lo ven los demás)
     const k = exec ? 1.7 : heavy ? 1.25 : 1, c = pal.c, a = pal.a;
-    fx.flash(P, 0xffffff, 3 * k, 0.14, { burst: true }); fx.flash(P, exec ? 0xff7a3a : c, 4.5 * k, 0.22);
+    fx.flash(P, 0xffffff, 1.5 * k, 0.12, { burst: true }); fx.flash(P, exec ? 0xff7a3a : c, 2.4 * k, 0.2); // flashes contenidos: el impacto no debe tapar a la criatura
     switch (h) {
       case 'vesper': D.sparks(P, 0xffffff, 8 * k, 16, 0.4, { dir: n, cone: 1.6, c2: a }); for (let i = 0; i < (heavy ? 4 : 3); i++) { _a.copy(P).addScaledVector(up, 0.5 - i * 0.28).addScaledVector(_c.copy(n).cross(up).normalize(), -0.5); _b.copy(_a).addScaledVector(_c, 1.0).addScaledVector(up, -0.5); fx.line(_a, _b, i === 1 ? 0xffffff : a, 0.09, 0.22, { a0: 1, a1: 0, shrink: 0.6 }); } break;
       case 'micelio': D.ring(P.clone().addScaledVector(up, -0.4), up, 0.4, 3.2 * k, 0.4, c, { th: 0.14 }); D.spray(P, 0x6a5a2a, 6 * k, 5, 0.9, 1.2, { smoke: true, shape: SHAPE.smoke, grow: 1.4, c2: 0x241c0c }); D.spray(P, a, 8 * k, 8, 0.8, 0.6, { shape: SHAPE.bubble, up: 2, c2: c }); D.sparks(P, a, 5 * k, 9, 0.4, { dir: n, cone: 1.4 }); break;
@@ -239,7 +239,7 @@ export function createHostMelee(renderer, D) {
       default: D.sparks(P, 0xffffff, 10 * k, 18, 0.4, { dir: n, cone: 1.5, c2: c }); D.spray(P, 0xe9eef2, 4 * k, 8, 0.6, 0.7, { shape: SHAPE.shard, grav: 9, spin: 8, c2: c, grow: -0.4 });
     }
     if (exec) { fx.shatter(P, a, { size: 0.45, n: 5, speed: 9, dir: n }); D.ring(P, null, 0.4, 5, 0.5, 0xff7a3a, { th: 0.09 }); }
-    if (heavy && h !== 'micelio') D.ring(P, n, 0.3, 3.4 * k, 0.4, c, { th: 0.12 });
+    if (heavy && h !== 'micelio') D.ring(P, n, 0.3, 2.6 * k, 0.4, c, { th: 0.12 });
   }
   /** Tajo en el mundo (otros jugadores y 3.ª persona): estelas cortas con la forma del arma de cada Huésped. */
   function worldSwing(I, ev, pal) {
@@ -287,7 +287,7 @@ export function createHostMelee(renderer, D) {
     if (!built) return; void mineChar;
     const active = !!(swing || charge); idleT = active ? 0 : idleT + dt; const want = fp && me && !me.dead && (active || idleT < 0.35) ? 1 : 0; engage += (want - engage) * Math.min(1, dt * (want ? 18 : 8)); if (Math.abs(engage - want) < 0.01) engage = want;
     // el arma del viewmodel baja mientras dura el melee
-    const vm = renderer.vm; if (vm && vm.root) { const off = -0.62 * sm(engage); vm.root.position.y += off - vmOff; vmOff = off; }
+    const vm = renderer.vm; if (vm && vm.root) { const off = -0.95 * sm(engage); vm.root.position.y += off - vmOff; vmOff = off; }
     rig.visible = engage > 0.02; if (!rig.visible) { trailMesh.visible = false; if (whip) whip.mesh.visible = false; limbs.R && (limbs.R.g.visible = limbs.L.g.visible = false); return; } limbs.R.g.visible = limbs.L.g.visible = true;
     rig.scale.copy(vm && vm.root ? vm.root.scale : _a.set(1, 1, 1)); rig.scale.z = 1;
     // hit-stop visual: sólo congela la animación
@@ -298,7 +298,7 @@ export function createHostMelee(renderer, D) {
     updateTrail(dt);
     if (whip) { const l = limbs.R, wsw = swing && swing.kfs.R && swing.u > 0.25 && swing.u < 0.62; WB.set(0, 0.0, -0.47).applyMatrix4(l.g.matrix); whip.mesh.visible = true; whipStep(whip, WB, l.ext, dt, wsw ? 1.2 : 0); }
     // destello y marcador
-    if (fl.t > 0) { fl.t -= dt; const u = 1 - Math.max(0, fl.t) / fl.max; flashSpr.visible = fl.t > 0; flashSpr.material.opacity = (1 - u) * (1 - u) * 0.95; flashSpr.scale.setScalar(fl.size * (0.6 + 0.8 * u)); } else flashSpr.visible = false;
+    if (fl.t > 0) { fl.t -= dt; const u = 1 - Math.max(0, fl.t) / fl.max; flashSpr.visible = fl.t > 0; flashSpr.material.opacity = (1 - u) * (1 - u) * 0.7; flashSpr.scale.setScalar(fl.size * (0.6 + 0.8 * u)); } else flashSpr.visible = false;
     if (mk.t > 0) { mk.t -= dt; const u = 1 - Math.max(0, mk.t) / mk.max; markSpr.visible = mk.t > 0; markSpr.material.opacity = 1 - u * u; markSpr.scale.setScalar(mk.size * (u < 0.2 ? 0.6 + 2 * u : 1 + 0.3 * (u - 0.2))); } else markSpr.visible = false;
     if (impactKick > 0) impactKick = 0;
   }

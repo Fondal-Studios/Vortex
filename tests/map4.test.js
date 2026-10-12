@@ -13,6 +13,8 @@ import { v3, makeRng } from '../src/sim/math.js';
 const DT = 1 / 60;
 const P = Object.fromEntries(PLATS.map((p) => [p.id, p]));
 const top = (id, dy = 0.9) => v3(P[id].x, P[id].top + dy, P[id].z);
+/** Punto transitable de cada plataforma (el centro del Corazón es la grada y el de la Cámara es el foso). */
+const spot = (id) => (id === 'hub' ? v3(0, P.hub.top + 0.9, 17) : id === 'cam' ? v3(P.cam.x + 10.5, P.cam.top + 0.9, P.cam.z) : top(id));
 const IDLE = { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, pick: -1 };
 
 /** Partida de 1 jugador casi invulnerable, sin oleadas automáticas. */
@@ -82,17 +84,17 @@ test('mapa 4: es transitable de verdad (física real) desde la aparición a cada
   g.map.growTo(1e9); // con el puente completo todo es alcanzable
   settle(g, p, 0.5);
   const order = ['hub', 'sie', 'gar', 'hub', 'tra', 'mir', 'tra', 'hub', 'viv', 'cam', 'umb', 'cam', 'hub'];
-  for (const id of order) { const r = walk(g, p, top(id)); assert.ok(r.ok && !r.fell, `ruta hacia ${id}: ${JSON.stringify(r)}`); }
+  for (const id of order) { const r = walk(g, p, spot(id)); assert.ok(r.ok && !r.fell, `ruta hacia ${id}: ${JSON.stringify(r)}`); }
   assert.ok(g.map.supported(p.pos.x, p.pos.z, p.pos.y - 0.9));
 });
 
 test('mapa 4: el Umbral está BLOQUEADO hasta que crece el puente (y se desbloquea al crecer)', () => {
   const { g, p } = arena();
   assert.equal(g.map.bridgeOpen(), false);
-  assert.equal(g.map.navStep(top('hub'), top('umb')), 'none', 'sin puente no hay ruta al Umbral');
+  assert.equal(g.map.navStep(spot('hub'), top('umb')), 'none', 'sin puente no hay ruta al Umbral');
   assert.ok(!g.map.spawnGround(makeRng(3), top('hub')).x || true);
   // caminar derecho por donde irá el puente: se cae al vacío
-  assert.ok(walk(g, p, top('cam', 0.9)).ok); // llegar a la Cámara sí
+  assert.ok(walk(g, p, spot('cam')).ok); // llegar a la Cámara sí
   const a = top('cam'), b = top('umb');
   let fell = false;
   for (let i = 0; i < 60 * 25 && !fell; i++) { p.heading = v3(b.x - p.pos.x, 0, b.z - p.pos.z); g.setInput(p.id, { ...IDLE, mz: 1 }); g.step(DT); if (g.events.some((e) => e.t === 'portal')) fell = true; g.events.length = 0; }
@@ -101,7 +103,7 @@ test('mapa 4: el Umbral está BLOQUEADO hasta que crece el puente (y se desbloqu
   const g2 = new Game({ mapId: 'm4', seed: 9 }); assert.equal(g2.map.grown, 0); g.map.growTo(5); assert.equal(g2.map.grown, 0); assert.equal(MAPS.m4.grown, 0);
   assert.equal(MAPS.m4.solids.length + 5, g.map.solids.length);
   // al crecer entero, el Umbral es alcanzable
-  g.map.growTo(1e9); assert.ok(g.map.bridgeOpen()); assert.notEqual(g.map.navStep(top('hub'), top('umb')), 'none');
+  g.map.growTo(1e9); assert.ok(g.map.bridgeOpen()); assert.notEqual(g.map.navStep(spot('hub'), top('umb')), 'none');
 });
 
 test('mapa 4: aparición de criaturas en suelo firme, lejos del jugador y nunca en el Umbral cerrado', () => {
@@ -153,22 +155,23 @@ test('acertijo Cultivo: reglas — alimentar a tiros, marchitarse, ser roído, f
   g.damageObject(c2, 9999, p, c2.pos); assert.ok(Math.abs(c2.nut - CULT.maxHit / CULT.gainDiv) < 1e-9);
   // 3) disparar de verdad (hitscan del jugador) también alimenta
   const aimAt = (t) => { const e = g.eyePos(p), d = { x: t.x - e.x, y: t.y - e.y, z: t.z - e.z }, hl = Math.hypot(d.x, d.z); p.heading = v3(d.x / hl, 0, d.z / hl); p.pitch = Math.atan2(d.y, hl); };
-  p.pos = { x: P.gar.x + 14, y: P.gar.top + 0.9, z: P.gar.z - 6 }; settle(g, p, 0.3);
   const spotG = caps(g).find((c) => Math.hypot(c.pos.x - P.gar.x, c.pos.z - P.gar.z) < 12), n0 = spotG.nut;
-  aimAt(spotG.pos); for (let i = 0; i < 40; i++) { g.setInput(p.id, { ...IDLE, fire: true }); g.step(DT); }
+  { const dx = P.gar.x - spotG.pos.x, dz = P.gar.z - spotG.pos.z, l = Math.hypot(dx, dz); p.pos = { x: spotG.pos.x + (dx / l) * 9, y: P.gar.top + 0.9, z: spotG.pos.z + (dz / l) * 9 }; settle(g, p, 0.3); }
+  p.weapon = 0; aimAt(spotG.pos); for (let i = 0; i < 12; i++) { g.setInput(p.id, { ...IDLE, fire: true }); g.step(DT); }
+  g.setInput(p.id, IDLE); // soltar el gatillo (si no, sigue disparando mientras el resto del test avanza)
   assert.ok(spotG.nut > n0, 'disparar alimenta (nut ' + n0 + ' → ' + spotG.nut + ')');
   // 4) sin comer se marchita (tras 4 s) pero no por debajo de 0
   const before = c3.nut; g.damageObject(c3, 50, p, c3.pos); const fed = c3.nut; for (let i = 0; i < 60 * 12; i++) g.step(DT);
   assert.ok(c3.nut < fed && c3.nut >= 0 && fed > before, 'se marchita');
   // 5) las criaturas la roen (más rápido)
-  g.damageObject(c1, 50, p, c1.pos); for (let i = 0; i < 20; i++) g.damageObject(c1, 50, p, c1.pos);
+  for (let i = 0; i < 12; i++) g.damageObject(c1, 50, p, c1.pos);
   const full = c1.nut; assert.ok(full < 1 && full > 0.5);
   const bite = g.spawnMonster('astilla', v3(c1.pos.x + 2, c1.pos.y, c1.pos.z), { noElite: true }); bite.hp = bite.maxhp = 1e9; bite.passive = true;
   g.events.length = 0; for (let i = 0; i < 90; i++) g.step(DT);
   assert.ok(c1.nut < full - 0.05, 'la criatura cercana la roe'); assert.ok(g.events.some((e) => e.t === 'gnaw' && e.id === c1.id), 'evento gnaw');
   bite.dead = true; g.monsters = [];
   // 6) florecer: 3 capullos → 3 tramos en orden; el puente sólo existe al terminar
-  assert.equal(g.cult.blooms, 0); assert.equal(g.map.grown, 0);
+  assert.equal(g.cult.blooms, 0, JSON.stringify(caps(g).map((c) => [c.id, c.nut, c.on]))); assert.equal(g.map.grown, 0);
   const solids0 = g.map.solids.length;
   for (let k = 0; k < 3; k++) {
     const c = caps(g).find((x) => !x.on); g.events.length = 0;
@@ -185,7 +188,7 @@ test('acertijo Cultivo: reglas — alimentar a tiros, marchitarse, ser roído, f
   for (let i = 0; i < 60 * 7; i++) { g.step(DT); evs.push(...g.events.map((e) => e.t + ':' + (e.ph || ''))); g.events.length = 0; }
   assert.ok(evs.includes('bridge:start') || g.cult.secG[2] === 1); assert.ok(evs.includes('bridge:sec') && evs.includes('bridge:open'));
   assert.ok(g.cult.open && g.map.bridgeOpen());
-  assert.equal(g.objective.state, 'done', 'el objetivo termina cuando el puente está completo');
+  assert.equal(o.state, 'done', 'el objetivo termina cuando el puente está completo');
   assert.ok(g.fragments >= 1);
   assert.ok(g.pickups.length >= 3, 'cofre del Umbral (vida y munición)');
   // los capullos florecidos quedan como flores y los tramos como puente

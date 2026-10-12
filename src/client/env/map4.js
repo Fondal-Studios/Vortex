@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { cfg } from '../quality.js';
 import { uTime, finish } from '../shaders.js';
-import { NOISE } from './glsl.js';
+import { NOISE, BUMP } from './glsl.js';
 import { rng } from './noise.js';
 import { trackPx, particleGeo, particleMat, crystalGeo } from './props.js';
 import { addCosmicEyes } from './eyes.js';
@@ -70,35 +70,51 @@ function tissueMaterial(U, full) {
         gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: `uniform float uTime, uBeat; uniform vec3 uPlayer, uSunL; ${FOG}
       varying vec3 vWP; varying vec3 vN; varying vec3 vLP; varying vec4 vInfo; varying float vGrow; ${NOISE}
+      ${BUMP}
       float vein(vec3 q, float w){ float n = fbm(q); return 1.0 - smoothstep(0.0, w, abs(n - 0.5)); }
+      vec2 h22(vec2 p){ return hash33(vec3(p, 1.7)).xy; }
+      /* celdas de Voronoi: x = distancia al centro de la celda, y = distancia al borde (F2-F1), z = identidad de la celda */
+      vec3 voro(vec2 x){ vec2 n = floor(x), f = fract(x); float d1 = 8.0, d2 = 8.0, id = 0.0;
+        for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) { vec2 g = vec2(float(i), float(j)), r = g + h22(n + g) - f; float d = dot(r, r);
+          if (d < d1) { d2 = d1; d1 = d; id = hash13(vec3(n + g, 3.1)); } else if (d < d2) d2 = d; }
+        return vec3(sqrt(d1), sqrt(d2) - sqrt(d1), id); }
       void main(){
         vec3 V = cameraPosition - vWP; float dist = length(V); V /= dist; vec3 n = normalize(vN);
         float kind = vInfo.x, seed = vInfo.y; vec3 p = vWP;
         float hd = length(p.xz), dp = length(p.xz - uPlayer.xz);
         float near = smoothstep(24.0, 2.0, dp) * (1.0 - smoothstep(6.0, 12.0, abs(p.y - uPlayer.y)));
-        float lam = 0.52 + 0.48 * max(dot(n, uSunL), 0.0);
+        float lam = 0.58 + 0.42 * max(dot(n, uSunL), 0.0);
         vec3 lime = vec3(0.60, 1.0, 0.12), mag = vec3(1.0, 0.16, 0.52), rose = vec3(1.0, 0.45, 0.6);
         float nA = fbm(p * 0.06), nB = vnoise(p * 0.5);
         float wave = pow(0.5 + 0.5 * sin(hd * 0.2 - uTime * 2.4 + nA * 6.0), 4.0);
-        float act = 0.25 + 1.1 * wave + 1.5 * uBeat * exp(-hd * 0.012) + 1.8 * near;
+        float act = 0.3 + 1.0 * wave + 1.3 * uBeat * exp(-hd * 0.012) + 0.9 * near;
         vec3 col, emi = vec3(0.0);
         float fr = pow(1.0 - clamp(dot(n, V), 0.0, 1.0), 3.0);
         if (kind < 2.5) {                                   // suelo: plataformas (0), caminos (1), puente vivo (2)
           float top = smoothstep(0.45, 0.8, n.y);
-          vec3 skin = mix(vec3(0.34, 0.045, 0.11), vec3(0.66, 0.14, 0.26), smoothstep(0.25, 0.8, nA)) * (0.8 + 0.4 * nB);
-          if (kind > 0.5) skin = mix(skin, vec3(0.92, 0.56, 0.48) * (0.82 + 0.3 * nB), 0.66);     // los caminos son tejido claro
-          if (kind > 1.5) skin = mix(skin, vec3(0.74, 0.92, 0.40), 0.34);                         // el puente vivo, verdoso
-          vec3 q = p * 0.1; float v = vein(q, 0.04) + 0.7 * vein(q * 2.3 + 4.0, 0.06);
+          vec2 uv = top > 0.5 ? p.xz : vec2(p.x + p.z * 0.37, p.y * 1.7);
+          vec3 big = voro(uv * 0.17), sm = voro(uv * 0.52 + 7.0);
+          float wv = 1.0 + dist * 0.02;                                  // las líneas se ensanchan con la distancia (si no, se estiran y titilan)
+          float e1 = 1.0 - smoothstep(0.0, 0.085 * wv, big.y), e2 = (1.0 - smoothstep(0.0, 0.1 * wv, sm.y)) / sqrt(wv);
+          float nod = smoothstep(0.22, 0.0, sm.x) * step(0.45, sm.z);
+          float hgt = smoothstep(0.7, 0.0, big.x) * 0.7 + smoothstep(0.0, 0.2, big.y) * 0.5 + nod * 0.3 - e1 * 0.4;
+          n = bumpN(n, p, hgt * smoothstep(60.0, 8.0, dist), 0.55);
+          float pillow = 0.62 + 0.5 * smoothstep(0.8, 0.0, big.x);          // cada celda es un cojín: brilla al centro y se oscurece en los surcos
+          vec3 skin = mix(vec3(0.46, 0.075, 0.17), vec3(0.80, 0.21, 0.31), smoothstep(0.2, 0.85, nA)) * (0.72 + 0.5 * big.z) * (0.88 + 0.24 * nB) * pillow;
+          if (kind > 0.5) skin = mix(skin, vec3(0.96, 0.66, 0.52) * (0.84 + 0.22 * big.z + 0.12 * nB), 0.7);     // los caminos son tejido claro
+          if (kind > 1.5) skin = mix(skin, vec3(0.78, 0.94, 0.46), 0.38);                                       // el puente vivo, verdoso
+          skin *= 1.0 - 0.38 * e1 - 0.22 * e2 + 0.18 * nod;                                                      // surcos entre celdas, nódulos en relieve
           vec3 vc = mix(mag, lime, kind > 0.5 ? 0.85 : smoothstep(0.35, 0.7, vnoise(p * 0.04 + 3.0)));
-          emi += vc * v * act * (0.3 + 0.7 * top);
-          float sp = smoothstep(0.8, 0.92, vnoise(p * 1.6 + seed * 10.0)) * top;
-          emi += lime * sp * (0.5 + 0.5 * sin(uTime * 2.0 + seed * 40.0 + nB * 9.0)) * (0.6 + near * 1.5);
+          float flow = 0.4 + 0.6 * pow(0.5 + 0.5 * sin(hd * 0.24 - uTime * 2.6 + big.z * 5.0), 3.0);
+          lam = 0.5 + 0.5 * max(dot(n, uSunL), 0.0);
+          emi += vc * (e1 * 0.8 + e2 * 0.45) * act * flow * (0.35 + 0.65 * top);
+          emi += lime * nod * (0.45 + 0.45 * sin(uTime * 2.0 + sm.z * 40.0)) * (0.7 + near) * top;
           float drip = smoothstep(0.68, 0.95, vnoise(vec3(p.x * 0.9, p.y * 0.08, p.z * 0.9)));
-          vec3 side = mix(vec3(0.12, 0.02, 0.09), vec3(0.34, 0.06, 0.20), nA);
+          vec3 side = mix(vec3(0.24, 0.04, 0.15), vec3(0.56, 0.11, 0.30), nA) * (0.85 + 0.3 * vnoise(vec3(p.x * 0.7, p.y * 0.35, p.z * 0.7)));
           col = mix(side, skin, top) * lam;
           emi += mix(mag * 0.55, lime, 0.4) * drip * (1.0 - top) * (0.4 + wave);
-          emi += rose * fr * 0.28 * (1.0 - top * 0.6);
-          if (kind > 1.5) emi += lime * (1.0 - vGrow) * 1.8 + lime * 0.1;
+          emi += rose * fr * 0.3 * (1.0 - top * 0.6);
+          if (kind > 1.5) emi += lime * (1.0 - vGrow) * 1.8 + lime * 0.08;
         } else if (kind < 5.5) {                             // columnas-nervio (3), quistes (4), grada (5)
           float h = clamp(vLP.y, 0.0, 1.0);
           vec3 base = mix(vec3(0.24, 0.035, 0.10), vec3(0.58, 0.11, 0.22), nA);
@@ -118,7 +134,7 @@ function tissueMaterial(U, full) {
           col = mix(vec3(0.22, 0.03, 0.10), vec3(0.5, 0.1, 0.2), nA) * (0.45 + 0.55 * max(dot(n, uSunL), 0.0));
           emi += mix(mag, lime, 0.5 + 0.5 * sin(seed * 20.0)) * v * (0.5 + 0.8 * uBeat) + lime * fr * 0.5;
         }
-        col += emi; ${fogMix}
+        col += emi; float fogK = kind > 6.5 ? 0.1 : 1.0; float f = (1.0 - exp(-dist * dist * uFogD)) * fogK; col = mix(col, uFog, f);
         gl_FragColor = vec4(col, 1.0);
       }`,
   }));
@@ -193,6 +209,7 @@ function membraneMaterial(kind) {
           float fr = pow(1.0 - clamp(abs(dot(n, V)), 0.0, 1.0), 2.4);
           col = mix(mag, lime, step(0.5, vPh)) * (fr * 0.85 + 0.05) * (0.7 + 0.5 * uBeat) * 0.7;
         #endif
+        col *= smoothstep(4.0, 22.0, dist);                                  // si la cámara queda dentro/pegada a una membrana, se desvanece (no vela la pantalla)
         ${fogMix}
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -330,7 +347,7 @@ export function buildMap4(r, map, { eyes = true } = {}) {
     ps.set(0, 1.7 + 2.5, 0); sc.set(2.5, 2.5, 2.5); m.setMatrixAt(0, m4.compose(ps, qt.identity(), sc)); info.set([6, 0.3, 0, 0], 0); g.setAttribute('aInfo', info); }
 
   // — vegetación: tallos nerviosos (arriba), raíces (colgando), hongos y cristales
-  const PAL = [0x9dff3a, 0xff2a8a, 0x3affd8, 0xff7a2a, 0xe040ff], col = new THREE.Color();
+  const PAL = [0x9dff3a, 0xff2a8a, 0x3affd8, 0xff5a9a, 0xe040ff], col = new THREE.Color();
   const attach = {}; // ángulos de los enganches de cada plataforma (para no taparlos con vegetación)
   for (const c of L.conns) { for (const [id, pt] of [[c.a, c.pa], [c.b, c.pb]]) { const p = map.plats.find((x) => x.id === id); (attach[id] || (attach[id] = [])).push(Math.atan2(pt.z - p.z, pt.x - p.x)); } }
   const free = (p, a) => !(attach[p.id] || []).some((b) => { let d = Math.abs(a - b) % 6.283; d = Math.min(d, 6.283 - d); return d < 0.3 + 4.5 / p.r; });
@@ -372,10 +389,15 @@ export function buildMap4(r, map, { eyes = true } = {}) {
     crys.forEach((c, i) => { ps.set(c.x, c.y, c.z); qt.setFromEuler(eu.set((rd() - 0.5) * 0.5, rd() * 6.283, (rd() - 0.5) * 0.5)); sc.set(c.w, c.h, c.w); m.setMatrixAt(i, m4.compose(ps, qt, sc)); col.setHex(c.c); m.setColorAt(i, col); }); }
 
   // — membranas: cortinas colgantes y vesículas flotantes (translúcidas)
+  const clear = (x, y, z, rr) => !L.discs.some((d) => Math.hypot(d.x - x, d.z - z) < d.r + rr && Math.abs(d.top - y) < rr + 14);   // fuera de todo lo jugable
   { const n = full ? 10 : 7, g = new THREE.PlaneGeometry(1, 1, 8, 6), m = mk(g, membraneMaterial(0), n);
-    for (let i = 0; i < n; i++) { const a = (i / n) * 6.283 + rd() * 0.5, d = 85 + rd() * 70, w = 30 + rd() * 22, h = 26 + rd() * 22; ps.set(Math.cos(a) * d, -6 + rd() * 26, Math.sin(a) * d); qt.setFromEuler(eu.set(0, -a + 1.5708 + (rd() - 0.5) * 0.9, 0)); sc.set(w, h, 1); m.setMatrixAt(i, m4.compose(ps, qt, sc)); } }
+    let placed = 0;
+    for (let i = 0, tries = 0; i < n && tries < 400; tries++) { const a = (i / n) * 6.283 + rd() * 0.9, d = 85 + rd() * 90, w = 30 + rd() * 22, h = 26 + rd() * 22, x = Math.cos(a) * d, y = -6 + rd() * 26, z = Math.sin(a) * d; if (!clear(x, y, z, w * 0.5 + 6)) continue; ps.set(x, y, z); qt.setFromEuler(eu.set(0, -a + 1.5708 + (rd() - 0.5) * 0.9, 0)); sc.set(w, h, 1); m.setMatrixAt(i, m4.compose(ps, qt, sc)); i++; placed = i; }
+    m.count = placed; }
   { const n = full ? 14 : 9, g = new THREE.IcosahedronGeometry(1, 1), m = mk(g, membraneMaterial(1), n);
-    for (let i = 0; i < n; i++) { const a = rd() * 6.283, d = 70 + rd() * 100, s = 5 + rd() * 9; ps.set(Math.cos(a) * d, -30 + rd() * 80, Math.sin(a) * d); sc.set(s, s * (0.8 + rd() * 0.4), s); m.setMatrixAt(i, m4.compose(ps, qt.identity(), sc)); } }
+    let placed = 0;
+    for (let i = 0, tries = 0; i < n && tries < 400; tries++) { const a = rd() * 6.283, d = 70 + rd() * 100, s = 5 + rd() * 9, x = Math.cos(a) * d, y = -30 + rd() * 80, z = Math.sin(a) * d; if (!clear(x, y, z, s + 8)) continue; ps.set(x, y, z); sc.set(s, s * (0.8 + rd() * 0.4), s); m.setMatrixAt(i, m4.compose(ps, qt.identity(), sc)); i++; placed = i; }
+    m.count = placed; }
 
   // — sumidero luminoso de la Cámara del Latido y faros (haces de luz) del Corazón y del Umbral
   { const cam = map.plats.find((p) => p.id === 'cam'), g = new THREE.CircleGeometry(1, 20), mat = finish(new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uTime, uBeat: M4U.uBeat },

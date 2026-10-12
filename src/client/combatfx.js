@@ -309,11 +309,11 @@ export class CombatFx {
     const shape = it && it.W && it.W.flash ? it.W.flash.shape : 'star', cf = this.camFlash; if (!cf) return;
     const col = _color.setHex(S.tint || x.c), k = this.nextCF = ((this.nextCF || 0) + 1) % cf.length, F = cf[k];
     const rate = WEAPONS[x.w] ? WEAPONS[x.w].rate : 0.3, calm = rate < 0.12 ? 0.5 : 1; // armas de ráfaga: destello más suave (no estroboscópico)
-    F.life = F.max = (S.fd || 0.1) * 1.3; F.size = Math.min(S.fl, 0.95) * 0.95; F.wash = (rm ? 0.25 : this.tier === 0 ? 0.7 : 0.15) * S.wash * calm; // Baja no tiene luz de fogonazo: el lavado hace de luz
-    F.pat.material.map = flashTexture(shape); F.pat.material.color.copy(col).lerp(_white, 0.2); F.glow.material.color.copy(col); F.wash_.material.color.copy(col);
+    F.life = F.max = (S.fd || 0.1) * 1.3; F.size = Math.min(S.fl, 0.95) * 0.7; F.wash = (rm ? 0.25 : this.tier === 0 ? 0.7 : 0.15) * S.wash * calm; // Baja no tiene luz de fogonazo: el lavado hace de luz
+    F.pat.material.map = flashTexture(shape); F.pat.material.color.copy(col).lerp(_white, 0.1); F.glow.material.color.copy(col); F.wash_.material.color.copy(col);
     F.pat.material.rotation = Math.random() * 6.283; F.group.position.copy(this.mzLocal); F.group.visible = true;
     // luz de fogonazo (la PointLight de Alta; en Baja el "lavado" hace de luz)
-    if (r.muzzle) { r.muzzle.color.setHex(S.tint || x.c); r.muzzle.position.copy(this.mzLocal).add(_t.set(0, 0.05, -0.6)); r.muzzle.intensity = Math.max(r.muzzle.intensity, S.light * (rm ? 0.4 : 1)); }
+    if (r.muzzle) { r.muzzle.color.setHex(S.tint || x.c); r.muzzle.position.copy(this.mzLocal).add(_t.set(0, 0.05, -1.2)); r.muzzle.intensity = Math.max(r.muzzle.intensity, S.light * 0.45 * (rm ? 0.4 : 1)); } // ARTE: la luz sale MÁS lejos y más suave; a 0,6 m 'quemaba' el arma/manos (mancha blanca abajo a la derecha)
     // patada de cámara y golpe de FOV (respetan "reducir movimiento")
     const K = this.K, km = rm ? 0.15 : 1, kick = (S.kick || 0.3) * Math.PI / 180 * km;
     K.p = Math.min(K.p + kick, 0.045 * km + 0.002); K.y += (Math.random() - 0.5) * kick * 0.7; K.r += (Math.random() - 0.5) * kick * 0.8; K.fov = Math.min(K.fov + (rm ? 0 : S.fov || 0.2), 3.2);

@@ -255,7 +255,8 @@ export class Renderer {
         e = buildMonster(m.k); e.kind = m.k; e.born = this.t; e.spd = 0; e.far = false; e.frame = 0;
         e.proxy = new THREE.Mesh(this.shared('lodgeo', () => new THREE.IcosahedronGeometry(1, 1)), this.shared('lodm' + m.k, () => new THREE.MeshStandardMaterial({ color: COLORS[m.k] || 0xffffff, emissive: COLORS[m.k] || 0xffffff, emissiveIntensity: 0.5, roughness: 0.5 }))); e.proxy.visible = false; e.object.add(e.proxy);
         if (cfg().shadows) e.object.traverse((q) => { if (q.isMesh) q.castShadow = true; }); e.object.userData.s = new THREE.Vector3();
-        { const bc = COLORS[m.k] || 0xffffff, sp = new THREE.Sprite(this.halo_(bc)); sp.scale.setScalar(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 3.4 : 4.2); sp.material.opacity = 0.38; sp.material.depthWrite = false; sp.name = 'beacon'; e.object.add(sp); } // aura del color de la criatura: se lee a distancia y sobre el fondo
+        { const bc = COLORS[m.k] || 0xffffff, sp = new THREE.Sprite(this.halo_(bc)); sp.scale.setScalar(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 3.4 : 4.2); sp.material.opacity = 0.38; sp.material.depthWrite = false; sp.name = 'beacon'; e.object.add(sp);
+          const dk = new THREE.Sprite(this.shared('haloDark', () => new THREE.SpriteMaterial({ map: this.halo, color: 0x04020c, depthWrite: false, transparent: true, opacity: 0.42 }))); dk.scale.setScalar(sp.scale.x * 1.25); dk.renderOrder = -1; dk.name = 'beaconDark'; e.object.add(dk); } // ARTE: halo OSCURO bajo el aura: la criatura se recorta también sobre fondos claros (muro ámbar, carne rosa) // aura del color de la criatura: se lee a distancia y sobre el fondo
         this.entRoot.add(e.object); this.ents.mon.set(m.id, e);
         e.object.position.set(...m.p);
       }

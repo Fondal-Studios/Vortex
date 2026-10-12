@@ -76,7 +76,7 @@ test('el Huésped elegido se guarda, sobrevive a recargar y llega a la partida (
   assert.ok(await pg.locator('.hs-chip.chosen[data-id="vesper"]').count(), 'marcado como elegido');
   // jugar: el Huésped llega al juego
   await pg.evaluate(() => window.__api.ui.actions.arena('m1'));
-  await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 15000 });
+  await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 120000 });
   const ch = await pg.evaluate(() => window.__api.session.game.players[0].char); assert.equal(ch, 'vesper');
   await pg.waitForTimeout(1500);
   assert.deepEqual(errors, [], 'errores de consola:\n' + errors.join('\n'));

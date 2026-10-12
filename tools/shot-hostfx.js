@@ -65,7 +65,7 @@ for (const job of JOBS) {
     d.cam({ on: true, dist: 12, yaw: 0.8, lift: 3.5, aimAt: 1.2, fwd: 0, fixed: false, anchor: null, anchorH: null, ...(job.cam || {}) }); d.bf(job.bf || 0); d.allyBf(job.allyBf || 0); if (job.mark) d.mark(job.mark);
     if (job.sy) d.sy({ x: d.g.players[0].pos.x + 3, y: d.g.players[0].pos.y, z: d.g.players[0].pos.z - 3 }); d.run(0.2, 1 / 10); d.frame(1 / 30, 2); return d.r.gl.info.render.calls; }, job);
   let peak = { calls: 0, tris: 0, part: 0, segs: 0, meshes: 0 }; const files = [], note = (st) => { peak.calls = Math.max(peak.calls, st.calls); peak.tris = Math.max(peak.tris, st.tris); peak.part = Math.max(peak.part, st.part); peak.segs = Math.max(peak.segs, st.segs); peak.meshes = Math.max(peak.meshes, st.meshesVisibles); };
-  const shot = async (i) => { const f = `${out}/${job.name}-${i}.jpg`; await pg.screenshot({ path: f, type: 'jpeg', quality: 82 }); files.push(f); };
+  const shot = async (i) => { const f = `${out}/${job.name}-${i}.jpg`; await pg.screenshot({ path: f, type: 'jpeg', quality: 82, timeout: 120000 }); files.push(f); };
   if (job.melee) {
     let i = 0;
     for (const [kind, idx] of job.melee) {

@@ -12,7 +12,8 @@ for (const [vn, w, h, touch] of VPS) {
   await pg.goto(`${base}/?q=low&autoq=0`); await pg.waitForTimeout(1200); await pg.evaluate(() => window.__api.ui.confirmTitle());
   await pg.evaluate(() => window.__api.ui.show('huesped')); await pg.waitForTimeout(1500);
   for (const id of IDS) {
-    await pg.evaluate((id) => window.__api.ui.hs.select(id, true), id); await pg.waitForTimeout(id === 'egida' ? 2500 : 900);
+    await pg.evaluate((id) => window.__api.ui.hs.select(id, true), id); await pg.waitForTimeout(id === 'egida' ? 6000 : 900);
+    if (id === 'egida') { const fr = pg.frames().find((f) => f.url().includes('hero-view')); if (fr) await fr.evaluate(() => window.__hero && window.__hero.tick(0.05, 3)).catch(() => {}); await pg.waitForTimeout(500); } // el visor del veterano es otra página: se le fuerza un cuadro (con la máquina cargada su animación va lenta)
     await pg.screenshot({ path: `${OUT}/${vn}-${id}.png` });
   }
   await ctx.close();

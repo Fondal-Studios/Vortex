@@ -62,6 +62,8 @@ export class Kit {
 
   box(L, [w, h, d], pos, o = {}) {
     const q = this.q, rad = Math.min(o.rad ?? 0.006, Math.min(w, h, d) * 0.45);
+    // ARTE: en Baja las cajas ya no son cubos duros ("voxel"): caja biselada de 28 tris con filo de luz (loft de 8 lados)
+    if (q.low && !o.sharp && !q.rbSeg && Math.min(w, h, d) >= 0.014) return this.cbox(L, [w, h, d], pos, { ...o, ch: Math.min(Math.max(rad * 1.6, 0.007), Math.min(w, h) * 0.38), edge: o.edge ?? 1.25 });
     const geo = q.rbSeg && !o.sharp ? cached(`rb${w},${h},${d},${rad},${q.rbSeg}`, () => new RoundedBoxGeometry(w, h, d, q.rbSeg, rad)) : cached(`bx${w},${h},${d}`, () => new THREE.BoxGeometry(w, h, d));
     return this.put(L, geo, pos, o);
   }
@@ -256,13 +258,13 @@ function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0, key = 0) {
           vec2 f2 = mix(f, fract(g * 2.0), split);
           float e = min(min(f2.x, 1.0 - f2.x), min(f2.y, 1.0 - f2.y));
           gPanel = smoothstep(0.0, 0.035, e);
-          float tone = 0.9 + 0.2 * h3(vec3(id, ax + 7.0 + split));
+          float tone = 0.95 + 0.10 * h3(vec3(id, ax + 7.0 + split)); // ARTE: menos mosaico entre paneles
           float brushed = 0.95 + 0.05 * sin((ax < 0.5 ? vOP.z : vOP.x) * 900.0 + h3(vec3(id, 3.0)) * 6.0);
-          float spk = h3(floor(vOP * vec3(380.0)) + ax); gWear = step(0.996, spk);
+          gWear = 0.0; // ARTE: sin motas blancas por píxel (daban el aspecto 'voxel/ruido')
           vec3 base = diffuseColor.rgb * tone * brushed;
           base *= mix(0.35, 1.0, gPanel);
           base *= 0.72 + 0.4 * clamp(vON.y * 0.5 + 0.5, 0.0, 1.0);
-          base += gWear * 0.10;
+          base *= 0.80 + 0.30 * smoothstep(-0.06, 0.06, vOP.y + 0.01); // ARTE: la parte baja de cada pieza se oscurece (volumen)
           // calcomanías procedurales (id en el atributo aux): 1 rayas de aviso · 2 perforado hexagonal · 3 nervaduras · 4 circuito luminoso · 5 runas · 6 rombos
           gEm = 0.0; float dm = 1.0; int did = int(vDec + 0.5);
           if (did > 0) {
@@ -271,7 +273,7 @@ function surfaceDetail(mat, hex, strength = 1, env = 1, fill = 0, key = 0) {
             else if (did == 2) { vec2 hs = vec2(0.0156, 0.027); vec2 a = mod(w, hs) - hs * 0.5, b = mod(w + hs * 0.5, hs) - hs * 0.5; float dd = min(length(a * vec2(1.0, 0.58)), length(b * vec2(1.0, 0.58))); dm = mix(0.08, 1.0, smoothstep(0.0045, 0.0065, dd)); }
             else if (did == 3) { float f = fract(w.y * 62.0); dm = mix(0.42, 1.08, smoothstep(0.0, 0.4, f) * (1.0 - smoothstep(0.7, 1.0, f))); }
             else if (did == 4) { vec2 cc = floor(w / 0.022), fc = fract(w / 0.022); float hh2 = h3(vec3(cc, 9.0)); float ln = hh2 > 0.5 ? step(abs(fc.y - 0.5), 0.07) * step(fc.x, 0.95) : step(abs(fc.x - 0.5), 0.07) * step(fc.y, 0.95); float nd = step(length(fc - 0.5), 0.13) * step(0.7, hh2); gEm = max(ln * step(0.3, h3(vec3(cc, 3.0))), nd); dm = 0.75; }
-            else if (did == 5) { vec2 cc = floor(w / vec2(0.011, 0.018)); gEm = step(0.55, h3(vec3(cc, 5.0))) * step(0.12, fract(w.x / 0.011)) * step(0.15, fract(w.y / 0.018)) * 0.9; dm = 0.8; }
+            else if (did == 5) { vec2 cc = floor(w / vec2(0.007, 0.011)), fr5 = fract(w / vec2(0.007, 0.011)); gEm = step(0.6, h3(vec3(cc, 5.0))) * smoothstep(0.10, 0.30, fr5.x) * (1.0 - smoothstep(0.7, 0.9, fr5.x)) * smoothstep(0.12, 0.3, fr5.y) * (1.0 - smoothstep(0.7, 0.88, fr5.y)) * 0.55; dm = 0.85; }
             else if (did == 6) { vec2 f6 = fract(w * 38.0) - 0.5; float dm6 = abs(f6.x) + abs(f6.y); dm = mix(0.55, 1.15, smoothstep(0.2, 0.5, dm6)); }
             base *= dm;
           }

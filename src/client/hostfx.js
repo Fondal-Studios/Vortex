@@ -86,7 +86,7 @@ void main(){ vS = aS; vF = aF; vec3 p = position; float ang = uFlap * aS * aS; f
   gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`;
 const WING_FS = `uniform vec3 uC; uniform vec3 uC2; uniform float uO; uniform float uGam; uniform float uInt; varying float vS; varying float vF;
 void main(){ float fr = fract(vF * 4.0); float bone = smoothstep(0.07, 0.0, min(fr, 1.0 - fr)); float edge = smoothstep(0.86, 1.0, vS); float web = 0.5 + 0.5 * sin(vS * 30.0 - vF * 9.0);
-  float a = (0.16 + 0.1 * web + 0.8 * bone * (1.0 - vS * 0.5) + 0.55 * edge) * (1.0 - smoothstep(0.96, 1.0, vS) * 0.4); vec3 c = mix(uC, uC2, clamp(bone + edge, 0.0, 1.0));
+  float a = (0.3 + 0.14 * web + 0.9 * bone * (1.0 - vS * 0.4) + 0.7 * edge) * (1.0 - smoothstep(0.96, 1.0, vS) * 0.3); vec3 c = mix(uC, uC2, clamp(bone + edge, 0.0, 1.0));
   gl_FragColor = vec4(pow(c, vec3(uGam)), clamp(a, 0.0, 1.0) * uO * uInt); }`;
 const VIG_VS = `varying vec2 vP; void main(){ vP = position.xy; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 const VIG_FS = `uniform float uW[8]; uniform float uT; uniform float uAsp; uniform float uGam; uniform float uInt; varying vec2 vP; ${HEX}
@@ -349,8 +349,8 @@ export function createHostFx(renderer, opts = {}) {
   };
   SK.tiempo = (I, e) => { // burbuja donde el tiempo se arrastra
     const { col, acc, up } = I, c = e && e.to ? V(e.to) : I.ground.clone().addScaledVector(I.h, 8), R = 7, life = 5;
-    shell(sphereP, c.clone().addScaledVector(up, 0.2), null, 0.5, R, life, col, { c2: acc, op: 0.55, pow: 2.6, base: 0, st: 14, fade: 0.35, lin: false });
-    disc(discP, c, up, R * 0.6, R, life, 5, col, acc, { op: 0.8, fade: 0.5, kfn: (u, t) => -t * 0.35 });
+    shell(sphereP, c.clone().addScaledVector(up, 0.2), null, 0.5, R, life, col, { c2: acc, op: 0.9, pow: 1.7, base: 0.03, st: 14, fade: 0.3, lin: false });
+    disc(discP, c, up, R * 0.75, R, life, 5, col, acc, { op: 1, fade: 0.4, kfn: (u, t) => -t * 0.35 });
     ring(c, up, 0.4, R, 0.5, acc, { th: 0.08 }); fx.flash(c.clone().addScaledVector(up, 1), 0xe8f0ff, 3.5, 0.3, { burst: true });
     addLoop(life, (dt, u) => { if (Math.random() < dt * 8 * Q()) { _a.copy(c).addScaledVector(_b.set(srnd(), srnd(0.4), srnd()).normalize(), rnd(R * 0.85)).addScaledVector(up, 1 + rnd(2)); fx.add.spawn(_a.x, _a.y, _a.z, srnd(0.2), srnd(0.2), srnd(0.2), C(0xffffff), C(col), 0.45 + rnd(0.3), 2.2, 0, 0.5, -0.3, SHAPE.star, srnd(1), 1 - u); } });
     if (I.self) kickVig(7, 0.4);
@@ -458,12 +458,12 @@ export function createHostFx(renderer, opts = {}) {
       // alas: planeo (medianas) / metamorfosis (grandes, con halo)
       const wingBits = bf & (BF.PLANEO | BF.METAMORFOSIS), wasWing = S.bits & (BF.PLANEO | BF.METAMORFOSIS);
       if (wingBits) {
-        const big = (bf & BF.METAMORFOSIS) !== 0, sc = big ? 1.5 : 1.15; if (!S.m.wl) { S.m.wl = takeHeld(wingP); S.m.wr = takeHeld(wingP); S.wAge = 0; } S.wAge += dt;
+        const big = (bf & BF.METAMORFOSIS) !== 0, sc = big ? 2.0 : 1.5; if (!S.m.wl) { S.m.wl = takeHeld(wingP); S.m.wr = takeHeld(wingP); S.wAge = 0; } S.wAge += dt;
         const open = eo(Math.min(1, S.wAge / 0.3)), flap = (big ? 0.35 : 0.12) * Math.sin(T * (big ? 5 : 3.2)) + (big ? 0.15 : 0.35), gl = bf & BF.PLANEO && !big ? 0.1 : 0;
         for (const [m, sd] of [[S.m.wl, -1], [S.m.wr, 1]]) {
           m.visible = true; m.position.copy(pos).addScaledVector(up, 0.25).addScaledVector(h, -0.18);
           m.quaternion.setFromRotationMatrix(_m.makeBasis(_a.copy(k.right), _b.copy(up), _c.copy(h).negate())); m.scale.set(sc * open * sd, sc * open, sc * open); // x = afuera (la izquierda se espeja con escala negativa)
-          setU(m, { uC: big ? acc : col, uC2: big ? col : 0xffffff, uO: (big ? 0.7 : 0.55) * open, uFlap: rm ? 0.25 : flap + gl });
+          setU(m, { uC: big ? acc : col, uC2: big ? col : 0xfff4c0, uO: (big ? 0.95 : 0.8) * open, uFlap: rm ? 0.25 : flap + gl });
         }
         if (big) { if (!S.m.halo) S.m.halo = takeHeld(discP); const m = S.m.halo; m.position.copy(pos).addScaledVector(up, 1.45); basisQ(_a.copy(k.right).cross(up).normalize(), k.right, up, m.quaternion); m.scale.setScalar(0.55); setU(m, { uC: col, uC2: acc, uMode: 0, uK: 0.1, uO: 0.8, uT: T }); }
         S.tEmit -= dt; if (S.tEmit <= 0) { S.tEmit = big ? 0.1 : 0.2; fx.add.spawn(pos.x + srnd(1.2), pos.y + rnd(1), pos.z + srnd(1.2), srnd(0.3), -0.8, srnd(0.3), C(col), C(acc), 0.5, 1.2, 0, 0.4, -0.3, SHAPE.shard, srnd(5), 1); }
@@ -481,9 +481,9 @@ export function createHostFx(renderer, opts = {}) {
       const sy = p.sy;
       if (sy && !p.dead) {
         if (!S.sym) { S.sym = { shell: takeHeld(sphereP), ring: takeHeld(discP), p: V([sy.x, sy.y, sy.z]) }; spray(S.sym.p, acc, 10, 7, 0.7, 0.7, { c2: col, shape: SHAPE.bubble, up: 2 }); ring(S.sym.p, up, 0.3, 2.5, 0.4, col, { th: 0.1 }); }
-        const y = S.sym; y.p.lerp(_a.set(sy.x, sy.y, sy.z), Math.min(1, dt * 10)); y.shell.position.copy(y.p).addScaledVector(up, 0.4); y.shell.scale.setScalar(0.7 + 0.1 * Math.sin(T * 7)); setU(y.shell, { uC: acc, uC2: col, uPow: 1.6, uBase: 0.12, uSt: 9, uO: 0.7, uT: T });
+        const y = S.sym; y.p.lerp(_a.set(sy.x, sy.y, sy.z), Math.min(1, dt * 10)); y.shell.position.copy(y.p).addScaledVector(up, 0.4); y.shell.scale.setScalar(0.95 + 0.12 * Math.sin(T * 7)); setU(y.shell, { uC: acc, uC2: col, uPow: 1.1, uBase: 0.3, uSt: 9, uO: 0.95, uT: T });
         y.ring.position.copy(y.p).addScaledVector(up, -0.8); basisQ(_a.copy(k.right).cross(up).normalize(), k.right, up, y.ring.quaternion); y.ring.scale.setScalar(1.5); setU(y.ring, { uC: col, uC2: acc, uMode: 0, uK: 0.1, uO: 0.6, uT: T });
-        if (Math.random() < dt * 12) { _a.copy(pos); _b.copy(y.p).addScaledVector(up, 0.4); _c.copy(_a); for (let s = 1; s <= 5; s++) { _d.copy(_a).lerp(_b, s / 5).addScaledVector(up, Math.sin(s / 5 * Math.PI) * 0.6 + Math.sin(T * 9 + s) * 0.2); fx.line(_c, _d, s % 2 ? acc : col, 0.07, 0.12, { a0: 0.9, a1: 0.6 }); _c.copy(_d); } }
+        if (Math.random() < dt * 16) { _a.copy(pos); _b.copy(y.p).addScaledVector(up, 0.4); _c.copy(_a); for (let s = 1; s <= 5; s++) { _d.copy(_a).lerp(_b, s / 5).addScaledVector(up, Math.sin(s / 5 * Math.PI) * 0.6 + Math.sin(T * 9 + s) * 0.2); fx.line(_c, _d, s % 2 ? acc : col, 0.14, 0.12, { a0: 1, a1: 0.8 }); _c.copy(_d); } }
       } else if (S.sym) { const y = S.sym; spray(y.p, acc, 8, 6, 0.6, 0.6, { c2: col, shape: SHAPE.bubble }); ring(y.p, up, 0.3, 2.2, 0.35, col, { th: 0.1 }); freeHeld(y.shell); freeHeld(y.ring); S.sym = null; }
       S.bits = bf;
       if (!self) { /* nada más */ }
