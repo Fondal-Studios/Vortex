@@ -124,6 +124,23 @@ export const WEAPON_MODS = {
   explosiva:{ name: 'Explosiva',   desc: 'Cada impacto explota en área pequeña.' },
   cadena:   { name: 'Cadena',      desc: 'El daño salta a 2 criaturas cercanas.' },
   vampirica:{ name: 'Vampírica',   desc: 'Cada baja te cura 6 de vida.' },
+  precision:{ name: 'Ojo de precisión', desc: 'Dispersión mínima y 15 % de golpes críticos (×2,2).' },
+  toxica:   { name: 'Glándula tóxica',  desc: 'Cada impacto envenena (daño con el tiempo).' },
+};
+/* Segundo nivel de la evolución: tras elegir una mutación el arma ofrece DOS ramas excluyentes (elegir una cierra la otra). */
+export const WEAPON_MUTS = {
+  perfora:   [{ id: 'espina',      name: 'Espina ósea',        desc: 'Atraviesa corazas: +30 % de daño y rompe la defensa de las geodas.' },
+              { id: 'aguijon',     name: 'Aguijón',            desc: 'Menos daño pero envenena a todo lo que atraviesa.' }],
+  explosiva: [{ id: 'detonante',   name: 'Vesícula detonante', desc: 'Explosión de área casi el doble de grande.' },
+              { id: 'implosiva',   name: 'Vesícula implosiva', desc: 'Cada impacto arrastra a las criaturas cercanas hacia el centro.' }],
+  cadena:    [{ id: 'sinapsis',    name: 'Sinapsis',           desc: 'El daño salta a 4 criaturas.' },
+              { id: 'tormenta',    name: 'Tormenta neural',    desc: 'Salta a 2, pero aturde y ralentiza fuerte.' }],
+  vampirica: [{ id: 'simbiosis',   name: 'Simbiosis',          desc: 'Cada baja cura 10 y repone escudo.' },
+              { id: 'parasito',    name: 'Parásito',           desc: 'Cada baja devuelve munición del arma.' }],
+  precision: [{ id: 'ojo',         name: 'Ojo compuesto',      desc: 'Críticos 30 % de las veces.' },
+              { id: 'pulso',       name: 'Pulso certero',      desc: 'Un crítico devuelve la munición gastada y recarga más rápido.' }],
+  toxica:    [{ id: 'neurotoxina', name: 'Neurotoxina',        desc: 'Lo envenenado recibe +20 % de daño de todo.' },
+              { id: 'plaga',       name: 'Plaga',              desc: 'Lo envenenado contagia a las criaturas cercanas al morir.' }],
 };
 export const WAVE_SCALE = { hp: 0.08, speed: 0.016, elite: 0.1 }; // por oleada; élites desde la oleada 3
 

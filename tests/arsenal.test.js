@@ -31,7 +31,7 @@ test('comportamientos: Fractal encadena, Cetro cura, Lanza perfora, Cometa persi
     g.setInput(p.id, { fire: true }); run(g, 0.5); assert.ok(a.hp < 5000 && b.hp < 5000, 'atravesó a las dos'); }
   { const { g, p } = arena(); p.weapon = 10; p.ammo[10] = 10; const m = g.spawnMonster('geoda', madd(madd(p.pos, p.heading, 12), p.up, 0)); m.cd = 1e9; m.open = true; m.hp = m.maxhp = 5000;
     p.pitch = 0; g.setInput(p.id, { fire: true, dyaw: 0.15 }); g.step(1 / 60); g.setInput(p.id, { fire: false }); run(g, 3); assert.ok(m.hp < 5000, 'el cometa buscó su blanco aunque se disparó desviado'); }
-  { const { g, p } = arena(); p.weapon = 11; p.ammo[11] = 10; const m = target(g, p, 'astilla', 25); m.hp = m.maxhp = 1e5; const far = g.spawnMonster('astilla', madd(m.pos, p.heading, 9)); far.hp = far.maxhp = 1e5;
+  { const { g, p } = arena(); p.weapon = 11; p.ammo[11] = 10; const m = target(g, p, 'astilla', 25); m.hp = m.maxhp = 1e5; m.passive = true; const far = g.spawnMonster('astilla', madd(m.pos, p.heading, 9)); far.hp = far.maxhp = 1e5; far.passive = true;
     g.setInput(p.id, { fire: true }); g.step(1 / 60); g.setInput(p.id, { fire: false }); run(g, 2.2); assert.ok(g.objects.some((o) => o.type === 'well') || g.monsters.some((q) => q.hp < 1e5), 'se abrió el pozo o ya estalló'); }
 });
 

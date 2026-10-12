@@ -8,7 +8,7 @@ import { makeObjective, updateObjective } from './objectives.js';
 import { initColoso, initMadre, initArgos, bossDeath } from './bossmech.js';
 import { useMove, useSpecial } from './characters.js';
 import { initHost, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
-import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard } from './loadout.js';
+import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut } from './loadout.js';
 import { Director } from './director.js';
 import { ROLES, ROLE_IDS } from './data.js';
 
@@ -376,6 +376,7 @@ export class Game {
     const origin = this.eyePos(p);
     const base = this.aimDir(p);
     const w = { ...w0, dmg: w0.dmg * st.dmg, mod: st.mod, pierce: w0.pierce || st.mod === 'perfora', chain: w0.chain || (st.mod === 'cadena' ? 2 : 0) };
+    shapeWeapon(w, st);
     if (w.kind === 'pulse') { // onda radial sin apuntar
       for (const m of this.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < w.radius + m.r) { this.damageMonster(m, w.dmg * (1 - 0.4 * d / (w.radius + m.r)), p, m.pos); m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), w.knock); } }
       for (const ob of [...this.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, p.pos) < w.radius + ob.r) this.damageObject(ob, w.dmg, p, ob.pos);
@@ -402,7 +403,8 @@ export class Game {
     for (let i = 0; i < w.pellets; i++) {
       let d = base;
       if (w.spread) { const sp = w.spread * (p.input.ads ? 0.35 : 1) * (p.input.crouch ? 0.8 : 1); d = norm(add(add(base, mul(right, this.rng.gauss() * sp)), mul(cross(base, right), this.rng.gauss() * sp))); }
-      tips.push(this.hitscan(p, origin, d, w));
+      let wp = w; if (w.critP && this.rng.next() < w.critP) { wp = { ...w, dmg: w.dmg * 2.2, crit: true }; if (w.critRefund && w0.per > 0) p.ammo[p.weapon] = Math.min(ammoMax(p, p.weapon), p.ammo[p.weapon] + w0.per); }
+      tips.push(this.hitscan(p, origin, d, wp));
     }
     this.emit({ t: 'shot', pid: p.id, w: p.weapon, o: a3(origin), to: tips.slice(0, 3).map(a3), fx: w.fxk || undefined });
   }
@@ -436,12 +438,15 @@ export class Game {
       if (h.ob) this.damageObject(h.ob, w.dmg, p, at);
       else {
         const dmgHit = w.exec && h.m.hp < h.m.maxhp * 0.35 ? w.dmg * w.exec : w.dmg;
+        this.critNow = !!w.crit; this.pierceNow = !!w.armorBreak;
         this.damageMonster(h.m, dmgHit, p, at);
+        this.critNow = false; this.pierceNow = false;
         if (!h.m.dead) this.applyStatus(h.m, w, p);
         if (w.lifesteal && p && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + w.dmg * w.lifesteal);
         if (w.knock && !h.m.dead) h.m.vel = madd(h.m.vel, d, w.knock);
+        if (w.stormSlow) h.m.slowUntil = this.time + 2.5;
         if (w.chain && !w.noChain) this.chainFrom(p, h.m, w);
-        if (w.mod === 'explosiva' && w.kind === 'hitscan') this.explode(at, 2.6, 0, w.dmg * 0.5, p, false);
+        if (w.mod === 'explosiva' && w.kind === 'hitscan') { this.explode(at, w.blast || 2.6, 0, w.dmg * 0.5, p, false); if (w.pull) for (const q of this.monsters) if (!q.dead && !q.def.boss && dist(q.pos, at) < w.pull + q.r) q.vel = madd(q.vel, norm(sub(at, q.pos)), 9); }
       }
       if (!w.pierce) { tEnd = h.t; break; }
     }
@@ -459,7 +464,7 @@ export class Game {
     const used = new Set([from.id]); let cur = from;
     for (let i = 0; i < w.chain; i++) {
       let best = null, bd = 15; for (const m of this.monsters) { if (m.dead || used.has(m.id)) continue; const d = dist(m.pos, cur.pos); if (d < bd) { bd = d; best = m; } }
-      if (!best) break; used.add(best.id); this.damageMonster(best, w.dmg * 0.7, p, best.pos); this.emit({ t: 'arc', o: a3(cur.pos), to: a3(best.pos) }); cur = best;
+      if (!best) break; used.add(best.id); this.damageMonster(best, w.dmg * 0.7, p, best.pos); if (w.stormSlow) best.slowUntil = this.time + 2.5; this.emit({ t: 'arc', o: a3(cur.pos), to: a3(best.pos) }); cur = best;
     }
   }
   addProjectile(pr) {
@@ -479,12 +484,12 @@ export class Game {
     if (m.stun) mul_ *= 1.5;
     if (m.kind === 'coloso' || m.kind === 'argos') { if (m.shield) mul_ *= BOSS_MECH.shield; if (m.stagger > 0) mul_ *= BOSS_MECH.stagger; }
     if (this.time < (m.markUntil || 0)) mul_ *= m.markMul || 1.3;
-    if (by && by.input) mul_ *= hostOut(this, by, m);
+    if (by && by.input) { mul_ *= hostOut(this, by, m); if (this.time < (m.dotUntil || 0) && m.dotKind === 'poison' && anyMut(by, 'neurotoxina')) mul_ *= 1.2; }
     if (by && this.time < this.teamBuffUntil) mul_ *= 1.25;
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
     if (by && by.input) hostHit(this, by, m, dmg * mul_);
-    this.emit({ t: 'hit', id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1 });
+    this.emit({ t: 'hit', id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1, cr: this.critNow || undefined });
     if (m.hp <= 0) this.killMonster(m, by);
   }
 
@@ -492,7 +497,8 @@ export class Game {
     if (m.dead) return;
     m.dead = true; this.stats.kills++; this.straggleT = 0;
     if (by && by.input) hostKill(this, by, m);
-    if (by) { by.kills++; by.score += m.def.score; if (wstat(by, by.weapon).mod === 'vampirica' && !by.dead) by.hp = Math.min(PLAYER.hp, by.hp + 6); }
+    if (by) { by.kills++; by.score += m.def.score; if (wstat(by, by.weapon).mod === 'vampirica' && !by.dead) { const mu = wstat(by, by.weapon).mut; by.hp = Math.min(PLAYER.hp, by.hp + (mu === 'simbiosis' ? 10 : 6)); if (mu === 'simbiosis') by.shield = Math.min(PLAYER.shield, by.shield + 8); if (mu === 'parasito') { const w0 = WEAPONS[by.weapon]; if (w0.per > 0) by.ammo[by.weapon] = Math.min(ammoMax(by, by.weapon), by.ammo[by.weapon] + w0.per * 3); } }
+      if (m.dotKind === 'poison' && this.time < (m.dotUntil || 0) && anyMut(by, 'plaga')) for (const q of this.monsters) if (!q.dead && q !== m && dist(q.pos, m.pos) < 9) { q.dotUntil = this.time + 4; q.dotDps = 6; q.dotKind = 'poison'; q.dotBy = by.id; } }
     if (m.parent) { const par = this.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); }
     this.emit({ t: 'kill', id: m.id, k: m.kind, p: a3(m.pos) });
     if (m.kind === 'racimo') this.explode(m.pos, 5.5, 22, 40, null);
@@ -703,7 +709,7 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), sl: p.slots, up: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mod || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), sl: p.slots, up: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mut || c.mod || '', c.mod || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,

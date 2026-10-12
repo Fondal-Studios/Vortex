@@ -76,8 +76,11 @@ export const AI = {
   // 1) Corredor: persigue en zigzag y salta para cerrar distancia
   runner(game, m, dt, targets) {
     const p = nearest(targets, m.pos), to = sub(p.pos, m.pos), d = len(to), dir = norm(to);
-    const side = mul(cross(m.up, dir), Math.sin(m.t * 3 + m.id) * 0.45);
-    groundMove(game, m, dt, add(dir, side), sp(m), 12);
+    // flanqueo: los corredores no llegan en fila; cada uno rodea por un lado y cierra el arco al acercarse
+    const arc = (m.id % 2 ? 1 : -1) * 0.9 * Math.max(0, Math.min(1, (d - 6) / 18));
+    const fl = arc ? norm(add(mul(dir, Math.cos(arc)), mul(cross(m.up, dir), Math.sin(arc))), dir) : dir;
+    const side = mul(cross(m.up, fl), Math.sin(m.t * 3 + m.id) * 0.45);
+    groundMove(game, m, dt, add(fl, side), sp(m), 12);
     face(m, project(dir, m.up));
     m.cd -= dt; m.cd2 -= dt;
     if (m.cd2 <= 0 && m.grounded && d > 7 && d < 18) { m.vel = madd(madd(m.vel, dir, 9), m.up, 9); m.cd2 = 3.5; m.state = 'leap'; }
@@ -128,6 +131,9 @@ export const AI = {
     const p = nearest(targets, m.pos), to = sub(p.pos, m.pos), d = len(to), dir = norm(to);
     let wish = v3();
     if (m.state !== 'aim') wish = d > 32 ? dir : d < 20 ? mul(dir, -1) : mul(cross(m.up, dir), Math.sin(m.t * 0.8 + m.id));
+    // esquiva: si el jugador lo tiene en la mira, se mueve de costado con un tirón corto (cada ~3 s)
+    m.dodgeCd = (m.dodgeCd || 0) - dt;
+    if (m.state !== 'aim' && m.dodgeCd <= 0 && d < 70 && dot(game.aimDir(p), norm(sub(m.pos, game.eyePos(p)))) > 0.985) { m.vel = madd(m.vel, mul(cross(m.up, dir), (m.id % 2 ? 1 : -1) * 13), 1); m.dodgeCd = 3 + game.rng.next() * 2; }
     groundMove(game, m, dt, wish, sp(m), 8);
     face(m, project(dir, m.up));
     m.cd -= dt;

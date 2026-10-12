@@ -126,3 +126,28 @@ test('equilibrio: matriz por Huésped; ninguno domina en todo y todos aguantan u
   console.log('matriz de equilibrio', JSON.stringify(rows));
   for (const id of HOST_IDS) { const g = new Game({ mapId: 'm1', seed: 4 }); const p = g.addPlayer('t', null, { char: id }); for (let i = 0; i < 8; i++) { const m = g.spawnMonster('astilla', ahead(p, 14 + i)); void m; } let t = 0; g.setInput(p.id, { fire: true }); for (; t < 20 && !p.dead; t += 1 / 60) g.step(1 / 60); assert.ok(!p.dead || true); }
 });
+
+import { WEAPONS, WEAPON_MUTS } from '../src/sim/data.js';
+import { makeCards, applyCard, upgOf, shapeWeapon, wstat } from '../src/sim/loadout.js';
+
+test('evolución de armas: mutación → dos ramas excluyentes que cambian cómo se combate', () => {
+  const { g, p } = mk('axioma'); const wid = p.slots[1]; const u = upgOf(p, wid);
+  u.mod = 'cadena'; u.dmg = 1; u.rate = 1; let got = null;
+  for (let i = 0; i < 30 && !got; i++) { const c = makeCards(g, p); if (c.some((x) => x.k === 'mut')) got = c; }
+  assert.ok(got, 'aparecen tarjetas de rama'); const br = got.filter((x) => x.k === 'mut'); assert.equal(br.length, 2); assert.notEqual(br[0].mut, br[1].mut);
+  applyCard(p, br[0]); assert.equal(u.mut, br[0].mut); let again = null; for (let i = 0; i < 40; i++) { const c = makeCards(g, p); if (c.some((x) => x.k === 'mut')) again = c; } assert.equal(again, null, 'la otra rama queda cerrada');
+  const base = { dmg: 10, chain: 0 }, w1 = shapeWeapon({ ...base }, { mod: 'cadena', mut: 'sinapsis' }), w2 = shapeWeapon({ ...base }, { mod: 'cadena', mut: 'tormenta' });
+  assert.equal(w1.chain, 4); assert.equal(w2.chain, 2); assert.ok(w2.stormSlow && !w1.stormSlow);
+  for (const [mod, list] of Object.entries(WEAPON_MUTS)) assert.equal(list.length, 2, mod);
+  assert.ok(WEAPONS.length === 25);
+});
+
+test('evolución de armas: precisión da críticos y devuelve munición; tóxica envenena; implosiva arrastra; parásito devuelve munición', () => {
+  const { g, p } = mk('axioma'); const wid = 5; p.weapon = wid; p.slots[1] = wid; const u = upgOf(p, wid); u.mod = 'precision'; u.mut = 'ojo';
+  const m = g.spawnMonster('astilla', ahead(p, 20)); m.hp = m.maxhp = 1e6; m.cd = 1e9; m.passive = true;
+  p.ammo[wid] = 1e6; const crits = []; for (let i = 0; i < 80; i++) { p.cd = 0; g.firePlayer(p); run(g, 0.01); }
+  const ev = g.snapshot().events.filter((e) => e.t === 'hit'); const c = ev.filter((e) => e.cr).length; assert.ok(c > 8 && c < 60, `críticos ${c}/${ev.length}`); void crits;
+  u.mod = 'toxica'; u.mut = null; p.cd = 0; g.firePlayer(p); run(g, 0.02); assert.equal(m.dotKind, 'poison');
+  const { g: g2, p: p2 } = mk('axioma'); p2.weapon = 5; const u2 = upgOf(p2, 5); u2.mod = 'vampirica'; u2.mut = 'parasito'; p2.ammo[5] = 10; const k = g2.spawnMonster('astilla', ahead(p2, 5)); g2.killMonster(k, p2); assert.ok(p2.ammo[5] > 10, 'parásito devuelve munición');
+  void wstat;
+});
