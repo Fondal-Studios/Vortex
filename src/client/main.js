@@ -2,6 +2,7 @@ import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS } from '../sim/data.js';
 import { Equipo } from './equipo.js';
+import { settings, setSetting, sensFromSlider, sliderFromSens } from './settings.js';
 import { WEAPON_COLORS } from './shotfx.js';
 import { createCombatHud } from './hud-combat.js';
 import { MAPS } from '../sim/maps.js';
@@ -50,7 +51,7 @@ const keys = new Set();
 // iPhone: sin zoom por pellizco ni doble toque, sin menú de selección (importante al anclar a la pantalla de inicio)
 for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault());
 let lastTap = 0; document.addEventListener('touchend', (e) => { const n = Date.now(); if (n - lastTap < 350) e.preventDefault(); lastTap = n; }, { passive: false });
-const mouse = { dx: 0, dy: 0, fire: false, ping: false, esp: false }; let pickReq = -1;
+const mouse = { dx: 0, dy: 0, fire: false, ping: false, esp: false, ads: false }; let pickReq = -1;
 const NOLOCK = params.get('nolock') === '1';
 let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), mouseSens = 0.0022;
 addEventListener('keydown', (e) => {
@@ -94,15 +95,15 @@ let combatHud = null;
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
 function readInput() {
   if (session && session.touch) return touch.read();
-  const SENS = mouseSens;
+  const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), esp: mouse.esp, pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyG') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp, pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyG') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
-    i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw; i.dpitch += g.dpitch;
+    i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.dpitch += g.dpitch * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.ads = i.ads || g.ads;
     i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.mov = i.mov || g.mov; i.esp = i.esp || g.esp; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
     if (g.next && !padLatch.next) i.weapon = (((session ? session.mySlot || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.mySlot || 0 : 0) - 1) % 5 + 5) % 5;
     if (cardsOpen) { if (g.next && !padLatch.next) pickReq = 1; if (g.prev && !padLatch.prev) pickReq = 0; if (g.jump && !padLatch.jump) pickReq = 2; if (pickReq >= 0) i.pick = pickReq; }
@@ -252,12 +253,14 @@ function frame(now) {
     const g = session.game, paused = (!locked && !session.headless && !session.touch) || session.paused || !!session.intro;
     const L = !session.bot ? lite(g) : null;
     if (!paused && !session.ended) {
+      // La entrada se lee UNA vez por cuadro y se entrega al simulador enseguida (acumula el giro hasta el próximo paso fijo):
+      // el giro nunca espera a que toque un paso de 60 Hz y la cámara lo muestra en el mismo cuadro (ver soloLook).
+      if (!session.bot) { const inp = readInput(); if (L) assistAim(inp, L, L.players[0], dt, inp.fire); g.setInput(session.pid, inp); }
       session.acc += dt;
       while (session.acc >= SIM_DT) {
         session.acc -= SIM_DT;
-        let inp = session.bot ? session.bot(SIM_DT) : readInput();
-        if (L) assistAim(inp, L, L.players[0], SIM_DT, inp.fire);
-        g.setInput(session.pid, inp); g.step(SIM_DT);
+        if (session.bot) g.setInput(session.pid, session.bot(SIM_DT));
+        g.step(SIM_DT);
         if (g.players[0].godmode) { g.players[0].hp = 100; g.players[0].shield = 100; }
         if (session.horde) hordeTopUp(g);
         if (g.state !== 'playing') break;
@@ -265,6 +268,7 @@ function frame(now) {
     } else if (session.intro) { g.time += 0; }
     state = g.snapshot();
     if (paused) state.events = [];
+    if (!session.bot && !session.intro && !params.get('look')) session.look = soloLook(g, session.pid);
   } else {
     const net = session.net;
     if (net.closed) banner('Conexión perdida', 5000);
@@ -287,6 +291,7 @@ function frame(now) {
   session.myWeapon = me ? me.w : 0;
   if (me && me.char && session.handChar !== me.char && renderer.vm && renderer.vm.setHandStyle) { session.handChar = me.char; try { renderer.vm.setHandStyle(me.char); } catch { /* estilo de mano no disponible */ } }
   if (me && renderer.vm && renderer.vm.setUpgrades) me.sl.forEach((w, i) => { const u = me.up[i]; renderer.vm.setUpgrades(w, u ? { dmg: u[0], rate: u[1], mag: u[2], mod: u[3] || null } : { dmg: 0, rate: 0, mag: 0, mod: null }); });
+  touch.zoomKind = renderer.zoomKind || 0;
   renderer.guideTalk = subs.talking;
   renderer.firing = !!(session.touch ? touch.fire : mouse.fire);
   renderer.render(state, dt, session.pid, session.look);
@@ -295,6 +300,12 @@ function frame(now) {
 }
 const lite = (g) => ({ map: g.mapId, monsters: g.monsters.map((m) => ({ p: [m.pos.x, m.pos.y, m.pos.z], c: m.cloak })), players: g.players.map((p) => ({ pos: [p.pos.x, p.pos.y, p.pos.z], up: [p.up.x, p.up.y, p.up.z], h: [p.heading.x, p.heading.y, p.heading.z], pitch: p.pitch, dead: p.dead })) });
 
+/** Mirada de la cámara en solitario = rumbo REAL del simulador + el giro que todavía no consumió un paso fijo: cero retraso. */
+function soloLook(g, pid) {
+  const p = g.players.find((q) => q.id === pid); if (!p) return null;
+  let h = p.heading; if (p.input.dyaw) h = norm(rotAround(h, p.up, -p.input.dyaw));
+  return { h: [h.x, h.y, h.z], pitch: Math.max(-1.5, Math.min(1.5, p.pitch + p.input.dpitch)) };
+}
 function predictLook(me, dyaw, dpitch) {
   const L = session.look, up = v3(...me.up);
   if (!L) { session.look = { h: me.h, pitch: me.pitch }; return; }
@@ -497,11 +508,35 @@ $('mkroom').addEventListener('click', () => startCoop(true, null, $('coopmap').v
 $('joinroom').addEventListener('click', () => startCoop(false, $('roomcode').value.trim()));
 $('pause').addEventListener('click', (e) => { if (e.target.closest('.item.sel') || e.target.id === 'quit') return; if (session && session.touch) return; lockPointer(); });
 $('resume').addEventListener('click', () => { if (session && session.touch) pauseTouch(false); else lockPointer(); });
-$('sens').addEventListener('input', (e) => { touch.setSens(0.0009 * +e.target.value); mouseSens = 0.00044 * +e.target.value; });
-$('sens0').addEventListener('input', (e) => { touch.setSens(0.0009 * +e.target.value); mouseSens = 0.00044 * +e.target.value; });
+$('sens').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.value; });
+$('sens0').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.value; });
 $('vol').addEventListener('input', (e) => sound.setVolume(+e.target.value / 10));
 $('subsel').addEventListener('change', (e) => { $('sub').style.display = e.target.value === '1' ? '' : 'none'; });
 $('quit').addEventListener('click', () => location.reload());
+/* ───── ajustes de controles táctiles y cámara (se guardan por jugador) ───── */
+function bindTouchSettings() {
+  const S = settings(), $$ = (id) => $(id), pct = (v) => `${Math.round(v * 100)} %`;
+  const bind = (id, get, set, fmt, outId) => { const el = $$(id); if (!el) return; el.value = get(); const o = outId && $$(outId); const show = () => { if (o) o.textContent = fmt ? fmt(+el.value) : el.value; }; show(); el.addEventListener('input', () => { set(el.type === 'range' ? +el.value : el.value); show(); touch.applyLayout(); }); };
+  bind('tsx', () => sliderFromSens(S.sensX), (v) => setSetting('sensX', sensFromSlider(v)), (v) => `${(sensFromSlider(v) * 57.2958).toFixed(2)}°/px`, 'tsxo');
+  bind('tsy', () => sliderFromSens(S.sensY), (v) => setSetting('sensY', sensFromSlider(v)), (v) => `${(sensFromSlider(v) * 57.2958).toFixed(2)}°/px`, 'tsyo');
+  bind('tsa', () => Math.round(S.adsMul * 100), (v) => setSetting('adsMul', v / 100), (v) => `${v} %`, 'tsao');
+  bind('tss', () => Math.round(S.scopeMul * 100), (v) => setSetting('scopeMul', v / 100), (v) => `${v} %`, 'tsso');
+  bind('tacc', () => (S.accel ? '1' : '0'), (v) => setSetting('accel', v === '1'));
+  bind('tag', () => Math.round(S.accelGain * 10), (v) => setSetting('accelGain', v / 10));
+  bind('tinv', () => (S.invertY ? '1' : '0'), (v) => setSetting('invertY', v === '1'));
+  bind('tgs', () => Math.round(S.gyroSens * 10), (v) => setSetting('gyroSens', v / 10));
+  bind('tadsm', () => S.adsMode, (v) => setSetting('adsMode', v));
+  bind('tfing', () => String(S.fingers), (v) => touch.setFingers(+v));
+  bind('ths', () => Math.round(S.hudScale * 100), (v) => setSetting('hudScale', v / 100));
+  bind('tho', () => Math.round(S.hudOpacity * 100), (v) => setSetting('hudOpacity', v / 100));
+  const gy = $$('tgy'); if (gy) { gy.value = S.gyro ? '1' : '0'; gy.addEventListener('change', async () => { const ok = await touch.enableGyro(gy.value === '1'); if (!ok) { gy.value = '0'; banner('Giroscopio no disponible en este dispositivo o sin permiso', 2800); } }); if (S.gyro) touch.startGyro(); }
+  const edit = () => { if (session && session.touch) { $('pause').classList.add('hidden'); session.paused = true; touch.show(true); touch.edit(true); } else { loadAnd(() => { startSolo('m1', { intro: false, practice: true, touchForce: true }); later(() => { if (session) { session.touch = true; touch.show(true); touch.edit(true); session.paused = true; } }, 1500); }); } };
+  const eb = $$('tedit'); if (eb) eb.addEventListener('click', edit); const ec = $$('editctl'); if (ec) ec.addEventListener('click', (e) => { e.stopPropagation(); edit(); });
+  const rl = $$('tresetlay'); if (rl) rl.addEventListener('click', () => { touch.setFingers(2); setSetting('hudScale', 1); setSetting('hudOpacity', 0.85); import('./settings.js').then((m) => { m.resetLayout(); touch.applyLayout(); }); });
+}
+bindTouchSettings();
+// al terminar de editar los botones, se reanuda la partida
+const _tEdit = touch.edit.bind(touch); touch.edit = (on) => { _tEdit(on); if (!on && session && session.paused && session.practice) { session.paused = false; } };
 $('showctl').addEventListener('click', (e) => { e.stopPropagation(); showTutorial(true); });
 $('tomenu').addEventListener('click', () => location.reload());
 $('again').addEventListener('click', () => {

@@ -287,3 +287,21 @@ body.playing #trophies { top: calc(env(safe-area-inset-top, 0px) + 112px); botto
 .ally em { font-style: normal; display: block; letter-spacing: .06em; } .ally u { display: block; width: 54px; height: 5px; margin: 2px auto 0; background: #0009; border-radius: 3px; overflow: hidden; text-decoration: none; } .ally u s { display: block; height: 100%; background: #66ff88; }
 .ally.down b { display: block; color: #ff7a9a; font-size: 12px; animation: breathe 1s infinite; }
 @media (max-height: 460px) { .panel { gap: 1vh !important; } .panel label { padding: .7vh 1.2vw !important; font-size: 12px !important; } .panel .hint, .coop .hint { font-size: 10px !important; margin: 0; } .coop .or { margin: 0; font-size: 11px; } .btn { min-height: 38px; } #mainlist .item { padding: .8vh 2vw .8vh 2.4vw; } .item b { font-size: clamp(16px, 4.2vh, 28px) !important; } }
+
+/* ═══════════════ Controles táctiles v2: reubicables, transparencia, tamaño ═══════════════ */
+.tc-btn { transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(var(--s, 1)); opacity: var(--hud-op, .85); transition: opacity .15s; touch-action: none; -webkit-user-select: none; user-select: none; }
+.tc-btn.on { opacity: 1; } .tc-btn.tc-off { display: none !important; }
+.editing .tc-btn { outline: 2px dashed #ffe27acc; outline-offset: 3px; opacity: 1; } .editing .tc-btn.sel { outline-color: #5cf2ff; box-shadow: 0 0 22px #5cf2ff; }
+.editing .tc-zone, .editing .tc-stick { display: none; }
+.tc-edit { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 8px); transform: translateX(-50%); display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: center; max-width: 92vw; padding: 8px 14px; border-radius: 14px; background: #0b0722f0; border: 1px solid #ffe27a99; z-index: 30; font-size: 12px; pointer-events: auto; }
+.tc-edit b { color: #ffe27a; letter-spacing: .18em; } .tc-edit span { opacity: .7; } .tc-edit label { display: flex; gap: 6px; align-items: center; } .tc-edit input[type=range] { width: 90px; }
+.tc-edit button { min-height: 38px; padding: 0 16px; border-radius: 19px; border: 1px solid #fff6; background: #ffffff1c; color: #fff; font: 700 12px system-ui; } .tc-edit button.ok { background: #2d6bff; border-color: #7fb2ff; }
+@media (pointer: coarse) {
+  .tc-btn.tc-ads, .tc-ads { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u) + var(--g))); width: var(--u); height: var(--u); border-color: #ffe27a; }
+  .tc-btn.tc-crouch, .tc-crouch { right: calc(env(safe-area-inset-right, 0px) + 14px + 3 * (var(--u) + var(--g))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u) + var(--g))); width: var(--u); height: var(--u); border-color: #9dff5a; }
+  .tc-btn.tc-fireL, .tc-fireL { left: calc(env(safe-area-inset-left, 0px) + 18px); bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); width: calc(1.5 * var(--u)); height: calc(1.5 * var(--u)); border-color: #ff66c4; }
+}
+
+#touchopts { margin-top: 2.4vh; } #touchopts .sub { margin: 0 0 4px; letter-spacing: .25em; text-transform: uppercase; font-size: 12px; color: #ffe27a; font-weight: 600; }
+#touchopts output { min-width: 3.2em; text-align: right; opacity: .7; font-size: 12px; } #touchopts input[type=range] { flex: 1; max-width: 220px; } #touchopts .btn { align-self: flex-start; }
+#options { align-items: flex-start; flex-direction: column; }

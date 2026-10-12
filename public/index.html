@@ -129,6 +129,24 @@
       <label>Volumen <input id="vol" type="range" min="0" max="10" value="6"></label>
       <label>Subtítulos <select id="subsel"><option value="1">Sí</option><option value="0">No</option></select></label>
     </div>
+    <div class="panel opts" id="touchopts">
+      <h4 class="sub">Controles táctiles y cámara</h4>
+      <label>Sensibilidad horizontal <input id="tsx" type="range" min="1" max="20"><output id="tsxo"></output></label>
+      <label>Sensibilidad vertical <input id="tsy" type="range" min="1" max="20"><output id="tsyo"></output></label>
+      <label>Al apuntar (ADS) <input id="tsa" type="range" min="10" max="100"><output id="tsao"></output></label>
+      <label>Con mira óptica <input id="tss" type="range" min="10" max="100"><output id="tsso"></output></label>
+      <label>Aceleración de cámara <select id="tacc"><option value="0">Apagada (velocidad fija)</option><option value="1">Encendida</option></select></label>
+      <label>Intensidad de aceleración <input id="tag" type="range" min="0" max="20"></label>
+      <label>Invertir eje vertical <select id="tinv"><option value="0">No</option><option value="1">Sí</option></select></label>
+      <label>Giroscopio <select id="tgy"><option value="0">Apagado</option><option value="1">Encendido</option></select></label>
+      <label>Intensidad del giroscopio <input id="tgs" type="range" min="2" max="30"></label>
+      <label>Apuntar (ADS) <select id="tadsm"><option value="mantener">Mantener pulsado</option><option value="alternar">Tocar para alternar</option></select></label>
+      <label>Dedos <select id="tfing"><option value="2">2 dedos</option><option value="3">3 dedos</option><option value="4">4 dedos (garra)</option></select></label>
+      <label>Tamaño de los botones <input id="ths" type="range" min="60" max="160"></label>
+      <label>Transparencia de los botones <input id="tho" type="range" min="25" max="100"></label>
+      <button id="tedit" class="btn" type="button">Editar posición de los botones</button>
+      <button id="tresetlay" class="btn" type="button">Restablecer botones</button>
+    </div>
   </section>
   <footer id="prompts"><span><i class="glyph x">✕</i> Seleccionar</span><span><i class="glyph o">○</i> Volver</span><span><i class="glyph t">△</i> Navegar</span></footer>
   <p id="menuerr" class="err"></p>
@@ -138,6 +156,7 @@
 <div id="pause" class="hidden ps"><div class="pbox"><h2>PAUSA</h2><p id="pausehint">Hacé clic para continuar</p>
   <div class="list"><button class="item" id="resume"><b>Continuar</b></button>
   <button class="item" id="showctl"><b>Ver controles</b></button>
+  <button class="item" id="editctl"><b>Editar botones</b></button>
   <label class="item sel">Gráficos <select id="qsel2"></select></label>
   <label class="item sel">Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label>
   <button class="item" id="quit"><b>Salir al menú</b></button></div></div></div>

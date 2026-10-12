@@ -179,16 +179,23 @@ export class Renderer {
   }
 
   updateCamera(me, dt, look) {
-    const up = V(me.up), h = look ? V(look.h) : V(me.h), pitch = look ? look.pitch : me.pitch;
+    // CÁMARA DIRECTA: la mirada (yaw/pitch) se aplica tal cual, sin suavizado ni inercia (era un slerp de ~70 ms: sensación pesada).
+    // Sólo el vector "arriba" se suaviza, y únicamente cuando la gravedad cambia (inversión de gravedad, zonas, marea).
+    const up0 = V(me.up);
+    if (!this.camInit || !this.upSm) { this.upSm = up0.clone(); this.camInit = true; }
+    else if (this.upSm.dot(up0) < 0.9999) this.upSm.lerp(up0, 1 - Math.exp(-11 * dt)).normalize();
+    const up = this.upSm, h0 = look ? V(look.h) : V(me.h), pitch = look ? look.pitch : me.pitch;
+    const h = h0.clone().addScaledVector(up, -h0.dot(up)); if (h.lengthSq() < 1e-6) h.copy(h0); h.normalize();
     const aim = h.clone().multiplyScalar(Math.cos(pitch)).addScaledVector(up, Math.sin(pitch)).normalize();
     const right = new THREE.Vector3().crossVectors(h, up).normalize();
     const camUp = new THREE.Vector3().crossVectors(right, aim).normalize();
     const m = new THREE.Matrix4().makeBasis(right, camUp, aim.clone().negate());
-    const q = new THREE.Quaternion().setFromRotationMatrix(m);
-    if (!this.camInit) { this.camQ.copy(q); this.camInit = true; } else this.camQ.slerp(q, 1 - Math.exp(-14 * dt));
+    this.camQ.setFromRotationMatrix(m);
     this.camera.quaternion.copy(this.camQ);
+    // zoom al apuntar (ADS): FOV por arma; transición rápida y fija en el tiempo
+    { const W = WEAPONS[me.w], scope = W && (W.range >= 300 || ['cometa', 'lanza'].includes(W.id)), want = me.ads ? (scope ? 30 : 58) : 82; this.fovNow = this.fovNow || 82; this.fovNow += (want - this.fovNow) * (1 - Math.exp(-16 * dt)); if (Math.abs(this.camera.fov - this.fovNow) > 0.01) { this.camera.fov = this.fovNow; this.camera.updateProjectionMatrix(); } this.zoomKind = me.ads ? (scope ? 2 : 1) : 0; }
     if (this.third) { const cpos = V(me.pos).addScaledVector(aim, -5.2).addScaledVector(up, 2.1).addScaledVector(right, 1.0); this.camera.position.copy(cpos); this.camera.up.copy(up); this.camera.lookAt(V(me.pos).addScaledVector(aim, 14).addScaledVector(up, 0.9)); this.eye = cpos; this.aim = aim; this.vm.update(dt, { firing: false, hidden: true }); return; }
-    let eyeH = 0.6;
+    let eyeH = 0.6 - (me.cr ? 0.3 : 0);
     if (this.wakeT !== undefined && this.wakeT < this.wakeDur) { this.wakeT += dt; const k = Math.min(1, this.wakeT / this.wakeDur), e = 1 - Math.pow(1 - k, 3); this.camera.rotateZ((1 - e) * 1.45); eyeH = 0.6 - 0.45 * (1 - e); }
     const eye = V(me.pos).addScaledVector(up, eyeH);
     this.shake = Math.max(0, this.shake - dt * 2.5);
