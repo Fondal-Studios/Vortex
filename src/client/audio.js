@@ -131,6 +131,26 @@ export class Sound {
       default: this.tone({ f: 1750, f2: 1250, type: 'triangle', dur: 0.045, vol: 0.14 }); this.noise({ dur: 0.03, vol: 0.05, freq: 6500, type: 'highpass' });
     }
   }
+  /** Viento de caída: ruido filtrado continuo; `k` 0..1 (0 = se apaga). Lo maneja src/client/caida.js. */
+  wind(k) {
+    if (!this.ctx || !this.enabled) return;
+    if (!this._wind) {
+      if (k <= 0.01) return;
+      const s = this.ctx.createBufferSource(); s.buffer = this.noiseBuf; s.loop = true;
+      const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.9; f.frequency.value = 400;
+      const g = this.ctx.createGain(); g.gain.value = 0; s.connect(f); f.connect(g); g.connect(this.sfxBus); s.start();
+      this._wind = { s, f, g };
+    }
+    const t = this.ctx.currentTime, w = this._wind; k = Math.max(0, Math.min(1, k));
+    w.g.gain.setTargetAtTime(k * 0.55, t, 0.12); w.f.frequency.setTargetAtTime(350 + k * 1900, t, 0.12);
+  }
+  /** Aterrizaje fuerte: golpe grave + polvo; `k` 0..1 según la velocidad de caída. */
+  landing(k = 0.5) {
+    k = Math.max(0.2, Math.min(1, k)); this._vk = 1 + k;
+    try { this.thump(90, 30, 0.35 + 0.3 * k, 0.5 * k + 0.2); this.noise({ dur: 0.35 + 0.3 * k, vol: 0.3 * k + 0.1, freq: 1800, freq2: 120 }); } finally { this._vk = 1; }
+  }
+  /** Caída al vacío: silbido descendente y golpe hueco. */
+  abyss() { this.tone({ f: 900, f2: 60, type: 'sine', dur: 0.9, vol: 0.3 }); this.noise({ dur: 0.7, vol: 0.25, freq: 3000, freq2: 100 }); this.thump(60, 24, 0.6, 0.5); }
   hurt() { this.tone({ f: 200, f2: 70, type: 'sawtooth', dur: 0.25, vol: 0.35 }); this.noise({ dur: 0.15, vol: 0.25, freq: 800 }); }
   pickup() { [0, 4, 7, 12].forEach((s, i) => this.tone({ f: 523 * 2 ** (s / 12), type: 'triangle', dur: 0.12, vol: 0.2, delay: i * 0.05 })); }
   wave() { [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 110 * 2 ** (s / 12), type: 'sawtooth', dur: 0.9, vol: 0.18, att: 0.1, delay: i * 0.12 })); }
@@ -180,6 +200,61 @@ export class Sound {
       this.noise({ dur: 0.28, vol: 0.26, freq: 4200, type: 'highpass', at }); this.tone({ f: 120, f2: 40, type: 'sine', dur: 0.3, vol: 0.34, at, att: 0.002 });
       for (let i = 0; i < 3; i++) this.tone({ f: 1800 + Math.random() * 1600, f2: 900, type: 'triangle', dur: 0.12, vol: 0.06, at, delay: 0.02 + i * 0.035 });
     }
+  }
+
+  /* ───── Huéspedes: habilidades y melee (hostfx.js). Todo sintetizado; `at` = [x,y,z] o null (propio) ───── */
+  host(id, at) { this._vk = 2; try { this._host(id, at); } finally { this._vk = 1; } }
+  _host(id, at) {
+    const T = (o) => this.tone({ ...o, at }), N = (o) => this.noise({ ...o, at }), r = Math.random;
+    switch (id) {
+      case 'impulso': N({ dur: 0.3, vol: 0.4, freq: 300, freq2: 3200, q: 1.5, type: 'bandpass' }); this.thump(120, 40, 0.25, 0.5, at); T({ f: 260, f2: 900, type: 'sawtooth', dur: 0.2, vol: 0.12 }); break;
+      case 'espinas': for (let i = 0; i < 6; i++) { T({ f: 2400 - i * 160, f2: 700, type: 'triangle', dur: 0.06, vol: 0.09, delay: i * 0.018 }); this.crack(0.12, at, 5200, 0.025, i * 0.018); } this.thump(150, 60, 0.18, 0.34, at); break;
+      case 'caparazon': this.thump(90, 45, 0.5, 0.5, at); T({ f: 330, f2: 660, type: 'triangle', dur: 0.35, vol: 0.14 }); [880, 1320, 1760].forEach((f, i) => T({ f, dur: 0.4, vol: 0.05, delay: 0.03 * i })); N({ dur: 0.3, vol: 0.2, freq: 4000, freq2: 900 }); break;
+      case 'sobrecarga': this.thump(60, 24, 0.9, 0.7, at); T({ f: 90, f2: 540, type: 'sawtooth', dur: 0.8, vol: 0.3, att: 0.3 }); N({ dur: 0.8, vol: 0.4, freq: 300, freq2: 5000 }); for (let i = 0; i < 4; i++) this.crack(0.2, at, 3500, 0.03, 0.15 + i * 0.1); break;
+      case 'paso': T({ f: 1900, f2: 120, type: 'sawtooth', dur: 0.14, vol: 0.14 }); N({ dur: 0.1, vol: 0.3, freq: 5200, type: 'highpass' }); T({ f: 300, f2: 1100, dur: 0.12, vol: 0.12, delay: 0.1 }); this.crack(0.3, at, 3000, 0.04, 0.1); break;
+      case 'camuflaje': T({ f: 1200, f2: 300, dur: 0.5, vol: 0.16 }); T({ f: 1210, f2: 305, dur: 0.5, vol: 0.12 }); N({ dur: 0.5, vol: 0.18, freq: 6000, freq2: 800, q: 3, type: 'bandpass' }); break;
+      case 'marca': T({ f: 1500, f2: 1500, type: 'square', dur: 0.05, vol: 0.1 }); T({ f: 1500, type: 'square', dur: 0.05, vol: 0.1, delay: 0.09 }); T({ f: 700, f2: 2100, dur: 0.18, vol: 0.14, delay: 0.17 }); this.crack(0.2, at, 4800, 0.03, 0.2); break;
+      case 'frenesi': this.thump(70, 28, 0.7, 0.6, at); T({ f: 120, f2: 800, type: 'sawtooth', dur: 0.5, vol: 0.3, att: 0.2 }); for (let i = 0; i < 3; i++) { N({ dur: 0.08, vol: 0.4, freq: 5000, type: 'highpass', delay: 0.05 + i * 0.07 }); } this.heartbeat(); break;
+      case 'barrera': this.thump(70, 30, 0.5, 0.55, at); N({ dur: 0.5, vol: 0.4, freq: 500, freq2: 120, q: 2 }); for (let i = 0; i < 5; i++) T({ f: 200 + r() * 200, f2: 500 + r() * 300, dur: 0.07, vol: 0.12, delay: i * 0.05 }); break;
+      case 'esporas': N({ dur: 0.6, vol: 0.4, freq: 1400, freq2: 300, q: 1 }); for (let i = 0; i < 5; i++) T({ f: 400 + r() * 500, f2: 900 + r() * 500, dur: 0.06, vol: 0.09, delay: 0.04 + i * 0.06 }); this.thump(110, 60, 0.15, 0.3, at); break;
+      case 'biomasa': T({ f: 600, f2: 90, type: 'sawtooth', dur: 0.5, vol: 0.2 }); N({ dur: 0.5, vol: 0.3, freq: 2200, freq2: 150 }); this.thump(70, 45, 0.3, 0.5, at, 0.35); [523, 659, 784].forEach((f, i) => T({ f, dur: 0.25, vol: 0.1, delay: 0.4 + i * 0.07 })); break;
+      case 'floracion': this.thump(55, 25, 1, 0.6, at); [262, 330, 392, 523, 659].forEach((f, i) => T({ f, dur: 1.2, vol: 0.09, att: 0.2, delay: i * 0.1 })); N({ dur: 1, vol: 0.25, freq: 200, freq2: 2500 }); break;
+      case 'fase': T({ f: 140, f2: 1400, type: 'sine', dur: 0.3, vol: 0.28 }); T({ f: 1400, f2: 140, type: 'triangle', dur: 0.3, vol: 0.14, delay: 0.1 }); N({ dur: 0.3, vol: 0.2, freq: 400, freq2: 4000, q: 2, type: 'bandpass' }); break;
+      case 'singularidad': T({ f: 400, f2: 40, type: 'sine', dur: 0.9, vol: 0.4 }); N({ dur: 0.9, vol: 0.3, freq: 3000, freq2: 100 }); this.thump(48, 22, 0.9, 0.6, at, 0.6); break;
+      case 'tiempo': for (let i = 0; i < 4; i++) T({ f: i % 2 ? 900 : 700, f2: i % 2 ? 880 : 690, type: 'triangle', dur: 0.05 + i * 0.03, vol: 0.12, delay: i * (0.12 + i * 0.05) }); T({ f: 600, f2: 120, dur: 0.9, vol: 0.2, delay: 0.1 }); N({ dur: 0.7, vol: 0.12, freq: 3000, freq2: 300 }); break;
+      case 'colapso': T({ f: 600, f2: 28, type: 'sawtooth', dur: 1.6, vol: 0.4 }); N({ dur: 1.5, vol: 0.5, freq: 4000, freq2: 60 }); this.thump(40, 18, 1.4, 0.8, at, 0.2); T({ f: 90, f2: 45, dur: 1.4, vol: 0.25, delay: 0.3 }); break;
+      case 'planeo': N({ dur: 0.5, vol: 0.3, freq: 800, freq2: 2400, q: 1.5, type: 'bandpass' }); T({ f: 300, f2: 900, type: 'triangle', dur: 0.3, vol: 0.12 }); this.thump(100, 50, 0.2, 0.3, at); N({ dur: 0.18, vol: 0.2, freq: 1500, q: 2, type: 'bandpass', delay: 0.25 }); break;
+      case 'pulso': this.thump(80, 40, 0.3, 0.6, at); this.thump(80, 40, 0.3, 0.45, at, 0.18); T({ f: 392, f2: 784, type: 'sine', dur: 0.6, vol: 0.14, delay: 0.1 }); N({ dur: 0.5, vol: 0.25, freq: 1800, freq2: 200 }); break;
+      case 'simbionte': T({ f: 150, f2: 450, type: 'sawtooth', dur: 0.6, vol: 0.16 }); for (let i = 0; i < 4; i++) T({ f: 300 + i * 90, f2: 600 + i * 120, dur: 0.1, vol: 0.12, delay: 0.1 + i * 0.07 }); N({ dur: 0.5, vol: 0.2, freq: 500, freq2: 2000 }); this.thump(90, 40, 0.3, 0.4, at); break;
+      case 'metamorfosis': this.thump(55, 22, 1.1, 0.65, at); [196, 294, 392, 587, 784].forEach((f, i) => T({ f, dur: 1.1, vol: 0.1, att: 0.15, delay: i * 0.08 })); N({ dur: 0.9, vol: 0.3, freq: 600, freq2: 5000 }); this.crack(0.3, at, 3000, 0.08, 0.4); break;
+      default: this.ability(at);
+    }
+  }
+  /** Fin de una definitiva: el cuerpo se "desinfla". */
+  hostEnd(id, at) { this._vk = 1.6; try { this.tone({ f: 500, f2: 70, type: 'sawtooth', dur: 0.5, vol: 0.2, at }); this.noise({ dur: 0.5, vol: 0.2, freq: 3000, freq2: 120, at }); } finally { this._vk = 1; } }
+  /** Melee por Huésped. kind: light|heavy|air|exec. hit: nº de impactos (0 = al aire). */
+  melee(host, kind, at, hit = 0) { this._vk = 2.2; try { this._melee(host, kind, at, hit); } finally { this._vk = 1; } }
+  _melee(host, kind, at, hit) {
+    const T = (o) => this.tone({ ...o, at }), N = (o) => this.noise({ ...o, at }), big = kind === 'heavy' || kind === 'air' || kind === 'exec', k = big ? 1.5 : 1, r = Math.random;
+    if (kind !== 'exec') switch (host) { // el golpe al aire (barrido)
+      case 'vesper': N({ dur: 0.07 * k, vol: 0.3, freq: 4200, freq2: 7000, type: 'bandpass', q: 2 }); T({ f: 1500, f2: 600, type: 'sawtooth', dur: 0.06, vol: 0.08 }); if (big) N({ dur: 0.08, vol: 0.28, freq: 4800, type: 'bandpass', q: 2, delay: 0.07 }); break;
+      case 'micelio': N({ dur: 0.22 * k, vol: 0.28, freq: 300, freq2: 120, q: 0.8 }); T({ f: 90, f2: 50, dur: 0.18 * k, vol: 0.22 }); break;
+      case 'umbra': T({ f: 200, f2: 900, type: 'sine', dur: 0.2 * k, vol: 0.18 }); T({ f: 1200, f2: 300, type: 'triangle', dur: 0.2 * k, vol: 0.07, delay: 0.03 }); N({ dur: 0.18, vol: 0.14, freq: 6000, freq2: 1500, type: 'highpass' }); break;
+      case 'seraf': N({ dur: 0.15 * k, vol: 0.18, freq: 900, freq2: 3000, type: 'bandpass', q: 1.5 }); N({ dur: 0.03, vol: 0.55, freq: 3500, type: 'highpass', delay: 0.11 * k }); T({ f: 2400, f2: 500, type: 'square', dur: 0.04, vol: 0.1, delay: 0.11 * k }); break;
+      default: N({ dur: 0.12 * k, vol: 0.28, freq: 1400, freq2: 4200, type: 'bandpass', q: 1.2 }); T({ f: 2600, f2: 1900, type: 'triangle', dur: 0.1, vol: 0.06, delay: 0.02 }); // axioma: cuchilla que sale
+    }
+    if (hit > 0 || kind === 'exec') { // el golpe
+      const d = 0.06 * k;
+      this.thump(big ? 110 : 150, 45, 0.18 * k, big ? 0.6 : 0.4, at, d);
+      switch (host) {
+        case 'vesper': this.crack(0.3, at, 5000, 0.04, d); T({ f: 900 + r() * 200, f2: 300, type: 'sawtooth', dur: 0.08, vol: 0.1, delay: d }); break;
+        case 'micelio': N({ dur: 0.3, vol: 0.4, freq: 600, freq2: 80, delay: d }); this.thump(60, 28, 0.4, 0.55, at, d); break;
+        case 'umbra': T({ f: 1800, f2: 400, type: 'sine', dur: 0.25, vol: 0.14, delay: d }); N({ dur: 0.2, vol: 0.2, freq: 5000, freq2: 800, type: 'bandpass', q: 3, delay: d }); break;
+        case 'seraf': this.crack(0.5, at, 3000, 0.05, d); T({ f: 700, f2: 1500, dur: 0.12, vol: 0.12, delay: d }); break;
+        default: this.crack(0.3, at, 2600, 0.05, d); T({ f: 1300, f2: 800, type: 'square', dur: 0.06, vol: 0.08, delay: d });
+      }
+    }
+    if (kind === 'exec') { this.thump(55, 24, 0.7, 0.8, at, 0.08); [880, 1175, 1760].forEach((f, i) => T({ f, f2: f * 1.02, dur: 0.35, vol: 0.1, delay: 0.1 + i * 0.07 })); N({ dur: 0.5, vol: 0.3, freq: 3000, freq2: 100, delay: 0.06 }); }
   }
 
   /* ───── música generativa ───── */

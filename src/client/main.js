@@ -5,6 +5,8 @@ import { Equipo } from './equipo.js';
 import { settings, setSetting, sensFromSlider, sliderFromSens } from './settings.js';
 import { WEAPON_COLORS } from './shotfx.js';
 import { createCombatHud } from './hud-combat.js';
+import { createHuespedHud } from './hud-huesped.js';
+import { createCaida } from './caida.js';
 import { MAPS } from '../sim/maps.js';
 import { blocked } from '../sim/physics.js';
 import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.js';
@@ -65,7 +67,7 @@ addEventListener('keydown', (e) => {
     if (e.code === 'KeyH') { const ids = Object.keys(CHARACTERS), i = (ids.indexOf(p.char) + 1) % ids.length; g.setLoadout(p.id, ids[i], p.slots); }
     if (e.code === 'Comma' || e.code === 'Period') { const d = e.code === 'Period' ? 1 : -1, slot = Math.max(1, p.slots.indexOf(p.weapon)), n = WEAPONS.length; let w = p.weapon; do { w = (w + d + n) % n; } while (w < 1 || p.slots.includes(w)); g.setSlotWeapon(p.id, slot, w); }
   }
-  if (e.code === 'KeyV' && session && !session.intro) renderer.setThird(!renderer.third); // cámara en tercera persona
+  if (e.code === 'KeyP' && session && !session.intro) renderer.setThird(!renderer.third); // cámara en tercera persona (V ahora es melee)
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('mousedown', (e) => { if (e.button === 1) { mouse.ping = true; e.preventDefault(); } if (e.button === 0) mouse.fire = true; if (e.button === 2) { mouse.esp = true; e.preventDefault(); } if (session && session.intro) skipIntro(); });
@@ -91,20 +93,20 @@ addEventListener('touchstart', () => { sound.init(); sound.resume(); }, { passiv
 /* ───────── ayuda de puntería (todas las entradas: ratón, táctil y mando) ───────── */
 const AIM_KEY = 'cristal.aim.v1'; let aimLevel = isTouchDevice() ? 2 : 1; try { const v = parseInt(localStorage.getItem(AIM_KEY), 10); if (v >= 0 && v <= 3) aimLevel = v; } catch { /* ok */ }
 const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSel.addEventListener('change', () => { aimLevel = +aimSel.value; try { localStorage.setItem(AIM_KEY, String(aimLevel)); } catch { /* ok */ } }); }
-let combatHud = null;
+let combatHud = null, huespedHud = null, caida = null;
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
 function readInput() {
   if (session && session.touch) return touch.read();
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp, pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyG') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyR'), melee: keys.has('KeyV'), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyT') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
     i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.dpitch += g.dpitch * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.ads = i.ads || g.ads;
-    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.mov = i.mov || g.mov; i.esp = i.esp || g.esp; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
+    i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.mov = i.mov || g.mov; i.esp = i.esp || g.esp; i.s3 = i.s3 || g.s3; i.ult = i.ult || g.ult; i.melee = i.melee || g.melee; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
     if (g.next && !padLatch.next) i.weapon = (((session ? session.mySlot || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.mySlot || 0 : 0) - 1) % 5 + 5) % 5;
     if (cardsOpen) { if (g.next && !padLatch.next) pickReq = 1; if (g.prev && !padLatch.prev) pickReq = 0; if (g.jump && !padLatch.jump) pickReq = 2; if (pickReq >= 0) i.pick = pickReq; }
     padLatch.next = g.next; padLatch.prev = g.prev; padLatch.jump = g.jump;
@@ -198,8 +200,8 @@ function showTutorial(force = false) {
   if ((seen && !force) || !session || session.headless) return;
   const touchUI = !!session.touch, el = $('tutorial');
   const rows = touchUI
-    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARO', 'botón grande', 'disparar (mantené para ráfaga)'], ['ESPECIAL', 'DESPLAZ.', 'las 2 habilidades de tu héroe'], ['HABILIDAD', '◆', 'ayuda de equipo · señalar'], ['‹ ›', 'o tocá la barra', 'cambiar de arma']]
-    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar'], ['Clic der.', 'F', 'especial de tu héroe · desplazamiento'], ['Q', 'E · G', 'habilidad de equipo · usar · señalar'], ['1–5', 'rueda', 'cambiar de arma'], ['Esc', '', 'pausa']];
+    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARO', 'botón grande', 'disparar (mantené para ráfaga)'], ['HAB.1', 'HAB.2 · HAB.3', 'habilidades de tu Huésped (el anillo muestra la recarga)'], ['ULTI', 'MELEE', 'definitiva (cuando carga) · golpe cuerpo a cuerpo'], ['HABILIDAD', '◆', 'ayuda de equipo · señalar'], ['‹ ›', 'o tocá la barra', 'cambiar de arma']]
+    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar'], ['F', 'G · clic der.', 'habilidad 1 · habilidad 2'], ['Z', 'R', 'habilidad 3 · definitiva'], ['V', 'mantener = fuerte', 'golpe cuerpo a cuerpo'], ['Q', 'E · T', 'habilidad de equipo · usar · señalar'], ['1–5', 'rueda', 'cambiar de arma'], ['Esc', '', 'pausa']];
   el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Sobreviví las oleadas. Cumplí el objetivo de cada oleada y elegí una <b>mejora de arma</b> al terminarla.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   el.classList.remove('hidden'); const close = () => { el.classList.add('hidden'); try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
   $('tutok').onclick = close; later(close, force ? 20000 : 16000);
@@ -317,12 +319,14 @@ function predictLook(me, dyaw, dpitch) {
 
 function audioAndHud(state, me, dt) {
   if (!combatHud) { try { combatHud = createCombatHud($('hud'), { sound }); } catch (err) { console.warn('HUD de combate no disponible', err.message); combatHud = { onEvent() {}, update() {} }; } }
+  if (!caida) { try { caida = createCaida({ renderer, root: $('hud'), sound }); } catch (err) { console.warn('Percepción de caída no disponible', err.message); caida = { onEvent() {}, update() {} }; } }
   $('cross').classList.toggle('lock', !!session.onTarget);
   if (me && renderer.camera) { const r = new (renderer.camera.position.constructor)(1, 0, 0).applyQuaternion(renderer.camera.quaternion); sound.setListener({ x: me.pos[0], y: me.pos[1], z: me.pos[2] }, r); }
   sound.intensity += (Math.min(1, state.monsters.length / 25) - sound.intensity) * Math.min(1, dt);
   for (const e of state.events) {
     const mine = me && e.pid === me.id;
     if (combatHud) combatHud.onEvent(e, me, renderer.camera);
+    caida.onEvent(e, me);
     switch (e.t) {
       case 'shot': sound.shot(e.w, mine ? null : e.o); break;
       case 'hit': sound.hit(e.p); break;
@@ -349,7 +353,7 @@ function audioAndHud(state, me, dt) {
       case 'purge': sound.gravity(); banner('¡PURGA! La Madre está abierta: ¡disparale!', 2400); flash(); break;
       case 'gestate': banner('La Madre pone huevos: ¡rompelos antes de que eclosionen!', 2400); break;
       case 'hatch': sound.boom(e.p); break;
-      case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con G', 2200); break;
+      case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con T', 2200); break;
       case 'surge': banner('El Vórtice se enfurece…', 1800); break;
       case 'tshot': break;
       case 'skill': if (mine) { sound.ability(); } break;
@@ -361,6 +365,7 @@ function audioAndHud(state, me, dt) {
     }
   }
   if (combatHud) combatHud.update(dt, state, me);
+  try { caida.update(dt, state, session.intro ? null : me); } catch (err) { caida.update = () => {}; console.warn('caida', err.message); }
   canvas.classList.toggle('flip', !!(me && me.flip));
   canvas.classList.toggle('tide', !!(state.fx && (state.fx.zero || state.fx.warn)));
   if (state.fx && state.fx.warn && !session.tideWarned) { session.tideWarned = true; banner('LA MAREA SE APROXIMA… sin gravedad', 2500); }
@@ -431,10 +436,12 @@ function hudDirector(state, me) {
   }
   if (session && session.touch && me) { // recargas sobre los botones táctiles
     const set = (sel, k, secs) => { const el = document.querySelector(sel); if (el) { if (k > 0.01) el.dataset.cd = Math.ceil(k * secs); else delete el.dataset.cd; } };
-    const Cc = CHARACTERS[me.char]; if (Cc) { set('.tc-mov', me.mv, Cc.mov.cd); set('.tc-esp', me.es, Cc.esp.cd); } if (me.role) set('.tc-ability', me.ab, ROLES[me.role].cd);
+    if (me.role) set('.tc-ability', me.ab, ROLES[me.role].cd);
   }
+  if (!huespedHud) { try { huespedHud = createHuespedHud($('hud')); } catch (err) { console.warn('HUD de Huésped no disponible', err.message); huespedHud = { update() {} }; } }
+  huespedHud.update(me, !!(session && session.touch), !(session && session.intro));
   const dn = $('downed');
-  if (me && me.dead) { dn.classList.remove('hidden'); dn.textContent = me.lost ? 'PERDIDO… esperá la próxima oleada' : `CAÍDO · te desangrás ${Math.ceil(me.bleed)} s · ¡pedí ayuda con G!`; } else dn.classList.add('hidden');
+  if (me && me.dead) { dn.classList.remove('hidden'); dn.textContent = me.lost ? 'PERDIDO… esperá la próxima oleada' : `CAÍDO · te desangrás ${Math.ceil(me.bleed)} s · ¡pedí ayuda con T!`; } else dn.classList.add('hidden');
   const bm = $('bossmech'), b = state.boss;
   if (b) {
     let t = '';

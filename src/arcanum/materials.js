@@ -418,7 +418,8 @@ export function restAttribute(entry) { return (entry.restAttr ||= new T.BufferAt
 //    el tatuaje encima, 2 = cristal facetado luminoso.
 //  · gloveSkin: pinta la piel de las manos (dedos incluidos) como guante táctico oscuro con anillos y yemas luminosas, sin mallas extra.
 // ====================================================================================================================
-export const TATTOO_STYLES = { egida: 0, lumen: 1, forja: 2, vigia: 3, nova: 4, umbra: 5 };
+// Huéspedes: reutilizan los 6 estilos del shader (axioma = runas/líneas, vesper = ojos, micelio = venas, seraf = constelaciones; umbra conserva el suyo)
+export const TATTOO_STYLES = { egida: 0, lumen: 1, forja: 2, vigia: 3, nova: 4, umbra: 5, axioma: 0, vesper: 3, micelio: 2, seraf: 1 };
 
 const TATTOO_GLSL = `
 float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }

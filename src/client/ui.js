@@ -4,6 +4,7 @@ import { CHARACTERS, CHARACTER_IDS, ROLES, WEAPONS } from '../sim/data.js';
 import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
 import { WEAPON_COLORS } from './shotfx.js';
 import { buildHeroScreen, renderHeroScreen } from './heroes-ui.js';
+import { buildHuespedScreen, showHuesped } from './huespedes-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const HERO = {
@@ -11,15 +12,16 @@ const HERO = {
   arenas: ['Arenas', 'Salteá la historia y andá directo a la acción en cualquiera de los dos mapas, con oleadas progresivas y un jefe cada uno.', ['Solo', 'Oleadas', 'Jefes']],
   coop: ['Cooperativo', 'Creá una sala o unite con un código. Hasta 4 Pasajeros, hordas que escalan con el grupo y reanimación entre compañeros.', ['1–4 jugadores', 'Wi-Fi / LAN']],
   bestiary: ['Bestiario', 'Quince organismos mitad carne, mitad cristal. Girá cada criatura en 3D y leé sus patrones, avisos y debilidades.', ['12 criaturas', '3 jefes']],
+  huesped: ['Huésped', 'Elegí tu Huésped: uno de los 5 organismos biomecánicos (o un Veterano). Mirá su modelo en 3D, sus estadísticas y sus habilidades antes de entrar a la partida.', ['5 Huéspedes', 'Veteranos', 'Demostración']],
   loadout: ['Equipo', 'Elegí entre 6 personajes, cada uno con un desplazamiento y un disparo especial propios, y armá tu arsenal con 14 armas. Tras cada oleada mejorás las armas que elegiste.', ['6 personajes', '15 armas', 'Mejoras']],
   options: ['Opciones', 'Calidad gráfica (Baja para iPhone), controles, sensibilidad, volumen y subtítulos.', ['PC', 'iPhone', 'Mando']],
 };
-const ART = { story: './public/art/historia.jpg', arenas: './public/art/arena-m1.jpg', coop: './public/art/coop.jpg', loadout: './public/art/opciones.jpg', bestiary: './public/art/bestiario.jpg', options: './public/art/opciones.jpg' };
+const ART = { story: './public/art/historia.jpg', arenas: './public/art/arena-m1.jpg', coop: './public/art/coop.jpg', loadout: './public/art/opciones.jpg', huesped: './public/art/opciones.jpg', bestiary: './public/art/bestiario.jpg', options: './public/art/opciones.jpg' };
 
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); this.addBackButtons(); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); this.addBackButtons(); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
   }
   /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
   addBackButtons() {
@@ -32,7 +34,7 @@ export class MenuUI {
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { title: '#pressstart', main: '#mainlist .item', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', options: '#options .panel label' }[name];
+    const q = { title: '#pressstart', main: '#mainlist .item', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', options: '#options .panel label' }[name];
     return [...this.root.querySelectorAll(q)];
   }
   show(name, push = true) {
@@ -43,7 +45,11 @@ export class MenuUI {
     $('prompts').style.opacity = name === 'title' ? 0 : 1;
     if (name === 'bestiary') this.selectBeast(0);
     if (name === 'loadout') this.renderLoadout();
+    if (name === 'huesped') showHuesped(this);
+    if (name === 'main') this.refreshHuesped();
   }
+  /** Rótulo del menú principal: qué Huésped está elegido. */
+  refreshHuesped() { const s = this.root.querySelector('[data-go=huesped] small'), c = CHARACTERS[Equipo.char]; if (s && c) s.textContent = 'Tu Huésped: ' + c.name + ' · ' + (c.title || c.desc); }
   back() { if (this.screen === 'title') return; const prev = this.stack.pop(); this.sound.ui('back'); this.show(prev || 'main', false); }
   focus(i, silent = false) {
     const l = this.list(); if (!l.length) return; this.idx = (i + l.length) % l.length;

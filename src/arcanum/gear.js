@@ -10,7 +10,7 @@ import { fabricMaterial, npcTier, tattooMaterial, gloveSkin, TATTOO_STYLES } fro
 import { fabricId } from './library.js';
 
 const col = (c) => new T.Color(c);
-const TATTOO_ACCENT = { egida: 0xe6ffff, lumen: 0x5dffa4, forja: 0xfff0a8, vigia: 0xffffff, nova: 0xffe27a, umbra: 0xff7ae8 };
+const TATTOO_ACCENT = { egida: 0xe6ffff, lumen: 0x5dffa4, forja: 0xfff0a8, vigia: 0xffffff, nova: 0xffe27a, umbra: 0xff7ae8, axioma: 0x9fd8ff, vesper: 0xe2b8ff, micelio: 0xe8c25a, seraf: 0xfff0b0 };
 const ROLE_LIST = ['vanguardia', 'soporte', 'ingeniero', 'explorador'];
 
 // ------------------------------------------------------------------ material de cristal (acento psicodélico)

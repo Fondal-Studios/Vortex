@@ -16,8 +16,11 @@ const BTN = [
   ['jump', 'tc-jump', '⤒', 'SALTO', 'hold', false],
   ['crouch', 'tc-crouch', '⤓', 'AGACHAR', 'toggle', false],
   ['dash', 'tc-dash', '»', 'CORRER', 'toggle', false],
-  ['mov', 'tc-mov', '⇢', 'DESPL.', 'hold', false],
-  ['esp', 'tc-esp', '✦', 'ESPECIAL', 'hold', false],
+  ['mov', 'tc-mov', '⇢', 'HAB.1', 'hold', false],
+  ['esp', 'tc-esp', '✦', 'HAB.2', 'hold', false],
+  ['s3', 'tc-s3', '❖', 'HAB.3', 'hold', false],
+  ['ult', 'tc-ult', '★', 'ULTI', 'hold', false],
+  ['melee', 'tc-melee', '⚔', 'MELEE', 'hold', false],
   ['ability', 'tc-ability', '✚', 'EQUIPO', 'hold', false],
   ['use', 'tc-use', '✋', 'USAR', 'hold', false],
   ['ping', 'tc-ping', '◆', '', 'hold', false],
@@ -27,9 +30,9 @@ const BTN = [
 ];
 // Qué botones se ven según la cantidad de dedos
 const SHOW = {
-  2: ['fire', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
-  3: ['fire', 'fireL', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
-  4: ['fire', 'fireL', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
+  2: ['fire', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 's3', 'ult', 'melee', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
+  3: ['fire', 'fireL', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 's3', 'ult', 'melee', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
+  4: ['fire', 'fireL', 'ads', 'jump', 'crouch', 'dash', 'mov', 'esp', 's3', 'ult', 'melee', 'ability', 'use', 'ping', 'prev', 'next', 'pause'],
 };
 const STICK_R = 58;             // radio del recorrido de la palanca (px CSS)
 const STICK_DEAD = 0.1;         // zona muerta (fracción)
@@ -44,7 +47,7 @@ export class TouchControls {
   /* ───── estado de entrada ───── */
   reset(first = false) {
     this.mx = 0; this.mz = 0; this.dyaw = 0; this.dpitch = 0; this.weapon = -1;
-    this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, ability: false, use: false, ping: false };
+    this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, ability: false, use: false, ping: false };
     this.dashStick = false; this.adsToggled = false;
     if (!first) { this.ptrs.clear(); this.stick.classList.add('hidden'); this.host.querySelectorAll('.on').forEach((b) => b.classList.remove('on')); }
   }
@@ -191,7 +194,7 @@ export class TouchControls {
 
   /** Entrada de este cuadro (los acumulados de giro se consumen). */
   read() {
-    const s = this.st, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: s.fire || s.fireL, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, ads: s.ads, crouch: s.crouch };
+    const s = this.st, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: s.fire || s.fireL, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: s.melee, ads: s.ads, crouch: s.crouch };
     this.dyaw = this.dpitch = 0; this.weapon = -1; return i;
   }
 }

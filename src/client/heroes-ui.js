@@ -75,7 +75,7 @@ export function buildHeroScreen(menu) {
   root.innerHTML = `
     <header class="hx-top"><button class="hx-back hx-nav" type="button" data-act="back" aria-label="Volver">‹ <span>Volver</span></button><h3 class="hx-title">Elegí tu héroe</h3><span class="hx-hint">Tocá un héroe para elegirlo · arrastrá para girarlo</span></header>
     <div class="hx-body">
-      <nav class="hx-rail" id="hxrail" aria-label="Héroes">${CHARACTER_IDS.map((id) => { const c = CHARACTERS[id]; return `<button class="hx-hero hx-nav" type="button" data-ch="${id}" style="--c:${hex(c.color)}" aria-label="${c.name}"><span class="hx-gl">${GLYPHS[id]}</span><span class="hx-hn"><b>${c.name}</b><small>${ROLES[c.role].name}</small></span></button>`; }).join('')}</nav>
+      <nav class="hx-rail" id="hxrail" aria-label="Héroes">${CHARACTER_IDS.map((id) => { const c = CHARACTERS[id]; return `<button class="hx-hero hx-nav" type="button" data-ch="${id}" style="--c:${hex(c.color)}" aria-label="${c.name}"><span class="hx-gl">${GLYPHS[id] || ''}</span><span class="hx-hn"><b>${c.name}</b><small>${(ROLES[c.role] || { name: c.role }).name}</small></span></button>`; }).join('')}</nav>
       <section class="hx-stage" id="hxstage">
         <div class="hx-bg"><div class="hx-bgglow"></div><div class="hx-bggl" id="hxbggl"></div><div class="hx-bgring"></div></div>
         <iframe id="hxview" class="hx-view" title="Vista del héroe" loading="lazy" tabindex="-1"></iframe>
@@ -126,12 +126,12 @@ export function buildHeroScreen(menu) {
 /** Rellena la pantalla con el héroe elegido (Equipo.char). Se llama al entrar y en cada cambio. */
 export function renderHeroScreen(menu) {
   const root = menu.root.querySelector('#loadout'), $ = (s) => root.querySelector(s);
-  const id = Equipo.char, C = CHARACTERS[id], R = ROLES[C.role], col = hex(C.color), prevId = root.dataset.hero; root.dataset.hero = id;
+  const id = Equipo.char, C = CHARACTERS[id], X = C.s3 || C.esp, R = ROLES[C.role] || { name: C.role, ability: X.name, desc: X.desc, cd: X.cd }, /* Huéspedes: rol propio */ col = hex(C.color), prevId = root.dataset.hero; root.dataset.hero = id;
   root.style.setProperty('--c', col);
   $('#hxname').textContent = C.name; $('#hxrole').innerHTML = `<i>${GLYPHS[id] ? '' : ''}</i>${R.name} · ${R.ability}`;
-  $('#hxbggl').innerHTML = GLYPHS[id];
+  $('#hxbggl').innerHTML = GLYPHS[id] || '';
   const lore = HERO_LORE[id] || []; $('#hxlore').innerHTML = lore.map((l) => `<span>${l}</span>`).join(''); $('#hxlore2').innerHTML = lore.map((l) => `<span>${l}</span>`).join('');
-  const sk = (icon, key, name, desc, cd, kind) => `<button class="hx-skill" type="button" data-play="${kind}"><span class="hx-ico">${ICONS[icon]}</span><span class="hx-st"><span class="hx-sn"><b>${name}</b><kbd>${key}</kbd></span><span class="hx-sd">${desc}</span><span class="hx-cd">Recarga ${cd} s</span></span></button>`;
+  const sk = (icon, key, name, desc, cd, kind) => `<button class="hx-skill" type="button" data-play="${kind}"><span class="hx-ico">${ICONS[icon] || ICONS.pulso}</span><span class="hx-st"><span class="hx-sn"><b>${name}</b><kbd>${key}</kbd></span><span class="hx-sd">${desc}</span><span class="hx-cd">Recarga ${cd} s</span></span></button>`;
   $('#hxskills').innerHTML = sk(C.mov.id, KEYS.mov, C.mov.name, C.mov.desc, C.mov.cd, 'cast') + sk(C.esp.id, KEYS.esp, C.esp.name, C.esp.desc, C.esp.cd, 'cast') + sk(ROLE_ICON[C.role], KEYS.tac, R.ability, R.desc.split('.').slice(0, 2).join('.').trim() + '.', R.cd, 'cast');
   root.querySelectorAll('.hx-skill').forEach((b) => { b.onclick = () => { try { menu.hxView && menu.hxView.contentWindow.postMessage({ hv: 1, play: 'cast' }, '*'); } catch { /* ok */ } menu.sound.ui('tick'); }; });
   const st = HERO_STATS[id] || [3, 3, 3, 3];

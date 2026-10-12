@@ -21,11 +21,13 @@ export const QUALITIES = Object.keys(PROFILES); // 'low' | 'medium' | 'high'
 export const PLAYER_COLORS = [0x66ffee, 0xff66c4, 0xffd23f, 0x9dff5a]; // los mismos de render.js
 export const ROLES = ['vanguardia', 'soporte', 'ingeniero', 'explorador'];
 // Personajes del juego (espejo de CHARACTERS en src/sim/data.js): elige guantes + tatuajes de cristal propios, color y, si faltan, preset/semilla/rol.
-export const CHAR_IDS = ['egida', 'lumen', 'forja', 'vigia', 'nova', 'umbra'];
+export const CHAR_IDS = ['egida', 'lumen', 'forja', 'vigia', 'nova', 'umbra', 'axioma', 'vesper', 'micelio', 'seraf'];
 export const CHAR_INFO = {
   egida: { color: 0x66ffee, role: 'vanguardia', preset: 'jugador1' }, lumen: { color: 0xff66c4, role: 'soporte', preset: 'jugador2' },
   forja: { color: 0xffd23f, role: 'ingeniero', preset: 'jugador3' }, vigia: { color: 0x9dff5a, role: 'explorador', preset: 'jugador4' },
   nova: { color: 0xff9a3c, role: 'explorador', seed: 'nova-7' }, umbra: { color: 0xb98cff, role: 'soporte', seed: 'umbra-3' },
+  // Huéspedes (colores y presets de CHARACTERS en src/sim/data.js; el rol de la 3ª persona es el equivalente de los 4 roles base)
+  axioma: { color: 0x3aa8ff, role: 'vanguardia', preset: 'jugador1' }, vesper: { color: 0xb04bff, role: 'explorador', preset: 'jugador4' }, micelio: { color: 0x7be03a, role: 'ingeniero', preset: 'jugador2' }, seraf: { color: 0xffd45a, role: 'soporte', preset: 'jugador3' },
 };
 const ROLE_CHAR = { vanguardia: 'egida', soporte: 'lumen', ingeniero: 'forja', explorador: 'vigia' }; // sin `char`, el rol elige el estilo de manos
 

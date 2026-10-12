@@ -38,6 +38,11 @@ export const HAND_PRESETS = {   // el color dominante es el color canon del pers
   vigia: { color: 0x9dff5a, accent: 0x33ffd0, tattoo: 'ojos',         glove: 'desnudo', skin: 0x9a6a48 },   // cazadora: manos al aire con ojos cósmicos, lima + turquesa
   nova:  { color: 0xff9a3c, accent: 0xff3d6e, tattoo: 'runas',        glove: 'cristal', skin: 0xd9a47c },   // saturación: runas incandescentes sobre cristal, naranja + carmesí
   umbra: { color: 0xb98cff, accent: 0x40ffc0, tattoo: 'ojos',         glove: 'cristal', skin: 0x6e4a3a },   // espacio y fase: ojos entre estrellas, violeta + verde fantasma
+  // Huéspedes (docs/HUESPEDES.md): manos biomecánicas
+  axioma:  { color: 0x3aa8ff, accent: 0x9fd8ff, tattoo: 'runas',        glove: 'tactico', skin: 0x2a3347 },   // organismo de guerra: placas negras con líneas azules
+  vesper:  { color: 0xb04bff, accent: 0xe2b8ff, tattoo: 'venas',        glove: 'desnudo', skin: 0x3a2a4a },   // depredadora: piel oscura con nervios violeta
+  micelio: { color: 0x7be03a, accent: 0xe8c25a, tattoo: 'constelacion', glove: 'cristal', skin: 0x4a3a22 },   // devorador: quitina parda con esporas y hongos
+  seraf:   { color: 0xffd45a, accent: 0xfff0b0, tattoo: 'constelacion', glove: 'cristal', skin: 0xe9dcc2 },   // simbiosis: marfil con filamentos dorados
 };
 
 try { const pr = new URLSearchParams(location.search).get('preset'); if (pr && HAND_PRESETS[pr]) setHandStyle(HAND_PRESETS[pr]); } catch { /* sólo pruebas: ?preset=egida|lumen|forja|vigia|nova|umbra */ }

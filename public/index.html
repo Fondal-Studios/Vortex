@@ -9,7 +9,7 @@
 <link rel="manifest" href="/public/manifest.webmanifest"><link rel="apple-touch-icon" href="/public/icon-180.png">
 <title>Cristal Vórtice</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="/public/style.css">
+<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css">
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
 </head>
 <body>
@@ -37,7 +37,7 @@
   <div id="allies"></div>
   <div id="pings"></div>
   <div id="skills"><div class="sk" id="skm"><b>F</b><span></span><i></i></div><div class="sk" id="ske"><b>CLIC DER</b><span></span><i></i></div></div>
-  <div id="cards" class="hidden"><h3>MEJORÁ UN ARMA</h3><div id="cardlist"></div><p id="cardhint"></p></div>
+  <div id="cards" class="hidden"><div class="cards-in"><h3>MEJORÁ UN ARMA</h3><div id="cardlist"></div><p id="cardhint"></p></div></div>
 </div>
 <div id="touch" class="hidden"></div>
 <div id="rotate" class="hidden"><p>📱↻</p><p>Girá el teléfono en horizontal para jugar</p></div>
@@ -56,6 +56,7 @@
     <nav id="mainlist" class="list">
       <button class="item" data-go="story" data-art="historia"><b>Historia</b><small>Un tren, un andén, una luz</small></button>
       <button class="item" data-go="arenas" data-art="arenas"><b>Arenas</b><small>Directo a la acción</small></button>
+      <button class="item" data-go="huesped" data-art="equipo"><b>Huésped</b><small>Elegí tu organismo</small></button>
       <button class="item" data-go="loadout" data-art="equipo"><b>Equipo</b><small>Personajes · habilidades · armas</small></button>
       <button class="item" data-go="coop" data-art="coop"><b>Cooperativo</b><small>Hasta 4 Pasajeros</small></button>
       <button class="item" data-go="bestiary" data-art="bestiario"><b>Bestiario</b><small>15 organismos del Vórtice</small></button>
@@ -81,6 +82,8 @@
       <button class="card" data-start="m3"><img src="/public/art/arena-m3.jpg" alt=""><div><b>Laberinto Celestial</b><small>Muros de cristal · ojos por todas partes<br>Jefe: Argos, el Ojo Primordial</small></div></button>
     </div>
   </section>
+  <!-- ═════ HUÉSPED: selección previa a la partida (src/client/huespedes-ui.js) ═════ -->
+  <section id="huesped" class="screen" data-screen="huesped"></section>
   <!-- ═════ EQUIPO: personajes y armas ═════ -->
   <section id="loadout" class="screen" data-screen="loadout">
     <div class="lo-left">
@@ -108,7 +111,7 @@
       <div class="or">o unite con el código</div>
       <input id="roomcode" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
       <button id="joinroom" class="btn">Unirse</button>
-      <p class="hint">Elegí tu rol en Opciones. Si un compañero cae, acercate 3 s (E) para reanimarlo: el Soporte lo hace el doble de rápido. Resolvé los objetivos juntos y usá G para señalar.</p>
+      <p class="hint">Elegí tu rol en Opciones. Si un compañero cae, acercate 3 s (E) para reanimarlo: el Soporte lo hace el doble de rápido. Resolvé los objetivos juntos y usá T para señalar.</p>
     </div>
   </section>
   <!-- ═════ BESTIARIO ═════ -->
