@@ -212,3 +212,53 @@ test('cámara en 3ª persona: el disparo va hacia donde cruza la retícula, no p
   g.setInput(p.id, { cam: false }); const a1 = g.aimDir(p); assert.ok(Math.abs(a1.x) < 1e-6 && Math.abs(a1.z + 1) < 1e-6, 'en 1ª persona la mira es la mirada');
   g.setInput(p.id, { cam: { third: true, side: -1, dist: 99 } }); assert.equal(p.cam.dist, 7); assert.equal(p.cam.side, -1);
 });
+
+import { WEAPON_ORGANS, CHAMP_ORGANS, ESSENCE_OF, MONSTERS, WEAPON_ORGAN_SLOTS } from '../src/sim/data.js';
+import { buyOrgan, organError, wOrgans } from '../src/sim/organos.js';
+import { clipOf } from '../src/sim/loadout.js';
+
+test('órganos: toda criatura da una esencia, los jefes también; matar absorbe (elite y jefe más)', () => {
+  for (const k of Object.keys(MONSTERS)) assert.ok(ESSENCE_OF[k], `esencia de ${k}`);
+  const { g, p } = mk('axioma'); const a = g.spawnMonster('astilla', ahead(p, 6)); g.killMonster(a, p); assert.equal(p.ess.carne, 1);
+  const e = g.spawnMonster('lente', ahead(p, 6)); e.elite = true; g.killMonster(e, p); assert.equal(p.ess.ojo, 3);
+  const q = g.spawnMonster('graviton', ahead(p, 8)); g.killMonster(q, p); assert.equal(p.ess.vacio, 1);
+  const s = g.snapshot().players[0]; assert.deepEqual(s.ess, [1, 0, 3, 1]); assert.equal(s.cs, 1);
+});
+
+test('órganos de arma: cuestan esencias, máx. 3 por arma, un órgano por grupo; cambian el daño, la cadencia y el cargador', () => {
+  const { g, p } = mk('axioma'); const w = p.slots[1];
+  assert.equal(buyOrgan(g, p, 'w', w, 'glandula_osea'), false, 'sin esencias no se puede'); p.ess = { carne: 100, cristal: 100, ojo: 100, vacio: 100 };
+  const base = wstat(p, w); assert.equal(buyOrgan(g, p, 'w', w, 'glandula_osea'), true); assert.equal(p.ess.carne, 92);
+  assert.ok(wstat(p, w).dmg > base.dmg * 1.19, 'daño +20 %'); assert.equal(buyOrgan(g, p, 'w', w, 'glandula_osea'), false, 'no repite');
+  buyOrgan(g, p, 'w', w, 'corazon_doble'); assert.ok(wstat(p, w).rate > base.rate * 1.24);
+  assert.match(organError(p, 'w', w, 'vesicula_acida') || 'ok', /ok/); buyOrgan(g, p, 'w', w, 'vesicula_acida'); assert.equal(wOrgans(p, w).length, 3);
+  assert.match(organError(p, 'w', w, 'espina_cristal'), /lugar/, 'sólo 3 por arma'); assert.equal(WEAPON_ORGAN_SLOTS, 3);
+  const w2 = p.slots[2]; buyOrgan(g, p, 'w', w2, 'camara_esporas'); assert.match(organError(p, 'w', w2, 'vesicula_acida'), /mismo tipo/, 'un órgano por grupo: hay que elegir');
+  const c0 = clipOf(p, p.slots[3]); buyOrgan(g, p, 'w', p.slots[3], 'musculo_cargador'); assert.ok(clipOf(p, p.slots[3]) >= c0 * 1.35);
+});
+
+test('órganos de arma: efectos reales en el combate (veneno, ardor, perforar, vida, arrastre)', () => {
+  const { g, p } = mk('axioma'); p.ess = { carne: 100, cristal: 100, ojo: 100, vacio: 100 }; p.weapon = 2; p.slots[1] = 2; p.ammo[2] = 1e6;
+  buyOrgan(g, p, 'w', 2, 'camara_esporas'); buyOrgan(g, p, 'w', 2, 'saco_gravitatorio'); buyOrgan(g, p, 'w', 2, 'espina_cristal');
+  const a = target(g, p, 'astilla', 12, 1e5), b = target(g, p, 'astilla', 20, 1e5); a.passive = b.passive = true; p.hp = 50; p.cd = 0; g.firePlayer(p); run(g, 0.05);
+  assert.equal(a.dotKind, 'poison'); assert.ok(b.hp < 1e5, 'espina cristalina atraviesa');
+  const { g: g3, p: v } = mk('axioma'); v.ess.carne = 50; v.weapon = 2; v.slots[1] = 2; v.ammo[2] = 1e6; buyOrgan(g3, v, 'w', 2, 'glandula_vital'); const t3 = target(g3, v, 'astilla', 12, 1e5); t3.passive = true; v.hp = 50; v.cd = 0; g3.firePlayer(v); run(g3, 0.05); assert.ok(v.hp > 50, 'glándula vital cura');
+});
+
+test('órganos de campeón: slots = 1 + nivel de evolución; efectos reales', () => {
+  const { g, p } = mk('axioma'); p.ess = { carne: 100, cristal: 100, ojo: 100, vacio: 100 };
+  assert.equal(buyOrgan(g, p, 'c', 0, 'placas'), true); assert.match(organError(p, 'c', 0, 'adrenal'), /evolucion/, 'un solo lugar en nivel 0'); p.evo = 2;
+  buyOrgan(g, p, 'c', 0, 'adrenal'); buyOrgan(g, p, 'c', 0, 'saco_g'); assert.equal(p.corg.length, 3);
+  p.hp = 100; p.shield = 0; g.hurtPlayer(p, 20); const sin = 20 / (1) * 1; assert.ok(100 - p.hp < sin * 0.95, 'placas reducen el daño');
+  run(g, 0.05); assert.ok(p.spdMul > 1.07, 'adrenal acelera'); assert.ok(p.jumpMul > 1.2, 'saco gravitatorio salta más'); assert.ok(g.snapshot().players[0].cs === 3);
+  const { g: g2, p: q } = mk('axioma'); q.ess = { carne: 100, cristal: 0, ojo: 0, vacio: 0 }; buyOrgan(g2, q, 'c', 0, 'medula'); q.hp = 40; run(g2, 6); assert.ok(q.hp > 45, 'médula regenera');
+});
+
+test('órganos: compra por input (UI) y carga desde el perfil con las mismas reglas; el input no se repite', () => {
+  const { g, p } = mk('vesper'); p.ess.ojo = 30; const w = p.slots[1];
+  g.setInput(p.id, { organ: { t: 'w', w, id: 'ojo_compuesto' } }); run(g, 0.1); assert.deepEqual(wOrgans(p, w), ['ojo_compuesto']); assert.equal(p.ess.ojo, 20);
+  run(g, 0.2); assert.equal(p.ess.ojo, 20, 'no cobra dos veces con el mismo pedido');
+  g.setInput(p.id, { organ: { t: 'w', w, id: 'inventado' } }); run(g, 0.1); assert.equal(wOrgans(p, w).length, 1);
+  const q = new Game({ mapId: 'm1', seed: 2 }).addPlayer('x', null, { char: 'seraf', evo: 1, worg: { 4: ['espina_cristal', 'nervio_conductor', 'saco_gravitatorio', 'glandula_osea'] }, corg: ['placas', 'adrenal', 'medula'], ess: { carne: 5 } });
+  assert.deepEqual(q.worg[4], ['espina_cristal', 'saco_gravitatorio', 'glandula_osea'], 'respeta grupos (nervio e espina son del mismo grupo)'); assert.deepEqual(q.corg, ['placas', 'adrenal'], 'respeta los lugares del nivel'); assert.equal(q.ess.carne, 5);
+});

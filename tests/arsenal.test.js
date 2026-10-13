@@ -97,7 +97,7 @@ test('Argos (jefe del Mapa 3): escudo hasta romper todos los ojos; entonces qued
 
 test('snapshot incluye personaje, ranuras, mejoras, tarjetas y recargas de habilidades', () => {
   const g = new Game({ mapId: 'm1', seed: 1 }); const p = g.addPlayer('a', null, { char: 'nova', slots: [0, 8, 12, 5, 6] }); applyCard(p, { w: 8, k: 'dmg' }); p.cards = [{ w: 8, k: 'rate' }];
-  const s = JSON.parse(JSON.stringify(g.snapshot())).players[0]; assert.equal(s.char, 'nova'); assert.deepEqual(s.sl, [0, 8, 12, 5, 6]); assert.equal(s.up[1][0], 1); assert.equal(s.cards.length, 1); assert.ok('mv' in s && 'es' in s);
+  const s = JSON.parse(JSON.stringify(g.snapshot())).players[0]; assert.equal(s.char, 'nova'); assert.deepEqual(s.sl, [0, 8, 12, 5, 6]); assert.equal(s.ug[1][0], 1); assert.equal(s.up.length, 3); assert.equal(s.cards.length, 1); assert.ok('mv' in s && 'es' in s);
 });
 
 test('efectos de estado: Glaciar ralentiza, Plaga y Brasa dañan con el tiempo, Réquiem ejecuta, Pulsar empuja, Mina explota al acercarse, Quimera cambia de efecto', () => {

@@ -7,6 +7,7 @@ import { useAbility, roleFor, reviveRate, speedMul } from './roles.js';
 import { makeObjective, updateObjective } from './objectives.js';
 import { initColoso, initMadre, initArgos, bossDeath } from './bossmech.js';
 import { useMove, useSpecial } from './characters.js';
+import { orgSnap, loadOrgans, shapeOrgans, hasC } from './organos.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
 import { Director } from './director.js';
@@ -61,7 +62,7 @@ export class Game {
       input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false, melee: false, s3: false, ult: false, evo: false, reload: false },
     };
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
-    initHost(p);
+    initHost(p); loadOrgans(p, opts);
     this.players.push(p);
     return p;
   }
@@ -72,14 +73,14 @@ export class Game {
     const i = p.input;
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.evo = !!inp.evo; i.s3 = !!inp.s3; i.ult = !!inp.ult;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = !!inp.evo; i.s3 = !!inp.s3; i.ult = !!inp.ult;
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); } } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); }
+  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); } } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -324,7 +325,7 @@ export class Game {
       const k = Math.min(1, (p.grounded ? 14 : 3) * dt);
       const nvt = madd(vt, sub(mul(wish, speed), vt), k);
       let nvu = vUp;
-      if (inp.jump && p.grounded) nvu = PLAYER.jump;
+      if (inp.jump && p.grounded) nvu = PLAYER.jump * (p.jumpMul || 1);
       p.vel = madd(nvt, up, nvu);
       p.vel = madd(p.vel, g, dt * (this.time < (p.glideUntil || 0) ? 0.12 : 1));
       const sp = len(p.vel); if (sp > 62) p.vel = mul(p.vel, 62 / sp);
@@ -352,7 +353,7 @@ export class Game {
     }
     if (this.map.outOfBounds(p.pos) || !finite(p.pos)) this.playerFell(p);
     // escudo
-    if (this.time - p.lastHurt > PLAYER.shieldDelay && p.shield < PLAYER.shield) p.shield = Math.min(PLAYER.shield, p.shield + PLAYER.shieldRate * dt);
+    if (this.time - p.lastHurt > PLAYER.shieldDelay && p.shield < PLAYER.shield) p.shield = Math.min(PLAYER.shield, p.shield + PLAYER.shieldRate * (hasC(p, 'corazon_cristal') ? 1.5 : 1) * dt);
     // armas
     if (inp.weapon >= 0) { p.weapon = inp.weapon < 5 ? p.slots[inp.weapon] : inp.weapon; inp.weapon = -1; }
     if (inp.pick >= 0) { if (p.cards.length) { applyCard(p, p.cards[inp.pick] || p.cards[0]); p.cards = []; this.emit({ t: 'upgrade', pid: p.id }); } inp.pick = -1; }
@@ -427,7 +428,7 @@ export class Game {
     const origin = this.eyePos(p);
     const base = this.aimDir(p);
     const w = { ...w0, dmg: w0.dmg * st.dmg, mod: st.mod, pierce: w0.pierce || st.mod === 'perfora', chain: w0.chain || (st.mod === 'cadena' ? 2 : 0) };
-    shapeWeapon(w, st);
+    shapeWeapon(w, st); shapeOrgans(w, p, p.weapon);
     if (w.kind === 'pulse') { // onda radial sin apuntar
       for (const m of this.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < w.radius + m.r) { this.damageMonster(m, w.dmg * (1 - 0.4 * d / (w.radius + m.r)), p, m.pos); m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), w.knock); } }
       for (const ob of [...this.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, p.pos) < w.radius + ob.r) this.damageObject(ob, w.dmg, p, ob.pos);
@@ -496,6 +497,7 @@ export class Game {
         if (w.lifesteal && p && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + w.dmg * w.lifesteal);
         if (w.knock && !h.m.dead) h.m.vel = madd(h.m.vel, d, w.knock);
         if (w.stormSlow) h.m.slowUntil = this.time + 2.5;
+        if (w.pullHit) for (const q of this.monsters) if (!q.dead && q !== h.m && !q.def.boss && dist(q.pos, at) < w.pullHit + q.r) q.vel = madd(q.vel, norm(sub(at, q.pos)), 5);
         if (w.chain && !w.noChain) this.chainFrom(p, h.m, w);
         if (w.mod === 'explosiva' && w.kind === 'hitscan') { this.explode(at, w.blast || 2.6, 0, w.dmg * 0.5, p, false); if (w.pull) for (const q of this.monsters) if (!q.dead && !q.def.boss && dist(q.pos, at) < w.pull + q.r) q.vel = madd(q.vel, norm(sub(at, q.pos)), 9); }
       }
@@ -766,7 +768,7 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...this.clipSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mut || c.mod || '', c.mod || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mut || c.mod || '', c.mod || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,

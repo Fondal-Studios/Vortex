@@ -1,4 +1,5 @@
 // Equipo del jugador: armas elegidas (5 ranuras), mejoras por oleada (tarjetas) y estadísticas efectivas de cada arma.
+import { organMuls } from './organos.js';
 import { WEAPON_MUTS, WEAPONS, UPGRADE_KINDS, WEAPON_MODS } from './data.js';
 
 export const DEFAULT_SLOTS = [0, 1, 2, 3, 4];
@@ -14,7 +15,8 @@ export const upgOf = (p, wid) => (p.upg[wid] ||= emptyUpg());
 /** Estadísticas efectivas de un arma para un jugador. */
 export function wstat(p, wid) {
   const u = p.upg[wid] || emptyUpg();
-  return { dmg: 1 + 0.22 * u.dmg, rate: 1 + 0.14 * u.rate, mag: 1 + 0.3 * u.mag, mod: u.mod, mut: u.mut };
+  const O = organMuls(p, wid);
+  return { dmg: (1 + 0.22 * u.dmg) * O.dmg, rate: (1 + 0.14 * u.rate) * O.rate, mag: 1 + 0.3 * u.mag, mod: u.mod, mut: u.mut };
 }
 export const ammoMax = (p, wid) => { const w = WEAPONS[wid]; return w.max === Infinity ? Infinity : Math.ceil(w.max * wstat(p, wid).mag); };
 export const modsFor = (wid) => Object.keys(WEAPON_MODS).filter((m) => !((m === 'precision' || m === 'toxica') && WEAPONS[wid].kind !== 'hitscan') && !(m === 'precision' && WEAPONS[wid].pellets > 3) && !(m === 'perfora' && (WEAPONS[wid].pierce)) && !(m === 'cadena' && WEAPONS[wid].chain) && !(m === 'explosiva' && WEAPONS[wid].splash));
@@ -60,5 +62,5 @@ export function shapeWeapon(w, st) {
 export const anyMut = (p, id) => Object.values(p.upg).some((u) => u && u.mut === id);
 
 /** Cargadores: balas por cargador de un arma (según su cadencia: lo rápido tiene cargador grande) y tiempo de recarga. */
-export const clipOf = (p, wid) => { const w = WEAPONS[wid]; const base = w.clip || Math.max(3, Math.min(40, Math.round(4 / w.rate))); return Math.max(1, Math.round(base * (1 + 0.15 * ((p.upg[wid] || {}).mag || 0)))); };
-export const reloadTime = (p, wid) => { const w = WEAPONS[wid]; return w.reload || Math.min(2.2, 1.0 + 0.025 * clipOf(p, wid)); };
+export const clipOf = (p, wid) => { const w = WEAPONS[wid]; const base = w.clip || Math.max(3, Math.min(40, Math.round(4 / w.rate))); return Math.max(1, Math.round(base * (1 + 0.15 * ((p.upg[wid] || {}).mag || 0)) * organMuls(p, wid).clip)); };
+export const reloadTime = (p, wid) => { const w = WEAPONS[wid]; return (w.reload || Math.min(2.2, 1.0 + 0.025 * clipOf(p, wid))) * organMuls(p, wid).reload; };

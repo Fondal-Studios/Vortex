@@ -95,6 +95,37 @@ export const EVO_TIERS = [
 ];
 export const CORES = { perCost: 1.2, eliteMul: 2, wave: 6, objective: 30, boss: 100 };
 
+
+/* ───────── EVOLUCIÓN ORGÁNICA: al derrotar criaturas se absorben ESENCIAS; con ellas crecen ÓRGANOS en las armas (3 por arma) y en el campeón (1 + su nivel de evolución).
+   Cada órgano cambia cómo se juega Y cómo se ve (`vis` = etiqueta para el modelo). Un órgano por grupo en cada arma: hay que elegir. ───────── */
+export const ESSENCES = { carne: { name: 'Carne viva', color: 0xff5a6e }, cristal: { name: 'Cristal vivo', color: 0x66f0ff }, ojo: { name: 'Mirada', color: 0xffd45a }, vacio: { name: 'Vacío', color: 0xb07bff } };
+export const ESSENCE_OF = { astilla: 'carne', racimo: 'carne', ariete: 'carne', madre: 'carne', geoda: 'cristal', prisma: 'cristal', cuarzo: 'cristal', coloso: 'cristal', lente: 'ojo', obelisco: 'ojo', espejo: 'ojo', aurora: 'ojo', argos: 'ojo', graviton: 'vacio', espiral: 'vacio' };
+export const ESS_YIELD = { normal: 1, elite: 3, boss: 12 };
+export const WEAPON_ORGAN_SLOTS = 3;
+export const WEAPON_ORGANS = {
+  glandula_osea:   { name: 'Glándula ósea',        group: 'daño',     cost: { carne: 8 },              vis: 'hueso',    desc: '+20 % de daño: proyectiles de hueso afilado.' },
+  corazon_doble:   { name: 'Corazón doble',        group: 'ritmo',    cost: { carne: 12 },             vis: 'corazon',  desc: '+25 % de cadencia: un segundo corazón late en el arma.' },
+  ojo_compuesto:   { name: 'Ojo compuesto',        group: 'punteria', cost: { ojo: 10 },               vis: 'ojo',      desc: 'Dispersión mínima y 18 % de críticos (×2,2). Sólo armas de rayo.', only: ['hitscan'] },
+  espina_cristal:  { name: 'Espina cristalina',    group: 'impacto',  cost: { cristal: 10 },           vis: 'cristal',  desc: 'Los disparos atraviesan criaturas.' },
+  nervio_conductor:{ name: 'Nervio conductor',     group: 'impacto',  cost: { ojo: 6, cristal: 6 },    vis: 'nervio',   desc: 'El daño salta a 2 criaturas cercanas.' },
+  saco_gravitatorio:{ name: 'Saco gravitatorio',   group: 'control',  cost: { vacio: 12 },             vis: 'vacio',    desc: 'Cada impacto arrastra levemente a las criaturas cercanas.' },
+  vesicula_acida:  { name: 'Vesícula ácida',       group: 'estado',   cost: { carne: 6, cristal: 6 },  vis: 'acido',    desc: 'Los impactos queman (daño con el tiempo).' },
+  camara_esporas:  { name: 'Cámara de esporas',    group: 'estado',   cost: { vacio: 6, carne: 6 },    vis: 'espora',   desc: 'Los impactos envenenan.' },
+  glandula_vital:  { name: 'Glándula vital',       group: 'estado',   cost: { carne: 14 },             vis: 'vital',    desc: 'Robás un 8 % del daño como vida.' },
+  musculo_cargador:{ name: 'Músculo de cargador',  group: 'cargador', cost: { carne: 10 },             vis: 'musculo',  desc: '+40 % de cargador y recarga más rápida.' },
+};
+export const CHAMP_ORGANS = {
+  placas:      { name: 'Placas quitinosas',   cost: { cristal: 10 },           vis: 'placas',    desc: '12 % menos de daño recibido: placas que crecen del cuerpo.' },
+  adrenal:     { name: 'Glándula adrenal',    cost: { carne: 10 },             vis: 'adrenal',   desc: '+8 % de velocidad y habilidades 8 % más rápidas.' },
+  ojo_extra:   { name: 'Tercer ojo',          cost: { ojo: 10 },               vis: 'ojo',      desc: '+12 % de daño a todo y revela a los camuflados.' },
+  saco_g:      { name: 'Saco gravitatorio',   cost: { vacio: 10 },             vis: 'vacio',    desc: 'Saltás un 25 % más alto y la definitiva carga un 15 % más rápido.' },
+  medula:      { name: 'Médula regenerativa', cost: { carne: 12 },             vis: 'medula',   desc: 'Regenerás 1,5 de vida por segundo si llevás 3 s sin recibir daño.' },
+  tentaculo:   { name: 'Tentáculo prensil',   cost: { carne: 6, ojo: 6 },      vis: 'tentaculo', desc: 'Melee con +20 % de alcance y +10 % de daño.' },
+  corazon_cristal:{ name: 'Corazón de cristal', cost: { cristal: 12, vacio: 6 }, vis: 'cristal', desc: 'El escudo se recarga un 50 % más rápido.' },
+  espiraculo:  { name: 'Espiráculo',          cost: { vacio: 12 },             vis: 'espiraculo', desc: 'La definitiva dura un 20 % más.' },
+};
+export const champOrganSlots = (evo) => 1 + (evo || 0);
+
 /* ───────── LOS HUÉSPEDES: organismos biomecánicos jugables (docs/HUESPEDES.md). `host:true` = aparecen primero en la selección.
    Cada uno: arma inicial, melee (ligero/pesado), 3 habilidades (mov = hab. 1, esp = hab. 2, s3 = hab. 3), definitiva (ult), pasiva y stats 0–10. ───────── */
 const HOSTS = {

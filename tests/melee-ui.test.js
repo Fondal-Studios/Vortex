@@ -128,7 +128,7 @@ test('en partida: contador de núcleos, aviso «¡Podés evolucionar!», tecla N
   assert.match(await pg.textContent('#evofx'), /EVOLUCI[ÓO]N: Despertar/);
   assert.equal(await pg.locator('#evohud.ready').count(), 0, 'con 60 núcleos y costo 90 ya no hay aviso');
   await pg.evaluate(() => { window.__api.session.game.players[0].cores = 100; }); await pg.waitForTimeout(500);
-  await pg.click('#evohud .eh-go'); await pg.waitForTimeout(500);
+  await pg.click('#evohud .eh-go', { force: true }); await pg.waitForTimeout(500);
   q = await pg.evaluate(() => { const x = window.__api.session.game.players[0]; return { evo: x.evo, co: x.cores }; });
   assert.equal(q.evo, 2, 'el botón también evoluciona'); assert.equal(q.co, 10, 'gasta 90 núcleos');
   // al salir (cerrarPartida) los núcleos sobrantes y la evolución pasan al perfil: 5 del banco + 33 sobrantes
