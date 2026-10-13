@@ -61,7 +61,7 @@ export function createEvoHud(rootEl) {
   const api = {
     el,
     /** ¿está apretado el botón (o se tocó hace menos de 150 ms)? */
-    held() { return held || (tapT && performance.now() - tapT < 150); },
+    held() { return held || (tapT && performance.now() - tapT < 350); },
     update(me, touch = false, hudVisible = true) {
       if (!me || !hudVisible || me.dead || me.co == null) { el.style.display = 'none'; return; }
       el.style.display = ''; el.classList.toggle('touch', !!touch);

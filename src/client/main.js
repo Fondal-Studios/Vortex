@@ -142,15 +142,26 @@ function assistAim(inp, state, me, dt, firing = false) {
     const score = ang / Math.max(0.02, size * 2.2 + 0.04); if (score < bd) { bd = score; best = { to, ang, size, mp }; }
   }
   session.onTarget = bestOn;
-  if (!best || aimLevel === 0) return;
+  if (!best || aimEff() === 0) return;
   if (walls) { const o = { x: eye.x, y: eye.y, z: eye.z }; for (let t = 1.5; t < Math.hypot(best.mp.x - eye.x, best.mp.y - eye.y, best.mp.z - eye.z); t += 1.5) if (blocked(map, { x: o.x + best.to.x * t, y: o.y + best.to.y * t, z: o.z + best.to.z * t })) return; }
-  const lv = [0, 0.5, 1, 1.6][aimLevel], cone = 0.12 + 0.05 * lv;
+  const lv = [0, 0.5, 1, 1.6][aimEff()], cone = 0.12 + 0.05 * lv;
   if (best.ang > cone) return;
   const tan = norm(project(best.to, up), h), yawErr = Math.atan2(dot(cross(h, tan), up), dot(h, tan)), pitchErr = Math.asin(Math.max(-1, Math.min(1, dot(best.to, up)))) - me.pitch;
   const near = Math.max(0, 1 - best.ang / cone), fric = 1 - Math.min(0.7, 0.28 * lv * near * 1.6); // fricción
   inp.dyaw *= fric; inp.dpitch *= fric;
   const k = (firing ? 5.5 : 2.4) * lv * dt * near; inp.dyaw += -yawErr * k; inp.dpitch += pitchErr * k; // imán
 }
+
+/** MODO SIMPLE (para quien nunca jugó un shooter): si hay un enemigo bajo la mira, dispara solo; si lo tenés encima, golpea solo. El jugador sólo mueve y mira. */
+function simpleAssist(inp, state, me) {
+  if (!settings().simple || !me || me.dead || session.paused) return;
+  const h = v3(...me.h); let close = false;
+  for (const m of state.monsters) { const d = { x: m.p[0] - me.pos[0], y: m.p[1] - me.pos[1], z: m.p[2] - me.pos[2] }, l = Math.hypot(d.x, d.y, d.z); if (l < (m.r || 1) + 3.2 && dot(norm(d), h) > 0.35) { close = true; break; } }
+  session.simpleT = (session.simpleT || 0) + 1;
+  if (close) { inp.fire = false; inp.melee = (session.simpleT % 24) < 10; }   // de cerca: golpes ligeros (pulsar y soltar; la sim golpea al soltar)
+  else if (session.onTarget && !(me.rl > 0)) inp.fire = true;                  // enemigo bajo la mira: dispara solo
+}
+const aimEff = () => (settings().simple ? 3 : aimLevel);
 
 /* ───────── sesión y campaña ───────── */
 function startSolo(mapId, opts = {}) {
@@ -274,7 +285,7 @@ function frame(now) {
     if (!paused && !session.ended) {
       // La entrada se lee UNA vez por cuadro y se entrega al simulador enseguida (acumula el giro hasta el próximo paso fijo):
       // el giro nunca espera a que toque un paso de 60 Hz y la cámara lo muestra en el mismo cuadro (ver soloLook).
-      if (!session.bot) { const inp = readInput(); if (L) assistAim(inp, L, L.players[0], dt, inp.fire); g.setInput(session.pid, inp); }
+      if (!session.bot) { const inp = readInput(); if (L) { assistAim(inp, L, L.players[0], dt, inp.fire); simpleAssist(inp, L, L.players[0]); } g.setInput(session.pid, inp); }
       session.acc += dt;
       while (session.acc >= SIM_DT) {
         session.acc -= SIM_DT;
@@ -297,7 +308,7 @@ function frame(now) {
     const inp = session.intro ? { mx: 0, mz: 0, dyaw: 0, dpitch: 0 } : readInput();
     const me = state.players.find((p) => p.id === session.pid);
     session.inAcc = session.inAcc || { dyaw: 0, dpitch: 0 };
-    if (me && !session.intro) assistAim(inp, state, me, dt, inp.fire);
+    if (me && !session.intro) { assistAim(inp, state, me, dt, inp.fire); simpleAssist(inp, state, me); }
     session.inAcc.dyaw += inp.dyaw; session.inAcc.dpitch += inp.dpitch;
     if (me) predictLook(me, inp.dyaw, inp.dpitch);
     if (session.sendT > 1 / 30) { net.send({ t: 'in', i: { ...inp, dyaw: session.inAcc.dyaw, dpitch: session.inAcc.dpitch } }); session.inAcc = { dyaw: 0, dpitch: 0 }; session.sendT = 0; }
@@ -581,6 +592,8 @@ function bindTouchSettings() {
   const sb = $('camside'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); setSetting('camSide', (settings().camSide || 1) > 0 ? -1 : 1); syncSide(); }); syncSide();
   for (const [id, key, dflt] of [['camdist', 'camDist', 3.6], ['camfov', 'camFov', 78]]) { const el = $(id); if (!el) continue; el.value = settings()[key] || dflt; el.addEventListener('input', () => setSetting(key, +el.value)); el.addEventListener('pointerdown', (e) => e.stopPropagation()); }
   window.__setCam = setCam; const qc = $('camquick'); if (qc) { const tg = (e) => { e.preventDefault(); e.stopPropagation(); setCam(!renderer.third); }; qc.addEventListener('click', tg); qc.addEventListener('pointerdown', (e) => e.stopPropagation()); }
+  const syncSimple = () => { const b = $('simpletoggle'); if (b) b.querySelector('b').textContent = `Modo simple (dispara solo): ${settings().simple ? 'sí' : 'no'}`; };
+  const stb = $('simpletoggle'); if (stb) stb.addEventListener('click', (e) => { e.stopPropagation(); setSetting('simple', !settings().simple); syncSimple(); }); syncSimple();
   const ab = $('advtoggle'); if (ab) { ab.addEventListener('click', (e) => { e.stopPropagation(); setSetting('advanced', !settings().advanced); syncAdv(); touch.applyLayout(); }); } syncAdv();
   bind('ths', () => Math.round(S.hudScale * 100), (v) => setSetting('hudScale', v / 100));
   bind('tho', () => Math.round(S.hudOpacity * 100), (v) => setSetting('hudOpacity', v / 100));
@@ -606,7 +619,7 @@ if (params.get('auto')) {
   startSolo(params.get('auto'), { bot: params.get('bot') === '1', wave: +params.get('wave') || 0, god: params.get('god') === '1', horde: params.get('horde') === '1', seed: +params.get('seed') || 7, skill: +params.get('skill') || 1.2, difficulty: +params.get('difficulty') || 1, intro: false });
   window.__session = session; window.__renderer = renderer;
 }
-window.__api = { ui, pad, get session() { return session; }, get caida() { return caida; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
+window.__api = { ui, pad, setSetting, settings, get session() { return session; }, get caida() { return caida; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
 window.__frame = frame; window.__step = (ms) => frame(last + ms); window.__ui = ui; if (!params.get('cap')) requestAnimationFrame(frame);
 
 // En un sitio estático (sin servidor) el cooperativo no está disponible: se avisa y se deshabilita.

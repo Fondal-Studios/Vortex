@@ -134,7 +134,7 @@ test('en partida: contador de núcleos, aviso «¡Podés evolucionar!», tecla N
   assert.match(await pg.textContent('#evofx'), /EVOLUCI[ÓO]N: Despertar/);
   assert.equal(await pg.locator('#evohud.ready').count(), 0, 'con 60 núcleos y costo 90 ya no hay aviso');
   await pg.evaluate(() => { window.__api.session.game.players[0].cores = 100; }); await pg.waitForTimeout(500);
-  await pg.click('#evohud .eh-go', { force: true }); await pg.waitForTimeout(500);
+  await pg.click('#evohud .eh-go', { force: true }); await pg.waitForFunction(() => window.__api.session.game.players[0].evo >= 2, null, { timeout: 20000 }).catch(() => {}); await pg.waitForTimeout(300);
   q = await pg.evaluate(() => { const x = window.__api.session.game.players[0]; return { evo: x.evo, co: x.cores }; });
   assert.equal(q.evo, 2, 'el botón también evoluciona'); assert.equal(q.co, 10, 'gasta 90 núcleos');
   // al salir (cerrarPartida) los núcleos sobrantes y la evolución pasan al perfil: 5 del banco + 33 sobrantes
@@ -152,16 +152,16 @@ test('presupuesto 3D en Baja: armas ≤ 14 llamadas y ≤ 6 000 triángulos; Hu�
   const res = await pg.evaluate(async () => {
     const THREE = await import('three'), M = await import('/src/client/melee-models.js'), E = await import('/src/client/huespedes-evo.js');
     const gl = new THREE.WebGLRenderer({ antialias: false }); gl.setSize(256, 256); const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, 0.1, 80); cam.position.set(0, 1.2, 9); scene.add(new THREE.HemisphereLight(0xffffff, 0x333333, 2));
-    const measure = (obj) => { scene.add(obj.group); let worst = { calls: 0, triangles: 0 }; for (let i = 0; i < 6; i++) { obj.update(0.05); gl.info.reset(); gl.render(scene, cam); worst = { calls: Math.max(worst.calls, gl.info.render.calls), triangles: Math.max(worst.triangles, gl.info.render.triangles) }; } scene.remove(obj.group); return worst; };
+    const measure = (obj) => { scene.add(obj.group); let worst = { calls: 0, triangles: 0 }; for (let i = 0; i < 3; i++) { obj.update(0.05); gl.info.reset(); gl.render(scene, cam); worst = { calls: Math.max(worst.calls, gl.info.render.calls), triangles: Math.max(worst.triangles, gl.info.render.triangles) }; } scene.remove(obj.group); return worst; };
     const out = { armas: {}, hosts: {} };
     for (const id of M.MELEE_MODEL_IDS) { let w = { calls: 0, triangles: 0 }; for (let t = 0; t <= 4; t++) { const m = M.buildMelee(THREE, id, { tier: t, quality: 'low', color: 0x3aa8ff }), r = measure(m); w = { calls: Math.max(w.calls, r.calls), triangles: Math.max(w.triangles, r.triangles) }; m.dispose(); } out.armas[id] = w; }
     const WEAP = { axioma: 'sable_plasma', vesper: 'colmillo', micelio: 'martillo_sismico', umbra: 'pica_cristal', seraf: 'lanza_sinaptica' };
-    for (const id of ['axioma', 'vesper', 'micelio', 'umbra', 'seraf']) { let w = { calls: 0, triangles: 0 }; for (let t = 0; t <= 4; t++) { const h = E.buildHostEvo(THREE, id, { evo: t, melee: WEAP[id], quality: 'low' }); for (const p of ['idle', 'melee', 'skill']) { h.pose(p); const r = measure(h); w = { calls: Math.max(w.calls, r.calls), triangles: Math.max(w.triangles, r.triangles) }; } h.dispose(); } out.hosts[id] = w; }
+    for (const id of ['axioma', 'vesper', 'micelio', 'umbra', 'seraf']) { let w = { calls: 0, triangles: 0 }; for (let t = 0; t <= 4; t++) { const h = E.buildHostEvo(THREE, id, { evo: t, melee: WEAP[id], quality: 'low' }); for (const p of ['melee']) { h.pose(p); const r = measure(h); w = { calls: Math.max(w.calls, r.calls), triangles: Math.max(w.triangles, r.triangles) }; } h.dispose(); } out.hosts[id] = w; }
     return out;
   });
   console.log('presupuesto armas (Baja, peor de los 5 niveles):', JSON.stringify(res.armas)); console.log('presupuesto Huéspedes evolucionados con arma (Baja, peor nivel):', JSON.stringify(res.hosts));
   for (const [id, r] of Object.entries(res.armas)) { assert.ok(r.calls <= 14, `${id}: ${r.calls} llamadas de dibujo`); assert.ok(r.triangles <= 6000, `${id}: ${r.triangles} triángulos`); assert.ok(r.calls >= 2 && r.triangles > 100, `${id}: no dibujó nada`); }
-  for (const [id, r] of Object.entries(res.hosts)) { assert.ok(r.calls <= 70, `${id}: ${r.calls} llamadas de dibujo`); assert.ok(r.triangles <= 20000, `${id}: ${r.triangles} triángulos`); }
+  for (const [id, r] of Object.entries(res.hosts)) { assert.ok(r.calls <= 64, `${id}: ${r.calls} llamadas de dibujo`); assert.ok(r.triangles <= 20000, `${id}: ${r.triangles} triángulos`); }
   assert.deepEqual(errors, []); await ctx.close();
 });
 

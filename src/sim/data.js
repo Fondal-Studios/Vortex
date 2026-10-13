@@ -88,10 +88,22 @@ export const MELEE_AFFINITY = { axioma: ['espada', 'hacha'], vesper: ['daga'], m
 export const EVO_COST = [0, 40, 90, 160, 280];
 export const EVO_TIERS = [
   { name: 'Larva',       desc: 'Forma inicial.' },
-  { name: 'Despertar',   desc: 'Tu arma cuerpo a cuerpo se fusiona con vos y despierta su poder especial. +10 % de melee, −9 % de daño recibido.' },
-  { name: 'Fusión',      desc: 'La fusión se profundiza: +25 % de carga de la definitiva.' },
-  { name: 'Mutación',    desc: '+25 % de melee en total, habilidades 20 % más rápidas y el poder especial del arma se potencia.' },
-  { name: 'Forma final', desc: '+40 % de melee, +10 % de daño de todas tus armas y definitivas 30 % más largas.' },
+  { name: 'Despertar',   desc: 'Tu arma cuerpo a cuerpo se fusiona con vos y despierta su poder especial. Elegí un camino.' },
+  { name: 'Fusión',      desc: 'La fusión se profundiza. Elegí un camino.' },
+  { name: 'Mutación',    desc: 'Tu cuerpo cambia de forma. Elegí un camino.' },
+  { name: 'Forma final', desc: 'Lo que elijas ahora define lo que sos. Elegí un camino.' },
+];
+/* En cada nivel hay DOS caminos EXCLUYENTES: elegir uno cierra el otro para siempre (en ese Huésped). `vis` = cómo se ve la mutación. */
+export const EVO_PATHS = [
+  null,
+  [{ id: 'depredador', name: 'Depredador', vis: 'garras',  desc: 'Melee +20 % y cada golpe cuerpo a cuerpo te cura un 6 % del daño.' },
+   { id: 'coraza',     name: 'Coraza',     vis: 'placas',  desc: 'Recibís 18 % menos de daño: placas que crecen sobre el cuerpo.' }],
+  [{ id: 'velocidad',  name: 'Velocidad',  vis: 'tendones', desc: '+12 % de velocidad y habilidades 15 % más rápidas.' },
+   { id: 'resonancia', name: 'Resonancia', vis: 'nucleo',  desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más.' }],
+  [{ id: 'simbiosis',  name: 'Simbiosis',  vis: 'fusion',  desc: 'El poder especial de tu arma fusionada se potencia y el melee suma +15 %.' },
+   { id: 'artilleria', name: 'Artillería', vis: 'canones', desc: '+15 % de daño con todas las armas a distancia y +30 % de cargador.' }],
+  [{ id: 'apoteosis',  name: 'Apoteosis',  vis: 'alas',    desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más.' },
+   { id: 'anomalia',   name: 'Anomalía',   vis: 'grietas', desc: 'Una de cada cuatro bajas estalla en esencia: 70 de daño en área.' }],
 ];
 export const CORES = { perCost: 1.2, eliteMul: 2, wave: 6, objective: 30, boss: 100 };
 

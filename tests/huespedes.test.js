@@ -173,20 +173,25 @@ test('núcleos: se ganan matando, completando oleadas y jefes; evolucionar los g
   const { g, p } = mk('axioma'); const k = g.spawnMonster('geoda', ahead(p, 6)); g.killMonster(k, p);
   assert.ok(p.cores >= 6, `núcleos por baja ${p.cores}`);
   assert.equal(evolve(g, p), false, 'sin núcleos suficientes no evoluciona'); assert.equal(p.evo, 0);
-  p.cores = 40; assert.equal(evolve(g, p), true); assert.equal(p.evo, 1); assert.equal(p.cores, 0);
+  p.cores = 40; assert.equal(evolve(g, p, 0), true); assert.equal(p.evo, 1); assert.equal(p.cores, 0);
   p.cores = 1000; evolve(g, p); evolve(g, p); evolve(g, p); assert.equal(p.evo, 4); assert.equal(evolve(g, p), false, 'tope en 4'); assert.equal(1000 - p.cores, EVO_COST[2] + EVO_COST[3] + EVO_COST[4]);
   const s = g.snapshot().players[0]; assert.equal(s.evo, 4); assert.ok('co' in s && 'evn' in s && 'mw' in s);
 });
 
-test('evolución: cada nivel mejora de verdad (melee, daño recibido, enfriamientos, definitiva)', () => {
-  const golpe = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; const m = target(g, p, 'astilla', 3, 1e5); m.passive = true; tap(g, p, 'melee'); run(g, 0.3); return 1e5 - m.hp; };
-  const d = [0, 1, 3, 4].map(golpe); assert.ok(d[1] > d[0] * 1.05 && d[2] > d[1] * 1.1 && d[3] > d[2] * 1.1, `melee por nivel ${d.map((x) => x.toFixed(0))}`);
-  const recibido = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; p.hp = 100; p.shield = 0; g.hurtPlayer(p, 20); return 100 - p.hp; }; assert.ok(recibido(1) < recibido(0) * 0.95);
-  const cd = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; p.ul = 0; tap(g, p, 's3'); return p.s3Cd; }; assert.ok(cd(3) < cd(0) * 0.85, `cd ${cd(0)} → ${cd(3)}`);
-  const ulT = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; p.ul = 100; tap(g, p, 'ult'); return p.ultT; }; assert.ok(ulT(4) > ulT(0) * 1.25);
-  const carga = (evo) => { const { g, p } = mk('axioma'); p.evo = evo; const m = target(g, p, 'astilla', 5, 1e5); g.damageMonster(m, 500, p); return p.ul; }; assert.ok(carga(2) > carga(0) * 1.2, 'más carga de definitiva');
+test('evolución: cada nivel es una bifurcación EXCLUYENTE y cada camino cambia el juego de verdad', () => {
+  const { g, p } = mk('axioma'); p.cores = 1000;
+  assert.equal(evolve(g, p, 1), true); assert.deepEqual(p.path, ['coraza']); assert.equal(p.evo, 1);
+  assert.equal(evolve(g, p, 0), true); assert.deepEqual(p.path, ['coraza', 'velocidad'], 'el otro camino del nivel 1 quedó cerrado');
+  const s = g.snapshot().players[0]; assert.deepEqual(s.pth, ['coraza', 'velocidad']);
+  const golpe = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; const m = target(g, p, 'astilla', 3, 1e5); m.passive = true; tap(g, p, 'melee'); run(g, 0.3); return 1e5 - m.hp; };
+  assert.ok(golpe(['depredador']) > golpe([]) * 1.15, 'Depredador: melee +20 %'); assert.ok(Math.abs(golpe(['coraza']) - golpe([])) < 1, 'Coraza no toca el melee');
+  const recibido = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; p.hp = 100; p.shield = 0; g.hurtPlayer(p, 20); return 100 - p.hp; };
+  assert.ok(recibido(['coraza']) < recibido([]) * 0.85, 'Coraza: −18 % de daño'); assert.ok(Math.abs(recibido(['depredador']) - recibido([])) < 0.01);
+  const cd = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; tap(g, p, 's3'); return p.s3Cd; }; assert.ok(cd(['coraza', 'velocidad']) < cd(['coraza', 'resonancia']) * 0.9, 'Velocidad: habilidades más rápidas');
+  const ulT = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; p.ul = 100; tap(g, p, 'ult'); return p.ultT; }; assert.ok(ulT(['coraza', 'resonancia']) > ulT(['coraza', 'velocidad']) * 1.2, 'Resonancia: definitiva más larga');
+  const carga = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; const m = target(g, p, 'astilla', 5, 1e5); g.damageMonster(m, 500, p); return p.ul; }; assert.ok(carga(['coraza', 'resonancia']) > carga(['coraza', 'velocidad']) * 1.3);
+  const q = new Game({ mapId: 'm1', seed: 2 }).addPlayer('x', null, { char: 'seraf', evo: 2, path: ['coraza', 'inventado', 'simbiosis'] }); assert.deepEqual(q.path, ['coraza'], 'el perfil se valida: caminos inexistentes se descartan y nunca más caminos que niveles');
 });
-
 test('fusión: el poder especial del arma sólo despierta al evolucionar (nivel 1+) y cambia el combate', () => {
   const quema = (evo) => { const { g, p } = mk('axioma'); p.melee = 'sable_plasma'; p.evo = evo; const m = target(g, p, 'astilla', 3, 1e5); m.passive = true; tap(g, p, 'melee'); run(g, 0.3); return m.dotKind; };
   assert.equal(quema(0), undefined, 'sin fusión no quema'); assert.equal(quema(1), 'burn', 'fusionado quema');
@@ -261,4 +266,15 @@ test('órganos: compra por input (UI) y carga desde el perfil con las mismas reg
   g.setInput(p.id, { organ: { t: 'w', w, id: 'inventado' } }); run(g, 0.1); assert.equal(wOrgans(p, w).length, 1);
   const q = new Game({ mapId: 'm1', seed: 2 }).addPlayer('x', null, { char: 'seraf', evo: 1, worg: { 4: ['espina_cristal', 'nervio_conductor', 'saco_gravitatorio', 'glandula_osea'] }, corg: ['placas', 'adrenal', 'medula'], ess: { carne: 5 } });
   assert.deepEqual(q.worg[4], ['espina_cristal', 'saco_gravitatorio', 'glandula_osea'], 'respeta grupos (nervio e espina son del mismo grupo)'); assert.deepEqual(q.corg, ['placas', 'adrenal'], 'respeta los lugares del nivel'); assert.equal(q.ess.carne, 5);
+});
+
+import { makeCards as mkCards, applyCard as apCard, cardText } from '../src/sim/loadout.js';
+test('órganos como tarjetas: con esencias se ofrece un órgano entre las 3 tarjetas; elegirlo lo hace crecer y descarta las otras', () => {
+  const { g, p } = mk('axioma'); p.ess = { carne: 50, cristal: 50, ojo: 50, vacio: 50 };
+  let got = null; for (let i = 0; i < 20 && !got; i++) { const c = mkCards(g, p); if (c.some((x) => x.k === 'organ')) got = c; }
+  assert.ok(got, 'aparece una tarjeta de órgano'); const oc = got.find((x) => x.k === 'organ'); assert.ok(cardText(oc).length > 3);
+  const e0 = { ...p.ess }; p.cards = got; g.setInput(p.id, { pick: got.indexOf(oc) }); run(g, 0.1);
+  assert.equal(p.cards.length, 0, 'las otras tarjetas se descartan'); const grew = oc.t === 'c' ? p.corg.includes(oc.id) : wOrgans(p, oc.w).includes(oc.id); assert.ok(grew, 'el órgano creció');
+  assert.ok(Object.values(p.ess).reduce((a, b) => a + b, 0) < Object.values(e0).reduce((a, b) => a + b, 0), 'cobró esencias');
+  void apCard;
 });

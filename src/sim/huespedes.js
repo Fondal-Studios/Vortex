@@ -1,6 +1,6 @@
 // Los Huéspedes: melee, 3 habilidades, definitiva y pasiva de cada uno. Todo determinista y sin DOM. Contrato: docs/HUESPEDES.md
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clone } from './math.js';
-import { CHARACTERS, PLAYER, MELEE_WEAPONS, MELEE_AFFINITY, EVO_COST, CORES } from './data.js';
+import { CHARACTERS, PLAYER, MELEE_WEAPONS, MELEE_AFFINITY, EVO_COST, EVO_PATHS, CORES } from './data.js';
 import { blocked } from './physics.js';
 import { initOrgans, champTick, absorb, hasC } from './organos.js';
 
@@ -19,13 +19,13 @@ const flat = (p) => norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.head
 
 export function initHost(p) {
   Object.assign(p, { s3Cd: 0, ul: 0, ultT: 0, ultId: '', meleeCd: 0, meleeHold: 0, meleePrev: false, s3Prev: false, ultPrev: false, cmb: 0, cmbT: 0, slam: 0, buf: 0,
-    guardUntil: 0, cloakUntil: 0, cloakBonus: false, desfaseUntil: 0, glideUntil: 0, callo: 0, calloT: 0, adapt: {}, spdMul: 1, symb: null, regen: 0, evo: p.evo || 0, melee: p.melee || '', cores: p.cores || 0, evoPrev: false }); initOrgans(p);
+    guardUntil: 0, cloakUntil: 0, cloakBonus: false, desfaseUntil: 0, glideUntil: 0, callo: 0, calloT: 0, adapt: {}, spdMul: 1, symb: null, regen: 0, evo: p.evo || 0, path: Array.isArray(p.path) ? p.path : [], melee: p.melee || '', cores: p.cores || 0, evoPrev: 0 }); initOrgans(p);
 }
 
 /* ───────── pasos por tick ───────── */
 export function updateHost(g, p, dt) {
   const C = cdef(p), inp = p.input;
-  if (inp.evo && !p.evoPrev) evolve(g, p); p.evoPrev = inp.evo;
+  if (inp.evo && !p.evoPrev) evolve(g, p, inp.evo - 1); p.evoPrev = inp.evo;
   p.s3Cd = Math.max(0, p.s3Cd - dt); p.meleeCd = Math.max(0, p.meleeCd - dt);
   if (p.cmbT > 0) { p.cmbT -= dt; if (p.cmbT <= 0) p.cmb = 0; }
   if (p.calloT > 0) { p.calloT -= dt; if (p.calloT <= 0) p.callo = 0; }
@@ -38,7 +38,7 @@ export function updateHost(g, p, dt) {
     if (p.ultId === 'colapso') { /* la singularidad vive como objeto */ }
     if (p.ultT <= 0) { g.emit({ t: 'ultend', pid: p.id, id: p.ultId }); p.ultId = ''; p.ultT = 0; }
   }
-  p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1);
+  p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1) * (hasPath(p, 'velocidad') ? 1.12 : 1);
   champTick(g, p, dt);
   if (C && C.host) {
     if (inp.s3 && !p.s3Prev) useS3(g, p); p.s3Prev = inp.s3;
@@ -72,13 +72,18 @@ export function meleeSet(p) {
   if (W) return { light: W.light, heavy: W.heavy, type: W.type, special: W.special, id: p.melee, aff: !!(C && (MELEE_AFFINITY[p.char] || []).includes(W.type)) };
   return { ...((C && C.melee) || DEFAULT_MELEE), type: 'innata', special: null, id: '', aff: true };
 }
-export const evoMeleeMul = (p) => [1, 1.1, 1.1, 1.25, 1.4][p.evo || 0] || 1;
-export const cdMul = (p) => ((p.evo || 0) >= 3 ? 0.8 : 1) * (hasC(p, 'adrenal') ? 0.92 : 1);
+export const hasPath = (p, id) => !!(p.path && p.path.includes(id));
+export const evoMeleeMul = (p) => (1 + (hasPath(p, 'depredador') ? 0.2 : 0) + (hasPath(p, 'simbiosis') ? 0.15 : 0) + (hasPath(p, 'apoteosis') ? 0.1 : 0));
+export const cdMul = (p) => (hasPath(p, 'velocidad') ? 0.85 : 1) * (hasC(p, 'adrenal') ? 0.92 : 1);
 export const evoCost = (p) => ((p.evo || 0) >= 4 ? 0 : EVO_COST[(p.evo || 0) + 1]);
 /** Gasta núcleos para subir un nivel de evolución. */
-export function evolve(g, p) {
+/** Sube un nivel ELIGIENDO uno de los dos caminos (pick = 0 o 1). El otro queda cerrado para siempre. */
+export function evolve(g, p, pick = 0) {
   const c = evoCost(p); if (!c || p.cores < c || p.dead) return false;
-  p.cores -= c; p.evo++; g.emit({ t: 'evolve', pid: p.id, tier: p.evo, p: a3(p.pos) });
+  const opts = EVO_PATHS[p.evo + 1]; if (!opts) return false;
+  const chosen = opts[pick === 1 ? 1 : 0];
+  p.cores -= c; p.evo++; p.path.push(chosen.id);
+  g.emit({ t: 'evolve', pid: p.id, tier: p.evo, path: chosen.id, p: a3(p.pos) });
   return true;
 }
 export function addCores(g, p, n) { if (!p || n <= 0) return; p.cores += Math.round(n); }
@@ -88,7 +93,7 @@ function strike(g, p, M, heavy) {
   const def = heavy ? M.heavy : M.light;
   const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis';
   let dmg = def.dmg * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1), range = def.range * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1), arc = def.arc;
-  const fused = (p.evo || 0) >= 1 && M.special, strong = (p.evo || 0) >= 3 ? 1.5 : 1;
+  const fused = (p.evo || 0) >= 1 && M.special, strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
   let kind = heavy ? 'heavy' : 'light';
   if (!heavy) { p.cmb = p.cmb >= 3 ? 1 : p.cmb + 1; p.cmbT = COMBO_WINDOW; if (p.cmb === 3) { dmg *= 1.5; } } else p.cmb = 0;
   if (air) { kind = 'air'; p.slam = 3; p.vel = madd(p.vel, p.up, -42); dmg *= 1.2; }
@@ -122,6 +127,7 @@ function strike(g, p, M, heavy) {
     let dm = dmg * k;
     if (fused && M.special === 'acuchilla' && (m.fwd ? dot(norm(sub(p.pos, m.pos)), m.fwd) < 0.2 : false)) dm *= 2 * (strong > 1 ? 1.25 : 1);
     g.damageMonster(m, dm, p, m.pos); hits++;
+    if (hasPath(p, 'depredador') && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + dm * 0.06);
     if (fused && !m.dead) applyMeleeSpecial(g, p, m, M.special, heavy, dm, strong);
     const kn = def.knock || (p.cmb === 3 ? 10 : 4);
     if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), kn);
@@ -247,7 +253,7 @@ function useS3(g, p) {
 /* ───────── definitiva ───────── */
 function useUlt(g, p) {
   const C = cdef(p); if (!C || !C.ult || p.dead || p.carry || p.ul < C.ult.charge || p.ultT > 0) return false;
-  const id = C.ult.id; p.ul = 0; p.ultId = id; p.ultT = (ULT_DUR[id] || 8) * ((p.evo || 0) >= 4 ? 1.3 : 1) * (hasC(p, 'espiraculo') ? 1.2 : 1);
+  const id = C.ult.id; p.ul = 0; p.ultId = id; p.ultT = (ULT_DUR[id] || 8) * (hasPath(p, 'apoteosis') ? 1.3 : 1) * (hasPath(p, 'resonancia') ? 1.25 : 1) * (hasC(p, 'espiraculo') ? 1.2 : 1);
   if (id === 'colapso') {
     const pos = madd(p.pos, flat(p), 12);
     g.addObject('well', pos, { owner: p.id, life: 6, r: 3, dmg: 150, splash: 13 });
@@ -269,7 +275,7 @@ function zoneTick(g, p, dt) {
 export function hostDamageIn(g, p, dmg) {
   const C = cdef(p); if (!C) return dmg;
   if (C.hp) dmg /= C.hp;
-  if ((p.evo || 0) >= 1) dmg *= 0.91;
+  if (hasPath(p, 'coraza')) dmg *= 0.82;
   if (hasC(p, 'placas')) dmg *= 0.88;
   if (g.time < p.guardUntil) { const ab = dmg * 0.7; dmg -= ab; for (const m of g.monsters) if (!m.dead && dist(m.pos, p.pos) < 5 + m.r) g.damageMonster(m, ab * 0.6, p, m.pos); }
   if (g.time < p.desfaseUntil && C.passive && C.passive.id === 'desfase') dmg *= 0.65;
@@ -289,18 +295,20 @@ export function hostOut(g, p, m) {
   if (p.cloakBonus && g.time < p.cloakUntil) k *= 1.8;
   if (p.ultId === 'metamorfosis') k *= 1.25;
   if (p.ultId === 'sobrecarga') k *= 1.1;
-  if ((p.evo || 0) >= 4 && !p.inMelee) k *= 1.1;
+  if (hasPath(p, 'apoteosis')) k *= 1.1;
+  if (hasPath(p, 'artilleria') && !p.inMelee) k *= 1.15;
   if (hasC(p, 'ojo_extra')) k *= 1.12;
   return k;
 }
 /** Tras un impacto (daño real aplicado): carga de definitiva, vampirismo de Metamorfosis y ruptura del camuflaje. */
 export function hostHit(g, p, m, dealt) {
-  if (p.ultId === '') p.ul = Math.min(100, p.ul + dealt * ULT_PER_DMG * ((p.evo || 0) >= 2 ? 1.25 : 1) * (hasC(p, 'saco_g') ? 1.15 : 1));
+  if (p.ultId === '') p.ul = Math.min(100, p.ul + dealt * ULT_PER_DMG * (hasPath(p, 'resonancia') ? 1.4 : 1) * (hasC(p, 'saco_g') ? 1.15 : 1));
   if (p.ultId === 'metamorfosis' && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + dealt * 0.04);
   if (p.cloakUntil) { p.cloakUntil = 0; p.cloakBonus = false; }   // atacar rompe el camuflaje (el primer golpe ya cobró el bonus)
 }
 export function hostKill(g, p, m) {
   absorb(p, m);
+  if (hasPath(p, 'anomalia') && !m.def.boss && g.rng.next() < 0.25) g.explode(m.pos, 5, 0, 70, p, false);
   addCores(g, p, m.def.cost * CORES.perCost * (m.elite ? CORES.eliteMul : 1) + (m.def.boss ? CORES.boss : 0));
   const C = cdef(p); if (!C) return;
   if (p.ultId === '') p.ul = Math.min(100, p.ul + ULT_PER_KILL);
@@ -362,5 +370,5 @@ export function hostSnap(g, p) {
   if (g.time < p.desfaseUntil) bf |= BF.desfase; if (g.time < p.glideUntil) bf |= BF.glide;
   if (g.objects.some((o) => o.type === 'wall' && o.owner === p.id)) bf |= BF.barrier;
   const sy = g.objects.find((o) => o.type === 'symb' && o.owner === p.id);
-  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), mw: p.melee || '' };
+  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), pth: p.path, mw: p.melee || '' };
 }
