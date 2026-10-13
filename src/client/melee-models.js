@@ -20,7 +20,7 @@ export const MELEE_MODEL_IDS = [
 export const NATIVE_NAMES = { cuchillas: 'Cuchillas', garras: 'Garras', punos: 'Puños', hoja_dim: 'Hoja dimensional', latigo: 'Látigo' };
 
 /* ───────────────────────── constructor de piezas ───────────────────────── */
-function makeBuilder(T, S) {
+export function makeBuilder(T, S) {
   const E = new T.Euler(), Q = new T.Quaternion(), M = new T.Matrix4(), v1 = new T.Vector3(), v2 = new T.Vector3(), v3 = new T.Vector3(), cc = new T.Color(), UPV = new T.Vector3(0, 1, 0);
   const buckets = { body: [], glow: [], mem: [], ob: [], og: [], aura: [], cage: [] };
   const tf = (g, p = ZERO, r = ZERO, s = ONE) => { E.set(r[0], r[1], r[2]); Q.setFromEuler(E); M.compose(v1.set(p[0], p[1], p[2]), Q, v2.set(s[0], s[1], s[2])); g.applyMatrix4(M); return g; };

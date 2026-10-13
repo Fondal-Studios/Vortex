@@ -367,3 +367,5 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 #camtbtn { position: absolute; z-index: 7; }
 #camquick { position: absolute; z-index: 8; left: calc(76px + env(safe-area-inset-left, 0px)); top: calc(18px + env(safe-area-inset-top, 0px)); width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(160,140,255,.8); background: rgba(10,8,30,.7); color: #fff; font-size: 20px; line-height: 1; padding: 0; touch-action: manipulation; }
 #camquick.third { background: rgba(120,90,255,.75); }
+@media (pointer: coarse) { #top { left: calc(124px + env(safe-area-inset-left, 0px)) !important; right: calc(124px + env(safe-area-inset-right, 0px)) !important; } }
+#top { left: calc(124px + env(safe-area-inset-left, 0px)) !important; right: calc(124px + env(safe-area-inset-right, 0px)) !important; }

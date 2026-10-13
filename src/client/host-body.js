@@ -18,8 +18,8 @@ export const isHost = (char) => !!(CHARACTERS[char] && CHARACTERS[char].host);
 export function createHostBody(THREE, p, opts = {}) {
   const T = THREE, quality = opts.quality || 'low';
   const object = new T.Group(); object.name = 'cuerpo-' + p.char;
-  const build = () => buildHostEvo(T, p.char, { evo: p.evo | 0, melee: p.mw || '', quality, budget: quality === 'low' ? 24 : 0 });
-  let host = build(), time = Math.random() * 10, phase = 0, key = `${p.evo | 0}|${p.mw || ''}`, fade = 1, mats = [];
+  const build = () => buildHostEvo(T, p.char, { evo: p.evo | 0, melee: p.mw || '', organs: p.cg || [], quality, budget: quality === 'low' ? 24 : 0 });
+  let host = build(), time = Math.random() * 10, phase = 0, key = `${p.evo | 0}|${p.mw || ''}|${(p.cg || []).join()}`, fade = 1, mats = [];
   const holder = new T.Group(); holder.scale.setScalar(SIZE[p.char] || 0.9); holder.add(host.group); object.add(holder);
   function collect() { // materiales únicos del cuerpo, con su opacidad original, para el fundido
     const set = new Set(); host.group.traverse((o) => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => set.add(m)); });
@@ -34,8 +34,8 @@ export function createHostBody(THREE, p, opts = {}) {
     object, get host() { return host; },
     event(e) { if (e.t === 'melee') host.pose('melee'); else if (e.t === 'skill') host.pose('skill'); },
     update(dt, pl, ctx = {}) {
-      const k2 = `${pl.evo | 0}|${pl.mw || ''}`;
-      if (k2 !== key) { key = k2; host.setEvo(pl.evo | 0); host.setMelee(pl.mw || ''); collect(); }
+      const k2 = `${pl.evo | 0}|${pl.mw || ''}|${(pl.cg || []).join()}`;
+      if (k2 !== key) { key = k2; host.setEvo(pl.evo | 0); host.setMelee(pl.mw || ''); host.setOrgans(pl.cg || []); collect(); }
       time += dt; host.update(dt, time);
       const J = host.joints, spd = ctx.speed || 0, mv = ctx.moveDir || { x: 0, z: 0 }, k = clamp(spd / 8, 0, 1), still = host.poseName === 'idle';
       phase += dt * (3.2 + spd * 0.75);

@@ -6,6 +6,7 @@ import { qualityOf } from './weapons/kit.js';
 import { BUILD, WEAPON_COLORS } from './weapons/guns.js';
 import { VMFx, flashTexture, makeBeam } from './weapons/fx.js';
 import { applyUpgrades } from './weapons/mods.js';
+import { buildWeaponOrgans } from './organs-vis.js';
 import { setHandStyle, HAND_STYLE, HAND_PRESETS, HU, TATTOOS, GLOVES } from './weapons/handmat.js';
 
 /** FOV propio del viewmodel (vertical, grados). La cámara del juego usa ~82° (en un celular apaisado el arma se ve diminuta);
@@ -38,7 +39,7 @@ export class Viewmodels {
   }
   _ensure(i) {
     let it = this.items[i]; if (it) return it;
-    const W = BUILD[i](this.q, true), rig = new THREE.Group(); rig.add(W.group); W.group.userData.index = i; W.group.userData.muzzle = W.muzzle; if (this.upg[i]) applyUpgrades(W.group, this.upg[i]);
+    const W = BUILD[i](this.q, true), rig = new THREE.Group(); rig.add(W.group); W.group.userData.index = i; W.group.userData.muzzle = W.muzzle; if (this.upg[i]) applyUpgrades(W.group, this.upg[i]); if (this.org && this.org[i]) { this.org[i].obj = null; this.org[i].dirty = true; }
     const hex = WEAPON_COLORS[i], shape = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTexture(W.flash.shape), color: new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.3), blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0 }));
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: hex, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0 }));
     for (const s of [glow, shape]) { s.position.set(...W.muzzle); s.renderOrder = 10; s.visible = false; rig.add(s); }
@@ -54,7 +55,7 @@ export class Viewmodels {
     };
     it = { W, rig, sp, shape, glow, beam, f: 0, ctx, auto: W.flash.shape === 'jet' };
     if (this.ammo.n !== undefined) W.setAmmo(this.ammo.n, this.ammo.max);
-    this.items[i] = it; return it;
+    this.items[i] = it; if (this.org && this.org[i]) this._applyOrgans(i); return it;
   }
   /** Estilo de las manos: { color, accent, tattoo: 'runas'|'ojos'|'constelacion'|'venas'|'ninguno', glove: 'tactico'|'cristal'|'desnudo', skin }.
    *  Parcial (lo no pasado se conserva), en caliente, sin reconstruir. También sirve un nombre de HAND_PRESETS ('egida'...'umbra'). Devuelve el estilo vigente. */
@@ -62,6 +63,16 @@ export class Viewmodels {
   getHandStyle() { return { ...HAND_STYLE }; }
   /** Mejoras visibles de un arma: upg = { dmg:0-5, rate:0-5, mag:0-4, mod:null|'perfora'|'explosiva'|'cadena'|'vampirica' }. Se recuerdan por arma. */
   setUpgrades(weaponId, upg) { this.upg[weaponId] = upg ? { ...upg } : null; const it = this.items[weaponId]; if (it) applyUpgrades(it.W.group, upg || {}); }
+  /** Órganos que crecen en el arma `weaponId` (ids de WEAPON_ORGANS, docs/EVOLUCION.md). Se recuerdan por arma; cuelgan del grupo del arma (≤ 3 llamadas de dibujo). */
+  setOrgans(weaponId, ids) {
+    this.org = this.org || {}; ids = ids || []; const key = ids.join(), o = this.org[weaponId]; if (o && o.key === key) return;
+    this.org[weaponId] = { key, ids: ids.slice(), obj: o && o.obj, dirty: true }; this._applyOrgans(weaponId);
+  }
+  _applyOrgans(i) {
+    const it = this.items[i], o = this.org && this.org[i]; if (!it || !o || !o.dirty) return; o.dirty = false;
+    if (o.obj) { it.W.group.remove(o.obj.group); o.obj.dispose(); o.obj = null; }
+    if (o.ids.length) { o.obj = buildWeaponOrgans(THREE, o.ids, { quality: cfg().humans === 'low' ? 'low' : 'medium' }); o.obj.group.position.set(0, 0, 0); it.W.group.add(o.obj.group); }
+  }
   setAmmo(n, max) { this.ammo = { n, max }; const it = this.items[this.cur]; if (it) it.W.setAmmo(n, max); }
   setWeapon(i) {
     if (!(i >= 0 && i < BUILD.length)) return;
@@ -82,6 +93,7 @@ export class Viewmodels {
   }
   update(dt, { firing = false, hidden = false, look = [0, 0], speed = 0, ammo, maxAmmo } = {}) {
     dt = Math.min(dt, 0.1); this.t += dt; this.hidden = hidden;
+    { const o = this.org && this.org[this.cur]; if (o && o.obj) o.obj.update(dt, this.t); } // órganos del arma actual (organs-vis.js)
     const kf = Math.tan((this.camera.fov || 82) * Math.PI / 360) / Math.tan(VM_FOV * Math.PI / 360); this.root.scale.set(kf, kf, 1);
     if (ammo !== undefined) this.setAmmo(ammo, maxAmmo === undefined ? ammo : maxAmmo);
     this.fx.setScale(this.camera.fov || 82, (typeof window !== 'undefined' ? window.innerHeight : 720) * 0.8);

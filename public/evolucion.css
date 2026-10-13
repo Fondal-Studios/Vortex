@@ -93,3 +93,27 @@ button[hidden], span[hidden] { display: none !important; }
   .ev-tab { flex: 1 1 30%; letter-spacing: .02em; }
 }
 @media (prefers-reduced-motion: reduce) { .ev-stage.flash, .ev-stage.flash .ev-wave, .ev-stage.flash::before, .ev-tier.pop, .ev-cores.ready .ev-bar b { animation: none; } }
+
+/* ───── Arsenal: modos, esencias, órganos, ranuras (docs/EVOLUCION.md) ───── */
+.ev-detail[hidden], .ev-tabs[hidden], .ev-list[hidden], .ev-orgs[hidden], .ev-slots[hidden], .ev-buy[hidden], #evaction[hidden] { display: none !important; }
+.ev-modes { display: flex; gap: 5px; flex: 0 0 auto; }
+.ev-mode { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 0 4px; border-radius: 10px; border: 1px solid #ffffff33; background: #ffffff10; color: #dfe6ff; font: 700 11px/1.1 "SF Pro Display", system-ui, sans-serif; letter-spacing: .03em; text-transform: uppercase; cursor: pointer; }
+.ev-mode.sel { background: color-mix(in srgb, var(--c) 30%, #ffffff10); border-color: var(--c); color: #fff; box-shadow: 0 0 12px color-mix(in srgb, var(--c) 40%, transparent); }
+.ev-essrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; flex: 0 0 auto; }
+.ev-es { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 3px 2px; border-radius: 8px; background: #ffffff0c; border: 1px solid color-mix(in srgb, var(--e) 55%, transparent); min-width: 0; line-height: 1.1; }
+.ev-es i { width: 8px; height: 8px; border-radius: 50%; background: var(--e); box-shadow: 0 0 8px var(--e); } .ev-es b { font-size: 14px; color: #fff; font-variant-numeric: tabular-nums; } .ev-es small { font-size: 9px; color: #aeb8e0; max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+.ev-orgs { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; padding-bottom: 6px; }
+.ev-orgs h4 { margin: 4px 0 2px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--c); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ev-lug { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: #dfe6ff; letter-spacing: .06em; } .ev-lug i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #ffffff55; } .ev-lug i.on { background: var(--c); border-color: var(--c); box-shadow: 0 0 8px var(--c); }
+.ev-org { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; padding: 7px 9px; border-radius: 10px; background: #ffffff0c; border-left: 3px solid #ffffff44; }
+.ev-org.comprable { border-left-color: var(--c); background: color-mix(in srgb, var(--c) 10%, #ffffff0c); } .ev-org.tiene { border-left-color: #6dff9a; }
+.ev-org.sin-esencias, .ev-org.grupo-ocupado, .ev-org.sin-lugar, .ev-org.incompatible { opacity: .72; }
+.ev-ot { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .ev-ot b { font-size: 12px; } .ev-ot > span { display: flex; flex-wrap: wrap; gap: 4px; }
+.ev-ec { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: #dfe6ff; padding: 1px 6px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--e) 60%, transparent); } .ev-ec i { width: 6px; height: 6px; border-radius: 50%; background: var(--e); }
+.ev-org p { grid-column: 1; margin: 0; font-size: 11px; line-height: 1.35; color: #c6cfef; }
+.ev-org .ev-btn { grid-column: 2; grid-row: 1 / span 2; flex: none; min-width: 96px; min-height: 40px; font-size: 10px; letter-spacing: .03em; }
+.ev-slots { display: flex; gap: 5px; flex: 1 1 auto; min-width: 0; }
+.ev-slot { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 3px 2px; border-radius: 10px; border: 1px solid #ffffff44; background: #ffffff12; color: #fff; font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.ev-slot b { font-size: 13px; } .ev-slot small { font-size: 9px; color: #aeb8e0; max-width: 100%; overflow-wrap: anywhere; text-align: center; } .ev-slot.on { background: var(--c); border-color: var(--c); color: #07030f; } .ev-slot.on small { color: #07030f; }
+@media (max-height: 460px) { .ev-mode { min-height: 32px; font-size: 10px; letter-spacing: 0; } .ev-es b { font-size: 12px; } .ev-es { padding: 2px; } .ev-org .ev-btn { min-height: 36px; min-width: 88px; } .ev-slot { min-height: 38px; } }
+@media (max-width: 720px) and (min-aspect-ratio: 1/1) { .ev-mode { font-size: 9px; } .ev-org .ev-btn { min-width: 78px; font-size: 9px; } .ev-es small { display: none; } }

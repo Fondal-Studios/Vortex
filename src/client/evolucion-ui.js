@@ -6,8 +6,9 @@
 //     afinidad con el Huésped y precio; comprar con núcleos (perfil.comprarArma) y equipar (perfil.equipar)
 // Un solo canvas WebGL cubre la pantalla y dibuja dos «ventanas» (scissor) sobre los recuadros del Huésped y del arma: así hay un solo contexto 3D.
 // Estilos: public/evolucion.css (reutiliza el lenguaje de huespedes.css). Todo cabe sin superponerse: el panel de armas tiene scroll interno.
-import { CHARACTERS, HOST_IDS, MELEE_TYPES, MELEE_WEAPONS, MELEE_AFFINITY, NATIVE_MELEE, EVO_COST, EVO_TIERS } from '../sim/data.js';
-import { Equipo, saveEquipo } from './equipo.js';
+import { CHARACTERS, HOST_IDS, MELEE_TYPES, MELEE_WEAPONS, MELEE_AFFINITY, NATIVE_MELEE, EVO_COST, EVO_TIERS, WEAPONS, WEAPON_ORGANS, CHAMP_ORGANS, WEAPON_ORGAN_SLOTS, champOrganSlots, ESSENCES } from '../sim/data.js';
+import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
+import { buildWeaponOrgans } from './organs-vis.js';
 import * as Perfil from './perfil.js';
 import { buildHostEvo, EVO_VISUAL } from './huespedes-evo.js';
 import { buildMelee, NATIVE_NAMES } from './melee-models.js';
@@ -26,6 +27,13 @@ const NATIVE_DESC = {
   latigo: 'El látigo orgánico de Seraf: se estira para golpear a distancia.',
 };
 const CORE = '◆';
+const ESS_KEYS = ['carne', 'cristal', 'ojo', 'vacio'];
+const ess$ = (n) => '#' + ESSENCES[n].color.toString(16).padStart(6, '0');
+/** costo en esencias como chips de colores: «8 Carne viva» */
+const costHtml = (cost) => Object.entries(cost).map(([k, n]) => `<span class="ev-ec" style="--e:${ess$(k)}"><i></i>${n} ${esc(ESSENCES[k].name)}</span>`).join('');
+const ESTADO_ES = { tiene: 'Ya crecido ✓', comprable: 'Hacer crecer', 'sin esencias': 'Faltan esencias', 'grupo ocupado': 'Grupo ocupado', 'sin lugar': 'Sin lugar', incompatible: 'No compatible' };
+const wKindEs = (w) => ({ hitscan: 'Rayo instantáneo', projectile: 'Proyectil', swarm: 'Enjambre', mine: 'Mina', pulse: 'Pulso' }[w.kind] || 'Arma');
+const WMAX = (() => { let a = { d: 1, r: 1, a: 1 }; try { for (const w of WEAPONS) a = { d: Math.max(a.d, w.dmg * (w.pellets || 1)), r: Math.max(a.r, 1 / w.rate), a: Math.max(a.a, w.range || w.speed || 0) }; } catch { /* sin datos */ } return a; })();
 const HOSTS = () => HOST_IDS.filter((id) => CHARACTERS[id]);
 const nativeOwner = (id) => Object.keys(NATIVE_MELEE).find((h) => NATIVE_MELEE[h] === id);
 /** datos comparables de un arma (catálogo o innata) */
@@ -59,20 +67,24 @@ export function buildEvolucionScreen(menu) {
           <div class="ev-actions"><button class="ev-btn ev-nav" type="button" id="evpeek" aria-pressed="false">Ver nivel siguiente</button><button class="ev-btn ev-main ev-nav" type="button" id="evbtn">Evolucionar</button></div>
         </div>
       </section>
-      <aside class="ev-panel" id="evpanel" aria-label="Catálogo de armas cuerpo a cuerpo">
+      <aside class="ev-panel" id="evpanel" aria-label="Arsenal y órganos">
+        <div class="ev-modes" id="evmodes" role="tablist"><button class="ev-mode ev-nav" type="button" data-mode="melee" aria-selected="true">Cuerpo a cuerpo</button><button class="ev-mode ev-nav" type="button" data-mode="dist" aria-selected="false">Distancia</button><button class="ev-mode ev-nav" type="button" data-mode="champ" aria-selected="false">Campeón</button></div>
+        <div class="ev-essrow" id="evess" aria-label="Esencias absorbidas"></div>
         <div class="ev-tabs" id="evtabs" role="tablist">${TABS.map(([k, n]) => `<button class="ev-tab ev-nav" type="button" role="tab" data-tab="${k}" aria-selected="false">${n}</button>`).join('')}</div>
         <div class="ev-list" id="evlist"></div>
         <div class="ev-detail">
           <div class="ev-prev" id="evprev" aria-label="Modelo 3D del arma: arrastrá para girarlo"></div>
           <div class="ev-info" id="evinfo"></div>
         </div>
-        <div class="ev-buy" id="evbuy"><span class="ev-price" id="evprice"></span><button class="ev-btn ev-main ev-nav" type="button" id="evaction">Equipar</button></div>
+        <div class="ev-orgs" id="evorgs" hidden></div>
+        <div class="ev-buy" id="evbuy"><span class="ev-price" id="evprice"></span><div class="ev-slots" id="evslots" hidden></div><button class="ev-btn ev-main ev-nav" type="button" id="evaction">Equipar</button></div>
       </aside>
     </div>`;
   const $ = (s) => root.querySelector(s);
+  root.addEventListener('scroll', () => { root.scrollTop = 0; root.scrollLeft = 0; }); // la pantalla no se desplaza: sólo el panel (evita que un foco/clic la corra y tape el botón Volver)
   $('.backbtn').addEventListener('click', (e) => { e.stopPropagation(); menu.back(); });
   const ev = menu.ev = {
-    char: 'axioma', tab: 'espada', sel: null, peek: false, THREE: null, renderer: null, failed: false, running: false,
+    char: 'axioma', tab: 'espada', sel: null, mode: 'melee', selD: 1, peek: false, THREE: null, renderer: null, failed: false, running: false,
     host: null, hostKey: '', prev: null, prevKey: '', sceneA: null, sceneB: null, camA: null, camB: null, frameA: [1.1, 2.4, 1], frameB: [0.5, 1.2],
     yawA: 0, yawB: 0, idleA: 0, idleB: 0, dragA: null, dragB: null, size: [0, 0], quality: 'low', fxT: 0,
   };
@@ -111,18 +123,27 @@ export function buildEvolucionScreen(menu) {
   function bbox(obj) { const T = ev.THREE, b = new T.Box3().setFromObject(obj), s = new T.Vector3(); b.getSize(s); return { cy: (b.max.y + b.min.y) / 2, h: s.y, w: Math.max(s.x, s.z), top: b.max.y, bot: b.min.y }; }
   function setHost(force) {
     if (!ev.THREE) return;
-    const shownEvo = ev.peek ? Math.min(4, evoOf(ev.char) + 1) : evoOf(ev.char), eq = perfil().melee[ev.char] || '', key = `${ev.char}|${shownEvo}|${eq}`;
+    const shownEvo = ev.peek ? Math.min(4, evoOf(ev.char) + 1) : evoOf(ev.char), eq = perfil().melee[ev.char] || '', org = perfil().corg[ev.char] || [], key = `${ev.char}|${shownEvo}|${eq}|${org.join()}`;
     if (!force && key === ev.hostKey && ev.host) return;
     if (ev.host) { ev.sceneA.remove(ev.host.group); ev.host.dispose(); ev.host = null; }
-    ev.hostKey = key; ev.host = buildHostEvo(ev.THREE, ev.char, { evo: shownEvo, melee: eq, quality: ev.quality });
+    ev.hostKey = key; ev.host = buildHostEvo(ev.THREE, ev.char, { evo: shownEvo, melee: eq, organs: org, quality: ev.quality });
     ev.sceneA.add(ev.host.group); ev.host.update(0.016, 0.3); tint();
     const b = bbox(ev.host.group.children[0]); ev.frameA = [b.cy, Math.max(1.6, b.h * 1.12), Math.max(1.2, b.w * 1.02)]; ev.size = [0, 0];
   }
   function setPrev(force) {
-    if (!ev.THREE || !ev.sel) return;
+    if (!ev.THREE) return;
+    const clearPrev = () => { if (ev.prev) { ev.sceneB.remove(ev.prev.group); ev.prev.dispose(); ev.prev = null; } };
+    if (ev.mode === 'champ') { clearPrev(); ev.prevKey = ''; return; }
+    if (ev.mode === 'dist') { // órganos ya crecidos en el arma a distancia elegida
+      const ids = (perfil().worg[ev.selD] || []).slice(), key = `d|${ev.selD}|${ids.join()}`; if (!force && key === ev.prevKey) return;
+      clearPrev(); ev.prevKey = key; if (!ids.length) return;
+      ev.prev = buildWeaponOrgans(ev.THREE, ids, { quality: ev.quality }); ev.prev.update(2, 0.3); ev.sceneB.add(ev.prev.group); ev.prev.group.scale.multiplyScalar(1);
+      ev.frameB = [0.02, 0.3, 0.3]; ev.size = [0, 0]; return;
+    }
+    if (!ev.sel) return;
     const tier = ev.peek ? Math.min(4, evoOf(ev.char) + 1) : evoOf(ev.char), key = `${ev.sel}|${tier}|${ev.char}`;
     if (!force && key === ev.prevKey && ev.prev) return;
-    if (ev.prev) { ev.sceneB.remove(ev.prev.group); ev.prev.dispose(); ev.prev = null; }
+    clearPrev();
     ev.prevKey = key; ev.prev = buildMelee(ev.THREE, ev.sel, { tier, quality: ev.quality, color: CHARACTERS[ev.char].color });
     ev.sceneB.add(ev.prev.group); ev.prev.update(0.016, 0.3);
     const b = bbox(ev.prev.group); ev.frameB = [b.cy, Math.max(0.5, b.h * 1.1), Math.max(0.4, b.w * 1.15)]; ev.size = [0, 0];
@@ -198,9 +219,11 @@ export function buildEvolucionScreen(menu) {
     return equippedId(ev.char) === d.id ? 'equipada' : Perfil.posee(d.id) ? 'tuya' : 'comprable';
   }
   function renderTabs() {
+    $('#evtabs').hidden = ev.mode !== 'melee';
     root.querySelectorAll('.ev-tab').forEach((b) => { const on = b.dataset.tab === ev.tab; b.classList.toggle('sel', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
   }
   function renderList() {
+    $('#evlist').hidden = ev.mode === 'champ'; if (ev.mode === 'dist') return renderListD();
     $('#evlist').innerHTML = listFor(ev.tab).map((id) => {
       const d = dataOf(id), st = state(d), aff = !d.native && (MELEE_AFFINITY[ev.char] || []).includes(d.type);
       const tag = st === 'equipada' ? '✓ Equipada' : st === 'tuya' ? 'Tuya' : st === 'ajena' ? 'De ' + CHARACTERS[d.owner].name : `${d.cost} ${CORE}`;
@@ -209,6 +232,7 @@ export function buildEvolucionScreen(menu) {
     $('#evlist').querySelectorAll('.ev-w').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); selectWeapon(b.dataset.id); }));
   }
   function renderDetail() {
+    $('.ev-detail').hidden = ev.mode === 'champ'; if (ev.mode === 'dist') return renderDetailD();
     const d = dataOf(ev.sel); if (!d) return; const C = CHARACTERS[ev.char], st = state(d), aff = (MELEE_AFFINITY[ev.char] || []).includes(d.type);
     const spd = 1 / d.light.cd, rng = Math.max(d.light.range, d.heavy.range);
     const sp = d.special ? `<div class="ev-sp"><b>Poder especial: ${esc(SPECIAL_ES[d.special] || d.special)}</b><span>Se despierta al fusionarte (nivel 1) y se potencia en el nivel 3.</span></div>` : `<div class="ev-sp"><b>Arma innata</b><span>${d.owner ? 'Es parte del cuerpo de ' + esc(CHARACTERS[d.owner].name) + ': no se compra ni se cambia.' : ''}</span></div>`;
@@ -222,7 +246,54 @@ export function buildEvolucionScreen(menu) {
     else { const c = perfil().cores; price.innerHTML = `Precio: <b>${d.cost}</b> ${CORE} · tenés ${c}`; btn.textContent = c >= d.cost ? `Comprar · ${d.cost} ${CORE}` : `Faltan ${d.cost - c} ${CORE}`; btn.disabled = c < d.cost; }
     btn.dataset.state = st;
   }
-  function refresh() { renderRail(); renderHead(); renderEvolve(); renderTabs(); renderList(); renderDetail(); }
+  /* ───── armas a distancia (WEAPONS), esencias y órganos (docs/EVOLUCION.md) ───── */
+  const slotOf = (wi) => Equipo.slots.indexOf(wi);
+  const orgOfW = (wi) => perfil().worg[wi] || [];
+  function renderListD() {
+    $('#evlist').innerHTML = WEAPONS.map((w, i) => { const sl = slotOf(i), n = orgOfW(i).length; return `<button class="ev-w ev-nav${i === ev.selD ? ' sel' : ''}${sl >= 0 ? ' eq' : ''}" type="button" data-wi="${i}" aria-pressed="${i === ev.selD}"><b>${esc(w.name)}</b><small>${sl === 0 ? 'Fija' : sl > 0 ? 'Ranura ' + sl : wKindEs(w)}${n ? ' · ' + '●'.repeat(n) : ''}</small></button>`; }).join('');
+    $('#evlist').querySelectorAll('.ev-w').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); selectD(+b.dataset.wi); }));
+  }
+  function renderDetailD() {
+    const w = WEAPONS[ev.selD]; if (!w) return; const dmg = w.dmg * (w.pellets || 1), cad = 1 / w.rate, al = w.range || w.speed || 0, ids = orgOfW(ev.selD);
+    $('#evinfo').innerHTML = `<h3>${esc(w.name)} <span class="ev-type">${wKindEs(w)}</span></h3><p class="ev-desc">${esc(w.desc || '')}</p>
+      <div class="ev-stats">${stat('Daño por disparo', dmg, WMAX.d, Math.round(dmg) + (w.pellets > 1 ? ' (×' + w.pellets + ')' : ''))}${stat('Cadencia', cad, WMAX.r, cad.toFixed(1) + '/s')}${stat(w.range ? 'Alcance' : 'Velocidad', al, WMAX.a, w.range ? al + ' m' : al + ' m/s')}</div>
+      <div class="ev-sp"><b>Munición: ${w.max === Infinity ? '∞' : w.max}</b><span>${ids.length ? 'Órganos crecidos: ' + ids.map((o) => esc(WEAPON_ORGANS[o].name)).join(', ') : 'Todavía no le creció ningún órgano.'}</span></div>`;
+  }
+  function renderEss() {
+    $('#evess').innerHTML = ESS_KEYS.map((k) => `<span class="ev-es" style="--e:${ess$(k)}" title="${esc(ESSENCES[k].name)}"><i></i><b>${perfil().ess[k] | 0}</b><small>${esc(ESSENCES[k].name)}</small></span>`).join('');
+  }
+  function organRow(target, id, O, st, wid) {
+    return `<div class="ev-org ${st.estado.replace(' ', '-')}" data-vis="${O.vis}"><div class="ev-ot"><b>${esc(O.name)}</b><span>${costHtml(O.cost)}</span></div><p>${esc(O.desc)}</p><button class="ev-btn ev-nav" type="button" data-t="${target}" data-id="${id}" data-w="${wid}"${st.estado === 'comprable' ? '' : ' disabled'}>${esc(ESTADO_ES[st.estado] || st.estado)}</button></div>`;
+  }
+  function renderOrgs() {
+    const box = $('#evorgs'); box.hidden = ev.mode === 'melee'; if (ev.mode === 'melee') return;
+    let html;
+    if (ev.mode === 'dist') {
+      const cur = orgOfW(ev.selD), pips = Array.from({ length: WEAPON_ORGAN_SLOTS }, (_, i) => `<i class="${i < cur.length ? 'on' : ''}"></i>`).join('');
+      html = `<h4>Órganos de ${esc(WEAPONS[ev.selD].name)} <span class="ev-lug" title="Lugares ocupados">${pips} ${cur.length}/${WEAPON_ORGAN_SLOTS}</span></h4>` + Object.entries(WEAPON_ORGANS).map(([id, O]) => organRow('w', id, O, Perfil.estadoOrgano('w', ev.char, ev.selD, id), ev.selD)).join('');
+    } else {
+      const cur = perfil().corg[ev.char] || [], max = champOrganSlots(evoOf(ev.char)), pips = Array.from({ length: max }, (_, i) => `<i class="${i < cur.length ? 'on' : ''}"></i>`).join('');
+      html = `<h4>Órganos de ${esc(CHARACTERS[ev.char].name)} <span class="ev-lug" title="Lugares ocupados (1 + nivel de evolución)">${pips} ${cur.length}/${max}</span></h4>` + Object.entries(CHAMP_ORGANS).map(([id, O]) => organRow('c', id, O, Perfil.estadoOrgano('c', ev.char, 0, id), 0)).join('');
+    }
+    box.innerHTML = html;
+    box.querySelectorAll('button[data-id]').forEach((b) => b.addEventListener('click', (e) => {
+      e.stopPropagation(); if (!Perfil.comprarOrgano(b.dataset.t, ev.char, +b.dataset.w, b.dataset.id)) { menu.sound.ui('back'); return; }
+      menu.sound.ui('ok'); refresh(); setHost(true); setPrev(true); if (ev.host) ev.host.pose('skill'); celebrateOrgan();
+    }));
+  }
+  function renderBuy() {
+    const melee = ev.mode === 'melee', dist = ev.mode === 'dist'; $('#evaction').hidden = !melee; $('#evslots').hidden = !dist; $('#evbuy').hidden = ev.mode === 'champ';
+    if (dist) {
+      const w = WEAPONS[ev.selD]; $('#evprice').textContent = slotOf(ev.selD) >= 0 ? (slotOf(ev.selD) === 0 ? `${w.name} va siempre fija (ranura 0)` : `${w.name} está en la ranura ${slotOf(ev.selD)}`) : `Equipar ${w.name} en la ranura:`;
+      $('#evslots').innerHTML = [1, 2, 3, 4].map((n) => `<button class="ev-slot ev-nav${Equipo.slots[n] === ev.selD ? ' on' : ''}" type="button" data-slot="${n}" aria-label="Ranura ${n}: ${esc(WEAPONS[Equipo.slots[n]] ? WEAPONS[Equipo.slots[n]].name : '')}" title="Ranura ${n}: ${esc(WEAPONS[Equipo.slots[n]] ? WEAPONS[Equipo.slots[n]].name : '')}"><b>${n}</b><small>${esc(WEAPONS[Equipo.slots[n]] ? WEAPONS[Equipo.slots[n]].name : '')}</small></button>`).join('');
+      $('#evslots').querySelectorAll('.ev-slot').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); if (ev.selD === 0) { menu.sound.ui('back'); return; } if (assignWeapon(+b.dataset.slot, ev.selD)) { menu.sound.ui('ok'); refresh(); } }));
+    }
+  }
+  function renderModes() { root.querySelectorAll('.ev-mode').forEach((b) => { const on = b.dataset.mode === ev.mode; b.classList.toggle('sel', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }); }
+  function celebrateOrgan() { const st = $('#evstage'); st.dataset.msg = 'ÓRGANO CRECIDO'; st.classList.remove('flash'); void st.offsetWidth; st.classList.add('flash'); setTimeout(() => st.classList.remove('flash'), 1100); }
+  function selectD(i, quiet) { ev.selD = i; if (!quiet) menu.sound.ui('tick'); renderListD(); renderDetailD(); renderOrgs(); renderBuy(); setPrev(); $('#evinfo').scrollTop = 0; }
+  function selectMode(m, quiet) { ev.mode = m; if (!quiet) menu.sound.ui('tick'); refresh(); setPrev(); $('#evpanel').scrollTop = 0; }
+  function refresh() { renderRail(); renderHead(); renderEvolve(); renderModes(); renderEss(); renderTabs(); renderList(); renderDetail(); renderOrgs(); renderBuy(); }
   function selectWeapon(id, quiet) { ev.sel = id; if (!quiet) menu.sound.ui('tick'); renderList(); renderDetail(); setPrev(); $('#evinfo').scrollTop = 0; }
   function selectTab(tab, quiet) {
     ev.tab = tab; const l = listFor(tab), eq = equippedId(ev.char); ev.sel = l.includes(eq) ? eq : l[0]; if (!quiet) menu.sound.ui('tick');
@@ -260,6 +331,8 @@ export function buildEvolucionScreen(menu) {
     selectChar(id, true); await ensureThree(); if (ev.failed) return;
     setHost(true); setPrev(true); start();
   };
+  root.querySelectorAll('.ev-mode').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); selectMode(b.dataset.mode); }));
+  ev.selectMode = selectMode; ev.selectD = selectD;
   ev.select = selectChar; ev.selectTab = selectTab; ev.selectWeapon = selectWeapon; ev.refresh = refresh;
 }
 

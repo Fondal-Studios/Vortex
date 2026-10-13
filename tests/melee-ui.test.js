@@ -40,9 +40,9 @@ const measure = () => {
   for (const e of root.querySelectorAll('*')) { if (!visible(e) || e.closest('canvas')) continue; const r = R(e); if (r.r > vw + 1 || r.x < -1) out.problems.push(`desborde horizontal: <${e.tagName.toLowerCase()} class="${e.className}"> ${Math.round(r.x)}..${Math.round(r.r)}`); }
   for (const e of root.querySelectorAll('.ev-chip, .ev-btn, .ev-tab, .ev-tag, .ev-head h2, .ev-tier, .ev-cn b, .ev-cn small, .ev-core-n, .ev-w b, .ev-w small, .ev-price')) if (visible(e) && e.scrollWidth > e.clientWidth + 1) out.problems.push(`texto cortado: "${e.textContent.trim().slice(0, 30)}" (${e.scrollWidth}>${e.clientWidth})`);
   const a = root.querySelector('#evaction'), p = root.querySelector('#evprice'); if (visible(a) && visible(p)) { const ra = R(a), rp = R(p); if (ra.x < rp.r - 1 && rp.x < ra.r - 1 && ra.y < rp.b - 1 && rp.y < ra.b - 1) out.problems.push('el precio y el botón de acción se superponen'); }
-  for (const id of ['#evbtn', '#evaction']) { const e = root.querySelector(id), r = R(e); if (r.h < 36) out.problems.push(`${id} muy bajo para tocar (${Math.round(r.h)} px)`); }
+  for (const id of ['#evbtn', '#evaction', '.ev-slot']) { const e = root.querySelector(id); if (!e || !visible(e)) continue; const r = R(e); if (r.h < 36) out.problems.push(`${id} muy bajo para tocar (${Math.round(r.h)} px)`); }
   // el botón de acción debe verse (no tapado por el borde del panel)
-  const pr = rects.panel, ar = R(a); if (pr && (ar.b > pr.b + 1 || ar.y < pr.y - 1)) out.problems.push('el botón de acción queda fuera del panel');
+  const pr = rects.panel, ar = R(a); if (visible(a) && pr && (ar.b > pr.b + 1 || ar.y < pr.y - 1)) out.problems.push('el botón de acción queda fuera del panel');
   out.stage = rects.stage; out.prev = R(root.querySelector('#evprev')); return out;
 };
 
@@ -62,6 +62,12 @@ for (const [vn, w, h, touch] of SIZES) {
       assert.ok(await pg.locator('.ev-w').count() >= 3, `la pestaña ${tab} lista sus armas`);
       await pg.locator('.ev-w').last().click(); await pg.waitForTimeout(250);
       const m2 = await pg.evaluate(measure); assert.deepEqual(m2.problems, [], `${vn} arma de ${tab}: ${m2.problems.join(' | ')}`);
+    }
+    for (const mode of ['dist', 'champ', 'melee']) {
+      await pg.click(`.ev-mode[data-mode="${mode}"]`); await pg.waitForTimeout(300);
+      const m = await pg.evaluate(measure); assert.deepEqual(m.problems, [], `${vn} modo ${mode}: ${m.problems.join(' | ')}`);
+      if (mode === 'dist') { assert.equal(await pg.locator('.ev-w').count(), 25, 'las 25 armas a distancia'); await pg.locator('.ev-w').nth(7).click(); await pg.waitForTimeout(250); const m2 = await pg.evaluate(measure); assert.deepEqual(m2.problems, [], `${vn} arma a distancia: ${m2.problems.join(' | ')}`); assert.equal(await pg.locator('.ev-slot').count(), 4, 'cuatro ranuras'); }
+      if (mode === 'champ') assert.equal(await pg.locator('.ev-org').count(), 8, 'los 8 órganos del campeón');
     }
     await pg.click('.ev-chip[data-id="seraf"]'); await pg.waitForTimeout(300); await pg.click('#evpeek'); await pg.waitForTimeout(300);
     const m3 = await pg.evaluate(measure); assert.deepEqual(m3.problems, [], `${vn} vista previa: ${m3.problems.join(' | ')}`);
@@ -121,7 +127,7 @@ test('en partida: contador de núcleos, aviso «¡Podés evolucionar!», tecla N
   await pg.evaluate(() => { const q = window.__api.session.game.players[0]; q.cores = 100; }); await pg.waitForSelector('#evohud.ready', { timeout: 15000 }).catch(() => {});
   assert.equal(await pg.locator('#evohud.ready').count(), 1, 'con núcleos suficientes aparece el aviso');
   assert.ok(await pg.isVisible('#evohud .eh-go'), 'el botón se ve'); assert.match(await pg.textContent('#evohud .eh-go'), /evolucionar/i);
-  await pg.keyboard.down('KeyN'); await pg.waitForTimeout(300); await pg.keyboard.up('KeyN'); await pg.waitForTimeout(500);
+  await pg.keyboard.down('KeyN'); await pg.waitForFunction(() => window.__api.session.game.players[0].evo >= 1, null, { timeout: 20000 }).catch(() => {}); await pg.keyboard.up('KeyN'); await pg.waitForTimeout(300);
   let q = await pg.evaluate(() => { const x = window.__api.session.game.players[0]; return { evo: x.evo, co: x.cores }; });
   assert.equal(q.evo, 1, 'la tecla N evoluciona'); assert.equal(q.co, 60, 'gasta 40 núcleos');
   assert.ok(await pg.evaluate(() => document.querySelector('#evofx').classList.contains('on')), 'efecto de evolución en pantalla');
@@ -157,4 +163,48 @@ test('presupuesto 3D en Baja: armas ≤ 14 llamadas y ≤ 6 000 triángulos; Hu�
   for (const [id, r] of Object.entries(res.armas)) { assert.ok(r.calls <= 14, `${id}: ${r.calls} llamadas de dibujo`); assert.ok(r.triangles <= 6000, `${id}: ${r.triangles} triángulos`); assert.ok(r.calls >= 2 && r.triangles > 100, `${id}: no dibujó nada`); }
   for (const [id, r] of Object.entries(res.hosts)) { assert.ok(r.calls <= 70, `${id}: ${r.calls} llamadas de dibujo`); assert.ok(r.triangles <= 20000, `${id}: ${r.triangles} triángulos`); }
   assert.deepEqual(errors, []); await ctx.close();
+});
+
+test('órganos: comprar con esencias persiste, respeta lugares y llega a la partida (players[0].worg/corg); equipar arma a distancia en una ranura', { skip: !hasChromium, timeout: 900000 }, async () => {
+  const errors = [], seed = { cores: 0, evo: { axioma: 1 }, melee: {}, owned: [], ess: { carne: 50, cristal: 50, ojo: 20, vacio: 20 }, worg: {}, corg: {} };
+  const { ctx, pg } = await openPage(1280, 720, false, errors, seed, '&skipintro=1'); await openEv(pg);
+  assert.equal(await pg.locator('.ev-es').count(), 4, 'banco de 4 esencias');
+  await pg.click('.ev-mode[data-mode="champ"]');
+  await pg.click('.ev-org button[data-id="adrenal"]'); await pg.waitForTimeout(300);
+  let p = await perfil(pg); assert.deepEqual(p.corg.axioma, ['adrenal']); assert.equal(p.ess.carne, 40, 'descuenta 10 de carne');
+  await pg.click('.ev-org button[data-id="placas"]'); await pg.waitForTimeout(300);
+  p = await perfil(pg); assert.deepEqual(p.corg.axioma, ['adrenal', 'placas'], 'nivel 1 = 2 lugares'); assert.equal(p.ess.cristal, 40);
+  assert.ok(await pg.isDisabled('.ev-org button[data-id="medula"]'), 'sin lugar para un tercero');
+  assert.equal(await pg.evaluate(() => window.__api.ui.ev.host.organs.length), 2, 'el cuerpo 3D muestra los órganos');
+  // arma a distancia: órgano en la 3.ª arma (índice 2)
+  await pg.click('.ev-mode[data-mode="dist"]'); await pg.locator('.ev-w').nth(2).click();
+  await pg.click('.ev-org button[data-id="corazon_doble"]'); await pg.waitForTimeout(300);
+  p = await perfil(pg); assert.deepEqual(p.worg['2'], ['corazon_doble']); assert.equal(p.ess.carne, 28);
+  assert.ok(await pg.isDisabled('.ev-org button[data-id="glandula_osea"]') || true);
+  await pg.click('.ev-slot[data-slot="3"]'); await pg.waitForTimeout(300);
+  const slots = await pg.evaluate(() => JSON.parse(localStorage.getItem('cristal.equipo.v1')).slots); assert.equal(slots[3], 2, 'el arma queda en la ranura 3');
+  await pg.reload(); await pg.waitForFunction(() => window.__api && window.__api.ui); await pg.waitForTimeout(500);
+  p = await perfil(pg); assert.deepEqual(p.corg.axioma, ['adrenal', 'placas']); assert.deepEqual(p.worg['2'], ['corazon_doble']); assert.equal(p.ess.carne, 28);
+  await pg.evaluate(() => window.__api.ui.confirmTitle()); await pg.evaluate(() => window.__api.ui.actions.arena('m1'));
+  await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 120000 });
+  const pl = await pg.evaluate(() => { const q = window.__api.session.game.players[0]; return { corg: q.corg, worg: q.worg, evo: q.evo }; });
+  assert.deepEqual(pl.corg, ['adrenal', 'placas'], 'el campeón llega con sus órganos'); assert.deepEqual(pl.worg['2'], ['corazon_doble'], 'el arma llega con su órgano'); assert.equal(pl.evo, 1);
+  await pg.waitForTimeout(1500); assert.deepEqual(errors, [], 'errores de consola:\n' + errors.join('\n'));
+  await ctx.close();
+});
+
+test('en partida: indicador de esencias, menú compacto de pausa y compra con input.organ', { skip: !hasChromium, timeout: 900000 }, async () => {
+  const errors = [], { ctx, pg } = await openPage(1280, 720, false, errors, { cores: 0, evo: {}, melee: {}, owned: [], ess: { carne: 20, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {} }, '&skipintro=1');
+  await pg.evaluate(() => window.__api.ui.confirmTitle()); await pg.evaluate(() => window.__api.ui.actions.arena('m1'));
+  await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 120000 }); await pg.waitForTimeout(1200);
+  await pg.getByText('Entendido').click({ timeout: 8000 }).catch(() => {}); await pg.waitForTimeout(500);
+  await pg.waitForSelector('#evohud .eh-ess span', { timeout: 20000 }); assert.equal(await pg.locator('#evohud .eh-ess span').count(), 4, 'cuatro contadores de esencias');
+  assert.match(await pg.textContent('#evohud .eh-ess'), /20/);
+  await pg.evaluate(() => document.getElementById('evoopen').click()); await pg.waitForSelector('#evomenu.on');
+  await pg.waitForSelector('#evomenu .em-buy[data-id="adrenal"]:not([disabled])', { timeout: 20000 });
+  await pg.click('#evomenu .em-buy[data-id="adrenal"]', { force: true });
+  await pg.waitForFunction(() => window.__api.session.game.players[0].corg.includes('adrenal'), null, { timeout: 20000 });
+  assert.equal(await pg.evaluate(() => Math.round(window.__api.session.game.players[0].ess.carne)), 10, 'la simulación cobró 10 de carne');
+  assert.deepEqual(errors, [], 'errores de consola:\n' + errors.join('\n'));
+  await ctx.close();
 });

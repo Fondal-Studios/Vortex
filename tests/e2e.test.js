@@ -40,7 +40,7 @@ test('e2e coop: dos navegadores reales (crear sala / unirse con código) compart
   const mk = async () => { const pg = await b.newPage({ viewport: { width: 800, height: 450 } }); pg.errs = []; pg.on('pageerror', (e) => pg.errs.push(e.message)); return pg; };
   try {
     const A = await mk(), B = await mk();
-    await A.goto(`http://localhost:${srv.port}/?q=low&skipintro=1&autoq=0`); await B.goto(`http://localhost:${srv.port}/?q=low&skipintro=1&autoq=0`);
+    const U = `http://localhost:${srv.port}/?q=low&skipintro=1&autoq=0`, G = { waitUntil: 'domcontentloaded', timeout: 60000 }; await A.goto(U, G); await B.goto(U, G); await A.waitForFunction(() => window.__ui, null, { timeout: 60000 }); await B.waitForFunction(() => window.__ui, null, { timeout: 60000 });
     const openCoop = async (pg) => { await pg.evaluate(() => { window.__ui.act('ok'); window.__ui.go('coop'); }); await pg.waitForTimeout(800); };
     await openCoop(A); await openCoop(B);
     await A.selectOption('#coopmap', 'm2'); await A.click('#mkroom');

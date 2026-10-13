@@ -14,7 +14,7 @@ for (const [vn, w, h, touch] of VPS) {
   await pg.waitForTimeout(800);
   const CHK = () => {
     const sel = ['.trophy', '#cards', '#downed', '#top', '#bossbar', '#objective', '#bars', '#weapons', '#skills', '#huesped', '#ability', '#coop', '#practice', '#banner', '.tc-fire', '.tc-fireL', '.tc-ads', '.tc-crouch', '.tc-jump', '.tc-mov', '.tc-esp', '.tc-s3', '.tc-ult', '.tc-melee', '.tc-reload', '.tc-evo', '.hq-ammo', '.tc-ability', '.tc-use', '.tc-ping', '.tc-pause', '#camquick', '#gravmsg', '.tc-edit'];
-    const items = []; for (const s of sel) for (const el of document.querySelectorAll(s)) { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || el.offsetParent === null && cs.position !== 'fixed') continue; const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue; items.push({ s, x: r.x, y: r.y, w: r.width, h: r.height, touchBtn: s.startsWith('.tc-') }); }
+    const items = []; for (const s of sel) for (const el of document.querySelectorAll(s)) { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05 || el.offsetParent === null && cs.position !== 'fixed') continue; const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue; items.push({ s, x: r.x, y: r.y, w: r.width, h: r.height, touchBtn: s.startsWith('.tc-') }); }
     const out = []; const W = innerWidth, H = innerHeight;
     for (let i = 0; i < items.length; i++) {
       const a = items[i]; if (a.x < -1 || a.y < -1 || a.x + a.w > W + 1 || a.y + a.h > H + 1) out.push(`FUERA DE PANTALLA ${a.s}`);

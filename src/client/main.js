@@ -7,6 +7,8 @@ import { WEAPON_COLORS } from './shotfx.js';
 import { createCombatHud } from './hud-combat.js';
 import { createHuespedHud } from './hud-huesped.js';
 import { createEvoHud, EVO_KEY } from './hud-evolucion.js';
+import { createEvoMenu } from './evo-menu.js';
+import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
 import * as Perfil from './perfil.js';
 import { createCaida } from './caida.js';
 import { MAPS } from '../sim/maps.js';
@@ -98,17 +100,18 @@ addEventListener('touchstart', () => { sound.init(); sound.resume(); }, { passiv
 /* ───────── ayuda de puntería (todas las entradas: ratón, táctil y mando) ───────── */
 const AIM_KEY = 'cristal.aim.v1'; let aimLevel = isTouchDevice() ? 2 : 1; try { const v = parseInt(localStorage.getItem(AIM_KEY), 10); if (v >= 0 && v <= 3) aimLevel = v; } catch { /* ok */ }
 const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSel.addEventListener('change', () => { aimLevel = +aimSel.value; try { localStorage.setItem(AIM_KEY, String(aimLevel)); } catch { /* ok */ } }); }
-let combatHud = null, huespedHud = null, caida = null, evoHud = null;
+let combatHud = null, huespedHud = null, caida = null, evoHud = null, evoMenu = null, organReq = null, organReqT = 0;
+const organInput = () => { if (organReq && performance.now() - organReqT > 400) organReq = null; return organReq; }; // input.organ se mantiene 0,4 s (la simulación cobra una sola vez)
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); ti.evo = !!(evoHud && evoHud.held()); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); ti.evo = !!(evoHud && evoHud.held()); ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(),
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held()), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held()), organ: organInput(), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
@@ -308,6 +311,7 @@ function frame(now) {
   session.myWeapon = me ? me.w : 0;
   if (me && me.char && session.handChar !== me.char && renderer.vm && renderer.vm.setHandStyle) { session.handChar = me.char; try { renderer.vm.setHandStyle(me.char); } catch { /* estilo de mano no disponible */ } }
   if (me && renderer.vm && renderer.vm.setUpgrades) me.sl.forEach((w, i) => { const u = me.ug[i]; renderer.vm.setUpgrades(w, u ? { dmg: u[0], rate: u[1], mag: u[2], mod: u[3] || null } : { dmg: 0, rate: 0, mag: 0, mod: null }); });
+  if (me && me.wg && renderer.vm && renderer.vm.setOrgans) me.sl.forEach((w, i) => renderer.vm.setOrgans(w, me.wg[i] || [])); // órganos que crecen en cada arma (organs-vis.js)
   touch.zoomKind = renderer.zoomKind || 0;
   renderer.guideTalk = subs.talking;
   renderer.firing = !!(session.touch ? touch.fire : mouse.fire);
@@ -345,7 +349,7 @@ function audioAndHud(state, me, dt) {
     switch (e.t) {
       case 'shot': sound.shot(e.w, mine ? null : e.o); break;
       case 'hit': sound.hit(e.p); break;
-      case 'kill': sound.voice(e.k, 'die', e.p); trophy('first', 'Primer contacto', 'Derrotá a tu primera criatura', sound); if (e.k === 'coloso') trophy('b1', 'Corazón roto', 'Derrotá al Coloso Prismático', sound); if (e.k === 'argos') trophy('b3', 'Cerré el ojo', 'Derrotá a Argos, el Ojo Primordial', sound); if (e.k === 'madre') trophy('b2', 'El último latido', 'Derrotá a la Madre Geoda', sound); if (e.k === 'geoda') trophy('geoda', 'Paciencia', 'Derrotá una Geoda', sound); break;
+      case 'kill': if (evoHud && evoHud.absorb && ESSENCE_OF[e.k]) { const v = new THREE.Vector3(e.p[0], e.p[1], e.p[2]).project(renderer.camera); if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) evoHud.absorb((v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight, e.k); } sound.voice(e.k, 'die', e.p); trophy('first', 'Primer contacto', 'Derrotá a tu primera criatura', sound); if (e.k === 'coloso') trophy('b1', 'Corazón roto', 'Derrotá al Coloso Prismático', sound); if (e.k === 'argos') trophy('b3', 'Cerré el ojo', 'Derrotá a Argos, el Ojo Primordial', sound); if (e.k === 'madre') trophy('b2', 'El último latido', 'Derrotá a la Madre Geoda', sound); if (e.k === 'geoda') trophy('geoda', 'Paciencia', 'Derrotá una Geoda', sound); break;
       case 'boom': sound.boom(e.p); break;
       case 'hurt': if (mine) { sound.hurt(); const v = $('vignette'); v.classList.add('hurt'); setTimeout(() => v.classList.remove('hurt'), 120); if (navigator.vibrate) navigator.vibrate(30); pad.rumble(120, 0.6); } break;
       case 'pickup': if (mine) sound.pickup(); break;
@@ -368,6 +372,7 @@ function audioAndHud(state, me, dt) {
       case 'purge': sound.gravity(); banner('¡PURGA! La Madre está abierta: ¡disparale!', 2400); flash(); break;
       case 'gestate': banner('La Madre pone huevos: ¡rompelos antes de que eclosionen!', 2400); break;
       case 'hatch': sound.boom(e.p); break;
+      case 'organ': if (mine && evoHud) { const O = e.target === 'c' ? CHAMP_ORGANS[e.id] : WEAPON_ORGANS[e.id]; evoHud.organ(O ? O.name : ''); sound.pickup(); } break; // un órgano creció (organs-vis.js lo muestra)
       case 'evolve': if (mine && evoHud) { evoHud.celebrate(e.tier); sound.objective(true); flash(); } break; // evolución: destello, onda y texto (hud-evolucion.js)
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con B', 2200); break;
       case 'surge': banner('El Vórtice se enfurece…', 1800); break;
@@ -551,6 +556,7 @@ $('sens').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.val
 $('sens0').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.value; });
 $('vol').addEventListener('input', (e) => sound.setVolume(+e.target.value / 10));
 $('subsel').addEventListener('change', (e) => { $('sub').style.display = e.target.value === '1' ? '' : 'none'; });
+$('evoopen').addEventListener('click', (e) => { e.stopPropagation(); if (!evoMenu) evoMenu = createEvoMenu(document.body, { getMe: () => session && session.lastMe, request: (o) => { organReq = o; organReqT = performance.now(); }, sound }); evoMenu.open(); });
 $('quit').addEventListener('click', () => { bankProfile(session && session.lastMe); location.reload(); });
 /* ───── ajustes de controles táctiles y cámara (se guardan por jugador) ───── */
 function bindTouchSettings() {

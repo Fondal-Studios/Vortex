@@ -12,6 +12,7 @@
 // Presupuesto: el Huésped base (≤ 40 llamadas) + ≤ 12 de mutación + ≤ 9 del arma. Medido en Baja con renderer.info (tests/melee-ui.test.js).
 import { buildHost, makeBuilder, HOST_COLORS } from './huespedes-view.js';
 import { attachToViewmodel } from './melee-models.js';
+import { attachChampOrgans } from './organs-vis.js';
 import { EVO_TIERS, MELEE_WEAPONS } from '../sim/data.js';
 
 const mixc = (a, b, u) => { const A = [(a >> 16) & 255, (a >> 8) & 255, a & 255], C = [(b >> 16) & 255, (b >> 8) & 255, b & 255]; return (Math.round(A[0] + (C[0] - A[0]) * u) << 16) | (Math.round(A[1] + (C[1] - A[1]) * u) << 8) | Math.round(A[2] + (C[2] - A[2]) * u); };
@@ -154,17 +155,18 @@ const SCALE_W = { seraf: [1, 1, 1.12, 1.22, 1.3] }; // las alas del Seraf crecen
 /** Construye un Huésped en un nivel de evolución, con un arma equipada. opts: { evo 0–4, melee id|null|'' , quality, color }. */
 export function buildHostEvo(THREE, id, opts = {}) {
   const T = THREE, quality = opts.quality || 'low', color = HOST_COLORS[id];
-  let evo = Math.max(0, Math.min(4, opts.evo | 0)), melee = opts.melee || '';
+  let evo = Math.max(0, Math.min(4, opts.evo | 0)), melee = opts.melee || '', organs = Array.isArray(opts.organs) ? opts.organs.slice() : [];
   const group = new T.Group(); group.name = 'huesped-evo-' + id;
   const baseEmi = new T.Color(color).multiplyScalar(0.05);
   let geo = evo; // nivel de GEOMETRÍA mostrado (con opts.budget baja hasta que el cuerpo quepa en ese número de llamadas de dibujo; escala y brillo siguen el nivel real)
-  let host = null, weapon = null, anim = null, P = null, aura = null, mats2 = null, lastT = 0;
+  let host = null, weapon = null, org = null, anim = null, P = null, aura = null, mats2 = null, lastT = 0;
   const wantsCatalog = () => !!melee && !!MELEE_WEAPONS[melee];       // arma del catálogo → reemplaza la innata
   const counts = { draws: 0, tris: 0 };
 
   function clear() {
     if (host) { group.remove(host.group); host.dispose(); host = null; }
     if (weapon) { weapon.dispose(); weapon = null; }
+    if (org) { org.dispose(); org = null; }
     if (aura) { group.remove(aura); aura.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); aura.userData.mats.forEach((m) => m.dispose()); aura = null; }
     if (mats2) { for (const m of Object.values(mats2)) m.dispose(); mats2 = null; }
     anim = null; P = null;
@@ -193,6 +195,8 @@ export function buildHostEvo(THREE, id, opts = {}) {
       const wi = weapon.model.info; counts.draws += wi.draws; counts.tris += wi.tris;
       if (id === 'umbra') { /* el antebrazo derecho ya no tiene hoja: se le pone una muñeca para que no quede cortado */ }
     }
+    // órganos del campeón (docs/EVOLUCION.md): ≤ 6 llamadas de dibujo extra, cuelgan de torso y cabeza
+    if (organs.length && J) { org = attachChampOrgans(T, id, J, organs, { color, quality }); counts.draws += org.info.draws; counts.tris += org.info.tris; }
     // jaula de aura (tier ≥ 3) y sello brillante en el suelo (tier 4)
     if (geo >= 3) {
       aura = new T.Group(); const m = [new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.04, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false }), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, blending: T.AdditiveBlending, depthWrite: false, wireframe: true, toneMapped: false })]; aura.userData.mats = m;
@@ -216,12 +220,15 @@ export function buildHostEvo(THREE, id, opts = {}) {
     if (anim) anim(lastT, evo);
     if (evo > 0) { host.mats.glow.color.multiplyScalar(1 + evo * 0.1); host.mats.body.emissive.copy(baseEmi).multiplyScalar(1 + evo * 0.5); }
     if (weapon) weapon.update(dt, lastT);
+    if (org) org.update(dt, lastT);
     if (aura) { const sg = aura.userData.sigil; if (sg) { sg[0].rotation.z += dt * 0.3; sg[1].rotation.z -= dt * 0.4; } aura.userData.mats[1].opacity = 0.18 + Math.sin(lastT * 1.8) * 0.06; }
   }
   return {
     group, update, id,
     pose(n) { host.pose(n); }, get poseName() { return host.poseName; },
     setEvo(n) { n = Math.max(0, Math.min(4, n | 0)); if (n === evo) return; evo = n; fitBuild(); },
+    setOrgans(list) { list = list || []; if (list.join() === organs.join()) return; organs = list.slice(); fitBuild(); },
+    get organs() { return organs; },
     setMelee(m) { m = m || ''; if (m === melee) return; melee = m; fitBuild(); },
     get evo() { return evo; }, get geoEvo() { return geo; }, get mats() { return host.mats; }, get melee() { return melee; }, get tierName() { return EVO_TIERS[evo].name; }, get joints() { return host.joints; },
     get weapon() { return weapon; },
