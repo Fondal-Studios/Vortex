@@ -1,58 +1,23 @@
 [
  {
-  "t": 25.5,
-  "calls": 89,
-  "triangles": 201681,
-  "shot": 6,
-  "sub": "No lo p"
+  "t": 2,
+  "calls": 95,
+  "triangles": 201511,
+  "shot": 1,
+  "sub": "Martes. 18:42. Andén 3."
  },
  {
-  "t": 25.9,
-  "calls": 89,
-  "triangles": 201681,
-  "shot": 6,
-  "sub": "No lo pensé."
- },
- {
-  "t": 27.8,
-  "calls": 96,
-  "triangles": 202503,
-  "shot": 7,
-  "sub": "No lo pensé."
+  "t": 19,
+  "calls": 92,
+  "triangles": 201685,
+  "shot": 4,
+  "sub": "Se sentía en los pies antes que en los oídos."
  },
  {
   "t": 31,
-  "calls": 89,
+  "calls": 90,
   "triangles": 160417,
   "shot": 8,
   "sub": "Intenté levantarla. No se movía."
- },
- {
-  "t": 34.4,
-  "calls": 89,
-  "triangles": 160417,
-  "shot": 8,
-  "sub": "El tren no frenaba."
- },
- {
-  "t": 34.95,
-  "calls": 89,
-  "triangles": 160417,
-  "shot": 8,
-  "sub": "El tren no frenaba."
- },
- {
-  "t": 35.5,
-  "calls": 79,
-  "triangles": 159311,
-  "shot": 8,
-  "sub": "El tren no frenaba."
- },
- {
-  "t": 36.8,
-  "calls": 79,
-  "triangles": 159311,
-  "shot": 8,
-  "sub": "El tren no frenaba."
  }
 ]

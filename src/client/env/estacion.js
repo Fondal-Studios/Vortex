@@ -230,9 +230,6 @@ export function buildStation(T, { level = 'low' } = {}) {
   group.add(track(new T.Mesh(mergeGeometries(far), track(new T.MeshStandardMaterial({ roughness: 0.9, vertexColors: true })))));
 
   /* — atmósfera: haces de luz tenues bajo las luminarias y polvo en suspensión — */
-  const coneG = new T.CylinderGeometry(0.35, 1.5, 5, 14, 1, true); coneG.translate(0, -2.5, 0);
-  const coneMat = track(new T.MeshBasicMaterial({ color: 0xdfffee, transparent: true, opacity: 0.028, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false, fog: false }));
-  const cones = track(new T.InstancedMesh(coneG, coneMat, fix.length)); fix.forEach((f, i) => { dm.position.set(f.x, 5.2, f.z); dm.rotation.set(0, 0, 0); dm.scale.set(1, 1, 1); dm.updateMatrix(); cones.setMatrixAt(i, dm.matrix); }); cones.frustumCulled = false; group.add(cones);
   const nDust = hi ? 260 : 150, dustP = new Float32Array(nDust * 3), dustV = [], dr = rng(77);
   for (let i = 0; i < nDust; i++) { dustP[i * 3] = -20 + dr() * 40; dustP[i * 3 + 1] = 0.3 + dr() * 4.6; dustP[i * 3 + 2] = -9 + dr() * 15; dustV.push([(dr() - 0.5) * 0.06, (dr() - 0.5) * 0.04, (dr() - 0.5) * 0.06]); }
   const dustGeo = new T.BufferGeometry(); dustGeo.setAttribute('position', new T.BufferAttribute(dustP, 3));

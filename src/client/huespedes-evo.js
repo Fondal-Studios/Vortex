@@ -157,6 +157,7 @@ export function buildHostEvo(THREE, id, opts = {}) {
   let evo = Math.max(0, Math.min(4, opts.evo | 0)), melee = opts.melee || '';
   const group = new T.Group(); group.name = 'huesped-evo-' + id;
   const baseEmi = new T.Color(color).multiplyScalar(0.05);
+  let geo = evo; // nivel de GEOMETRÍA mostrado (con opts.budget baja hasta que el cuerpo quepa en ese número de llamadas de dibujo; escala y brillo siguen el nivel real)
   let host = null, weapon = null, anim = null, P = null, aura = null, mats2 = null, lastT = 0;
   const wantsCatalog = () => !!melee && !!MELEE_WEAPONS[melee];       // arma del catálogo → reemplaza la innata
   const counts = { draws: 0, tris: 0 };
@@ -176,8 +177,8 @@ export function buildHostEvo(THREE, id, opts = {}) {
     const J = host.joints;
     // piezas de mutación: una malla por tipo y articulación nueva
     P = makeBuilder(T, S); const at = (name, parent, pos = [0, 0, 0]) => P.joint(name, parent, pos);
-    if (MUT[id] && evo > 0 && J) {
-      anim = MUT[id](P, J, evo, color, at); for (const j of Object.values(P.joints)) j.g.rotation.set(j.rest[0], j.rest[1], j.rest[2]);
+    if (MUT[id] && geo > 0 && J) {
+      anim = MUT[id](P, J, geo, color, at); for (const j of Object.values(P.joints)) j.g.rotation.set(j.rest[0], j.rest[1], j.rest[2]);
       mats2 = {
         body: new T.MeshStandardMaterial({ vertexColors: true, metalness: 0.3, roughness: 0.5, flatShading: true, emissive: new T.Color(color).multiplyScalar(0.05) }),
         glow: new T.MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
@@ -188,17 +189,17 @@ export function buildHostEvo(THREE, id, opts = {}) {
     // manos: arma equipada fusionada (si es innata, la lleva el cuerpo base)
     if (wantsCatalog() && J && J.foreR) {
       const w = MELEE_WEAPONS[melee], k = (HSCALE[id] || 1) * (TSCALE[w.type] || 1);
-      weapon = attachToViewmodel(T, J.foreR.g, melee, { frame: 'host', size: k, offset: HAND[id] || [0, -0.4, 0.05], tier: evo, quality, color, aura: false });
+      weapon = attachToViewmodel(T, J.foreR.g, melee, { frame: 'host', size: k, offset: HAND[id] || [0, -0.4, 0.05], tier: geo, quality, color, aura: false });
       const wi = weapon.model.info; counts.draws += wi.draws; counts.tris += wi.tris;
       if (id === 'umbra') { /* el antebrazo derecho ya no tiene hoja: se le pone una muñeca para que no quede cortado */ }
     }
     // jaula de aura (tier ≥ 3) y sello brillante en el suelo (tier 4)
-    if (evo >= 3) {
+    if (geo >= 3) {
       aura = new T.Group(); const m = [new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.04, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false }), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, blending: T.AdditiveBlending, depthWrite: false, wireframe: true, toneMapped: false })]; aura.userData.mats = m;
       const g = new T.IcosahedronGeometry(1, 0), a1 = new T.Mesh(g, m[0]), a2 = new T.Mesh(g.clone(), m[1]); for (const a of [a1, a2]) { a.position.y = 1.15; a.scale.set(0.95, 1.4, 0.95); a.frustumCulled = false; a.renderOrder = 4; aura.add(a); }
       counts.draws += 2; counts.tris += 160; group.add(aura);
     }
-    if (evo >= 4) {
+    if (geo >= 4) {
       const sg = new T.Group(), gm = new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false }), r1 = new T.Mesh(new T.RingGeometry(1.35, 1.4, 48), gm), r2 = new T.Mesh(new T.RingGeometry(0.98, 1.0, 6), gm);
       for (const r of [r1, r2]) { r.rotation.x = -Math.PI / 2; r.position.y = 0.03; r.frustumCulled = false; sg.add(r); }
       group.add(sg); aura = aura || new T.Group(); aura.add(sg); aura.userData.mats = [...(aura.userData.mats || []), gm]; aura.userData.sigil = [r1, r2]; counts.draws += 2; counts.tris += 120;
@@ -206,22 +207,23 @@ export function buildHostEvo(THREE, id, opts = {}) {
     const s = 1 + evo * 0.02; group.scale.setScalar(s);
     host.pose('idle'); host.update(0, lastT);
   }
-  build();
+  function fitBuild() { geo = evo; build(); while (opts.budget && counts.draws > opts.budget && geo > 0) { geo--; build(); } }
+  fitBuild();
   function update(dt, t) {
     lastT = t == null ? lastT + dt : t; host.update(dt, lastT);
     const J = host.joints;
     if (id === 'seraf' && J.wingR) { const k = SCALE_W.seraf[evo]; for (const sd of ['wingR', 'wingL']) J[sd].g.scale.multiplyScalar(k); }
     if (anim) anim(lastT, evo);
-    if (evo > 0) { host.mats.glow.color.multiplyScalar(1 + evo * 0.1); host.mats.body.emissive.copy(baseEmi).multiplyScalar(1 + evo * 2.2); }
+    if (evo > 0) { host.mats.glow.color.multiplyScalar(1 + evo * 0.1); host.mats.body.emissive.copy(baseEmi).multiplyScalar(1 + evo * 0.5); }
     if (weapon) weapon.update(dt, lastT);
     if (aura) { const sg = aura.userData.sigil; if (sg) { sg[0].rotation.z += dt * 0.3; sg[1].rotation.z -= dt * 0.4; } aura.userData.mats[1].opacity = 0.18 + Math.sin(lastT * 1.8) * 0.06; }
   }
   return {
     group, update, id,
     pose(n) { host.pose(n); }, get poseName() { return host.poseName; },
-    setEvo(n) { n = Math.max(0, Math.min(4, n | 0)); if (n === evo) return; evo = n; build(); },
-    setMelee(m) { m = m || ''; if (m === melee) return; melee = m; build(); },
-    get evo() { return evo; }, get melee() { return melee; }, get tierName() { return EVO_TIERS[evo].name; }, get joints() { return host.joints; },
+    setEvo(n) { n = Math.max(0, Math.min(4, n | 0)); if (n === evo) return; evo = n; fitBuild(); },
+    setMelee(m) { m = m || ''; if (m === melee) return; melee = m; fitBuild(); },
+    get evo() { return evo; }, get geoEvo() { return geo; }, get mats() { return host.mats; }, get melee() { return melee; }, get tierName() { return EVO_TIERS[evo].name; }, get joints() { return host.joints; },
     get weapon() { return weapon; },
     get info() { return { id, evo, draws: counts.draws, tris: Math.round(counts.tris) }; },
     dispose() { clear(); },

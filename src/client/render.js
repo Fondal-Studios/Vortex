@@ -17,6 +17,7 @@ import heraldo from './creatures/heraldo.js';
 import { cfg, LEVELS, setCurrent } from './quality.js';
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
 import { createHostFx } from './hostfx.js';
+import { createHostBody, isHost } from './host-body.js';
 import { blocked } from '../sim/physics.js';
 import { settings } from './settings.js';
 const WEAPONS_MAX = WEAPONS.map((w) => w.max);
@@ -372,12 +373,16 @@ export class Renderer {
       let e = this.ents.ply.get(p.id);
       const ch = CHARACTERS[p.char], col = ch ? ch.color : PLAYER_COLORS[(p.id - 1) % 4];
       if (!e) { e = { object: new THREE.Group(), human: null, simple: null, prev: p.pos, spd: 0, col, shotT: 0 }; e.simple = this.simpleAvatar(col); e.object.add(e.simple); this.entRoot.add(e.object); this.ents.ply.set(p.id, e); }
-      if (!e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, ch ? { char: p.char, name: p.name } : { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
+      if (!e.body && !e.noBody && !e.human && isHost(p.char)) { try { e.body = createHostBody(THREE, p, { quality: this.level === 'low' ? 'low' : 'medium' }); e.object.add(e.body.object); if (e.simple) { e.object.remove(e.simple); e.simple = null; } } catch (err) { console.warn('cuerpo de Huésped:', err.message); e.noBody = true; } } // cuerpo con modelo de Huésped (host-body.js)
+      if (!e.body && !e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, ch ? { char: p.char, name: p.name } : { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
       const dv = [p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]], spd = Math.hypot(...dv) / Math.max(dt, 1e-3); e.prev = p.pos;
       const hv = V(p.h), rv = new THREE.Vector3().crossVectors(hv, V(p.up)), dvv = V(dv), dl = dvv.length() || 1; e.moveDir = { x: dvv.dot(rv) / dl, z: dvv.dot(hv) / dl }; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
-      const base = V(p.pos).addScaledVector(V(p.up), e.human ? -0.9 : 0);
+      const base = V(p.pos).addScaledVector(V(p.up), e.human || e.body ? -0.9 : 0);
       e.object.position.copy(base); this.orient(e.object, p.up, p.h); e.object.visible = true;
-      if (e.human) {
+      if (e.body) {
+        for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev);
+        e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null });
+      } else if (e.human) {
         e.shotT = Math.max(0, e.shotT - dt);
         const clip = p.dead ? 'death' : e.shotT > 0 ? 'shoot' : e.spd > 6 ? 'sprint' : e.spd > 1.5 ? 'jog' : 'aimIdle';
         if (clip !== e.clip) { e.clip = clip; e.human.play(clip, { fade: 0.2, restart: clip === 'shoot' }); }
@@ -388,9 +393,9 @@ export class Renderer {
       if (!self) {
       const txt = p.dead ? `REANIMAR ${Math.round(p.rv / 3 * 100)}%` : `${p.name} ${p.id}`, colr = p.dead ? '#ff7a9a' : '#' + col.toString(16).padStart(6, '0');
       if (e.labelTxt !== txt) { e.labelTxt = txt; e.label.material = this.label(txt, colr); }
-      e.label.position.set(0, e.human ? 2.25 : 1.8, 0); }
+      e.label.position.set(0, e.human ? 2.25 : e.body ? 2.9 : 1.8, 0); }
     }
-    for (const [id, e] of this.ents.ply) if (!seen.has(id)) { this.entRoot.remove(e.object); if (e.human) e.human.dispose(); this.ents.ply.delete(id); }
+    for (const [id, e] of this.ents.ply) if (!seen.has(id)) { this.entRoot.remove(e.object); if (e.human) e.human.dispose(); if (e.body) e.body.dispose(); this.ents.ply.delete(id); }
   }
 
   /* ───────── eventos → efectos ───────── */

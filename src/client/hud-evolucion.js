@@ -11,7 +11,7 @@ import { EVO_TIERS, CHARACTERS } from '../sim/data.js';
 export const EVO_KEY = { code: 'KeyN', label: 'N' };
 const STYLE_ID = 'evohud-style';
 const CSS = `
-#evohud{position:absolute;left:calc(14px + env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;align-items:flex-start;pointer-events:none;font-size:12px;max-width:min(46vw,260px);z-index:6}
+#evohud{position:absolute;left:calc(14px + env(safe-area-inset-left,0px));top:calc(66px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;align-items:flex-start;pointer-events:none;font-size:12px;max-width:min(46vw,260px);z-index:6}
 #evohud .eh-row{display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:12px;background:#0c0822bb;border:1px solid #ffffff2e;backdrop-filter:blur(4px);white-space:nowrap}
 #evohud .eh-row i{font-style:normal;color:var(--hc,#ffe27a);text-shadow:0 0 8px var(--hc,#ffe27a)}
 #evohud .eh-row b{font-size:15px;color:#fff;font-variant-numeric:tabular-nums}
