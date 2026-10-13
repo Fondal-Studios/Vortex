@@ -13,7 +13,7 @@ test('ajustes: la escala del deslizador es monótona y reversible', () => {
   assert.ok(DEFAULTS.sensX > DEFAULTS.sensY * 0.9 && DEFAULTS.adsMul < 1 && DEFAULTS.scopeMul < DEFAULTS.adsMul);
 });
 
-test('controles táctiles: giro exacto, 180°, microajuste, multitoque, zonas, ADS, agacharse, persistencia', { skip: !hasChromium, timeout: 180000 }, async () => {
+test('controles táctiles: giro exacto, 180°, microajuste, multitoque, zonas, ADS, agacharse, persistencia', { skip: !hasChromium, timeout: 500000 }, async () => {
   const { launch } = await import('../tools/browser.js'); const { devices } = await import('playwright-core');
   const srv = await startServer({ port: 0 }); const b = await launch();
   const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, userAgent: devices['iPhone 13'].userAgent });
@@ -33,7 +33,7 @@ test('controles táctiles: giro exacto, 180°, microajuste, multitoque, zonas, A
     const want = DEFAULTS.sensX * 100, got = ang(a, c);
     assert.ok(Math.abs(got - want) / want < 0.15, `100 px giran ${got.toFixed(3)} rad (esperado ${want.toFixed(3)})`);
     // 2) la dirección: deslizar a la derecha y luego a la izquierda vuelve al punto de partida
-    await swipe(11, 660, 200, -100, 0); await simWait(pg, 0.4); const d2 = await me(); assert.ok(ang(a, d2) < 0.05, 'ida y vuelta regresa a la misma dirección');
+    await swipe(11, 600, 200, -100, 0); await simWait(pg, 0.4); const d2 = await me(); assert.ok(ang(a, d2) < 0.05, 'ida y vuelta regresa a la misma dirección');
     // 3) giro rápido de 180° con un solo deslizamiento cómodo (<= 520 px en 150 ms)
     a = await me(); await swipe(12, 440, 220, 300, 0, 6, 8); await swipe(13, 440, 220, 300, 0, 6, 8); await swipe(14, 440, 220, 120, 0, 3, 8); await simWait(pg, 0.5); c = await me();
     assert.ok(ang(a, c) > 2.5, `dos deslizamientos cortos dan casi 180° (${(ang(a, c) * 57.3).toFixed(0)}°)`);

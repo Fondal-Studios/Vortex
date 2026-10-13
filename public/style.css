@@ -356,6 +356,14 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
   #weapons { pointer-events: none; } #weapons div { padding-top: 8px !important; padding-bottom: 8px !important; }
 }
 .tc-btn.tc-ctx:not(.tc-off) { animation: tcpop .35s ease-out; } @keyframes tcpop { from { transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(.3); } }
-@media (pointer: coarse) { body.playing #trophies { bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); } }
-@media (pointer: coarse) { .tc-btn.tc-fireL { bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); } }
+@media (pointer: coarse) { body.playing #trophies { bottom: calc(env(safe-area-inset-bottom, 0px) + 192px); } }
+@media (pointer: coarse) { .tc-btn.tc-fireL { bottom: calc(env(safe-area-inset-bottom, 0px) + 192px); } }
 .tc-btn.tc-reload small { letter-spacing: 0; font-size: 8px; }
+
+/* Comodidad de cámara: viñeta al girar la gravedad + aviso */
+#comfort { position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 38%, rgba(4,2,16,.92) 100%); }
+#gravmsg { position: absolute; left: 50%; top: calc(18% + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 6; pointer-events: none; opacity: 0; transition: opacity .25s; padding: 8px 16px; border-radius: 999px; background: rgba(10,8,30,.82); border: 1px solid rgba(160,140,255,.7); color: #e8e0ff; font: 700 13px/1.2 system-ui, sans-serif; letter-spacing: .06em; max-width: 90vw; text-align: center; }
+#gravmsg.on { opacity: 1; }
+#camtbtn { position: absolute; z-index: 7; }
+#camquick { position: absolute; z-index: 8; left: calc(76px + env(safe-area-inset-left, 0px)); top: calc(18px + env(safe-area-inset-top, 0px)); width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(160,140,255,.8); background: rgba(10,8,30,.7); color: #fff; font-size: 20px; line-height: 1; padding: 0; touch-action: manipulation; }
+#camquick.third { background: rgba(120,90,255,.75); }

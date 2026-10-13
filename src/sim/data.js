@@ -208,8 +208,8 @@ export const MONSTERS = {
 // Qué criaturas se habilitan en cada oleada de cada mapa
 export const WAVE_PLANS = {
   m1: [
-    ['astilla'],
-    ['astilla', 'prisma'],
+    ['astilla', 'lente'],
+    ['astilla', 'prisma', 'lente'],
     ['astilla', 'prisma', 'racimo', 'lente'],
     ['astilla', 'prisma', 'racimo', 'lente', 'geoda', 'ariete'],
     ['astilla', 'prisma', 'racimo', 'lente', 'geoda', 'ariete', 'espejo', 'cuarzo', 'obelisco'],
@@ -232,7 +232,7 @@ export const WAVE_PLANS = {
     ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete', 'cuarzo', 'obelisco', 'geoda', 'aurora', 'graviton', 'espiral'],
   ],
   m2: [
-    ['astilla', 'racimo'],
+    ['astilla', 'racimo', 'lente'],
     ['astilla', 'racimo', 'lente', 'espejo'],
     ['astilla', 'racimo', 'lente', 'espejo', 'geoda', 'obelisco'],
     ['astilla', 'racimo', 'lente', 'espejo', 'geoda', 'obelisco', 'prisma', 'cuarzo', 'ariete'],

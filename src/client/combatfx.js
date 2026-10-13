@@ -398,7 +398,7 @@ export class CombatFx {
     const at = this.attribute(p), w = at ? at.w : -1, name = WN[w] || null, style = at && at.splash ? 'blast' : (WSTYLE[name] || 'spark');
     const sh = at && at.shot ? at.shot : null, nrm = sh ? _d.copy(sh.o).sub(p).normalize().clone() : (this.cam ? _d.copy(this.cam.position).sub(p).normalize().clone() : new THREE.Vector3(0, 1, 0));
     const dmg = e.d || 1, base = (w >= 0 && WEAPONS[w] ? WEAPONS[w].dmg : 20) * (at && at.arc ? 0.7 : 1);
-    let mul = base > 0 ? dmg / base : 1; if (sh && sh.pid === this.myId && this.me && this.me.up && Array.isArray(this.me.up)) { const i = this.me.sl ? this.me.sl.indexOf(w) : -1, u = i >= 0 ? this.me.up[i] : 0; if (Array.isArray(u) && u[0]) mul /= 1 + 0.22 * u[0]; }
+    let mul = base > 0 ? dmg / base : 1; if (sh && sh.pid === this.myId && this.me && this.me.ug && Array.isArray(this.me.ug)) { const i = this.me.sl ? this.me.sl.indexOf(w) : -1, u = i >= 0 ? this.me.ug[i] : 0; if (Array.isArray(u) && u[0]) mul /= 1 + 0.22 * u[0]; }
     const crit = !e.arm && mul >= 1.9, boost = !e.arm && !crit && mul >= 1.22, heavy = dmg >= 90, k = clamp(0.6 + Math.log10(dmg + 1) * 0.45 + (crit ? 0.5 : 0), 0.6, 2.4);
     // marca para la animación de muerte (cómo lo mataron)
     this.lastHit.set(e.id, { style, w, t: this.t, nrm, p });

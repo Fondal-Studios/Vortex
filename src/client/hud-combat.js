@@ -65,7 +65,7 @@ export function createCombatHud(rootEl, opts = {}) {
     const x = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], z = m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14];
     return Math.atan2(x, -z);
   }
-  const lvlOf = (me, w) => { if (!me || !me.sl || !Array.isArray(me.up)) return 0; const i = me.sl.indexOf(w), u = i >= 0 ? me.up[i] : 0; return Array.isArray(u) ? u[0] || 0 : 0; };
+  const lvlOf = (me, w) => { if (!me || !me.sl || !Array.isArray(me.ug)) return 0; const i = me.sl.indexOf(w), u = i >= 0 ? me.ug[i] : 0; return Array.isArray(u) ? u[0] || 0 : 0; };
   const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
   function segDist(p, a, b) { const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], l2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2] || 1e-6; let t = ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1] + (p[2] - a[2]) * d[2]) / l2; t = clamp(t, 0, 1); return near(p, [a[0] + d[0] * t, a[1] + d[1] * t, a[2] + d[2] * t]); }
 

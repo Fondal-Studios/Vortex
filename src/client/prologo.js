@@ -63,7 +63,7 @@ export function startPrologue({ THREE: T, renderer, host = 'axioma', touch = fal
   const saved = { exposure: gl.toneMappingExposure, tone: gl.toneMapping, shadow: gl.shadowMap.enabled, shadowType: gl.shadowMap.type, autoClear: gl.autoClear };
 
   /* ───────── escena, entorno, cámara ───────── */
-  const scene = new T.Scene(); scene.background = new T.Color(0x07090a); scene.fog = new T.FogExp2(0x0d1113, 0.012);
+  const scene = new T.Scene(); scene.background = new T.Color(0x07090a); scene.fog = new T.FogExp2(0x15191b, 0.016);
   const camera = new T.PerspectiveCamera(42, 1, 0.05, 260); scene.add(camera);
   gl.toneMapping = T.ACESFilmicToneMapping; gl.toneMappingExposure = 0.85;
   { const pm = new T.PMREMGenerator(gl), env = pm.fromScene(new RoomEnvironment(), 0.04); scene.environment = env.texture; scene.environmentIntensity = 0.42; pm.dispose(); scene.userData.env = env; }

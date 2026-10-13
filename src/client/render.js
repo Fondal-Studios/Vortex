@@ -190,8 +190,21 @@ export class Renderer {
     // CÁMARA DIRECTA: la mirada (yaw/pitch) se aplica tal cual, sin suavizado ni inercia (era un slerp de ~70 ms: sensación pesada).
     // Sólo el vector "arriba" se suaviza, y únicamente cuando la gravedad cambia (inversión de gravedad, zonas, marea).
     const up0 = V(me.up);
-    if (!this.camInit || !this.upSm) { this.upSm = up0.clone(); this.camInit = true; }
-    else if (this.upSm.dot(up0) < 0.99999) this.upSm.lerp(up0, 1 - Math.exp(-5 * dt)).normalize();   // sólo el «alabeo» (horizonte) se suaviza: giro suave y calmo al cambiar la gravedad
+    if (!this.camInit || !this.upSm) { this.upSm = up0.clone(); this.camInit = true; this.comfort = 0; this.camAge = 0; }
+    else {
+      // Giro de horizonte CÓMODO: velocidad angular acotada (≤ 2,2 rad/s, frena al llegar) en vez de un latigazo; mientras gira se oscurecen los bordes (viñeta) y se avisa.
+      const dotv = Math.max(-1, Math.min(1, this.upSm.dot(up0))), ang = Math.acos(dotv);
+      if (ang > 1e-3) {
+        const step = Math.min(ang, Math.max(0.5, Math.min(2.2, ang * 3)) * dt);
+        const axis = new THREE.Vector3().crossVectors(this.upSm, up0); if (axis.lengthSq() < 1e-8) axis.set(1, 0, 0).cross(this.upSm); axis.normalize();
+        this.upSm.applyAxisAngle(axis, step).normalize();
+        this.camAge = (this.camAge || 0) + dt; if (ang > 0.6 && !this.gravAnn) { this.gravAnn = true; if (this.camAge > 4) this.gravMsgT = 1.6; }
+      } else this.gravAnn = false;
+      this.comfort = this.comfort + ((ang > 0.05 ? Math.min(1, ang / 0.7) : 0) - this.comfort) * (1 - Math.exp(-8 * dt));
+    }
+    if (!this.comfortEl) { this.comfortEl = document.getElementById('comfort'); this.gravEl = document.getElementById('gravmsg'); }
+    if (this.comfortEl) this.comfortEl.style.opacity = String(Math.min(0.7, this.comfort * 0.7));
+    if (this.gravEl) { this.gravMsgT = Math.max(0, (this.gravMsgT || 0) - dt); this.gravEl.classList.toggle('on', this.gravMsgT > 0); }
     // La MIRA (adonde apunta y dispara) usa siempre la gravedad real de la simulación: el punto de mira nunca se desfasa.
     const up = up0, h0 = look ? V(look.h) : V(me.h), pitch = look ? look.pitch : me.pitch;
     const h = h0.clone().addScaledVector(up, -h0.dot(up)); if (h.lengthSq() < 1e-6) h.copy(h0); h.normalize();

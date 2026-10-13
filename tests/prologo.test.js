@@ -50,7 +50,7 @@ test('prólogo cinematográfico: se recorre entero, la cámara es libre sólo en
     for (const c of ['jog', 'jump']) assert.ok(out.seen.pClips.includes(c), 'el protagonista corre y salta a la vía: falta ' + c);
     assert.equal(out.seen.humans, 5, 'personas con rig de ARCANUM');
     assert.equal(out.seen.objectiveUI, false, 'sin objetivos ni HUD de juego');
-    assert.ok(out.seen.subs.size >= 7, 'subtítulos: ' + [...out.seen.subs].join(' | '));
+    for (const frag of ['Andén 3', 'auriculares', 'anuncio', 'pies', 'gritó', 'No lo pensé', 'levantarla', 'no frenaba']) assert.ok(out.seen.subs.some((x) => x.includes(frag)), 'falta el subtítulo: ' + frag);
     assert.ok(out.final.finished && out.final.T >= 38.3, 'la cinemática termina (blanco → negro)');
     assert.equal(out.session.prologo, null, 'se llamó onDone: el juego tomó el control');
     assert.ok(out.session.intro && out.session.wake > 0, 'tras morir sigue el despertar en el Vórtice (WAKE)');

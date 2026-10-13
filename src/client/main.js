@@ -1,6 +1,6 @@
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
-import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS } from '../sim/data.js';
+import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS } from '../sim/data.js';
 import { Equipo } from './equipo.js';
 import { settings, setSetting, sensFromSlider, sliderFromSens } from './settings.js';
 import { WEAPON_COLORS } from './shotfx.js';
@@ -72,7 +72,7 @@ addEventListener('keydown', (e) => {
     if (e.code === 'KeyH') { const ids = Object.keys(CHARACTERS), i = (ids.indexOf(p.char) + 1) % ids.length; g.setLoadout(p.id, ids[i], p.slots); }
     if (e.code === 'Comma' || e.code === 'Period') { const d = e.code === 'Period' ? 1 : -1, slot = Math.max(1, p.slots.indexOf(p.weapon)), n = WEAPONS.length; let w = p.weapon; do { w = (w + d + n) % n; } while (w < 1 || p.slots.includes(w)); g.setSlotWeapon(p.id, slot, w); }
   }
-  if (e.code === 'KeyP' && session && !session.intro) renderer.setThird(!renderer.third); // cámara en tercera persona (V ahora es melee)
+  if (e.code === 'KeyP' && session && !session.intro) { renderer.setThird(!renderer.third); setSetting('third', renderer.third); const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; } // cámara en tercera persona (V ahora es melee)
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('mousedown', (e) => { if (e.button === 1) { mouse.ping = true; e.preventDefault(); } if (e.button === 0) mouse.fire = true; if (e.button === 2) { mouse.esp = true; e.preventDefault(); } if (session && session.intro) skipIntro(); });
@@ -174,7 +174,7 @@ async function startCoop(create, code, mapId) {
 function enter(mapId) {
   $('menu').classList.add('hidden'); $('end').classList.add('hidden'); $('hud').classList.remove('hidden'); document.body.classList.add('playing');
   sound.init(); sound.resume(); sound.startMusic(mapId);
-  renderer.setMap(mapId); renderer.camInit = false; renderer.setThird(params.get('cam') === 'third');
+  renderer.setMap(mapId); renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : !!settings().third);
   buildWeaponHud();
   touch.show(!!session.touch);
   if (!session.touch && !session.headless && !NOLOCK && !params.get('auto')) lockPointer(); // requiere gesto del usuario
@@ -226,10 +226,10 @@ function buildWeaponHud() {
 }
 /** Barra de armas: 5 ranuras con el arma elegida, munición y pips de mejora (se reconstruye sólo si cambian). */
 function updateWeaponHud(me) {
-  const key = me.sl.join(',') + '|' + JSON.stringify(me.up);
+  const key = me.sl.join(',') + '|' + JSON.stringify(me.ug);
   if (session.slotKey !== key) {
     session.slotKey = key;
-    $('weapons').innerHTML = me.sl.map((w, i) => { const u = me.up[i], pips = u ? '▮'.repeat(u[0]) + '▮'.repeat(u[1]) + '▮'.repeat(u[2]) : ''; return `<div id="w${i}" data-i="${i}">${i + 1}<em> · ${WEAPONS[w].name}</em><span class="nm"> </span> <span id="a${i}"></span><i class="pips">${pips}${u && u[3] ? ' ◆' : ''}</i></div>`; }).join('');
+    $('weapons').innerHTML = me.sl.map((w, i) => { const u = me.ug[i], pips = u ? '▮'.repeat(u[0]) + '▮'.repeat(u[1]) + '▮'.repeat(u[2]) : ''; return `<div id="w${i}" data-i="${i}">${i + 1}<em> · ${WEAPONS[w].name}</em><span class="nm"> </span> <span id="a${i}"></span><i class="pips">${pips}${u && u[3] ? ' ◆' : ''}</i></div>`; }).join('');
     $('weapons').querySelectorAll('div').forEach((d) => d.addEventListener('pointerdown', (e) => { if (session && session.touch) { wantWeapon = +d.dataset.i; touch.weapon = wantWeapon; e.stopPropagation(); } }));
   }
   me.sl.forEach((w, i) => { $('w' + i).classList.toggle('sel', me.w === w); $('a' + i).textContent = me.ammo[w] < 0 ? '∞' : me.ammo[w]; });
@@ -254,6 +254,7 @@ function frame(now) {
   if (!CAP) requestAnimationFrame(frame);
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; // nunca negativo (carga lenta)
   if (CAP) { capT += dt; window.__capT = capT; for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= capT * 1000) { const f = timers[i].fn; timers.splice(i, 1); f(); } if (cine && cine.tick) cine.tick(dt); }
+  { const q = $('camquick'); if (q) { q.classList.toggle('hidden', !session || !!session.intro || !!session.paused); q.classList.toggle('third', !!renderer.third); } }
   window.__fps = (window.__fps || 60) * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;
   uTime.value += 0; subs.update(dt); padDt = dt;
   if (session && session.prologo) { if (!params.get('prologo_manual')) session.prologo.tick(dt); return; } // prólogo 3D: dibuja él mismo
@@ -303,7 +304,7 @@ function frame(now) {
   }
   session.myWeapon = me ? me.w : 0;
   if (me && me.char && session.handChar !== me.char && renderer.vm && renderer.vm.setHandStyle) { session.handChar = me.char; try { renderer.vm.setHandStyle(me.char); } catch { /* estilo de mano no disponible */ } }
-  if (me && renderer.vm && renderer.vm.setUpgrades) me.sl.forEach((w, i) => { const u = me.up[i]; renderer.vm.setUpgrades(w, u ? { dmg: u[0], rate: u[1], mag: u[2], mod: u[3] || null } : { dmg: 0, rate: 0, mag: 0, mod: null }); });
+  if (me && renderer.vm && renderer.vm.setUpgrades) me.sl.forEach((w, i) => { const u = me.ug[i]; renderer.vm.setUpgrades(w, u ? { dmg: u[0], rate: u[1], mag: u[2], mod: u[3] || null } : { dmg: 0, rate: 0, mag: 0, mod: null }); });
   touch.zoomKind = renderer.zoomKind || 0;
   renderer.guideTalk = subs.talking;
   renderer.firing = !!(session.touch ? touch.fire : mouse.fire);
@@ -393,7 +394,7 @@ function audioAndHud(state, me, dt) {
   if (session.practice && me) { pr.classList.remove('hidden'); pr.innerHTML = `<b>CAMPO DE PRUEBAS</b> · Héroe: <i>${CHARACTERS[me.char] ? CHARACTERS[me.char].name : '—'}</i> (H) · Arma: <i>${WEAPONS[me.w].name}</i> ( , . ) · munición y vida ilimitadas`; } else pr.classList.add('hidden');
   const bb = $('bossbar');
   if (state.boss) { bb.classList.remove('hidden'); $('bossname').textContent = state.boss.name; $('bossfill').style.width = `${Math.max(0, 100 * state.boss.hp / state.boss.max)}%`; } else bb.classList.add('hidden');
-  hudDirector(state, me);
+  try { hudDirector(state, me); } catch (err) { if (!window.__hudErr) { window.__hudErr = err; console.error("HUD:", err); } }   // un error de interfaz nunca debe detener el dibujo (pantalla negra)
   if (me) {
     $('hpfill').style.width = `${me.hp}%`; $('shfill').style.width = `${me.sh}%`; $('hpnum').textContent = `Vida ${me.hp}`; $('shnum').textContent = `Escudo ${me.sh}`;
     $('score').textContent = `Puntos ${me.score} · Bajas ${me.kills}` + (me.dead ? ' · CAÍDO: un compañero cerca te reanima' : '');
@@ -437,9 +438,9 @@ function hudDirector(state, me) {
     if (session.cardKey !== key) {
       session.cardKey = key; const WC = WEAPON_COLORS.map((c) => '#' + c.toString(16).padStart(6, '0'));
       $('cardlist').innerHTML = me.cards.map((c, i) => {
-        const [w, k, mod] = c, W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.up[idx] || [0, 0, 0, null], isMod = k === 'mod';
+        const [w, k, mod, mod0] = c, W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.ug[idx] || [0, 0, 0, null], isMut = k === 'mut', isMod = k === 'mod' || isMut, MU = isMut ? ((WEAPON_MUTS[mod0] || []).find((x) => x.id === mod) || { name: mod, desc: '' }) : null;
         const ix = { dmg: 0, rate: 1, mag: 2 }[k], cur = isMod ? 0 : (u[ix] || 0), eff = { dmg: `daño ${Math.round(W.dmg * (1 + 0.22 * cur))} → ${Math.round(W.dmg * (1 + 0.22 * (cur + 1)))}`, rate: `${(1 / (W.rate / (1 + 0.14 * cur))).toFixed(1)} → ${(1 / (W.rate / (1 + 0.14 * (cur + 1)))).toFixed(1)} disparos/s`, mag: W.max === Infinity ? 'munición ∞' : `máx. ${Math.ceil(W.max * (1 + 0.3 * cur))} → ${Math.ceil(W.max * (1 + 0.3 * (cur + 1)))}` }[k];
-        return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${W.name}</div><div class="un">${isMod ? WEAPON_MODS[mod].name : UPGRADE_KINDS[k].name}</div><div class="ud">${isMod ? WEAPON_MODS[mod].desc : eff}</div><div class="lv">${isMod ? '★ ESPECIAL' : `NIVEL ${cur} → ${cur + 1}`}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
+        return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${W.name}</div><div class="un">${isMut ? MU.name : isMod ? (WEAPON_MODS[mod] || { name: mod }).name : UPGRADE_KINDS[k].name}</div><div class="ud">${isMut ? MU.desc : isMod ? (WEAPON_MODS[mod] || { desc: '' }).desc : eff}</div><div class="lv">${isMut ? '★★ EVOLUCIÓN (excluyente)' : isMod ? '★ ESPECIAL' : `NIVEL ${cur} → ${cur + 1}`}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
       }).join('');
       $('cardlist').querySelectorAll('.ucard').forEach((b) => b.addEventListener('pointerdown', () => { pickReq = +b.dataset.i; }));
       $('cardhint').textContent = session.mode === 'solo' ? 'La partida espera tu elección. El arma mejorada se ve distinta en tu mano.' : 'Elegí rápido: si no elegís, se aplica la primera. El arma mejorada se ve distinta en tu mano.';
@@ -564,6 +565,10 @@ function bindTouchSettings() {
   bind('tfing', () => String(S.fingers), (v) => touch.setFingers(+v));
   bind('tadv', () => (S.advanced ? '1' : '0'), (v) => { setSetting('advanced', v === '1'); syncAdv(); });
   const syncAdv = () => { const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Habilidades: ${settings().advanced ? 'sí' : 'no'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
+  const syncCam = () => { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; };
+  const setCam = (on) => { renderer.setThird(on); setSetting('third', !!on); syncCam(); };
+  const cb = $('camtoggle'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); setCam(!renderer.third); }); syncCam();
+  window.__setCam = setCam; const qc = $('camquick'); if (qc) { const tg = (e) => { e.preventDefault(); e.stopPropagation(); setCam(!renderer.third); }; qc.addEventListener('click', tg); qc.addEventListener('pointerdown', (e) => e.stopPropagation()); }
   const ab = $('advtoggle'); if (ab) { ab.addEventListener('click', (e) => { e.stopPropagation(); setSetting('advanced', !settings().advanced); syncAdv(); touch.applyLayout(); }); } syncAdv();
   bind('ths', () => Math.round(S.hudScale * 100), (v) => setSetting('hudScale', v / 100));
   bind('tho', () => Math.round(S.hudOpacity * 100), (v) => setSetting('hudOpacity', v / 100));

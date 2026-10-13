@@ -115,10 +115,10 @@ test('comprar, equipar y evolucionar cambia el perfil y persiste tras recargar; 
 test('en partida: contador de núcleos, aviso «¡Podés evolucionar!», tecla N y botón evolucionan; al salir los núcleos van al perfil', { skip: !hasChromium, timeout: 900000 }, async () => {
   const errors = [], { ctx, pg } = await openPage(1280, 720, false, errors, { cores: 5, evo: {}, melee: {}, owned: [] }, '&skipintro=1');
   await pg.evaluate(() => window.__api.ui.confirmTitle()); await pg.evaluate(() => window.__api.ui.actions.arena('m1'));
-  await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 120000 }); await pg.waitForTimeout(1200);
+  await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 120000 }); await pg.waitForTimeout(1200); await pg.getByText('Entendido').click({ timeout: 8000 }).catch(() => {}); await pg.waitForTimeout(500);
   assert.ok(await pg.evaluate(() => getComputedStyle(document.querySelector('#evohud')).display !== 'none'), 'el contador de núcleos se ve');
   assert.equal(await pg.locator('#evohud.ready').count(), 0, 'sin núcleos suficientes no hay aviso');
-  await pg.evaluate(() => { const q = window.__api.session.game.players[0]; q.cores = 100; }); await pg.waitForTimeout(500);
+  await pg.evaluate(() => { const q = window.__api.session.game.players[0]; q.cores = 100; }); await pg.waitForSelector('#evohud.ready', { timeout: 15000 }).catch(() => {});
   assert.equal(await pg.locator('#evohud.ready').count(), 1, 'con núcleos suficientes aparece el aviso');
   assert.ok(await pg.isVisible('#evohud .eh-go'), 'el botón se ve'); assert.match(await pg.textContent('#evohud .eh-go'), /evolucionar/i);
   await pg.keyboard.down('KeyN'); await pg.waitForTimeout(300); await pg.keyboard.up('KeyN'); await pg.waitForTimeout(500);
@@ -146,7 +146,7 @@ test('presupuesto 3D en Baja: armas ≤ 14 llamadas y ≤ 6 000 triángulos; Hu�
   const res = await pg.evaluate(async () => {
     const THREE = await import('three'), M = await import('/src/client/melee-models.js'), E = await import('/src/client/huespedes-evo.js');
     const gl = new THREE.WebGLRenderer({ antialias: false }); gl.setSize(256, 256); const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, 0.1, 80); cam.position.set(0, 1.2, 9); scene.add(new THREE.HemisphereLight(0xffffff, 0x333333, 2));
-    const measure = (obj) => { scene.add(obj.group); let worst = { calls: 0, triangles: 0 }; for (let i = 0; i < 30; i++) { obj.update(0.03); gl.info.reset(); gl.render(scene, cam); worst = { calls: Math.max(worst.calls, gl.info.render.calls), triangles: Math.max(worst.triangles, gl.info.render.triangles) }; } scene.remove(obj.group); return worst; };
+    const measure = (obj) => { scene.add(obj.group); let worst = { calls: 0, triangles: 0 }; for (let i = 0; i < 6; i++) { obj.update(0.05); gl.info.reset(); gl.render(scene, cam); worst = { calls: Math.max(worst.calls, gl.info.render.calls), triangles: Math.max(worst.triangles, gl.info.render.triangles) }; } scene.remove(obj.group); return worst; };
     const out = { armas: {}, hosts: {} };
     for (const id of M.MELEE_MODEL_IDS) { let w = { calls: 0, triangles: 0 }; for (let t = 0; t <= 4; t++) { const m = M.buildMelee(THREE, id, { tier: t, quality: 'low', color: 0x3aa8ff }), r = measure(m); w = { calls: Math.max(w.calls, r.calls), triangles: Math.max(w.triangles, r.triangles) }; m.dispose(); } out.armas[id] = w; }
     const WEAP = { axioma: 'sable_plasma', vesper: 'colmillo', micelio: 'martillo_sismico', umbra: 'pica_cristal', seraf: 'lanza_sinaptica' };

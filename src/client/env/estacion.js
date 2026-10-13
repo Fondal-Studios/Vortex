@@ -229,9 +229,18 @@ export function buildStation(T, { level = 'low' } = {}) {
   [[-8, -6.3, 0], [-6.5, -6.2, 0], [1, -6.3, 0], [10, -6.2, 0], [14, -9.5, 0], [-16, -6.4, 0], [18, -6.3, 0]].forEach(([x, z, ry], i) => far.push(...farPerson(T, fc[i % 6], x, z, ry)));
   group.add(track(new T.Mesh(mergeGeometries(far), track(new T.MeshStandardMaterial({ roughness: 0.9, vertexColors: true })))));
 
+  /* — atmósfera: haces de luz tenues bajo las luminarias y polvo en suspensión — */
+  const coneG = new T.CylinderGeometry(0.35, 1.5, 5, 14, 1, true); coneG.translate(0, -2.5, 0);
+  const coneMat = track(new T.MeshBasicMaterial({ color: 0xdfffee, transparent: true, opacity: 0.028, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, toneMapped: false, fog: false }));
+  const cones = track(new T.InstancedMesh(coneG, coneMat, fix.length)); fix.forEach((f, i) => { dm.position.set(f.x, 5.2, f.z); dm.rotation.set(0, 0, 0); dm.scale.set(1, 1, 1); dm.updateMatrix(); cones.setMatrixAt(i, dm.matrix); }); cones.frustumCulled = false; group.add(cones);
+  const nDust = hi ? 260 : 150, dustP = new Float32Array(nDust * 3), dustV = [], dr = rng(77);
+  for (let i = 0; i < nDust; i++) { dustP[i * 3] = -20 + dr() * 40; dustP[i * 3 + 1] = 0.3 + dr() * 4.6; dustP[i * 3 + 2] = -9 + dr() * 15; dustV.push([(dr() - 0.5) * 0.06, (dr() - 0.5) * 0.04, (dr() - 0.5) * 0.06]); }
+  const dustGeo = new T.BufferGeometry(); dustGeo.setAttribute('position', new T.BufferAttribute(dustP, 3));
+  const dust = track(new T.Points(dustGeo, track(new T.PointsMaterial({ map: halo, size: 0.07, transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending, color: 0xfff4e0, sizeAttenuation: true })))); dust.frustumCulled = false; group.add(dust);
+
   /* — luces reales (pocas) — */
-  const lights = [], hemi = new T.HemisphereLight(0xdfe9e6, 0x3a3d40, 0.5); group.add(hemi);
-  for (const x of [14, 6, -2, -10, -18]) { const L = new T.PointLight(0xf0fff4, 38, 18, 1.5); L.position.set(x, 4.6, 2.6); group.add(L); lights.push(L); }
+  const lights = [], hemi = new T.HemisphereLight(0xdfe9e6, 0x2a2d30, 0.34); group.add(hemi);
+  for (const [i, x] of [14, 6, -2, -10, -18].entries()) { const L = new T.PointLight(i % 2 ? 0xffe9cf : 0xe6f4ff, 38, 18, 1.5); L.position.set(x, 4.6, 2.6); group.add(L); lights.push(L); }
   const lightB = new T.PointLight(0xf0fff4, 20, 20, 1.5); lightB.position.set(0, 4.4, -8.8); group.add(lightB); lights.push(lightB);
 
   /* — tren — */
@@ -250,7 +259,7 @@ export function buildStation(T, { level = 'low' } = {}) {
     }
     fixMesh.instanceColor.needsUpdate = true;
     lights.forEach((L, i) => { const v = fix[Math.min(fix.length - 1, 1 + i * 2)].v; L.intensity = (i === 5 ? 20 : 38) * (0.45 + 0.55 * v) * (1 - dark * 0.7); });
-    hemi.intensity = 0.5 * (1 - dark * 0.6);
+    hemi.intensity = 0.34 * (1 - dark * 0.6); const dp = dustGeo.attributes.position; for (let i = 0; i < nDust; i++) { const v = dustV[i]; dp.array[i * 3] += v[0] * 0.016 * 4; dp.array[i * 3 + 1] += v[1] * 0.016 * 4 + Math.sin(t * 0.5 + i) * 0.0006; dp.array[i * 3 + 2] += v[2] * 0.016 * 4; } dp.needsUpdate = true;
     const tx = ctl.trainX ?? -999;
     for (let i = 0; i < lampX.length; i++) { const d = Math.abs(lampX[i] - tx), on = Math.max(0, 1 - d / 30); col.setRGB(1.6, 1.45, 1.1).multiplyScalar(0.08 + on * 1.5 * (0.8 + 0.2 * hash(Math.floor(t * 14) + i))); lamps.setColorAt(i, col); }
     lamps.instanceColor.needsUpdate = true;
