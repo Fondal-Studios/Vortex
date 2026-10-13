@@ -1,0 +1,135 @@
+[
+ {
+  "t": 2,
+  "calls": 73,
+  "triangles": 53094,
+  "shot": 1,
+  "sub": "Martes. 18:42. Andén 3."
+ },
+ {
+  "t": 5,
+  "calls": 74,
+  "triangles": 53286,
+  "shot": 1,
+  "sub": "Martes. 18:42. Andén 3."
+ },
+ {
+  "t": 9,
+  "calls": 70,
+  "triangles": 53268,
+  "shot": 2,
+  "sub": "Otro día igual. Los auriculares puestos, la cabeza en otra parte"
+ },
+ {
+  "t": 11,
+  "calls": 69,
+  "triangles": 53276,
+  "shot": 2,
+  "sub": "Otro día igual. Los auriculares puestos, la cabeza en otra parte."
+ },
+ {
+  "t": 14.5,
+  "calls": 68,
+  "triangles": 53264,
+  "shot": 3,
+  "sub": "El anuncio avisó que el tren no se detení"
+ },
+ {
+  "t": 19,
+  "calls": 71,
+  "triangles": 53460,
+  "shot": 4,
+  "sub": "Se sentía en los pies antes que en los oídos."
+ },
+ {
+  "t": 21,
+  "calls": 71,
+  "triangles": 53460,
+  "shot": 4,
+  "sub": "Se sentía en los pies antes que en los oídos."
+ },
+ {
+  "t": 22.6,
+  "calls": 74,
+  "triangles": 53476,
+  "shot": 5,
+  "sub": "Se sentía en los pies antes que en los oídos."
+ },
+ {
+  "t": 23.6,
+  "calls": 73,
+  "triangles": 53284,
+  "shot": 5,
+  "sub": "Alguien gritó."
+ },
+ {
+  "t": 24.4,
+  "calls": 70,
+  "triangles": 53268,
+  "shot": 5,
+  "sub": "Alguien gritó."
+ },
+ {
+  "t": 25.6,
+  "calls": 67,
+  "triangles": 53072,
+  "shot": 6,
+  "sub": "No lo pens"
+ },
+ {
+  "t": 26.5,
+  "calls": 77,
+  "triangles": 54090,
+  "shot": 7,
+  "sub": "No lo pensé."
+ },
+ {
+  "t": 27.8,
+  "calls": 75,
+  "triangles": 54086,
+  "shot": 7,
+  "sub": "No lo pensé."
+ },
+ {
+  "t": 29,
+  "calls": 69,
+  "triangles": 45274,
+  "shot": 8,
+  "sub": "No lo pensé."
+ },
+ {
+  "t": 31,
+  "calls": 69,
+  "triangles": 45274,
+  "shot": 8,
+  "sub": "Intenté levantarla. No se movía."
+ },
+ {
+  "t": 33.5,
+  "calls": 69,
+  "triangles": 45274,
+  "shot": 8,
+  "sub": "El tren no frenaba."
+ },
+ {
+  "t": 34.9,
+  "calls": 69,
+  "triangles": 45274,
+  "shot": 8,
+  "sub": "El tren no frenaba."
+ },
+ {
+  "t": 35.6,
+  "calls": 59,
+  "triangles": 44168,
+  "shot": 8,
+  "sub": "El tren no frenaba."
+ },
+ {
+  "t": 37.2,
+  "calls": 59,
+  "triangles": 44168,
+  "shot": 8,
+  "sub": "El tren no frenaba."
+ }
+]
