@@ -17,6 +17,8 @@ import heraldo from './creatures/heraldo.js';
 import { cfg, LEVELS, setCurrent } from './quality.js';
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
 import { createHostFx } from './hostfx.js';
+import { blocked } from '../sim/physics.js';
+import { settings } from './settings.js';
 const WEAPONS_MAX = WEAPONS.map((w) => w.max);
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
@@ -215,8 +217,18 @@ export class Renderer {
     this.camQ.setFromRotationMatrix(m);
     this.camera.quaternion.copy(this.camQ);
     // zoom al apuntar (ADS): FOV por arma; transición rápida y fija en el tiempo
-    { const W = WEAPONS[me.w], scope = W && (W.range >= 300 || ['cometa', 'lanza'].includes(W.id)), want = me.ads ? (scope ? 30 : 58) : 82; this.fovNow = this.fovNow || 82; this.fovNow += (want - this.fovNow) * (1 - Math.exp(-16 * dt)); if (Math.abs(this.camera.fov - this.fovNow) > 0.01) { this.camera.fov = this.fovNow; this.camera.updateProjectionMatrix(); } this.zoomKind = me.ads ? (scope ? 2 : 1) : 0; }
-    if (this.third) { const cpos = V(me.pos).addScaledVector(aim, -5.2).addScaledVector(up, 2.1).addScaledVector(right, 1.0); this.camera.position.copy(cpos); this.camera.up.copy(up); this.camera.lookAt(V(me.pos).addScaledVector(aim, 14).addScaledVector(up, 0.9)); this.eye = cpos; this.aim = aim; this.vm.update(dt, { firing: false, hidden: true }); return; }
+    { const W = WEAPONS[me.w], scope = W && (W.range >= 300 || ['cometa', 'lanza'].includes(W.id)), want = me.ads ? (scope ? 30 : (this.third ? 52 : 58)) : (this.third ? (settings().camFov || 78) : 82); this.fovNow = this.fovNow || 82; this.fovNow += (want - this.fovNow) * (1 - Math.exp(-16 * dt)); if (Math.abs(this.camera.fov - this.fovNow) > 0.01) { this.camera.fov = this.fovNow; this.camera.updateProjectionMatrix(); } this.zoomKind = me.ads ? (scope ? 2 : 1) : 0; }
+    if (this.third) {
+      // CÁMARA SOBRE EL HOMBRO: misma fórmula que la simulación (game.camPos) para que la retícula y el disparo coincidan; se acerca si hay paredes.
+      const S = settings(), k = me.ads ? 0.7 : 1, rw = new THREE.Vector3().crossVectors(h, up).normalize();
+      const pivot = V(me.pos).addScaledVector(up, 0.6 - (me.cr ? 0.3 : 0));
+      const ray = new THREE.Vector3().addScaledVector(aim, -(S.camDist || 3.6) * k).addScaledVector(rw, (S.camSide || 1) * 0.8 * k).addScaledVector(up, 0.25);
+      const mp = this.collMap || MAPS[this.mapId]; let t = 1;
+      if (mp) for (let s2 = 0.1; s2 <= 1.0001; s2 += 0.07) { const pt = pivot.clone().addScaledVector(ray, s2); if (blocked(mp, { x: pt.x, y: pt.y, z: pt.z })) { t = Math.max(0.12, s2 - 0.1); break; } }
+      this.camT = this.camT === undefined ? t : (t < this.camT ? t : this.camT + (t - this.camT) * (1 - Math.exp(-5 * dt)));   // se acerca al instante; se aleja suave
+      this.camera.position.copy(pivot).addScaledVector(ray, this.camT);
+      this.eye = this.camera.position.clone(); this.aim = aim; this.vm.update(dt, { firing: false, hidden: true }); return;
+    }
     let eyeH = 0.6 - (me.cr ? 0.3 : 0);
     if (this.wakeT !== undefined && this.wakeT < this.wakeDur) { this.wakeT += dt; const k = Math.min(1, this.wakeT / this.wakeDur), e = 1 - Math.pow(1 - k, 3); this.camera.rotateZ((1 - e) * 1.45); eyeH = 0.6 - 0.45 * (1 - e); }
     const eye = V(me.pos).addScaledVector(up, eyeH);

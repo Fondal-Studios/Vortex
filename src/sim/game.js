@@ -73,6 +73,7 @@ export class Game {
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
     i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.evo = !!inp.evo; i.s3 = !!inp.s3; i.ult = !!inp.ult;
+    if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
   }
@@ -82,7 +83,28 @@ export class Game {
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
-  aimDir(p) { return add(mul(p.heading, Math.cos(p.pitch)), mul(p.up, Math.sin(p.pitch))); }
+  /** Hacia dónde MIRA la cámara (rumbo + inclinación). */
+  lookDir(p) { return add(mul(p.heading, Math.cos(p.pitch)), mul(p.up, Math.sin(p.pitch))); }
+  /** Posición de la cámara en tercera persona (sobre el hombro): la usa la simulación para que el disparo vaya a donde apunta la RETÍCULA. */
+  camPos(p) {
+    const c = p.cam, d = this.lookDir(p), right = cross(p.heading, p.up), k = p.input.ads ? 0.7 : 1;
+    return madd(madd(madd(this.eyePos(p), d, -c.dist * k), right, c.side * 0.8 * k), p.up, 0.25);
+  }
+  /** Dirección de disparo. En 1ª persona = la mirada. En 3ª persona: desde el ojo hacia el punto que cruza la retícula (primer enemigo o muro delante de la cámara). */
+  aimDir(p) {
+    const d = this.lookDir(p), c = p.cam;
+    if (!c || !c.third) return d;
+    const o = this.camPos(p), t0 = Math.max(1, c.dist * 0.9); let best = 120;
+    for (const m of this.monsters) {
+      if (m.dead) continue;
+      const oc = sub(m.pos, o), tca = dot(oc, d); if (tca < t0 || tca > best) continue;
+      const d2 = dot(oc, oc) - tca * tca, rr = m.r * 1.05 + 0.35; if (d2 > rr * rr) continue;
+      best = Math.min(best, tca - Math.sqrt(rr * rr - d2));
+    }
+    for (let t = t0; t < best; t += 1.5) if (blocked(this.map, madd(o, d, t))) { best = t; break; }
+    const dir = sub(madd(o, d, Math.max(t0, best)), this.eyePos(p)), l = len(dir);
+    return l > 0.5 ? mul(dir, 1 / l) : d;
+  }
   emit(e) { if (this.events.length < LIMITS.events) this.events.push(e); }
 
   /* ─────────── paso principal ─────────── */

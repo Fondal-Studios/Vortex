@@ -202,3 +202,13 @@ test('perfil: se pasa a la partida el arma equipada y el nivel; setLoadout/addPl
   g.setLoadout(p.id, 'axioma', null, { melee: 'hacha_doble', evo: 2 }); assert.equal(p.melee, 'hacha_doble'); assert.equal(p.evo, 2);
   void CORES;
 });
+
+test('cámara en 3ª persona: el disparo va hacia donde cruza la retícula, no paralelo a la cámara', () => {
+  const { g, p } = mk('axioma'); p.heading = { x: 0, y: 0, z: -1 }; p.pitch = 0;
+  g.setInput(p.id, { cam: { third: true, side: 1, dist: 3.6 } });
+  const cp = g.camPos(p), lk = g.lookDir(p); const m = g.spawnMonster('astilla', { x: cp.x + lk.x * 14, y: cp.y + lk.y * 14, z: cp.z + lk.z * 14 }); m.passive = true; m.hp = m.maxhp = 1e5;
+  const a = g.aimDir(p), eye = g.eyePos(p), to = { x: m.pos.x - eye.x, y: m.pos.y - eye.y, z: m.pos.z - eye.z }, l = Math.hypot(to.x, to.y, to.z);
+  const ang = Math.acos((a.x * to.x + a.y * to.y + a.z * to.z) / l); assert.ok(ang < 0.03, `apunta al blanco de la retícula (${ang.toFixed(3)} rad)`);
+  g.setInput(p.id, { cam: false }); const a1 = g.aimDir(p); assert.ok(Math.abs(a1.x) < 1e-6 && Math.abs(a1.z + 1) < 1e-6, 'en 1ª persona la mira es la mirada');
+  g.setInput(p.id, { cam: { third: true, side: -1, dist: 99 } }); assert.equal(p.cam.dist, 7); assert.equal(p.cam.side, -1);
+});

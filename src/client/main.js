@@ -100,10 +100,13 @@ const AIM_KEY = 'cristal.aim.v1'; let aimLevel = isTouchDevice() ? 2 : 1; try { 
 const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSel.addEventListener('change', () => { aimLevel = +aimSel.value; try { localStorage.setItem(AIM_KEY, String(aimLevel)); } catch { /* ok */ } }); }
 let combatHud = null, huespedHud = null, caida = null, evoHud = null;
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
+/** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
+function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { const ti = touch.read(); ti.evo = !!(evoHud && evoHud.held()); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); ti.evo = !!(evoHud && evoHud.held()); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
+    cam: camInput(),
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
     dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held()), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
@@ -174,7 +177,7 @@ async function startCoop(create, code, mapId) {
 function enter(mapId) {
   $('menu').classList.add('hidden'); $('end').classList.add('hidden'); $('hud').classList.remove('hidden'); document.body.classList.add('playing');
   sound.init(); sound.resume(); sound.startMusic(mapId);
-  renderer.setMap(mapId); renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : !!settings().third);
+  renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : !!settings().third);
   buildWeaponHud();
   touch.show(!!session.touch);
   if (!session.touch && !session.headless && !NOLOCK && !params.get('auto')) lockPointer(); // requiere gesto del usuario
@@ -568,6 +571,9 @@ function bindTouchSettings() {
   const syncCam = () => { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; };
   const setCam = (on) => { renderer.setThird(on); setSetting('third', !!on); syncCam(); };
   const cb = $('camtoggle'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); setCam(!renderer.third); }); syncCam();
+  const syncSide = () => { const b = $('camside'); if (b) b.querySelector('b').textContent = `Hombro de la cámara: ${(settings().camSide || 1) > 0 ? 'derecho' : 'izquierdo'}`; };
+  const sb = $('camside'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); setSetting('camSide', (settings().camSide || 1) > 0 ? -1 : 1); syncSide(); }); syncSide();
+  for (const [id, key, dflt] of [['camdist', 'camDist', 3.6], ['camfov', 'camFov', 78]]) { const el = $(id); if (!el) continue; el.value = settings()[key] || dflt; el.addEventListener('input', () => setSetting(key, +el.value)); el.addEventListener('pointerdown', (e) => e.stopPropagation()); }
   window.__setCam = setCam; const qc = $('camquick'); if (qc) { const tg = (e) => { e.preventDefault(); e.stopPropagation(); setCam(!renderer.third); }; qc.addEventListener('click', tg); qc.addEventListener('pointerdown', (e) => e.stopPropagation()); }
   const ab = $('advtoggle'); if (ab) { ab.addEventListener('click', (e) => { e.stopPropagation(); setSetting('advanced', !settings().advanced); syncAdv(); touch.applyLayout(); }); } syncAdv();
   bind('ths', () => Math.round(S.hudScale * 100), (v) => setSetting('hudScale', v / 100));
