@@ -1,0 +1,74 @@
+[
+ {
+  "name": "m1-w1-high",
+  "ms": 11749.5,
+  "calls": 197,
+  "tris": 352364,
+  "wave": 1,
+  "infect": 0,
+  "pr": 1.5
+ },
+ {
+  "name": "m1-w6-high",
+  "ms": 10999.6,
+  "calls": 210,
+  "tris": 373742,
+  "wave": 6,
+  "infect": 0.932,
+  "pr": 1.5
+ },
+ {
+  "name": "m2-w1-high",
+  "ms": 5783.1,
+  "calls": 237,
+  "tris": 616966,
+  "wave": 1,
+  "infect": 0,
+  "pr": 1.5
+ },
+ {
+  "name": "m2-w6-high",
+  "ms": 5499.8,
+  "calls": 273,
+  "tris": 641184,
+  "wave": 6,
+  "infect": 0.933,
+  "pr": 1.5
+ },
+ {
+  "name": "m3-w1-high",
+  "ms": 5383.2,
+  "calls": 189,
+  "tris": 222974,
+  "wave": 1,
+  "infect": 0,
+  "pr": 1.5
+ },
+ {
+  "name": "m3-w6-high",
+  "ms": 4716.4,
+  "calls": 217,
+  "tris": 232622,
+  "wave": 6,
+  "infect": 0.938,
+  "pr": 1.5
+ },
+ {
+  "name": "m4-w1-high",
+  "ms": 6616.3,
+  "calls": 177,
+  "tris": 221224,
+  "wave": 1,
+  "infect": 0,
+  "pr": 1.5
+ },
+ {
+  "name": "m4-w6-high",
+  "ms": 6716.4,
+  "calls": 180,
+  "tris": 218410,
+  "wave": 6,
+  "infect": 0.941,
+  "pr": 1.5
+ }
+]

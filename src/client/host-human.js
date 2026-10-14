@@ -37,7 +37,7 @@ export function pathFor(evo, pth) { const out = []; for (let i = 1; i <= evo; i+
 
 export function createHostHuman(T, hm, kit, p, opts = {}) {
   const L = LOOK[p.char] || LOOK.axioma, camera = opts.camera || null, getMap = opts.getMap || (() => null);
-  const human = hm.createHuman(kit, { char: p.char, name: p.name, color: L.cloth, accent: L.glow, noGear: true, weapon: opts.weapon == null ? 0 : opts.weapon, overrides: { layer: L.layer } });
+  const human = hm.createHuman(kit, { char: p.char, name: p.name, color: L.cloth, accent: L.glow, noGear: true, weapon: 'weapon' in opts ? opts.weapon : 0, overrides: { layer: L.layer } });
   const object = new T.Group(); object.name = 'huesped-humano-' + p.char; object.add(human.object);
   const mats = [], geos = [], track = (m) => { mats.push(m); return m; }, G = (g) => { geos.push(g); return g; };
   const low = opts.quality === 'low'; // Baja (iPhone): MeshStandard en vez de Physical (sin barniz ni transmisión)
@@ -186,7 +186,7 @@ export function createHostHuman(T, hm, kit, p, opts = {}) {
       if (!tinted) { tinted = true; human.object.traverse((o) => { if (o.name === 'npc-capas' && o.material && o.material.color) { o.material = o.material.clone(); mats.push(o.material); o.material.color.setHex(L.cloth); } }); } // túnica: tinte propio (sin quemarse con la luz)
       // clip: acción (golpe / habilidad) > disparo > locomoción
       const spd = ctx.speed || 0; if (act) { act.t -= dt; if (act.t <= 0) act = null; }
-      const c = pl.dead ? 'death' : act ? act.k : (ctx.shot ? 'shoot' : spd > 6 ? 'sprint' : spd > 1.5 ? 'jog' : 'aimIdle');
+      const c = pl.dead ? 'death' : act ? act.k : (ctx.shot ? 'shoot' : spd > 6 ? 'sprint' : spd > 1.5 ? 'jog' : opts.weapon === null ? 'idle' : 'aimIdle');
       if (c !== clip) { clip = c; human.play(c, { fade: 0.18, restart: c === 'punch' || c === 'cast' || c === 'shoot' }); }
       human.update(dt, { speed: spd, moveDir: ctx.moveDir, pitch: ctx.pitch || 0, camera });
       // vida: núcleo que late, alas que respiran, órbitas, partículas, órganos

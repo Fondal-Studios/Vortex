@@ -12,7 +12,7 @@ for (const q of QS) for (const m of MAPS) for (const w of WAVES) {
   const name = `${m}-w${w}-${q}`;
   const ctx = await b.newContext({ viewport: { width: 1280, height: 720 } }); const pg = await ctx.newPage();
   pg.on('console', (x) => { if (x.type() === 'error' && !/404/.test(x.text())) errors.push(`${name}: ${x.text()}`); }); pg.on('pageerror', (e) => errors.push(`${name}: PAGEERR ${e.message}`));
-  await pg.goto(`${base}/?auto=${m}&god=1&wave=${w}&seed=3&q=${q}&autoq=0&nolock=1&skipintro=1&cam=third${EXTRA ? '&' + EXTRA : ''}`);
+  await pg.goto(`${base}/?auto=${m}&god=1&wave=${w}&seed=3&q=${q}&autoq=0&nolock=1&skipintro=1&cam=third${EXTRA ? '&' + EXTRA : ''}`, { timeout: 180000 });
   await pg.waitForFunction(() => window.__api && window.__api.session && window.__api.session.game, null, { timeout: 60000 }).catch(() => {});
   await pg.waitForTimeout(9000);
   // criaturas de prueba delante del jugador (pasivas) para juzgar siluetas y legibilidad
@@ -21,7 +21,7 @@ for (const q of QS) for (const m of MAPS) for (const w of WAVES) {
     put('astilla', 9, -3); put('geoda', 14, 4); put('prisma', 18, -6); }).catch((e) => errors.push(`${name}: ${e.message}`));
   await pg.waitForTimeout(2500);
   const perf = await pg.evaluate(() => new Promise((res) => { const R = window.__api.renderer, ts = []; const f = (t) => { ts.push(t); if (ts.length < 31) requestAnimationFrame(f); else { const d = ts.slice(1).map((x, i) => x - ts[i]).sort((a, b) => a - b); const i = R.gl.info.render; res({ ms: +d[d.length >> 1].toFixed(1), calls: i.calls, tris: i.triangles, wave: window.__api.session.game.wave, infect: window.__infect != null ? window.__infect : null, pr: R.gl.getPixelRatio() }); } }; requestAnimationFrame(f); }));
-  await pg.screenshot({ path: `${OUT}/${name}.jpg`, type: 'jpeg', quality: 82 });
+  await pg.screenshot({ path: `${OUT}/${name}.jpg`, type: 'jpeg', quality: 82, timeout: 180000 });
   rows.push({ name, ...perf }); console.log(name, JSON.stringify(perf));
   await ctx.close();
 }

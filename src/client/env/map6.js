@@ -126,10 +126,10 @@ export function build(r, map) {
     // banda de huesos al pie del muro: fémures apilados con calaveras cada tanto (las pilas de Sedlec)
     // (como en ARCANUM: una masa de huesos detrás y las cabezas de los fémures asomando adelante)
     { const [mx, mz] = at(L / 2, 0.3); B.bone.add(put(box(Math.abs(nx) ? 0.5 : L - 0.6, 1.0, Math.abs(nz) ? 0.5 : L - 0.6), mx, 0.5, mz), 0x8a7a62); }
-    const step = low ? 0.62 : 0.4;
+    const step = low ? 0.95 : 0.55;
     for (let t = 0.5; t < L - 0.5; t += step) {
       const [bx, bz] = at(t, 0.6);
-      for (let j = 0; j < (low ? 1 : 2); j++) femur(bx, 0.3 + j * 0.4 + (rd() - 0.5) * 0.06, bz, 0.8, ry + Math.PI / 2 + (rd() - 0.5) * 0.2);
+      for (let j = 0; j < 1; j++) femur(bx, 0.3 + j * 0.4 + (rd() - 0.5) * 0.06, bz, 0.8, ry + Math.PI / 2 + (rd() - 0.5) * 0.2);
       if (rd() < (low ? 0.08 : 0.16)) skull(bx, 1.2, bz, 0.42, ry + (rd() - 0.5) * 0.4);
     }
     // raíces que trepan
@@ -142,7 +142,7 @@ export function build(r, map) {
       // pirámide de calaveras (ARCANUM ruta-paisaje.js: anillos que se achican) sobre un cono de huesos
       B.bone.add(put(new THREE.ConeGeometry(c.r, c.h - 0.2, 14, 1, true), c.x, (c.h - 0.2) / 2, c.z), 0x9a8a70);
       const rings = low ? 5 : 8;
-      for (let a = 0; a < rings; a++) { const R = c.r * (1 - a / (rings + 0.6)) + 0.1, n = Math.max(4, Math.round(R * 2 * Math.PI / (low ? 0.8 : 0.62))), y = 0.3 + a * (c.h - 0.6) / rings;
+      for (let a = 0; a < rings; a++) { const R = c.r * (1 - a / (rings + 0.6)) + 0.1, n = Math.max(4, Math.round(R * 2 * Math.PI / (low ? 0.95 : 0.62))), y = 0.3 + a * (c.h - 0.6) / rings;
         for (let k = 0; k < n; k++) { const t = k / n * Math.PI * 2 + a * 0.4; skull(c.x + Math.cos(t) * R, y, c.z + Math.sin(t) * R, 0.55, Math.atan2(Math.cos(t), Math.sin(t)), -0.15); } }
       skull(c.x, c.h + 0.1, c.z, 0.8, Math.atan2(-c.x, -c.z));
       B.iron.add(put(cyl(0.05, 0.05, 2.2, 5), c.x, c.h + 1.4, c.z), 0x2a2420); B.iron.add(put(box(1, 0.08, 0.08), c.x, c.h + 2.1, c.z), 0x2a2420);
@@ -167,7 +167,7 @@ export function build(r, map) {
       for (let k = 0; k < 5; k++) femur(c.x + (rd() - 0.5) * c.hx, c.h + 0.1, c.z + (rd() - 0.5) * c.hz, 0.9, rd() * 6);
     } else if (c.kind === 'columna') {
       // columna de calaveras (anillos apilados)
-      for (let y = 0.3; y < c.h; y += low ? 0.6 : 0.42) { const n = low ? 8 : 10; for (let k = 0; k < n; k++) { const t = k / n * Math.PI * 2 + y; skull(c.x + Math.cos(t) * c.r * 0.82, y, c.z + Math.sin(t) * c.r * 0.82, 0.42, Math.atan2(Math.cos(t), Math.sin(t))); } }
+      for (let y = 0.3; y < c.h; y += low ? 0.75 : 0.42) { const n = low ? 7 : 10; for (let k = 0; k < n; k++) { const t = k / n * Math.PI * 2 + y; skull(c.x + Math.cos(t) * c.r * 0.82, y, c.z + Math.sin(t) * c.r * 0.82, 0.42, Math.atan2(Math.cos(t), Math.sin(t))); } }
       B.bone.add(put(cyl(c.r * 0.8, c.r * 0.85, c.h, 10), c.x, c.h / 2, c.z), 0x6a5a48);
       candles.push([c.x, c.h + 0.1, c.z]);
     }
@@ -188,7 +188,7 @@ export function build(r, map) {
   skulls.forEach((m, i) => { eyes.setMatrixAt(i, m); eyes.setColorAt(i, rd() < 0.5 ? new THREE.Color(ACC[Math.floor(rd() * ACC.length)]).multiplyScalar(1.8) : new THREE.Color(0x060404)); }); eyes.instanceMatrix.needsUpdate = true; eyes.instanceColor.needsUpdate = true; root.add(eyes);
   const boneMat = deadMaterial('ph:marble_01', { vcol: false, sat: 0.7, tint: 0xf4e8d2, dustK: 0.2, crack: 0 });
   const fm = new THREE.InstancedMesh(femurGeo(), boneMat, femurs.length); femurs.forEach((m, i) => fm.setMatrixAt(i, m)); fm.instanceMatrix.needsUpdate = true; fm.name = 'm6-huesos'; root.add(fm);
-  for (const im of [sk, eyes, fm]) { im.frustumCulled = false; if (shadows && im !== eyes) im.castShadow = true; }
+  for (const im of [sk, eyes, fm]) im.frustumCulled = false; // sin sombra propia: son muchas y chicas (ahorra la pasada de sombras)
 
   // ── la araña de huesos: flota sobre el crucero y gira despacio; guirnaldas de calaveras entre los pilares
   const ch = new THREE.Group(); ch.position.set(0, 14, 0); root.add(ch);
