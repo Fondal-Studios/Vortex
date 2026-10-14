@@ -4,11 +4,23 @@ import { cfg } from './quality.js';
 import { kit, setHurt } from './organism.js';
 import { ORGANISMS } from './creatures/index.js';
 
-/** Colores del bestiario (también usados por partículas y HUD). */
+/** Colores del bestiario del limbo (también usados por partículas, aura/«beacon» y HUD). Uno por alma, bien separados en tono. */
 export const COLORS = {
-  astilla: 0x44ffd0, geoda: 0xb066ff, prisma: 0xff66c4, lente: 0xffd23f, cuarzo: 0xff7a45,
-  espejo: 0xcfe9ff, racimo: 0xff3b5c, graviton: 0x6a7bff, coloso: 0xffc65c, madre: 0x9dff5a, argos: 0xff4fa8,
-  obelisco: 0x2de0ff, aurora: 0xff9ae8, ariete: 0xff8a3d, espiral: 0xb48cff,
+  astilla: 0x6ff4ff,  // Ánima: celeste espiritual
+  geoda: 0xff6a1a,    // Almamula: fuego
+  prisma: 0xfff27a,   // Luz Mala: amarillo pálido enfermizo
+  lente: 0xa8c8ff,    // La Llorona: azul luna
+  cuarzo: 0xff4fd0,   // Salamanquera: magenta de la Salamanca
+  espejo: 0x8cff4a,   // Pombero: verde monte
+  racimo: 0x3f7bff,   // Fuego Fatuo: azul de llama fría
+  graviton: 0xff3a1a, // El Familiar: brasa
+  obelisco: 0xff2a5a, // La Viuda: rojo sangre (mira láser)
+  aurora: 0xf2c66d,   // Difunta: oro de santa
+  ariete: 0x4affb0,   // Lobizón: verde luna
+  espiral: 0x9a7bff,  // El Silbón: violeta del vacío
+  coloso: 0xff4a1a,   // El Mandinga: fuego y sombra
+  madre: 0xbfe8ff,    // La Madre de las Ánimas: luz de almas
+  argos: 0x9dff3a,    // El Basilisco: veneno
 };
 
 const G = {

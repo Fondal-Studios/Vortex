@@ -1,4 +1,11 @@
-# Replanteo del concepto artístico — «REALISMO ESPIRITUAL» (decisión del dueño, 2026-10-14)
+# Concepto artístico — «PSICODELIA ESPIRITUAL» (corrección del dueño, 2026-10-14)
+
+> **CORRECCIÓN IMPORTANTE:** NO pasamos de psicodelia a realismo. El mundo sigue siendo **FLASHERO y psicodélico**; sólo
+> lo hacemos **un poco más realista** (materiales con textura, luz y volumen creíbles) para que se vea más rico, pero el color
+> intenso, las geometrías imposibles, los cielos alucinados y los efectos de luz siguen siendo protagonistas. Donde abajo dice
+> «sobrio» o «contenida», leer: **psicodelia a pleno sobre una base material más creíble**.
+
+(Texto original, con la corrección de arriba aplicada:)
 
 > Psicodelia sí, pero **más realista y espiritual**. El Vórtice no es una discoteca de neón: es el **umbral entre la vida y la muerte**,
 > un lugar sagrado, antiguo y vivo, que se ve **real** (piedra, mármol, hueso, oro, carne, cristal, tela) y donde lo psicodélico
@@ -12,7 +19,7 @@
    ascienden, reflejos dorados. Iluminación por imagen (HDRI) + una luz principal cálida + rebote frío.
 3. **Lo orgánico es sagrado.** El tejido vivo (venas, membranas, raíces, ojos) crece **sobre** la arquitectura sagrada como algo que
    la reclama: templos de mármol invadidos por raíces luminosas. Late suave, no grita.
-4. **Psicodelia contenida.** La psicodelia vive en: el cielo (nebulosas, auroras, geometría sagrada lenta), los portales, las
+4. **Psicodelia a pleno (corregido).** La psicodelia vive en: el cielo (nebulosas, auroras, geometría sagrada lenta), los portales, las
    habilidades, la evolución del jugador y los momentos de clímax (jefes, definitivas). En el resto, la paleta es **sobria**.
 5. **Legibilidad absoluta.** Enemigos, proyectiles, caminos y bordes se leen siempre (contraste de luminancia y silueta).
 
@@ -39,3 +46,13 @@ como punto débil. Menos «gema flotante», más «ser».
 ## Referencias de tono (no copiar)
 Warframe (templos Orokin: blanco y oro), Destiny 2 (Ciudad Ensoñada), Hellblade (espiritualidad), Control (arquitectura imposible),
 Journey (luz y silencio), Scorn (biomecánica, sólo como acento).
+
+## Folclore por mapa (dueño)
+Cada mapa es un **escenario robado de ARCANUM** (no se vuelve a producir desde cero) convertido en limbo, y tiene **su propio folclore**:
+las criaturas de ese mapa son las almas y espíritus de ese lugar. `docs/BESTIARIO_LIMBO.md` lista las criaturas; cada mapa elige su elenco.
+
+## Los Huéspedes: lo MEJOR logrado del juego
+Son **guardianes que habitan entre el mundo de los muertos y el de los vivos**. El Pasajero hace un **pacto** con uno: ellos necesitan
+un cuerpo vivo para volver a cruzar al mundo; nosotros necesitamos su poder para salir del limbo → **simbiosis**. Visualmente son la pieza
+más cuidada del juego (más detalle, mejor material, mejor animación que cualquier criatura), y **cambian con el mapa** (aspecto regional
+según el folclore del lugar) **y con sus evoluciones** (cada camino elegido se ve en el cuerpo).

@@ -157,5 +157,7 @@ function makeMap2() {
 
 import { makeMap3 } from './map3.js';
 import { makeMap4 } from './map4.js';
-export const MAPS = { m1: makeMap1(), m2: makeMap2(), m3: makeMap3(), m4: makeMap4() };
+import { makeMap5 } from './map5.js'; // Plaza de los Ecos (Praga de ARCANUM, muerta)
+import { makeMap6 } from './map6.js'; // Osario sin Techo (Sedlec de ARCANUM, muerto)
+export const MAPS = { m1: makeMap1(), m2: makeMap2(), m3: makeMap3(), m4: makeMap4(), m5: makeMap5(), m6: makeMap6() };
 export const MAP_IDS = Object.keys(MAPS);

@@ -10,6 +10,7 @@ import { GradePass, sceneTarget } from './post.js';
 import { loadEnvHDRI, MAP_HDRI } from './ph.js';
 const POST_OFF = typeof location !== 'undefined' && /[?&]post=0/.test(location.search); // ?post=0: render directo (diagnóstico)
 const INFECT_OVERRIDE = typeof location !== 'undefined' && /[?&]infect=([\d.]+)/.test(location.search) ? Math.min(1, +RegExp.$1) : null;
+const HUMAN_HOSTS = !(typeof location !== 'undefined' && /[?&]cuerpo=bloques/.test(location.search)); // ?cuerpo=bloques vuelve al Huésped de bloques
 const usesComposer = () => !POST_OFF && !!(cfg().post || cfg().grade);
 import { buildMonster, COLORS } from './models.js';
 import { Effects } from './effects.js';
@@ -131,8 +132,8 @@ export class Renderer {
     if (this.grade) this.grade.preset(mapId);
     this.useHDRI(mapId);
     this.sunDir = null; // el entorno fija la dirección del sol; luego las sombras la siguen
-    if (mapId === 'm3') this.loadMap3(MAPS.m3); else if (mapId === 'm4') this.loadMap4(MAPS.m4); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
-    if (mapId !== 'm3' && mapId !== 'm4') import('./env/eyes.js').then((m) => {
+    if (mapId === 'm3') this.loadMap3(MAPS.m3); else if (mapId === 'm4') this.loadMap4(MAPS.m4); else if (mapId === 'm5' || mapId === 'm6') this.loadLimbo(mapId); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
+    if (mapId === 'm1' || mapId === 'm2') import('./env/eyes.js').then((m) => {
       if (this.mapId !== mapId || !m.addCosmicEyes) return; const q = cfg().decor;
       if (mapId === 'm1') m.addCosmicEyes(this, this.mapRoot, { mode: 'sky', count: q ? 40 : 12, radius: 1000, minR: 450, size: 2.6, y0: -150, y1: 700 });
       else m.addCosmicEyes(this, this.mapRoot, { mode: 'shell', shellR: MAPS.m2.R, count: q ? 46 : 12 });
@@ -144,6 +145,10 @@ export class Renderer {
     loadEnvHDRI(this.gl, id).then((tex) => { if (this.mapId !== mapId || !cfg().env) return; this.hdri = tex; this.scene.environment = tex; }).catch(() => { /* sin HDRI: queda RoomEnvironment */ });
   }
   /** Jardín de Carne (mapa 4): env/map4.js construye suelo de tejido, vegetación reactiva, cielo y niebla (ya incluye los ojos cósmicos). */
+  /** Arenas del limbo (mapas 5 y 6: Praga y Sedlec de ARCANUM, muertos): env/map5.js y env/map6.js. */
+  loadLimbo(mapId) {
+    import(mapId === 'm5' ? './env/map5.js' : './env/map6.js').then((m) => { if (this.mapId === mapId) m.build(this, MAPS[mapId]); }).catch((e) => { console.error('mapa ' + mapId + ':', e); });
+  }
   loadMap4(map) {
     const mapId = 'm4';
     import('./env/map4.js').then((m) => { if (this.mapId === mapId) m.buildMap4(this, map); }).catch((e) => { console.error('mapa 4:', e); });
@@ -396,6 +401,7 @@ export class Renderer {
       const ch = CHARACTERS[p.char], col = ch ? ch.color : PLAYER_COLORS[(p.id - 1) % 4];
       if (!e) { e = { object: new THREE.Group(), human: null, simple: null, prev: p.pos, spd: 0, col, shotT: 0 }; e.simple = this.simpleAvatar(col); e.object.add(e.simple); this.entRoot.add(e.object); this.ents.ply.set(p.id, e); }
       if (!e.body && !e.noBody && !e.human && isHost(p.char)) { try { e.body = createHostBody(THREE, p, { quality: this.level === 'low' ? 'low' : 'medium' }); e.object.add(e.body.object); if (e.simple) { e.object.remove(e.simple); e.simple = null; } } catch (err) { console.warn('cuerpo de Huésped:', err.message); e.noBody = true; } } // cuerpo con modelo de Huésped (host-body.js)
+      if (e.body && !e.body.human && HUMAN_HOSTS && this.humansKit && this.hm && !e.noHuman) { try { if (!this.hostHumanMod) { this.hostHumanMod = 'cargando'; import('./host-human.js').then((m) => { this.hostHumanMod = m; }).catch(() => { this.hostHumanMod = null; e.noHuman = true; }); } else if (this.hostHumanMod.createHostHuman) { const hb = this.hostHumanMod.createHostHuman(THREE, this.hm, this.humansKit, p, { quality: this.level, camera: this.camera }); e.object.remove(e.body.object); e.body.dispose(); e.body = hb; e.object.add(hb.object); } } catch (err) { console.warn('Huésped humano:', err.message); e.noHuman = true; } } // cuerpo humano real intervenido (host-human.js) en Media/Alta
       if (!e.body && !e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, ch ? { char: p.char, name: p.name } : { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
       const dv = [p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]], spd = Math.hypot(...dv) / Math.max(dt, 1e-3); e.prev = p.pos;
       const hv = V(p.h), rv = new THREE.Vector3().crossVectors(hv, V(p.up)), dvv = V(dv), dl = dvv.length() || 1; e.moveDir = { x: dvv.dot(rv) / dl, z: dvv.dot(hv) / dl }; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
@@ -403,7 +409,7 @@ export class Renderer {
       e.object.position.copy(base); this.orient(e.object, p.up, p.h); e.object.visible = true;
       if (e.body) {
         for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev);
-        e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null });
+        e.shotT = Math.max(0, e.shotT - dt); e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null });
       } else if (e.human) {
         e.shotT = Math.max(0, e.shotT - dt);
         const clip = p.dead ? 'death' : e.shotT > 0 ? 'shoot' : e.spd > 6 ? 'sprint' : e.spd > 1.5 ? 'jog' : 'aimIdle';

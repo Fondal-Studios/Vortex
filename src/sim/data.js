@@ -285,6 +285,23 @@ export const WAVE_PLANS = {
     ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete', 'cuarzo', 'obelisco', 'geoda', 'aurora'],
     ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete', 'cuarzo', 'obelisco', 'geoda', 'aurora', 'graviton', 'espiral'],
   ],
+  // Mapas del limbo (5 y 6): arenas cerradas y legibles; la horda llega por la plaza / por los brazos de la cruz
+  m5: [
+    ['astilla', 'lente'],
+    ['astilla', 'lente', 'prisma', 'racimo'],
+    ['astilla', 'lente', 'prisma', 'racimo', 'ariete', 'espejo'],
+    ['astilla', 'lente', 'prisma', 'racimo', 'ariete', 'espejo', 'geoda', 'cuarzo'],
+    ['astilla', 'lente', 'prisma', 'racimo', 'ariete', 'espejo', 'geoda', 'cuarzo', 'obelisco', 'aurora'],
+    ['astilla', 'lente', 'prisma', 'racimo', 'ariete', 'espejo', 'geoda', 'cuarzo', 'obelisco', 'aurora', 'graviton', 'espiral'],
+  ],
+  m6: [
+    ['astilla', 'racimo'],
+    ['astilla', 'racimo', 'lente', 'espejo'],
+    ['astilla', 'racimo', 'lente', 'espejo', 'prisma', 'ariete'],
+    ['astilla', 'racimo', 'lente', 'espejo', 'prisma', 'ariete', 'obelisco', 'geoda'],
+    ['astilla', 'racimo', 'lente', 'espejo', 'prisma', 'ariete', 'obelisco', 'geoda', 'cuarzo', 'aurora'],
+    ['astilla', 'racimo', 'lente', 'espejo', 'prisma', 'ariete', 'obelisco', 'geoda', 'cuarzo', 'aurora', 'graviton', 'espiral'],
+  ],
   m2: [
     ['astilla', 'racimo', 'lente'],
     ['astilla', 'racimo', 'lente', 'espejo'],
@@ -294,7 +311,7 @@ export const WAVE_PLANS = {
     ['astilla', 'racimo', 'lente', 'espejo', 'geoda', 'obelisco', 'prisma', 'cuarzo', 'ariete', 'graviton', 'aurora', 'espiral'],
   ],
 };
-export const BOSS_OF = { m1: 'coloso', m2: 'madre', m3: 'argos', m4: 'argos' };
+export const BOSS_OF = { m1: 'coloso', m2: 'madre', m3: 'argos', m4: 'argos', m5: 'coloso', m6: 'argos' };
 
 export const PLAYER = { bleed: 25, hp: 100, shield: 100, radius: 0.9, eye: 0.6, speed: 11, dash: 1.7, jump: 11.5, shieldDelay: 3, shieldRate: 35 };
 
@@ -313,6 +330,8 @@ export const OBJECTIVE_PLAN = {
   m2: { 2: 'sintonia', 3: 'ancla', 4: 'nucleo', 6: 'sintonia' },
   m3: { 2: 'ancla', 3: 'sintonia', 5: 'nucleo', 6: 'ancla' },
   m4: { 2: 'cultivo', 3: 'ancla', 5: 'nucleo', 6: 'ancla' }, // 5: si el puente aún no creció, el mapa lo cambia por otro Cultivo
+  m5: { 2: 'sintonia', 3: 'ancla', 5: 'nucleo', 6: 'ancla' },   // Plaza de los Ecos: núcleo de los Soportales al portal del Reloj
+  m6: { 2: 'ancla', 3: 'nucleo', 5: 'sintonia', 6: 'ancla' },   // Osario sin Techo: núcleo del brazo oeste al altar
 };
 export const OBJECTIVE_INFO = {
   ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Mantené a alguien dentro del círculo para cargarla y cubrila: las criaturas la roen.', limit: 110 },

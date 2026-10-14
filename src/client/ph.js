@@ -11,7 +11,7 @@ export const PH = {
   hdris: ['small_cathedral_02', 'moonless_golf', 'qwantani_dusk_2_puresky'],
 };
 /** Cielo de iluminación de cada mapa: templo dorado (interior), atardecer (islas), noche (laberinto). */
-export const MAP_HDRI = { m1: 'qwantani_dusk_2_puresky', m2: 'small_cathedral_02', m3: 'moonless_golf', m4: 'small_cathedral_02', menu: 'small_cathedral_02' };
+export const MAP_HDRI = { m1: 'qwantani_dusk_2_puresky', m2: 'small_cathedral_02', m3: 'moonless_golf', m4: 'small_cathedral_02', m5: 'moonless_golf', m6: 'small_cathedral_02', menu: 'small_cathedral_02' };
 
 const loader = new THREE.TextureLoader(), texCache = new Map();
 function load(url, srgb, repeat) {

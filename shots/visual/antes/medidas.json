@@ -1,0 +1,146 @@
+[
+ {
+  "name": "m1-w1-low",
+  "ms": 416.7,
+  "calls": 120,
+  "tris": 42782,
+  "wave": 1,
+  "infect": null,
+  "pr": 0.85
+ },
+ {
+  "name": "m1-w6-low",
+  "ms": 450.1,
+  "calls": 99,
+  "tris": 46769,
+  "wave": 6,
+  "infect": null,
+  "pr": 0.85
+ },
+ {
+  "name": "m2-w1-low",
+  "ms": 250,
+  "calls": 61,
+  "tris": 60568,
+  "wave": 1,
+  "infect": null,
+  "pr": 0.85
+ },
+ {
+  "name": "m2-w6-low",
+  "ms": 299.9,
+  "calls": 82,
+  "tris": 62214,
+  "wave": 6,
+  "infect": null,
+  "pr": 0.85
+ },
+ {
+  "name": "m3-w1-low",
+  "ms": 350,
+  "calls": 83,
+  "tris": 27990,
+  "wave": 1,
+  "infect": null,
+  "pr": 0.85
+ },
+ {
+  "name": "m3-w6-low",
+  "ms": 383.4,
+  "calls": 114,
+  "tris": 33668,
+  "wave": 6,
+  "infect": null,
+  "pr": 0.85
+ },
+ {
+  "name": "m4-w1-low",
+  "ms": 633.4,
+  "calls": 74,
+  "tris": 59514,
+  "wave": 1,
+  "infect": null,
+  "pr": 0.85
+ },
+ {
+  "name": "m4-w6-low",
+  "ms": 683.3,
+  "calls": 87,
+  "tris": 64257,
+  "wave": 6,
+  "infect": null,
+  "pr": 0.85
+ },
+ {
+  "name": "m1-w1-high",
+  "ms": 2549.9,
+  "calls": 147,
+  "tris": 247180,
+  "wave": 1,
+  "infect": null,
+  "pr": 1.5
+ },
+ {
+  "name": "m1-w6-high",
+  "ms": 2616.6,
+  "calls": 175,
+  "tris": 275628,
+  "wave": 6,
+  "infect": null,
+  "pr": 1.5
+ },
+ {
+  "name": "m2-w1-high",
+  "ms": 1233.4,
+  "calls": 138,
+  "tris": 281022,
+  "wave": 1,
+  "infect": null,
+  "pr": 1.5
+ },
+ {
+  "name": "m2-w6-high",
+  "ms": 1316.6,
+  "calls": 162,
+  "tris": 280176,
+  "wave": 6,
+  "infect": null,
+  "pr": 1.5
+ },
+ {
+  "name": "m3-w1-high",
+  "ms": 2133.2,
+  "calls": 145,
+  "tris": 118562,
+  "wave": 1,
+  "infect": null,
+  "pr": 1.5
+ },
+ {
+  "name": "m3-w6-high",
+  "ms": 2099.9,
+  "calls": 167,
+  "tris": 133692,
+  "wave": 6,
+  "infect": null,
+  "pr": 1.5
+ },
+ {
+  "name": "m4-w1-high",
+  "ms": 3499.9,
+  "calls": 166,
+  "tris": 124456,
+  "wave": 1,
+  "infect": 0,
+  "pr": 1.5
+ },
+ {
+  "name": "m4-w6-high",
+  "ms": 3583.2,
+  "calls": 132,
+  "tris": 119048,
+  "wave": 6,
+  "infect": 0.942,
+  "pr": 1.5
+ }
+]

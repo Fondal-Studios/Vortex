@@ -31,7 +31,8 @@ export const WAKE = [
   ['H', 'Pero escuchá ese latido. Es tuyo. Moriste y, de algún modo, todavía estás VIVO.', 4.6],
   ['H', 'Acá abajo todo añora la vida. Cada criatura de este lugar fue algo que la perdió… y ahora te huelen.', 4.8],
   ['H', 'Quieren lo que tenés. Lo único que tenés. Y no piden permiso.', 3.8],
-  ['H', 'Solo no vas a durar. Elegí un Huésped: algo que ya vive acá y acepte vivir en vos.', 4.6],
+  ['H', 'Solo no vas a durar. Hay guardianes que viven entre los muertos y los vivos: los Huéspedes.', 4.6],
+  ['H', 'Hacé un pacto con uno. Él necesita tu cuerpo vivo para volver a cruzar; vos, su poder para salir de acá.', 5.0],
   ['H', 'Y evolucioná. Bien. Cada camino que elijas cierra otro: equivocarte acá se paga con lo que te queda de vida.', 5.4],
   ['H', 'Ya vienen. Que no te la quiten, Pasajero.', 3.2],
 ];

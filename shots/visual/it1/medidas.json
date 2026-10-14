@@ -1,0 +1,38 @@
+[
+ {
+  "name": "m1-w1-low",
+  "ms": 883.3,
+  "calls": 65,
+  "tris": 34183,
+  "wave": 1,
+  "infect": 0,
+  "pr": 0.85
+ },
+ {
+  "name": "m3-w1-low",
+  "ms": 566.6,
+  "calls": 78,
+  "tris": 27823,
+  "wave": 1,
+  "infect": 0,
+  "pr": 0.85
+ },
+ {
+  "name": "m1-w1-high",
+  "ms": 4099.9,
+  "calls": 145,
+  "tris": 247166,
+  "wave": 1,
+  "infect": 0,
+  "pr": 1.5
+ },
+ {
+  "name": "m3-w1-high",
+  "ms": 3099.9,
+  "calls": 141,
+  "tris": 119226,
+  "wave": 1,
+  "infect": 0,
+  "pr": 1.5
+ }
+]
