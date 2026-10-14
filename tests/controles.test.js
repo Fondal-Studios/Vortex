@@ -20,7 +20,7 @@ test('controles táctiles: giro exacto, 180°, microajuste, multitoque, zonas, A
   const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   try {
     await pg.goto(`http://localhost:${srv.port}/?auto=m1&skipintro=1&god=1&seed=3&autoq=0`); await pg.waitForFunction(() => window.__api && window.__api.session && window.__api.session.game);
-    await pg.evaluate(() => { localStorage.removeItem('cristal.ajustes.v2'); window.__api.session.touch = true; window.__api.touch.show(true); document.querySelector('#tadv').value = '1'; document.querySelector('#tadv').dispatchEvent(new Event('input')); }); // modo avanzado: esta prueba usa APUNTAR
+    await pg.evaluate(() => { localStorage.removeItem('cristal.ajustes.v2'); window.__api.setSetting('simple', false); localStorage.setItem('cristal.aim.v1', '0'); window.__api.session.touch = true; window.__api.touch.show(true); document.querySelector('#tadv').value = '1'; document.querySelector('#tadv').dispatchEvent(new Event('input')); }); // modo avanzado: esta prueba usa APUNTAR
     await simWait(pg, 0.3);
     const cdp = await ctx.newCDPSession(pg); const T = (t, p) => cdp.send('Input.dispatchTouchEvent', { type: t, touchPoints: p });
     const me = () => pg.evaluate(() => { const g = window.__api.session.game, p = g.players[0]; return { x: p.pos.x, z: p.pos.z, pitch: p.pitch, h: { ...p.heading }, up: { ...p.up }, w: p.weapon, a: [...p.ammo].map((v) => (v === Infinity ? -1 : v)), ads: p.input && p.input.ads, cr: p.input && p.input.crouch }; });

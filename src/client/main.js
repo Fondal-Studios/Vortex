@@ -190,7 +190,7 @@ function startSolo(mapId, opts = {}) {
   if (opts.god) p.godmode = true;
   session = { practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
   enter(mapId);
-  if (intro) beginIntro(opts.campaign === 'm2' ? 'short' : 'full'); else finishIntro();
+  if (intro) beginIntro(opts.campaign && opts.campaign !== 'm1' ? 'short' : 'full'); else finishIntro();
 }
 
 async function startCoop(create, code, mapId) {
@@ -551,8 +551,9 @@ function endGame(state, me) {
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);
   const won = state.state === 'won'; window.__ended = state.state;
   const stats = `Oleada ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n');
-  if (session.mode === 'solo' && session.campaign && won && session.campaign === 'm1') { // → interludio y Cámara Fractal
-    renderer.setGuide(true); subs.play(Story.INTERLUDE, () => { renderer.setGuide(false); startSolo('m2', { campaign: 'm2' }); });
+  const ruta = Story.RUTAS[params.get('ruta')] || Story.RUTAS.corta, nextCap = session.campaign ? ruta[ruta.indexOf(session.campaign) + 1] : null; // ?ruta=larga: m1 → m5 → m6 → m2
+  if (session.mode === 'solo' && session.campaign && won && nextCap) { // → interludio y el capítulo siguiente
+    renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap }); });
     return;
   }
   if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', 'De vuelta al andén', 'Completá la historia', sound); showEnd(true, stats, 'VOLVISTE AL MUNDO DE LOS VIVOS'); }); return; }

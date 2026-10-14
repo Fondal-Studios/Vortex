@@ -5,7 +5,7 @@
 // Si un archivo falta (p. ej. copia sin assets), los materiales siguen funcionando con su color plano.
 import * as THREE from 'three';
 
-export const PH_BASE = '/public/assets/ph/';
+export const PH_BASE = new URL('../../public/assets/ph/', import.meta.url).href; // relativo al módulo: sirve igual en el servidor local y en el sitio estático
 export const PH = {
   textures: ['marble_01', 'marble_tiles', 'white_sandstone_bricks', 'medieval_wall_01', 'metal_plate', 'rough_linen'],
   hdris: ['small_cathedral_02', 'moonless_golf', 'qwantani_dusk_2_puresky'],
@@ -32,7 +32,7 @@ export function phMaterial(id, { repeat = 1, color = 0xffffff, metalness = 0, ro
 /** Oro envejecido (filigrana, máscaras, coronas). */
 export const goldMaterial = (o = {}) => phMaterial('metal_plate', { color: 0xf2c66d, metalness: 1, roughness: 0.55, repeat: 2, normalScale: 0.6, envMapIntensity: 1.4, ...o });
 /** Porcelana / mármol pulido (máscaras rituales, placas). */
-export const porcelainMaterial = (o = {}) => phMaterial('marble_01', { color: 0xffffff, emissive: 0x1c1a20, metalness: 0, roughness: 0.4, repeat: 1, normalScale: 0.35, envMapIntensity: 1.1, physical: true, clearcoat: 0.6, clearcoatRoughness: 0.25, ...o });
+export const porcelainMaterial = (o = {}) => phMaterial('marble_01', { color: 0xffffff, emissive: 0x34343c, metalness: 0, roughness: 0.4, repeat: 1, normalScale: 0.35, envMapIntensity: 1.1, physical: true, clearcoat: 0.6, clearcoatRoughness: 0.25, ...o });
 
 const envCache = new Map();
 /** Carga un HDRI 1K y lo pasa por PMREM. Cachea por renderer+id. */

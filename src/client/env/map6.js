@@ -29,14 +29,18 @@ const BONE = [0xe8dcc4, 0xddd0b4, 0xf0e6d2, 0xcfc1a4, 0xe2d6bc];
 function skullGeo() {
   const parts = [];
   const add = (g, c) => { g = g.index ? g.toNonIndexed() : g; const n = g.attributes.position.count, a = new Float32Array(n * 3), col = new THREE.Color(c); for (let i = 0; i < n; i++) a.set([col.r, col.g, col.b], i * 3); g.setAttribute('color', new THREE.BufferAttribute(a, 3)); g.deleteAttribute('uv'); parts.push(g); };
-  add(put(new THREE.SphereGeometry(0.5, 6, 4), 0, 0.08, 0, 0, 0, 0, 1, 1.0, 1.15), 0xffffff);
-  add(put(box(0.6, 0.38, 0.44), 0, -0.34, 0.2), 0xeee6d6);             // maxilar y mandíbula
+  add(put(new THREE.SphereGeometry(0.5, 6, 4), 0, 0.1, -0.04, 0, 0, 0, 0.95, 1.02, 1.12), 0xffffff);
+  add(put(box(0.44, 0.3, 0.36), 0, -0.36, 0.2), 0xeee6d6);             // maxilar y mandíbula
   return mergeGeometries(parts, false);
 }
 /** Cuencas: un plano de 2 triángulos delante de la cara; su color de instancia es casi negro (cuenca vacía) o una luz de color. */
-const eyePlate = () => put(new THREE.PlaneGeometry(0.5, 0.17), 0, -0.02, 0.53);
+const eyePlate = () => put(new THREE.PlaneGeometry(0.56, 0.42), 0, -0.06, 0.52);
+/** Cara de la calavera: dos cuencas redondas y la nariz (textura con transparencia). */
+function eyeTex() { const c = document.createElement('canvas'); c.width = 128; c.height = 96; const g = c.getContext('2d'); g.fillStyle = '#fff';
+  for (const x of [36, 92]) { g.beginPath(); g.ellipse(x, 38, 21, 19, 0, 0, 7); g.fill(); } g.beginPath(); g.moveTo(64, 56); g.lineTo(56, 80); g.lineTo(72, 80); g.fill();
+  const t = new THREE.CanvasTexture(c); return t; }
 /** Fémur liviano (~22 triángulos): caña de 3 lados y dos cabezas octaédricas. Eje x. */
-const femurGeo = () => mergeGeometries([put(cyl(0.05, 0.05, 1, 3), 0, 0, 0, 0, 0, Math.PI / 2), put(new THREE.OctahedronGeometry(0.1), -0.52, 0, 0), put(new THREE.OctahedronGeometry(0.1), 0.52, 0, 0)].map((g) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); return g; }), false);
+const femurGeo = () => mergeGeometries([put(cyl(0.05, 0.05, 1, 3), 0, 0, 0, 0, 0, Math.PI / 2), put(new THREE.OctahedronGeometry(0.1), -0.52, 0, 0, 0, 0, 0, 0.6, 1, 1.3), put(new THREE.OctahedronGeometry(0.1), 0.52, 0, 0, 0, 0, 0, 0.6, 1, 1.3)].map((g) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); return g; }), false);
 
 /** La grieta del altar: el más allá visto por una rajadura vertical (psicodelia a pleno). */
 function riftMat() {
@@ -180,7 +184,7 @@ export function build(r, map) {
 
   // calaveras y huesos instanciados (+ el brillo de las cuencas, de colores)
   const sk = new THREE.InstancedMesh(skullGeo(), MAT.bone, skulls.length); skulls.forEach((m, i) => sk.setMatrixAt(i, m)); sk.instanceMatrix.needsUpdate = true; sk.name = 'm6-calaveras'; root.add(sk);
-  const eyes = new THREE.InstancedMesh(eyePlate(), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), skulls.length);
+  const eyes = new THREE.InstancedMesh(eyePlate(), new THREE.MeshBasicMaterial({ color: 0xffffff, map: eyeTex(), alphaTest: 0.5, toneMapped: false }), skulls.length);
   skulls.forEach((m, i) => { eyes.setMatrixAt(i, m); eyes.setColorAt(i, rd() < 0.5 ? new THREE.Color(ACC[Math.floor(rd() * ACC.length)]).multiplyScalar(1.8) : new THREE.Color(0x060404)); }); eyes.instanceMatrix.needsUpdate = true; eyes.instanceColor.needsUpdate = true; root.add(eyes);
   const boneMat = deadMaterial('ph:marble_01', { vcol: false, sat: 0.7, tint: 0xf4e8d2, dustK: 0.2, crack: 0 });
   const fm = new THREE.InstancedMesh(femurGeo(), boneMat, femurs.length); femurs.forEach((m, i) => fm.setMatrixAt(i, m)); fm.instanceMatrix.needsUpdate = true; fm.name = 'm6-huesos'; root.add(fm);
@@ -211,7 +215,7 @@ export function build(r, map) {
   floaters(r, root, new THREE.BoxGeometry(1, 1, 1), deadMaterial('vault', { vcol: false, sat: 0.6, tint: 0xe2d8cc, crack: 1, crackCol: 0xb07bff, dustK: 0.4 }), blocks, { name: 'm6-sillares' });
   // huesos que flotan en el crucero (gravedad rota)
   const fb = []; const OJ = M6.OJO;
-  for (let i = 0; i < (low ? 36 : 70); i++) { const a = rd() * 6.283, rr = 1 + Math.sqrt(rd()) * (OJ.r - 1); fb.push(floatItem(rd, new THREE.Vector3(OJ.x + Math.cos(a) * rr, 1 + rd() * rd() * 10, OJ.z + Math.sin(a) * rr), 0.9 + rd() * 0.5, { amp: 0.4, spd: 0.4, spin: 0.8 })); }
+  for (let i = 0; i < (low ? 36 : 70); i++) { const a = rd() * 6.283, rr = 1 + Math.sqrt(rd()) * (OJ.r - 1); fb.push(floatItem(rd, new THREE.Vector3(OJ.x + Math.cos(a) * rr, 1 + rd() * rd() * 10, OJ.z + Math.sin(a) * rr), 0.55 + rd() * 0.35, { amp: 0.4, spd: 0.4, spin: 0.8 })); }
   floaters(r, root, femurGeo(), boneMat, fb, { name: 'm6-huesos-flotan' });
   leveZone(r, root, M6.OJO, { color: 0xf2c66d, count: low ? 120 : 180 });
 
@@ -222,7 +226,7 @@ export function build(r, map) {
     { x: 0, z: 0, n: 8, len: 12 }, { x: -30, z: 0, n: 3, len: 8 }, { x: 30, z: 0, n: 3, len: 8 }, { x: 0, z: 30, n: 3, len: 7 },
   ], { color: 0xff7ae0, seed: 61, avoid: (x, z) => map.walkable(x, z, 0.3) });
   risingStream(root, [{ x: OJ.x, y: 0.2, z: OJ.z, r: 2.2, h: 13 }]);
-  rootsMesh(root, roots, { color: 0x46ffd0, bark: 0x2a2420, sun: sunDir });
+  rootsMesh(root, roots, { color: 0x46ffd0, bark: 0x6a5844, sun: sunDir });
 
   // ── cielo alucinado (oro y violeta), luz por el techo roto, charcos de luz, niebla baja, polvo
   limboSky(r, root, { sun: sunDir, skyline: 0, hue: 0.1, glyph: 1.1, zen: 0x0a0418, hor: 0x5a2a5a, glow: 0xf2c66d });

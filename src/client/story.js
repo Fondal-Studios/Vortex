@@ -50,10 +50,27 @@ export const ENDING = [
   ['H', 'Mirá arriba, Pasajero. Eso que suena es un tren. Esta vez, de largo.', 4.2],
   ['N', 'Andén 3. 18:42. Los auriculares puestos. Un abajo bajo los pies.', 4.0],
 ];
+/** Rutas de la campaña: la corta de siempre y la LARGA (?ruta=larga) que pasa por los escenarios robados de ARCANUM. */
+export const RUTAS = { corta: ['m1', 'm2'], larga: ['m1', 'm5', 'm6', 'm2'] };
+export const INTERLUDES = {
+  m5: [
+    ['H', 'Uno menos. Pero el limbo no tira nada: guarda ciudades enteras de gente que se murió extrañando.', 4.2],
+    ['H', 'Esto era Praga. Ahora es una plaza de ecos: faroles que lloran luz, un reloj que se quedó sin hora.', 4.4],
+    ['H', 'En la fuente el agua cae para arriba. Vos también, si saltás ahí. Aprovechalo.', 3.8],
+  ],
+  m6: [
+    ['H', 'Ese reloj tenía un dueño que vendió algo que no era suyo. Ya no importa. Seguimos bajando.', 4.2],
+    ['H', 'Un osario. Miles de huesos ordenados con paciencia, y a ninguno le alcanzó para volver.', 4.0],
+    ['H', 'Seguí las losas claras hasta el altar. Lo que pena acá no descansa: quiere tus huesos con carne.', 4.2],
+  ],
+  m2: INTERLUDE,
+};
 export const DEFEAT = [['H', 'Te quitaron la vida que te quedaba. Ahora sos uno más de los que añoran. …O no. Probá de nuevo: otro Huésped, otro camino.', 4.6]];
 export const MAP_BANNER = {
   m1: 'VACÍO DE ISLAS — La gravedad cambia según dónde pisás. Círculos verdes: caés hacia arriba. Portales, burbujas de tiempo lento.',
   m2: 'CÁMARA FRACTAL — Caminás por dentro de una esfera hueca. Cada tanto la marea apaga la gravedad.',
+  m5: 'PLAZA DE LOS ECOS — La Praga de los muertos: una calle, una plaza y la fuente que cae hacia arriba. Junto a la fuente la gravedad se rompe: saltás alto.',
+  m6: 'OSARIO SIN TECHO — Una iglesia de huesos en cruz. Seguí las losas claras: llevan al altar. Bajo la araña de huesos la gravedad se rompe.',
 };
 
 /** Subtítulos con voz sintética del Heraldo (chirridos por letra). */

@@ -31,3 +31,55 @@ Ocho plataformas de tejido vivo con desniveles reales (de la Siembra a +3 hasta 
 - **Feedback:** el capullo se abre y se enciende un punto más de su anillo de 12 por cada 8 %; tiembla y se pone rojo si lo roen; al florecer estalla en verde ácido y emite un faro de luz; cada tramo del puente nace con discos que brotan uno a uno.
 - **Oleadas:** 6 + jefe (Argos, el Ojo Primordial, sobre El Corazón: las columnas frenan su Mirada). Criaturas terrestres siguen rampas y puentes (grafo de rutas) y no caminan al vacío; los bots de prueba (`tests/map4.test.js`) completan el mapa.
 - **Visual (Baja):** suelo de tejido con venas que laten desde el Corazón y se encienden cerca de vos, tallos/raíces nerviosas que se retraen y brillan cuando te acercás (todo por uniformes, sin objetos nuevos por cuadro), hongos y cristales bioluminiscentes, membranas translúcidas, bancos de niebla bajo las plataformas, planetas de carne lejanos y un cielo propio (rojos profundos, magentas, verde ácido). Capturas: `node tools/shot-map4.js shots/map4 low`.
+
+## Mapas del limbo robados de ARCANUM (5 y 6)
+Dos escenarios de ARCANUM (`/duelo-arcano`, sólo lectura) rehechos como **arenas del limbo**: escenarios MUERTOS pero ALUCINADOS
+(psicodelia a pleno sobre materiales con textura). Física: arenas **planas y cerradas** (sin vacío, sin laberintos), muros de borde
+altos, coberturas simples (cajas y cilindros) y una zona de **gravedad rota leve** (35 %: saltás alto y flotás). Código común de
+simulación: `src/sim/limbo.js` (`makeLimboArena`: salas, muros, coberturas, grilla de navegación con caminos más cortos para
+criaturas y bots, `guard` para rodear coberturas, spawns dentro de la arena; el piso sólo llega hasta los muros: lo que se escapa cae
+y desaparece). Visual común: `src/client/env/limbo-kit.js` (material «muerto» con grietas de luz que cambian de color, cielo
+alucinado con geometría sagrada, raíces luminosas, objetos flotantes, charcos y rayos de luz, chorros que suben).
+Para agregar otro: definí salas/muros/coberturas/zonas en `src/sim/mapN.js` con `makeLimboArena`, registralo en `maps.js` y
+`data.js` (WAVE_PLANS, BOSS_OF, OBJECTIVE_PLAN), y dibujalo en `src/client/env/mapN.js` (export `build(r, map)`; `render.js`
+lo carga con `loadLimbo`).
+
+### Mapa 5 — Plaza de los Ecos (de la Praga de ARCANUM: `src/world/praga.js`, `praga-build.js`)
+La calle empedrada desemboca en la plaza del reloj: fachadas barrocas pastel (sus perfiles de cornisa, imposta y frontón están copiados
+de `praga-build.js`), faroles de hierro, las torres de Týn al norte (con las puntas despegadas, flotando), la torre del Reloj con el
+reloj astronómico detenido y el portal del más allá a su pie, la fuente cuyo agua **cae hacia arriba**.
+- **Espacio táctico:** la Calle (sur, aparición, embudo defendible) → la Plaza (rectángulo abierto) con LA FUENTE en el centro (zona de
+  gravedad rota, r 10), los Soportales al oeste (corredor cubierto por pilares), la torre del Reloj al este y cuatro cuadrantes con UNA
+  cobertura alta (pedestal / quiosco) y UNA baja (puesto / carro) cada uno. Bordes: fachadas continuas de 18 m.
+- **Objetivos:** oleada 2 Sintonía (placas en cuadrantes opuestos), 3 y 6 Ancla (frente a la boca de la Calle), 5 Núcleo (de los
+  Soportales al portal del Reloj, cruzando la fuente). **Jefe:** El Mandinga (resonadores en anillo alrededor de la fuente).
+- **Folclore — qué almas penan acá y por qué:** una ciudad que se murió de noche, con las luces prendidas. Las **Ánimas** son los
+  transeúntes que siguen caminando la calle; la **Luz Mala** y los **Fuegos Fatuos** son las llamas de los faroles que se apagaron y
+  salieron a buscar quién las encienda; la **Llorona** llora en la fuente; los **Pombero** se esconden en las sombras de los
+  Soportales; las **Viudas** miran desde las ventanas; la **Salamanquera** es lo que quedó de los alquimistas de Praga; el **Lobizón**
+  sale del callejón y el **Silbón** llega al final. Arriba de todo, el **Mandinga**: el pacto que el relojero firmó para que el reloj
+  nunca se detuviera… y se detuvo. (`WAVE_PLANS.m5`: astilla, prisma, racimo, lente, espejo, obelisco, cuarzo, ariete, espiral.)
+
+### Mapa 6 — Osario sin Techo (del osario de Sedlec de ARCANUM: `prague-route.js`, `escenografia.js`, `ruta-paisaje.js`)
+Una iglesia de huesos en **cruz**: muros de bóveda con nichos de calaveras, bandas de fémures al pie de los muros (la «masa de huesos»
+de ARCANUM), pirámides de calaveras, guirnaldas, la araña de huesos que flota y gira sobre el crucero, el altar con la **grieta** del
+más allá. La bóveda se cayó hacia arriba: sus nervaduras y sillares flotan sobre la cruz.
+- **Espacio táctico:** nave sur (aparición, bancos bajos, pilares) → crucero (4 pirámides de calaveras como cobertura alta, gravedad
+  rota bajo la araña) → nave norte (sarcófagos con pasillo central, altar). Brazos oeste y este con un osario (bajo) y una columna de
+  calaveras (alta). **Losas claras** marcan los dos ejes de la cruz: desde cualquier punto se ve el camino. Muros de 14 m.
+- **Objetivos:** oleada 2 y 6 Ancla (brazo este), 3 Núcleo (del fondo del brazo oeste al altar), 5 Sintonía. **Jefe:** El Basilisco
+  (flota alto sobre el crucero; sus ojos orbitan por encima de los muros).
+- **Folclore — qué almas penan acá y por qué:** los huesos que no descansan. Las **Ánimas** y los **Fuegos Fatuos** (luces de
+  cementerio) salen de las pilas; la **Almamula** arrastra cadenas entre los osarios; el **Lobizón** ronda las criptas; la **Difunta**
+  es la santa milagrosa del altar que sigue curando… a las otras almas; la **Salamanquera** las convoca desde los nichos; el
+  **Familiar** es el perro negro del camposanto; el **Silbón** llega con su saco de huesos a buscar los que faltan. Y en la grieta del
+  altar mira el **Basilisco**. (`WAVE_PLANS.m6`: astilla, racimo, geoda, ariete, aurora, cuarzo, graviton, espiral.)
+
+### En el menú y en la campaña
+- **Arenas**: dos tarjetas nuevas (`public/index.html`, arte `public/art/arena-m5.jpg` / `arena-m6.jpg`) y en el selector del cooperativo.
+- **Campaña**: `src/client/story.js` → `RUTAS` y `INTERLUDES`. La ruta corta de siempre es `m1 → m2`; con **`?ruta=larga`** la historia
+  pasa por los dos escenarios robados: `m1 → m5 → m6 → m2`, cada uno con su interludio del Heraldo (`main.js` → `endGame` toma el
+  capítulo siguiente de la ruta). Para que la larga sea la de siempre basta cambiar `RUTAS.corta`.
+- **Pruebas:** `node --test tests/limbo-mapas.test.js` (registro, límites, transitabilidad física caminando con la física real, gravedad
+  rota, bots que ganan sin trabarse y bots torpes que pierden). **Capturas y medición:** `node tools/shot-limbo.js m5|m6 [carpeta] low|high
+  [--sin-criaturas] [--sin-cuerpo]` (imprime llamadas de dibujo y triángulos de la escena y del mapa solo).

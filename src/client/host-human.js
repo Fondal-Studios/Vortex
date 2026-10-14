@@ -41,7 +41,7 @@ export function createHostHuman(T, hm, kit, p, opts = {}) {
   const object = new T.Group(); object.name = 'huesped-humano-' + p.char; object.add(human.object);
   const mats = [], geos = [], track = (m) => { mats.push(m); return m; }, G = (g) => { geos.push(g); return g; };
   const low = opts.quality === 'low'; // Baja (iPhone): MeshStandard en vez de Physical (sin barniz ni transmisión)
-  const porcelainMaterial = (o = {}) => low ? phMaterial('marble_01', { color: o.color || 0xffffff, emissive: 0x1c1a20, roughness: o.roughness || 0.45, normalScale: 0.35 }) : porcelainMaterialHQ(o);
+  const porcelainMaterial = (o = {}) => low ? phMaterial('marble_01', { color: o.color || 0xffffff, emissive: 0x34343c, roughness: o.roughness || 0.45, normalScale: 0.35 }) : porcelainMaterialHQ(o);
   const gold = track(goldMaterial()), porc = track(porcelainMaterial());
   const maskMat = L.mask === 'oro' ? gold : L.mask === 'porcelana' ? porc : L.mask === 'hueso' ? track(porcelainMaterial({ color: 0xdccfb0, roughness: 0.8, clearcoat: 0.1 })) : track(porcelainMaterial({ color: 0x15121c, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.1 }));
   const glowC = new T.Color(L.glow), accC = new T.Color(0xffffff);
