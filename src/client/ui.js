@@ -9,7 +9,7 @@ import { buildEvolucionScreen, showEvolucion } from './evolucion-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const HERO = {
-  story: ['Historia', 'Te atropella un tren y despertás en el Vórtice con armas en las manos. Un bicho extraño te explica la única regla: sobrevivir a todo para volver al mundo de los vivos.', ['Solo', '2 capítulos', '2 jefes']],
+  story: ['Historia', 'Moriste en las vías y despertaste en el limbo. Pero seguís vivo: y todas las criaturas que añoran la vida quieren la tuya. Elegí el Huésped correcto y evolucioná sin errores para sobrevivir.', ['Solo', '2 capítulos', '2 jefes']],
   arenas: ['Arenas', 'Salteá la historia y andá directo a la acción en cualquiera de los cuatro mapas, con oleadas progresivas y un jefe cada uno. Nuevo: Jardín de Carne, un planeta vivo donde los caminos crecen.', ['Solo', 'Oleadas', 'Jefes']],
   coop: ['Cooperativo', 'Creá una sala o unite con un código. Hasta 4 Pasajeros, hordas que escalan con el grupo y reanimación entre compañeros.', ['1–4 jugadores', 'Wi-Fi / LAN']],
   bestiary: ['Bestiario', 'Quince organismos mitad carne, mitad cristal. Girá cada criatura en 3D y leé sus patrones, avisos y debilidades.', ['12 criaturas', '3 jefes']],

@@ -27,19 +27,20 @@ export const PROLOGO = {
 export const WAKE = [
   ['N', 'No dolió. Eso fue lo raro.', 2.4],
   ['H', 'Shh. No te levantes de golpe. Todavía te estás… ensamblando.', 3.8],
-  ['H', 'Sí: te atropelló un tren. Todos lo cuentan igual. Y todos preguntan lo mismo: «¿estoy muerto?».', 4.6],
-  ['H', 'Casi. Esto es el Vórtice: lo que queda entre estar vivo y no estarlo.', 4.0],
-  ['H', 'Te dejó esas armas. Acá nada perdona, y el Vórtice es un anfitrión previsor.', 4.2],
-  ['H', 'La regla es una sola: sobrevivís a TODO lo que venga y volvés al mundo de los vivos. Si no… te quedás. De adorno.', 5.6],
-  ['H', 'Dos corazones sostienen este lugar. Rompelos. Y no te caigas: acá abajo no hay «abajo».', 4.6],
-  ['H', 'Ya vienen. Dispará a todo lo que se mueva. Suerte, Pasajero.', 3.4],
+  ['H', 'Sí: te atropelló un tren. Moriste. Esto es el Vórtice, el limbo: lo que queda entre la vida y lo que viene después.', 5.2],
+  ['H', 'Pero escuchá ese latido. Es tuyo. Moriste y, de algún modo, todavía estás VIVO.', 4.6],
+  ['H', 'Acá abajo todo añora la vida. Cada criatura de este lugar fue algo que la perdió… y ahora te huelen.', 4.8],
+  ['H', 'Quieren lo que tenés. Lo único que tenés. Y no piden permiso.', 3.8],
+  ['H', 'Solo no vas a durar. Elegí un Huésped: algo que ya vive acá y acepte vivir en vos.', 4.6],
+  ['H', 'Y evolucioná. Bien. Cada camino que elijas cierra otro: equivocarte acá se paga con lo que te queda de vida.', 5.4],
+  ['H', 'Ya vienen. Que no te la quiten, Pasajero.', 3.2],
 ];
 export const WAKE_SHORT = [
   ['N', 'No dolió. Eso fue lo raro.', 2.0],
-  ['H', 'Sobrevivís a todo y volvés al mundo de los vivos. Si no, te quedás. Ya vienen.', 4.2],
+  ['H', 'Moriste, pero seguís vivo. Todo acá quiere tu vida. Elegí bien tu Huésped y evolucioná. Ya vienen.', 4.6],
 ];
 export const INTERLUDE = [
-  ['H', 'Uno menos. El Vórtice tiembla… y se acuerda de vos.', 3.6],
+  ['H', 'Uno menos. El limbo tiembla… y ahora te desea más que antes.', 3.6],
   ['H', 'Hay otro corazón, más hondo: una cámara hueca donde el suelo está en todas partes.', 4.2],
   ['H', 'Cuando la marea te saque el peso, no te asustes. Flotar también se puede disparar.', 4.2],
 ];
@@ -48,7 +49,7 @@ export const ENDING = [
   ['H', 'Mirá arriba, Pasajero. Eso que suena es un tren. Esta vez, de largo.', 4.2],
   ['N', 'Andén 3. 18:42. Los auriculares puestos. Un abajo bajo los pies.', 4.0],
 ];
-export const DEFEAT = [['H', 'El Vórtice te guarda un lugar. Siempre hay lugar. Probá de nuevo.', 3.6]];
+export const DEFEAT = [['H', 'Te quitaron la vida que te quedaba. Ahora sos uno más de los que añoran. …O no. Probá de nuevo: otro Huésped, otro camino.', 4.6]];
 export const MAP_BANNER = {
   m1: 'VACÍO DE ISLAS — La gravedad cambia según dónde pisás. Círculos verdes: caés hacia arriba. Portales, burbujas de tiempo lento.',
   m2: 'CÁMARA FRACTAL — Caminás por dentro de una esfera hueca. Cada tanto la marea apaga la gravedad.',

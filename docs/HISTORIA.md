@@ -1,5 +1,10 @@
 # Historia — «Cristal Vórtice»
 
+> **CANON (dueño, 2026-10-14):** Moriste y entraste a un **limbo** lleno de **entidades que añoran la vida**. Pero vos, a pesar de estar
+> ahí, **todavía estás vivo**: por eso todas las criaturas quieren **tu vida**. La única forma de sobrevivir es **eligiendo el Huésped
+> correcto** (un ser del limbo que acepta vivir en vos) y **evolucionando perfectamente** (cada camino de evolución cierra otro).
+> Todo texto nuevo del juego debe respetar esta premisa. El Vórtice = el limbo.
+
 **Tono:** humor seco con un fondo inquietante. Texto corto, mucho ambiente. La rareza visual (OReilly) cuenta lo que las palabras no dicen.
 
 ## Premisa (isekai)
