@@ -17,9 +17,9 @@ export function makeBuilder(T, S) {
   const xf = (geo, p = ZERO, r = ZERO, s = [1, 1, 1]) => { eu.set(r[0], r[1], r[2]); q.setFromEuler(eu); m4.compose(v1.set(p[0], p[1], p[2]), q, v2.set(s[0], s[1], s[2])); geo.applyMatrix4(m4); return geo; };
   const push = (j, kind, geo, col) => {
     const g = geo.index ? geo.toNonIndexed() : geo; if (g !== geo) geo.dispose();
-    const n = g.attributes.position.count, c = new Float32Array(n * 3); cc.set(col);
-    for (let i = 0; i < n; i++) { c[i * 3] = cc.r; c[i * 3 + 1] = cc.g; c[i * 3 + 2] = cc.b; }
-    g.setAttribute('color', new T.BufferAttribute(c, 3)); g.deleteAttribute('uv'); j.parts[kind].push(g);
+    const n = g.attributes.position.count; g.deleteAttribute('uv');
+    if (!g.attributes.color) { const c = new Float32Array(n * 3); cc.set(col); for (let i = 0; i < n; i++) { c[i * 3] = cc.r; c[i * 3 + 1] = cc.g; c[i * 3 + 2] = cc.b; } g.setAttribute('color', new T.BufferAttribute(c, 3)); }
+    if (!g.attributes.normal) g.computeVertexNormals(); j.parts[kind].push(g);
   };
   const seg = (n) => n || S;
   const P = {
@@ -37,6 +37,29 @@ export function makeBuilder(T, S) {
       v1.set(a[0], a[1], a[2]); v2.set(b[0], b[1], b[2]); v3.subVectors(v2, v1); const len = v3.length() || 1e-3;
       const geo = new T.CylinderGeometry(r2, r1, len, seg(n), 1); q.setFromUnitVectors(new T.Vector3(UP[0], UP[1], UP[2]), v3.normalize());
       m4.compose(v1.clone().add(v2).multiplyScalar(0.5), q, new T.Vector3(1, 1, 1)); geo.applyMatrix4(m4); push(j, k, geo, col);
+    },
+    /** TUBO afilado que sigue una curva suave por los puntos `pts` (colas, raíces, tentáculos, astas, filamentos): radio r0→r1, color col→col2. */
+    tube(j, k, col, pts, r0, r1, n = 6, col2 = null, taper = 1) {
+      const curve = new T.CatmullRomCurve3(pts.map((p) => new T.Vector3(p[0], p[1], p[2]))), M = Math.max(4, pts.length * 3), fr = curve.computeFrenetFrames(M, false), c1 = new T.Color(col), c2 = new T.Color(col2 == null ? col : col2), c3 = new T.Color();
+      const pos = [], nor = [], cols = [], idx = [], pt = new T.Vector3();
+      for (let i = 0; i <= M; i++) {
+        const u = i / M, N = fr.normals[i], B = fr.binormals[i], r = Math.max(0.0005, r0 + (r1 - r0) * Math.pow(u, taper)); curve.getPointAt(u, pt); c3.copy(c1).lerp(c2, u);
+        for (let a = 0; a < n; a++) { const an = (a / n) * 6.2832, ca = Math.cos(an), sa = Math.sin(an), nx = ca * N.x + sa * B.x, ny = ca * N.y + sa * B.y, nz = ca * N.z + sa * B.z; pos.push(pt.x + nx * r, pt.y + ny * r, pt.z + nz * r); nor.push(nx, ny, nz); cols.push(c3.r, c3.g, c3.b); }
+      }
+      for (let i = 0; i < M; i++) for (let a = 0; a < n; a++) { const a0 = i * n + a, a1 = i * n + ((a + 1) % n), b0 = (i + 1) * n + a, b1 = (i + 1) * n + ((a + 1) % n); idx.push(a0, b0, a1, a1, b0, b1); }
+      const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g.setAttribute('color', new T.Float32BufferAttribute(cols, 3)); g.setIndex(idx); push(j, k, g, col);
+    },
+    /** LÁMINA (capa, velo, membrana de ala): superficie entre dos polilíneas A y B de igual largo; `seg` divisiones a lo ancho; color col→col2 de A a B. */
+    sheet(j, k, col, A, B, seg = 2, col2 = null) {
+      const pos = [], cols = [], idx = [], c1 = new T.Color(col), c2 = new T.Color(col2 == null ? col : col2), c3 = new T.Color(), R = A.length;
+      for (let i = 0; i < R; i++) for (let s = 0; s <= seg; s++) { const u = s / seg; pos.push(A[i][0] + (B[i][0] - A[i][0]) * u, A[i][1] + (B[i][1] - A[i][1]) * u, A[i][2] + (B[i][2] - A[i][2]) * u); c3.copy(c1).lerp(c2, u); cols.push(c3.r, c3.g, c3.b); }
+      for (let i = 0; i < R - 1; i++) for (let s = 0; s < seg; s++) { const a = i * (seg + 1) + s, b = a + 1, c = a + seg + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+      const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(cols, 3)); g.setIndex(idx); g.computeVertexNormals(); push(j, k, g, col);
+    },
+    /** BULTO orgánico: esfera con relieve irregular (músculo, tumor, hongo, hueso nudoso). jit = irregularidad, seed = variante. */
+    lump(j, k, col, rad, p, s = [1, 1, 1], n = 8, jit = 0.14, seed = 1, r = ZERO) {
+      const g = new T.SphereGeometry(rad, seg(n) + 2, seg(n)), pa = g.attributes.position; for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), h = Math.sin(x * 9.1 + seed * 3.7) * Math.cos(y * 7.3 + seed) + Math.sin(z * 8.2 + seed * 1.3 + x * 3.1) * 0.8; const f = 1 + jit * h * 0.5; pa.setXYZ(i, x * f, y * f, z * f); }
+      g.computeVertexNormals(); push(j, k, xf(g, p, r, s), col);
     },
     tri(j, k, col, a, b, c) {
       const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(new Float32Array([...a, ...b, ...c]), 3)); g.computeVertexNormals(); push(j, k, g, col);
