@@ -11,7 +11,7 @@ await pg.evaluate(() => { window.__api.session.touch = true; window.__api.touch.
 await pg.waitForTimeout(2500);
 const info = () => pg.evaluate(() => { const R = window.__api.renderer, g = window.__api.session.game, p = g.players[0]; return { third: R.third, cam: R.camera.position.toArray().map((x) => +x.toFixed(2)), pos: [p.pos.x, p.pos.y, p.pos.z].map((x) => +x.toFixed(2)), fov: +R.camera.fov.toFixed(1), camT: R.camT }; });
 console.log('inicio', JSON.stringify(await info())); await pg.screenshot({ path: `${out}/3p-inicio.png` });
-await pg.evaluate(() => { const g = window.__api.session.game; const p = g.players[0]; g.spawnMonster('astilla', { x: p.pos.x - 0.5, y: p.pos.y, z: p.pos.z - 14 }); });
+await pg.evaluate(() => { const g = window.__api.session.game; const p = g.players[0]; g.spawnMonster('astilla', { x: p.pos.x - 0.5, y: p.pos.y, z: p.pos.z - 14 }); const b = g.spawnMonster('lente', { x: p.pos.x + 6, y: p.pos.y, z: p.pos.z + 12 }); b.passive = true; });
 await pg.waitForTimeout(1200); await pg.screenshot({ path: `${out}/3p-enemigo.png` });
 await pg.evaluate(() => window.__setCam(false)); await pg.waitForTimeout(800); console.log('1ª', JSON.stringify(await info())); await pg.screenshot({ path: `${out}/1p.png` });
 console.log('errores', JSON.stringify(errs));

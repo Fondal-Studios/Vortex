@@ -278,3 +278,24 @@ test('órganos como tarjetas: con esencias se ofrece un órgano entre las 3 tarj
   assert.ok(Object.values(p.ess).reduce((a, b) => a + b, 0) < Object.values(e0).reduce((a, b) => a + b, 0), 'cobró esencias');
   void apCard;
 });
+
+test('melee con más posibilidades: estocada en carrera, giro tras combo, bloqueo al cargar', () => {
+  // estocada: corriendo + golpe ligero te lanza hacia adelante
+  let { g, p } = mk('axioma'); p.vel = { x: 0, y: 0, z: -16 }; p.grounded = true; p.heading = { x: 0, y: 0, z: -1 }; const a = target(g, p, 'astilla', 4.5, 1e5); a.passive = true;
+  g.setInput(p.id, { melee: true }); g.step(1 / 60); p.vel = { x: 0, y: 0, z: -16 }; p.grounded = true; g.setInput(p.id, { melee: false }); g.step(1 / 60);
+  const evs = g.snapshot().events.filter((e) => e.t === 'melee'); assert.ok(evs.some((e) => e.kind === 'lunge'), 'estocada en carrera');
+  // giro: dos ligeros + pesado golpea también atrás
+  ({ g, p } = mk('axioma')); const f = target(g, p, 'astilla', 2.5, 1e5); f.passive = true; const back = g.spawnMonster('astilla', { x: p.pos.x - p.heading.x * 2.5, y: p.pos.y, z: p.pos.z - p.heading.z * 2.5 }); back.passive = true; back.hp = back.maxhp = 1e5;
+  tap(g, p, 'melee'); run(g, 0.4); tap(g, p, 'melee'); run(g, 0.4); g.setInput(p.id, { melee: true }); run(g, 0.6); g.setInput(p.id, { melee: false }); run(g, 0.2);
+  assert.ok(back.hp < 1e5, 'el giro pega a la criatura de atrás');
+  // bloqueo: mantener melee (cargando) reduce el daño a la mitad
+  ({ g, p } = mk('axioma')); p.hp = 100; p.shield = 0; g.setInput(p.id, { melee: true }); run(g, 0.3); g.hurtPlayer(p, 20); const blocked = 100 - p.hp;
+  const { g: g2, p: q } = mk('axioma'); q.hp = 100; q.shield = 0; g2.hurtPlayer(q, 20); assert.ok(blocked < (100 - q.hp) * 0.6, `bloqueo ${blocked} vs ${100 - q.hp}`);
+});
+
+test('las últimas criaturas vienen a buscarte (no hay que cazarlas por el mapa)', () => {
+  const g = new Game({ mapId: 'm1', seed: 5 }); const p = g.addPlayer('t'); p.hp = 1e6; g.phase = 'wave'; g.queue = []; g.omens = []; g.phaseT = 0;
+  let far = null; for (let i = 0; i < 40 && !far; i++) { const q = g.map.spawnGround(g.rng, { x: p.pos.x + 60 * Math.cos(i), y: p.pos.y, z: p.pos.z + 60 * Math.sin(i) }); if (dist(q, p.pos) > 40) far = q; }
+  const m = g.spawnMonster('geoda', far); m.cd = 1e9; m.def = { ...m.def, speed: 0 }; const d0 = dist(m.pos, p.pos); assert.ok(d0 > 40, `empieza lejos (${d0.toFixed(0)})`);
+  run(g, 9); assert.ok(dist(m.pos, p.pos) < 60, `la rezagada se acercó (${dist(m.pos, p.pos).toFixed(0)})`);
+});

@@ -8,6 +8,7 @@ import { createCombatHud } from './hud-combat.js';
 import { createHuespedHud } from './hud-huesped.js';
 import { createEvoHud, EVO_KEY } from './hud-evolucion.js';
 import { createEvoChoice } from './evo-choice.js';
+import { createRadar } from './radar.js';
 import { createEvoMenu } from './evo-menu.js';
 import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
 import * as Perfil from './perfil.js';
@@ -490,6 +491,7 @@ function hudDirector(state, me) {
   huespedHud.update(me, !!(session && session.touch), !(session && session.intro));
   if (!evoHud) { try { evoHud = createEvoHud($('hud')); } catch (err) { console.warn('HUD de evolución no disponible', err.message); evoHud = { update() {}, celebrate() {}, held() { return false; } }; } }
   if (session) session.lastMe = me;
+  try { if (!window.__radar) window.__radar = createRadar(document.body); window.__radar.update(session && !session.intro ? state : null, me, renderer.camera); } catch (err) { /* el radar nunca debe romper el HUD */ }
   evoHud.update(me, !!(session && session.touch), !(session && session.intro));
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;

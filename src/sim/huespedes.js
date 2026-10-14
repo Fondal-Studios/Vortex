@@ -95,12 +95,18 @@ function strike(g, p, M, heavy) {
   let dmg = def.dmg * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1), range = def.range * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1), arc = def.arc;
   const fused = (p.evo || 0) >= 1 && M.special, strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
   let kind = heavy ? 'heavy' : 'light';
-  if (!heavy) { p.cmb = p.cmb >= 3 ? 1 : p.cmb + 1; p.cmbT = COMBO_WINDOW; if (p.cmb === 3) { dmg *= 1.5; } } else p.cmb = 0;
+  const prevCmb = p.cmb, speed = len(sub(p.vel, mul(p.up, dot(p.vel, p.up))));
+  if (!heavy) { p.cmb = p.cmb >= 3 ? 1 : p.cmb + 1; p.cmbT = COMBO_WINDOW; p.lastCmbN = p.cmb; p.lastLightT = g.time; if (p.cmb === 3) { dmg *= 1.5; } } else { p.cmb = 0; }
+  // MOVIMIENTOS EXTRA: corriendo + golpe = estocada en carrera; 2 golpes + pesado = GIRO que pega a todo alrededor
+  let lunge = false, spin = false;
+  if (!heavy && speed > 12 && p.grounded) { lunge = true; kind = 'lunge'; dmg *= 1.3; range += 2; p.ext = madd(p.ext, flat(p), 26); }
+  if (heavy && (prevCmb >= 2 || ((p.lastCmbN || 0) >= 2 && g.time - (p.lastLightT || -9) < 1.8))) { spin = true; kind = 'spin'; dmg *= 1.2; range += 1; }
+  if (heavy) p.lastCmbN = 0;
   if (air) { kind = 'air'; p.slam = 3; p.vel = madd(p.vel, p.up, -42); dmg *= 1.2; }
   p.meleeCd = def.cd * (over ? 0.6 : 1);
   const o = g.eyePos(p), d = g.aimDir(p), dir0 = norm(d);
   let hits = 0;
-  const cosT = meta ? -1 : 1 - arc * (heavy ? 1.1 : 1);
+  const cosT = meta || spin ? -1 : 1 - arc * (heavy ? 1.1 : 1);
   const targets = [];
   for (const m of g.monsters) {
     if (m.dead) continue;
@@ -110,7 +116,7 @@ function strike(g, p, M, heavy) {
     targets.push([m, l]);
   }
   targets.sort((a, b) => a[1] - b[1]);
-  const maxT = heavy || meta || (fused && (M.special === 'barrido' || M.special === 'linea' || M.special === 'atraviesa')) ? 8 : 3;
+  const maxT = heavy || meta || spin || lunge || (fused && (M.special === 'barrido' || M.special === 'linea' || M.special === 'atraviesa')) ? 8 : 3;
   g.pierceNow = !!(M.light && M.light.pierce); p.inMelee = true;
   for (const [m] of targets.slice(0, maxT)) {
     // enemigos que reaccionan: el ariete bloquea de frente, el espejo esquiva, los pequeños contraatacan
@@ -275,6 +281,7 @@ function zoneTick(g, p, dt) {
 export function hostDamageIn(g, p, dmg) {
   const C = cdef(p); if (!C) return dmg;
   if (C.hp) dmg /= C.hp;
+  if (p.meleeHold > 0.12 && !p.dead) { dmg *= 0.5; if (g.time > (p.blockFx || 0)) { p.blockFx = g.time + 0.3; g.emit({ t: 'pblock', pid: p.id }); } }   // cargar el golpe pesado = BLOQUEAR (mitad de daño)
   if (hasPath(p, 'coraza')) dmg *= 0.82;
   if (hasC(p, 'placas')) dmg *= 0.88;
   if (g.time < p.guardUntil) { const ab = dmg * 0.7; dmg -= ab; for (const m of g.monsters) if (!m.dead && dist(m.pos, p.pos) < 5 + m.r) g.damageMonster(m, ab * 0.6, p, m.pos); }

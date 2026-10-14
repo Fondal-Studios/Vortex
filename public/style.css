@@ -385,3 +385,10 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 #evochoice .ec-d { font-size: clamp(11px, 2.2vh, 15px); line-height: 1.3; text-align: center; }
 #evochoice .ec-v { font-size: clamp(10px, 2vh, 13px); color: #9ff7ff; font-style: italic; text-align: center; }
 #evochoice .ec-cancel { align-self: center; padding: 8px 22px; border-radius: 999px; border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.08); color: #fff; font: inherit; }
+
+/* Radar: flechas hacia criaturas fuera de pantalla */
+#radar { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+#radar .rd-arrow { position: absolute; left: 0; top: 0; margin: -16px 0 0 -16px; width: 32px; text-align: center; color: #ff5a6e; filter: drop-shadow(0 0 6px rgba(255,60,90,.9)); font: 700 11px/1 system-ui, sans-serif; }
+#radar .rd-arrow i { display: block; font-style: normal; font-size: 24px; line-height: 32px; }
+#radar .rd-arrow span { display: block; color: #fff; text-shadow: 0 0 4px #000; margin-top: -4px; }
+#radar .rd-arrow.in i { font-size: 18px; }

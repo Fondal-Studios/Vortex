@@ -211,6 +211,7 @@ export function createHostMelee(renderer, D) {
     if (kind === 'heavy' || kind === 'exec') return C.h; if (kind === 'air') return AIR; return C.l[idx % 3];
   }
   function start(kind, o = {}) {
+    if (kind === 'spin') kind = 'heavy'; if (kind === 'lunge') kind = 'light';   // giro y estocada reutilizan las animaciones de golpe pesado y ligero
     const S = built, now = T; const isHeavy = kind === 'heavy' || kind === 'exec' || kind === 'air';
     if (!isHeavy) { comboIdx = comboT < 1.0 ? (comboIdx + 1) % 3 : 0; } else comboIdx = 0; comboT = 0; if (kind === 'exec') kind = 'heavy';
     const kfs = kfsFor(kind, comboIdx), dur = S.dur[kind === 'light' ? 'light' : kind === 'air' ? 'air' : 'heavy'] * (o.fast ? 0.8 : 1);

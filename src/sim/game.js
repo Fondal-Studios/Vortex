@@ -164,9 +164,9 @@ export class Game {
     const left = this.monsters.filter((m) => !m.dead && !m.def.boss);
     if (!this.queue.length && !this.omens.length && left.length && left.length === this.monsters.filter((m) => !m.dead).length) {
       this.straggleT = (this.straggleT || 0) + dt;
-      if (this.straggleT > 40) {
+      if (this.straggleT > (left.length <= 4 ? 6 : 25)) {   // las últimas criaturas vienen a buscarte: nunca hay que salir a cazarlas por el mapa
         this.straggleT = 0; const ref = this.alivePlayers()[0];
-        if (ref) for (const m of left) if (dist(m.pos, ref.pos) > 45) { m.pos = m.def.fly ? this.map.spawnAir(this.rng, ref.pos, ref.up) : this.map.spawnGround(this.rng, ref.pos); m.vel = v3(); this.emit({ t: 'blink', p: a3(m.pos) }); }
+        if (ref) for (const m of left) if (dist(m.pos, ref.pos) > 28) { m.pos = m.def.fly ? this.map.spawnAir(this.rng, ref.pos, ref.up) : this.map.spawnGround(this.rng, ref.pos); m.vel = v3(); this.emit({ t: 'blink', p: a3(m.pos) }); }
       }
     } else this.straggleT = 0;
     if (!this.queue.length && !this.omens.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
