@@ -18,8 +18,8 @@ test('táctil: EVOLUC. abre la elección, elegir el 2.º camino lo aplica; habil
     const mv = await pg.locator('[data-a="mov"]').boundingBox(); const cdp = await ctx.newCDPSession(pg);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: mv.x + mv.width / 2, y: mv.y + mv.height / 2, id: 7 }] }); await pg.waitForTimeout(250); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await pg.waitForTimeout(300); assert.ok(await pg.evaluate(() => window.__api.session.game.players[0].movCd > 0), 'la habilidad 1 se usó desde el botón');
-    await pg.evaluate(() => { window.__api.session.game.players[0].cores = 100; }); await pg.waitForTimeout(800);
-    const ev = pg.locator('[data-a="evo"]'); assert.ok(await ev.isVisible(), 'aparece EVOLUC.');
+    await pg.evaluate(() => { window.__api.session.game.players[0].cores = 100; });
+    const ev = pg.locator('[data-a="evo"]'); await ev.waitFor({ state: 'visible', timeout: 15000 }); assert.ok(await ev.isVisible(), 'aparece EVOLUC.');
     const eb = await ev.boundingBox(); await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: eb.x + eb.width / 2, y: eb.y + eb.height / 2, id: 8 }] }); await pg.waitForTimeout(200); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await pg.waitForTimeout(500); assert.ok(await pg.locator('#evochoice .ec-opt').first().isVisible(), 'se abre «Elegí tu camino»');
     assert.equal(await pg.evaluate(() => window.__api.session.game.players[0].evo), 0, 'abrir la elección no evoluciona solo');

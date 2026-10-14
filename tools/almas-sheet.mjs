@@ -12,7 +12,7 @@ const ALL = ['astilla', 'geoda', 'prisma', 'lente', 'cuarzo', 'espejo', 'racimo'
 const kinds = kindsArg ? kindsArg.split(',') : modo === 'fila' ? ALL.slice(0, 12) : ALL;
 const STATES = {
   astilla: ['run:v=1', 'leap', 'run:v=1:yaw=1.57', 'idle:yaw=2.6'], geoda: ['roll:v=1', 'open', 'roll:yaw=1.57', 'open:yaw=0.2'], prisma: ['orbit', 'wind', 'dive', 'orbit:yaw=0.1'], lente: ['idle', 'aim', 'aim:yaw=1.4', 'idle:yaw=0.1'], cuarzo: ['idle', 'cast'],
-  espejo: ['idle', 'blink', 'idle:c=1'], racimo: ['idle:v=1', 'idle:v=1:dist=3'], graviton: ['idle', 'charge'], obelisco: ['idle', 'charge'], aurora: ['idle', 'cast'],
+  espejo: ['idle', 'blink', 'idle:c=1'], racimo: ['idle:v=1:dist=20', 'idle:v=1:dist=3'], graviton: ['idle', 'charge'], obelisco: ['idle', 'charge'], aurora: ['idle', 'cast'],
   ariete: ['idle:v=0.6', 'wind', 'charge:v=1.5', 'stun'], espiral: ['idle', 'charge', 'pull'], coloso: ['idle', 'wind', 'ray', 'stagger'], madre: ['fire', 'vent', 'open'], argos: ['idle', 'gaze', 'stagger'],
 };
 const RAD = { astilla: 1.0, geoda: 2.3, prisma: 1.2, lente: 1.4, cuarzo: 1.5, espejo: 1.2, racimo: 1.1, graviton: 1.6, obelisco: 1.6, aurora: 1.3, ariete: 1.9, espiral: 1.5, coloso: 7.5 * 1.4, madre: 7 * 1.4, argos: 6.5 * 1.4 };
@@ -54,7 +54,7 @@ window.__one = (o) => { // { k, s, sc, fly, yaw }
   const st = { id: 3, s: o.s, o: o.s === 'open', c: !!o.c, hp: o.hp ?? 1, sd: !!o.sd, st: o.s === 'stagger' || o.s === 'stun', v: o.v || 0, dist: o.dist, a: o.s === 'charge' || o.s === 'ray' ? [0, -0.15, 1] : null };
   const yaw = o.yaw ?? 0.85; let camPos = new THREE.Vector3(Math.sin(yaw), 0.18, Math.cos(yaw)).multiplyScalar(o.sc * 6);
   sim(e, st, o.frames || 45, camPos);
-  e.object.updateMatrixWorld(true); const bb = new THREE.Box3(); e.object.traverse((c) => { if ((c.isMesh || c.isSkinnedMesh) && c.visible && !c.isSprite && c.geometry && !c.userData.noBox && c.material && c.material.blending !== THREE.AdditiveBlending) { if (c.isSkinnedMesh) { c.computeBoundingBox && c.computeBoundingBox(); } const b2 = new THREE.Box3().setFromObject(c, true); if (isFinite(b2.min.x)) bb.union(b2); } });
+  e.object.updateMatrixWorld(true); const bb = new THREE.Box3(); e.object.traverse((c) => { if ((c.isMesh || c.isSkinnedMesh) && c.visible && !c.isSprite && c.geometry && !c.userData.noBox && c.material && (c.material.blending !== THREE.AdditiveBlending || c.geometry.attributes.aH)) { if (c.isSkinnedMesh) { c.computeBoundingBox && c.computeBoundingBox(); } const b2 = new THREE.Box3().setFromObject(c, true); if (isFinite(b2.min.x)) bb.union(b2); } });
   const ctr = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3()), R = Math.max(sz.x, sz.y, sz.z) * 0.62 + 0.01;
   const dist = R / Math.tan((cam.fov * Math.PI) / 360) * 1.05; camPos = new THREE.Vector3(Math.sin(yaw) * Math.cos(0.12), Math.sin(0.12), Math.cos(yaw) * Math.cos(0.12)).multiplyScalar(dist).add(ctr);
   cam.position.copy(camPos); cam.lookAt(ctr); cam.updateMatrixWorld();

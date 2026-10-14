@@ -15,12 +15,12 @@ import { attachChampOrgans } from './organs-vis.js';
 import { uBeat } from './shaders.js';
 import { EVO_PATHS } from '../sim/data.js';
 
-const LOOK = { // máscara, color de esencia (núcleo, ojos, luz) y túnica
-  axioma: { mask: 'porcelana', glow: 0x3aa8ff, layer: 'abrigo-largo' },
-  vesper: { mask: 'obsidiana', glow: 0xb04bff, layer: 'tunica-larga' },
-  micelio: { mask: 'hueso', glow: 0x7be03a, layer: 'tunica-corta' },
-  umbra: { mask: 'obsidiana', glow: 0xb98cff, layer: 'tunica-larga' },
-  seraf: { mask: 'oro', glow: 0xffd45a, layer: 'toga-academica' },
+const LOOK = { // máscara, color de esencia (núcleo, ojos, luz), túnica y su tinte (oscuro: la luz la ponen las piezas del pacto)
+  axioma: { mask: 'porcelana', glow: 0x3aa8ff, layer: 'abrigo-largo', cloth: 0x1e4a8a },
+  vesper: { mask: 'obsidiana', glow: 0xb04bff, layer: 'tunica-larga', cloth: 0x3a1460 },
+  micelio: { mask: 'hueso', glow: 0x7be03a, layer: 'tunica-corta', cloth: 0x3c5a1c },
+  umbra: { mask: 'obsidiana', glow: 0xb98cff, layer: 'tunica-larga', cloth: 0x221636 },
+  seraf: { mask: 'oro', glow: 0xffd45a, layer: 'toga-academica', cloth: 0x7a2a3a },
 };
 /** Aspecto regional: cada mapa marca al guardián con su folclore (acento, ornamento, partículas). */
 export const REGION = {
@@ -37,7 +37,7 @@ export function pathFor(evo, pth) { const out = []; for (let i = 1; i <= evo; i+
 
 export function createHostHuman(T, hm, kit, p, opts = {}) {
   const L = LOOK[p.char] || LOOK.axioma, camera = opts.camera || null, getMap = opts.getMap || (() => null);
-  const human = hm.createHuman(kit, { char: p.char, name: p.name, color: L.glow, noGear: true, weapon: opts.weapon == null ? 0 : opts.weapon, overrides: { layer: L.layer } });
+  const human = hm.createHuman(kit, { char: p.char, name: p.name, color: L.cloth, accent: L.glow, noGear: true, weapon: opts.weapon == null ? 0 : opts.weapon, overrides: { layer: L.layer } });
   const object = new T.Group(); object.name = 'huesped-humano-' + p.char; object.add(human.object);
   const mats = [], geos = [], track = (m) => { mats.push(m); return m; }, G = (g) => { geos.push(g); return g; };
   const low = opts.quality === 'low'; // Baja (iPhone): MeshStandard en vez de Physical (sin barniz ni transmisión)
@@ -61,7 +61,7 @@ export function createHostHuman(T, hm, kit, p, opts = {}) {
         float feather = 0.5 + 0.5 * cos(a * 26.0 + sin(r * 6.0 - uT * 1.5) * 0.6);
         float body = smoothstep(1.0, 0.25, r) * smoothstep(0.0, 0.08, vUv.x);
         float edge = smoothstep(0.08, 0.0, abs(r - 0.92 + 0.05 * sin(a * 9.0))) * 0.8;
-        float k = body * (0.25 + 0.75 * feather * feather) + edge;
+        float k = body * (0.14 + 0.9 * pow(feather, 4.0)) + edge * 1.3;
         vec3 c = mix(uC, uC2, 0.5 + 0.5 * sin(r * 7.0 - uT * 2.0 + a * 3.0));
         gl_FragColor = vec4(mix(c, vec3(1.0, 0.95, 0.85), 0.35 * feather * body) * k * uA * 0.45 * (0.85 + 0.3 * uBeat), k * uA * 0.35); }`,
   }));
@@ -76,7 +76,7 @@ export function createHostHuman(T, hm, kit, p, opts = {}) {
     fragmentShader: `uniform vec3 uC; varying float vA; void main(){ float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(uC * 1.6, smoothstep(0.5, 0.0, d) * vA); }`,
   }));
 
-  let parts = [], wings = [], orbit = [], core = null, coreHalo = null, organs = null, key = null, ready = false, time = 0, clip = null, act = null, region = null, motes = null, fusion = null;
+  let tinted = false, parts = [], wings = [], orbit = [], core = null, coreHalo = null, organs = null, key = null, ready = false, time = 0, clip = null, act = null, region = null, motes = null, fusion = null;
   const _a = new T.Vector3(), _b = new T.Vector3(), _q = new T.Quaternion(), Y = new T.Vector3(0, 1, 0);
   const bone = (n) => human.bones[n] || null;
   /** Coloca `mesh` en el marco de la persona (pos/rot relativos a su raíz, +Z = adelante) y lo engancha al hueso conservando la pose. */
@@ -146,7 +146,7 @@ export function createHostHuman(T, hm, kit, p, opts = {}) {
     if (has('apoteosis')) { // alas de luz + aureola + corona
       const span = 1.3; for (const s of [-1, 1]) for (let k = 0; k < 3; k++) {
         const w0 = span * (1 - k * 0.25), g = new T.PlaneGeometry(w0, w0 * 0.55); g.translate(w0 / 2, 0, 0);
-        const w = M(g, wingMat); w.renderOrder = 3; mount('spine01_h', w, [chest.x + s * 0.06, chest.y + 0.06 - k * 0.12, chest.z - 0.14], [0, s > 0 ? -0.5 : Math.PI + 0.5, s * (0.4 - k * 0.4)]);
+        const w = M(g, wingMat); w.renderOrder = 3; mount('spine01_h', w, [chest.x + s * 0.06, chest.y + 0.06 - k * 0.12, chest.z - 0.14], [0, s > 0 ? -0.15 : Math.PI + 0.15, s * (0.55 - k * 0.45)]);
         w.userData.base = w.quaternion.clone(); w.userData.s = s; w.userData.k = k; wings.push(w);
       }
       mount('head_h', M(new T.TorusGeometry(0.2, 0.012, 8, 48), gold), [head.x, head.y + 0.08, head.z - 0.17], [0.15, 0, 0]);
@@ -183,6 +183,7 @@ export function createHostHuman(T, hm, kit, p, opts = {}) {
       time += dt; if (!ready || !human.bones.head_h) return;
       const lv = pl.evo | 0, path = pathFor(lv, pl.pth), mapId = getMap() || 'm1', k2 = `${path.join()}|${(pl.cg || []).join()}|${mapId}`;
       if (k2 !== key && build(lv, path, pl.cg || [], mapId)) key = k2;
+      if (!tinted) { tinted = true; human.object.traverse((o) => { if (o.name === 'npc-capas' && o.material && o.material.color) { o.material = o.material.clone(); mats.push(o.material); o.material.color.setHex(L.cloth); } }); } // túnica: tinte propio (sin quemarse con la luz)
       // clip: acción (golpe / habilidad) > disparo > locomoción
       const spd = ctx.speed || 0; if (act) { act.t -= dt; if (act.t <= 0) act = null; }
       const c = pl.dead ? 'death' : act ? act.k : (ctx.shot ? 'shoot' : spd > 6 ? 'sprint' : spd > 1.5 ? 'jog' : 'aimIdle');
@@ -192,7 +193,7 @@ export function createHostHuman(T, hm, kit, p, opts = {}) {
       const b = uBeat.value, lvK = 1 + lv * 0.15;
       if (core) { core.rotation.y += dt * 1.4; core.scale.setScalar(1 + 0.25 * b); }
       if (coreHalo) { coreHalo.material.opacity = (0.25 + 0.25 * b) * Math.min(1, 0.6 + lv * 0.1); coreHalo.scale.setScalar(0.16 * lvK * (1 + 0.25 * b)); }
-      wingMat.uniforms.uT.value = time; wingMat.uniforms.uA.value = 0.5 + 0.08 * lv; moteMat.uniforms.uT.value = time;
+      wingMat.uniforms.uT.value = time; wingMat.uniforms.uA.value = 0.75 + 0.05 * lv; moteMat.uniforms.uT.value = time;
       for (const w of wings) { const fl = Math.sin(time * (w.userData.k === 3 ? 2.6 : 1.6) + w.userData.k) * (w.userData.k === 3 ? 0.35 : 0.12) + (spd > 6 ? 0.25 : 0); _q.setFromAxisAngle(w.userData.k === 3 ? new T.Vector3(1, 0, 0) : Y, fl * w.userData.s); w.quaternion.copy(w.userData.base).multiply(_q); }
       for (const o of orbit) {
         if (o.userData.spin) { o.rotation.z += dt * o.userData.spin[0]; if (o.userData.spin[1]) o.rotation.x = Math.PI / 2 + Math.sin(time * 0.5) * o.userData.spin[1]; }

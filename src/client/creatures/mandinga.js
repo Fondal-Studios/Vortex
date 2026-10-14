@@ -86,7 +86,7 @@ export default function build(kit, color = 0xff4a1a) {
       alcanzar(A, root, tgt, new V3(s, -0.3, -0.6), cache); A.fing.rotation.x = -0.3 + wK * 0.4 - sK * 0.5; });
     vortexB.rotation.y = t * 2.5; vortexB2.rotation.y = t * 3.5; vortexB.rotation.x = Math.sin(t * 1.3) * 0.1; vortexB2.rotation.z = Math.sin(t * 1.7) * 0.15;
     // fuego / luz por estado y fase
-    fireM.uniforms.uK.value = (0.8 + 0.15 * ph) * (1 - sK * 0.75); vfire.rotation.y = t * 1.5;
+    fireM.uniforms.uK.value = (1.5 + 0.25 * ph) * (1 - sK * 0.75); vfire.rotation.y = t * 1.5;
     handFire.uniforms.uK.value = wK * 1.3 + rK * 0.3; palms.forEach((f) => { f.visible = wK + rK > 0.05; f.scale.setScalar(0.6 + wK); });
     skin.userData.u.uVeinGlow.value = (0.6 + 0.5 * ph + wK * 1.5 + rK) * (1 - sK * 0.7) + 0.3 * Math.sin(t * 2.3);
     horn.userData.u.uGlow.value = ph >= 3 ? 0.4 + 0.3 * Math.sin(t * 4) : 0; setBrillo(eyeM, (2 + wK * 2 + rK * 3) * (1 - sK * 0.7));

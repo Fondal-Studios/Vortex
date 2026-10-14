@@ -292,7 +292,7 @@ export function build(r, map) {
   const jet = new THREE.Points(particleGeo(low ? 90 : 180, (i, rr) => { const a = rr() * 6.283, d = 0.3 + rr() * 1.4; return [F.x + Math.cos(a) * d, 1 + rr() * 1.5, F.z + Math.sin(a) * d]; }, 13), particleMat({ color: 0xa8e6ff, size: 0.06, mode: 0, speed: 0.12, height: 16, amp: 0.25, alpha: 0.9 }));
   jet.frustumCulled = false; root.add(jet);
   risingStream(root, [{ x: F.x, y: 1, z: F.z, r: 1.3, h: 26 }, { x: F.x, y: 0.9, z: F.z, r: 2.6, h: 12 }]);
-  const pools = [{ x: F.x, z: F.z, r: 9, col: 0x9a6aff, k: 0.9 }, { x: TW.x0 - 3, z: tz, r: 7, col: 0xd070ff, k: 1.1 }];
+  const pools = [{ x: F.x, z: F.z, r: 9, col: 0x9a6aff, k: 0.55 }, { x: TW.x0 - 3, z: tz, r: 7, col: 0xd070ff, k: 1.1 }];
   for (const c of map.covers.filter((c) => c.kind === 'farol')) pools.push({ x: c.x, z: c.z, r: 4.2, col: c.col || M5V.flame, k: 0.8 });
   for (const p of lit) if (p[1] < 9) pools.push({ x: p[0], z: p[2], r: 2.5, col: p[3], k: 0.5 });
   lightPools(root, pools);

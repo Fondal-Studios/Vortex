@@ -285,22 +285,26 @@ export const WAVE_PLANS = {
     ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete', 'cuarzo', 'obelisco', 'geoda', 'aurora'],
     ['astilla', 'racimo', 'prisma', 'lente', 'espejo', 'ariete', 'cuarzo', 'obelisco', 'geoda', 'aurora', 'graviton', 'espiral'],
   ],
-  // Mapas del limbo (5 y 6): arenas cerradas y legibles; la horda llega por la plaza / por los brazos de la cruz
+  // Mapas del limbo (5 y 6): cada uno con SU folclore (docs/MAPAS.md, docs/BESTIARIO_LIMBO.md).
+  // Plaza de los Ecos (Praga): luces y lamentos de la ciudad — Ánimas, Luz Mala, Fuego Fatuo, Llorona, Pombero, Viuda,
+  // Salamanquera (los alquimistas), Lobizón y el Silbón. Jefe: El Mandinga (el pacto del relojero).
   m5: [
-    ['astilla', 'lente'],
-    ['astilla', 'lente', 'prisma', 'racimo'],
-    ['astilla', 'lente', 'prisma', 'racimo', 'ariete', 'espejo'],
-    ['astilla', 'lente', 'prisma', 'racimo', 'ariete', 'espejo', 'geoda', 'cuarzo'],
-    ['astilla', 'lente', 'prisma', 'racimo', 'ariete', 'espejo', 'geoda', 'cuarzo', 'obelisco', 'aurora'],
-    ['astilla', 'lente', 'prisma', 'racimo', 'ariete', 'espejo', 'geoda', 'cuarzo', 'obelisco', 'aurora', 'graviton', 'espiral'],
+    ['astilla', 'prisma'],
+    ['astilla', 'prisma', 'racimo', 'lente'],
+    ['astilla', 'prisma', 'racimo', 'lente', 'espejo', 'obelisco'],
+    ['astilla', 'prisma', 'racimo', 'lente', 'espejo', 'obelisco', 'cuarzo'],
+    ['astilla', 'prisma', 'racimo', 'lente', 'espejo', 'obelisco', 'cuarzo', 'ariete'],
+    ['astilla', 'prisma', 'racimo', 'lente', 'espejo', 'obelisco', 'cuarzo', 'ariete', 'espiral'],
   ],
+  // Osario sin Techo (Sedlec): los huesos que no descansan — Ánimas, Fuego Fatuo, Almamula, Lobizón, Difunta, Salamanquera,
+  // el Familiar (perro negro del cementerio) y el Silbón con su saco de huesos. Jefe: El Basilisco.
   m6: [
     ['astilla', 'racimo'],
-    ['astilla', 'racimo', 'lente', 'espejo'],
-    ['astilla', 'racimo', 'lente', 'espejo', 'prisma', 'ariete'],
-    ['astilla', 'racimo', 'lente', 'espejo', 'prisma', 'ariete', 'obelisco', 'geoda'],
-    ['astilla', 'racimo', 'lente', 'espejo', 'prisma', 'ariete', 'obelisco', 'geoda', 'cuarzo', 'aurora'],
-    ['astilla', 'racimo', 'lente', 'espejo', 'prisma', 'ariete', 'obelisco', 'geoda', 'cuarzo', 'aurora', 'graviton', 'espiral'],
+    ['astilla', 'racimo', 'geoda'],
+    ['astilla', 'racimo', 'geoda', 'ariete', 'aurora'],
+    ['astilla', 'racimo', 'geoda', 'ariete', 'aurora', 'cuarzo'],
+    ['astilla', 'racimo', 'geoda', 'ariete', 'aurora', 'cuarzo', 'graviton'],
+    ['astilla', 'racimo', 'geoda', 'ariete', 'aurora', 'cuarzo', 'graviton', 'espiral'],
   ],
   m2: [
     ['astilla', 'racimo', 'lente'],

@@ -141,13 +141,13 @@ const FIRE_V = `uniform float uTime, uSpd, uWob; varying float vH; varying vec3 
     float nz = n3(p * 3.0 - vec3(0.0, t * 2.2, 0.0)) - 0.5; p += normal * nz * uWob * (0.3 + aH);
     p.x += sin(t * 2.7 + aH * 4.0) * 0.06 * aH * aH * uWob * 4.0; p.z += cos(t * 2.1 + aH * 3.0) * 0.05 * aH * aH * uWob * 4.0;
     vec4 mv = modelViewMatrix * vec4(p, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
-const FIRE_F = `uniform float uTime, uK, uSpd, uHurt; uniform vec3 uC0, uC1; varying float vH; varying vec3 vN; varying vec3 vV;
+const FIRE_F = `uniform float uTime, uK, uSpd, uHurt, uGain; uniform vec3 uC0, uC1; varying float vH; varying vec3 vN; varying vec3 vV;
   float h3(vec3 p){ p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
   void main(){ float f = abs(dot(normalize(vN), vV)); float core = pow(f, 1.6);
     float fl = 0.75 + 0.25 * sin(uTime * 17.0 * uSpd + vH * 9.0) * sin(uTime * 11.0 + vH * 5.0);
     vec3 c = mix(uC0, uC1, clamp(core * (1.0 - vH * 0.8) * 1.3, 0.0, 1.0));
     float a = core * pow(1.0 - vH, 1.2) * fl * uK;
-    gl_FragColor = vec4(c * (1.0 + uHurt) * a * 1.6 * 0.5, a * 0.5); }`;
+    gl_FragColor = vec4(c * (1.0 + uHurt) * a * 1.6 * uGain, a * uGain); }`;
 let fireGeoCache = null;
 /** Geometría de llama (lágrima abierta hacia arriba) con atributo aH = altura 0..1. Base en el origen, punta en +Y (1). */
 export function fireGeo() {
@@ -157,7 +157,7 @@ export function fireGeo() {
   g.setAttribute('aH', new THREE.BufferAttribute(h, 1)); return (fireGeoCache = g);
 }
 export function fuego(c0 = 0xff4a10, c1 = 0xfff0a0, { k = 1, speed = 1, wob = 0.18 } = {}) {
-  const u = { uTime, uK: { value: k }, uSpd: { value: speed }, uWob: { value: wob }, uHurt: { value: 0 }, uC0: { value: new THREE.Color(c0) }, uC1: { value: new THREE.Color(c1) } };
+  const u = { uTime, uK: { value: k }, uSpd: { value: speed }, uWob: { value: wob }, uHurt: { value: 0 }, uGain: { value: lod().low ? 0.5 : 0.28 }, uC0: { value: new THREE.Color(c0) }, uC1: { value: new THREE.Color(c1) } };
   const m = new THREE.ShaderMaterial({ uniforms: u, vertexShader: FIRE_V, fragmentShader: FIRE_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
   m.userData.u = u; return m;
 }
@@ -179,11 +179,11 @@ export function nucleo(color, r = 0.12, { halo = 8, white = 0xfff8ee } = {}) {
   const su = { uC: { value: cc.clone() }, uK: { value: 1 }, uTime, uHurt: { value: 0 } };
   const shell = new THREE.Mesh(sph(), new THREE.ShaderMaterial({ uniforms: su, vertexShader: SHELL_V, fragmentShader: SHELL_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); shell.material.userData.u = su; shell.scale.setScalar(r); g.add(shell);
   const sp = glowSprite(color, r * halo, 0.6); g.add(sp); sp.renderOrder = 4; inner.renderOrder = 3; shell.renderOrder = 3;
-  let kS = 1;
+  let kS = 1; const lowQ = lod().low;
   return { object: g, mats: [inner.material, shell.material, sp.material], inner, shell, sprite: sp, set(k, t = 0, dt = 1 / 30) {
     kS += (k - kS) * Math.min(1, dt * 12); const beat = 1 + 0.08 * Math.sin(t * 6.3) + 0.05 * Math.sin(t * 13.1);
     inner.scale.setScalar(r * (0.42 + 0.16 * kS) * beat); shell.scale.setScalar(r * (0.9 + 0.12 * kS) * beat); su.uK.value = 0.4 + 0.5 * kS;
-    setBrillo(inner.material, 1.2 + kS * 1.1); sp.material.opacity = clamp(0.2 + 0.25 * kS, 0, 1); sp.scale.setScalar(r * halo * (0.6 + 0.45 * kS) * beat);
+    setBrillo(inner.material, 1.2 + kS * 1.1); sp.material.opacity = clamp(0.2 + 0.25 * kS, 0, 1) * (lowQ ? 1 : 0.55); sp.scale.setScalar(r * halo * (0.6 + 0.45 * kS) * beat);
     g.visible = kS > 0.02;
   } };
 }

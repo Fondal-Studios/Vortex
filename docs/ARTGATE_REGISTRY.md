@@ -16,7 +16,13 @@ Cada fila: pieza · dueño · estado · nota mínima · fecha · defectos abiert
 
 ## Manos y brazos (1ª persona) — EN PUERTA (auto-nota mín. 6, ver docs/gate/manos.md; falta crítico independiente)
 ## Héroes (avatar + habilidades + efectos): Égida · Lumen · Forja · Vigía · Nova · Umbra — PENDIENTE
-## Criaturas (15) — PENDIENTE (varias a medias por agentes interrumpidos)
+## Criaturas (15) — EN PUERTA: bestiario del limbo (almas y espíritus folclóricos) — falta crítico independiente
+Modelos nuevos en `src/client/creatures/` (kit `alma-kit.js` + un archivo por alma: anima, almamula, luzmala, llorona, salamanquera, pombero,
+fuegofatuo, familiar, viuda, difunta, lobizon, silbon, mandinga, madre-animas, basilisco; registro en `index.js`, ids internos sin cambios).
+Hojas de contacto (cadena real del juego: escena HDR → bloom → GradePass): `shots/gate/almas/` (`almas_baja.jpg`, `almas_alta.jpg`,
+`almas_siluetas.jpg`, `almas_fila.jpg`) con `node tools/almas-sheet.mjs <salida.jpg> [low|high] [estados|silueta|fila]`.
+Medición real (gl.info, criatura sola) Baja: 8–15 draw calls y 2.0k–8.6k tris por criatura; jefes 15–17 dc y 4.0k–7.0k tris.
+Alta: mismas llamadas, 3.5k–14.7k tris (jefes ≤ 20.2k). Textura CC0 reutilizada: Poly Haven `rough_linen` (velos y telas).
 ## Mapas (3) y ojos cósmicos — PENDIENTE
 ## Efectos de disparo y daño — PENDIENTE
 

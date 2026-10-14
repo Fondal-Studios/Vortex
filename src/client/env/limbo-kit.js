@@ -354,7 +354,7 @@ export function rootsMesh(root, curves, { r0 = 0.16, r1 = 0.03, color = 0x9fe8ff
   const m = new THREE.Mesh(g, mat); m.frustumCulled = false; root.add(m); return m;
 }
 /** Una raíz que trepa: sale del piso en (x,z), sube por la cara de un muro con normal (nx,nz) zigzagueando hasta `h`. */
-export function climbCurve(x, z, nx, nz, h, rd, { out = 0.12, wander = 1.2 } = {}) {
+export function climbCurve(x, z, nx, nz, h, rd, { out = 0.1, wander = 0.45 } = {}) {
   const pts = [], tx = -nz, tz = nx; let u = 0;
   pts.push(new THREE.Vector3(x + nx * 1.6 + tx * (rd() - 0.5), 0.0, z + nz * 1.6 + tz * (rd() - 0.5)));
   pts.push(new THREE.Vector3(x + nx * 0.5, 0.15, z + nz * 0.5));

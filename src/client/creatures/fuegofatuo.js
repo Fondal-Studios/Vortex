@@ -29,8 +29,8 @@ export default function build(kit, color = 0x3f7bff) {
   for (const s of [-1, 1]) { const e = new THREE.SphereGeometry(1, 8, 6); e.scale(0.022, 0.017, 0.012); e.translate(s * 0.036, 0.807, 0.11); rig.add(eyeM, skinRigid(e, skullB)); }
   // ── ensamblaje ──
   const group = rig.build(); const rootObj = new THREE.Group(); rootObj.add(group); const K = 1.25; rootObj.scale.setScalar(K); rootObj.position.y = -0.9;
-  const flameG = new THREE.Group(); flameG.position.set(0, 0.5, 0.06).sub(pelvis.userData.rest); pelvis.add(flameG);
-  const big = llamas(fireA, [{ pos: [0, 0, 0], w: 0.5, h: 1.2 }, { pos: [0.1, 0.05, -0.05], dir: [0.3, 1, -0.2], w: 0.2, h: 0.75 }, { pos: [-0.1, 0.05, -0.04], dir: [-0.3, 1, -0.2], w: 0.2, h: 0.7 }, { pos: [0, 0.1, -0.1], dir: [0, 1, -0.5], w: 0.18, h: 0.85 }, { pos: [0.06, 0.25, 0.08], dir: [0.2, 1, 0.3], w: 0.12, h: 0.5 }]);
+  const flameG = new THREE.Group(); flameG.position.set(0, 0.36, 0.03).sub(pelvis.userData.rest); pelvis.add(flameG);
+  const big = llamas(fireA, [{ pos: [0, 0, 0], w: 0.62, h: 1.35 }, { pos: [0.1, 0.05, -0.05], dir: [0.3, 1, -0.2], w: 0.2, h: 0.75 }, { pos: [-0.1, 0.05, -0.04], dir: [-0.3, 1, -0.2], w: 0.2, h: 0.7 }, { pos: [0, 0.1, -0.1], dir: [0, 1, -0.5], w: 0.18, h: 0.85 }, { pos: [0.06, 0.25, 0.08], dir: [0.2, 1, 0.3], w: 0.12, h: 0.5 }]);
   flameG.add(big);
   const core = nucleo(0x6ab0ff, 0.07, { halo: 7 }); skullB.add(core.object); core.object.position.set(0, -0.14, 0.02); mats.push(...core.mats);
   const sparks = motas(26, { color: 0x7fb0ff, size: 0.04, modo: 'rise', box: [0.6, 1.4, 0.6], speed: 0.7 }); sparks.position.y = 0.6; rootObj.add(sparks); mats.push(sparks.material);
@@ -51,13 +51,13 @@ export default function build(kit, color = 0x3f7bff) {
     const shake = fuse * 0.03; pelvis.position.set(Math.sin(t * 57) * shake, pelvis.userData.rest.y + Math.abs(Math.sin(ph)) * 0.05 * runK + Math.sin(t * 3) * 0.01, Math.cos(t * 49) * shake);
     pelvis.rotation.x = 0.12 * runK; pelvis.rotation.z = Math.sin(ph) * 0.1 * runK;
     legs.forEach((Lg, i) => { const a = Math.sin(ph + i * Math.PI), up = Math.max(0, Math.cos(ph + i * Math.PI)); tgt.set(Lg.side * 0.09, 0.04 + up * 0.12 * runK, a * 0.14 * runK + 0.02); alcanzar(Lg, root, tgt, new V3(0, 0, 1), cache); });
-    const lean = sLean.step(dt, -0.22 * runK); flameG.rotation.x = lean; flameG.rotation.z = Math.sin(t * 4) * 0.08;
+    const lean = sLean.step(dt, -0.1 * runK); flameG.rotation.x = lean; flameG.rotation.z = Math.sin(t * 4) * 0.08;
     const sw = 1 + fuse * 0.55 + Math.sin(t * (14 + fuse * 30)) * 0.05 * (0.5 + fuse); flameG.scale.set(sw, sw * (1 + fuse * 0.2), sw);
     skullB.rotation.y = clamp(Math.atan2(look.x, look.z), -0.8, 0.8) * 0.6; skullB.rotation.x = -0.1 - fuse * 0.2 + Math.sin(ph) * 0.05 * runK;
     jaw.rotation.x = 0.1 + Math.max(0, Math.sin(t * (8 + fuse * 22))) * (0.15 + fuse * 0.35) + flinch * 0.4;   // castañetea / se ríe
     // color: azul → blanco a punto de reventar
-    fireA.uniforms.uC0.value.copy(new THREE.Color(0x1030ff).lerp(new THREE.Color(0x8a5aff), fuse)); fireA.uniforms.uC1.value.copy(new THREE.Color(0x58c8ff).lerp(new THREE.Color(0xffffff), fuse)); fireA.uniforms.uK.value = 1.1 + fuse * 0.9 + flinch * 0.3 + 0.08 * Math.sin(t * 13);
-    core.set(1.2 + fuse * 2 + Math.max(0, Math.sin(t * 25)) * fuse, t, dt); setBrillo(eyeM, 2 + fuse * 3);
+    fireA.uniforms.uC0.value.copy(new THREE.Color(0x1030ff).lerp(new THREE.Color(0x8a5aff), fuse)); fireA.uniforms.uC1.value.copy(new THREE.Color(0x58c8ff).lerp(new THREE.Color(0xffffff), fuse)); fireA.uniforms.uK.value = 2.0 + fuse * 0.6 + flinch * 0.3 + 0.08 * Math.sin(t * 13);
+    core.set(0.55 + fuse * 1.6 + Math.max(0, Math.sin(t * 25)) * fuse, t, dt); setBrillo(eyeM, 2 + fuse * 3);
     sparks.material.uniforms.uK.value = 0.6 + runK * 0.4 + fuse; burst.material.uniforms.uK.value = fuse > 0.4 ? fuse * 1.3 : 0;
     tickAura(aura, st, t);
   } };
