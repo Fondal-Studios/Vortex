@@ -118,10 +118,10 @@ const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = local
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
-    cam: camInput(),
+    cam: camInput(), style: settings().style,
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
     dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: (evoWant(keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held())), evoChoice ? evoChoice.value() : 0), organ: organInput(), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
@@ -167,11 +167,17 @@ function assistAim(inp, state, me, dt, firing = false) {
 /** MODO SIMPLE (para quien nunca jugó un shooter): si hay un enemigo bajo la mira, dispara solo; si lo tenés encima, golpea solo. El jugador sólo mueve y mira. */
 function simpleAssist(inp, state, me) {
   if (!settings().simple || !me || me.dead || session.paused) return;
-  const h = v3(...me.h); let close = false;
-  for (const m of state.monsters) { const d = { x: m.p[0] - me.pos[0], y: m.p[1] - me.pos[1], z: m.p[2] - me.pos[2] }, l = Math.hypot(d.x, d.y, d.z); if (l < (m.r || 1) + 3.2 && dot(norm(d), h) > 0.35) { close = true; break; } }
-  session.simpleT = (session.simpleT || 0) + 1;
-  if (close) { inp.fire = false; inp.melee = (session.simpleT % 24) < 10; }   // de cerca: golpes ligeros (pulsar y soltar; la sim golpea al soltar)
-  else if (session.onTarget && !(me.rl > 0)) inp.fire = true;                  // enemigo bajo la mira: dispara solo
+  const h = v3(...me.h), st = settings().style || 'disparo'; let close = false;
+  for (const m of state.monsters) { const d = { x: m.p[0] - me.pos[0], y: m.p[1] - me.pos[1], z: m.p[2] - me.pos[2] }, l = Math.hypot(d.x, d.y, d.z); if (l < (m.r || 1) + (st === 'melee' ? 4.2 : 3.2) && dot(norm(d), h) > 0.35) { close = true; break; } }
+  session.simpleT = (session.simpleT || 0) + 1; const T = session.simpleT;
+  if (close) { inp.fire = false; inp.melee = (T % 24) < 10; return; }            // de cerca: golpes ligeros (pulsar y soltar)
+  if (!session.onTarget) return;
+  if (st === 'disparo') { if (!(me.rl > 0)) inp.fire = true; }
+  else if (st === 'habilidad') {                                                 // estilo habilidades: lanza sus poderes solo cuando están listos
+    if (!(me.ec > 0)) inp.esp = (T % 20) < 4; else if (!(me.s3c > 0)) inp.s3 = (T % 20) < 4; else if (!(me.rl > 0)) inp.fire = true;
+    if ((me.ul | 0) >= 100) inp.ult = (T % 30) < 4;
+  }
+  // estilo melé: no dispara solo; el jugador se acerca y el golpe sale solo
 }
 const aimEff = () => (settings().simple ? 3 : aimLevel);
 
@@ -179,7 +185,7 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 function startSolo(mapId, opts = {}) {
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
   const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice });
-  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char) }); // evolución y arma fusionada del perfil (perfil.js)
+  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
   session = { practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
@@ -608,6 +614,9 @@ function bindTouchSettings() {
   window.__setCam = setCam; const qc = $('camquick'); if (qc) { const tg = (e) => { e.preventDefault(); e.stopPropagation(); setCam(!renderer.third); }; qc.addEventListener('click', tg); qc.addEventListener('pointerdown', (e) => e.stopPropagation()); }
   const syncSimple = () => { const b = $('simpletoggle'); if (b) b.querySelector('b').textContent = `Modo simple (dispara solo): ${settings().simple ? 'sí' : 'no'}`; };
   const stb = $('simpletoggle'); if (stb) stb.addEventListener('click', (e) => { e.stopPropagation(); setSetting('simple', !settings().simple); syncSimple(); }); syncSimple();
+  const STY = { disparo: 'Disparo 🎯', melee: 'Melé ⚔', habilidad: 'Habilidades ✦' }, ORD = ['disparo', 'melee', 'habilidad'];
+  const syncStyle = () => { const b = $('styletoggle'); if (b) b.querySelector('b').textContent = `Estilo de combate: ${STY[settings().style] || STY.disparo}`; };
+  const sty = $('styletoggle'); if (sty) sty.addEventListener('click', (e) => { e.stopPropagation(); const i = ORD.indexOf(settings().style); setSetting('style', ORD[(i + 1) % ORD.length]); session && (session.styleSend = 30); syncStyle(); }); syncStyle();
   const ab = $('advtoggle'); if (ab) { ab.addEventListener('click', (e) => { e.stopPropagation(); setSetting('advanced', !settings().advanced); syncAdv(); touch.applyLayout(); }); } syncAdv();
   bind('ths', () => Math.round(S.hudScale * 100), (v) => setSetting('hudScale', v / 100));
   bind('tho', () => Math.round(S.hudOpacity * 100), (v) => setSetting('hudOpacity', v / 100));

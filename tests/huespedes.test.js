@@ -96,7 +96,7 @@ test('Umbra: fase, campo gravitatorio, distorsión temporal ralentiza al 25 %, c
 test('Seraf: alas (planeo), pulso vital, simbionte ataca solo, metamorfosis; pasiva Adaptación con tope', () => {
   let { g, p } = mk('seraf'); p.pos = { ...p.pos, y: p.pos.y + 3 }; tap(g, p, 'mov'); assert.ok(p.glideUntil > g.time);
   ({ g, p } = mk('seraf')); const m = target(g, p, 'astilla', 5); p.hp = 50; tap(g, p, 'esp'); assert.ok(m.hp < 5000 && p.hp > 60, 'pulso daña y cura');
-  ({ g, p } = mk('seraf')); const e = target(g, p, 'astilla', 10); tap(g, p, 's3'); assert.ok(g.objects.some((o) => o.type === 'symb')); run(g, 3); assert.ok(e.hp < 5000 - 100, 'el simbionte ataca'); run(g, 8); assert.ok(!g.objects.some((o) => o.type === 'symb'), 'se va a los 10 s');
+  ({ g, p } = mk('seraf')); const e = target(g, p, 'astilla', 10); tap(g, p, 's3'); assert.ok(g.objects.some((o) => o.type === 'symb')); run(g, 3); assert.ok(e.hp < 5000 - 60, 'el simbionte ataca'); run(g, 8); assert.ok(!g.objects.some((o) => o.type === 'symb'), 'se va a los 10 s');
   ({ g, p } = mk('seraf')); p.ul = 100; tap(g, p, 'ult'); assert.equal(p.ultId, 'metamorfosis'); p.hp = 50; const t = target(g, p, 'astilla', 5); const h0 = t.hp; tap(g, p, 'melee'); run(g, 0.3); assert.ok(h0 - t.hp > 0 && p.hp > 50, 'metamorfosis cura al golpear');
   ({ g, p } = mk('seraf')); for (let i = 0; i < 9; i++) { const k = g.spawnMonster('astilla', ahead(p, 5)); g.killMonster(k, p); } assert.equal(p.adapt.astilla, 9);
   const k2 = g.spawnMonster('geoda', ahead(p, 3)); k2.hp = k2.maxhp = 1e5; k2.open = true; const q = g.spawnMonster('astilla', ahead(p, 3)); q.hp = q.maxhp = 1e5; g.damageMonster(q, 100, p); assert.ok(1e5 - q.hp <= 100 * 1.1 + 1e-6, 'tope de adaptación +10 %');

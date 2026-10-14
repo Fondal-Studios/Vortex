@@ -1,5 +1,5 @@
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
-import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS } from './data.js';
+import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS, STYLES } from './data.js';
 import { MAPS } from './maps.js';
 import { collide, blocked } from './physics.js';
 import { AI } from './ai.js';
@@ -63,7 +63,7 @@ export class Game {
       cd: 0, ext: v3(), reviveT: 0, lastHurt: -99, flipUntil: 0, portalCd: 0, grounded: false, kills: 0, score: 0, respawnAt: 0,
       input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false, melee: false, s3: false, ult: false, evo: 0, reload: false },
     };
-    if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
+    if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style]) p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     initHost(p); loadOrgans(p, opts);
     this.players.push(p);
     return p;
@@ -75,7 +75,7 @@ export class Game {
     const i = p.input;
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; if (typeof inp.style === 'string' && STYLES[inp.style]) p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult;
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
@@ -524,7 +524,7 @@ export class Game {
   }
   addProjectile(pr) {
     if (this.projectiles.length >= LIMITS.projectiles) this.projectiles.shift();
-    pr.id = this.nextId++; pr.age = 0;
+    pr.id = this.nextId++; pr.age = 0; if (this.dmgSrc === 'skill' && pr.owner === 'p') pr.src = 'skill';
     this.projectiles.push(pr);
     return pr;
   }
@@ -633,6 +633,7 @@ export class Game {
   updateProjectiles(dt) {
     const keep = [];
     for (const pr of this.projectiles) {
+      this.dmgSrc = pr.src || null;
       if (pr.owner === 'm' && (this.objects.some((o) => o.type === 'dome' && dist(pr.pos, o.pos) < o.r) || inWall(this, pr.pos))) { this.emit({ t: 'splat', p: a3(pr.pos) }); continue; }
       const ts = pr.owner === 'm' ? this.map.timeScaleAt(pr.pos) * (inChrono(this, pr.pos) ? 0.25 : 1) : 1;
       pr.age += dt; pr.life -= dt;
@@ -654,7 +655,7 @@ export class Game {
       const owner = this.players.find((q) => q.id === pr.pid);
       if (dead && pr.owner === 'p') {
         if (pr.mine) { const mine = this.objects.filter((o) => o.type === 'mine' && o.owner === pr.pid); if (mine.length >= 6) this.removeObject(mine[0]); this.addObject('mine', pr.pos, { life: 25, r: 5, dmg: pr.dmg, splash: pr.splash, owner: pr.pid, arm: 0.6 }); this.emit({ t: 'minePlace', p: a3(pr.pos) }); }
-        else if (pr.well) { this.addObject('well', pr.pos, { life: pr.well, r: 2, dmg: pr.dmg, splash: pr.splash || 7, owner: pr.pid }); this.emit({ t: 'well', p: a3(pr.pos) }); }
+        else if (pr.well) { this.addObject('well', pr.pos, { life: pr.well, r: 2, dmg: pr.dmg, splash: pr.splash || 7, owner: pr.pid, src: pr.src }); this.emit({ t: 'well', p: a3(pr.pos) }); }
         else if (hitP === 'monster' && !pr.pierce) this.explode(pr.pos, pr.splash || 0.1, 0, pr.dmg, owner, false);
         else if (hitP === 'solid') { if (pr.splash) this.explode(pr.pos, pr.splash, 0, pr.dmg, owner, false); else this.emit({ t: 'splat', p: a3(pr.pos) }); }
         else if (pr.life <= 0 && pr.splash) this.explode(pr.pos, pr.splash, 0, pr.dmg, owner, false);
@@ -663,7 +664,7 @@ export class Game {
       else if (dead && hitP === 'solid') { if (pr.splash) this.explode(pr.pos, pr.splash, 0, pr.dmg, owner, false); else this.emit({ t: 'splat', p: a3(pr.pos) }); }
       if (!dead) keep.push(pr);
     }
-    this.projectiles = keep;
+    this.projectiles = keep; this.dmgSrc = null;
   }
 
   /* ─────────── pickups ─────────── */
@@ -707,7 +708,11 @@ export class Game {
     }
   }
   updateObjects(dt) {
+    try { this.updateObjects0(dt); } finally { this.dmgSrc = null; }
+  }
+  updateObjects0(dt) {
     for (const o of [...this.objects]) {
+      this.dmgSrc = null;
       if (hostObject(this, o, dt)) continue;
       if (o.type === 'dome') { o.life -= dt; if (o.life <= 0) this.removeObject(o); }
       else if (o.type === 'turret') {
@@ -723,6 +728,7 @@ export class Game {
         if (o.life <= 0) { this.removeObject(o); continue; }
         if (o.arm <= 0 && this.monsters.some((m) => !m.dead && dist(m.pos, o.pos) < o.r + m.r)) { this.removeObject(o); this.explode(o.pos, o.splash, 0, o.dmg, this.players.find((q) => q.id === o.owner), false); }
       } else if (o.type === 'well') {
+        this.dmgSrc = o.src || null;
         o.life -= dt;
         for (const m of this.monsters) { if (m.dead || m.def.boss) continue; const d = dist(m.pos, o.pos); if (d < 16 && d > 0.8) m.vel = madd(m.vel, norm(sub(o.pos, m.pos)), 40 * dt); }
         if (o.life <= 0) { this.removeObject(o); this.explode(o.pos, o.splash, 0, o.dmg * 2, this.players.find((q) => q.id === o.owner), false); }

@@ -1,0 +1,133 @@
+{
+ "license": "CC0 1.0 (Poly Haven)",
+ "textures": {
+  "marble_01": {
+   "use": "mármol blanco veteado (pisos, columnas, porcelana)",
+   "page": "https://polyhaven.com/a/marble_01",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/marble_01/marble_01_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/marble_01/marble_01_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/marble_01/marble_01_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_rough_1k.jpg"
+    }
+   }
+  },
+  "marble_tiles": {
+   "use": "baldosas de mármol (pisos de templo)",
+   "page": "https://polyhaven.com/a/marble_tiles",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/marble_tiles/marble_tiles_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_tiles/marble_tiles_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/marble_tiles/marble_tiles_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_tiles/marble_tiles_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/marble_tiles/marble_tiles_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_tiles/marble_tiles_rough_1k.jpg"
+    }
+   }
+  },
+  "white_sandstone_bricks": {
+   "use": "sillares de arenisca clara (muros de templo)",
+   "page": "https://polyhaven.com/a/white_sandstone_bricks",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/white_sandstone_bricks/white_sandstone_bricks_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_sandstone_bricks/white_sandstone_bricks_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/white_sandstone_bricks/white_sandstone_bricks_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_sandstone_bricks/white_sandstone_bricks_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/white_sandstone_bricks/white_sandstone_bricks_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_sandstone_bricks/white_sandstone_bricks_rough_1k.jpg"
+    }
+   }
+  },
+  "medieval_wall_01": {
+   "use": "piedra gastada (muros, plataformas)",
+   "page": "https://polyhaven.com/a/medieval_wall_01",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/medieval_wall_01/medieval_wall_01_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_wall_01/medieval_wall_01_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/medieval_wall_01/medieval_wall_01_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_wall_01/medieval_wall_01_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/medieval_wall_01/medieval_wall_01_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_wall_01/medieval_wall_01_rough_1k.jpg"
+    }
+   }
+  },
+  "metal_plate": {
+   "use": "metal trabajado (base del ORO envejecido con tinte y metalness 1)",
+   "page": "https://polyhaven.com/a/metal_plate",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/metal_plate/metal_plate_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/metal_plate/metal_plate_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/metal_plate/metal_plate_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_rough_1k.jpg"
+    }
+   }
+  },
+  "rough_linen": {
+   "use": "tela de lino (ropas, velos)",
+   "page": "https://polyhaven.com/a/rough_linen",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/rough_linen/rough_linen_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/rough_linen/rough_linen_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/rough_linen/rough_linen_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg"
+    }
+   }
+  }
+ },
+ "hdris": {
+  "small_cathedral_02": {
+   "use": "interior de catedral (reflejos dorados, luz de templo)",
+   "page": "https://polyhaven.com/a/small_cathedral_02",
+   "file": "public/assets/ph/small_cathedral_02/small_cathedral_02_1k.hdr",
+   "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/small_cathedral_02_1k.hdr"
+  },
+  "moonless_golf": {
+   "use": "noche sin luna (cielo oscuro, luz fría suave)",
+   "page": "https://polyhaven.com/a/moonless_golf",
+   "file": "public/assets/ph/moonless_golf/moonless_golf_1k.hdr",
+   "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/moonless_golf_1k.hdr"
+  },
+  "qwantani_dusk_2_puresky": {
+   "use": "cielo de atardecer puro (luz cálida + rebote frío)",
+   "page": "https://polyhaven.com/a/qwantani_dusk_2_puresky",
+   "file": "public/assets/ph/qwantani_dusk_2_puresky/qwantani_dusk_2_puresky_1k.hdr",
+   "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/qwantani_dusk_2_puresky_1k.hdr"
+  }
+ }
+}

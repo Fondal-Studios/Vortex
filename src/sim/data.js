@@ -105,6 +105,17 @@ export const EVO_PATHS = [
   [{ id: 'apoteosis',  name: 'Apoteosis',  vis: 'alas',    desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más.' },
    { id: 'anomalia',   name: 'Anomalía',   vis: 'grietas', desc: 'Una de cada cuatro bajas estalla en esencia: 70 de daño en área.' }],
 ];
+/* ───────── TRES ESTILOS DE COMBATE (elegís uno; equilibrados entre sí: tests/estilos.test.js) ─────────
+   mul = multiplicador de daño según la fuente (melee / gun = disparos / skill = habilidades); cd = enfriamiento de habilidades;
+   taken = daño recibido; ult = carga de la definitiva. */
+export const STYLES = {
+  melee:     { name: 'Melé',        desc: 'Cuerpo a cuerpo: golpes ×1,7, recibís 20 % menos de daño. Tus disparos pegan menos.', mul: { melee: 1.7, gun: 0.75, skill: 1 }, cd: 1, taken: 0.8, ult: 1 },
+  disparo:   { name: 'Disparo',     desc: 'A distancia: disparos ×1,3. Tu melee pega menos.', mul: { melee: 0.8, gun: 1.3, skill: 1 }, cd: 1, taken: 1, ult: 1 },
+  habilidad: { name: 'Habilidades', desc: 'Poderes: habilidades ×1,9 y el doble de rápidas; la definitiva carga más. Armas y melee pegan menos.', mul: { melee: 0.8, gun: 0.75, skill: 1.9 }, cd: 0.5, taken: 1, ult: 1.3 },
+};
+export const STYLE_IDS = Object.keys(STYLES);
+/** Sin estilo elegido (pruebas, bots viejos): todo ×1. */
+export const STYLE_NEUTRAL = { name: 'Neutro', mul: { melee: 1, gun: 1, skill: 1 }, cd: 1, taken: 1, ult: 1 };
 export const CORES = { perCost: 1.2, eliteMul: 2, wave: 6, objective: 30, boss: 100 };
 
 
@@ -175,7 +186,7 @@ const HOSTS = {
     desc: 'Control dimensional. Rifle de distorsión y hoja que atraviesa defensas. Usa el escenario como arma.',
     story: 'Habita varios planos a la vez; en este solo es una sombra con bordes de más. Fue el primero en notar que el tren no estaba en ningún horario.',
     stats: { dano: 6, resistencia: 5, movilidad: 7, control: 10, utilidad: 8, dificultad: 9 },
-    melee: { light: { dmg: 42, range: 3.8, arc: 0.5, cd: 0.38, pierce: true }, heavy: { dmg: 120, range: 4.6, arc: 0.4, cd: 0.9, pierce: true } },
+    melee: { light: { dmg: 32, range: 3.8, arc: 0.5, cd: 0.4, pierce: true }, heavy: { dmg: 95, range: 4.6, arc: 0.4, cd: 0.95, pierce: true } },
     mov: { id: 'fase', name: 'Fase', cd: 8, desc: 'Salto hacia atrás con 1 s de invulnerabilidad (pasiva: menos daño al desplazarte).' },
     esp: { id: 'singularidad', name: 'Campo gravitatorio', cd: 14, desc: 'Un agujero que agrupa criaturas y estalla.' },
     s3: { id: 'tiempo', name: 'Distorsión temporal', cd: 18, desc: 'Burbuja de 5 s donde las criaturas se mueven al 25 %.' },

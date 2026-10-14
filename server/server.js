@@ -41,7 +41,7 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
     return room;
   }
   function join(ws, room, name, m = {}) {
-    const p = room.game.addPlayer(name, null, { char: m.char, melee: typeof m.melee === 'string' ? m.melee : undefined, evo: Number.isInteger(m.evo) ? m.evo : undefined, slots: Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined });
+    const p = room.game.addPlayer(name, null, { char: m.char, style: typeof m.style === 'string' ? m.style : undefined, melee: typeof m.melee === 'string' ? m.melee : undefined, evo: Number.isInteger(m.evo) ? m.evo : undefined, slots: Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined });
     ws.pname = name; ws.char = p ? p.char : m.char; ws.slots = p ? p.slots : undefined;
     if (!p) return send(ws, { t: 'error', msg: 'sala llena' });
     room.clients.set(ws, p.id);

@@ -8,7 +8,7 @@ const a3 = (v) => [Math.round(v.x * 100) / 100, Math.round(v.y * 100) / 100, Mat
 const flatDir = (p) => norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.heading);
 
 /** Desplazamiento: devuelve true si se usó. */
-export function useMove(g, p) {
+function useMove0(g, p) {
   const C = CHARACTERS[p.char]; if (!C || p.dead || p.movCd > 0 || p.carry) return false;
   const h = flatDir(p), id = C.mov.id;
   switch (id) {
@@ -33,7 +33,7 @@ export function useMove(g, p) {
 }
 
 /** Disparo especial. */
-export function useSpecial(g, p) {
+function useSpecial0(g, p) {
   const C = CHARACTERS[p.char]; if (!C || p.dead || p.espCd > 0 || p.carry) return false;
   const id = C.esp.id, o = g.eyePos(p), d = g.aimDir(p);
   switch (id) {
@@ -64,10 +64,15 @@ export function useSpecial(g, p) {
       g.emit({ t: 'shot', pid: p.id, w: 1, o: a3(o), to: tips.slice(0, 3).map(a3) });
       break;
     }
-    case 'singularidad': g.addProjectile({ owner: 'p', pid: p.id, kind: 'nova', pos: madd(o, d, 1.5), vel: mul(d, 30), dmg: 70, splash: 10, r: 0.7, life: 3, well: 4 }); break;
+    case 'singularidad': g.addProjectile({ owner: 'p', pid: p.id, kind: 'nova', pos: madd(o, d, 1.5), vel: mul(d, 30), dmg: 110, splash: 10, r: 0.7, life: 3, well: 4 }); break;
     default: if (!hostSpecial(g, p, id)) return false;
   }
   p.espCd = C.esp.cd * cdMul(p); g.emit({ t: 'skill', pid: p.id, k: 'esp', id, p: a3(p.pos) });
   return true;
 }
 void clone; void v3;
+
+/** Todo daño hecho desde una habilidad cuenta como «habilidad» (estilos de combate: data.js STYLES). */
+const asSkill = (fn) => (g, p) => { const s = g.dmgSrc; g.dmgSrc = 'skill'; try { return fn(g, p); } finally { g.dmgSrc = s; } };
+export const useMove = asSkill(useMove0);
+export const useSpecial = asSkill(useSpecial0);
