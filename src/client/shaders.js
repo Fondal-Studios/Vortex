@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { NOISE, BUMP, HAZE, SURF } from './env/glsl.js';
 
 export const uTime = { value: 0 }; // reloj global compartido por todos los shaders
+/** Avance del tejido vivo en el mapa: 0 (oleada 1, mundo «dormido») → 1 (oleada 6 y jefe). Lo fija Renderer.render con state.wave/waveTotal (?infect=0..1 lo fuerza). */
+export const uInfect = { value: 0 };
+/** Latido global del mundo (0..~1.2, doble golpe); se acelera con la infección y con el combate. Lo fija Renderer.render. */
+export const uBeat = { value: 0 };
 /** Si hay post-proceso (bloom), los ShaderMaterial propios deben escribir color lineal (el OutputPass lo codifica a sRGB). */
 export const OUT = { linear: false };
 export function finish(mat) {

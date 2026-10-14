@@ -1,11 +1,16 @@
 import * as THREE from 'three';
 import { MAPS } from '../sim/maps.js';
-import { skyMaterial, crystalMaterial, groundMaterial, shellMaterial, zoneMaterial, uTime, OUT } from './shaders.js';
+import { skyMaterial, crystalMaterial, groundMaterial, shellMaterial, zoneMaterial, uTime, uInfect, uBeat, OUT } from './shaders.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GradePass, sceneTarget } from './post.js';
+import { loadEnvHDRI, MAP_HDRI } from './ph.js';
+const POST_OFF = typeof location !== 'undefined' && /[?&]post=0/.test(location.search); // ?post=0: render directo (diagnóstico)
+const INFECT_OVERRIDE = typeof location !== 'undefined' && /[?&]infect=([\d.]+)/.test(location.search) ? Math.min(1, +RegExp.$1) : null;
+const usesComposer = () => !POST_OFF && !!(cfg().post || cfg().grade);
 import { buildMonster, COLORS } from './models.js';
 import { Effects } from './effects.js';
 import { ObjectsView } from './objects.js';
@@ -38,7 +43,7 @@ function haloTexture() {
 
 export class Renderer {
   constructor(canvas, { level = 'high', pixelRatio = null } = {}) {
-    setCurrent(level); OUT.linear = !!cfg().post;
+    setCurrent(level); OUT.linear = usesComposer();
     this.canvas = canvas; this.level = level; this.prOverride = pixelRatio;
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
     this.gl.setPixelRatio(this.pixelRatioFor(level));
@@ -60,7 +65,7 @@ export class Renderer {
     this.shake = 0; this.camQ = new THREE.Quaternion(); this.camInit = false;
     this.mapId = null; this.t = 0;
     this.gl.info.autoReset = false; // contamos todas las pasadas del cuadro (post-proceso incluido)
-    this.gl.toneMapping = THREE.ACESFilmicToneMapping; this.gl.toneMappingExposure = cfg().post ? 1.9 : 1.05;
+    this.gl.toneMapping = THREE.ACESFilmicToneMapping; this.gl.toneMappingExposure = usesComposer() ? 1.9 : 1.05;
     this.hemi = new THREE.HemisphereLight(0xb9c4ff, 0x2a0f3a, 1.1); this.sun = new THREE.DirectionalLight(0xfff1e0, 2.2); this.sun.position.set(0.4, 1, 0.3);
     this.rim = new THREE.DirectionalLight(0xff66c4, 1.0); this.rim.position.set(-0.6, 0.2, -0.8);
     this.muzzle = new THREE.PointLight(0xffd9a0, 0, 28, 1.6); this.camera.add(this.muzzle); this.muzzle.position.set(0.3, -0.2, -1);
@@ -82,24 +87,26 @@ export class Renderer {
   /** Cambia la calidad en caliente: resolución, partículas, aristas, decorado y shaders del cielo. */
   applyQuality(level) {
     if (!LEVELS[level]) return;
-    this.level = level; setCurrent(level); OUT.linear = !!cfg().post; this.gl.toneMappingExposure = cfg().post ? 1.9 : 1.05; this.setupPost();
+    this.level = level; setCurrent(level); OUT.linear = usesComposer(); this.gl.toneMappingExposure = usesComposer() ? 1.9 : 1.05; this.setupPost();
     this.gl.setPixelRatio(this.pixelRatioFor(level)); this.resize();
     this.fx.configure(cfg());
     for (const m of Object.values(this.ents)) { for (const o of m.values()) this.entRoot.remove(o.object || o); m.clear(); }
     const id = this.mapId; this.mapId = null; if (id) this.setMap(id);
   }
-  /** Bloom + tonemapping ACES (Media/Alta) y reflejos PBR por entorno. En Baja: render directo. */
+  /** Post-proceso (post.js): escena a un destino HDR con MSAA y profundidad → bloom (Media/Alta) → pasada final de grading
+   *  (AO por profundidad, niebla volumétrica falsa, ACES, curvas, viñeta, grano). Baja: sólo la pasada final barata. */
   setupPost() {
     const q = cfg();
-    if (this.composer) { this.composer.dispose(); this.composer = null; }
-    if (q.post) {
-      const c = new EffectComposer(this.gl); c.setPixelRatio(this.gl.getPixelRatio());
+    if (this.composer) { this.composer.dispose(); this.composer = null; this.grade && this.grade.dispose(); this.grade = null; }
+    if (usesComposer()) {
+      const c = new EffectComposer(this.gl, sceneTarget(q.msaa == null ? 4 : q.msaa)); c.setPixelRatio(this.gl.getPixelRatio());
       c.addPass(new RenderPass(this.scene, this.camera));
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), q.bloom || 0.5, 0.7, 0.8); c.addPass(this.bloom); c.addPass(new OutputPass());
+      if (q.post) { this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), q.bloom || 0.5, 0.55, 0.85); c.addPass(this.bloom); } else this.bloom = null;
+      this.grade = new GradePass(this.level); if (this.mapId) this.grade.preset(this.mapId); c.addPass(this.grade);
       this.composer = c;
     }
     if (q.env && !this.envTex) { const pm = new THREE.PMREMGenerator(this.gl); this.envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); }
-    this.scene.environment = q.env ? this.envTex : null; this.scene.environmentIntensity = 0.55;
+    this.scene.environment = q.env ? (this.hdri || this.envTex) : null; this.scene.environmentIntensity = 0.55;
     this.rim.visible = q.lights >= 3; this.muzzle.visible = q.lights >= 4;
     // sombras proyectadas (Alta): el sol sigue al jugador con una cámara de sombra acotada
     this.gl.shadowMap.enabled = !!q.shadows; this.gl.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -121,6 +128,8 @@ export class Renderer {
     this.dyn = [];
     const warm = mapId === 'm2', dream = mapId === 'm3';
     this.hemi.color.setHex(warm ? 0xffb0d8 : dream ? 0xd0b8ff : 0xaab8ff); this.hemi.groundColor.setHex(warm ? 0x3a0a2a : dream ? 0x2a1050 : 0x1a0f3a); this.sun.color.setHex(warm ? 0xffd2c0 : 0xe8f0ff); this.rim.color.setHex(warm ? 0x66ffd8 : 0xff66c4);
+    if (this.grade) this.grade.preset(mapId);
+    this.useHDRI(mapId);
     this.sunDir = null; // el entorno fija la dirección del sol; luego las sombras la siguen
     if (mapId === 'm3') this.loadMap3(MAPS.m3); else if (mapId === 'm4') this.loadMap4(MAPS.m4); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
     if (mapId !== 'm3' && mapId !== 'm4') import('./env/eyes.js').then((m) => {
@@ -128,6 +137,11 @@ export class Renderer {
       if (mapId === 'm1') m.addCosmicEyes(this, this.mapRoot, { mode: 'sky', count: q ? 40 : 12, radius: 1000, minR: 450, size: 2.6, y0: -150, y1: 700 });
       else m.addCosmicEyes(this, this.mapRoot, { mode: 'shell', shellR: MAPS.m2.R, count: q ? 46 : 12 });
     }).catch(() => { /* sin ojos cósmicos */ });
+  }
+  /** Luz ambiente y reflejos por imagen: cielo HDRI de Poly Haven (ph.js) por mapa; mientras carga, RoomEnvironment. */
+  useHDRI(mapId) {
+    const id = MAP_HDRI[mapId]; if (!id || !cfg().env) return;
+    loadEnvHDRI(this.gl, id).then((tex) => { if (this.mapId !== mapId || !cfg().env) return; this.hdri = tex; this.scene.environment = tex; }).catch(() => { /* sin HDRI: queda RoomEnvironment */ });
   }
   /** Jardín de Carne (mapa 4): env/map4.js construye suelo de tejido, vegetación reactiva, cielo y niebla (ya incluye los ojos cósmicos). */
   loadMap4(map) {
@@ -171,6 +185,13 @@ export class Renderer {
   render(state, dt, myId, look) {
     this.gl.info.reset(); this.t += dt; uTime.value = this.t;
     this.setMap(state.map);
+    { // tejido vivo que avanza con la oleada (uInfect) y latido del mundo (uBeat) que se acelera con la infección y el combate
+      const W = state.waveTotal || 7, w = state.wave || 0, ov = INFECT_OVERRIDE, tgt = ov != null ? ov : Math.max(0, Math.min(1, (w - 1) / Math.max(1, W - 2)));
+      this.infect = this.infect == null || ov != null ? tgt : this.infect + (tgt - this.infect) * Math.min(1, dt * 0.35); uInfect.value = this.infect;
+      let hits = 0; for (const e of state.events) if (e.t === 'hit' || e.t === 'kill' || e.t === 'boom') hits++; this.combatK = Math.min(1, (this.combatK || 0) * Math.exp(-dt * 0.6) + hits * 0.05);
+      this.beatPh = (this.beatPh || 0) + dt / (1.55 / (1 + 0.35 * this.infect + 0.5 * this.combatK)); const ph = this.beatPh % 1;
+      uBeat.value = Math.exp(-((ph * 10) ** 2)) + 0.65 * Math.exp(-(((ph - 0.27) * 10) ** 2)); if (typeof window !== 'undefined') window.__infect = +this.infect.toFixed(3);
+    }
     const me = state.players.find((p) => p.id === myId) || state.players[0];
     for (const f of this.dyn) f(dt, this.t);
     if (this.shellMat) this.shellMat.uniforms.uWarn.value = state.fx && state.fx.warn ? 1 : 0;
@@ -186,6 +207,7 @@ export class Renderer {
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
     if (me) this.updateCamera(me, dt, look);
     if (this.lost) return;
+    if (this.grade) { this.camera.updateMatrixWorld(); this.grade.frame(this.camera, this.t, { sunDir: this.sunDir || this.sun.position, infect: this.infect || 0, fogR: this.mapId === 'm2' ? MAPS.m2.R : null }); }
     if (this.composer) this.composer.render(); else this.gl.render(this.scene, this.camera);
   }
 
