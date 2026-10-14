@@ -56,3 +56,14 @@ Son **guardianes que habitan entre el mundo de los muertos y el de los vivos**. 
 un cuerpo vivo para volver a cruzar al mundo; nosotros necesitamos su poder para salir del limbo → **simbiosis**. Visualmente son la pieza
 más cuidada del juego (más detalle, mejor material, mejor animación que cualquier criatura), y **cambian con el mapa** (aspecto regional
 según el folclore del lugar) **y con sus evoluciones** (cada camino elegido se ve en el cuerpo).
+
+## REWORK DE LOS HUÉSPEDES (dueño, 2026-10-14)
+Los Huéspedes **no son soldados ni biomecanoides**: son **almas o bestias en pena del limbo** (guardianes entre muertos y vivos) con las
+que el Pasajero pacta. Rediseño total, la pieza mejor lograda del juego (más detalle que cualquier criatura), flashero/psicodélico:
+- **Axioma — el Guerrero Caído:** alma de un guerrero en pena, armadura de hueso y brasas que arde sin consumirse, filos de espíritu.
+- **Vesper — la Bestia Cazadora:** bestia felina/lupina de ojos fosforescentes, cuerpo traslúcido, nervios de luz violeta.
+- **Micelio — el Coloso Raíz:** bestia antigua del bosque muerto, cuerpo de raíces, hongos y cortezas que laten.
+- **Umbra — el Errante:** alma sin cuerpo fijo, sudario de sombra y fragmentos de espejo flotando; existe en varios planos.
+- **Seraf — el Ángel Caído:** alma alada de luz dorada y filamentos, aureola quebrada.
+Cada uno: silueta inconfundible, partes sueltas/flotantes, luz interior, partículas propias, animación de bestia o espectro (no de maniquí),
+y **evoluciones que se ven**: cada camino de `pth` y cada órgano `cg` cambian el cuerpo. Aspecto regional por mapa (folclore del lugar).
