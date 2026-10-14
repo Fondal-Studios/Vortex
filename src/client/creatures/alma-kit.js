@@ -18,12 +18,16 @@ import { uTime } from '../shaders.js';
 import { PH_BASE } from '../ph.js';
 import {
   TAU, lod, clamp, lerp, smooth, rng, noise3, bio, tube, ellipsoid, spike, paint, place, orient, path, mirrorX,
-  skinRigid, skinChain, skinFn, Rig as BaseRig, legIK, gait, boneMatrix, toLocal, boneQuat, gazeDir, haloTexture, glowSprite,
+  skinRigid, skinChain, skinFn, Rig as BaseRig, legIK, gait, boneMatrix, toLocal, boneQuat, gazeDir, haloTexture, glowSprite as glowSprite0,
   shieldAura, tickAura, Spring, dampTo, footTo, glowSet,
 } from './geoda-bio.js';
+/** Halo aditivo (color atenuado por G_LUZ). */
+export function glowSprite(color, size = 1, opacity = 0) { const s = glowSprite0(new THREE.Color(color).multiplyScalar(G_LUZ * 1.2), size, opacity); return s; }
 
-export { THREE, TAU, lod, clamp, lerp, smooth, rng, noise3, bio, tube, ellipsoid, spike, paint, place, orient, path, mirrorX, skinRigid, skinChain, skinFn, legIK, gait, boneMatrix, toLocal, boneQuat, gazeDir, haloTexture, glowSprite, shieldAura, tickAura, Spring, dampTo, footTo, glowSet, uTime };
+export { THREE, TAU, lod, clamp, lerp, smooth, rng, noise3, bio, tube, ellipsoid, spike, paint, place, orient, path, mirrorX, skinRigid, skinChain, skinFn, legIK, gait, boneMatrix, toLocal, boneQuat, gazeDir, haloTexture, shieldAura, tickAura, Spring, dampTo, footTo, glowSet, uTime };
 const V3 = THREE.Vector3;
+/** Ganancia de la luz de las almas: render.js compone con exposición 1.9 + ACES (GradePass) en TODAS las calidades; todo lo emisivo/aditivo se calibra con esto. */
+export const G_LUZ = 0.5;
 
 /* ═════════════ Unión de geometrías que CONSERVA uv (el lino necesita coordenadas) ═════════════ */
 const KEEP = ['position', 'normal', 'color', 'skinIndex', 'skinWeight', 'aK', 'aPh', 'uv'];
@@ -77,13 +81,13 @@ export function texturasListas() { linenTex(); return linenPromise; }
  * uSpd, uWind (vec3: empuje del viento en el borde suelto), uVis (0..1 visibilidad, camuflaje), uHem (dónde empieza a deshacerse).
  */
 export function velo(color = 0xe8f4ff, o = {}) {
-  const L = lod(), { alpha = 0.55, rim = 1.0, rimColor = 0x9fe8ff, rimPow = 2.2, glow = 0, glowColor = null, flutter = 0.06, speed = 2.2, hem = 0.72, hemGlow = 0.5, rough = 0.8, weave = 0.7, weaveMap = true, sheen = 0.6, emissiveLift = 0.12, side = THREE.DoubleSide, depthWrite = null, fresAlpha = true } = o;
+  const L = lod(), { alpha = 0.55, rim = 1.0, rimColor = 0x9fe8ff, rimPow = 2.2, glow = 0, glowColor = null, flutter = 0.06, speed = 2.2, hem = 0.72, hemGlow = 0.5, rough = 0.8, weave = 0.7, weaveMap = true, sheen = 0.6, emissiveLift = 0.12, side = THREE.DoubleSide, depthWrite = null, fresAlpha = true, iri = 0.55, iriSpd = 0.12 } = o;
   const opaque = alpha >= 1, Cls = L.low ? THREE.MeshStandardMaterial : THREE.MeshPhysicalMaterial;
   const m = new Cls({ color, roughness: rough, metalness: 0, vertexColors: true, transparent: !opaque, opacity: alpha, side, depthWrite: depthWrite != null ? depthWrite : opaque });
   if (!L.low && sheen) { m.sheen = sheen; m.sheenColor = new THREE.Color(rimColor).lerp(new THREE.Color(1, 1, 1), 0.4); m.sheenRoughness = 0.6; }
   m.userData.weave = weave; m.userData.weaveMap = weaveMap;
   const u = { uTime, uHurt: { value: 0 }, uWound: { value: 0 }, uGlow: { value: glow }, uRim: { value: rim }, uRimP: { value: rimPow }, uFlut: { value: flutter }, uSpd: { value: speed }, uWind: { value: new V3() }, uVis: { value: 1 }, uHem: { value: hem }, uHemG: { value: hemGlow }, uLift: { value: emissiveLift * (L.low ? 1.5 : 1) },
-    uRimC: { value: new THREE.Color(rimColor) }, uGlowC: { value: new THREE.Color(glowColor != null ? glowColor : rimColor) } };
+    uIri: { value: iri }, uIriS: { value: iriSpd }, uRimC: { value: new THREE.Color(rimColor) }, uGlowC: { value: new THREE.Color(glowColor != null ? glowColor : rimColor) } };
   m.userData.u = u;
   m.customProgramCacheKey = () => 'velo' + (opaque ? 'O' : fresAlpha ? 'T' : 'F') + (L.low ? 'L' : '');
   m.onBeforeCompile = (sh) => {
@@ -97,11 +101,14 @@ export function velo(color = 0xe8f4ff, o = {}) {
         transformed.y += sin(uTime * uSpd * 1.21 + fph * 0.7) * uFlut * 0.35 * fw;
         transformed += uWind * fw * (0.8 + 0.2 * sin(uTime * 7.0 + fph));`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vK; uniform float uTime, uHurt, uWound, uGlow, uRim, uRimP, uVis, uHem, uHemG, uLift; uniform vec3 uRimC, uGlowC;')
+      .replace('#include <common>', '#include <common>\nvarying float vK; uniform float uTime, uHurt, uWound, uGlow, uRim, uRimP, uVis, uHem, uHemG, uLift, uIri, uIriS; uniform vec3 uRimC, uGlowC;')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         float vNV = abs(dot(normalize(normal), normalize(vViewPosition))); float vFr = pow(1.0 - vNV, uRimP);
         float vHm = uHem >= 0.999 ? 0.0 : smoothstep(uHem, 1.0, vK);
-        totalEmissiveRadiance += diffuseColor.rgb * uLift + uRimC * uRim * vFr + uGlowC * uGlow + uRimC * uHemG * vHm * (0.6 + 0.4 * sin(uTime * 3.0 + vK * 9.0)) + vec3(1.0, 0.85, 0.7) * uHurt * 0.8 + vec3(1.0, 0.3, 0.2) * uWound * 0.15 * vFr;`)
+        vec3 vPal = 0.5 + 0.5 * cos(6.2832 * (vec3(0.0, 0.33, 0.67) + vFr * 1.3 + vK * 0.8 + uTime * uIriS));
+        vec3 vRimC = mix(uRimC, uRimC * 0.4 + vPal * 0.9, uIri * smoothstep(0.15, 0.9, vFr + vHm * 0.5));
+        totalEmissiveRadiance += diffuseColor.rgb * uLift + vRimC * uRim * vFr + uGlowC * uGlow + vRimC * uHemG * vHm * (0.6 + 0.4 * sin(uTime * 3.0 + vK * 9.0)) + vec3(1.0, 0.85, 0.7) * uHurt * 0.8 + vec3(1.0, 0.3, 0.2) * uWound * 0.15 * vFr;
+        totalEmissiveRadiance *= 0.6;`)
       .replace('#include <opaque_fragment>', `${opaque ? '' : fresAlpha ? 'diffuseColor.a *= (0.35 + 0.95 * vFr) * (1.0 - vHm * 0.92);' : 'diffuseColor.a *= (1.0 - vHm * 0.92);'} diffuseColor.a *= uVis;
         #include <opaque_fragment>`);
   };
@@ -113,7 +120,7 @@ export const hueso = (o = {}) => bio({ color: 0xffffff, rough: 0.55, clear: 0.15
 /** Carne espectral (piel tirante, grisácea, con venas que brillan del color del alma). */
 export const carne = (o = {}) => bio({ color: 0xffffff, rough: 0.5, clear: 0.3, tex: 'flesh', tile: 2.0, bump: 0.6, grain: 0.45, seam: 0x10141c, seamK: 0.25, vein: o.vein ?? 0x60e0ff, veinK: 0.4, veinGlow: 0.6, sss: 0.45, sssColor: o.sssColor ?? 0x9fe8ff, lift: 0.1, rim: 0.4, rimColor: o.rimColor ?? 0x9fe8ff, ...o });
 /** Pelo / cuero (pelaje apelmazado). */
-export const pelo = (o = {}) => bio({ color: 0xffffff, rough: 0.85, tex: 'scales', tile: 5, bump: 1.1, grain: 0.7, seam: 0x050505, seamK: 0.45, sss: 0.1, sssColor: 0x806040, lift: 0.08, rim: 0.35, rimColor: o.rimColor ?? 0xffc080, ...o });
+export const pelo = (o = {}) => bio({ color: 0xffffff, rough: 0.85, tex: 'fine', tile: 9, bump: 1.6, grain: 0.85, seam: 0x050505, seamK: 0.45, sss: 0.1, sssColor: 0x806040, lift: 0.08, rim: 0.35, rimColor: o.rimColor ?? 0xffc080, ...o });
 /** Metal (cadenas, monedas, plata criolla). */
 export function metal(color = 0x8a8a90, { rough = 0.42, metalness = 0.9, glow = 0, glowColor = 0xff6a20 } = {}) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness, vertexColors: true, emissive: new THREE.Color(glowColor), emissiveIntensity: glow });
@@ -123,8 +130,8 @@ export function metal(color = 0x8a8a90, { rough = 0.42, metalness = 0.9, glow = 
   return m;
 }
 /** Material emisivo plano (ojos, brasas, runas): color × intensidad; ignora la luz. */
-export function brillo(color, k = 1.6) { const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k), toneMapped: false }); m.userData.u = { uHurt: { value: 0 } }; m.userData.base = new THREE.Color(color); return m; }
-export const setBrillo = (m, k) => m.color.copy(m.userData.base).multiplyScalar(k);
+export function brillo(color, k = 1.6) { const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k * G_LUZ), toneMapped: false }); m.userData.u = { uHurt: { value: 0 } }; m.userData.base = new THREE.Color(color); return m; }
+export const setBrillo = (m, k) => m.color.copy(m.userData.base).multiplyScalar(k * G_LUZ);
 
 /* ═════════════ FUEGO ═════════════ */
 const FIRE_V = `uniform float uTime, uSpd, uWob; varying float vH; varying vec3 vN; varying vec3 vV; attribute float aH;
@@ -140,7 +147,7 @@ const FIRE_F = `uniform float uTime, uK, uSpd, uHurt; uniform vec3 uC0, uC1; var
     float fl = 0.75 + 0.25 * sin(uTime * 17.0 * uSpd + vH * 9.0) * sin(uTime * 11.0 + vH * 5.0);
     vec3 c = mix(uC0, uC1, clamp(core * (1.0 - vH * 0.8) * 1.3, 0.0, 1.0));
     float a = core * pow(1.0 - vH, 1.2) * fl * uK;
-    gl_FragColor = vec4(c * (1.0 + uHurt) * a * 1.6, a); }`;
+    gl_FragColor = vec4(c * (1.0 + uHurt) * a * 1.6 * 0.5, a * 0.5); }`;
 let fireGeoCache = null;
 /** Geometría de llama (lágrima abierta hacia arriba) con atributo aH = altura 0..1. Base en el origen, punta en +Y (1). */
 export function fireGeo() {
@@ -159,7 +166,7 @@ export function llama(mat, w = 0.3, h = 0.8) { const f = new THREE.Mesh(fireGeo(
 
 /* ═════════════ NÚCLEO DE LUZ (punto débil) ═════════════ */
 const SHELL_F = `uniform vec3 uC; uniform float uK, uTime; varying vec3 vN; varying vec3 vV;
-  void main(){ float f = 1.0 - abs(dot(normalize(vN), vV)); float a = (0.15 + pow(f, 1.6) * 0.9) * uK; gl_FragColor = vec4(uC * a * (1.2 + 0.3 * sin(uTime * 9.0)), a); }`;
+  void main(){ float f = 1.0 - abs(dot(normalize(vN), vV)); float a = (0.15 + pow(f, 1.6) * 0.9) * uK; gl_FragColor = vec4(uC * a * (0.6 + 0.15 * sin(uTime * 9.0)), a * 0.5); }`;
 const SHELL_V = `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
 let sphLo = null, sphHi = null; const sph = () => (lod().low ? (sphLo || (sphLo = new THREE.SphereGeometry(1, 10, 8))) : (sphHi || (sphHi = new THREE.SphereGeometry(1, 16, 12))));
 /**
@@ -176,7 +183,7 @@ export function nucleo(color, r = 0.12, { halo = 8, white = 0xfff8ee } = {}) {
   return { object: g, mats: [inner.material, shell.material, sp.material], inner, shell, sprite: sp, set(k, t = 0, dt = 1 / 30) {
     kS += (k - kS) * Math.min(1, dt * 12); const beat = 1 + 0.08 * Math.sin(t * 6.3) + 0.05 * Math.sin(t * 13.1);
     inner.scale.setScalar(r * (0.42 + 0.16 * kS) * beat); shell.scale.setScalar(r * (0.9 + 0.12 * kS) * beat); su.uK.value = 0.4 + 0.5 * kS;
-    setBrillo(inner.material, 1.2 + kS * 1.1); sp.material.opacity = clamp(0.25 + 0.3 * kS, 0, 1); sp.scale.setScalar(r * halo * (0.6 + 0.45 * kS) * beat);
+    setBrillo(inner.material, 1.2 + kS * 1.1); sp.material.opacity = clamp(0.2 + 0.25 * kS, 0, 1); sp.scale.setScalar(r * halo * (0.6 + 0.45 * kS) * beat);
     g.visible = kS > 0.02;
   } };
 }
@@ -193,7 +200,7 @@ const MOTE_V = (mode) => `uniform float uTime, uSpd, uSize, uK; uniform vec3 uBo
   }[mode]}
   vec4 mv = modelViewMatrix * vec4(p, 1.0); vA = a * uK; float sc = length(modelMatrix[0].xyz);
   gl_PointSize = uSize * (0.5 + aS.w) * sc * 420.0 / max(0.5, -mv.z); gl_Position = projectionMatrix * mv; }`;
-const MOTE_F = 'uniform vec3 uC; varying float vA; void main(){ vec2 q = gl_PointCoord - 0.5; float d = dot(q, q) * 4.0; float a = exp(-d * 3.5) * vA; if (a < 0.01) discard; gl_FragColor = vec4(uC * a, a); }';
+const MOTE_F = 'uniform vec3 uC; varying float vA; void main(){ vec2 q = gl_PointCoord - 0.5; float d = dot(q, q) * 4.0; float a = exp(-d * 3.5) * vA; if (a < 0.01) discard; gl_FragColor = vec4(uC * a * 0.55, a * 0.55); }';
 export function motas(n, { color = 0x9fe8ff, size = 0.05, modo = 'rise', box = [1, 1, 1], speed = 0.5, k = 1, center = [0, 0, 0], seed = 3 } = {}) {
   const L = lod(); n = Math.max(4, Math.round(n * (L.low ? 0.6 : L.hi ? 1.4 : 1)));
   const g = new THREE.BufferGeometry(), R = rng(seed), s = new Float32Array(n * 4); for (let i = 0; i < n * 4; i++) s[i] = R();
@@ -210,7 +217,7 @@ const RING_F = `uniform float uTime, uK, uDir, uN, uSpd; uniform vec3 uC; varyin
     float edge = smoothstep(0.86, 0.95, r) * (1.0 - smoothstep(0.97, 1.0, r));
     float runes = step(0.6, fract(an * 3.8197 + uTime * 0.3)) * smoothstep(0.78, 0.82, r) * (1.0 - smoothstep(0.86, 0.9, r));
     float a = (band * 0.55 * smoothstep(0.05, 0.3, r) + edge * 0.9 + runes * 0.7) * uK * (1.0 - smoothstep(0.98, 1.0, r));
-    gl_FragColor = vec4(uC * a * 1.5, a); }`;
+    gl_FragColor = vec4(uC * a * 0.8, a * 0.6); }`;
 const RING_V = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
 let planeG = null;
 /** Disco de aviso (plano XZ). uK = intensidad (0 oculto); uDir 1 = pulsos hacia afuera, -1 hacia adentro. */

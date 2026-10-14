@@ -27,17 +27,18 @@ const errs = []; pg.on('console', (m) => { if (['error', 'warning'].includes(m.t
 const html = `<!doctype html><html><head><meta charset=utf-8><script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script><style>html,body{margin:0;background:#07030f}canvas{display:block}</style></head><body><canvas id=c></canvas><script type=module>
 import * as THREE from 'three'; import { skyMaterial, uTime } from '/src/client/shaders.js'; import { buildMonster } from '/src/client/models.js'; import { setCurrent, cfg } from '/src/client/quality.js'; import { kit } from '/src/client/organism.js';
 import { texturasListas } from '/src/client/creatures/alma-kit.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'; import { GradePass, sceneTarget } from '/src/client/post.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'; import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'; import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'; import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 const P = new URLSearchParams(location.search); setCurrent(P.get('q')); const MODO = P.get('modo');
-const gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: true }); gl.setSize(innerWidth, innerHeight, false); gl.toneMapping = THREE.ACESFilmicToneMapping; const Q = cfg(); gl.toneMappingExposure = Q.post ? 1.5 : 1.05;
+const gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: true }); gl.setSize(innerWidth, innerHeight, false); gl.toneMapping = THREE.ACESFilmicToneMapping; const Q = cfg(); gl.toneMappingExposure = 1.05;
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 5000);
 if (Q.env) { const pm = new THREE.PMREMGenerator(gl); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.55; }
 const hemi = new THREE.HemisphereLight(0xb9c4ff, 0x2a0f3a, 1.1), sun = new THREE.DirectionalLight(0xfff1e0, 2.2); sun.position.set(0.4, 1, 0.3); const rim = new THREE.DirectionalLight(0x9fe8ff, 1.0); rim.position.set(-0.6, 0.3, -0.8);
 scene.add(hemi, sun, rim);
 const sky = new THREE.Mesh(new THREE.SphereGeometry(4000, 24, 12), skyMaterial({ hue: 0.1 })); scene.add(sky);
 const floor = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0x2a2630, roughness: 0.9 })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
-let composer = null; if (Q.post) { composer = new EffectComposer(gl); composer.addPass(new RenderPass(scene, cam)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), Q.bloom || 0.5, 0.7, 0.8)); composer.addPass(new OutputPass()); composer.setSize(innerWidth, innerHeight); }
+// misma cadena que render.js: escena HDR → bloom (Media/Alta) → GradePass (exposición 1.9 + ACES + curvas) en TODAS las calidades
+let composer = null, grade = null; { composer = new EffectComposer(gl, sceneTarget(4)); composer.addPass(new RenderPass(scene, cam)); if (Q.post) composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), Q.bloom || 0.5, 0.55, 0.85)); grade = new GradePass(P.get('q')); grade.preset(P.get('mapa') || 'm1'); composer.addPass(grade); composer.setSize(innerWidth, innerHeight); }
 const black = new THREE.MeshBasicMaterial({ color: 0x000000 });
 await Promise.race([texturasListas(), new Promise((r) => setTimeout(r, 4000))]);
 const built = {}; let t = 0;
@@ -45,7 +46,7 @@ function get(k, sc) { if (built[k]) return built[k]; const e = buildMonster(k); 
 function sim(e, st, frames, camPos) { for (let i = 0; i < frames; i++) { t += 1 / 30; uTime.value = t; e.object.updateMatrixWorld(true); const look = camPos.clone(); e.object.worldToLocal(look); const d = look.length();
   e.tick(1 / 30, st, t, { look: look.normalize(), speed: st.v || 0, dist: st.dist ?? d }); } }
 function measure() { sky.visible = false; floor.visible = false; gl.info.autoReset = false; gl.info.reset(); gl.render(scene, cam); const r = { calls: gl.info.render.calls, tris: gl.info.render.triangles }; sky.visible = true; return r; }
-function draw() { if (composer && MODO !== 'silueta') composer.render(); else gl.render(scene, cam); }
+function draw() { if (composer && MODO !== 'silueta') { grade.frame(cam, t); composer.render(); } else gl.render(scene, cam); }
 window.__ready = true;
 window.__one = (o) => { // { k, s, sc, fly, yaw }
   for (const k in built) built[k].object.visible = false;
@@ -53,7 +54,7 @@ window.__one = (o) => { // { k, s, sc, fly, yaw }
   const st = { id: 3, s: o.s, o: o.s === 'open', c: !!o.c, hp: o.hp ?? 1, sd: !!o.sd, st: o.s === 'stagger' || o.s === 'stun', v: o.v || 0, dist: o.dist, a: o.s === 'charge' || o.s === 'ray' ? [0, -0.15, 1] : null };
   const yaw = o.yaw ?? 0.85; let camPos = new THREE.Vector3(Math.sin(yaw), 0.18, Math.cos(yaw)).multiplyScalar(o.sc * 6);
   sim(e, st, o.frames || 45, camPos);
-  e.object.updateMatrixWorld(true); const bb = new THREE.Box3(); e.object.traverse((c) => { if ((c.isMesh || c.isSkinnedMesh) && c.visible && !c.isSprite && c.geometry) { if (c.isSkinnedMesh) { c.computeBoundingBox && c.computeBoundingBox(); } const b2 = new THREE.Box3().setFromObject(c, true); if (isFinite(b2.min.x)) bb.union(b2); } });
+  e.object.updateMatrixWorld(true); const bb = new THREE.Box3(); e.object.traverse((c) => { if ((c.isMesh || c.isSkinnedMesh) && c.visible && !c.isSprite && c.geometry && !c.userData.noBox && c.material && c.material.blending !== THREE.AdditiveBlending) { if (c.isSkinnedMesh) { c.computeBoundingBox && c.computeBoundingBox(); } const b2 = new THREE.Box3().setFromObject(c, true); if (isFinite(b2.min.x)) bb.union(b2); } });
   const ctr = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3()), R = Math.max(sz.x, sz.y, sz.z) * 0.62 + 0.01;
   const dist = R / Math.tan((cam.fov * Math.PI) / 360) * 1.05; camPos = new THREE.Vector3(Math.sin(yaw) * Math.cos(0.12), Math.sin(0.12), Math.cos(yaw) * Math.cos(0.12)).multiplyScalar(dist).add(ctr);
   cam.position.copy(camPos); cam.lookAt(ctr); cam.updateMatrixWorld();
@@ -76,7 +77,7 @@ window.__fila = (list) => { // las criaturas a escala real, en fila, cámara a ~
 </script></body></html>`;
 await pg.route('**/__almas.html*', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: html }));
 await pg.goto(`http://localhost:${srv.port}/__almas.html?q=${q}&modo=${modo}`);
-await pg.waitForFunction(() => window.__ready, null, { timeout: 240000 });
+await pg.waitForFunction(() => window.__ready, null, { timeout: 60000 }).catch(() => { console.log('NO CARGÓ:', errs.join(' | ')); process.exit(1); });
 const { createCanvas } = await import('node:module').then(() => ({ createCanvas: null }));
 const shots = []; const res = {};
 if (modo === 'fila') {

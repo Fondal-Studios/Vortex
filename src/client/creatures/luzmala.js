@@ -1,28 +1,29 @@
 // LUZ MALA (id interno «prisma», volador en picada) — la luz que flota de noche sobre el campo y que no hay que seguir. Una ESFERA DE LUZ
-// amarillenta (el núcleo ES el cuerpo: punto débil enorme), envuelta en una membrana de plasma que tiembla; contra la membrana se aprieta
-// desde adentro una CARA de ánima que grita (se ve al acercarse); detrás arrastra jirones de luz como una cola de cometa.
+// amarillenta (el núcleo ES el cuerpo: punto débil enorme), envuelta en una membrana de plasma que tiembla; en la luz se abren los AGUJEROS
+// de una cara de ánima que grita (dos cuencas caídas y una boca larga, negro sobre blanco: se lee de lejos); detrás arrastra jirones de luz como una cola de cometa.
 // 'orbit' = flota y ronda · 'wind' (0.7 s, AVISO) = se encoge, la cara abre la boca, le brotan rayos rojos y tiembla · 'dive' = se estira
 // como cometa hacia el jugador con la cola larga. st.hp baja = parpadea y pierde jirones · st.sd escudo.
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { THREE, lod, clamp, lerp, smooth, velo, nucleo, motas, fuego, llamas, sudario, calavera, setK, paint, ellipsoid, shieldAura, tickAura, Spring, dampTo, TAU, rng } from './alma-kit.js';
+import { THREE, lod, clamp, lerp, smooth, velo, nucleo, motas, fuego, llamas, sudario, setK, paint, ellipsoid, shieldAura, tickAura, Spring, dampTo, TAU, rng } from './alma-kit.js';
 
 export default function build(kit, color = 0xfff27a) {
   const L = lod(), low = L.low, V3 = THREE.Vector3, col = new THREE.Color(color), hot = new THREE.Color(0xff5a2a);
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-  const memM = velo(0xfff6c0, { alpha: 0.2, rimColor: color, rim: 1.6, rimPow: 1.6, flutter: 0.05, speed: 4.5, hem: 2, hemGlow: 0, glow: 0.25, glowColor: color, weave: 0, sheen: 0 });
-  const faceM = velo(0xfff4e0, { alpha: 0.92, rimColor: 0xfff0b0, rim: 0.9, flutter: 0.0, hem: 2, hemGlow: 0, glow: 0.0, weave: 0, sheen: 0, emissiveLift: 0.05, fresAlpha: false, depthWrite: true, side: THREE.FrontSide });
+  const memM = velo(0xd8ff80, { alpha: 0.14, rimColor: color, rim: 1.6, rimPow: 1.6, flutter: 0.05, speed: 4.5, hem: 2, hemGlow: 0, glow: 0.25, glowColor: color, weave: 0, sheen: 0 });
   const tailM = velo(0xfff4c0, { alpha: 0.5, rimColor: color, rim: 1.4, flutter: 0.16, speed: 5, hem: 0.35, hemGlow: 1.2, glow: 0.4, glowColor: color, weave: 0, sheen: 0 });
   const rayM = fuego(0xff7a20, 0xfff6c0, { k: 0, speed: 1.6, wob: 0.12 });
-  const mats = [memM, faceM, tailM, rayM];
+  const mats = [memM, tailM, rayM];
   // membrana de plasma (esfera irregular que ondula entera: aK = 1)
   const mg = ellipsoid([0.5, 0.5, 0.52], { w: low ? 16 : 24, h: low ? 12 : 18, noise: 0.12, seed: 9 }); setK(mg, 1); paint(mg, 0xffffff);
   const membrane = new THREE.Mesh(mg, memM); membrane.renderOrder = 2; body.add(membrane);
-  // cara que se aprieta contra la luz (calavera translúcida) con mandíbula que se abre
-  const sk = calavera(0.2, { long: 0.9, seed: 11, bone: 0xd8c8a8, dark: 0x040302 }); setK(sk.cranium, 0); setK(sk.jaw, 0);
+  // cara de ánima hecha de AGUJEROS en la luz: dos cuencas caídas y una boca larga (negro puro, se dibuja encima del halo) → grita en el aviso
+  const holeM = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.92, depthWrite: false }); holeM.userData.u = { uHurt: { value: 0 } };
+  const holeG = new THREE.SphereGeometry(1, 12, 8); holeG.scale(1, 1, 0.25);
   const face = new THREE.Group(); face.position.set(0, 0.04, 0.3); body.add(face);
-  const cr = new THREE.Mesh(sk.cranium, faceM), jawG = new THREE.Group(), jw = new THREE.Mesh(sk.jaw, faceM); jawG.position.set(0, -0.06, -0.02); jw.position.set(0, 0.06, 0.02); jawG.add(jw); face.add(cr, jawG); cr.renderOrder = jw.renderOrder = 6;
-  const eyeM = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(2.2), toneMapped: false }); mats.push(eyeM);
-  for (const sd of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), eyeM); e.position.set(sd * 0.072, 0.01, 0.14); e.scale.set(1, 0.75, 0.5); e.renderOrder = 7; face.add(e); }
+  const eyesH = [-1, 1].map((sd) => { const e = new THREE.Mesh(holeG, holeM); e.position.set(sd * 0.1, 0.06, 0); e.scale.set(0.05, 0.085, 0.05); e.rotation.z = sd * -0.35; e.renderOrder = 7; face.add(e); return e; });
+  const jawG = new THREE.Mesh(holeG, holeM); jawG.position.set(0, -0.11, 0); jawG.scale.set(0.05, 0.05, 0.05); jawG.renderOrder = 7; face.add(jawG);
+  const eyeM = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(1.2), toneMapped: false }); mats.push(eyeM, holeM);
+  for (const sd of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.014, 6, 4), eyeM); e.position.set(sd * 0.1, 0.05, 0.02); e.renderOrder = 8; face.add(e); }
   // jirones de cola (sudarios finos que salen de atrás)
   const R = rng(5), tails = [];
   const tg = []; for (let i = 0; i < (low ? 4 : 6); i++) { const a = (i / (low ? 4 : 6)) * TAU + R() * 0.4, rr = 0.25, x = Math.cos(a) * rr, y = Math.sin(a) * rr;
@@ -35,7 +36,7 @@ export default function build(kit, color = 0xfff27a) {
   const orb = motas(24, { color, size: 0.06, modo: 'orbit', box: [0.75, 0.8, 0.75], speed: 0.35 }); body.add(orb); mats.push(orb.material);
   const trail = motas(26, { color: 0xffe9a0, size: 0.06, modo: 'trail', box: [0.6, 0.6, 2.4], speed: 1.2 }); trail.position.z = -0.3; body.add(trail); mats.push(trail.material);
   const aura = shieldAura(col.clone().lerp(new THREE.Color(0xffffff), 0.4), 1.2); root.add(aura);
-  mats.push({ userData: {}, dispose() { [mg, sk.cranium, sk.jaw, tailMesh.geometry, rayMesh.geometry, aura.geometry, aura.material, orb.userData.geo, trail.userData.geo].forEach((x) => x && x.dispose && x.dispose()); } });
+  mats.push({ userData: {}, dispose() { [mg, holeG, tailMesh.geometry, rayMesh.geometry, aura.geometry, aura.material, orb.userData.geo, trail.userData.geo].forEach((x) => x && x.dispose && x.dispose()); } });
   const sBob = new Spring(0, 30, 5), look = new V3(0, 0, 1); let windK = 0, diveK = 0, prevHp = 1, flinch = 0, jawO = 0;
   return { root, mats, tick(dt, st, t, ctx = {}) {
     dt = Math.min(dt, 0.05);
@@ -49,7 +50,7 @@ export default function build(kit, color = 0xfff27a) {
     membrane.rotation.y = t * 0.6; membrane.rotation.x = t * 0.37; memM.userData.u.uFlut.value = 0.04 + windK * 0.08 + diveK * 0.05;
     // cara: mira al jugador; grita en el aviso
     face.rotation.y = clamp(Math.atan2(look.x, look.z), -0.6, 0.6) * 0.5; face.rotation.x = -clamp(look.y, -0.5, 0.5) * 0.4;
-    jawO = dampTo(jawO, 0.08 + windK * 0.75 + diveK * 0.5 + flinch * 0.4 + Math.max(0, Math.sin(t * 2.3)) * 0.1, 12, dt); jawG.rotation.x = jawO;
+    jawO = dampTo(jawO, 0.08 + windK * 0.75 + diveK * 0.5 + flinch * 0.4 + Math.max(0, Math.sin(t * 2.3)) * 0.1, 12, dt); jawG.scale.set(0.05 + jawO * 0.02, 0.04 + jawO * 0.17, 0.05); eyesH.forEach((e) => e.scale.set(0.05, 0.085 + windK * 0.03, 0.05));
     face.position.z = 0.3 + windK * 0.06 + Math.sin(t * 2) * 0.015;
     // cola: larga en la picada
     tailMesh.scale.set(1 - diveK * 0.2, 1 - diveK * 0.2, 1 + diveK * 1.1 - windK * 0.3); tailM.userData.u.uFlut.value = 0.12 + diveK * 0.12; tailM.userData.u.uVis.value = hurt ? 0.5 + 0.5 * Math.abs(Math.sin(t * 13)) : 1;

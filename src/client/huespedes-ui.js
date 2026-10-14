@@ -88,7 +88,7 @@ export function buildHuespedScreen(menu) {
     } catch (err) { hs.failed = true; console.warn('Huéspedes: sin 3D —', err.message); }
   }
   function frame() {
-    const id = hs.sel, f = FRAME[id] || [1, 2.4], st = $('#hsstage'), w = st.clientWidth, h = st.clientHeight; if (!hs.cam || w < 8 || h < 8) return;
+    const id = hs.sel, f = hs.host && hs.host.human ? [1.0, 2.3] : FRAME[id] || [1, 2.4], st = $('#hsstage'), w = st.clientWidth, h = st.clientHeight; if (!hs.cam || w < 8 || h < 8) return;
     hs.renderer.setSize(w, h, false); hs.cam.aspect = w / h;
     const fov = hs.THREE.MathUtils.degToRad(hs.cam.fov), dH = (f[1] / 2) / Math.tan(fov / 2), dW = ((f[1] * 0.62) / 2) / (Math.tan(fov / 2) * hs.cam.aspect);
     const d = Math.max(dH, dW) * 1.04; hs.cam.position.set(0, f[0] + 0.15, d); hs.cam.lookAt(0, f[0], 0); hs.cam.updateProjectionMatrix();
@@ -98,8 +98,22 @@ export function buildHuespedScreen(menu) {
     if (hs.host) { hs.scene.remove(hs.host.group); hs.host.dispose(); hs.host = null; }
     const C = CHARACTERS[id], col = new hs.THREE.Color(C.color);
     hs.rim.color.copy(col).lerp(new hs.THREE.Color(0xffffff), 0.45); hs.kick.color.copy(col).lerp(new hs.THREE.Color(0xffffff), 0.2); for (const m of [hs.pad, hs.ring, hs.ring2]) m.material.color.copy(col);
-    if (C.host) { hs.host = buildHost(hs.THREE, id, hs.quality); hs.scene.add(hs.host.group); hs.user = 0; hs.idle = 0; }
+    if (C.host) { hs.host = buildHost(hs.THREE, id, hs.quality); hs.scene.add(hs.host.group); hs.user = 0; hs.idle = 0; humanize(id); }
     frame();
+  }
+  /** Cuerpo humano real intervenido (host-human.js, el mismo de la 3ª persona) con la evolución y órganos del perfil; mientras carga, el modelo de bloques. */
+  async function humanize(id) {
+    if (/[?&]cuerpo=bloques/.test(location.search)) return;
+    try {
+      if (!hs.hk) { const hm = await import('./humans.js'), mod = await import('./host-human.js'), ph = await import('./ph.js'); hs.hk = { hm, mod, kit: await hm.loadHumanKit({ quality: hs.quality }) };
+        ph.loadEnvHDRI(hs.renderer, 'small_cathedral_02').then((t) => { hs.scene.environment = t; hs.scene.environmentIntensity = 0.8; }).catch(() => {}); }
+      if (hs.sel !== id) return;
+      const P = await import('./perfil.js'), pp = P.paraPartida(id), pl = { char: id, name: CHARACTERS[id].name, evo: pp.evo || 0, pth: pp.path || [], cg: pp.corg || [] };
+      const b = hs.hk.mod.createHostHuman(hs.THREE, hs.hk.hm, hs.hk.kit, pl, { quality: hs.quality, weapon: null, camera: hs.cam });
+      const wrap = { group: b.object, human: true, update: (dt) => b.update(dt, pl, { speed: 0, pitch: 0 }), pose: (k) => { if (k === 'melee' || k === 'skill') b.event({ t: k }); }, dispose: () => b.dispose() };
+      await b.person.ready; if (hs.sel !== id) { b.dispose(); return; }
+      if (hs.host) { hs.scene.remove(hs.host.group); hs.host.dispose(); } hs.host = wrap; hs.scene.add(b.object); hs.humanFrame = true; frame();
+    } catch (err) { console.warn('Huésped humano (selección):', err.message); }
   }
   let last = 0;
   function loop(now) {

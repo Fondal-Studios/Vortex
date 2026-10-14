@@ -20,12 +20,15 @@ import { rng } from './noise.js';
 import { M5 } from '../../sim/map5.js';
 import {
   deadMaterial, glassMaterial, glowMaterial, Batch, put, box, cyl, profileBar, CORNICE, STRING, gableGeo, roofGeo, archGeo,
-  limboSky, crackStrips, rootsMesh, climbCurve, floaters, floatItem, leveZone, haloField, lightShafts,
+  limboSky, crackStrips, rootsMesh, climbCurve, floaters, floatItem, leveZone, haloField, lightShafts, lightPools, risingStream,
 } from './limbo-kit.js';
 
 export const M5V = { sun: new THREE.Vector3(-0.42, 0.34, -0.84).normalize(), glow: 0x9fe8ff, flame: 0xbfeaff };
-// paleta muerta: estucos que fueron pastel (ARCANUM praga-build.js PASTEL), lavados casi a gris
-const STUCCO = [0xd9d3c8, 0xc9c6c0, 0xbfc4cc, 0xd4ccc0, 0xb8bcc4, 0xcfc8bc, 0xc4bfb6, 0xdedad2, 0xb4b8bf, 0xc8c2b8];
+// estucos pastel de ARCANUM (praga-build.js PASTEL): muertos (polvo, grietas) pero alucinados por la luz del más allá
+const STUCCO = [0xf4a6b8, 0x9fdcc0, 0xf6d77e, 0x9fc4f0, 0xc7ade9, 0xf7b98a, 0xf3e3bd, 0xa8e0ea, 0xf2b0d6, 0xd6ea9c];
+// acentos de luz (docs/CONCEPTO_ARTE.md): violeta del Vórtice, celeste espiritual, oro, magenta, turquesa
+export const ACC = [0xb07bff, 0x9fe8ff, 0xf2c66d, 0xff4fd8, 0x46ffd0];
+const accC = (rd, k = 1) => new THREE.Color(ACC[Math.floor(rd() * ACC.length)]).multiplyScalar(k);
 
 /** Una fila de casas sobre la cara de un muro: a,b = extremos (x,z), n = normal hacia la plaza. */
 function facadeRun(B, a, b, n, rd, { low, hMin = 17.5, hMax = 21.5, ground = 'mix', skip = null }) {
@@ -53,11 +56,12 @@ function facadeRun(B, a, b, n, rd, { low, hMin = 17.5, hMax = 21.5, ground = 'mi
     for (let k = 0; k < nf; k++) {
       const y = 5.4 + 3.4 * k; if (y + 1.2 > h - 0.8) break;
       for (let i = 0; i < nw; i++) {
-        const x = (i - (nw - 1) / 2) * 2.3, glow = rd() < 0.07 ? 0.35 + rd() * 0.6 : 0;
+        const x = (i - (nw - 1) / 2) * 2.3, glow = rd() < 0.3 ? 0.9 + rd() * 1.2 : 0;
         B.stone.add(place(put(box(1.34, 2.04, 0.16), x, y, 0.08)), 0xd8d3ca);
-        B.glass.add(place(put(new THREE.PlaneGeometry(1.02, 1.74), x, y, 0.165)), glow ? new THREE.Color(0.35 * glow, 0.75 * glow, 0.95 * glow) : 0x000000, null);
+        const wc = glow ? accC(rd, glow) : null;
+        B.glass.add(place(put(new THREE.PlaneGeometry(1.02, 1.74), x, y, 0.165)), wc || 0x000000, null);
         B.stone.add(place(put(box(1.56, 0.12, 0.34), x, y - 1.08, 0.17)), 0xcfcac0);
-        if (glow) lit.push(place(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([x, y, 0.5], 3))).attributes.position.array.slice());
+        if (glow) { const pp = place(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([x, y, 0.5], 3))).attributes.position.array; lit.push([pp[0], pp[1], pp[2], wc.getHex()]); }
         if (!low && rd() < 0.3) { const side = rd() < 0.5 ? -1 : 1, tilt = (rd() - 0.5) * 0.5; B.wood.add(place(put(box(0.52, 1.74, 0.06), x + side * 0.85, y - (Math.abs(tilt) * 0.4), 0.22, 0, side * 0.5, tilt)), 0x3a3a3c); }
       }
     }
@@ -117,8 +121,8 @@ function portalMat() {
       vec3 pal(float t){ return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67))); }
       void main(){ vec2 p = (vUv - vec2(0.5, 0.42)) * vec2(1.0, 1.45); float r = length(p), a = atan(p.y, p.x);
         float sw = sin(a * 5.0 + r * 18.0 - uTime * 0.9) * 0.5 + 0.5, tun = fract(log(r + 0.02) * 1.6 - uTime * 0.12);
-        vec3 c = mix(vec3(0.62, 0.9, 1.0), pal(tun * 0.6 + uTime * 0.02) * 0.9, 0.35) * (0.25 + 0.75 * pow(sw, 3.0)) * smoothstep(0.62, 0.0, r);
-        c += vec3(0.85, 0.95, 1.0) * smoothstep(0.08, 0.0, r) * 1.4;
+        vec3 c = mix(vec3(0.62, 0.9, 1.0), pal(tun * 0.6 + uTime * 0.02) * 0.9, 0.35) * (0.25 + 0.75 * pow(sw, 3.0)) * (1.0 - smoothstep(0.0, 0.62, r));
+        c += vec3(0.85, 0.95, 1.0) * (1.0 - smoothstep(0.0, 0.08, r)) * 1.4;
         gl_FragColor = vec4(c * 0.9, 1.0); }`,
   }));
 }
@@ -126,15 +130,15 @@ function portalMat() {
 export function build(r, map) {
   const root = r.mapRoot, q = cfg(), low = !q.decor, rd = rng(5150), sunDir = M5V.sun.clone();
   // luz: luna fría desde el sol muerto + cielo ceniza (render.js ya puso el HDRI 'moonless_golf')
-  r.hemi.color.setHex(0x8c98b4); r.hemi.groundColor.setHex(0x1c1e24); r.hemi.intensity = 1.3;
-  r.sun.color.setHex(0xc9d6ee); r.sun.intensity = 2.0; r.sun.position.copy(sunDir); r.sunDir = sunDir.clone();
-  r.rim.color.setHex(0x8fdcff); r.rim.intensity = 0.45;
+  r.hemi.color.setHex(0xa48cff); r.hemi.groundColor.setHex(0x1a2a3a); r.hemi.intensity = 1.35;
+  r.sun.color.setHex(0xd8e6ff); r.sun.intensity = 2.1; r.sun.position.copy(sunDir); r.sunDir = sunDir.clone();
+  r.rim.color.setHex(0xff5cc8); r.rim.intensity = 0.9;
   r.scene.environmentIntensity = 0.35;
   trackPx(r);
 
   const MAT = {
     floor: deadMaterial('cobble', { sat: 0.22, tint: 0xd8dde6, dustK: 0.0, grime: 0.0, crack: 0.75, crackY: [-1, 0.5], rough: 0.95, envI: 0.8 }),
-    stucco: deadMaterial('stucco', { sat: 0.35, tint: 0xf2f0ec, dustK: 0.45, grime: 0.5, crack: 0.55, crackY: [0.5, 26] }),
+    stucco: deadMaterial('stucco', { sat: 0.7, tint: 0xf2f0ec, dustK: 0.45, grime: 0.5, crack: 0.55, crackY: [0.5, 26] }),
     stone: deadMaterial('ashlar', { sat: 0.25, tint: 0xe6e3dc, dustK: 0.5, grime: 0.4, crack: 0.35, crackY: [0.2, 40] }),
     roof: deadMaterial('ashlar', { sat: 0.1, tint: 0x7a7e86, dustK: 0.25, grime: 0.0, crack: 0.0 }),
     wood: deadMaterial('ph:rough_linen', { sat: 0.15, tint: 0x8a8580, dustK: 0.3, crack: 0, rough: 0.9 }),
@@ -245,7 +249,7 @@ export function build(r, map) {
       const s = c.h / 3.95;
       B.iron.add(put(cyl(0.06 * s, 0.09 * s, 3.4 * s, 6), c.x, 1.7 * s, c.z), 0x222326); B.iron.add(put(cyl(0.22 * s, 0.22 * s, 0.12 * s, 8), c.x, 0.06 * s, c.z), 0x222326);
       B.iron.add(put(box(0.36 * s, 0.06 * s, 0.36 * s), c.x, 3.42 * s, c.z), 0x222326); B.iron.add(put(new THREE.ConeGeometry(0.3 * s, 0.3 * s, 4).rotateY(Math.PI / 4), c.x, 3.95 * s, c.z), 0x222326);
-      B.glow.add(put(box(0.24 * s, 0.36 * s, 0.24 * s), c.x, 3.66 * s, c.z), new THREE.Color(0.55, 0.85, 1.0));
+      c.col = ACC[(Math.abs(Math.round(c.x * 7 + c.z * 3))) % ACC.length]; B.glow.add(put(box(0.24 * s, 0.36 * s, 0.24 * s), c.x, 3.66 * s, c.z), new THREE.Color(c.col).multiplyScalar(1.6));
     }
   }
 
@@ -254,7 +258,7 @@ export function build(r, map) {
   for (const k of Object.keys(B)) { const m = B[k].build(MAT[k], { shadows: shadows && k !== 'glass' && k !== 'glow' && k !== 'floor', name: 'm5-' + k }); if (m) { if (k === 'floor' && shadows) m.receiveShadow = true; root.add(m); } }
 
   // ── cielo, grietas, raíces, objetos suspendidos, zona de gravedad rota
-  limboSky(r, root, { sun: sunDir, skyline: 1, hue: 0.55, glyph: 1, zen: 0x070a12, hor: 0x46506a, glow: M5V.glow });
+  limboSky(r, root, { sun: sunDir, skyline: 1, hue: 0.62, glyph: 1, zen: 0x0b0620, hor: 0x3a2a6a, glow: M5V.glow });
   const inside = (x, z) => map.walkable(x, z, 0.4);
   crackStrips(root, [
     { x: F.x, z: F.z, n: low ? 7 : 10, len: 14, spread: Math.PI * 2 },                 // de la fuente
@@ -278,7 +282,7 @@ export function build(r, map) {
   const fl = [], zr = M5.OJO.r;
   for (let i = 0; i < (low ? 34 : 70); i++) { const a = rd() * 6.283, rr = 1.6 + Math.sqrt(rd()) * (zr - 1.8); fl.push(floatItem(rd, new THREE.Vector3(F.x + Math.cos(a) * rr, 1.2 + rd() * rd() * 12, F.z + Math.sin(a) * rr), 0.22 + rd() * 0.12, { amp: 0.35, spd: 0.4, spin: 0.6, sv: new THREE.Vector3(1.3, 0.55, 1) })); }
   for (const c of map.covers.filter((c) => c.kind === 'pedestal')) for (let i = 0; i < 4; i++) fl.push(floatItem(rd, new THREE.Vector3(c.x + (rd() - 0.5) * 2, c.h + 2.2 + i * 1.1, c.z + (rd() - 0.5) * 2), 0.45 + rd() * 0.3, { amp: 0.25, spd: 0.3, spin: 0.3, sv: new THREE.Vector3(1, 1.4, 0.8) }));
-  floaters(r, root, new THREE.BoxGeometry(1, 1, 1), deadMaterial('cobble', { vcol: false, sat: 0.2, tint: 0xd0d4dc, crack: 0, dustK: 0.2 }), fl, { name: 'm5-adoquines' });
+  floaters(r, root, new THREE.BoxGeometry(1, 1, 1), (() => { const m = deadMaterial('cobble', { vcol: false, sat: 0.6, tint: 0xffffff, crack: 1, dustK: 0.2 }); m.emissive.setHex(0x6a3aa8); m.emissiveIntensity = 0.35; return m; })(), fl, { name: 'm5-adoquines' });
   const tiles = [];
   for (let i = 0; i < (low ? 24 : 50); i++) { const side = rd() < 0.5 ? -1 : 1; tiles.push(floatItem(rd, new THREE.Vector3((rd() - 0.5) * 70, 22 + rd() * 14, P.z0 + rd() * (P.z1 - P.z0)), 0.6 + rd() * 0.5, { amp: 0.8, spd: 0.25, spin: 0.35, sv: new THREE.Vector3(1, 0.08, 0.6) })); void side; }
   for (let i = 0; i < 4; i++) tiles.push(floatItem(rd, new THREE.Vector3((i < 2 ? -8.5 : 8.5) + (rd() - 0.5) * 2, 60 + i * 4, TZ + 1), 2.2, { amp: 1.2, spd: 0.12, spin: 0.08, sv: new THREE.Vector3(1.6, 3.4, 1.6) })); // puntas de Týn despegadas
@@ -287,25 +291,30 @@ export function build(r, map) {
   // agua de la fuente que sube (chorro de gotas desde la columna)
   const jet = new THREE.Points(particleGeo(low ? 90 : 180, (i, rr) => { const a = rr() * 6.283, d = 0.3 + rr() * 1.4; return [F.x + Math.cos(a) * d, 1 + rr() * 1.5, F.z + Math.sin(a) * d]; }, 13), particleMat({ color: 0xa8e6ff, size: 0.06, mode: 0, speed: 0.12, height: 16, amp: 0.25, alpha: 0.9 }));
   jet.frustumCulled = false; root.add(jet);
+  risingStream(root, [{ x: F.x, y: 1, z: F.z, r: 1.3, h: 26 }, { x: F.x, y: 0.9, z: F.z, r: 2.6, h: 12 }]);
+  const pools = [{ x: F.x, z: F.z, r: 9, col: 0x9a6aff, k: 0.9 }, { x: TW.x0 - 3, z: tz, r: 7, col: 0xd070ff, k: 1.1 }];
+  for (const c of map.covers.filter((c) => c.kind === 'farol')) pools.push({ x: c.x, z: c.z, r: 4.2, col: c.col || M5V.flame, k: 0.8 });
+  for (const p of lit) if (p[1] < 9) pools.push({ x: p[0], z: p[2], r: 2.5, col: p[3], k: 0.5 });
+  lightPools(root, pools);
 
   // ── luz: halos de faroles, ventanas y portal; rayos de luz; niebla baja; polvo
   const hl = [];
-  for (const c of map.covers.filter((c) => c.kind === 'farol')) hl.push({ p: new THREE.Vector3(c.x, c.h * 0.93, c.z), s: 1.6, col: M5V.flame, o: 0.55 });
-  for (const p of lit.slice(0, 40)) hl.push({ p: new THREE.Vector3(p[0], p[1], p[2]), s: 2.2, col: 0x7fcfe8, o: 0.25 });
-  hl.push({ p: new THREE.Vector3(TW.x0 - 0.8, 2.6, tz), s: 7, col: 0xbfeaff, o: 0.5 });
+  for (const c of map.covers.filter((c) => c.kind === 'farol')) hl.push({ p: new THREE.Vector3(c.x, c.h * 0.93, c.z), s: 2.4, col: c.col || M5V.flame, o: 0.8 });
+  for (const p of lit.slice(0, 90)) hl.push({ p: new THREE.Vector3(p[0], p[1], p[2]), s: 2.6, col: p[3], o: 0.35 });
+  hl.push({ p: new THREE.Vector3(TW.x0 - 0.8, 2.6, tz), s: 9, col: 0xd8a0ff, o: 0.8 });
   haloField(root, hl, { tex: r.shared('env.soft', softTex) });
   lightShafts(root, [ // luz que cae por las grietas del cielo: sobre la fuente, el mercado y la boca de la calle
-    { x: F.x - 2, z: F.z + 1, top: 46, r0: 7, r1: 4.5, k: 1.2 }, { x: 15, z: 13, top: 40, r0: 4, r1: 2.6, k: 0.8 }, { x: -18, z: -20, top: 40, r0: 4.5, r1: 3, k: 0.8 },
-    ...(low ? [] : [{ x: 0, z: 34, top: 36, r0: 3.4, r1: 2.2, k: 0.7 }, { x: -30, z: 6, top: 34, r0: 3, r1: 2, k: 0.6 }]),
+    { x: F.x - 2, z: F.z + 1, top: 60, r0: 5, r1: 3.2, k: 1.2, col: 0xd8c0ff }, { x: 15, z: 13, top: 55, r0: 3, r1: 1.8, k: 1, col: 0xff8fe0 }, { x: -18, z: -20, top: 55, r0: 3.2, r1: 2, k: 1, col: 0x7ff0d8 },
+    ...(low ? [] : [{ x: 0, z: 34, top: 45, r0: 2.6, r1: 1.6, k: 0.9, col: 0xf2c66d }, { x: -30, z: 6, top: 45, r0: 2.4, r1: 1.5, k: 0.8, col: 0x9fe8ff }]),
   ], { color: 0xdcefff });
   const mist = [];
-  for (let i = 0; i < (low ? 10 : 18); i++) mist.push({ p: new THREE.Vector3(P.x0 + 4 + rd() * (P.x1 - P.x0 - 8), 0.8 + rd() * 1.2, P.z0 + 4 + rd() * (P.z1 - P.z0 - 8)), s: 9 + rd() * 8, col: 0x56627a });
-  for (let i = 0; i < 4; i++) mist.push({ p: new THREE.Vector3((rd() - 0.5) * 6, 1, C.z0 + 3 + i * 6), s: 7, col: 0x56627a });
-  mistLayer(r, mist, { alpha: 0.13, near: 6, far: 120 });
+  for (let i = 0; i < (low ? 10 : 18); i++) mist.push({ p: new THREE.Vector3(P.x0 + 4 + rd() * (P.x1 - P.x0 - 8), 0.8 + rd() * 1.2, P.z0 + 4 + rd() * (P.z1 - P.z0 - 8)), s: 9 + rd() * 8, col: [0x6a4aa8, 0x2a7a8a, 0x8a3a7a][i % 3] });
+  for (let i = 0; i < 4; i++) mist.push({ p: new THREE.Vector3((rd() - 0.5) * 6, 1, C.z0 + 3 + i * 6), s: 7, col: 0x5a4a9a });
+  mistLayer(r, mist, { alpha: 0.2, near: 6, far: 120 });
   addMotes(r, root, low ? 60 : 160, 26);
   if (q.lights >= 3) { // Media/Alta: luz fría real en el portal y sobre la fuente
-    const pl = new THREE.PointLight(0xa8e8ff, 60, 30, 1.6); pl.position.set(TW.x0 - 2, 3, tz); root.add(pl);
-    const pf = new THREE.PointLight(0xbfeaff, 40, 26, 1.6); pf.position.set(F.x, 7, F.z); root.add(pf);
+    const pl = new THREE.PointLight(0xc890ff, 70, 30, 1.6); pl.position.set(TW.x0 - 2, 3, tz); root.add(pl);
+    const pf = new THREE.PointLight(0x7ff0d8, 50, 26, 1.6); pf.position.set(F.x, 7, F.z); root.add(pf);
     r.dyn.push((dt, t) => { pl.intensity = 60 * (0.8 + 0.2 * Math.sin(t * 1.3)); });
   }
   void dc;

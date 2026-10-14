@@ -316,7 +316,11 @@ export class Renderer {
       }
       const o = e.object, scale = m.r * (m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 1.4 : 1) * (m.el ? 1.22 : 1) * Math.min(1, 0.2 + (this.t - e.born) * 3);
       if (m.el && !e.elite) { e.elite = true; const sp = new THREE.Sprite(this.halo_(0xff3a5a)); sp.scale.setScalar(3.4); sp.material.opacity = 0.55; sp.name = 'elite'; e.object.add(sp); }
-      o.position.lerp(V(m.p), 0.6); o.scale.setScalar(scale);
+      o.position.lerp(V(m.p), 0.6);
+      { // IMPACTO: al recibir daño la criatura se aplasta y rebota (resorte amortiguado ~0,35 s): el golpe se SIENTE en el cuerpo
+        if (m.h && !e.hPrev) { e.kick = Math.min(1.6, (e.kick || 0) + 1); e.kickT = 0; } e.hPrev = !!m.h;
+        if (e.kick > 0.01) { e.kickT += dt; e.kick *= Math.exp(-dt * 7); const w = Math.sin(e.kickT * 38) * e.kick * 0.13; o.scale.set(scale * (1 + w), scale * (1 - w * 1.3), scale * (1 + w)); } else o.scale.setScalar(scale);
+      }
       this.orient(o, m.u, m.f);
       this.updateBar(e, m);
       const boss = m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'; this.tmpV.copy(this.camera.position).sub(o.position); const far = !boss && (this.tmpV.length() > cfg().lod + m.r * 2 || !full.has(m.id));
@@ -382,7 +386,7 @@ export class Renderer {
 
   /** Carga perezosa del kit de personas (Arcanum NPC Factory). En calidad Baja no se usa: avatares livianos. */
   async ensureHumans() {
-    if (this.humansKit || this.humansLoading || cfg().humans === 'low') return;
+    if (this.humansKit || this.humansLoading || (cfg().humans === 'low' && !HUMAN_HOSTS)) return; // en Baja sólo para el Huésped con cuerpo humano (host-human.js)
     this.humansLoading = true;
     try { this.hm = await import('./humans.js'); this.humansKit = await this.hm.loadHumanKit({ quality: cfg().humans }); } catch (err) { console.warn('personas 3D no disponibles:', err.message); }
   }
@@ -401,8 +405,8 @@ export class Renderer {
       const ch = CHARACTERS[p.char], col = ch ? ch.color : PLAYER_COLORS[(p.id - 1) % 4];
       if (!e) { e = { object: new THREE.Group(), human: null, simple: null, prev: p.pos, spd: 0, col, shotT: 0 }; e.simple = this.simpleAvatar(col); e.object.add(e.simple); this.entRoot.add(e.object); this.ents.ply.set(p.id, e); }
       if (!e.body && !e.noBody && !e.human && isHost(p.char)) { try { e.body = createHostBody(THREE, p, { quality: this.level === 'low' ? 'low' : 'medium' }); e.object.add(e.body.object); if (e.simple) { e.object.remove(e.simple); e.simple = null; } } catch (err) { console.warn('cuerpo de Huésped:', err.message); e.noBody = true; } } // cuerpo con modelo de Huésped (host-body.js)
-      if (e.body && !e.body.human && HUMAN_HOSTS && this.humansKit && this.hm && !e.noHuman) { try { if (!this.hostHumanMod) { this.hostHumanMod = 'cargando'; import('./host-human.js').then((m) => { this.hostHumanMod = m; }).catch(() => { this.hostHumanMod = null; e.noHuman = true; }); } else if (this.hostHumanMod.createHostHuman) { const hb = this.hostHumanMod.createHostHuman(THREE, this.hm, this.humansKit, p, { quality: this.level, camera: this.camera }); e.object.remove(e.body.object); e.body.dispose(); e.body = hb; e.object.add(hb.object); } } catch (err) { console.warn('Huésped humano:', err.message); e.noHuman = true; } } // cuerpo humano real intervenido (host-human.js) en Media/Alta
-      if (!e.body && !e.human && this.humansKit && this.hm) { try { e.human = this.hm.createHuman(this.humansKit, ch ? { char: p.char, name: p.name } : { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
+      if (e.body && !e.body.human && HUMAN_HOSTS && this.humansKit && this.hm && !e.noHuman) { try { if (!this.hostHumanMod) { this.hostHumanMod = 'cargando'; import('./host-human.js').then((m) => { this.hostHumanMod = m; }).catch(() => { this.hostHumanMod = null; e.noHuman = true; }); } else if (this.hostHumanMod.createHostHuman) { const hb = this.hostHumanMod.createHostHuman(THREE, this.hm, this.humansKit, p, { quality: this.level, camera: this.camera, weapon: p.w, getMap: () => this.mapId }); e.object.remove(e.body.object); e.body.dispose(); e.body = hb; e.object.add(hb.object); } } catch (err) { console.warn('Huésped humano:', err.message); e.noHuman = true; } } // cuerpo humano real intervenido (host-human.js) en Media/Alta
+      if (!e.body && !e.human && this.humansKit && this.hm && cfg().humans !== 'low') { try { e.human = this.hm.createHuman(this.humansKit, ch ? { char: p.char, name: p.name } : { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
       const dv = [p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]], spd = Math.hypot(...dv) / Math.max(dt, 1e-3); e.prev = p.pos;
       const hv = V(p.h), rv = new THREE.Vector3().crossVectors(hv, V(p.up)), dvv = V(dv), dl = dvv.length() || 1; e.moveDir = { x: dvv.dot(rv) / dl, z: dvv.dot(hv) / dl }; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
       const base = V(p.pos).addScaledVector(V(p.up), e.human || e.body ? -0.9 : 0);

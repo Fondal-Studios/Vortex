@@ -41,7 +41,8 @@ export function arcTextures(name) {
 
 /* ───────── material «muerto» ───────── */
 const CRACK_GLSL = /* glsl */`
-uniform float uTime, uSat, uDustK, uGrime, uCrack, uCrackY0, uCrackY1; uniform vec3 uTint, uDust, uCrackCol;
+uniform float uTime, uSat, uDustK, uGrime, uCrack, uCrackY0, uCrackY1, uHue; uniform vec3 uTint, uDust, uCrackCol;
+vec3 limboHue(vec3 c, float a){ const vec3 k = vec3(0.57735); float ca = cos(a), sa = sin(a); return c * ca + cross(k, c) * sa + k * dot(k, c) * (1.0 - ca); }
 varying vec3 vLWP; varying vec3 vLWN;
 ${NOISE}
 float limboCrack(vec3 p, float aa){
@@ -49,7 +50,7 @@ float limboCrack(vec3 p, float aa){
   float net = abs(n1 - 0.66);
   float fw = max(fwidth(net), 1e-4);
   float line = 1.0 - smoothstep(0.0, max(0.010, 1.3 * fw), net);        // grieta fina: ~1 cm en el mundo o ~1 píxel de lejos
-  float gate = smoothstep(0.58, 0.74, vnoise(p * 0.11 + 21.0)) * smoothstep(uCrackY0 - 0.5, uCrackY0 + 0.5, p.y) * (1.0 - smoothstep(uCrackY1 - 2.0, uCrackY1, p.y));
+  float gate = smoothstep(0.5, 0.68, vnoise(p * 0.11 + 21.0)) * smoothstep(uCrackY0 - 0.5, uCrackY0 + 0.5, p.y) * (1.0 - smoothstep(uCrackY1 - 2.0, uCrackY1, p.y));
   return line * gate * (1.0 - smoothstep(0.6, 2.5, fw * 60.0));          // muy lejos se apagan (no titilan)
 }
 `;
@@ -64,9 +65,9 @@ export function deadMaterial(tex, o = {}) {
     normalScale: new THREE.Vector2(o.normal ?? 1, o.normal ?? 1), envMapIntensity: o.envI ?? 0.6, aoMapIntensity: 0.8,
   });
   const U = {
-    uTime, uSat: { value: o.sat ?? 0.28 }, uTint: { value: new THREE.Color(o.tint ?? 0xffffff) }, uDust: { value: new THREE.Color(o.dust ?? 0xd9d4c8) },
+    uTime, uSat: { value: o.sat ?? 0.75 }, uTint: { value: new THREE.Color(o.tint ?? 0xffffff) }, uDust: { value: new THREE.Color(o.dust ?? 0xd9d4c8) },
     uDustK: { value: o.dustK ?? 0.35 }, uGrime: { value: o.grime ?? 0.45 }, uCrack: { value: o.crack ?? 0.6 }, uCrackCol: { value: new THREE.Color(o.crackCol ?? 0x9fe8ff) },
-    uCrackY0: { value: (o.crackY || [-5, 60])[0] }, uCrackY1: { value: (o.crackY || [-5, 60])[1] },
+    uHue: { value: o.hue ?? 1 }, uCrackY0: { value: (o.crackY || [-5, 60])[0] }, uCrackY1: { value: (o.crackY || [-5, 60])[1] },
   };
   mat.userData.U = U;
   mat.onBeforeCompile = (sh) => {
@@ -88,7 +89,8 @@ export function deadMaterial(tex, o = {}) {
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         if (uCrack > 0.0) { float aa = length(fwidth(vLWP)) * 1.2; float c = limboCrack(vLWP, aa) * uCrack;
           float flow = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(uTime * 1.1 - vLWP.y * 0.45 + vnoise(vLWP * 0.3) * 9.0), 3.0);
-          diffuseColor.rgb *= 1.0 - 0.6 * c; totalEmissiveRadiance += uCrackCol * c * (0.35 + 1.5 * flow); }`);
+          vec3 cc = limboHue(uCrackCol, uHue * (uTime * 0.15 + vnoise(vLWP * 0.04) * 5.0)); cc = max(cc, vec3(0.0));
+          diffuseColor.rgb *= 1.0 - 0.6 * c; totalEmissiveRadiance += cc * c * (0.6 + 2.6 * flow); }`);
   };
   mat.customProgramCacheKey = () => 'limbo-dead';
   return mat;
@@ -227,31 +229,39 @@ export function limboSky(r, root, o = {}) {
         return s; }
       void main(){
         vec3 d = normalize(vDir); float up = d.y, t = uTime;
-        vec3 col = mix(uHor, uZen, smoothstep(-0.02, 0.55, up));
-        col = mix(col, uHor * 0.35, smoothstep(0.0, -0.3, up));
-        // nebulosa lavada (ceniza con un tinte violeta/celeste apenas)
-        vec3 qd = d * 1.6 + vec3(0.0, t * 0.004, 0.0);
-        float w = fbm(qd * 1.3 + 3.0), n = fbm(qd * 1.9 + 1.8 * vec3(w) + t * 0.006);
-        float dens = smoothstep(0.42, 0.9, n) * smoothstep(-0.05, 0.25, up);
-        vec3 neb = mix(vec3(0.16, 0.17, 0.22), hueRot(vec3(0.30, 0.22, 0.42), uHue * 6.28), smoothstep(0.55, 0.85, w));
-        col += neb * dens * 0.5 + uHor * 0.5 * pow(1.0 - abs(up), 6.0);
-        // estrellas escasas y frías
+        vec3 col = mix(uHor, uZen, smoothstep(-0.02, 0.6, up));
+        col = mix(col, uHor * 0.5, smoothstep(0.0, -0.3, up));
+        // nebulosas ALUCINADAS: dominio deformado, colores que giran despacio (violeta, magenta, turquesa, oro)
+        vec3 qd = d * 1.5 + vec3(0.0, t * 0.006, 0.0);
+        float w = fbm(qd * 1.3 + 3.0), n = fbm(qd * 1.9 + 2.2 * vec3(w, w * 0.5, -w) + t * 0.01), n2 = fbm(qd * 3.6 - 1.4 * vec3(w) + 7.0);
+        float dens = smoothstep(0.38, 0.85, n) * smoothstep(-0.12, 0.2, up);
+        vec3 neb = 0.5 + 0.5 * cos(6.28318 * (w * 1.3 + n2 * 0.6 + uHue + t * 0.01 + vec3(0.0, 0.33, 0.67)));
+        neb = mix(neb, neb * neb * 1.6, 0.5);
+        col += neb * dens * 0.55 + neb * smoothstep(0.55, 0.9, n2) * dens * 0.6;
+        col += mix(uGlow, vec3(1.0, 0.35, 0.85), 0.5 + 0.5 * sin(atan(d.z, d.x) * 2.0 + t * 0.05)) * pow(1.0 - abs(up), 7.0) * 0.55; // resplandor del horizonte
+        // auroras: cortinas que ondulan
+        float az = atan(d.z, d.x);
+        float cur = sin(az * 7.0 + sin(az * 3.0 + t * 0.07) * 2.5 + t * 0.05) * 0.5 + 0.5;
+        float aur = pow(cur, 6.0) * smoothstep(0.05, 0.22, up) * (1.0 - smoothstep(0.35, 0.65, up)) * (0.5 + 0.5 * vnoise(vec3(az * 6.0, up * 30.0 - t * 0.4, 1.0)));
+        col += mix(vec3(0.2, 1.0, 0.75), vec3(0.75, 0.35, 1.0), smoothstep(0.1, 0.5, up)) * aur * 0.7;
+        // estrellas
         vec3 sp = d * 220.0, si = floor(sp), sf = fract(sp) - 0.5; float h = hash13(si);
-        col += vec3(0.75, 0.82, 1.0) * step(0.985, h) * smoothstep(0.32, 0.0, length(sf)) * (0.35 + 0.35 * sin(t * (1.0 + h * 3.0) + h * 50.0)) * smoothstep(0.0, 0.2, up);
-        // sol muerto: disco negro con corona pálida y rayos lentos
+        col += (0.6 + 0.4 * cos(6.28318 * (h * 3.0 + vec3(0.0, 0.33, 0.67)))) * step(0.975, h) * (1.0 - smoothstep(0.0, 0.32, length(sf))) * (0.45 + 0.45 * sin(t * (1.0 + h * 3.0) + h * 50.0)) * smoothstep(0.0, 0.2, up) * 1.3;
+        // sol muerto: disco negro con corona IRISADA y rayos lentos
         float sd = acos(clamp(dot(d, uSun), -1.0, 1.0));
-        float corona = exp(-max(sd - 0.075, 0.0) * 22.0) * smoothstep(0.072, 0.08, sd);
+        float corona = exp(-max(sd - 0.075, 0.0) * 18.0) * smoothstep(0.072, 0.08, sd);
         float rays = 0.5 + 0.5 * sin(atan(dot(d, normalize(cross(uSun, vec3(0.0, 1.0, 0.0)))), dot(d, vec3(0.0, 1.0, 0.0))) * 14.0 + t * 0.05);
-        col += vec3(0.92, 0.9, 0.84) * corona * (0.9 + 0.5 * rays) + vec3(0.6, 0.62, 0.7) * exp(-sd * 3.2) * 0.12;
-        col *= 1.0 - (1.0 - smoothstep(0.066, 0.072, sd)) * 0.96;
-        // geometría sagrada en el cenit (proyección plana sobre la cúpula), gira muy despacio
-        if (up > 0.08) {
-          vec2 p = d.xz / (up + 0.35) * 2.3; float a = t * 0.012, ca = cos(a), sa = sin(a); p = mat2(ca, -sa, sa, ca) * p;
-          float ww = max(fwidth(p.x) + fwidth(p.y), 0.004) * 1.3;
-          float s1 = sacred(p, ww), s2 = sacred(mat2(ca, sa, -sa, ca) * mat2(ca, sa, -sa, ca) * p * 0.5, ww * 0.6) * 0.5;
-          float g = max(s1, s2) * smoothstep(0.08, 0.5, up) * uGlyph;
-          vec3 gc = hueRot(uGlow, sin(t * 0.03 + length(p) * 0.4) * 0.6 + uHue * 6.28);
-          col += gc * g * (0.3 + 0.15 * sin(t * 0.25 + length(p) * 1.7));
+        vec3 irid = 0.55 + 0.45 * cos(6.28318 * (sd * 6.0 - t * 0.05 + vec3(0.0, 0.33, 0.67)));
+        col += mix(vec3(1.0, 0.95, 0.85), irid, 0.6) * corona * (1.0 + 0.8 * rays) * 1.4 + irid * exp(-sd * 2.6) * 0.25;
+        col *= 1.0 - (1.0 - smoothstep(0.066, 0.072, sd)) * 0.97;
+        // geometría sagrada en el cenit: dos capas que giran en sentidos opuestos, con color que corre por las líneas
+        if (up > 0.05) {
+          vec2 p = d.xz / (up + 0.35) * 2.3; float a = t * 0.015, ca = cos(a), sa = sin(a); vec2 p1 = mat2(ca, -sa, sa, ca) * p, p2 = mat2(ca, sa, -sa, ca) * p * 0.5;
+          float ww = max(fwidth(p.x) + fwidth(p.y), 0.004) * 1.4;
+          float s1 = sacred(p1, ww), s2 = sacred(p2, ww * 0.6) * 0.7;
+          float g = max(s1, s2) * smoothstep(0.05, 0.45, up) * uGlyph;
+          vec3 gc = 0.55 + 0.45 * cos(6.28318 * (length(p) * 0.18 - t * 0.04 + uHue + vec3(0.0, 0.33, 0.67)));
+          col += mix(gc, uGlow, 0.25) * g * (0.75 + 0.35 * sin(t * 0.4 + length(p) * 2.0));
         }
         // skyline de una ciudad muerta (siluetas con alguna ventana fría)
         if (uSky > 0.5) {
@@ -260,7 +270,8 @@ export function limboSky(r, root, o = {}) {
           float roofv = hb - abs(fr - 0.5) * 0.04 * step(0.5, hash13(vec3(cell, 9.0, 2.0)));
           float bld = 1.0 - smoothstep(roofv - 0.002, roofv + 0.002, up);
           vec2 wv = vec2(fr * 9.0, up * 160.0); float win = step(0.9, hash13(vec3(floor(wv) + vec2(cell * 13.0, 0.0), 3.0))) * step(0.25, fract(wv.x)) * step(0.3, fract(wv.y));
-          col = mix(col, vec3(0.035, 0.04, 0.05) + uGlow * win * 0.18, bld * smoothstep(-0.1, 0.0, up));
+          vec3 wc = 0.55 + 0.45 * cos(6.28318 * (hash13(vec3(floor(wv), cell)) + vec3(0.0, 0.33, 0.67)));
+          col = mix(col, vec3(0.03, 0.025, 0.05) + wc * win * 0.8, bld * smoothstep(-0.1, 0.0, up));
         }
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -305,7 +316,8 @@ export function crackStrips(root, list, { color = 0x9fe8ff, seed = 3, width = 0.
       void main(){ float edge = 1.0 - abs(vT.y - 0.5) * 2.0; float core = pow(edge, 3.0);
         float pulse = pow(0.5 + 0.5 * sin(vT.x * 0.9 - uTime * 1.6), 6.0);
         float fade = exp(-vT.x * 0.12);
-        gl_FragColor = vec4(uCol * (core * (0.5 + 2.2 * pulse) + edge * 0.15) * (0.45 + 0.55 * fade), 1.0); }`,
+        vec3 c = mix(uCol, 0.55 + 0.45 * cos(6.28318 * (vT.x * 0.04 - uTime * 0.05 + vec3(0.0, 0.33, 0.67))), 0.65);
+        gl_FragColor = vec4(c * (core * (0.7 + 3.0 * pulse) + edge * 0.25) * (0.45 + 0.55 * fade), 1.0); }`,
   }));
   const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.renderOrder = 2; root.add(m); return m;
 }
@@ -332,10 +344,11 @@ export function rootsMesh(root, curves, { r0 = 0.16, r1 = 0.03, color = 0x9fe8ff
       void main(){ vec3 n = normalize(vN), V = normalize(cameraPosition - vW);
         float lam = 0.35 + 0.65 * max(dot(n, uSun), 0.0), grain = vnoise(vec3(vUv.x * 60.0, vUv.y * 6.0, vK * 9.0));
         vec3 col = uBark * (0.6 + 0.6 * grain) * lam;
-        float vein = smoothstep(0.9, 1.0, sin(vUv.y * 6.2832 + vUv.x * 3.0) * 0.5 + 0.5);
+        float vein = smoothstep(0.8, 1.0, sin(vUv.y * 6.2832 + vUv.x * 3.0) * 0.5 + 0.5);
         float pulse = pow(0.5 + 0.5 * sin(vUv.x * 14.0 - uTime * 1.1 + vK * 30.0), 10.0);
         float fr = pow(1.0 - max(dot(n, V), 0.0), 3.0);
-        col += uCol * (vein * (0.12 + 1.6 * pulse) + fr * 0.1 * (0.3 + pulse)) * (0.6 + 0.4 * vUv.x);
+        vec3 vc = mix(uCol, 0.55 + 0.45 * cos(6.28318 * (vUv.x * 0.6 + vK - uTime * 0.04 + vec3(0.0, 0.33, 0.67))), 0.6);
+        col += vc * (vein * (0.35 + 2.4 * pulse) + fr * 0.25 * (0.4 + pulse)) * (0.6 + 0.4 * vUv.x);
         gl_FragColor = vec4(col, 1.0); }`,
   }));
   const m = new THREE.Mesh(g, mat); m.frustumCulled = false; root.add(m); return m;
@@ -378,11 +391,12 @@ export function leveZone(r, root, z, { color = 0xbfe9ff, count = 160 } = {}) {
     vertexShader: `varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `uniform float uTime, uR; uniform vec3 uCol; varying vec2 vP; ${NOISE}
       void main(){ float rr = length(vP), a = atan(vP.y, vP.x) + uTime * 0.05; float band = (rr - (uR - 0.9)) / 0.9;
-        float edge = smoothstep(0.0, 0.12, band) * smoothstep(1.0, 0.85, band);
-        float rune = step(0.55, hash13(vec3(floor(a * 18.0), 1.0, 2.0))) * step(0.2, fract(a * 18.0)) * step(fract(a * 18.0), 0.8) * smoothstep(0.25, 0.4, band) * smoothstep(0.75, 0.6, band);
-        float lines = smoothstep(0.08, 0.0, abs(band - 0.12)) + smoothstep(0.08, 0.0, abs(band - 0.9));
+        float edge = smoothstep(0.0, 0.12, band) * (1.0 - smoothstep(0.85, 1.0, band));
+        float rune = step(0.55, hash13(vec3(floor(a * 18.0), 1.0, 2.0))) * step(0.2, fract(a * 18.0)) * step(fract(a * 18.0), 0.8) * smoothstep(0.25, 0.4, band) * (1.0 - smoothstep(0.6, 0.75, band));
+        float lines = (1.0 - smoothstep(0.0, 0.08, abs(band - 0.12))) + (1.0 - smoothstep(0.0, 0.08, abs(band - 0.9)));
         float pulse = 0.55 + 0.45 * sin(uTime * 0.8 - a * 2.0);
-        gl_FragColor = vec4(uCol * (rune * 0.9 + lines * 0.7) * edge * pulse * 0.8, 1.0); }`,
+        vec3 rc = mix(uCol, 0.55 + 0.45 * cos(6.28318 * (a * 0.16 + uTime * 0.07 + vec3(0.0, 0.33, 0.67))), 0.7);
+        gl_FragColor = vec4(rc * (rune * 1.4 + lines * 1.1) * edge * pulse, 1.0); }`,
   })));
   ring.rotation.x = -Math.PI / 2; ring.position.set(z.x, 0.04, z.z); root.add(ring);
   return { pts, ring };
@@ -412,25 +426,63 @@ export function haloField(root, list, { tex } = {}) {
 }
 
 /* ───────── rayos de luz (conos verticales aditivos, todos en UNA malla) ───────── */
-/** list: [{x, z, top, r0 (arriba), r1 (abajo), k}]: luz que cae del cielo; polvo que se mueve adentro; se apaga cerca de la cámara. */
+/** list: [{x, z, top, r0 (arriba), r1 (abajo), k, col}]: luz que cae del cielo; polvo que se mueve adentro; se apaga cerca de la cámara. */
 export function lightShafts(root, list, { color = 0xdcefff, tilt = new THREE.Vector3(0.18, 1, 0.1) } = {}) {
   const geos = [], ax = tilt.clone().normalize(), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), ax);
   list.forEach((s, i) => {
     const h = s.top, g = new THREE.CylinderGeometry(s.r0, s.r1, h, 20, 1, true); g.translate(0, h / 2, 0); g.applyQuaternion(q); g.translate(s.x, 0, s.z);
     g.setAttribute('aK', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(s.k ?? 1), 1));
-    g.setAttribute('aI', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(i), 1)); geos.push(g);
+    g.setAttribute('aI', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(i), 1));
+    const c = dc(s.col ?? color), ca = new Float32Array(g.attributes.position.count * 3); for (let j = 0; j < ca.length; j += 3) { ca[j] = c.r; ca[j + 1] = c.g; ca[j + 2] = c.b; } g.setAttribute('aC', new THREE.BufferAttribute(ca, 3)); geos.push(g);
   });
   const g = mergeGeometries(geos, false); geos.forEach((x) => x.dispose());
   const mat = finish(new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, defines: { FBM_OCT: 2 },
     uniforms: { uTime, uCol: { value: dc(color) } },
-    vertexShader: `attribute float aK, aI; varying float vK, vI, vH; varying vec3 vW, vN; void main(){ vK = aK; vI = aI; vH = uv.y; vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform float uTime; uniform vec3 uCol; varying float vK, vI, vH; varying vec3 vW, vN; ${NOISE}
+    vertexShader: `attribute float aK, aI; attribute vec3 aC; varying vec3 vC; varying float vK, vI, vH; varying vec3 vW, vN; void main(){ vC = aC; vK = aK; vI = aI; vH = uv.y; vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform float uTime; uniform vec3 uCol; varying vec3 vC; varying float vK, vI, vH; varying vec3 vW, vN; ${NOISE}
       void main(){ vec3 V = normalize(cameraPosition - vW); float face = abs(dot(normalize(vN), V));
         float d = length(cameraPosition - vW);
-        float dust = 0.55 + 0.45 * vnoise(vec3(vW.x * 0.6, vW.y * 0.25 - uTime * 0.3, vW.z * 0.6 + vI * 7.0));
-        float a = pow(face, 2.2) * smoothstep(0.0, 0.18, vH) * smoothstep(1.0, 0.45, vH) * smoothstep(2.0, 9.0, d) * dust * vK;
-        gl_FragColor = vec4(uCol * a * 0.09, 1.0); }`,
+        float ang = atan(vN.z, vN.x);
+        float streak = 0.35 + 0.65 * vnoise(vec3(ang * 3.0 + vI * 5.0, vW.y * 0.04 - uTime * 0.05, vI));
+        float dust = 0.7 + 0.3 * vnoise(vec3(vW.x * 0.8, vW.y * 0.3 - uTime * 0.35, vW.z * 0.8 + vI * 7.0));
+        float a = pow(face, 4.0) * (0.2 + 0.8 * vH * vH) * smoothstep(0.0, 0.05, vH) * (1.0 - smoothstep(0.92, 1.0, vH)) * smoothstep(1.5, 6.0, d) * streak * dust * vK;
+        vec3 o = vC * a * 0.3; if (!(o.r < 10.0 && o.g < 10.0 && o.b < 10.0 && o.r >= 0.0)) o = vec3(0.0); gl_FragColor = vec4(min(o, vec3(1.0)), 1.0); }`,
+  }));
+  const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.renderOrder = 3; root.add(m); return m;
+}
+
+/* ───────── charcos de luz en el piso (luz de faroles, ventanas y portales sin luces reales) ───────── */
+/** list: [{x, z, r, col, k}] → discos aditivos con caída suave, UNA llamada. Laten apenas. */
+export function lightPools(root, list, { y = 0.03 } = {}) {
+  if (!list.length) return null;
+  const n = list.length, base = new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2), g = new THREE.InstancedBufferGeometry();
+  g.index = base.index; g.setAttribute('position', base.attributes.position); g.setAttribute('uv', base.attributes.uv);
+  const P = new Float32Array(n * 4), C = new Float32Array(n * 3);
+  list.forEach((h, i) => { P.set([h.x, y + i * 0.0005, h.z, h.r], i * 4); const c = new THREE.Color(h.col); C.set([c.r * (h.k ?? 1), c.g * (h.k ?? 1), c.b * (h.k ?? 1)], i * 3); });
+  g.setAttribute('aP', new THREE.InstancedBufferAttribute(P, 4)); g.setAttribute('aC', new THREE.InstancedBufferAttribute(C, 3)); g.instanceCount = n;
+  const mat = finish(new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, uniforms: { uTime },
+    vertexShader: `attribute vec4 aP; attribute vec3 aC; uniform float uTime; varying vec2 vUv; varying vec3 vC;
+      void main(){ vUv = uv * 2.0 - 1.0; vC = aC * (0.85 + 0.15 * sin(uTime * 1.7 + aP.x * 0.7 + aP.z)); gl_Position = projectionMatrix * viewMatrix * vec4(aP.xyz + position * aP.w, 1.0); }`,
+    fragmentShader: `varying vec2 vUv; varying vec3 vC; void main(){ float r = length(vUv); float a = pow(max(0.0, 1.0 - r), 2.2); gl_FragColor = vec4(vC * a * 0.55, 1.0); }`,
+  }));
+  const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.renderOrder = 1; root.add(m); return m;
+}
+/* ───────── chorro de luz/agua que sube (cilindros aditivos con flujo) ───────── */
+export function risingStream(root, list) {
+  const geos = list.map((s) => { const g = new THREE.CylinderGeometry(s.r * 0.6, s.r, s.h, 16, 1, true); g.translate(s.x, s.y + s.h / 2, s.z); return g; });
+  const g = mergeGeometries(geos, false); geos.forEach((x) => x.dispose());
+  const mat = finish(new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, defines: { FBM_OCT: 2 }, uniforms: { uTime },
+    vertexShader: `varying vec2 vUv; varying vec3 vW; varying vec3 vN; void main(){ vUv = uv; vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vW; varying vec3 vN; ${NOISE}
+      void main(){ vec3 V = normalize(cameraPosition - vW); float face = abs(dot(normalize(vN), V));
+        float f = vnoise(vec3(vUv.x * 10.0, vUv.y * 4.0 - uTime * 1.4, 0.0)) * 0.6 + vnoise(vec3(vUv.x * 23.0, vUv.y * 9.0 - uTime * 2.3, 3.0)) * 0.4;
+        float streak = smoothstep(0.45, 0.85, f);
+        vec3 c = 0.55 + 0.45 * cos(6.28318 * (vUv.y * 0.7 - uTime * 0.08 + vec3(0.0, 0.33, 0.67)));
+        float a = (0.25 + 1.4 * streak) * pow(face, 1.5) * smoothstep(0.0, 0.08, vUv.y) * (1.0 - smoothstep(0.55, 1.0, vUv.y));
+        gl_FragColor = vec4(mix(vec3(0.75, 0.95, 1.0), c, 0.6) * a * 0.55, 1.0); }`,
   }));
   const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.renderOrder = 3; root.add(m); return m;
 }

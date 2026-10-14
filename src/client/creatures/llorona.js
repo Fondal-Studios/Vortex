@@ -15,11 +15,11 @@ export default function build(kit, color = 0xa8c8ff) {
   const rig = new Rig();
   const B = humanoide(rig, { H: 2.05, shoulder: 0.16, hip: 0.1, arm: [0.3, 0.28], armR: [0.034, 0.02], hand: 0.17, legs: false, pelY: 1.0, matSkin: skin, neckLen: 0.13, curl: 0.15,
     torso: (t) => lerp(0.12, 0.1, smooth(0, 0.4, t)) * (1 - 0.15 * Math.exp(-Math.pow((t - 0.42) / 0.1, 2))) + 0.025 * smooth(0.55, 0.75, t) - 0.06 * smooth(0.86, 1, t),
-    torsoPaint: 0xd8dce4, armPaint: 0xd0d6e0, handColor: 0xe4e0dc });
+    torsoPaint: 0x8a90a0, armPaint: 0x9098a8, handColor: 0xa8a4a8 });
   const { root, pelvis, spine, chest, neck, head, armL, armR, Y } = B;
   const hp = head.userData.rest;
   // cara de porcelana con cuencas hundidas + lágrimas pintadas + boca (hueso «jaw» que baja y abre)
-  const fg = cara(0.1, { skin: 0xe6e4e8, socket: 0x0a0a14, lips: 0x50404a, gaunt: 0.6 }); fg.translate(hp.x, hp.y + 0.08, hp.z + 0.02);
+  const fg = cara(0.1, { skin: 0xb8b8c4, socket: 0x0a0a14, lips: 0x50404a, gaunt: 0.6 }); fg.translate(hp.x, hp.y + 0.08, hp.z + 0.02);
   paint(fg, ((orig) => (p, n, i) => { const c = new THREE.Color(orig.getX(i), orig.getY(i), orig.getZ(i)); for (const s of [-1, 1]) { const dx = Math.abs(p.x - (hp.x + s * 0.034)); if (dx < 0.006 && p.y < hp.y + 0.08 && p.y > hp.y - 0.0 && p.z > hp.z + 0.07) c.lerp(new THREE.Color(0x203060), 0.7); } return c; })(fg.attributes.color.clone()));
   rig.add(skin, skinRigid(fg, head));
   const jaw = rig.bone(head, [hp.x, hp.y + 0.03, hp.z + 0.06], 'jaw');

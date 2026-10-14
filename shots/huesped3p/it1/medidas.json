@@ -1,0 +1,170 @@
+[
+ {
+  "name": "m1-axioma-e0-high",
+  "ok": true,
+  "calls": 136,
+  "tris": 308432,
+  "parts": 22
+ },
+ {
+  "name": "m1-axioma-e2-high",
+  "ok": true,
+  "calls": 156,
+  "tris": 308688,
+  "parts": 42
+ },
+ {
+  "name": "m1-vesper-e3-high",
+  "ok": true,
+  "calls": 222,
+  "tris": 497711,
+  "parts": 38
+ },
+ {
+  "name": "m1-micelio-e4-high",
+  "ok": true,
+  "calls": 183,
+  "tris": 290066,
+  "parts": 69
+ },
+ {
+  "name": "m1-seraf-e4-high",
+  "ok": true,
+  "calls": 178,
+  "tris": 310444,
+  "parts": 59
+ },
+ {
+  "name": "m1-umbra-e1-high",
+  "ok": true,
+  "calls": 144,
+  "tris": 311720,
+  "parts": 29
+ },
+ {
+  "name": "m2-axioma-e0-high",
+  "ok": true,
+  "calls": 149,
+  "tris": 532178,
+  "parts": 23
+ },
+ {
+  "name": "m2-axioma-e2-high",
+  "ok": true,
+  "calls": 189,
+  "tris": 532690,
+  "parts": 43
+ },
+ {
+  "name": "m2-vesper-e3-high",
+  "ok": true,
+  "calls": 182,
+  "tris": 538502,
+  "parts": 39
+ },
+ {
+  "name": "m2-micelio-e4-high",
+  "ok": true,
+  "calls": 242,
+  "tris": 505411,
+  "parts": 70
+ },
+ {
+  "name": "m2-seraf-e4-high",
+  "ok": true,
+  "calls": 222,
+  "tris": 537194,
+  "parts": 60
+ },
+ {
+  "name": "m2-umbra-e1-high",
+  "ok": true,
+  "calls": 165,
+  "tris": 538806,
+  "parts": 30
+ },
+ {
+  "name": "m3-axioma-e0-high",
+  "ok": true,
+  "calls": 123,
+  "tris": 163446,
+  "parts": 19
+ },
+ {
+  "name": "m3-axioma-e2-high",
+  "ok": true,
+  "calls": 143,
+  "tris": 163702,
+  "parts": 39
+ },
+ {
+  "name": "m3-vesper-e3-high",
+  "ok": true,
+  "calls": 207,
+  "tris": 268002,
+  "parts": 35
+ },
+ {
+  "name": "m3-micelio-e4-high",
+  "ok": true,
+  "calls": 170,
+  "tris": 145080,
+  "parts": 66
+ },
+ {
+  "name": "m3-seraf-e4-high",
+  "ok": true,
+  "calls": 165,
+  "tris": 165458,
+  "parts": 56
+ },
+ {
+  "name": "m3-umbra-e1-high",
+  "ok": true,
+  "calls": 131,
+  "tris": 166734,
+  "parts": 26
+ },
+ {
+  "name": "m4-axioma-e0-high",
+  "ok": true,
+  "calls": 109,
+  "tris": 167638,
+  "parts": 25
+ },
+ {
+  "name": "m4-axioma-e2-high",
+  "ok": true,
+  "calls": 129,
+  "tris": 167894,
+  "parts": 45
+ },
+ {
+  "name": "m4-vesper-e3-high",
+  "ok": true,
+  "calls": 194,
+  "tris": 282634,
+  "parts": 41
+ },
+ {
+  "name": "m4-micelio-e4-high",
+  "ok": true,
+  "calls": 156,
+  "tris": 149272,
+  "parts": 72
+ },
+ {
+  "name": "m4-seraf-e4-high",
+  "ok": true,
+  "calls": 151,
+  "tris": 169650,
+  "parts": 62
+ },
+ {
+  "name": "m4-umbra-e1-high",
+  "ok": true,
+  "calls": 117,
+  "tris": 170926,
+  "parts": 32
+ }
+]

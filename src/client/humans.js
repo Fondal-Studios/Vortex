@@ -180,7 +180,7 @@ export function createHuman(kit, spec = {}) {
   function decorate() {
     gear?.dispose();
     const accent = look.accent ?? look.color ?? 0x66ffee;
-    gear = buildGear(kit, actor, { role, color: accent, quality: kit.quality, extras: baseDef.extras || [], tstate, char, tint: clothing(look.color, role).top });
+    gear = buildGear(kit, actor, { role: spec.noGear ? null : role, color: accent, quality: kit.quality, extras: spec.noGear ? [] : (baseDef.extras || []), tstate, char, tint: clothing(look.color, role).top });
     if (!spec.noWeapon) attachWeapon(weaponIndex, true);
   }
 

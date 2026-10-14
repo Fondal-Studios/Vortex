@@ -32,7 +32,7 @@ export function phMaterial(id, { repeat = 1, color = 0xffffff, metalness = 0, ro
 /** Oro envejecido (filigrana, máscaras, coronas). */
 export const goldMaterial = (o = {}) => phMaterial('metal_plate', { color: 0xf2c66d, metalness: 1, roughness: 0.55, repeat: 2, normalScale: 0.6, envMapIntensity: 1.4, ...o });
 /** Porcelana / mármol pulido (máscaras rituales, placas). */
-export const porcelainMaterial = (o = {}) => phMaterial('marble_01', { color: 0xf4efe6, metalness: 0, roughness: 0.55, repeat: 1, normalScale: 0.35, envMapIntensity: 1.1, physical: true, clearcoat: 0.6, clearcoatRoughness: 0.25, ...o });
+export const porcelainMaterial = (o = {}) => phMaterial('marble_01', { color: 0xffffff, emissive: 0x1c1a20, metalness: 0, roughness: 0.4, repeat: 1, normalScale: 0.35, envMapIntensity: 1.1, physical: true, clearcoat: 0.6, clearcoatRoughness: 0.25, ...o });
 
 const envCache = new Map();
 /** Carga un HDRI 1K y lo pasa por PMREM. Cachea por renderer+id. */

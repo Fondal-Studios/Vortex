@@ -1,6 +1,7 @@
 // Capturas reales de los mapas del limbo (5: Plaza de los Ecos · 6: Osario sin Techo) dentro del juego, con Chromium por
 // software, y medición de draw calls / triángulos con renderer.info (modelo: tools/shot-map4.js).
-// Uso: node tools/shot-limbo.js [m5|m6] [carpeta=shots/limbo] [calidad=low] [--solo=vista1,vista2] [--sin-criaturas] [--hud]
+// Uso: node tools/shot-limbo.js [m5|m6] [carpeta=shots/limbo] [calidad=low] [--solo=vista1,vista2] [--sin-criaturas] [--hud] [--sin-cuerpo]
+// --sin-cuerpo: oculta el arma/brazos en primera persona y el cuerpo propio (capturas sólo del escenario).
 // Por cada vista imprime dos medidas: «escena» (todo lo que se dibuja ese cuadro: mapa + criaturas + armas + efectos +
 // post-proceso) y «mapa» (sólo el entorno: se ocultan criaturas, armas y efectos un cuadro para medir).
 import fs from 'node:fs';
@@ -11,7 +12,7 @@ import { M6 } from '../src/sim/map6.js';
 const args = process.argv.slice(2), pos = args.filter((a) => !a.startsWith('--'));
 const MAP = pos[0] || 'm5', OUT = pos[1] || 'shots/limbo', Q = pos[2] || 'low';
 const only = (args.find((a) => a.startsWith('--solo=')) || '').slice(7).split(',').filter(Boolean);
-const quiet = args.includes('--sin-criaturas'), withHud = args.includes('--hud');
+const quiet = args.includes('--sin-criaturas'), withHud = args.includes('--hud'), noBody = args.includes('--sin-cuerpo');
 fs.mkdirSync(OUT, { recursive: true });
 const TW = M5.TORRE, F = M5.FUENTE;
 const VIEWS = {
@@ -55,6 +56,10 @@ await pg.evaluate(([quiet, withHud]) => {
 await pg.evaluate(() => {
   const r = window.__api.renderer, orig = r.updateCamera.bind(r);
   r.updateCamera = (me, dt, look) => { orig(me, dt, look); const c = window.__shotCam; if (c) { r.camera.position.set(c.x, c.y, c.z); r.camera.rotation.order = 'YXZ'; r.camera.rotation.set(c.pitch, -c.yaw, 0); r.eye = r.camera.position.clone(); } };
+});
+if (noBody) await pg.evaluate(() => { // el cuerpo propio (3ª persona) y el arma quedan pegados a la cámara de la captura: se ocultan cada cuadro
+  const r = window.__api.renderer, sp = r.syncPlayers.bind(r);
+  r.syncPlayers = (...a) => { sp(...a); for (const o of r.ents.ply.values()) (o.object || o).visible = false; for (const c of r.camera.children) if (!c.isLight) c.visible = false; for (const c of r.scene.children) if (c.name === 'hostfx') c.visible = false; };
 });
 const results = {};
 for (const [name, v] of Object.entries(VIEWS)) {
