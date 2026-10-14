@@ -31,8 +31,8 @@ const BTN = [
 //  · contextuales (CTX): aparecen sólo cuando sirven (definitiva cargada, algo para usar, evolución lista);
 //  · modo avanzado (setting `advanced`): habilidades 1/2/3, apuntar, agachar, equipo y señalar.
 // Correr es automático (palanca al máximo) y el arma se cambia tocando/deslizando la barra de armas de abajo.
-const BASIC = ['fire', 'reload', 'melee', 'jump', 'pause'];
-const ADV = ['mov', 'esp', 's3', 'ads', 'crouch', 'ability', 'ping'];
+const BASIC = ['fire', 'reload', 'melee', 'jump', 'mov', 'esp', 'pause'];   // habilidades 1 y 2 siempre a mano (el dueño: «no se pueden usar las habilidades»)
+const ADV = ['s3', 'ads', 'crouch', 'ability', 'ping'];
 const CTX = ['ult', 'use', 'evo'];
 const SHOW = (fingers, advanced) => [...BASIC, ...(fingers >= 3 ? ['fireL'] : []), ...(advanced ? ADV : [])];
 const STICK_R = 58;             // radio del recorrido de la palanca (px CSS)

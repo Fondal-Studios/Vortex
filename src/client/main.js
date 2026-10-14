@@ -7,6 +7,7 @@ import { WEAPON_COLORS } from './shotfx.js';
 import { createCombatHud } from './hud-combat.js';
 import { createHuespedHud } from './hud-huesped.js';
 import { createEvoHud, EVO_KEY } from './hud-evolucion.js';
+import { createEvoChoice } from './evo-choice.js';
 import { createEvoMenu } from './evo-menu.js';
 import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
 import * as Perfil from './perfil.js';
@@ -100,18 +101,28 @@ addEventListener('touchstart', () => { sound.init(); sound.resume(); }, { passiv
 /* ───────── ayuda de puntería (todas las entradas: ratón, táctil y mando) ───────── */
 const AIM_KEY = 'cristal.aim.v1'; let aimLevel = isTouchDevice() ? 2 : 1; try { const v = parseInt(localStorage.getItem(AIM_KEY), 10); if (v >= 0 && v <= 3) aimLevel = v; } catch { /* ok */ }
 const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSel.addEventListener('change', () => { aimLevel = +aimSel.value; try { localStorage.setItem(AIM_KEY, String(aimLevel)); } catch { /* ok */ } }); }
+let evoChoice = null, evoPrevWant = false;
+/** Al apretar EVOLUCIONAR (botón, tecla o aviso) se abre la elección de camino; la sim recibe 1 o 2 recién cuando elegís. */
+function evoWant(on) {
+  if (on && !evoPrevWant && session && session.lastMe) {
+    const me = session.lastMe;
+    if (!evoChoice) evoChoice = createEvoChoice(document.body, { onOpen: () => { if (session && session.mode === 'solo') { session.evoPaused = true; session.paused = true; } touch.reset(); }, onClose: () => { if (session && session.evoPaused) { session.evoPaused = false; session.paused = false; } } });
+    if (me && !evoChoice.open) evoChoice.show(me);
+  }
+  evoPrevWant = !!on;
+}
 let combatHud = null, huespedHud = null, caida = null, evoHud = null, evoMenu = null, organReq = null, organReqT = 0;
 const organInput = () => { if (organReq && performance.now() - organReqT > 400) organReq = null; return organReq; }; // input.organ se mantiene 0,4 s (la simulación cobra una sola vez)
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); ti.evo = !!(evoHud && evoHud.held()); ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(),
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held()), organ: organInput(), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: (evoWant(keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held())), evoChoice ? evoChoice.value() : 0), organ: organInput(), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
@@ -478,6 +489,7 @@ function hudDirector(state, me) {
   if (!huespedHud) { try { huespedHud = createHuespedHud($('hud')); } catch (err) { console.warn('HUD de Huésped no disponible', err.message); huespedHud = { update() {} }; } }
   huespedHud.update(me, !!(session && session.touch), !(session && session.intro));
   if (!evoHud) { try { evoHud = createEvoHud($('hud')); } catch (err) { console.warn('HUD de evolución no disponible', err.message); evoHud = { update() {}, celebrate() {}, held() { return false; } }; } }
+  if (session) session.lastMe = me;
   evoHud.update(me, !!(session && session.touch), !(session && session.intro));
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
