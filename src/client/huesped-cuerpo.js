@@ -36,8 +36,8 @@ const LOOK = {
   micelio: { preset: 'jugador3', scale: 1.25, glow: 0x7be03a, ember: 0xc8ff4a },
   umbra: { preset: 'jugador2', scale: 1.0, glow: 0xb98cff, ember: 0x9a6aff, hover: 0.14 }, // flota: el sudario cubre los pies
   seraf: { preset: 'jugador2', scale: 1.0, glow: 0xffd45a, ember: 0xffb040 },
-  danzante: { preset: 'jugador4', scale: 1.0, glow: 0xff3fa0, ember: 0xffb020 },
-  singular: { preset: 'jugador3', scale: 1.08, glow: 0xb26bff, ember: 0xffc23a },   // ultravioleta + oro de estrella muerta   // fucsia de carnaval + cempasúchil
+  danzante: { preset: 'jugador4', scale: 1.0, glow: 0xff3fa0, ember: 0xffb020, skin: 0x2b1240 },   // fucsia de carnaval + cempasúchil, piel de ciruela
+  singular: { preset: 'jugador3', scale: 1.08, glow: 0xb26bff, ember: 0xffc23a },   // ultravioleta + oro de estrella muerta
 };
 const NEUTRAL = { height: 1, width: 1, shoulders: 1, belly: 0, head: 1, jaw: 1, nose: 1 };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -77,7 +77,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     teardown();
     const evo = pl.evo | 0, path = pathOf(p.char, evo, pl.pth), region = map ? (REGION[map] || null) : null;
     const rimC = new T.Color(L.glow).lerp(new T.Color(region ? region.accent : L.glow), 0.45); if (evo > 0) rimC.lerp(new T.Color(pathColor(path[evo - 1], L.glow)), 0.5); // la luz de borde toma el color del último camino
-    ak = createArmorKit(human, kit, { quality, accent: L.ember, rim: rimC, crack: L.ember, belly: D.BELLY ?? 0 });
+    ak = createArmorKit(human, kit, { quality, accent: L.ember, rim: rimC, crack: L.ember, belly: D.BELLY ?? 0, skin: L.skin });
     curPath = path; shape = bodyScale(evo, path); holder.scale.set(L.scale * shape.x, L.scale * shape.y, L.scale * shape.z); // el cuerpo crece con cada nivel y cambia de proporciones según el camino
     const up = shownEvo >= 0 && evo > shownEvo; shownEvo = evo; lastPath = path[evo - 1] || '';
     presence.set({ evo, path, rank: Math.max(1, pl.mr | 0), scale: L.scale * shape.g });

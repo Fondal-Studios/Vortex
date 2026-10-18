@@ -237,11 +237,10 @@ export function build(ak, ctx) {
     for (let i = 0; i < (low ? 4 : 6); i++) { const a = ((i - ((low ? 4 : 6) - 1) / 2) / (((low ? 4 : 6) - 1) / 2)) * 0.9; plume('rueda', hubB.clone().add(V(0, 0.01, -0.07)), V(Math.sin(a), Math.cos(a), -0.6), 0.62 - Math.abs(a) * 0.15, 0.1, MAR_D, MAR, { toward: V(0, 0, -1), eye: false }); }
     upd.push((dt, tt, c) => { const sp = Math.min(1, (c && c.speed || 0) / 7); rue.rotation.x = -0.18 * sp + Math.sin(tt * 1.2) * 0.04; rue.rotation.z = Math.sin(tt * 0.9) * 0.045; });
     // cola de gala: tela larga con dobladillo que brilla (física); y colas de frac más cortas a los lados
-    const top = [], lens = [];
-    for (let j = 0; j < 6; j++) { const x = -0.12 + j * 0.048; top.push({ bone: 'spine05', p: V(x, 0.93, -0.12) }); lens.push(0.95 + 0.14 * Math.cos((j / 5 - 0.5) * 2.6) + R() * 0.1); }
-    ak.cloth({ top, dir: V(0, -1, -0.28), lens, rows: S(11, 6), color: PLUM_L, hem: FUC_D, gravity: 7, stiff: 0.014, drag: 0.982, wave: 0.03, ember: 1.2 });
-    const t2 = [], l2 = []; for (let j = 0; j < 4; j++) { t2.push({ bone: 'spine05', p: V(-0.075 + j * 0.05, 0.94, -0.11) }); l2.push(0.62 + R() * 0.1); }
-    ak.cloth({ top: t2, dir: V(0, -1, -0.12), lens: l2, rows: S(8, 5), color: TUR_D, hem: PLUM, gravity: 7, stiff: 0.02, drag: 0.98, ember: 0.7 });
+    const top = [], lens = [], nc = low ? 7 : 9;
+    for (let j = 0; j < nc; j++) { const u = j / (nc - 1), x = -0.15 + u * 0.3; top.push({ bone: 'spine05', p: V(x, 0.93, -0.118 + 0.03 * Math.abs(x) / 0.15) }); lens.push(1.12 - 0.62 * Math.pow(Math.abs(u - 0.5) * 2, 1.5) + (j % 2) * 0.06); }   // punta de cola de gala (más larga en el centro)
+    ak.cloth({ top, dir: V(0, -1, -0.3), lens, rows: S(11, 6), color: PLUM_L, hem: FUC, gravity: 7, stiff: 0.016, drag: 0.982, wave: 0.04, ember: 1.5 });
+    for (const sg of [-1, 1]) { const t2 = [], l2 = []; for (let j = 0; j < 3; j++) { t2.push({ bone: 'spine05', p: V(sg * (0.17 + j * 0.03), 0.93, -0.03 - j * 0.04) }); l2.push(0.5 - j * 0.07); } ak.cloth({ top: t2, dir: V(sg * 0.35, -1, -0.15), lens: l2, rows: S(7, 4), color: TUR_D, hem: MAR_D, gravity: 7, stiff: 0.02, drag: 0.98, ember: 0.9 }); }
     ak.collider('spine02', V(0, 1.0, 0.045), V(0, 1.36, 0.045), 0.17); ak.collider('spine05', V(0, 0.86, 0.045), V(0, 0.98, 0.045), 0.185);
     ak.both(() => ak.collider('upperleg01', P('upperleg01'), P('lowerleg01'), 0.105));
     ak.embers(MAR, low ? 24 : 44, { radius: 0.55, height: 2.2, size: 5 });
