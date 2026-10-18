@@ -80,7 +80,7 @@ Baja (`q=low`, ≤ 45 llamadas / ≤ 20 000 triángulos por Huésped; el cuerpo 
 | Vesper | 9 · 7 708 | 21 · 12 530 |
 | Micelio | 6 · 8 916 | 20 · 13 738 |
 | Umbra | 10 · 5 360 | 24 · 10 182 |
-| Seraf | 12 · 8 684 | 24 · 13 506 |
+| Seraf (v2, detallado) | 17 · 15 934 | 29 · 19 364 |
 Media/Alta usan más segmentos (`ak.Q` 1,0 / 1,25) y la piel completa (26 756 tris); Axioma Alta ≈ 80 000 tris en el kit (sin límite fijo).
 
 ### Pendiente para quien siga

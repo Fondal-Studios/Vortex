@@ -85,7 +85,7 @@ export function build(ak, ctx) {
     });
     // barba de raíces bajo la máscara y collar de corteza
     for (let i = 0; i < (low ? 2 : 3); i++) add('bark', G.band(0.082 - i * 0.002, 0.03, 0.012, { seg: S(14, 8) }).translate(0, 1.446 + i * 0.024, 0.03), 'neck01', { color: i === 1 ? BM : BD });
-    for (let k = 0; k < (low ? 3 : 5); k++) { const x = (k - (low ? 1 : 2)) * 0.028; add('bark', G.tube([V(x, HC.y - 0.12, HC.z + 0.1), V(x * 1.4, HC.y - 0.19, HC.z + 0.12), V(x * 1.8, HC.y - 0.27 - (k % 2) * 0.04, HC.z + 0.1)], 0.011, 0.003, { radial: 4, tubular: 5 }), 'head', { color: BM }); }
+    for (let k = 0; k < (low ? 2 : 5); k++) { const x = (k - (low ? 0.5 : 2)) * 0.028; add('bark', G.tube([V(x, HC.y - 0.12, HC.z + 0.1), V(x * 1.4, HC.y - 0.19, HC.z + 0.12), V(x * 1.8, HC.y - 0.27 - (k % 2) * 0.04, HC.z + 0.1)], 0.011, 0.003, { radial: 4, tubular: 5 }), 'head', { color: BM }); }
   }
 
   // ═══════════════════════════ TORSO: barril de corteza, pectorales con filete de musgo, hueco-corazón que late, costillar de raíces
@@ -96,7 +96,7 @@ export function build(ak, ctx) {
       t.armorPlate('spine01', [[0.02, 0.13], [0.09, 0.15], [0.17, 0.11], [0.2, 0.02], [0.17, -0.07], [0.1, -0.115], [0.02, -0.08]], { mat: 'bark', depth: 0.05, bevel: 0.016, wrap: { rx: 0.205, rz: 0.152 }, color: BM, trim: 'ember', trimColor: MOSS, trimInset: 0.14, trimR: 0.0034, place: (g) => X(g, { p: [0, 1.31, zc], r: [0.08, 0, 0] }) });
       t.armorPlate('spine01', [[0.0, 0.05], [0.08, 0.06], [0.14, 0.02], [0.12, -0.03], [0.0, -0.04]], { mat: 'bark', depth: 0.036, bevel: 0.012, wrap: { rx: 0.215, rz: 0.16 }, color: BL, trim: 'ember', trimColor: MOSS2, trimInset: 0.2, place: (g) => X(g, { p: [0, 1.405, zc - 0.01], r: [0.3, 0, 0] }) }); // clavícula
       add('light', seam([V(0.035, 1.24, 0.2), V(0.09, 1.25, 0.19), V(0.15, 1.28, 0.165), V(0.19, 1.34, 0.12)], 0.003), 'spine01', { color: MOSS });
-      tuft('spine01', V(0.12, 1.43, 0.12), low ? 4 : 8, 0.014, 0.026, 0.06, V(0.3, 1, 0.3), 11);
+      tuft('spine01', V(0.12, 1.43, 0.12), low ? 2 : 8, 0.014, 0.026, 0.06, V(0.3, 1, 0.3), 11);
     });
     // hueco-corazón: cavidad oscura, núcleo de musgo que late, cristal y jaula de raíces
     add('dark', G.sphere(0.075, 10, 8).scale(1, 1.25, 0.55).translate(0, 1.29, 0.185), 'spine01', { color: 0x030602 });
@@ -121,10 +121,10 @@ export function build(ak, ctx) {
     add('bark', bonelump(0.2, [1.45, 0.95, 0.78], 3, 0.24).translate(0, 1.3, -0.1), 'spine01', { color: BD });
     add('bark', bonelump(0.15, [1.3, 0.9, 0.8], 4, 0.26).translate(0, 1.13, -0.085), 'spine02', { color: BM });
     const sp = [[1.47, 0.14, 0.45], [1.37, 0.18, -0.5], [1.26, 0.15, 0.3], [1.16, 0.12, -0.3]];
-    sp.forEach(([y, Rr, hd], i) => { if (low && i === 3) return; shelf(i < 2 ? 'spine01' : 'spine02', V(Math.sin(hd) * 0.07, y, -0.13), Rr, [0, Math.PI / 2 + hd, 0.75 - i * 0.07], { half: true, th: Rr * 0.14, seg: 14, rim: true, glow: i % 2 ? CYAN : VIOLET, zs: 1.1 }); });
-    shroom('spine01', V(0, 1.42, -0.22), V(0, 1, -0.4), 0.1, 0.05, [MAG, 0xffd8f4]); shroom('spine01', V(0.1, 1.38, -0.2), V(0.5, 1, -0.5), 0.07, 0.035, [CYAN, 0xd8fff8]);
-    for (let k = 0; k < (low ? 2 : 4); k++) add('light', t.crackLine(V(-0.14 + k * 0.09, 1.42, -0.3), V(-0.1 + k * 0.07, 1.1, -0.22), { n: 9, jag: 0.016, r: 0.0036, seed: 60 + k }), 'spine01', { color: k % 2 ? CYAN : MOSS });
-    tuft('spine01', V(0, 1.45, -0.13), low ? 6 : 12, 0.015, 0.03, 0.12, Y, 21);
+    sp.forEach(([y, Rr, hd], i) => { if (low && i >= 2) return; shelf(i < 2 ? 'spine01' : 'spine02', V(Math.sin(hd) * 0.07, y, -0.13), Rr, [0, Math.PI / 2 + hd, 0.75 - i * 0.07], { half: true, th: Rr * 0.14, seg: 14, rim: true, glow: i % 2 ? CYAN : VIOLET, zs: 1.1 }); });
+    shroom('spine01', V(0, 1.42, -0.22), V(0, 1, -0.4), 0.1, 0.05, [MAG, 0xffd8f4]); if (!low) shroom('spine01', V(0.1, 1.38, -0.2), V(0.5, 1, -0.5), 0.07, 0.035, [CYAN, 0xd8fff8]);
+    for (let k = 0; k < (low ? 1 : 4); k++) add('light', t.crackLine(V(-0.14 + k * 0.09, 1.42, -0.3), V(-0.1 + k * 0.07, 1.1, -0.22), { n: 9, jag: 0.016, r: 0.0036, seed: 60 + k }), 'spine01', { color: k % 2 ? CYAN : MOSS });
+    tuft('spine01', V(0, 1.45, -0.13), low ? 3 : 12, 0.015, 0.03, 0.12, Y, 21);
   }
 
   // ═══════════════════════════ HOMBROS DESCOMUNALES, BRAZOS ENORMES, PUÑOS DE RAÍZ
@@ -133,7 +133,7 @@ export function build(ak, ctx) {
     // hombrera: peñasco de corteza con 4 hongos-estantería escalonados (cada uno más bajo y más ancho hacia afuera) y musgo luminoso encima
     add('bark', bonelump(0.19, [1.35, 0.95, 1.2], 12, 0.26).translate(S0.x + 0.08, S0.y + 0.04, S0.z), 'spine01', { color: BD });
     for (let i = 0; i < 4; i++) { if (low && i === 3) continue; shelf('spine01', V(0.2 + i * 0.045, 1.52 - i * 0.1, S0.z + [0.0, -0.03, 0.03, 0.0][i]), 0.4 - i * 0.05, [0, [0.15, -0.25, 0.3, -0.1][i], -0.1 - i * 0.04], { half: true, th: 0.05 - i * 0.005, seg: 20, rim: true, zs: 1.15, glow: [VIOLET, CYAN, MOSS, MAG][i], ca: i % 2 ? [0x4a2a1c, 0xa8622a, 0xb8a06c, 0x6aa840] : [0x6a2814, 0xb8682a, 0xc4aa72, 0xa84a86] }); }
-    tuft('spine01', V(S0.x + 0.1, S0.y + 0.2, S0.z), low ? 5 : 11, 0.016, 0.03, 0.1, Y, 31);
+    tuft('spine01', V(S0.x + 0.1, S0.y + 0.2, S0.z), low ? 3 : 11, 0.016, 0.03, 0.1, Y, 31);
     shroom('spine01', V(S0.x + 0.12, S0.y + 0.2, S0.z - 0.05), V(0.2, 1, -0.3), 0.09, 0.045, [VIOLET, 0xffc8ff]);
     if (!low) shroom('spine01', V(S0.x + 0.02, S0.y + 0.2, S0.z + 0.06), V(-0.1, 1, 0.4), 0.06, 0.03, [CYAN, 0xd8fff8]);
     // brazo enorme: tronco de corteza (bíceps) + brazal de placas + raíces enroscadas en espiral + codo con púa
@@ -152,7 +152,7 @@ export function build(ak, ctx) {
     const PF = W0.clone().lerp(F3, 0.7).add(V(0, -0.01, 0.01));
     add('stone', bonelump(0.15, [1.05, 1.0, 1.15], 14, 0.3).translate(PF.x, PF.y, PF.z), 'wrist', { color: barkC(0x6c6458, 0xa89a84, 10, 4) });
     for (let k = 0; k < (low ? 2 : 4); k++) { const a = -0.9 + k * 0.6; add('light', t.crackLine(PF.clone().add(V(0.0 + Math.sin(a) * 0.04, 0.15, 0.0 + Math.cos(a) * 0.1)), PF.clone().add(V(Math.sin(a) * 0.15, 0.0 - k * 0.01, Math.cos(a) * 0.14 + 0.02)), { n: 6, jag: 0.012, r: 0.0034, seed: 3 + k }), 'wrist', { color: MOSS }); }
-    for (let k = 0; k < (low ? 3 : 5); k++) { const a = (k / 5) * Math.PI * 1.6 - 0.8; add('bark', G.tube([PF.clone().add(V(-0.1, 0.1, -0.06 + a * 0.05)), PF.clone().add(V(0.02 + a * 0.05, 0.16, 0.08)), PF.clone().add(V(0.14, 0.04, 0.12 + a * 0.03)), PF.clone().add(V(0.12, -0.12, 0.08 + a * 0.05))], 0.024, 0.014, { radial: S(5, 4), tubular: S(12, 7), ridges: 3, ridgeAmp: 0.2 }), 'wrist', { color: k % 2 ? BM : BD }); }
+    for (let k = 0; k < (low ? 2 : 5); k++) { const a = (k / 5) * Math.PI * 1.6 - 0.8; add('bark', G.tube([PF.clone().add(V(-0.1, 0.1, -0.06 + a * 0.05)), PF.clone().add(V(0.02 + a * 0.05, 0.16, 0.08)), PF.clone().add(V(0.14, 0.04, 0.12 + a * 0.03)), PF.clone().add(V(0.12, -0.12, 0.08 + a * 0.05))], 0.024, 0.014, { radial: S(5, 4), tubular: S(12, 7), ridges: 3, ridgeAmp: 0.2 }), 'wrist', { color: k % 2 ? BM : BD }); }
     for (let k = 0; k < 4; k++) add('bone', spikeAt(PF.clone().add(V(-0.05 + k * 0.045, -0.02, 0.15)), V(-0.1 + k * 0.1, -0.15, 1), 0.1, 0.022, 0.012, Y, { radial: S(5, 4), ridges: 3, ridgeAmp: 0.15 }), 'wrist', { color: BL }); // zarpas-raíz
     add('bark', bonelump(0.07, [1.0, 1.4, 1.0], 9, 0.3).translate(PF.x - 0.13, PF.y + 0.03, PF.z - 0.06), 'wrist', { color: BM }); // pulgar
     // raíces que cuelgan del antebrazo (física)
@@ -177,10 +177,10 @@ export function build(ak, ctx) {
     tuft('lowerleg01', K.clone().lerp(A, 0.25).add(V(0.0, 0, 0.1)), low ? 3 : 6, 0.014, 0.024, 0.06, Zv, 51);
     // grietas de musgo (y alguna de luz violeta/cian) que recorren la corteza del muslo y la pantorrilla
     for (let k = 0; k < (low ? 1 : 3); k++) add('light', t.crackLine(H.clone().lerp(K, 0.1 + k * 0.05).add(V(-0.02 + k * 0.03, 0, 0.15)), H.clone().lerp(K, 0.85).add(V(0.05 - k * 0.06, 0, 0.14)), { n: 8, jag: 0.014, r: 0.0036, seed: 20 + k }), 'upperleg01', { color: k === 2 ? VIOLET : MOSS });
-    add('light', t.crackLine(K.clone().lerp(A, 0.15).add(V(0.05, 0, 0.11)), K.clone().lerp(A, 0.7).add(V(-0.04, 0, 0.12)), { n: 6, jag: 0.012, r: 0.0034, seed: 31 }), 'lowerleg01', { color: CYAN });
+    if (!low) add('light', t.crackLine(K.clone().lerp(A, 0.15).add(V(0.05, 0, 0.11)), K.clone().lerp(A, 0.7).add(V(-0.04, 0, 0.12)), { n: 6, jag: 0.012, r: 0.0034, seed: 31 }), 'lowerleg01', { color: CYAN });
     // pie: masa de raíz con 4 dedos-raíz que se agarran al suelo
     add('bark', bonelump(0.095, [1.25, 0.75, 2.5], 18, 0.2).translate(A.x, 0.07, 0.07), 'foot', { color: BD });
-    for (let k = -1; k <= 1; k++) add('bark', G.tube([V(TO.x + k * 0.03, 0.06, 0.15), V(TO.x + k * 0.075, 0.04, 0.26), V(TO.x + k * 0.12, 0.012, 0.35)], 0.036, 0.008, { radial: S(5, 4), tubular: S(7, 5), ridges: 3, ridgeAmp: 0.2 }), 'toe3-1', { color: k % 2 ? BM : BD });
+    for (let k = -1; k <= 1; k += (low ? 2 : 1)) add('bark', G.tube([V(TO.x + k * 0.03, 0.06, 0.15), V(TO.x + k * 0.075, 0.04, 0.26), V(TO.x + k * 0.12, 0.012, 0.35)], 0.036, 0.008, { radial: S(5, 4), tubular: S(7, 5), ridges: 3, ridgeAmp: 0.2 }), 'toe3-1', { color: k % 2 ? BM : BD });
     add('bone', spikeAt(V(A.x, 0.06, -0.08), V(0, 0.3, -1), 0.13, 0.03, 0.02, Y, { ridges: 3 }), 'foot', { color: BL });
     add('light', t.seam([V(A.x - 0.06, 0.15, 0.0), V(A.x, 0.16, 0.06), V(A.x + 0.06, 0.15, 0.0)], 0.003), 'foot', { color: MOSS });
   });
