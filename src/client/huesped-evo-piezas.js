@@ -124,7 +124,7 @@ export function addEvolution(ak, ctx, o = {}) {
   }
 
   // ═════════════ NIVEL 4
-  if (has('apoteosis')) {
+  if (has('apoteosis') && !o.skipApoteosis) { // (Seraf dibuja sus propias alas y aureola: skipApoteosis)
     const c0 = new T.Color(glow).lerp(white, 0.4), c1 = new T.Color(glow);
     const wings = [-1, 1].map((s) => {
       const hub = V(s * 0.07, 1.34, -0.12), b = ak.bone(s < 0 ? 'wingR' : 'wingL', 'spine01', hub), arm = (u) => V(s * (0.04 + 0.52 * u), 0.03 + 0.4 * Math.sin(u * Math.PI * 0.62), -0.04 - 0.1 * u);
