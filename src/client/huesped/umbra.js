@@ -9,7 +9,7 @@ import { addEvolution } from '../huesped-evo-piezas.js';
 import { uBeat } from '../shaders.js';
 
 export const BELLY = 0;
-const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xcfb4ff, OBS = 0x1c1232, OBS_D = 0x1e1438, VOID = 0x000000, MIR = 0xa8b0d0, MIRV = 0x9a86d0, SHROUD = 0x2a1c48;
+const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xcfb4ff, OBS = 0x1c1232, OBS_D = 0x1e1438, VOID = 0x000000, MIR = 0xa8b0d0, MIRV = 0x9a86d0, SHROUD = 0x1c1236;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, cuff, S, low, basisQ } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), HC = V(0, 1.6, 0.06), upd = [], R = t.rng(51), TAU = Math.PI * 2;
@@ -68,7 +68,7 @@ export function build(ak, ctx) {
       add('mirror', spikeAt(V(0.09, 1.43, 0.0), V(0.5, 1, -0.2), s === 'L' ? 0.2 : 0.14, 0.018, 0.012, Zv, { radial: 4 }), 'clavicle', { color: MIRV });
     });
     // espina dorsal: lomo de obsidiana con vértebras
-    for (let i = 0; i < 6; i += (low ? 2 : 1)) add('mirror', G.box(0.05, 0.04, 0.03, 0.01, 1).translate(0, 1.42 - i * 0.07, -0.1 - (i === 0 ? 0 : 0)), i < 3 ? 'spine01' : 'spine02', { color: OBS });
+    for (let i = 0; i < 6; i += (low ? 2 : 1)) add('mirror', t.box(0.05, 0.04, 0.03, 0.01, 1).translate(0, 1.42 - i * 0.07, -0.1 - (i === 0 ? 0 : 0)), i < 3 ? 'spine01' : 'spine02', { color: OBS });
     // núcleo que late (hueso propio: se escala con uBeat): cristal + luz + jaula de aros
     const nuc = ak.bone('nucleo', 'spine01', V(0, 1.28, 0.2));
     add('light', G.sphere(0.03, S(10, 7), S(8, 6)).translate(0, 1.28, 0.2), 'nucleo', { color: 0xffffff });
@@ -114,7 +114,7 @@ export function build(ak, ctx) {
 
   // ═══════════════════════════ HOJA DIMENSIONAL (mano derecha): atraviesa dos planos de luz y reaparece desplazada
   ak.one('R', () => {
-    const W0 = P('wrist'), D = V(0.5, -0.02, 1).normalize(), tip = (u) => W0.clone().addScaledVector(D, u), seg = (g, u, off, col, mat = 'mirror') => add(mat, limb(g, W0, tip(1), u, { off }), 'wrist', { color: col });
+    const W0 = P('wrist'), D = V(0.85, 0.2, 0.62).normalize(), tip = (u) => W0.clone().addScaledVector(D, u), seg = (g, u, off, col, mat = 'mirror') => add(mat, limb(g, W0, tip(1), u, { off }), 'wrist', { color: col });
     seg(t.box(0.03, 0.04, 0.16, 0.01, 1), 0.04, [0, 0, 0], OBS); // empuñadura
     seg(t.box(0.05, 0.05, 0.05, 0.01, 1), 0.075, [0, 0, 0], VIO, 'light');
     // tramos de hoja: la hoja es la misma pero cada tramo está corrido de lado (cruzó un plano)
@@ -126,7 +126,7 @@ export function build(ak, ctx) {
     }
     // planos: marco de luz + membrana translúcida perpendicular a la hoja
     for (const [u, sz, dx] of [[0.54, 0.2, 0.035], [0.985, 0.26, 0.11]]) {
-      const hs = sz / 2, fr = [G.box(sz, 0.012, 0.012, 0.003, 1).translate(0, 0, hs), G.box(sz, 0.012, 0.012, 0.003, 1).translate(0, 0, -hs), G.box(0.012, 0.012, sz, 0.003, 1).translate(hs, 0, 0), G.box(0.012, 0.012, sz, 0.003, 1).translate(-hs, 0, 0)];
+      const hs = sz / 2, fr = [t.box(sz, 0.012, 0.012, 0.003, 1).translate(0, 0, hs), t.box(sz, 0.012, 0.012, 0.003, 1).translate(0, 0, -hs), t.box(0.012, 0.012, sz, 0.003, 1).translate(hs, 0, 0), t.box(0.012, 0.012, sz, 0.003, 1).translate(-hs, 0, 0)];
       const lf = G.merge(fr), pane = new T.BoxGeometry(sz * 0.98, 0.002, sz * 0.98);
       add('light', limb(lf, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.35, 0] }), 'wrist', { color: LILA });
       add('spirit', limb(pane, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.35, 0] }), 'wrist', { color: cnew(VIO_D).multiplyScalar(0.55) });
@@ -157,7 +157,12 @@ export function build(ak, ctx) {
     const c3 = [], l3 = []; for (let j = 0; j < 4; j++) { c3.push({ bone: 'spine05', p: V(-0.075 + j * 0.05, 0.95, 0.2) }); l3.push(0.7 + (R() - 0.5) * 0.2); }
     flare(ak.cloth({ top: c3, dir: V(0, -1, 0.1), lens: l3, rows: S(8, 5), color: 0x32225a, hem: 0x08050f, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.9 }), 0.1, 0, 0.0);
     ak.collider('spine02', V(0, 1.0, 0.045), V(0, 1.36, 0.045), 0.18); ak.collider('spine05', V(0, 0.86, 0.045), V(0, 0.98, 0.045), 0.21); ak.collider('spine05', V(0, 0.3, 0.03), V(0, 0.8, 0.03), 0.3);
-    ak.both(() => { ak.collider('upperleg01', P('upperleg01'), P('lowerleg01'), 0.13); });
+    ak.both(() => { ak.collider('upperleg01', P('upperleg01'), P('lowerleg01'), 0.13);
+      const H = P('upperleg01'), K = P('lowerleg01'), A = P('foot'); // piernas y pies cubiertos de sombra (por si asoman bajo el sudario)
+      add('dark', limb(cuff(0.1, 0.08, H.distanceTo(K) * 0.98, 0.01, S(9, 6), 20), H, K, 0.5), 'upperleg01', { color: OBS_D });
+      add('dark', limb(cuff(0.075, 0.06, K.distanceTo(A) * 0.98, 0.01, S(9, 6), 20), K, A, 0.5), 'lowerleg01', { color: OBS_D });
+      add('dark', X(t.box(0.1, 0.07, 0.27, 0.02, 1), { p: [A.x + 0.005, 0.04, 0.05] }), 'foot', { color: OBS_D });
+    });
     // volutas: jirones de espíritu (cadenas con física) que se deshacen en luz; cada eslabón se desvanece hacia la punta
     const wisp = (name, parent, p0, dir, len, n, w, o = {}) => {
       const d = dir.clone().normalize(), pts = []; for (let i = 0; i <= n; i++) { const u = i / n; pts.push(p0.clone().addScaledVector(d, len * u).add(V(0, -(o.drop ?? 0) * u * u, 0))); }
@@ -166,14 +171,14 @@ export function build(ak, ctx) {
         const a = pts[i], b = pts[i + 1], dd = b.clone().sub(a), nn = V().crossVectors(dd, o.toward ?? V(1, 0, 0)).cross(dd).normalize(), nz = V().crossVectors(dd, nn).normalize(), w0 = w * (1 - i / n * 0.75) * (i ? 1 : 0.5), w1 = w * (1 - (i + 1) / n * 0.75);
         const q = [a.clone().addScaledVector(nn, -w0), a.clone().addScaledVector(nn, w0), b.clone().addScaledVector(nn, -w1), b.clone().addScaledVector(nn, w1)], g = new T.BufferGeometry(); void nz;
         g.setAttribute('position', new T.Float32BufferAttribute(q.flatMap((v) => [v.x, v.y, v.z]), 3)); g.setIndex([0, 1, 2, 2, 1, 3, 2, 1, 0, 3, 1, 2]); g.computeVertexNormals();
-        const c0 = cnew(o.col ?? VIO).multiplyScalar(0.18 + 0.7 * Math.pow(1 - i / n, 1.4)), c1 = cnew(o.col ?? VIO).multiplyScalar(0.18 + 0.7 * Math.pow(1 - (i + 1) / n, 1.4));
+        const c0 = cnew(o.col ?? VIO).multiplyScalar(0.06 + 0.5 * Math.pow(1 - i / n, 1.3)), c1 = cnew(o.col ?? VIO).multiplyScalar(0.06 + 0.5 * Math.pow(1 - (i + 1) / n, 1.3));
         add('spirit', g, `${name}${i}`, { color: (x, y, z) => (V(x, y, z).sub(a).dot(dd) / dd.lengthSq() > 0.5 ? c1 : c0) }); }
     };
     const nw = low ? 6 : 10;
-    for (let i = 0; i < nw; i++) { const a = (i / nw) * TAU + 0.3; wisp(`jir${i}`, 'spine05', V(Math.sin(a) * 0.3, 0.3, 0.02 + Math.cos(a) * 0.26), V(Math.sin(a) * 0.25, -1, Math.cos(a) * 0.25), 0.55 + (i % 3) * 0.12, 5, 0.1, { toward: V(Math.cos(a), 0, -Math.sin(a)), g: 1.2, sway: 1.0, drop: 0.1 }); }
+    for (let i = 0; i < nw; i++) { const a = (i / nw) * TAU + 0.3; wisp(`jir${i}`, 'spine05', V(Math.sin(a) * 0.3, 0.3, 0.02 + Math.cos(a) * 0.26), V(Math.sin(a) * 0.25, -1, Math.cos(a) * 0.25), 0.7 + (i % 3) * 0.14, 7, 0.06, { toward: V(Math.cos(a), 0, -Math.sin(a)), g: 1.2, sway: 1.0, drop: 0.1 }); }
     for (const [sx, nm] of [[1, 'mL'], [-1, 'mR']]) { // humo de las mangas y de los hombros
-      const w0 = P('wrist_L_h'); wisp(`${nm}0`, 'wrist_' + (sx > 0 ? 'L' : 'R'), V(sx * w0.x, w0.y - 0.04, w0.z), V(sx * 0.2, -0.4, -1), 0.5, 5, 0.08, { toward: V(0, 1, 0), g: 1.0, sway: 1.2, stiff: 0.08 });
-      wisp(`${nm}1`, 'spine01', V(sx * 0.2, 1.42, -0.06), V(sx * 0.3, 0.1, -1), 0.55, 5, 0.07, { toward: V(0, 1, 0), g: 0.2, sway: 1.4, stiff: 0.04 });
+      const w0 = P('wrist_L_h'); wisp(`${nm}0`, 'wrist_' + (sx > 0 ? 'L' : 'R'), V(sx * w0.x, w0.y - 0.04, w0.z), V(sx * 0.2, -0.4, -1), 0.55, 6, 0.05, { toward: V(0, 1, 0), g: 1.0, sway: 1.2, stiff: 0.08 });
+      wisp(`${nm}1`, 'spine01', V(sx * 0.2, 1.42, -0.06), V(sx * 0.3, 0.1, -1), 0.6, 6, 0.05, { toward: V(0, 1, 0), g: 0.2, sway: 1.4, stiff: 0.04 });
     }
     ak.embers(VIO, low ? 18 : 34, { radius: 0.5, height: 2.1, size: 5 });
     if (!low) ak.embers(VIO_D, 14, { radius: 0.35, height: 1.5, size: 16 }); // humo de luz (partículas grandes y tenues)

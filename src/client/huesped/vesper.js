@@ -35,7 +35,7 @@ export function build(ak, ctx) {
     // mandíbula articulada (respira / gruñe)
     const jaw = ak.bone('mandibula', 'head', V(0, HC.y - 0.075, HC.z + 0.03));
     add('bone', X(G.tube([V(0, -0.015, 0.03), V(0, -0.035, 0.15), V(0, -0.045, 0.27), V(0, -0.04, 0.33)], 0.05, 0.026, { radial: S(8, 6), tubular: S(8, 4), sx: 1, sz: 0.55, ease: 0.9 }), { p: [HC.x, HC.y - 0.06, HC.z] }), 'mandibula', { color: BONE_D });
-    add('dark', X(G.tube([V(0, 0.01, 0.06), V(0, 0.0, 0.2), V(0, -0.005, 0.3)], 0.034, 0.02, { radial: 5, tubular: 5, sx: 1, sz: 0.4 }), { p: [HC.x, HC.y - 0.052, HC.z] }), 'mandibula', { color: 0x0a0612 });
+    add('light', X(G.tube([V(0, 0.01, 0.06), V(0, 0.0, 0.2), V(0, -0.005, 0.3)], 0.034, 0.02, { radial: 5, tubular: 5, sx: 1, sz: 0.4 }), { p: [HC.x, HC.y - 0.052, HC.z] }), 'mandibula', { color: 0x34107a });
     ak.both((sd) => {
       add('bone', spikeAt(V(HC.x + 0.052, HC.y - 0.055, HC.z + 0.3), V(0.04, 1, 0.12), 0.06, 0.011, 0.0, Zv, { radial: 4 }), 'mandibula', { color: BONE_L });
       for (let i = 0; i < (low ? 2 : 4); i++) add('bone', spikeAt(V(HC.x + 0.035, HC.y - 0.058, HC.z + 0.13 + i * 0.055), V(0.0, 1, 0.1), 0.026, 0.0075, 0, Zv, { radial: 4, tubular: 2 }), 'mandibula', { color: BONE_L });
@@ -54,7 +54,11 @@ export function build(ak, ctx) {
       if (!low) add('bone', spikeAt(V(HC.x + 0.085, HC.y + 0.15, HC.z - 0.055), V(0.2, 1, -0.2), 0.07, 0.004, 0.0, Zv, { radial: 3, tubular: 3 }), 'oreja' + sd, { color: BONE_L }); // mechón de la punta
       upd.push((dt, tt) => { const k = tt * 1.1 + (sd === 'L' ? 0 : 1.7); eb.rotation.z = (Math.sin(tt * 0.9) * 0.05 + Math.max(0, Math.sin(tt * 0.37 + 1)) ** 6 * 0.35) * -1; eb.rotation.x = Math.sin(tt * 1.3 + k) * 0.03; });
       // mejilla: placa de cristal y púas de pelaje hacia atrás
-      PL('head', [[0.0, 0.05], [0.07, 0.035], [0.1, -0.02], [0.06, -0.07], [0.0, -0.045]], { mat: 'crystal', depth: 0.014, bevel: 0.004, wrap: { rx: 0.112, rz: 0.14 }, color: VIO_D, trim: 'ember', trimInset: 0.22, trimR: 0.0025, place: (g) => X(g, { p: [HC.x, HC.y - 0.05, HC.z - 0.01], r: [0, 0.32, 0] }) });
+      PL('head', [[0.0, 0.03], [0.07, 0.04], [0.12, 0.0], [0.13, -0.045], [0.07, -0.02], [0.0, -0.01]], { mat: 'crystal', depth: 0.014, bevel: 0.004, wrap: { rx: 0.112, rz: 0.14 }, color: VIO_D, trim: 'ember', trimInset: 0.2, trimR: 0.0025, place: (g) => X(g, { p: [HC.x, HC.y - 0.045, HC.z - 0.01], r: [0, 0.3, 0.12] }) });
+      // brecha de hueso sobre el ojo (ceja gruesa), arco cigomático y grietas de luz en el cráneo
+      add('bone', X(G.wrapE(G.plate([[0.0, 0.0], [0.05, 0.03], [0.108, 0.035], [0.116, 0.012], [0.05, 0.004]], 0.02, 0.006), 0.115, 0.146), { p: [HC.x, HC.y + 0.034, HC.z - 0.005], r: [0, 0, 0.1] }), 'head', { color: BONE_D });
+      add('light', seam([V(0.07, HC.y + 0.13, HC.z - 0.04), V(0.08, HC.y + 0.09, HC.z + 0.0), V(0.1, HC.y + 0.06, HC.z + 0.02), V(0.108, HC.y + 0.04, HC.z + 0.05)], 0.0024), 'head', { color: VIO });
+      add('light', seam([V(0.04, HC.y + 0.14, HC.z - 0.05), V(0.05, HC.y + 0.11, HC.z - 0.07), V(0.065, HC.y + 0.075, HC.z - 0.09)], 0.0022), 'head', { color: MAG });
       for (let i = 0; i < (low ? 2 : 3); i++) add('bone', spikeAt(V(HC.x + 0.1, HC.y - 0.04 - i * 0.03, HC.z - 0.03 - i * 0.012), V(0.7, -0.15 - i * 0.2, -0.8), 0.12 - i * 0.02, 0.012, 0.01, Y, { radial: 4 }), 'head', { color: BONE_D });
     });
     upd.push((dt, tt) => { jaw.rotation.x = 0.2 + 0.05 * Math.sin(tt * 1.6) + 0.08 * Math.max(0, Math.sin(tt * 0.5)) ** 4; });
@@ -160,8 +164,8 @@ export function build(ak, ctx) {
     add('dark', limb(cuff(0.09, 0.066, ul * 0.8, 0.012, S(10, 7), 28), H, K, 0.46), 'upperleg01', { color: DARK });
     PL('upperleg01', [[-0.055, 0.12], [0.055, 0.12], [0.07, 0.0], [0.04, -0.13], [0, -0.16], [-0.04, -0.13], [-0.07, 0.0]], { mat: 'crystal', depth: 0.014, bevel: 0.005, wrap: { rx: 0.108, rz: 0.098 }, color: VIO_D, trim: 'ember', trimInset: 0.2, place: (g) => limb(g, H, K, 0.28, { r: [0, -Math.PI / 2 + 0.2, 0] }) });
     // anca: placa de perfil que abulta hacia atrás detrás del muslo (con el corvejón forma el zigzag de la pata trasera de un felino)
-    const hp = G.plate([[-0.04, 0.93], [-0.1, 0.86], [-0.15, 0.75], [-0.14, 0.63], [-0.09, 0.53], [-0.03, 0.55], [-0.02, 0.72], [-0.02, 0.88]], 0.06, 0.014, { crease: 45 });
-    X(hp, { r: [0, -Math.PI / 2, 0] }); X(hp, { p: [H.x + 0.02, 0, 0] }); add('dark', hp, 'upperleg01', { color: 0x7a68ac });
+    const SIDE = (bone, prof, w, x, o = {}) => PL(bone, prof.map((q) => [-q[0], q[1]]), { mat: 'dark', depth: w, bevel: w * 0.22, trim: 'ember', trimInset: 0.1, trimR: 0.003, place: (g) => { X(g, { r: [0, Math.PI / 2, 0] }); return X(g, { p: [x, 0, 0] }); }, ...o });
+    SIDE('upperleg01', [[-0.04, 0.93], [-0.1, 0.86], [-0.15, 0.75], [-0.14, 0.63], [-0.09, 0.53], [-0.03, 0.55], [-0.02, 0.72], [-0.02, 0.88]], 0.06, H.x + 0.02, { color: 0x5a4a88 });
     add('light', seam([V(H.x + 0.02, 0.9, -0.09), V(H.x + 0.02, 0.78, -0.155), V(H.x + 0.02, 0.62, -0.145), V(H.x + 0.02, 0.54, -0.1)], 0.003), 'upperleg01', { color: VIO });
     // escamas de pelaje escalonadas que bajan por el muslo (puntas hacia abajo) con filete de luz
     for (let i = 0; i < (low ? 3 : 4); i++) PL('upperleg01', [[-0.05 + i * 0.004, 0.035], [0.05 - i * 0.004, 0.035], [0.042 - i * 0.004, -0.02], [0, -0.075], [-0.042 + i * 0.004, -0.02]], { mat: 'dark', depth: 0.014, bevel: 0.005, wrap: { rx: 0.1 - i * 0.004, rz: 0.094 - i * 0.003 }, color: i % 2 ? 0x8a78bc : 0x6a5a98, trim: i % 2 ? undefined : 'ember', trimInset: 0.16, trimR: 0.0024, place: (g) => limb(g, H, K, 0.5 + i * 0.1) });
@@ -175,8 +179,7 @@ export function build(ak, ctx) {
     PL('lowerleg01', [[0, 0.17], [0.03, 0.13], [0.034, -0.1], [0.012, -0.17], [-0.012, -0.17], [-0.034, -0.1], [-0.03, 0.13]], { mat: 'crystal', depth: 0.024, bevel: 0.01, wrap: { rx: 0.064, rz: 0.076 }, color: VIO_D, trim: 'ember', trimInset: 0.22, trimR: 0.0028, place: (g) => limb(g, K, A, 0.42, { off: [0, 0, 0.0] }) });
     // corvejón: placa lateral de perfil que sobresale hacia atrás (la «rodilla invertida» de una pata de felino) con espolón, y la pantorrilla larga que baja en diagonal
     const hock = V(K.x + 0.01, 0.3, -0.15);
-    const calf = G.plate([[-0.06, 0.54], [-0.11, 0.42], [-0.16, 0.31], [-0.135, 0.22], [-0.08, 0.14], [-0.03, 0.17], [-0.015, 0.3], [-0.02, 0.46]], 0.05, 0.012, { crease: 45 });
-    X(calf, { r: [0, -Math.PI / 2, 0] }); X(calf, { p: [K.x + 0.03, 0, 0] }); add('dark', calf, 'lowerleg01', { color: 0x6a5a98 });
+    SIDE('lowerleg01', [[-0.06, 0.54], [-0.11, 0.42], [-0.16, 0.31], [-0.135, 0.22], [-0.08, 0.14], [-0.03, 0.17], [-0.015, 0.3], [-0.02, 0.46]], 0.05, K.x + 0.03, { color: 0x5a4a88 });
     add('light', seam([V(K.x + 0.01, 0.5, -0.075), V(K.x + 0.01, 0.4, -0.125), V(K.x + 0.01, 0.3, -0.16), V(K.x + 0.01, 0.2, -0.13)], 0.003), 'lowerleg01', { color: VIO });
     add('bone', X(bonelump(0.04, [0.9, 1.3, 1.0], 7, 0.2), { p: [hock.x + 0.03, hock.y + 0.01, hock.z + 0.0] }), 'lowerleg01', { color: BONE_D });
     add('bone', spikeAt(V(hock.x + 0.02, hock.y + 0.03, hock.z - 0.01), V(0.1, 0.55, -1), 0.24, 0.028, 0.06, Y, { radial: S(6, 4), ridges: 3, ridgeAmp: 0.16 }), 'lowerleg01', { color: BONE });
