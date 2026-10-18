@@ -61,7 +61,9 @@ function summon(game, m, kind, n, spread = 4) {
 }
 
 function pulseGravity(game, m, range, secs) {
-  for (const p of game.alivePlayers()) if (dist(p.pos, m.pos) < range) p.flipUntil = game.time + secs;
+  // Un jugador no puede ser invertido otra vez hasta ~20 s después de que termine la inversión anterior:
+  // sin esto, con varios Familiares y jefes la gravedad cambiaba sin parar en las últimas oleadas.
+  for (const p of game.alivePlayers()) if (dist(p.pos, m.pos) < range && game.time >= (p.flipLock || 0)) { p.flipUntil = game.time + secs; p.flipLock = game.time + secs + 20; }
   game.emit({ t: 'gravity', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] });
 }
 

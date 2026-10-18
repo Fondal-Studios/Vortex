@@ -13,6 +13,7 @@ import { applyBend } from './bendiciones.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
 import { Director } from './director.js';
+import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
 import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
 import { ROLES, ROLE_IDS } from './data.js';
 
@@ -43,7 +44,7 @@ export class Game {
     this.wave = 0; this.waveTotal = WAVE_PLANS[mapId].length + 1;
     this.phase = 'intermission'; this.phaseT = calm; // calma inicial (la historia usa más)
     this.queue = []; this.omens = []; this.spawnT = 0; this.spawnGap = 1.5;
-    this.boss = null;
+    this.boss = null; this.mision = null; this.forceElite = false;
     this.objects = []; this.pings = []; this.objective = null; this.fragments = 0; this.teamBuffUntil = 0; this.director = new Director(); this.curTypes = [];
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
     this.cult = this.map.cultivo ? initCult(this) : null; // acertijo del mapa 4 (src/sim/cultivo.js)
@@ -173,6 +174,7 @@ export class Game {
     } else this.straggleT = 0;
     if (!this.queue.length && !this.omens.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
+      misionFin(this);
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
       for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
       this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this);
@@ -195,6 +197,7 @@ export class Game {
     const isBoss = n === this.waveTotal;
     const types = plan[Math.min(n, plan.length) - 1]; this.curTypes = types;
     this.objective = isBoss ? null : makeObjective(this, n); this.objective0 = this.objective;
+    iniciarMision(this, n, isBoss);
     let budget = (8 + 8 * n + 1.3 * n * n) * (1 + 0.6 * (n_pl - 1)) * this.difficulty;
     if (isBoss) { budget *= 0.45; this.queue.push(BOSS_OF[this.mapId]); }
     const cap = { geoda: 1 + Math.floor(n / 2), graviton: 1 + Math.floor(n / 3), cuarzo: 1 + Math.floor(n / 3), espejo: 2 + n, obelisco: 1 + Math.floor(n / 3), aurora: 1 + Math.floor(n / 3), espiral: 1 + Math.floor(n / 4), ariete: 1 + Math.floor(n / 2) };
@@ -260,7 +263,9 @@ export class Game {
     const def = MONSTERS[kind];
     const w = Math.max(1, this.wave);
     const pm = def.boss ? 1 + 0.7 * (this.players.length - 1) : 1;
-    const elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5;
+    let elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5;
+    if (!elite && this.forceElite && !def.boss && !extra.noElite) elite = true; // misión «Caza mayor»: garantiza un élite
+    if (elite) this.forceElite = false;
     const hp = def.hp * (def.boss ? 1 : (1 + WAVE_SCALE.hp * (w - 1)) * (elite ? 2.2 : 1)) * pm;
     const m = {
       id: this.nextId++, kind, def, pos: clone(pos), vel: v3(), up: v3(0, 1, 0), fwd: v3(0, 0, 1),
@@ -399,7 +404,7 @@ export class Game {
     p.lastHurt = this.time;
     const sh = Math.min(p.shield, dmg); p.shield -= sh; dmg -= sh;
     p.hp -= dmg;
-    this.emit({ t: 'hurt', pid: p.id, dmg: r2(dmg + sh) });
+    this.emit({ t: 'hurt', pid: p.id, dmg: r2(dmg + sh) }); misionHurt(this);
     if (p.hp <= 0) { p.hp = 0; p.dead = true; p.respawnAt = this.time; p.bleed = PLAYER.bleed; p.lost = false; p.reviveT = 0; this.emit({ t: 'down', pid: p.id }); }
   }
 
@@ -564,7 +569,7 @@ export class Game {
     if (by) { by.kills++; by.score += m.def.score; if (wstat(by, by.weapon).mod === 'vampirica' && !by.dead) { const mu = wstat(by, by.weapon).mut; by.hp = Math.min(PLAYER.hp, by.hp + (mu === 'simbiosis' ? 10 : 6)); if (mu === 'simbiosis') by.shield = Math.min(PLAYER.shield, by.shield + 8); if (mu === 'parasito') { const w0 = WEAPONS[by.weapon]; if (w0.per > 0) by.ammo[by.weapon] = Math.min(ammoMax(by, by.weapon), by.ammo[by.weapon] + w0.per * 3); } }
       if (m.dotKind === 'poison' && this.time < (m.dotUntil || 0) && anyMut(by, 'plaga')) for (const q of this.monsters) if (!q.dead && q !== m && dist(q.pos, m.pos) < 9) { q.dotUntil = this.time + 4; q.dotDps = 6; q.dotKind = 'poison'; q.dotBy = by.id; } }
     if (m.parent) { const par = this.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); }
-    this.emit({ t: 'kill', id: m.id, k: m.kind, p: a3(m.pos) });
+    this.emit({ t: 'kill', id: m.id, k: m.kind, p: a3(m.pos) }); misionKill(this, m, by);
     if (m.kind === 'racimo') this.explode(m.pos, 5.5, 22, 40, null);
     if (m.affix === 'explosivo') this.explode(m.pos, 6, 28, 30, null);
     if (m.def.boss) { // al caer el corazón del vórtice todo lo demás se hace añicos
@@ -796,7 +801,8 @@ export class Game {
       projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),
       objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, nk: o.kind || undefined, ow: o.owner || 0, l: r2(o.life || 0) })),
-      obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state } : null,
+      obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
+      mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
       dir: { stress: r2(this.director.stress), frag: this.fragments, buff: r2(Math.max(0, this.teamBuffUntil - this.time)) },
       events: this.drainEvents(),

@@ -10,10 +10,12 @@ function limpiarTerr(t) {
   for (const id of Object.keys(TERRITORIOS)) { const e = t[id]; if (!e || typeof e !== 'object') continue; out[id] = { bend: BENDICIONES[e.bend] && BENDICIONES[e.bend].terr === id ? e.bend : null }; }
   return out;
 }
-const fresh = () => ({ cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {} });
+/** guia = { off: saltada del todo, vistos: [ids de pasos ya mostrados] }. Se sanea al cargar. */
+function limpiarGuia(g) { const o = g && typeof g === 'object' ? g : {}; return { off: o.off === true, vistos: Array.isArray(o.vistos) ? o.vistos.filter((x) => typeof x === 'string').slice(0, 12) : [] }; }
+const fresh = () => ({ cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] } });
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
-  cache = { ...fresh(), ...o, evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr) };
+  cache = { ...fresh(), ...o, evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia) };
   return cache;
 }
 export const perfil = () => cache || load();
@@ -94,3 +96,10 @@ export function estadoBendicion(id) {
   if (el === id) return 'elegida'; if (el && el === hermana(id)) return 'cerrada';
   return liberado(b.terr) ? 'elegible' : 'bloqueada';
 }
+
+/* ───── guía de primera partida (src/client/meta-ui.js): pasos contextuales que se muestran una vez y se pueden saltar ───── */
+/** ¿Hay que mostrar este paso? (no se saltó la guía y aún no se vio). */
+export const guiaPendiente = (id) => { const g = perfil().guia; return !g.off && !g.vistos.includes(id); };
+export function guiaVisto(id) { const g = perfil().guia; if (!g.vistos.includes(id)) { g.vistos.push(id); guardar(); } }
+/** Salta toda la guía (para siempre en este perfil). */
+export function guiaSaltar() { perfil().guia.off = true; guardar(); }

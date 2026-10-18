@@ -13,6 +13,7 @@ const INFECT_OVERRIDE = typeof location !== 'undefined' && /[?&]infect=([\d.]+)/
 const HUMAN_HOSTS = typeof location !== 'undefined' && /[?&]cuerpo=humano/.test(location.search); // ?cuerpo=humano: prueba con el cuerpo humano de ARCANUM (host-human.js); por defecto los Huéspedes son almas y bestias (huespedes-limbo.js)
 const usesComposer = () => !POST_OFF && !!(cfg().post || cfg().grade);
 import { buildMonster, COLORS } from './models.js';
+import { bakeProxyGeometry, proxyMaterial } from './proxy-lod.js';
 import { Effects } from './effects.js';
 import { ObjectsView } from './objects.js';
 import { buildMap1 } from './env/map1.js';
@@ -318,7 +319,7 @@ export class Renderer {
       let e = this.ents.mon.get(m.id);
       if (!e) {
         e = buildMonster(m.k); e.kind = m.k; e.born = this.t; e.spd = 0; e.far = false; e.frame = 0;
-        e.proxy = new THREE.Mesh(this.shared('lodgeo', () => new THREE.IcosahedronGeometry(1, 1)), this.shared('lodm' + m.k, () => new THREE.MeshStandardMaterial({ color: COLORS[m.k] || 0xffffff, emissive: COLORS[m.k] || 0xffffff, emissiveIntensity: 0.5, roughness: 0.5 }))); e.proxy.visible = false; e.object.add(e.proxy);
+        e.proxy = new THREE.Mesh(this.shared('lodgeo' + m.k, () => bakeProxyGeometry(m.k) || new THREE.IcosahedronGeometry(0.9, 1)), proxyMaterial()); e.proxy.visible = false; e.object.add(e.proxy); // silueta propia de la especie (ver proxy-lod.js)
         if (cfg().shadows) e.object.traverse((q) => { if (q.isMesh) q.castShadow = true; }); e.object.userData.s = new THREE.Vector3();
         { const bc = COLORS[m.k] || 0xffffff, sp = new THREE.Sprite(this.halo_(bc)); sp.scale.setScalar(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 3.4 : 4.2); sp.material.opacity = 0.38; sp.material.depthWrite = false; sp.name = 'beacon'; e.object.add(sp);
           const dk = new THREE.Sprite(this.shared('haloDark', () => new THREE.SpriteMaterial({ map: this.halo, color: 0x04020c, depthWrite: false, transparent: true, opacity: 0.42 }))); dk.scale.setScalar(sp.scale.x * 1.25); dk.renderOrder = -1; dk.name = 'beaconDark'; e.object.add(dk); } // ARTE: halo OSCURO bajo el aura: la criatura se recorta también sobre fondos claros (muro ámbar, carne rosa) // aura del color de la criatura: se lee a distancia y sobre el fondo
@@ -338,7 +339,7 @@ export class Renderer {
       this.updateBar(e, m);
       const boss = m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'; this.tmpV.copy(this.camera.position).sub(o.position); const far = !boss && (this.tmpV.length() > cfg().lod + m.r * 2 || !full.has(m.id));
       if (far !== e.far) { e.far = far; e.object.children[0].visible = !far; e.proxy.visible = far; }
-      if (far) { e.proxy.scale.setScalar(0.9); continue; }
+      if (far) continue;
       if ((m.ef || 0) !== (e.ef || 0)) { e.ef = m.ef || 0; if (e.statusSp) { e.object.remove(e.statusSp); e.statusSp = null; } if (e.ef) { const c = e.ef & 4 ? 0xff7a1a : e.ef & 2 ? 0x7dff4a : 0x66b8ff; const sp = new THREE.Sprite(this.halo_(c)); sp.scale.setScalar(2.8); sp.material.opacity = 0.5; e.object.add(sp); e.statusSp = sp; } }
       if (e.statusSp) e.statusSp.material.opacity = 0.35 + 0.2 * Math.sin(this.t * 9);
       const hv = m.h ? 0.7 : 0; if (kit.setWound) kit.setWound(e.mats, Math.max(0, Math.min(1, 1 - m.hp / m.mh)));
