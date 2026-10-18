@@ -8,7 +8,7 @@ import { addEvolution } from '../huesped-evo-piezas.js';
 import { uBeat } from '../shaders.js';
 
 export const BELLY = 1; // vientre de luz dorada entre las bandas del corsé
-const IVORY = 0xeae0cf, IVORY_D = 0xcdbfa8, GOLD_L = 0xffd45a, GOLD_W = 0xfff3c8, AMBER = 0xff9a2a, ASH = 0x4a3a32, ASH_D = 0x241b17, CREAM = 0xf0e6d2;
+const IVORY = 0xd2c7b1, IVORY_D = 0xb5a88f, GOLD_L = 0xffd45a, GOLD_W = 0xfff3c8, AMBER = 0xff9a2a, ASH = 0x4a3a32, ASH_D = 0x241b17, CREAM = 0xf0e6d2;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, dome, cuff, S, low } = t, P = (n) => ak.P(n), add = ak.add;
@@ -17,7 +17,7 @@ export function build(ak, ctx) {
   { // materiales: oro pulido (poco relieve), porcelana menos blanca (para que el bloom no la queme), tela clara
     const mg = ak.material('gold'), mm = ak.material('marble'), mc = ak.material('cloth');
     mg.color.setRGB(1.8, 1.22, 0.42); mg.roughness = 0.5; mg.metalness = 0.82; mg.normalScale.set(0.22, 0.22); mg.userData.uvk = 0.45;
-    mm.color.setRGB(0.4, 0.36, 0.3); mm.roughness = 0.8; mm.userData.uvk = 0.5; mm.normalScale.set(0.15, 0.15); mc.color.setRGB(0.82, 0.74, 0.6);
+    mm.color.setRGB(0.42, 0.38, 0.32); mm.roughness = 0.8; mm.userData.uvk = 0.5; mm.normalScale.set(0.15, 0.15); mc.color.setRGB(0.82, 0.74, 0.6);
   }
 
   // ───────────────────────── utilidades de diseño
@@ -71,28 +71,33 @@ export function build(ak, ctx) {
     const face = G.wrapE(G.plate([[0, 0.078], [0.046, 0.068], [0.077, 0.034], [0.082, -0.016], [0.058, -0.07], [0.022, -0.108], [0, -0.116], [-0.022, -0.108], [-0.058, -0.07], [-0.082, -0.016], [-0.077, 0.034], [-0.046, 0.068]], 0.014, 0.005), 0.118, 0.143); X(face, { p: [HC.x, HC.y - 0.012, HC.z] });
     add('marble', face, 'head', { color: 0xf0cf86 });
     add('gold', X(G.wrapE(t.outline([[0, 0.078], [0.046, 0.068], [0.077, 0.034], [0.082, -0.016], [0.058, -0.07], [0.022, -0.108], [0, -0.116], [-0.022, -0.108], [-0.058, -0.07], [-0.082, -0.016], [-0.077, 0.034], [-0.046, 0.068]], { inset: 0.02, z: 0.0075, r: 0.0036 }), 0.118, 0.143), { p: [HC.x, HC.y - 0.012, HC.z] }), 'head');
-    add('gold', X(G.wrapE(G.plate([[0.0, 0.03], [0.012, 0.0], [0.014, -0.05], [0.0, -0.074], [-0.014, -0.05], [-0.012, 0.0]], 0.026, 0.008), 0.05, 0.151), { p: [HC.x, HC.y, HC.z] }), 'head'); // puente y nariz
-    add('dark', X(G.wrapE(G.plate([[-0.02, 0.0], [0.02, 0.0], [0.014, -0.006], [-0.014, -0.006]], 0.012, 0.002), 0.03, 0.152), { p: [HC.x, HC.y - 0.056, HC.z] }), 'head', { color: 0x1a1008 });
-    add('gold', X(G.wrapE(G.plate([[-0.03, 0.0], [0.03, 0.0], [0.022, -0.007], [0, -0.012], [-0.022, -0.007]], 0.014, 0.003), 0.03, 0.146), { p: [HC.x, HC.y - 0.087, HC.z] }), 'head'); // labios
+    // rasgos finos de oro sobre la máscara (puntos sobre la elipse del rostro): nariz, labios, cejas y párpados de luz
+    const fp = (xl, yl, out = 0.009) => { const a = xl / 0.1305; return V(0.118 * Math.sin(a) + out * Math.sin(a), HC.y + yl, HC.z + 0.143 * Math.cos(a) + out * Math.cos(a)); };
+    const line = (list, r0, r1 = r0) => G.tube(list.map(([x, y]) => fp(x, y)), r0, r1, { radial: low ? 3 : 4, tubular: Math.max(4, list.length * (low ? 2 : 4)), closeStart: true });
+    add('gold', line([[0, 0.024], [0, 0.0], [0.002, -0.03], [0.004, -0.048]], 0.0045, 0.0075), 'head');
+    add('gold', line([[-0.016, -0.046], [-0.007, -0.055], [0.007, -0.055], [0.016, -0.046]], 0.0034), 'head');
+    add('gold', line([[-0.024, -0.078], [-0.011, -0.082], [0, -0.0835], [0.011, -0.082], [0.024, -0.078]], 0.0034), 'head');
+    add('gold', line([[-0.018, -0.091], [0, -0.097], [0.018, -0.091]], 0.0030), 'head');
     ak.both(() => {
-      add('dark', X(G.wrapE(G.plate([[0.008, 0.016], [0.078, 0.022], [0.094, -0.004], [0.064, -0.028], [0.012, -0.018]], 0.012, 0.002), 0.114, 0.14), { p: [HC.x, HC.y + 0.0, HC.z] }), 'head', { color: 0x120a04 });
-      add('light', X(G.wrapE(G.plate([[0.016, 0.004], [0.056, 0.014], [0.086, 0.0], [0.064, -0.016], [0.022, -0.009]], 0.012, 0.002), 0.115, 0.1405), { p: [HC.x, HC.y + 0.0, HC.z] }), 'head', { color: GOLD_W }); // ojo de luz (párpado bajo)
-      add('gold', X(G.wrapE(G.plate([[0.01, 0.02], [0.06, 0.034], [0.095, 0.022], [0.088, 0.012], [0.06, 0.02], [0.012, 0.01]], 0.02, 0.005), 0.117, 0.143), { p: [HC.x, HC.y + 0.0, HC.z] }), 'head'); // ceja
+      const crescent = (cx, cy, hw, dy, flip = 1) => [-1, -0.5, 0, 0.5, 1].map((u) => [cx + u * hw, cy - flip * dy * (1 - u * u)]);
+      add('light', line(crescent(0.046, 0.002, 0.03, 0.011), 0.0036, 0.0036), 'head', { color: GOLD_W }); // ojo de luz: párpado bajo sereno (‿)
+      if (!low) add('light', line(crescent(0.046, 0.002, 0.022, 0.006), 0.0075, 0.0075), 'head', { color: GOLD_L });
+      add('gold', line(crescent(0.052, 0.027, 0.034, 0.007, -1), 0.0036, 0.0036), 'head'); // ceja
       const ch = G.wrapE(G.plate([[0.004, 0.034], [0.05, 0.026], [0.092, -0.022], [0.07, -0.082], [0.03, -0.095], [0.004, -0.062]], 0.014, 0.005), 0.108, 0.136); X(ch, { p: [HC.x, HC.y - 0.015, HC.z], r: [0, 0.4, 0] });
       add('gold', ch, 'head');
       add('gold', G.cyl(0.04, 0.036, 0.014, S(10, 7)).rotateZ(Math.PI / 2).translate(0.114, HC.y - 0.01, HC.z - 0.005), 'head'); add('light', G.cyl(0.02, 0.02, 0.016, S(8, 6)).rotateZ(Math.PI / 2).translate(0.116, HC.y - 0.01, HC.z - 0.005), 'head', { color: GOLD_L });
       // aletas de oro hacia atrás (tres por lado), como alas de casco
-      for (let i = 0; i < 3; i++) { const L = 0.3 - i * 0.065, d = V(0.45 + i * 0.12, 0.34 - i * 0.2, -0.9).normalize(); const g = featherGeo({ len: L, w: 0.058 - i * 0.008, segs: 1, rps: low ? 3 : 5, curve: -0.12, lean: 0.12, solid: true }).geos[0]; X(g, { q: t.basisQ(d, V(0, 1, 0.4)), p: [HC.x + 0.1, HC.y + 0.04 - i * 0.03, HC.z - 0.02] }); add('gold', g, 'head'); }
+      for (let i = 0; i < (low ? 2 : 3); i++) { const L = 0.3 - i * 0.065, d = V(0.45 + i * 0.12, 0.34 - i * 0.2, -0.9).normalize(); const g = featherGeo({ len: L, w: 0.058 - i * 0.008, segs: 1, rps: low ? 3 : 5, curve: -0.12, lean: 0.12, solid: true }).geos[0]; X(g, { q: t.basisQ(d, V(0, 1, 0.4)), p: [HC.x + 0.1, HC.y + 0.04 - i * 0.03, HC.z - 0.02] }); add('gold', g, 'head'); }
     });
     // corona: gema en la frente con filetes y una cresta de pétalos
     add('crystal', X(new T.OctahedronGeometry(0.019, 0), { p: [HC.x, HC.y + 0.066, HC.z + 0.149], s: [0.8, 1.25, 0.6] }), 'head', { color: GOLD_L });
     add('gold', X(G.torus(0.025, 0.0032, 3, S(10, 6)), { p: [HC.x, HC.y + 0.066, HC.z + 0.147], r: [Math.PI / 2, 0, 0], s: [0.9, 1, 1.35] }), 'head');
     add('gold', G.torus(0.109, 0.0042, 4, S(24, 12)).scale(1, 1, 1.2).translate(HC.x, HC.y + 0.082, HC.z), 'head');
-    for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.33, L = 0.115 - Math.abs(i - 2) * 0.022, d = V(Math.sin(a) * 0.5, 1, Math.cos(a) * 0.5 - 0.35).normalize(); const g = featherGeo({ len: L, w: 0.03, segs: 1, rps: 3, solid: true }).geos[0]; X(g, { q: t.basisQ(d, V(0, 0, 1)), p: [HC.x + Math.sin(a) * 0.1, HC.y + 0.08, HC.z + 0.095 * Math.cos(a)] }); add('gold', g, 'head'); }
+    for (let i = 0; i < 5; i += low ? 2 : 1) { const a = (i - 2) * 0.33, L = 0.115 - Math.abs(i - 2) * 0.022, d = V(Math.sin(a) * 0.5, 1, Math.cos(a) * 0.5 - 0.35).normalize(); const g = featherGeo({ len: L, w: 0.03, segs: 1, rps: 3, solid: true }).geos[0]; X(g, { q: t.basisQ(d, V(0, 0, 1)), p: [HC.x + Math.sin(a) * 0.1, HC.y + 0.08, HC.z + 0.095 * Math.cos(a)] }); add('gold', g, 'head'); }
     // gorguera: collar alto de plumas de oro + aros
     for (let i = 0; i < 2; i++) add('gold', G.band(0.07 - i * 0.003, 0.026, 0.01, { seg: S(16, 8), simple: low }).translate(0, 1.446 + i * 0.026, 0.03), 'neck01');
     add('marble', G.band(0.077, 0.02, 0.01, { seg: S(16, 8), simple: low }).translate(0, 1.428, 0.03), 'neck01', { color: IVORY });
-    const nn = low ? 7 : 11; for (let i = 0; i < nn; i++) { const a = Math.PI * (0.58 + i * (0.84 / (nn - 1))), c = (nn - 1) / 2, L = 0.1 + (1 - Math.abs(i - c) / c) * 0.05; const g = featherGeo({ len: L, w: 0.032, segs: 1, rps: 3, solid: true }).geos[0]; X(g, { q: t.basisQ(V(Math.sin(a) * 0.7, 1.0, Math.cos(a) * 0.7 - 0.15), V(Math.sin(a), 0, Math.cos(a))), p: [Math.sin(a) * 0.09, 1.452, 0.03 + Math.cos(a) * 0.09] }); add('gold', g, 'neck01'); }
+    const nn = low ? 5 : 11; for (let i = 0; i < nn; i++) { const a = Math.PI * (0.58 + i * (0.84 / (nn - 1))), c = (nn - 1) / 2, L = 0.1 + (1 - Math.abs(i - c) / c) * 0.05; const g = featherGeo({ len: L, w: 0.032, segs: 1, rps: 3, solid: true }).geos[0]; X(g, { q: t.basisQ(V(Math.sin(a) * 0.7, 1.0, Math.cos(a) * 0.7 - 0.15), V(Math.sin(a), 0, Math.cos(a))), p: [Math.sin(a) * 0.09, 1.452, 0.03 + Math.cos(a) * 0.09] }); add('gold', g, 'neck01'); }
   }
 
   // ═══════════════════════════ TORSO: peto de porcelana con filetes y filigrana de oro, corsé, núcleo
@@ -109,7 +114,7 @@ export function build(ak, ctx) {
     });
     // esternón de oro con el núcleo y su jaula
     add('gold', X(G.wrapE(G.plate([[0.0, 0.135], [0.03, 0.1], [0.036, 0.0], [0.022, -0.1], [0, -0.14], [-0.022, -0.1], [-0.036, 0.0], [-0.03, 0.1]], 0.03, 0.01), 0.04, 0.152), { p: [0, 1.26, zc - 0.012] }), 'spine01');
-    for (let i = 0; i < 3; i++) add('gold', G.torus(0.044 + i * 0.008, 0.0045, 4, S(16, 9)).rotateX(Math.PI / 2 + (i - 1) * 0.5).translate(0, 1.278, 0.196), 'spine01');
+    for (let i = 0; i < (low ? 2 : 3); i++) add('gold', G.torus(0.044 + i * 0.008, 0.0045, 4, S(16, 9)).rotateX(Math.PI / 2 + (i - 1) * 0.5).translate(0, 1.278, 0.196), 'spine01');
     add('light', G.sphere(0.03, S(10, 7), S(8, 6)).translate(0, 1.278, 0.199), 'spine01', { color: GOLD_W });
     add('crystal', X(new T.OctahedronGeometry(0.05, 0), { p: [0, 1.278, 0.202], s: [0.75, 1.2, 0.75] }), 'spine01', { color: GOLD_L });
     ak.halo('spine01', V(0, 1.278, 0.24), GOLD_L, 0.5, 0.5);
@@ -124,14 +129,14 @@ export function build(ak, ctx) {
     add('light', X(new T.OctahedronGeometry(0.026, 0), { p: [0, 0.945, 0.196], s: [0.8, 1.2, 0.5] }), 'spine05', { color: GOLD_L });
     add('gold', G.torus(0.036, 0.0036, 3, S(12, 7)).rotateX(Math.PI / 2).translate(0, 0.945, 0.194), 'spine05');
     // fáldares laterales y trasero: láminas de porcelana con filete de oro
-    for (const [a0, n] of [[Math.PI * 0.5, 3], [Math.PI * 1.5, 3], [Math.PI, 3]]) for (let i = 0; i < n; i++) {
+    for (const [a0, n] of [[Math.PI * 0.5, low ? 2 : 3], [Math.PI * 1.5, low ? 2 : 3], [Math.PI, low ? 2 : 3]]) for (let i = 0; i < n; i++) {
       const y = 0.925 - i * 0.043;
-      gplate('spine05', [[-0.12, 0.0], [0.12, 0.0], [0.112, -0.052 - i * 0.008], [0.0, -0.075 - i * 0.012], [-0.112, -0.052 - i * 0.008]], { depth: 0.012, bevel: 0.004, wrap: { rx: 0.215 + i * 0.008, rz: 0.2 + i * 0.008 }, color: i === 1 ? IVORY_D : IVORY, r: 0.0026, inset: 0.1, trim: !low || i === 0,
+      gplate('spine05', [[-0.12, 0.0], [0.12, 0.0], [0.112, -0.052 - i * 0.008], [0.0, -0.075 - i * 0.012], [-0.112, -0.052 - i * 0.008]], { depth: 0.012, bevel: 0.004, wrap: { rx: 0.215 + i * 0.008, rz: 0.2 + i * 0.008 }, color: i === 1 ? IVORY_D : IVORY, r: 0.0026, inset: 0.1, trim: !low,
         place: (g) => X(g, { p: [0, y, zc], r: [0, a0, 0] }) });
     }
     // espaldar: placa con filigrana y los dos cubos de donde nacen las alas
     gplate('spine01', [[-0.13, 0.1], [0.13, 0.1], [0.15, 0.0], [0.09, -0.12], [0, -0.16], [-0.09, -0.12], [-0.15, 0.0]], { depth: 0.022, bevel: 0.008, wrap: { rx: 0.165, rz: 0.12 }, place: (g) => X(g, { p: [0, 1.29, zc], r: [0, Math.PI, 0] }), inset: 0.12, r: 0.0036,
-      fil: [swirl(0.06, 0.02, 0.04, 0.008, 0, 1.4, 14), swirl(-0.06, 0.02, 0.04, 0.008, Math.PI, 1.4, 14), [[-0.1, -0.06], [0, -0.1], [0.1, -0.06]]] });
+      fil: [swirl(0.06, 0.02, 0.04, 0.008, 0, 1.4, 14), swirl(-0.06, 0.02, 0.04, 0.008, Math.PI, 1.4, 14), [[-0.1, -0.06], [0, -0.1], [0.1, -0.06]]], filHigh: true });
     for (const s of [-1, 1]) { const hx = s * 0.085; add('gold', X(G.cyl(0.045, 0.05, 0.03, S(10, 7)), { p: [hx, 1.34, -0.105], r: [Math.PI / 2, 0, 0] }), 'spine01'); add('light', X(G.sphere(0.02, 8, 6), { p: [hx, 1.34, -0.125], s: [1, 1, 0.6] }), 'spine01', { color: GOLD_L }); add('gold', X(G.torus(0.052, 0.005, 3, S(14, 8)), { p: [hx, 1.34, -0.12], r: [Math.PI / 2, 0, 0] }), 'spine01'); }
   }
 
@@ -145,7 +150,7 @@ export function build(ak, ctx) {
         fil: i === 0 ? [swirl(0, len * 0.55, 0.05, 0.01, 0.5, 1.3, 14), [[-0.09, len * 0.9], [0, len * 1.0], [0.09, len * 0.9]]] : null, filHigh: true,
         place: (g) => { X(g, { r: [-Math.PI / 2, 0, -Math.PI / 2] }); return X(g, { p: [P0.x + 0.02 + i * 0.04, P0.y - i * 0.035, P0.z], r: [0, 0, -0.1 - i * 0.2] }); } });
     }
-    for (let i = 0; i < (low ? 3 : 5); i++) { const L = 0.27 - i * 0.04, d = V(0.25 + i * 0.28, 1.0 - i * 0.12, -0.55 - i * 0.05).normalize(); const g = featherGeo({ len: L, w: 0.065 - i * 0.006, segs: 1, rps: low ? 3 : 5, curve: -0.1, solid: true }).geos[0]; X(g, { q: t.basisQ(d, V(0, 0, 1)), p: [P0.x + 0.07, P0.y + 0.07, P0.z - 0.05 + i * 0.012] }); add('gold', g, 'upperarm01'); }
+    for (let i = 0; i < (low ? 2 : 5); i++) { const L = 0.27 - i * 0.04, d = V(0.25 + i * 0.28, 1.0 - i * 0.12, -0.55 - i * 0.05).normalize(); const g = featherGeo({ len: L, w: 0.065 - i * 0.006, segs: 1, rps: low ? 3 : 5, curve: -0.1, solid: true }).geos[0]; X(g, { q: t.basisQ(d, V(0, 0, 1)), p: [P0.x + 0.07, P0.y + 0.07, P0.z - 0.05 + i * 0.012] }); add('gold', g, 'upperarm01'); }
     for (let i = 0; i < (low ? 2 : 3); i++) { add('marble', limb(cuff(0.1 - i * 0.008, 0.092 - i * 0.008, 0.06, 0.012, S(10, 7), 30), S0, E0, 0.2 + i * 0.15, { s: [1.08, 1, 1] }), 'upperarm01', { color: i === 1 ? IVORY : IVORY_D }); add('gold', ringAt(S0, E0, 0.2 + i * 0.15 + 0.03, 0.1 - i * 0.008, 0.007, 0.004, { sx: 1.08 }), 'upperarm01'); }
     add('gold', ringAt(S0, E0, 0.76, 0.068, 0.04, 0.012), 'upperarm01'); add('light', ringAt(S0, E0, 0.76, 0.0705, 0.004, 0.003), 'upperarm01', { color: GOLD_L });
     add('gold', X(dome(0.054, 0.05, { lip: 0.3, seg: S(9, 6), crease: 30 }), { p: [E0.x + 0.03, E0.y + 0.0, E0.z - 0.035], r: [0, 0, -Math.PI / 2 + 0.2] }), 'lowerarm01');
@@ -154,14 +159,14 @@ export function build(ak, ctx) {
     add('marble', limb(cuff(0.064, 0.05, fl * 0.84, 0.012, S(8, 6), 25), E0, W0, 0.5), 'lowerarm01', { color: IVORY });
     gplate('lowerarm01', [[-0.03, 0.09], [0.03, 0.09], [0.024, -0.09], [-0.024, -0.09]], { depth: 0.014, bevel: 0.005, wrap: { rx: 0.063, rz: 0.067 }, color: IVORY_D, inset: 0.16, place: (g) => limb(g, E0, W0, 0.55), fil: [[[0, 0.07], [0.012, 0.03], [-0.012, -0.01], [0, -0.06]]], filHigh: true });
     for (const tt of [0.08, 0.92]) add('gold', ringAt(E0, W0, tt, 0.058 - (tt - 0.08) * 0.03, 0.012, 0.005), 'lowerarm01');
-    for (let i = 0; i < 3; i++) { const L = 0.3 - i * 0.07, d = V(0.45 + i * 0.1, 0.12 + i * 0.1, -1.0).normalize(); const g = featherGeo({ len: L, w: 0.062 - i * 0.008, segs: 1, rps: low ? 3 : 5, curve: -0.08, solid: true, lean: 0.1 }).geos[0]; X(g, { q: t.basisQ(d, V(0, 1, 0)), p: [E0.x + 0.075, E0.y - 0.015 - i * 0.04, E0.z - 0.04 + i * 0.03] }); add('gold', g, 'lowerarm01'); }
+    for (let i = 0; i < (low ? 2 : 3); i++) { const L = 0.3 - i * 0.07, d = V(0.45 + i * 0.1, 0.12 + i * 0.1, -1.0).normalize(); const g = featherGeo({ len: L, w: 0.062 - i * 0.008, segs: 1, rps: low ? 3 : 5, curve: -0.08, solid: true, lean: 0.1 }).geos[0]; X(g, { q: t.basisQ(d, V(0, 1, 0)), p: [E0.x + 0.075, E0.y - 0.015 - i * 0.04, E0.z - 0.04 + i * 0.03] }); add('gold', g, 'lowerarm01'); }
     // mano: dorso de oro y dedos de uñas largas y finas
     const F3 = P('finger3-1');
     add('gold', limb(t.box(0.09, 0.1, 0.018, 0.007, 1), W0, F3, 0.5, { off: [-0.04, 0, 0], r: [0, Math.PI / 2, 0] }), 'wrist');
     for (const [f, len, r] of [['finger2', 0.085, 0.0075], ['finger3', 0.11, 0.008], ['finger4', 0.095, 0.0075], ['finger5', 0.07, 0.0065]]) {
       const a = P(`${f}-2`), b = P(`${f}-3`), d = b.clone().sub(a).normalize();
       add('gold', spikeAt(b.clone().addScaledVector(d, 0.004), d.clone().add(V(0, -0.1, 0.1)), len, r, -0.012, V(0, 0.4, 0.2), { radial: 4 }), `${f}-3`);
-      add('marble', limb(t.box(0.02, a.distanceTo(b) * 1.1, 0.016, 0.006, 1), a, b, 0.55, { off: [-0.006, 0, 0] }), `${f}-2`, { color: IVORY });
+      if (!low) add('marble', limb(t.box(0.02, a.distanceTo(b) * 1.1, 0.016, 0.006, 1), a, b, 0.55, { off: [-0.006, 0, 0] }), `${f}-2`, { color: IVORY });
     }
     { const a = P('finger1-2'), b = P('finger1-3'), d = b.clone().sub(a).normalize(); add('gold', spikeAt(b, d, 0.06, 0.007, -0.01, V(0, 1, 0.3), { radial: 4 }), 'finger1-3'); }
   });
@@ -197,9 +202,9 @@ export function build(ak, ctx) {
     const tb = ak.cloth({ top: c2, dir: V(0, -1, 0.05), lens: l2, rows: S(8, 5), color: 0xf8f0e0, hem: 0xffcf66, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.5 });
     paint(tb, (c, j, f) => { c.set(j === 2 ? 0xe6bf6a : 0xf1e6cf).lerp(C(0xe8a840), Math.pow(f, 2.4)); });
     // cadenas colgantes de oro (muelles) con cuentas y una gota de luz
-    for (const [x, L, nm] of [[0, 0.62, 'colgC'], [0.07, 0.5, 'colgL'], [-0.07, 0.5, 'colgR']]) {
+    for (const [x, L, nm] of (low ? [[0, 0.62, 'colgC']] : [[0, 0.62, 'colgC'], [0.07, 0.5, 'colgL'], [-0.07, 0.5, 'colgR']])) {
       const n = 6, pts = Array.from({ length: n }, (_, i) => V(x, 0.92 - (i / (n - 1)) * L, 0.215 + 0.01 * Math.sin(i))), ch = ak.chain(nm, 'spine05', pts, { stiff: 0.05, damp: 0.94, gravity: 4, sway: 1 });
-      for (let i = 0; i < n - 1; i++) add('gold', G.sphere(0.012 - i * 0.0007, 5, 4).translate(pts[i].x, pts[i].y, pts[i].z), ch.bones[i].name);
+      for (let i = 0; i < n - 1; i++) add('gold', G.sphere(0.012 - i * 0.0007, low ? 4 : 5, low ? 3 : 4).translate(pts[i].x, pts[i].y, pts[i].z), ch.bones[i].name);
       add('light', X(new T.OctahedronGeometry(0.02, 0), { p: [pts[n - 1].x, pts[n - 1].y, pts[n - 1].z], s: [0.7, 1.3, 0.7] }), ch.bones[n - 2].name, { color: GOLD_L });
     }
     const c3 = [], l3 = []; for (let j = 0; j < 7; j++) { const x = -0.15 + j * 0.05; c3.push({ bone: j === 0 ? 'spine05' : j === 6 ? 'spine05' : 'spine03', p: V(x, 1.06 - Math.abs(x) * 0.1, -0.135) }); l3.push(1.12 - Math.abs(j - 3) * 0.17 + (R() - 0.5) * 0.06); }
@@ -264,7 +269,7 @@ export function build(ak, ctx) {
     arcs('aur1', 0.27, [[0.1, 1.5], [1.95, 1.0], [3.4, 1.7], [5.4, 0.7]], 0.0065, GOLD_W, true);
     for (const [a, L] of [[1.72, 0.1], [2.98, 0.14], [5.2, 0.12]]) { const p = hub.clone().add(V(Math.cos(a) * 0.27, Math.sin(a) * 0.27, 0)); add('gold', X(G.shard(L, 0.011, 4), { p: [p.x, p.y, p.z], r: [0.2, 0.0, a - Math.PI / 2 + 0.3] }), 'aur1'); }
     for (let i = 0; i < 8; i++) { const a = i * 0.8 + 0.2, p = hub.clone().add(V(Math.cos(a) * 0.295, Math.sin(a) * 0.295, 0)); add('light', X(G.cone(0.005, 0.022, 3), { p: [p.x, p.y, p.z], r: [0, 0, a - Math.PI / 2] }), 'aur1', { color: GOLD_L }); }
-    const dash = []; for (let i = 0; i < (low ? 9 : 14); i++) dash.push([i * (Math.PI * 2 / (low ? 9 : 14)), 0.16]);
+    const dash = []; for (let i = 0; i < (low ? 7 : 14); i++) dash.push([i * (Math.PI * 2 / (low ? 7 : 14)), 0.2]);
     arcs('aur2', 0.325, dash, 0.0028, GOLD_L, false);
     if (AP) arcs('aur2', 0.36, [[0.4, 1.2], [2.6, 1.6], [4.9, 1.0]], 0.0045, GOLD_L, true);
     ak.halo('head', V(0, 1.74, -0.2), GOLD_L, 0.9, 0.22);

@@ -12,7 +12,8 @@ const BONE = 0xcfc2a2, BONE_D = 0x9a8b70, BONE_L = 0xe9dfc8, DARK = 0x2a2040, DA
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, dome, cuff, bonelump, S, low } = t, P = (n) => ak.P(n), add = ak.add;
   const HC = V(0, 1.6, 0.06), Y = V(0, 1, 0), Zv = V(0, 0, 1), upd = [], zc = 0.045;
-  const PL = (bone, pts, o) => t.armorPlate(bone, pts, { trimColor: MAG, ...o });
+  const PL = (bone, pts, o) => t.armorPlate(bone, pts, { trimColor: MAG, lowSkip: !o.keep, ...o });
+  const sm = (pts, r) => G.tube(pts, r, r, { radial: 3, tubular: low ? Math.max(3, pts.length) : pts.length * 4, closeStart: true }); // costura de luz (barata)
 
   // ═══════════════════════════ CABEZA: cráneo de lobo
   {
@@ -30,8 +31,8 @@ export function build(ak, ctx) {
     add('dark', X(G.rock(0.03, { detail: low ? 1 : 2, amp: 0.2, s: [1.1, 0.7, 0.8], seed: 4 }), { p: [HC.x, HC.y - 0.025, HC.z + 0.385] }), 'head', { color: 0x0a0612 });
     add('light', X(G.sphere(0.008, 5, 4), { p: [HC.x, HC.y - 0.012, HC.z + 0.405], s: [1.6, 0.5, 0.5] }), 'head', { color: MAG });
     // costuras de luz sobre el hocico y la frente
-    add('light', seam([V(0.012, HC.y + 0.1, HC.z + 0.07), V(0.016, HC.y + 0.06, HC.z + 0.16), V(0.012, HC.y + 0.02, HC.z + 0.25), V(0.01, HC.y - 0.0, HC.z + 0.36)], 0.0026), 'head', { color: VIO });
-    add('light', seam([V(-0.012, HC.y + 0.1, HC.z + 0.07), V(-0.016, HC.y + 0.06, HC.z + 0.16), V(-0.012, HC.y + 0.02, HC.z + 0.25), V(-0.01, HC.y - 0.0, HC.z + 0.36)], 0.0026), 'head', { color: VIO });
+    add('light', sm([V(0.012, HC.y + 0.1, HC.z + 0.07), V(0.016, HC.y + 0.06, HC.z + 0.16), V(0.012, HC.y + 0.02, HC.z + 0.25), V(0.01, HC.y - 0.0, HC.z + 0.36)], 0.0026), 'head', { color: VIO });
+    add('light', sm([V(-0.012, HC.y + 0.1, HC.z + 0.07), V(-0.016, HC.y + 0.06, HC.z + 0.16), V(-0.012, HC.y + 0.02, HC.z + 0.25), V(-0.01, HC.y - 0.0, HC.z + 0.36)], 0.0026), 'head', { color: VIO });
     // mandíbula articulada (respira / gruñe)
     const jaw = ak.bone('mandibula', 'head', V(0, HC.y - 0.075, HC.z + 0.03));
     add('bone', X(G.tube([V(0, -0.015, 0.03), V(0, -0.035, 0.15), V(0, -0.045, 0.27), V(0, -0.04, 0.33)], 0.05, 0.026, { radial: S(8, 6), tubular: S(8, 4), sx: 1, sz: 0.55, ease: 0.9 }), { p: [HC.x, HC.y - 0.06, HC.z] }), 'mandibula', { color: BONE_D });
@@ -57,16 +58,16 @@ export function build(ak, ctx) {
       PL('head', [[0.0, 0.03], [0.07, 0.04], [0.12, 0.0], [0.13, -0.045], [0.07, -0.02], [0.0, -0.01]], { mat: 'crystal', depth: 0.014, bevel: 0.004, wrap: { rx: 0.112, rz: 0.14 }, color: VIO_D, trim: 'ember', trimInset: 0.2, trimR: 0.0025, place: (g) => X(g, { p: [HC.x, HC.y - 0.045, HC.z - 0.01], r: [0, 0.3, 0.12] }) });
       // brecha de hueso sobre el ojo (ceja gruesa), arco cigomático y grietas de luz en el cráneo
       add('bone', X(G.wrapE(G.plate([[0.0, 0.0], [0.05, 0.03], [0.108, 0.035], [0.116, 0.012], [0.05, 0.004]], 0.02, 0.006), 0.115, 0.146), { p: [HC.x, HC.y + 0.034, HC.z - 0.005], r: [0, 0, 0.1] }), 'head', { color: BONE_D });
-      add('light', seam([V(0.07, HC.y + 0.13, HC.z - 0.04), V(0.08, HC.y + 0.09, HC.z + 0.0), V(0.1, HC.y + 0.06, HC.z + 0.02), V(0.108, HC.y + 0.04, HC.z + 0.05)], 0.0024), 'head', { color: VIO });
-      add('light', seam([V(0.04, HC.y + 0.14, HC.z - 0.05), V(0.05, HC.y + 0.11, HC.z - 0.07), V(0.065, HC.y + 0.075, HC.z - 0.09)], 0.0022), 'head', { color: MAG });
+      add('light', sm([V(0.07, HC.y + 0.13, HC.z - 0.04), V(0.08, HC.y + 0.09, HC.z + 0.0), V(0.1, HC.y + 0.06, HC.z + 0.02), V(0.108, HC.y + 0.04, HC.z + 0.05)], 0.0024), 'head', { color: VIO });
+      add('light', sm([V(0.04, HC.y + 0.14, HC.z - 0.05), V(0.05, HC.y + 0.11, HC.z - 0.07), V(0.065, HC.y + 0.075, HC.z - 0.09)], 0.0022), 'head', { color: MAG });
       for (let i = 0; i < (low ? 2 : 3); i++) add('bone', spikeAt(V(HC.x + 0.1, HC.y - 0.04 - i * 0.03, HC.z - 0.03 - i * 0.012), V(0.7, -0.15 - i * 0.2, -0.8), 0.12 - i * 0.02, 0.012, 0.01, Y, { radial: 4 }), 'head', { color: BONE_D });
     });
     upd.push((dt, tt) => { jaw.rotation.x = 0.2 + 0.05 * Math.sin(tt * 1.6) + 0.08 * Math.max(0, Math.sin(tt * 0.5)) ** 4; });
     // gorguera: aro de hueso y collar de púas de pelaje que sube hacia el cráneo
-    add('bone', G.band(0.074, 0.03, 0.012, { seg: S(16, 8) }).translate(0, 1.452, 0.026), 'neck01', { color: BONE_D });
-    add('dark', G.band(0.078, 0.02, 0.012, { seg: S(16, 8) }).translate(0, 1.43, 0.026), 'neck01', { color: DARK2 });
+    add('bone', G.band(0.074, 0.03, 0.012, { seg: S(16, 8), simple: low }).translate(0, 1.452, 0.026), 'neck01', { color: BONE_D });
+    add('dark', G.band(0.078, 0.02, 0.012, { seg: S(16, 8), simple: low }).translate(0, 1.43, 0.026), 'neck01', { color: DARK2 });
     add('light', G.torus(0.081, 0.0032, 3, S(16, 8)).translate(0, 1.44, 0.026), 'neck01', { color: VIO });
-    const nn = low ? 7 : 11;
+    const nn = low ? 5 : 11;
     for (let i = 0; i < nn; i++) { const a = (i / nn) * Math.PI * 2, r = 0.085, up = Math.cos(a) < -0.2; add(i % 2 ? 'crystal' : 'bone', spikeAt(V(Math.sin(a) * r, 1.45, 0.026 + Math.cos(a) * r), V(Math.sin(a) * 0.9, up ? 1.0 : 0.5, Math.cos(a) * 0.9 - (up ? 0.1 : 0.0)), up ? 0.15 : 0.1, 0.014, 0.02, Y, { radial: 4, tubular: 4 }), 'neck01', { color: i % 2 ? VIO : BONE_D }); }
   }
 
@@ -77,12 +78,12 @@ export function build(ak, ctx) {
     ak.both(() => {
       // pectoral en V: marco oscuro biselado con ventana de cristal violeta
       const pec = [[0.014, 0.11], [0.08, 0.125], [0.14, 0.07], [0.15, -0.005], [0.1, -0.05], [0.014, -0.075]];
-      PL('spine01', pec, { depth: 0.026, bevel: 0.009, wrap: { rx: 0.18, rz: 0.13 }, color: METAL_D, trim: 'ember', trimInset: 0.07, trimR: 0.003, place: (g) => X(g, { p: [0, 1.31, zc - 0.002], r: [0.1, 0, 0] }) });
+      PL('spine01', pec, { keep: true, depth: 0.026, bevel: 0.009, wrap: { rx: 0.18, rz: 0.13 }, color: METAL_D, trim: 'ember', trimInset: 0.07, trimR: 0.003, place: (g) => X(g, { p: [0, 1.31, zc - 0.002], r: [0.1, 0, 0] }) });
       PL('spine01', pec.map((q) => [q[0] * 0.74 + 0.012, q[1] * 0.66 + 0.012]), { mat: 'crystal', depth: 0.02, bevel: 0.006, wrap: { rx: 0.186, rz: 0.134 }, color: VIO_D, place: (g) => X(g, { p: [0, 1.31, zc + 0.004], r: [0.1, 0, 0] }) });
       // nervios que nacen del núcleo y se abren sobre el pecho y las costillas
-      for (let k = 0; k < 3; k++) { const pts = []; for (let n = 0; n <= 6; n++) { const u = n / 6, a = 0.12 + u * 1.15, y = 1.255 - k * 0.032 - u * (0.05 + k * 0.03) + Math.sin(u * 5 + k) * 0.01, r = 0.17 - k * 0.003; pts.push(V(Math.sin(a) * r, y, zc - 0.005 + Math.cos(a) * r * 0.8)); } add('light', seam(pts, 0.0028), 'spine01', { color: k === 1 ? MAG : VIO }); }
-      add('bone', seam([V(0.016, 1.41, 0.17), V(0.07, 1.428, 0.162), V(0.13, 1.395, 0.14), V(0.158, 1.325, 0.1)], 0.0046), 'spine01', { color: BONE });
-      add('light', seam([V(0.02, 1.215, 0.17), V(0.07, 1.222, 0.164), V(0.125, 1.245, 0.148), V(0.158, 1.29, 0.1)], 0.003), 'spine01', { color: VIO });
+      for (let k = 0; k < (low ? 2 : 3); k++) { const pts = []; for (let n = 0; n <= 6; n++) { const u = n / 6, a = 0.12 + u * 1.15, y = 1.255 - k * 0.032 - u * (0.05 + k * 0.03) + Math.sin(u * 5 + k) * 0.01, r = 0.17 - k * 0.003; pts.push(V(Math.sin(a) * r, y, zc - 0.005 + Math.cos(a) * r * 0.8)); } add('light', sm(pts, 0.0028), 'spine01', { color: k === 1 ? MAG : VIO }); }
+      add('bone', sm([V(0.016, 1.41, 0.17), V(0.07, 1.428, 0.162), V(0.13, 1.395, 0.14), V(0.158, 1.325, 0.1)], 0.0046), 'spine01', { color: BONE });
+      add('light', sm([V(0.02, 1.215, 0.17), V(0.07, 1.222, 0.164), V(0.125, 1.245, 0.148), V(0.158, 1.29, 0.1)], 0.003), 'spine01', { color: VIO });
       // alzacuello de hueso que une el cuello con el hombro
       add('bone', X(G.wrapE(G.plate([[0, 0.05], [0.07, 0.055], [0.11, 0.02], [0.09, -0.03], [0, -0.04]], 0.016, 0.006), 0.1, 0.085), { p: [0.0, 1.425, zc - 0.07], r: [0.9, 0.0, -0.16] }), 'clavicle', { color: BONE_D });
     });
@@ -100,10 +101,10 @@ export function build(ak, ctx) {
       add('bone', G.cone(0.011, 0.04, 4).rotateX(Math.PI / 2).translate(0, y, 0.035 + rr * 1.05 + 0.004), i < 1 ? 'spine02' : 'spine03', { color: BONE_L });
     }
     // corsé de lames: 3 anillos facetados de metal con filete y tiras de cuero sobre el vientre bajo
-    for (let i = 0; i < 4; i++) { const y = 1.082 - i * 0.034, c = G.lathe([[0.146 - i * 0.004, y - 0.022], [0.152 - i * 0.004, y - 0.004], [0.15 - i * 0.004, y + 0.014], [0.144 - i * 0.004, y + 0.022]], S(14, 9), 0, Math.PI * 2, 40); X(c, { p: [0, 0, 0.03], s: [1, 1, 0.88] }); add('metal', c, i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? METAL_D : METAL }); add('ember', G.torus(0.151 - i * 0.004, 0.0026, 3, S(18, 9)).scale(1, 1, 0.88).translate(0, y + 0.02, 0.03), i < 1 ? 'spine02' : 'spine03', { color: MAG }); }
-    add('light', seam([V(0, 1.21, 0.165), V(0.004, 1.15, 0.17), V(0, 1.1, 0.16)], 0.0032), 'spine03', { color: VIO });
+    for (let i = 0; i < 4; i++) { const y = 1.082 - i * 0.034, c = G.lathe([[0.146 - i * 0.004, y - 0.022], [0.152 - i * 0.004, y - 0.004], [0.15 - i * 0.004, y + 0.014], [0.144 - i * 0.004, y + 0.022]], S(14, 9), 0, Math.PI * 2, 40); X(c, { p: [0, 0, 0.03], s: [1, 1, 0.88] }); add('metal', c, i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? METAL_D : METAL }); if (!low || i % 2 === 0) add('ember', G.torus(0.151 - i * 0.004, 0.0026, 3, S(18, 9)).scale(1, 1, 0.88).translate(0, y + 0.02, 0.03), i < 1 ? 'spine02' : 'spine03', { color: MAG }); }
+    add('light', sm([V(0, 1.21, 0.165), V(0.004, 1.15, 0.17), V(0, 1.1, 0.16)], 0.0032), 'spine03', { color: VIO });
     // columna a la espalda: vértebras con púas
-    for (let i = 0; i < (low ? 6 : 9); i++) { const y = 1.4 - i * (low ? 0.062 : 0.042); add('bone', X(bonelump(0.026 - i * 0.0007, [1.1, 0.8, 1], i + 3, 0.2), { p: [0, y, -0.094 - Math.sin(i * 0.4) * 0.004] }), y > 1.2 ? 'spine01' : y > 1.07 ? 'spine02' : 'spine03', { color: BONE_D }); }
+    for (let i = 0; i < (low ? 6 : 9); i++) { const y = 1.4 - i * (low ? 0.062 : 0.042); add('bone', X(low ? new T.BoxGeometry(0.05, 0.036, 0.04) : bonelump(0.026 - i * 0.0007, [1.1, 0.8, 1], i + 3, 0.2), { p: [0, y, -0.094 - Math.sin(i * 0.4) * 0.004] }), y > 1.2 ? 'spine01' : y > 1.07 ? 'spine02' : 'spine03', { color: BONE_D }); }
     // arnés de cuero cruzado con hebilla de hueso
     for (const sg of (low ? [1] : [-1, 1])) add('leather', G.tube([V(sg * 0.13, 1.4, 0.06), V(sg * 0.08, 1.33, 0.18), V(-sg * 0.02, 1.18, 0.2), V(-sg * 0.13, 1.0, 0.19)], 0.014, 0.014, { radial: 4, tubular: 12, sx: 1, sz: 0.5 }), 'spine02', { color: LEATH });
     add('bone', t.box(0.04, 0.034, 0.014, 0.005, 1).translate(0.0, 1.235, 0.205), 'spine02', { color: BONE });
@@ -113,7 +114,7 @@ export function build(ak, ctx) {
       add('leather', G.tube([V(0.155, 1.205, 0.07), V(0.19, 1.11, 0.095), V(0.195, 1.02, 0.075), V(0.185, 0.97, 0.04)], 0.0105, 0.0105, { radial: low ? 3 : 4, tubular: 8 }), 'spine03', { color: LEATH });
     });
     // cinturón con hebilla de garra
-    add('leather', G.band(0.172, 0.055, 0.02, { seg: S(20, 10), sz: 0.78 }).translate(0, 0.945, zc + 0.01), 'spine05', { color: LEATH });
+    add('leather', G.band(0.172, 0.055, 0.02, { seg: S(20, 10), sz: 0.78, simple: low }).translate(0, 0.945, zc + 0.01), 'spine05', { color: LEATH });
     add('bone', G.torus(0.176, 0.0045, 4, S(20, 10)).scale(1, 1, 0.78).translate(0, 0.975, zc + 0.01), 'spine05', { color: BONE_D });
     add('bone', spikeAt(V(0, 0.99, 0.185), V(0, -1, 0.45), 0.11, 0.022, 0.015, Zv, { radial: S(6, 4) }), 'spine05', { color: BONE_L });
     add('light', G.sphere(0.014, 6, 5).translate(0, 0.95, 0.196), 'spine05', { color: MAG });
@@ -128,11 +129,11 @@ export function build(ak, ctx) {
       const g = t.blade(len, 0.075 - f * 0.012, 0.01, { tipLean: 0.12, curve: -0.05 }); X(g, { q: t.basisQ(dir, V(0, 1, 0.4)), p: [S0.x + 0.03 + f * 0.02, S0.y + 0.07 - f * 0.01, S0.z - 0.03 + f * 0.07] });
       add(i % 2 ? 'crystal' : 'metal', g, 'upperarm01', { color: i % 2 ? VIO_D : METAL }); }
     add('bone', spikeAt(S0.clone().add(V(0.02, 0.1, -0.04)), V(0.35, 1, -0.55), 0.2, 0.024, 0.06, V(0, 0, -1), { radial: S(6, 4), ridges: 3, ridgeAmp: 0.15 }), 'upperarm01', { color: BONE });
-    add('light', seam([S0.clone().add(V(0.05, 0.12, 0.0)), S0.clone().add(V(0.1, 0.06, 0.02)), S0.clone().add(V(0.13, -0.02, 0.0))], 0.003), 'upperarm01', { color: VIO });
+    add('light', sm([S0.clone().add(V(0.05, 0.12, 0.0)), S0.clone().add(V(0.1, 0.06, 0.02)), S0.clone().add(V(0.13, -0.02, 0.0))], 0.003), 'upperarm01', { color: VIO });
     // brazo: bandas de cuero con hueso + codo con espolón + nervio luminoso
     for (let i = 0; i < 2; i++) add('leather', limb(cuff(0.062 - i * 0.004, 0.056 - i * 0.004, 0.05, 0.01, S(10, 6), 30), S0, E0, 0.25 + i * 0.35), 'upperarm01', { color: LEATH });
     add('bone', ringAt(S0, E0, 0.55, 0.062, 0.016, 0.01), 'upperarm01', { color: BONE_D });
-    add('light', seam([S0.clone().add(V(-0.02, -0.02, 0.07)), S0.clone().lerp(E0, 0.5).add(V(0.0, 0.0, 0.07)), E0.clone().add(V(0.0, 0.03, 0.06))], 0.0028), 'upperarm01', { color: VIO });
+    add('light', sm([S0.clone().add(V(-0.02, -0.02, 0.07)), S0.clone().lerp(E0, 0.5).add(V(0.0, 0.0, 0.07)), E0.clone().add(V(0.0, 0.03, 0.06))], 0.0028), 'upperarm01', { color: VIO });
     add('bone', spikeAt(E0.clone().add(V(0.055, 0.02, -0.04)), V(0.8, 0.3, -1), 0.17, 0.024, 0.05, Y, { radial: S(6, 4), ridges: 3, ridgeAmp: 0.16 }), 'lowerarm01', { color: BONE });
     add('dark', X(dome(0.05, 0.04, { lip: 0.3, seg: S(9, 6), crease: 30 }), { p: [E0.x + 0.025, E0.y, E0.z - 0.03], r: [0, 0, -Math.PI / 2 + 0.2] }), 'lowerarm01', { color: DARK });
     // antebrazo: brazal oscuro con filete de luz, placa de cristal y garra-cuchilla curva
@@ -164,11 +165,11 @@ export function build(ak, ctx) {
     add('dark', limb(cuff(0.09, 0.066, ul * 0.8, 0.012, S(10, 7), 28), H, K, 0.46), 'upperleg01', { color: DARK });
     PL('upperleg01', [[-0.055, 0.12], [0.055, 0.12], [0.07, 0.0], [0.04, -0.13], [0, -0.16], [-0.04, -0.13], [-0.07, 0.0]], { mat: 'crystal', depth: 0.014, bevel: 0.005, wrap: { rx: 0.108, rz: 0.098 }, color: VIO_D, trim: 'ember', trimInset: 0.2, place: (g) => limb(g, H, K, 0.28, { r: [0, -Math.PI / 2 + 0.2, 0] }) });
     // anca: placa de perfil que abulta hacia atrás detrás del muslo (con el corvejón forma el zigzag de la pata trasera de un felino)
-    const SIDE = (bone, prof, w, x, o = {}) => PL(bone, prof.map((q) => [-q[0], q[1]]), { mat: 'dark', depth: w, bevel: w * 0.22, trim: 'ember', trimInset: 0.1, trimR: 0.003, place: (g) => { X(g, { r: [0, Math.PI / 2, 0] }); return X(g, { p: [x, 0, 0] }); }, ...o });
+    const SIDE = (bone, prof, w, x, o = {}) => PL(bone, prof.map((q) => [-q[0], q[1]]), { keep: true, mat: 'dark', depth: w, bevel: w * 0.22, trim: 'ember', trimInset: 0.1, trimR: 0.003, place: (g) => { X(g, { r: [0, Math.PI / 2, 0] }); return X(g, { p: [x, 0, 0] }); }, ...o });
     SIDE('upperleg01', [[-0.04, 0.93], [-0.1, 0.86], [-0.15, 0.75], [-0.14, 0.63], [-0.09, 0.53], [-0.03, 0.55], [-0.02, 0.72], [-0.02, 0.88]], 0.06, H.x + 0.02, { color: 0x5a4a88 });
-    add('light', seam([V(H.x + 0.02, 0.9, -0.09), V(H.x + 0.02, 0.78, -0.155), V(H.x + 0.02, 0.62, -0.145), V(H.x + 0.02, 0.54, -0.1)], 0.003), 'upperleg01', { color: VIO });
+    add('light', sm([V(H.x + 0.02, 0.9, -0.09), V(H.x + 0.02, 0.78, -0.155), V(H.x + 0.02, 0.62, -0.145), V(H.x + 0.02, 0.54, -0.1)], 0.003), 'upperleg01', { color: VIO });
     // escamas de pelaje escalonadas que bajan por el muslo (puntas hacia abajo) con filete de luz
-    for (let i = 0; i < (low ? 3 : 4); i++) PL('upperleg01', [[-0.05 + i * 0.004, 0.035], [0.05 - i * 0.004, 0.035], [0.042 - i * 0.004, -0.02], [0, -0.075], [-0.042 + i * 0.004, -0.02]], { mat: 'dark', depth: 0.014, bevel: 0.005, wrap: { rx: 0.1 - i * 0.004, rz: 0.094 - i * 0.003 }, color: i % 2 ? 0x8a78bc : 0x6a5a98, trim: i % 2 ? undefined : 'ember', trimInset: 0.16, trimR: 0.0024, place: (g) => limb(g, H, K, 0.5 + i * 0.1) });
+    for (let i = 0; i < (low ? 3 : 4); i++) PL('upperleg01', [[-0.05 + i * 0.004, 0.035], [0.05 - i * 0.004, 0.035], [0.042 - i * 0.004, -0.02], [0, -0.075], [-0.042 + i * 0.004, -0.02]], { mat: 'dark', depth: 0.014, bevel: 0.005, wrap: { rx: 0.1 - i * 0.004, rz: 0.094 - i * 0.003 }, color: i % 2 ? 0x8a78bc : 0x6a5a98, trim: (i % 2 || (low && i > 0)) ? undefined : 'ember', trimInset: 0.16, trimR: 0.0024, place: (g) => limb(g, H, K, 0.5 + i * 0.1) });
     add('light', limb(G.tube([V(0.0, 0.14, 0.092), V(0.003, 0.0, 0.098), V(-0.003, -0.13, 0.094)], 0.003, 0.003, { radial: 4, tubular: 8 }), H, K, 0.4), 'upperleg01', { color: VIO });
     // rodilla: casquete de hueso con púa
     add('metal', X(dome(0.058, 0.05, { lip: 0.3, seg: S(9, 6), crease: 30 }), { p: [K.x, K.y + 0.005, K.z + 0.07], r: [Math.PI / 2, 0, 0] }), 'lowerleg01', { color: METAL });
@@ -180,8 +181,8 @@ export function build(ak, ctx) {
     // corvejón: placa lateral de perfil que sobresale hacia atrás (la «rodilla invertida» de una pata de felino) con espolón, y la pantorrilla larga que baja en diagonal
     const hock = V(K.x + 0.01, 0.3, -0.15);
     SIDE('lowerleg01', [[-0.06, 0.54], [-0.11, 0.42], [-0.16, 0.31], [-0.135, 0.22], [-0.08, 0.14], [-0.03, 0.17], [-0.015, 0.3], [-0.02, 0.46]], 0.05, K.x + 0.03, { color: 0x5a4a88 });
-    add('light', seam([V(K.x + 0.01, 0.5, -0.075), V(K.x + 0.01, 0.4, -0.125), V(K.x + 0.01, 0.3, -0.16), V(K.x + 0.01, 0.2, -0.13)], 0.003), 'lowerleg01', { color: VIO });
-    add('bone', X(bonelump(0.04, [0.9, 1.3, 1.0], 7, 0.2), { p: [hock.x + 0.03, hock.y + 0.01, hock.z + 0.0] }), 'lowerleg01', { color: BONE_D });
+    add('light', sm([V(K.x + 0.01, 0.5, -0.075), V(K.x + 0.01, 0.4, -0.125), V(K.x + 0.01, 0.3, -0.16), V(K.x + 0.01, 0.2, -0.13)], 0.003), 'lowerleg01', { color: VIO });
+    if (!low) add('bone', X(bonelump(0.04, [0.9, 1.3, 1.0], 7, 0.2), { p: [hock.x + 0.03, hock.y + 0.01, hock.z + 0.0] }), 'lowerleg01', { color: BONE_D });
     add('bone', spikeAt(V(hock.x + 0.02, hock.y + 0.03, hock.z - 0.01), V(0.1, 0.55, -1), 0.24, 0.028, 0.06, Y, { radial: S(6, 4), ridges: 3, ridgeAmp: 0.16 }), 'lowerleg01', { color: BONE });
     add('crystal', spikeAt(V(hock.x + 0.045, hock.y + 0.0, hock.z - 0.01), V(0.1, 0.2, -1), 0.16, 0.02, 0.03, Y, { radial: 4, tubular: 4 }), 'lowerleg01', { color: VIO });
     add('light', ringAt(K, A, 0.88, 0.058, 0.012, 0.004), 'lowerleg01', { color: MAG });
@@ -191,16 +192,23 @@ export function build(ak, ctx) {
     add('bone', X(G.plate([[0.0, 0.11], [0.09, 0.09], [0.19, 0.045], [0.12, 0.05], [0.05, 0.075]], 0.082, 0.012, { crease: 50 }), { r: [0, -Math.PI / 2, 0], p: [A.x + 0.005, 0.014, 0.0] }), 'foot', { color: BONE_D });
     for (let i = -1; i <= 1; i++) add('bone', spikeAt(V(TO.x + i * 0.026, 0.038, 0.205), V(i * 0.15, -0.05, 1), 0.12, 0.0115, 0.012, Y, { radial: S(5, 4), ridges: 3, ridgeAmp: 0.12 }), 'toe3-1', { color: BONE_L });
     add('bone', spikeAt(V(A.x, 0.075, -0.062), V(0, 0.45, -1), 0.1, 0.018, 0.015, Y, { radial: S(5, 4) }), 'foot', { color: BONE });
-    add('light', seam([V(A.x - 0.035, 0.122, 0.0), V(A.x, 0.13, 0.05), V(A.x + 0.035, 0.122, 0.0)], 0.0028), 'foot', { color: VIO });
+    add('light', sm([V(A.x - 0.035, 0.122, 0.0), V(A.x, 0.13, 0.05), V(A.x + 0.035, 0.122, 0.0)], 0.0028), 'foot', { color: VIO });
   });
 
   // ═══════════════════════════ ESPALDA: melena de velos, púas dorsales, faldón de pelaje y cola de nervios
   {
     for (let i = 0; i < (low ? 5 : 8); i++) { const k = low ? 1.6 : 1, y = 1.42 - i * 0.052 * k, L = 0.18 - Math.abs(i - 1.5) * 0.012; add(i % 3 === 0 ? 'crystal' : 'bone', spikeAt(V(0, y, -0.1), V(0, 0.18 - i * 0.02, -1), L, 0.017 - i * 0.0006, 0.03, Y, { radial: S(5, 4), ridges: 3, ridgeAmp: 0.14 }), i < 3 ? 'spine01' : i < 5 ? 'spine02' : 'spine03', { color: i % 3 === 0 ? VIO : BONE }); }
-    // melena: velos largos con borde de mechones (13 columnas largas y cortas), nace en la nuca y los hombros
+    // melena: velos que nacen en la nuca y caen por los omóplatos (9 columnas largas y cortas, borde de mechones), color violeta que se funde a transparente
     const cols = [], lens = [], R2 = t.rng(5);
-    for (let j = 0; j < 13; j++) { const x = -0.17 + j * (0.34 / 12), e = Math.abs(x) / 0.17; cols.push({ bone: j === 0 ? 'clavicle_R' : j === 12 ? 'clavicle_L' : 'spine01', p: V(x, 1.43 - e * 0.07, -0.1 - 0.03 * (1 - e)) }); lens.push((j % 2 ? 0.5 : 0.82) * (0.8 + 0.3 * (1 - e)) + (R2() - 0.5) * 0.14); }
-    ak.cloth({ top: cols, dir: V(0, -1, -0.2), lens, rows: S(10, 6), material: 'spirit', color: 0xd890ff, hem: 0x1a0830, gravity: 9, stiff: 0.006, drag: 0.985, wave: 0.05 });
+    for (let j = 0; j < 9; j++) { const x = -0.105 + j * 0.0263, e = Math.abs(x) / 0.105; cols.push({ bone: e > 0.8 ? (x < 0 ? 'clavicle_R' : 'clavicle_L') : 'spine01', p: V(x, 1.45 - e * 0.04, -0.15 - 0.03 * (1 - e)) }); lens.push((j % 2 ? 0.5 : 0.85) * (0.75 + 0.35 * (1 - e)) + (R2() - 0.5) * 0.1); }
+    ak.cloth({ top: cols, dir: V(0, -1, -0.45), lens, rows: S(10, 6), material: 'spirit', color: 0xa660f0, hem: 0x3a1070, gravity: 9, stiff: 0.006, drag: 0.985, wave: 0.05 });
+    // omóplatos: placas de perfil afilado con ventana de cristal; sacro con el nacimiento de la cola
+    ak.both(() => {
+      const bl = [[-0.15, 0.1], [-0.05, 0.13], [-0.025, 0.02], [-0.06, -0.11], [-0.13, -0.05]];
+      PL('spine01', bl, { keep: true, mat: 'dark', depth: 0.02, bevel: 0.007, wrap: { rx: 0.17, rz: 0.13 }, color: 0x6a5a98, trim: 'ember', trimInset: 0.1, trimR: 0.0028, place: (g) => X(g, { p: [0, 1.31, 0.03], r: [0.0, Math.PI, 0.0] }) });
+      PL('spine01', bl.map((q) => [q[0] * 0.66 - 0.03, q[1] * 0.62 + 0.01]), { mat: 'crystal', depth: 0.016, bevel: 0.005, wrap: { rx: 0.176, rz: 0.134 }, color: VIO_D, place: (g) => X(g, { p: [0, 1.31, 0.03], r: [0.0, Math.PI, 0.0] }) });
+    });
+    PL('spine05', [[-0.07, 0.04], [0.07, 0.04], [0.09, -0.02], [0, -0.08], [-0.09, -0.02]], { mat: 'dark', depth: 0.022, bevel: 0.008, wrap: { rx: 0.17, rz: 0.15 }, color: 0x6a5a98, trim: 'ember', trimInset: 0.12, place: (g) => X(g, { p: [0, 0.95, 0.03], r: [0, Math.PI, 0] }) });
     const c2 = [], l2 = []; for (let j = 0; j < 5; j++) { c2.push({ bone: 'spine05', p: V(-0.1 + j * 0.05, 0.93, -0.098) }); l2.push(0.46 + (R2() - 0.5) * 0.2); }
     ak.cloth({ top: c2, dir: V(0, -1, -0.05), lens: l2, rows: S(7, 4), color: 0x9a58f0, hem: 0x4a1c90, gravity: 7, stiff: 0.02, drag: 0.98, wave: 0.015, ember: 0.8 });
     for (const sx of [-1, 1]) { const c3 = [], l3 = []; for (let j = 0; j < 3; j++) { c3.push({ bone: 'spine05', p: V(sx * (0.12 + j * 0.03), 0.91, 0.04 - j * 0.01) }); l3.push(0.34 - j * 0.05 + (R2() - 0.5) * 0.08); } ak.cloth({ top: c3, dir: V(sx * 0.15, -1, 0.0), lens: l3, rows: S(6, 4), color: 0x9a58f0, hem: 0x4a1c90, gravity: 7, stiff: 0.03, drag: 0.98, ember: 0.8 }); }
@@ -213,8 +221,8 @@ export function build(ak, ctx) {
       const r0 = 0.05 - i * 0.0042, r1 = 0.05 - (i + 1) * 0.0042, nm = tail.bones[i].name, d = pts[i + 1].clone().sub(pts[i]);
       add('dark', G.tube([pts[i], pts[i + 1]], r0, r1, { radial: S(7, 5), tubular: 3 }), nm, { color: DARK2 });
       add('light', G.tube([pts[i], pts[i + 1]], r0 * 0.6, r1 * 0.6, { radial: 4, tubular: 3 }).translate(0, r0 * 0.5, 0), nm, { color: i % 2 ? VIO : MAG });
-      if (i % 2 === 0) add('bone', X(G.torus(r0 * 1.1, r0 * 0.24, 4, S(9, 6)), { p: [pts[i].x, pts[i].y, pts[i].z], q: t.basisQ(d, V(0, 0, 1)) }), nm, { color: BONE_D });
-      add(i % 2 ? 'bone' : 'crystal', spikeAt(pts[i].clone().lerp(pts[i + 1], 0.5).add(V(0, r0 * 0.8, 0)), V(0, 1, -0.5), 0.07 - i * 0.004, 0.013, 0.01, Zv, { radial: 4, tubular: 3 }), nm, { color: i % 2 ? BONE_L : VIO });
+      if (i % 2 === 0 && !low) add('bone', X(G.torus(r0 * 1.1, r0 * 0.24, 4, S(9, 6)), { p: [pts[i].x, pts[i].y, pts[i].z], q: t.basisQ(d, V(0, 0, 1)) }), nm, { color: BONE_D });
+      if (!low || i % 2 === 1) add(i % 2 ? 'bone' : 'crystal', spikeAt(pts[i].clone().lerp(pts[i + 1], 0.5).add(V(0, r0 * 0.8, 0)), V(0, 1, -0.5), 0.07 - i * 0.004, 0.013, 0.01, Zv, { radial: 4, tubular: 3 }), nm, { color: i % 2 ? BONE_L : VIO });
     }
     const tip = pts[N - 1], tn = tail.bones[N - 1].name;
     for (let k = 0; k < (low ? 4 : 7); k++) { const f = (k - (low ? 1.5 : 3)) / (low ? 1.5 : 3); add('crystal', spikeAt(tip, V(f * 0.55, 0.2 - Math.abs(f) * 0.25, -1), 0.26 - Math.abs(f) * 0.08, 0.026, 0.01, Y, { radial: 4, tubular: 4 }), tn, { color: k % 2 ? VIO : MAG }); }

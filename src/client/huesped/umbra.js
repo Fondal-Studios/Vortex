@@ -14,7 +14,7 @@ const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xcfb4ff, OBS = 0x1c1232, OBS_D =
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, cuff, S, low, basisQ } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), HC = V(0, 1.6, 0.06), upd = [], R = t.rng(51), TAU = Math.PI * 2;
   const cnew = (h) => new T.Color(h);
-  ak.material('mirror').envMapIntensity = low ? 1.3 : 1.2;
+  { const mm = ak.material('mirror'); mm.envMapIntensity = 1.4; mm.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = min(outgoingLight, vec3(1.3));\n#include <opaque_fragment>'); }; mm.customProgramCacheKey = () => 'umbra-espejo'; } // el espejo refleja el cielo pero sin quemar el bloom
   { const dm = ak.material('dark'); dm.roughness = 0.6; dm.metalness = 1; dm.envMapIntensity = 0.7; } // sudario mate: sólo un brillo en los bordes
 
 
@@ -118,21 +118,21 @@ export function build(ak, ctx) {
     seg(t.box(0.03, 0.04, 0.16, 0.01, 1), 0.04, [0, 0, 0], OBS); // empuñadura
     seg(t.box(0.05, 0.05, 0.05, 0.01, 1), 0.075, [0, 0, 0], VIO, 'light');
     // tramos de hoja: la hoja es la misma pero cada tramo está corrido de lado (cruzó un plano)
-    const parts = [[0.1, 0.5, 0.0, 0.085], [0.58, 0.95, 0.07, 0.085], [1.02, 1.42, 0.15, 0.08]];
+    const parts = [[0.1, 0.5, 0.0, 0.15], [0.58, 0.93, 0.09, 0.15], [1.0, 1.36, 0.19, 0.13]];
     for (const [u0, u1, dx, w] of parts) {
       const len = u1 - u0, ang = 0.0, base = limb(G.blade(len, w, 0.014, { n: low ? 3 : 6, tipLean: u1 > 1.3 ? 0.12 : 0 }), tip(0), tip(1), 0, { off: [dx, 0, 0] }); void ang;
       base.translate(D.x * u0, D.y * u0, D.z * u0); add('mirror', base, 'wrist', { color: u0 > 1 ? MIRV : OBS });
-      const edge = limb(G.blade(len, 0.012, 0.016), tip(0), tip(1), 0, { off: [dx, 0, 0.001] }); edge.translate(D.x * u0, D.y * u0, D.z * u0); add('light', edge, 'wrist', { color: VIO });
+      const edge = limb(G.blade(len, 0.022, 0.02), tip(0), tip(1), 0, { off: [dx, 0, 0.001] }); edge.translate(D.x * u0, D.y * u0, D.z * u0); add('light', edge, 'wrist', { color: VIO });
     }
     // planos: marco de luz + membrana translúcida perpendicular a la hoja
-    for (const [u, sz, dx] of [[0.54, 0.2, 0.035], [0.985, 0.26, 0.11]]) {
+    for (const [u, sz, dx] of [[0.54, 0.3, 0.045], [0.965, 0.38, 0.14]]) {
       const hs = sz / 2, fr = [t.box(sz, 0.012, 0.012, 0.003, 1).translate(0, 0, hs), t.box(sz, 0.012, 0.012, 0.003, 1).translate(0, 0, -hs), t.box(0.012, 0.012, sz, 0.003, 1).translate(hs, 0, 0), t.box(0.012, 0.012, sz, 0.003, 1).translate(-hs, 0, 0)];
       const lf = G.merge(fr), pane = new T.BoxGeometry(sz * 0.98, 0.002, sz * 0.98);
-      add('light', limb(lf, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.35, 0] }), 'wrist', { color: LILA });
-      add('spirit', limb(pane, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.35, 0] }), 'wrist', { color: cnew(VIO_D).multiplyScalar(0.55) });
+      add('light', limb(lf, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.785, 0] }), 'wrist', { color: VIO });
+      add('spirit', limb(pane, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.785, 0] }), 'wrist', { color: cnew(VIO_D).multiplyScalar(0.7) });
     }
-    // imagen residual de la hoja (espíritu): la hoja que «ya pasó»
-    add('spirit', limb(G.blade(1.3, 0.1, 0.004, { n: 4 }), tip(0), tip(1), 0.1, { off: [-0.06, 0, 0] }), 'wrist', { color: (x, y, z) => cnew(VIO_D).multiplyScalar(0.5 * Math.max(0.1, 1 - ((x - W0.x) * D.x + (y - W0.y) * D.y + (z - W0.z) * D.z) / 1.4)) });
+    // esquirlas sueltas en los cortes entre planos (la hoja «se rompe» al cruzarlos)
+    for (const [u, k] of [[0.44, 0], [0.5, 1], [0.54, 2], [0.88, 3], [0.93, 4], [0.97, 5]]) { const sz = 0.02 + (k % 3) * 0.01; add(k % 2 ? 'light' : 'mirror', limb(G.shard(sz * 2.5, sz * 0.5, 4), tip(0), tip(1), u, { off: [0.04 + k * 0.025 + (k % 2) * 0.1, (k - 2.5) * 0.02, (k % 2 ? 0.05 : -0.05)], r: [k, k * 2, 0] }), 'wrist', { color: k % 2 ? VIO : MIRV }); }
   });
 
   // ═══════════════════════════ SUDARIO: manto rígido que tapa las piernas + telas con física + jirones de humo/luz
@@ -144,15 +144,21 @@ export function build(ak, ctx) {
     add('dark', X(rob, { p: [0, 0, 0.02], s: [1, 1, 0.92] }), 'spine05', { color: SHROUD });
     { const cm = ak.material('cloth'); cm.map = null; cm.roughnessMap = null; cm.roughness = 0.62; cm.metalness = 1; cm.envMapIntensity = 0.8; cm.color.set(0xffffff); cm.needsUpdate = true; } // tela lisa: el color sale del vértice (sin el tono marrón del lino)
     const flare = (cl, k, cx, cz, pw = 1.4) => { for (let i = 0; i < cl.rows; i++) for (let j = 0; j < cl.cols; j++) { const b = cl.bind[i * cl.cols + j], f = i / (cl.rows - 1); const dx = cl.top[j].p.x - cx, dz = cl.top[j].p.z - cz, l = Math.hypot(dx, dz) || 1; b.x += (dx / l) * k * Math.pow(f, pw); b.z += (dz / l) * k * Math.pow(f, pw); } return cl; }; // abre el vuelo de la tela hacia afuera
+    // bordados: dos cintas de luz alrededor del sudario con glifos entre ellas
+    for (const [y, r0] of [[0.74, 0.228], [0.5, 0.25]]) { add('ember', G.torus(r0, 0.0032, 3, S(36, 18)).scale(1, 1, 0.92).translate(0, y, 0.02), 'spine05', { color: VIO }); add('ember', G.torus(r0 + 0.003, 0.0032, 3, S(36, 18)).scale(1, 1, 0.92).translate(0, y - 0.05, 0.02), 'spine05', { color: VIO });
+      const gl = []; const rg = t.rng(Math.round(y * 100)); for (let i = 0; i < (low ? 16 : 28); i++) { const a = (i / (low ? 16 : 28)) * TAU, w = 0.008 + rg() * 0.016, hh = 0.012 + rg() * 0.022; const g = new T.PlaneGeometry(rg() > 0.5 ? w : 0.004, hh).translate(0, y - 0.025, 0); X(g, { p: [Math.sin(a) * (r0 + 0.012), 0, 0.02 + Math.cos(a) * (r0 + 0.012) * 0.92], r: [0, a, 0] }); gl.push(g); }
+      add('light', G.merge(gl), 'spine05', { color: VIO }); }
     // filigrana en el sudario: ramas de luz que bajan por la espalda
     for (let k = -2; k <= 2; k++) { const pts = []; for (let i = 0; i <= 6; i++) { const y = 0.95 - i * 0.14, x = k * (0.03 + i * 0.018) + Math.sin(i * 1.3 + k) * 0.012, rr = (0.2 + i * 0.016) * 1.1; pts.push(V(x, y, 0.02 - Math.sqrt(Math.max(0.001, rr * rr - x * x)) * 0.93)); } add('ember', seam(pts, 0.0024), 'spine05', { color: VIO }); }
+    // pinta la tela por vértice (bandas y rayas de luz tenue: la tela no tiene costuras propias)
+    const paint = (cl, bands, stripe) => { const c = cl.geo.attributes.color; for (let i = 0; i < cl.rows; i++) for (let j = 0; j < cl.cols; j++) { const k = i * cl.cols + j, f = i / (cl.rows - 1); let m = 1, v = 0; for (const b of bands) { const d = Math.abs(f - b) / 0.06; if (d < 1) v = Math.max(v, 1 - d); } if (stripe && j % stripe === 0 && f > 0.1) v = Math.max(v, 0.45 * Math.min(1, f * 2)); m = 1 + v * 2.2; c.setXYZ(k, c.getX(k) * (1 + v * 1.6), c.getY(k) * (1 + v * 0.9), c.getZ(k) * m); } c.needsUpdate = true; return cl; };
     // faldón de telas: anillo de 18 jirones de largo distinto
     const cols = [], lens = [], N = low ? 16 : 22;
     for (let j = 0; j < N; j++) { const a = (j / (N - 1)) * (TAU - 0.5) + Math.PI + 0.25; cols.push({ bone: j % 2 ? 'spine05' : 'spine04', p: V(Math.sin(a) * 0.22, 0.99, 0.03 + Math.cos(a) * 0.19) }); lens.push(0.78 + (R() - 0.35) * 0.42 + (j % 3 === 0 ? 0.12 : 0)); }
-    flare(ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(10, 6), color: 0x32225a, hem: 0x08050f, gravity: 5, stiff: 0.02, drag: 0.985, wave: 0.04, ember: 1.1 }), 0.2, 0, 0.03);
+    paint(flare(ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(10, 6), color: 0x32225a, hem: 0x08050f, gravity: 5, stiff: 0.02, drag: 0.985, wave: 0.04, ember: 1.1 }), 0.2, 0, 0.03), [0.42, 0.62], 2);
     // capa trasera, ancha, con los largos rotos
     const c2 = [], l2 = []; const M = low ? 8 : 11; for (let j = 0; j < M; j++) { const x = -0.25 + j * (0.5 / (M - 1)); c2.push({ bone: 'spine01', p: V(x, 1.42 - Math.abs(x) * 0.1, -0.1) }); l2.push(1.25 + 0.3 * Math.cos((j / (M - 1) - 0.5) * 2.2) + (R() - 0.5) * 0.45); }
-    flare(ak.cloth({ top: c2, dir: V(0, -1, -0.3), lens: l2, rows: S(12, 8), color: 0x281a46, hem: 0x08050f, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 1.0 }), 0.22, 0, 0.1);
+    paint(flare(ak.cloth({ top: c2, dir: V(0, -1, -0.3), lens: l2, rows: S(12, 8), color: 0x281a46, hem: 0x08050f, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 1.0 }), 0.22, 0, 0.1), [0.3, 0.5, 0.7], 3);
     // faldón delantero (jirón central)
     const c3 = [], l3 = []; for (let j = 0; j < 4; j++) { c3.push({ bone: 'spine05', p: V(-0.075 + j * 0.05, 0.95, 0.2) }); l3.push(0.7 + (R() - 0.5) * 0.2); }
     flare(ak.cloth({ top: c3, dir: V(0, -1, 0.1), lens: l3, rows: S(8, 5), color: 0x32225a, hem: 0x08050f, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.9 }), 0.1, 0, 0.0);
@@ -161,7 +167,6 @@ export function build(ak, ctx) {
       const H = P('upperleg01'), K = P('lowerleg01'), A = P('foot'); // piernas y pies cubiertos de sombra (por si asoman bajo el sudario)
       add('dark', limb(cuff(0.1, 0.08, H.distanceTo(K) * 0.98, 0.01, S(9, 6), 20), H, K, 0.5), 'upperleg01', { color: OBS_D });
       add('dark', limb(cuff(0.075, 0.06, K.distanceTo(A) * 0.98, 0.01, S(9, 6), 20), K, A, 0.5), 'lowerleg01', { color: OBS_D });
-      add('dark', X(t.box(0.1, 0.07, 0.27, 0.02, 1), { p: [A.x + 0.005, 0.04, 0.05] }), 'foot', { color: OBS_D });
     });
     // volutas: jirones de espíritu (cadenas con física) que se deshacen en luz; cada eslabón se desvanece hacia la punta
     const wisp = (name, parent, p0, dir, len, n, w, o = {}) => {
@@ -227,10 +232,10 @@ export function build(ak, ctx) {
   const fst = new Map(), dq = new T.Quaternion(), eu = new T.Euler(), bn = (n) => ak.bones[n] || ak.bones[n + '_h'];
   const addRot = (n, x, y, z) => { const b = bn(n); if (!b) return; let st = fst.get(n); if (!st) { st = { last: null, d: new T.Quaternion() }; fst.set(n, st); }
     if (st.last && b.quaternion.equals(st.last)) b.quaternion.multiply(dq.copy(st.d).invert()); st.d.setFromEuler(eu.set(x, y, z)); b.quaternion.multiply(st.d); st.last = b.quaternion.clone(); };
-  let spd = 0;
+  let spd = 0; const hide = ['foot_L', 'foot_R'].map(bn).filter(Boolean);
   upd.push((dt, tt, c) => {
     spd += ((c && c.speed || 0) - spd) * Math.min(1, dt * 4);
-    const lean = Math.min(0.2, spd * 0.03);
+    const lean = Math.min(0.2, spd * 0.03); for (const b of hide) b.scale.setScalar(0.001); // los pies quedan dentro del sudario: no asoman bajo el borde
     addRot('spine05', 0.045 * Math.sin(tt * 0.9) + lean, 0.07 * Math.sin(tt * 0.45), 0.055 * Math.sin(tt * 0.7 + 1));
     addRot('spine02', 0.02 * Math.sin(tt * 1.3 + 0.5), 0, 0.03 * Math.sin(tt * 0.7 + 2.4));
     addRot('head', -0.03 * Math.sin(tt * 0.9) - lean * 0.5, 0.08 * Math.sin(tt * 0.37 + 1), 0.04 * Math.sin(tt * 0.55));

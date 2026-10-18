@@ -66,7 +66,8 @@ export function build(ak, ctx) {
     X(brow, { p: [HC.x, HC.y + 0.038, HC.z] }); add('bark', brow, 'head', { color: BM });
     add('dark', X(G.wrapE(G.plate(t.platePts([[0.0, 0.0], [0.07, 0.012], [0.1, 0.0], [0.07, -0.026], [0, -0.03]]), 0.012, 0.003), 0.116, 0.144), { p: [HC.x, HC.y - 0.002, HC.z] }), 'head', { color: 0x040802 }); // cuenca
     ak.both(() => {
-      add('light', G.wrapE(G.plate([[0.014, 0.0], [0.05, 0.016], [0.094, 0.011], [0.074, -0.008], [0.022, -0.013]], 0.013, 0.003), 0.118, 0.148).translate(HC.x, HC.y + 0.004, HC.z + 0.002), 'head', { color: MOSS }); // ojo de luz rasgado
+      add('light', G.wrapE(G.plate([[0.012, 0.0], [0.05, 0.02], [0.1, 0.016], [0.082, -0.01], [0.022, -0.016]], 0.013, 0.003), 0.118, 0.148).translate(HC.x, HC.y + 0.004, HC.z + 0.002), 'head', { color: MOSS }); // ojo de luz rasgado
+      ak.halo('head', V(0.058, HC.y + 0.006, HC.z + 0.15), MOSS2, 0.2, 0.55);
       add('bark', X(G.wrapE(G.plate([[0.004, 0.03], [0.05, 0.02], [0.095, -0.03], [0.078, -0.09], [0.032, -0.1], [0.004, -0.06]], 0.016, 0.005), 0.114, 0.142), { p: [HC.x, HC.y - 0.015, HC.z], r: [0, 0.4, 0] }), 'head', { color: BM }); // mejilla
       add('light', seam([V(0.04, HC.y - 0.1, HC.z + 0.1), V(0.07, HC.y - 0.06, HC.z + 0.095), V(0.088, HC.y - 0.02, HC.z + 0.075)], 0.0026), 'head', { color: MOSS });
       add('bone', t.box(0.05, 0.05, 0.02, 0.006, 1).translate(0.125, HC.y - 0.005, HC.z - 0.01), 'head', { color: BL }); // oreja de corteza
@@ -129,11 +130,11 @@ export function build(ak, ctx) {
   ak.both(() => {
     const S0 = P('upperarm01'), E0 = P('lowerarm01'), W0 = P('wrist'), F3 = P('finger3-1');
     // hombrera: peñasco de corteza con 4 hongos-estantería escalonados (cada uno más bajo y más ancho hacia afuera) y musgo luminoso encima
-    add('bark', bonelump(0.19, [1.35, 0.95, 1.2], 12, 0.26).translate(S0.x + 0.08, S0.y + 0.04, S0.z), 'upperarm01', { color: BD });
-    for (let i = 0; i < 4; i++) { if (low && i === 3) continue; shelf('upperarm01', V(0.14 + i * 0.06, 1.53 - i * 0.1, S0.z + [0.0, -0.03, 0.03, 0.0][i]), 0.4 - i * 0.05, [0, [0.15, -0.25, 0.3, -0.1][i], -0.1 - i * 0.04], { half: true, wall: true, th: 0.05 - i * 0.005, seg: 20, rim: true, zs: 1.15, glow: [VIOLET, CYAN, MOSS, MAG][i], ca: i % 2 ? [0x4a2a1c, 0xa8622a, 0xb8a06c, 0x6aa840] : [0x6a2814, 0xb8682a, 0xc4aa72, 0xa84a86] }); }
-    tuft('upperarm01', V(S0.x + 0.1, S0.y + 0.2, S0.z), low ? 5 : 11, 0.016, 0.03, 0.1, Y, 31);
-    shroom('upperarm01', V(S0.x + 0.12, S0.y + 0.2, S0.z - 0.05), V(0.2, 1, -0.3), 0.09, 0.045, [VIOLET, 0xffc8ff]);
-    if (!low) shroom('upperarm01', V(S0.x + 0.02, S0.y + 0.2, S0.z + 0.06), V(-0.1, 1, 0.4), 0.06, 0.03, [CYAN, 0xd8fff8]);
+    add('bark', bonelump(0.19, [1.35, 0.95, 1.2], 12, 0.26).translate(S0.x + 0.08, S0.y + 0.04, S0.z), 'spine01', { color: BD });
+    for (let i = 0; i < 4; i++) { if (low && i === 3) continue; shelf('spine01', V(0.2 + i * 0.045, 1.52 - i * 0.1, S0.z + [0.0, -0.03, 0.03, 0.0][i]), 0.4 - i * 0.05, [0, [0.15, -0.25, 0.3, -0.1][i], -0.1 - i * 0.04], { half: true, th: 0.05 - i * 0.005, seg: 20, rim: true, zs: 1.15, glow: [VIOLET, CYAN, MOSS, MAG][i], ca: i % 2 ? [0x4a2a1c, 0xa8622a, 0xb8a06c, 0x6aa840] : [0x6a2814, 0xb8682a, 0xc4aa72, 0xa84a86] }); }
+    tuft('spine01', V(S0.x + 0.1, S0.y + 0.2, S0.z), low ? 5 : 11, 0.016, 0.03, 0.1, Y, 31);
+    shroom('spine01', V(S0.x + 0.12, S0.y + 0.2, S0.z - 0.05), V(0.2, 1, -0.3), 0.09, 0.045, [VIOLET, 0xffc8ff]);
+    if (!low) shroom('spine01', V(S0.x + 0.02, S0.y + 0.2, S0.z + 0.06), V(-0.1, 1, 0.4), 0.06, 0.03, [CYAN, 0xd8fff8]);
     // brazo enorme: tronco de corteza (bíceps) + brazal de placas + raíces enroscadas en espiral + codo con púa
     add('bark', limb(bonelump(0.15, [1.05, 1.9, 1.05], 5, 0.24), S0, E0, 0.5), 'upperarm01', { color: BM });
     for (let i = 0; i < (low ? 2 : 3); i++) add('bark', limb(cuff(0.12 - i * 0.008, 0.108 - i * 0.008, 0.045, 0.014, S(10, 7), 30), S0, E0, 0.3 + i * 0.2), 'upperarm01', { color: i === 1 ? BL : BD });
@@ -184,9 +185,9 @@ export function build(ak, ctx) {
   {
     const cols = [], lens = [], R2 = t.rng(11);
     for (let j = 0; j < 8; j++) { const x = -0.2 + j * (0.4 / 7); cols.push({ bone: j === 0 ? 'clavicle_R' : j === 7 ? 'clavicle_L' : 'spine01', p: V(x, 1.43 - Math.abs(x) * 0.1, -0.24 - 0.05 * (1 - Math.abs(x) / 0.26)) }); lens.push(0.7 + 0.25 * Math.cos((j / 7 - 0.5) * 2.4) + (R2() - 0.5) * 0.3); }
-    ak.cloth({ top: cols, dir: V(0, -1, -0.12), lens, rows: S(10, 6), color: 0xb0ff68, hem: 0x2a4a14, gravity: 7, stiff: 0.012, drag: 0.982, wave: 0.035, ember: 1 });
+    ak.cloth({ top: cols, dir: V(0, -1, -0.12), lens, rows: S(10, 6), color: new T.Color(2.2, 3.4, 1.0), hem: new T.Color(0.6, 1.4, 0.3), gravity: 7, stiff: 0.012, drag: 0.982, wave: 0.035, ember: 1 });
     const c2 = [], l2 = []; for (let j = 0; j < 5; j++) { c2.push({ bone: 'spine05', p: V(-0.1 + j * 0.05, 0.93, 0.2) }); l2.push(0.42 + (R2() - 0.5) * 0.2); }
-    ak.cloth({ top: c2, dir: V(0, -1, 0.1), lens: l2, rows: S(6, 4), color: 0x90d850, hem: 0x2a4a14, gravity: 7, stiff: 0.03, drag: 0.98, ember: 0.7 });
+    ak.cloth({ top: c2, dir: V(0, -1, 0.1), lens: l2, rows: S(6, 4), color: new T.Color(1.8, 3.0, 0.9), hem: new T.Color(0.6, 1.4, 0.3), gravity: 7, stiff: 0.03, drag: 0.98, ember: 0.7 });
     // raíces que arrastra por el suelo (5 cadenas con muelles: cuelgan de la cintura hacia atrás)
     for (let k = 0; k < (low ? 4 : 5); k++) {
       const x = (k - (low ? 1.5 : 2)) * 0.075, sgn = Math.sign(x) || 1, pts = [0, 1, 2, 3, 4, 5].map((i) => V(x * (1 + i * 0.35) + Math.sin(k * 2 + i) * 0.025, [0.95, 0.78, 0.55, 0.34, 0.17, 0.07][i], [-0.12, -0.19, -0.27, -0.38, -0.55, -0.78][i]));
