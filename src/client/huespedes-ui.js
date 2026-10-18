@@ -9,6 +9,7 @@ import { Equipo, saveEquipo } from './equipo.js';
 import { GLYPHS, HERO_LORE, HERO_STATS } from './heroes-ui.js';
 import { buildHostEvo, REGIONS } from './huespedes-evo.js';
 import * as Perfil from './perfil.js';
+import { poseeHuesped } from '../sim/tienda.js';   // los Huéspedes no iniciales se compran en la Tienda (docs/TIENDA.md)
 import { recompensas, proximaRecompensa, maestriaMods, TITULOS, TIER_MARCA, RANGO_MAX } from '../sim/maestria.js';
 import { RAMAS, PC_COSTE, nodosDe, errorNodo, costeReinicio } from '../sim/progresion.js';
 import { tickMenuBeat } from './shaders.js';
@@ -211,7 +212,8 @@ export function buildHuespedScreen(menu) {
     const d = C.stats ? C.stats.dificultad : null; const dd = $('#hsdiff'); dd.hidden = d == null;
     if (d != null) dd.innerHTML = `Dificultad: <b>${LEVEL(d)}</b> <span class="hs-pips" aria-hidden="true">${Array.from({ length: 5 }, (_, i) => `<i class="${i < Math.ceil(d / 2) ? 'on' : ''}"></i>`).join('')}</span>`;
     $('#hschosen').hidden = Equipo.char !== id;
-    root.querySelectorAll('.hs-chip').forEach((b) => { const on = b.dataset.id === id; b.classList.toggle('sel', on); b.classList.toggle('chosen', b.dataset.id === Equipo.char); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    const own = poseeHuesped(Perfil.perfil(), id), pk = $('#hspick'); pk.textContent = own ? 'Elegir' : 'Comprar en la Tienda'; pk.dataset.locked = own ? '' : '1'; pk.title = own ? '' : `${C.name} no es tuyo todavía: el Cambista de Almas lo vende.`;   // se puede mirar y probar antes de comprar
+    root.querySelectorAll('.hs-chip').forEach((b) => { const on = b.dataset.id === id; b.classList.toggle('sel', on); b.classList.toggle('chosen', b.dataset.id === Equipo.char); b.classList.toggle('locked', !poseeHuesped(Perfil.perfil(), b.dataset.id)); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     if (vet && $('#hsvets').hidden) toggleVets(true);
     renderInfo(id);
     // escenario: Huésped = 3D propio · veterano = vista de héroe existente
@@ -242,7 +244,8 @@ export function buildHuespedScreen(menu) {
   $('#hsdemo').addEventListener('click', (e) => { e.stopPropagation(); demo('both'); });
   $('#hsinv').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('ok'); menu.ivHost = hs.sel; menu.show('inventario'); });   // inventario con las piezas puestas en el modelo (docs/INVENTARIO.md)
   $('#hspick').addEventListener('click', (e) => {
-    e.stopPropagation(); Equipo.char = hs.sel; saveEquipo(); menu.sound.ui('ok');
+    e.stopPropagation(); if (!poseeHuesped(Perfil.perfil(), hs.sel)) { menu.sound.ui('ok'); if (menu.tn) menu.tn.host = hs.sel; menu.show('tienda'); return; }   // no es tuyo: va a la Tienda
+    Equipo.char = hs.sel; saveEquipo(); menu.sound.ui('ok');
     root.querySelectorAll('.hs-chip').forEach((b) => b.classList.toggle('chosen', b.dataset.id === Equipo.char)); $('#hschosen').hidden = false; menu.refreshHuesped && menu.refreshHuesped(); menu.back();
   });
   // el 3D descansa cuando la pantalla no se ve

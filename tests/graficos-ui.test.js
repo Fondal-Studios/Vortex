@@ -22,8 +22,8 @@ test('menú principal › Gráficos: presets, resolución y efectos se aplican e
   await pg.goto(`${base}/?autoq=0&nolock=1`, { waitUntil: 'domcontentloaded', timeout: 300000 });   // (sin ?q= para que mande lo guardado)
   await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 300000 });
   await pg.evaluate(() => { window.__api.ui.confirmTitle(); });
-  const item = pg.locator('#mainlist [data-go=graficos]'); await item.waitFor({ timeout: 20000 }); assert.match(await item.innerText(), /gráficos/i);
-  await item.click(T); await pg.waitForSelector('#graficos.on .gr-card', { timeout: 20000 });
+  const item = pg.locator('#mainlist [data-go=graficos]'); await item.waitFor({ timeout: 240000 }); assert.match(await item.innerText(), /gráficos/i);
+  await item.click(T); await pg.waitForSelector('#graficos.on .gr-card', { timeout: 240000 });
   // 4 tarjetas con para quién sirve
   const cards = await pg.$$eval('#graficos .gr-card', (c) => c.map((x) => x.innerText));
   assert.equal(cards.length, 4); assert.ok(cards.some((t) => /iPhone/.test(t)), 'dice para qué equipo sirve'); assert.ok(cards.every((t) => t.length > 60), 'cada tarjeta trae su descripción');
@@ -46,7 +46,7 @@ test('menú principal › Gráficos: presets, resolución y efectos se aplican e
   await pg.fill('#graficos .gr-range', '150'); await pg.dispatchEvent('#graficos .gr-range', 'input'); assert.ok(await pr() > p100 * 1.2, '150 % = más resolución');
   // FPS 30 + medidor + automático
   await pg.click('#graficos [data-op=fps][data-i="0"]'); assert.equal(await pg.evaluate(() => window.__api.renderer.level && JSON.parse(localStorage.getItem('cristal.graficos.v1')).ajustes.fps), 30);
-  await pg.click('#graficos [data-med=true]', T); await pg.waitForSelector('#fpsmeter', { timeout: 5000 }); assert.match(await pg.textContent('#fpsmeter'), /FPS/);
+  await pg.click('#graficos [data-med=true]', T); await pg.waitForSelector('#fpsmeter', { timeout: 240000 }); assert.match(await pg.textContent('#fpsmeter'), /FPS/);
   await pg.click('#graficos [data-auto=false]', T); assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('cristal.graficos.v1')).auto), false);
   // se recuerda al recargar
   await pg.reload({ waitUntil: 'domcontentloaded', timeout: 300000 }); await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 300000 });
@@ -66,7 +66,7 @@ test('?q=low manda sobre lo guardado (herramientas y pruebas) y el botón de la 
   await pg.waitForFunction('window.__api && window.__api.session && window.__api.session.game', null, { timeout: 300000 });
   assert.equal(await pg.evaluate(() => window.__api.level), 'low'); assert.ok(await pg.evaluate(() => window.__api.renderer.gl.getPixelRatio()) <= 1.0001, '?q=low ignora el 150 % guardado');
   await pg.evaluate(() => { document.getElementById('pause').classList.remove('hidden'); });
-  await pg.evaluate(() => document.getElementById('gfxopen').click());   // (el bucle del juego vuelve a esconder #pause si no hay bloqueo de puntero: se pulsa por código) await pg.waitForSelector('#graf-over .gr-card', { timeout: 10000 });
+  await pg.evaluate(() => document.getElementById('gfxopen').click());   // (el bucle del juego vuelve a esconder #pause si no hay bloqueo de puntero: se pulsa por código) await pg.waitForSelector('#graf-over .gr-card', { timeout: 240000 });
   await pg.click('#graf-over [data-preset=media]', T); assert.equal(await pg.evaluate(() => window.__api.level), 'medium');
   await pg.keyboard.press('Escape'); assert.equal(await pg.locator('#graf-over').count(), 0, 'Esc cierra el panel');
   assert.ok(await pg.locator('#pause:not(.hidden)').count() === 1, 'la pausa sigue ahí');

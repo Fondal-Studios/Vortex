@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Cristal Vórtice">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Pacto Psico">
 <meta name="theme-color" content="#07030f"><meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="/public/manifest.webmanifest"><link rel="apple-touch-icon" href="/public/icon-180.png">
-<title>Cristal Vórtice</title>
+<title>PACTO PSICO</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css"><link rel="stylesheet" href="/public/territorios.css"><link rel="stylesheet" href="/public/inventario.css"><link rel="stylesheet" href="/public/graficos.css">
+<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css"><link rel="stylesheet" href="/public/territorios.css"><link rel="stylesheet" href="/public/inventario.css"><link rel="stylesheet" href="/public/graficos.css"><link rel="stylesheet" href="/public/tienda.css"><link rel="stylesheet" href="/public/menu.css">
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
 </head>
 <body>
@@ -45,30 +45,28 @@
   <div id="psbg"></div>
   <!-- ═════ TÍTULO ═════ -->
   <section id="title" class="screen on" data-screen="title">
-    <div class="logo"><span class="l1">CRISTAL</span><span class="l2">VÓRTICE</span></div>
-    <p class="tagline">Sobrevivir entre dimensiones, donde la gravedad es solo una opinión</p>
+    <div class="logo"><span class="l1" data-marca="logo1">PACTO</span><span class="l2" data-marca="logo2">PSICO</span></div>
+    <p class="tagline" data-marca="subtitulo">Sobrevivir al Vórtice, donde la gravedad es solo una opinión</p>
     <button id="pressstart" class="pressstart"><i class="glyph x">✕</i><span id="startlabel">Presioná cualquier botón</span></button>
-    <div class="legal">Un shooter de supervivencia psicodélico · PC · iPhone · 1–4 jugadores</div>
+    <div class="legal" data-marca="legal">Acción psicodélica en 3D · PC · iPhone · 1–4 jugadores</div>
   </section>
   <!-- ═════ MENÚ PRINCIPAL ═════ -->
   <section id="main" class="screen" data-screen="main">
-    <div class="brand"><span>CRISTAL</span><span>VÓRTICE</span></div>
-    <nav id="mainlist" class="list">
-      <button class="item" data-go="story" data-art="historia"><b>Historia</b><small>Un tren, un andén, una luz</small></button>
-      <button class="item" data-go="arenas" data-art="arenas"><b>Arenas</b><small>Directo a la acción</small></button>
-      <button class="item" data-go="huesped" data-art="equipo"><b>Huésped</b><small>Elegí tu organismo</small></button>
-      <button class="item" id="modeitem" data-hero="modo" type="button"><b>Modo de juego: Shooter</b><small>Disparás, apuntás y usás habilidades</small></button>
-      <button class="item" data-go="territorios" data-art="arenas"><b>Territorios</b><small>El mapa del limbo · bendiciones</small></button>
-      <button class="item" data-go="inventario" data-art="equipo"><b>Inventario</b><small>Objetos · materiales · Forja · sets</small></button>
-      <button class="item" data-go="evolucion" data-art="equipo"><b>Evolución</b><small>Núcleos · armas fusionadas · mutaciones</small></button>
-      <button class="item" data-go="loadout" data-art="equipo"><b>Equipo</b><small>Personajes · habilidades · armas</small></button>
-      <button class="item" data-go="coop" data-art="coop"><b>Cooperativo</b><small>Hasta 4 Pasajeros</small></button>
-      <button class="item" data-go="bestiary" data-art="bestiario"><b>Bestiario</b><small>15 organismos del Vórtice</small></button>
-      <button class="item" data-go="graficos" data-art="opciones"><b>Gráficos</b><small>Baja · Media · Alta · resolución · FPS</small></button>
-      <button class="item" data-go="options" data-art="opciones"><b>Opciones</b><small>Controles · sonido · subtítulos</small></button>
-    </nav>
-    <aside id="hero"><div id="herocard"><img id="heroimg" alt=""><div class="herotxt"><h2 id="herotitle"></h2><p id="herodesc"></p><div id="herochips"></div></div></div></aside>
+    <div class="brand"><span data-marca="logo1">PACTO</span><span data-marca="logo2">PSICO</span></div>
+    <div class="mainwrap">
+      <!-- «Continuar / Jugar»: siempre visible; qué abre lo decide menu-hubs.js según lo último que jugaste -->
+      <button id="continuar" class="continuar" type="button"><i class="glyph x" aria-hidden="true">▶</i><span><b>Continuar</b><small></small></span></button>
+      <!-- las 4 puertas se dibujan desde src/client/menu-nav.js (PUERTAS): Jugar · Mi Huésped · Mundo · Ajustes -->
+      <nav id="mainlist" class="doors" aria-label="Menú principal"></nav>
+    </div>
   </section>
+  <!-- ═════ LOS 4 HUBS (se dibujan desde src/client/menu-nav.js → HUBS con menu-hubs.js) ═════ -->
+  <section id="hub-jugar" class="screen" data-screen="hub-jugar"></section>
+  <section id="hub-huesped" class="screen" data-screen="hub-huesped"></section>
+  <section id="hub-mundo" class="screen" data-screen="hub-mundo"></section>
+  <section id="hub-ajustes" class="screen" data-screen="hub-ajustes"></section>
+  <!-- ═════ TIENDA: el Cambista de Almas (src/client/tienda-ui.js) ═════ -->
+  <section id="tienda" class="screen" data-screen="tienda"></section>
   <!-- ═════ HISTORIA ═════ -->
   <section id="story" class="screen" data-screen="story">
     <h3 class="stitle">Historia</h3>
@@ -174,9 +172,10 @@
       <button id="tresetlay" class="btn" type="button">Restablecer botones</button>
     </div>
   </section>
-  <footer id="prompts"><span><i class="glyph x">✕</i> Seleccionar</span><span><i class="glyph o">○</i> Volver</span><span><i class="glyph t">△</i> Navegar</span></footer>
+  <nav id="crumbs" class="crumbs" aria-label="Dónde estás" hidden></nav><div id="saldo" class="saldo" hidden title="Tus núcleos"></div>
+  <footer id="prompts"><span><i class="glyph x">✕</i> Seleccionar</span><span><i class="glyph o">○</i> Volver (Esc)</span><span><i class="glyph t">△</i> Navegar</span></footer>
   <p id="menuerr" class="err"></p>
-  <div id="loading" class="hidden"><div class="ltitle">CRISTAL VÓRTICE</div><div class="lbar"><b id="lfill"></b></div><p id="ltip"></p></div>
+  <div id="loading" class="hidden"><div class="ltitle" data-marca="nombre">PACTO PSICO</div><div class="lbar"><b id="lfill"></b></div><p id="ltip"></p></div>
 </div>
 <button id="camquick" class="hidden" aria-label="Cambiar cámara (primera / tercera persona)">👁</button><div id="comfort"></div><div id="gravmsg">⟲ LA GRAVEDAD CAMBIÓ · el piso es donde pisás</div>
 <div id="trophies"></div>

@@ -9,28 +9,17 @@ import { buildEvolucionScreen, showEvolucion } from './evolucion-ui.js';
 import { buildTerritoriosScreen, showTerritorios } from './territorios-ui.js';
 import { buildInventarioScreen, showInventario } from './inventario-ui.js';
 import { buildGraficosScreen, showGraficos } from './graficos-ui.js';
+import { buildTiendaScreen, showTienda } from './tienda-ui.js';
+import { aplicarMarca } from './marca.js';
+import { buildMain, buildHubs, refrescarInicio, dibujarMigas, vecino, guardarUltimo, leerUltimo } from './menu-hubs.js';
+import { continuarDe, PANTALLAS } from './menu-nav.js';
+import * as Perfil from './perfil.js';
 
 const $ = (id) => document.getElementById(id);
-const HERO = {
-  story: ['Historia', 'Moriste en las vías y despertaste en el limbo. Pero seguís vivo: y todas las criaturas que añoran la vida quieren la tuya. Elegí el Huésped correcto y evolucioná sin errores para sobrevivir.', ['Solo', '2 capítulos', '2 jefes']],
-  arenas: ['Arenas', 'Salteá la historia y andá directo a la acción en cualquiera de los cuatro mapas, con oleadas progresivas y un jefe cada uno. Nuevo: Jardín de Carne, un planeta vivo donde los caminos crecen.', ['Solo', 'Oleadas', 'Jefes']],
-  coop: ['Cooperativo', 'Creá una sala o unite con un código. Hasta 4 Pasajeros, hordas que escalan con el grupo y reanimación entre compañeros.', ['1–4 jugadores', 'Wi-Fi / LAN']],
-  bestiary: ['Bestiario', 'Quince organismos mitad carne, mitad cristal. Girá cada criatura en 3D y leé sus patrones, avisos y debilidades.', ['12 criaturas', '3 jefes']],
-  huesped: ['Huésped', 'Elegí tu Huésped: uno de los 5 organismos biomecánicos (o un Veterano). Mirá su modelo en 3D, sus estadísticas y sus habilidades antes de entrar a la partida.', ['5 Huéspedes', 'Veteranos', 'Demostración']],
-  territorios: ['Territorios', 'Los seis lugares robados del mundo, cada uno con su folclore. Liberalos venciendo a su jefe y elegí UNA bendición por territorio: la otra queda cerrada para siempre.', ['6 territorios', '12 bendiciones', 'Una por lugar']],
-  inventario: ['Inventario', 'Lo que dropea en las partidas son MATERIALES orgánicos y PLANOS: en la Forja los convertís en armas de disparo, armas cuerpo a cuerpo, armadura y reliquias que maduran con tus bajas. Juntá sets de 2 y 4 piezas y probá todo sobre tu Huésped en 3D.', ['Materiales', 'Planos', 'Forja', 'Sets']],
-  evolucion: ['Evolución', 'Gastá los núcleos que ganás en combate: evolucioná a tu Huésped (4 niveles, cada uno lo cambia a la vista) y fusioná con él una espada, hacha, martillo, lanza o daga que despierta su poder especial.', ['4 niveles', '15 armas', 'Fusión']],
-  loadout: ['Equipo', 'Elegí entre 6 personajes, cada uno con un desplazamiento y un disparo especial propios, y armá tu arsenal con 14 armas. Tras cada oleada mejorás las armas que elegiste.', ['6 personajes', '15 armas', 'Mejoras']],
-  modo: ['Modo de juego', 'Shooter es el de siempre: disparás, apuntás y usás tres habilidades. Combo hace del cuerpo a cuerpo lo principal: DOS botones de ataque que se encadenan en combos (cada Huésped tiene los suyos y los desbloquea al evolucionar) y UNA habilidad muy importante propia. Se cambia cuando quieras, también en Opciones y en la Pausa.', ['Shooter', 'Combo', 'Los 5 Huéspedes']],
-  graficos: ['Gráficos', 'Elegí Baja, Media o Alta (iPhone → Baja o Media), ajustá la resolución, prendé o apagá sombras, brillo y partículas, limitá los FPS y mirá cuánto pesa cada cosa. Se aplica en vivo y se recuerda.', ['Baja · Media · Alta', 'Resolución', 'FPS']],
-  options: ['Opciones', 'Controles, sensibilidad, volumen y subtítulos. Los gráficos tienen su propio menú.', ['PC', 'iPhone', 'Mando']],
-};
-const ART = { modo: './public/art/opciones.jpg', story: './public/art/historia.jpg', arenas: './public/art/arena-m1.jpg', coop: './public/art/coop.jpg', loadout: './public/art/opciones.jpg', huesped: './public/art/opciones.jpg', territorios: './public/art/opciones.jpg', graficos: './public/art/opciones.jpg', evolucion: './public/art/opciones.jpg', inventario: './public/art/opciones.jpg', bestiary: './public/art/bestiario.jpg', options: './public/art/opciones.jpg' };
-
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); this.addBackButtons(); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); aplicarMarca(); buildMain(this); buildHubs(this); this.addBackButtons(); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
   }
   /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
   addBackButtons() {
@@ -43,36 +32,52 @@ export class MenuUI {
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { title: '#pressstart', main: '#mainlist .item', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', options: '#options .panel label, #options .gfxgo, #options #gfxgo' }[name];
+    const q = { title: '#pressstart', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #mainlist .door', 'hub-jugar': '#hub-jugar #modeitem, #hub-jugar .hubcard, #hub-jugar .rstep', 'hub-huesped': '#hub-huesped .hubcard', 'hub-mundo': '#hub-mundo .hubcard', 'hub-ajustes': '#hub-ajustes .hubcard', options: '#options .panel label, #options .gfxgo, #options #gfxgo' }[name];
+    if (name === 'tienda' && this.tn && this.tn.dialogoAbierto()) return [...this.root.querySelectorAll('#tnyes, #tnno')];   // con el cartel de confirmación abierto, sólo se navega entre Sí y No
     return [...this.root.querySelectorAll(q)];
   }
   show(name, push = true) {
     if (push && this.screen !== name && name !== 'title') this.stack.push(this.screen);
-    this.screen = name;
+    const antes = this.screen; this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';   // dirección de la transición corta (menu.css)
     this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name));
+    dibujarMigas(this, name); const inicio = name === 'main' || name.startsWith('hub-') || name === 'tienda'; const sal = $('saldo'); if (sal) sal.hidden = !inicio;
+    if (inicio) refrescarInicio(this);
     this.idx = name === 'bestiary' ? 0 : 0; this.focus(this.idx, true);
-    $('prompts').style.opacity = name === 'title' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
+    $('prompts').style.opacity = name === 'title' || name === 'tienda' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
     if (name === 'bestiary') this.selectBeast(0);
     if (name === 'loadout') this.renderLoadout();
     if (name === 'huesped') showHuesped(this);
     if (name === 'territorios') showTerritorios(this);
     if (name === 'graficos') showGraficos(this);
     if (name === 'evolucion') showEvolucion(this);
-    if (name === 'inventario') { const h = this.ivHost; this.ivHost = null; showInventario(this, h); }
+    if (name === 'tienda') showTienda(this);
+    if (name === 'inventario') { try { const p = Perfil.perfil(); p.menu.iv = p.nu; Perfil.guardar(); } catch { /* sin perfil */ } const h = this.ivHost; this.ivHost = null; showInventario(this, h); }
     if (name === 'main') this.refreshHuesped();
   }
-  /** Rótulo del menú principal: qué Huésped está elegido. */
-  refreshHuesped() { const s = this.root.querySelector('[data-go=huesped] small'), c = CHARACTERS[Equipo.char]; if (s && c) s.textContent = 'Tu Huésped: ' + c.name + ' · ' + (c.title || c.desc); }
-  back() { if (this.screen === 'title') return; const prev = this.stack.pop(); this.sound.ui('back'); this.show(prev || 'main', false); }
+  /** Rótulo del menú principal: qué Huésped está elegido (el panel de Mi Huésped, Continuar y los avisos se recalculan). */
+  refreshHuesped() { if (this.screen === 'main' || this.screen.startsWith('hub-') || this.screen === 'tienda') refrescarInicio(this); }
+  back() {
+    if (this.screen === 'title') return;
+    if (this.screen === 'tienda' && this.tn && this.tn.dialogoAbierto()) { this.tn.cerrarDialogo(); this.sound.ui('back'); this.focus(this.idx, true); return; }   // Esc cierra primero el cartel de confirmación
+    if (this.screen === 'main') return;   // en el inicio no hay a dónde volver (el título no se vuelve a mostrar)
+    const prev = this.stack.pop(); this.sound.ui('back'); this.show(prev || 'main', false);
+  }
+  /** Salta a una pantalla de las migas de pan (reconstruye el camino de vuelta: Inicio › … ). */
+  saltar(name) { if (!PANTALLAS[name]) return; const camino = []; for (let id = PANTALLAS[name].padre; id; id = PANTALLAS[id].padre) camino.unshift(id); this.stack = camino; this.sound.ui('tick'); this.show(name, false); }
+  /** Botón grande «Continuar»: retoma lo último que jugaste (Historia o la última arena). */
+  continuar() {
+    const u = continuarDe(leerUltimo()); this.sound.ui('ok');
+    if (u.tipo === 'arena') { guardarUltimo({ k: 'arena', id: u.id }); this.actions.arena(u.id); } else { guardarUltimo({ k: 'story' }); this.actions.story(); }
+  }
+  refocus() { this.focus(this.idx, true); }
   focus(i, silent = false) {
     const l = this.list(); if (!l.length) return; this.idx = (i + l.length) % l.length;
     l.forEach((e, k) => e.classList.toggle('focus', k === this.idx));
-    const el = l[this.idx]; if (this.screen === 'main') this.updateHero(el.dataset.go || el.dataset.hero);
-    if (this.screen === 'graficos' && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
+    const el = l[this.idx];
+    if ((this.screen === 'graficos' || this.screen === 'tienda' || this.screen.startsWith('hub-')) && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
     if (this.screen === 'bestiary') this.selectBeast(this.idx);
     if (!silent) this.sound.ui('tick');
   }
-  updateHero(key) { const h = HERO[key]; if (!h) return; $('herotitle').textContent = h[0]; $('herodesc').textContent = h[1]; $('herochips').innerHTML = h[2].map((c) => `<span>${c}</span>`).join(''); const img = $('heroimg'); const url = ART[key]; if (img.dataset.k !== key) { img.dataset.k = key; img.style.opacity = 0; setTimeout(() => { img.src = url; img.style.opacity = 1; }, 120); } }
   buildBestiary() {
     $('bgrid').innerHTML = BESTIARY.map((b, i) => `<button class="bcell" data-i="${i}" style="--c:${b.color}"><span>${b.name}</span></button>`).join('');
     $('bgrid').querySelectorAll('.bcell').forEach((c) => { c.addEventListener('mouseenter', () => { if (this.screen === 'bestiary') this.focus(+c.dataset.i); }); c.addEventListener('click', () => this.selectBeast(+c.dataset.i)); });
@@ -87,12 +92,17 @@ export class MenuUI {
   renderLoadout() { renderHeroScreen(this); }
   /* ───── entrada ───── */
   bindEvents() {
-    this.root.querySelectorAll('[data-go]').forEach((b) => { b.addEventListener('mouseenter', () => { if (this.screen === 'main') this.focus(this.list().indexOf(b)); }); b.addEventListener('click', () => this.go(b.dataset.go)); });
+    this.root.querySelectorAll('[data-go]').forEach((b) => { b.addEventListener('mouseenter', () => { if (this.screen === 'main' || this.screen.startsWith('hub-')) this.focus(this.list().indexOf(b)); }); b.addEventListener('click', () => this.go(b.dataset.go)); });
     $('pressstart').addEventListener('click', () => this.confirmTitle());
     this.root.addEventListener('click', (e) => { if (this.screen === 'title' && this.active) this.confirmTitle(); });
     this.root.querySelectorAll('.card, .btn, #options label').forEach((c) => c.addEventListener('mouseenter', () => { const l = this.list(); const i = l.indexOf(c); if (i >= 0) this.focus(i); }));
-    $('story').querySelector('.card').addEventListener('click', () => this.actions.story());
-    this.root.querySelectorAll('[data-start]').forEach((b) => b.addEventListener('click', () => this.actions.arena(b.dataset.start)));
+    this.root.addEventListener('mouseover', (e) => { const t = e.target.closest && e.target.closest('.tn-nav'); if (t && this.screen === 'tienda') { const l = this.list(), i = l.indexOf(t); if (i >= 0 && i !== this.idx) this.focus(i, true); } });
+    $('story').querySelector('.card').addEventListener('click', () => { guardarUltimo({ k: 'story' }); this.actions.story(); });
+    this.root.querySelectorAll('[data-start]').forEach((b) => b.addEventListener('click', () => { guardarUltimo({ k: 'arena', id: b.dataset.start }); this.actions.arena(b.dataset.start); }));
+    // gesto táctil «atrás»: deslizar desde el borde izquierdo hacia la derecha (igual que el botón Volver, Esc o el botón ○ del mando)
+    let sw = null;
+    this.root.addEventListener('touchstart', (e) => { const t = e.touches[0]; sw = e.touches.length === 1 && t.clientX < 28 ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
+    this.root.addEventListener('touchend', (e) => { if (!sw) return; const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = Math.abs(t.clientY - sw.y); sw = null; if (dx > 70 && dy < 60 && this.active && this.screen !== 'title') this.back(); }, { passive: true });
   }
   confirmTitle() { if (this.screen !== 'title') return; this.sound.init(); this.sound.resume(); this.sound.startMusic('m1'); this.sound.ui('ok'); this.show('main', false); }
   go(name) { this.sound.ui('ok'); this.show(name); }
@@ -102,6 +112,11 @@ export class MenuUI {
     if (this.screen === 'title') { if (a === 'ok' || a === 'any') this.confirmTitle(); return; }
     if (a === 'back') return this.back();
     const l = this.list(); if (!l.length) return; const cur = l[this.idx];
+    if (this.screen === 'main' || this.screen.startsWith('hub-') || this.screen === 'tienda') {   // rejillas, pestañas y paneles: se va al vecino más cercano en esa dirección
+      if (a === 'ok') { this.sound.ui('ok'); if (cur.tagName === 'SELECT') return this.stepSelect(cur, 1); return cur.click(); }
+      if ((a === 'left' || a === 'right') && cur.tagName === 'SELECT') return this.stepSelect(cur, a === 'right' ? 1 : -1);
+      const j = vecino(l, this.idx, a); if (j >= 0) this.focus(j); return;
+    }
     const grid = this.screen === 'bestiary' ? 5 : 1, horiz = this.screen === 'story' || this.screen === 'arenas';
     if (a === 'down') return this.focus(this.idx + (horiz ? 0 : grid));
     if (a === 'up') return this.focus(this.idx - (horiz ? 0 : grid));
