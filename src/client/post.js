@@ -95,12 +95,12 @@ const FRAG = `
     // aunque sean oscuros, en Baja también (4 lecturas de profundidad). Se apaga con la distancia y sobre el cielo muy lejano.
     #if OUTLINE
     if (uOutline > 0.0 && sky < 0.5 && uHasDepth > 0.5 && dist < 38.0) {
-      vec2 ox = px * max(1.0, uRes.y / 560.0); float e = 0.0, tol = max(0.45, 0.16 * dist);
+      vec2 ox = px * max(2.0, uRes.y / 330.0); float e = 0.0, tol = max(0.45, 0.16 * dist);
       e += step(tol, dd(uv + vec2(ox.x, 0.0)) - dist);
       e += step(tol, dd(uv - vec2(ox.x, 0.0)) - dist);
       e += step(tol, dd(uv + vec2(0.0, ox.y)) - dist);
       e += step(tol, dd(uv - vec2(0.0, ox.y)) - dist);
-      float k = clamp(e * 0.5, 0.0, 1.0) * smoothstep(38.0, 12.0, dist) * uOutline;
+      float k = clamp(e, 0.0, 1.0) * smoothstep(38.0, 12.0, dist) * uOutline;
       vec3 oc = mix(vec3(0.82, 0.95, 1.0), c / max(max(c.r, max(c.g, c.b)), 0.05), 0.3); // borde casi blanco con un toque del color del píxel: la psicodelia no se lava
       c = mix(c, oc, k);
     }
