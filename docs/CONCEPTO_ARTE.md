@@ -67,3 +67,11 @@ que el Pasajero pacta. Rediseño total, la pieza mejor lograda del juego (más d
 - **Seraf — el Ángel Caído:** alma alada de luz dorada y filamentos, aureola quebrada.
 Cada uno: silueta inconfundible, partes sueltas/flotantes, luz interior, partículas propias, animación de bestia o espectro (no de maniquí),
 y **evoluciones que se ven**: cada camino de `pth` y cada órgano `cg` cambian el cuerpo. Aspecto regional por mapa (folclore del lugar).
+
+## Legibilidad (Claridad)
+
+La psicodelia sigue a tope, pero el jugador tiene que ver dónde está el Huésped y los enemigos. Se resuelve con luz, no con quitar color:
+relleno que sigue al Huésped, charco de luz bajo los pies y resplandor detrás, borde de luz más fuerte en el cuerpo, contorno por profundidad
+(claro sobre fondos oscuros, oscuro sobre fondos claros) y un piso tintado en las sombras (conserva el tono de cada mapa). Los mapas ya claros
+(m4–m6) reciben menos relleno (`MAP_OSCURO` en `src/client/quality.js`). Ajuste del jugador: «Claridad» Normal/Alta (pausa, o `?claridad=alta`).
+Medición: `node tools/legibilidad.mjs <carpeta> low,high m1,m2,m3,m4,m5,m6 normal|alta` (contraste silueta/fondo: ratio de luma ≥ 1,5 o ΔE ≥ 30).
