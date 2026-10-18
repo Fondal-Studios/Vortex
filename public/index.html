@@ -57,6 +57,7 @@
       <button class="item" data-go="story" data-art="historia"><b>Historia</b><small>Un tren, un andén, una luz</small></button>
       <button class="item" data-go="arenas" data-art="arenas"><b>Arenas</b><small>Directo a la acción</small></button>
       <button class="item" data-go="huesped" data-art="equipo"><b>Huésped</b><small>Elegí tu organismo</small></button>
+      <button class="item" id="modeitem" data-hero="modo" type="button"><b>Modo de juego: Shooter</b><small>Disparás, apuntás y usás habilidades</small></button>
       <button class="item" data-go="territorios" data-art="arenas"><b>Territorios</b><small>El mapa del limbo · bendiciones</small></button>
       <button class="item" data-go="evolucion" data-art="equipo"><b>Evolución</b><small>Núcleos · armas fusionadas · mutaciones</small></button>
       <button class="item" data-go="loadout" data-art="equipo"><b>Equipo</b><small>Personajes · habilidades · armas</small></button>
@@ -137,6 +138,7 @@
     <div class="panel opts">
       <label>Gráficos <select id="qsel"></select></label>
       <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado, ratón y mando</option></select></label>
+      <label>Modo de juego <select id="modesel"><option value="shooter">Shooter (el de siempre)</option><option value="combo">Combo (dos ataques + una habilidad)</option></select></label>
       <label>Ayuda de puntería <select id="aimsel"><option value="0">Apagada</option><option value="1">Baja</option><option value="2" selected>Media</option><option value="3">Alta</option></select></label>
       <label>Reducir movimiento <select id="motionsel"><option value="0">No</option><option value="1">Sí (menos sacudidas)</option></select></label>
       <label>Sensibilidad <input id="sens0" type="range" min="2" max="10" value="5"></label>
@@ -175,9 +177,11 @@
   <button class="item" id="showctl"><b>Ver controles</b></button>
   <button class="item" id="editctl"><b>Editar botones</b></button>
   <button class="item" id="camtoggle"><b>Cámara: primera persona</b></button>
+  <button class="item" id="claridad"><b>Claridad: Normal</b></button>
   <button class="item" id="camside"><b>Hombro de la cámara: derecho</b></button>
   <label class="item sel">Distancia de cámara <input id="camdist" type="range" min="2" max="6" step="0.2" value="3.6"></label>
   <label class="item sel">Campo de visión <input id="camfov" type="range" min="60" max="100" step="2" value="78"></label>
+  <button class="item" id="modetoggle"><b>Modo de juego: Shooter</b></button>
   <button class="item" id="styletoggle"><b>Estilo de combate: Disparo 🎯</b></button>
   <button class="item" id="simpletoggle"><b>Modo simple (dispara solo): sí</b></button>
   <button class="item" id="advtoggle"><b>Habilidades: no</b></button>

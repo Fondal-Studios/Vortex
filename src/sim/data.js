@@ -113,9 +113,97 @@ export const STYLES = {
   disparo:   { name: 'Disparo',     desc: 'A distancia: disparos ×1,3. Tu melee pega menos.', mul: { melee: 0.8, gun: 1.3, skill: 1 }, cd: 1, taken: 1, ult: 1 },
   habilidad: { name: 'Habilidades', desc: 'Poderes: habilidades ×1,9 y el doble de rápidas; la definitiva carga más. Armas y melee pegan menos.', mul: { melee: 0.8, gun: 0.75, skill: 1.9 }, cd: 0.5, taken: 1, ult: 1.3 },
 };
-export const STYLE_IDS = Object.keys(STYLES);
+/* Estilo interno del modo COMBO (no se elige en el menú: lo pone el sim al activar el modo). Equilibrado contra «Melé» (tests/combos.test.js). */
+STYLES.combo = { name: 'Combo', hidden: true, desc: 'Modo Combo: golpes encadenados y una habilidad propia.', mul: { melee: 1.6, gun: 0.75, skill: 1.5 }, cd: 1, taken: 0.85, ult: 1.15 };
+export const STYLE_IDS = Object.keys(STYLES).filter((k) => !STYLES[k].hidden);
 /** Sin estilo elegido (pruebas, bots viejos): todo ×1. */
 export const STYLE_NEUTRAL = { name: 'Neutro', mul: { melee: 1, gun: 1, skill: 1 }, cd: 1, taken: 1, ult: 1 };
+/* ───────── MODO DE JUEGO: «Shooter» (el de siempre) o «Combo» (el melé manda; docs/HUESPEDES.md → «Modo Combo») ───────── */
+export const GAME_MODES = {
+  shooter: { name: 'Shooter', icon: '🎯', desc: 'El de siempre: disparás, apuntás, recargás y usás las 3 habilidades y la definitiva.' },
+  combo:   { name: 'Combo',   icon: '⚔',  desc: 'El cuerpo a cuerpo manda: DOS botones de ataque que se encadenan en combos, UNA habilidad muy importante propia y salto.' },
+};
+export const MODE_IDS = Object.keys(GAME_MODES);
+/** Ventana (s) tras la recuperación de un golpe para seguir la cadena, y tiempo máximo de carga de la flecha de Seraf. */
+export const COMBO_RULES = { window: 0.75, cancel: 0.7, buffer: 0.28, chargeMax: 1.0 };
+/** Cada arma fusionada (por tipo) cambia la FORMA del set: largo máximo de la cadena, daño, alcance/ángulo de A1 y A2 y golpes extra. */
+export const COMBO_WEAPON = {
+  innata:   { chain: 4, dmg: 1,    cd: 1,    a1: { rng: 1,    arc: 1 },   a2: { rng: 1, arc: 1 },   note: 'El set básico del Huésped.' },
+  espada:   { chain: 4, dmg: 1,    cd: 1,    a1: { rng: 1,    arc: 1 },   a2: { rng: 1, arc: 1 },   fin: 1.12, note: 'Espada: cadena de 3-4 golpes; el remate pega 12 % más.' },
+  hacha:    { chain: 3, dmg: 1.05, cd: 1,    a1: { rng: 1,    arc: 1.25 }, a2: { rng: 1, arc: 1.3 }, spinAt: 3, note: 'Hacha: 2 golpes lentos y el 3.º es un GIRO que pega alrededor.' },
+  martillo: { chain: 2, dmg: 1.15, cd: 1.12, a1: { rng: 0.95, arc: 1.1 }, a2: { rng: 1, arc: 1.2 }, sismo: true, note: 'Martillo: cadena corta; cada golpe aplasta y manda una onda al suelo.' },
+  lanza:    { chain: 3, dmg: 1,    cd: 1,    a1: { rng: 1.45, arc: 0.5 }, a2: { rng: 1.05, arc: 1.7 }, note: 'Lanza: A1 es una estocada larga y A2 un barrido amplio.' },
+  daga:     { chain: 6, dmg: 1,    cd: 0.92, a1: { rng: 0.95, arc: 1 },   a2: { rng: 0.95, arc: 1 },  note: 'Daga: ráfagas rápidas, cadenas de hasta 6 golpes.' },
+};
+/** Habilidad PRINCIPAL de cada Huésped en modo Combo. wind = s de preparación (telegrafía), r = radio base (m), rol = para qué sirve. */
+export const HABILIDADES = {
+  axioma:  { id: 'baluarte',  name: 'Baluarte',            cd: 14, wind: 0.15, r: 5.5, rol: 'escudo',  desc: 'Te cubrís 4,5 s: absorbe el 70 % del daño y lo REFLEJA entero. Al activarlo, onda que empuja y suma escudo.' },
+  vesper:  { id: 'caza',      name: 'Frenesí de caza',     cd: 15, wind: 0.25, r: 7,   rol: 'daño en área', desc: 'Embestida que marca y daña a lo que cruza; 6 s de frenesí: +30 % de velocidad, golpes 25 % más rápidos y +20 % de daño.' },
+  micelio: { id: 'estallido', name: 'Estallido de esporas', cd: 16, wind: 0.45, r: 9,  rol: 'curación + control', desc: 'Tras una breve carga, las esporas estallan: dañan y enraízan a las criaturas y CURAN al equipo cercano.' },
+  umbra:   { id: 'eclipse',   name: 'Eclipse',             cd: 18, wind: 0.3,  r: 8,   rol: 'control de zona', desc: 'Una zona de sombra de 6 s: las criaturas dentro van al 25 % de velocidad y reciben daño continuo.' },
+  seraf:   { id: 'bendicion', name: 'Bendición',           cd: 22, wind: 0.4,  r: 15,  rol: 'curación + escudo', desc: 'Luz sobre el equipo: cura fuerte, escudo completo y 20 % menos de daño 6 s. Reanima a un caído cercano.' },
+};
+/** Un Huésped se juega con A1 (ataque 1) y A2 (ataque 2) encadenados: cada «move» es una secuencia. seq = entradas, evo = nivel mínimo,
+    path = camino de evolución requerido (opcional), w = 'l' ligero | 'h' pesado (stats del arma), dmg = × daño, rng/arc = × alcance/ángulo (arc ≥ 2 = giro de 360°),
+    cdr = × recuperación, hits = golpes por pulsación, dash = impulso, blink = teletransporte corto (m, − = hacia atrás), fx = efecto extra, ranged = flecha/proyectil. */
+const M = (id, name, seq, o = {}) => ({ id, name, seq, evo: 0, w: 'l', dmg: 1, rng: 1, arc: 1, cdr: 1, hits: 1, kind: 'light', ...o });
+export const COMBO_SETS = {
+  axioma: [   // armadura: 3 golpes y onda en el 3.º; más abajo, hombro, martillazo, tormenta de acero y ruptura
+    M('tajo', 'Tajo de coraza', ['a1']),
+    M('contratajo', 'Contratajo', ['a1', 'a1'], { dmg: 1.1 }),
+    M('onda_coraza', 'Golpe de armadura', ['a1', 'a1', 'a1'], { dmg: 1.7, cdr: 1.6, kind: 'heavy', fx: 'onda' }),
+    M('punio', 'Puñetazo blindado', ['a2'], { w: 'h', kind: 'heavy', cdr: 1 }),
+    M('hombro', 'Embestida de hombro', ['a1', 'a2'], { evo: 1, w: 'h', dmg: 1.1, dash: 12, kind: 'lunge', cdr: 0.8 }),
+    M('martillazo', 'Martillazo caído', ['a1', 'a1', 'a2'], { evo: 2, w: 'h', dmg: 1.3, fx: 'sismo', kind: 'air', arc: 2 }),
+    M('tormenta', 'Tormenta de acero', ['a1', 'a1', 'a1', 'a1'], { evo: 3, dmg: 0.9, hits: 2, arc: 2, kind: 'spin', cdr: 1.4 }),
+    M('ruptura', 'Ruptura de baluarte', ['a1', 'a1', 'a1', 'a2'], { evo: 4, w: 'h', dmg: 2.2, fx: 'sismo+onda', kind: 'air', arc: 2, cdr: 1.5 }),
+  ],
+  vesper: [   // garras rápidas, saltos y embestidas
+    M('zarpa', 'Zarpa doble', ['a1'], { dmg: 0.6, hits: 2 }),
+    M('rafaga', 'Ráfaga de garras', ['a1', 'a1'], { dmg: 0.5, hits: 3, cdr: 1.1 }),
+    M('desgarro', 'Desgarro en carrera', ['a1', 'a1', 'a1'], { dmg: 0.75, hits: 2, dash: 6, kind: 'lunge', cdr: 1.3 }),
+    M('salto', 'Salto de caza', ['a2'], { w: 'h', dmg: 1.05, dash: 14, jump: 9, kind: 'lunge', cdr: 0.9 }),
+    M('embestida', 'Embestida depredadora', ['a1', 'a2'], { evo: 1, w: 'h', dmg: 1.4, dash: 18, fx: 'marca', kind: 'lunge', cdr: 0.9 }),
+    M('torbellino', 'Torbellino de garras', ['a1', 'a1', 'a2'], { evo: 2, dmg: 0.6, hits: 3, arc: 2, kind: 'spin', cdr: 1.3 }),
+    M('infinita', 'Ráfaga infinita', ['a1', 'a1', 'a1', 'a1'], { evo: 3, dmg: 0.5, hits: 4, dash: 4, cdr: 1.3 }),
+    M('ejecucion', 'Ejecución de cazadora', ['a1', 'a1', 'a1', 'a2'], { evo: 4, w: 'h', dmg: 2.3, dash: 20, fx: 'marca', kind: 'lunge', cdr: 1.4 }),
+  ],
+  micelio: [  // puños pesados de área y raíces
+    M('golpe', 'Golpe de raíz', ['a1'], { arc: 1.2 }),
+    M('doble', 'Doble puño', ['a1', 'a1'], { dmg: 1.15, arc: 1.2 }),
+    M('raices', 'Brotes de raíz', ['a1', 'a1', 'a1'], { w: 'h', dmg: 1.4, fx: 'raices', kind: 'heavy', cdr: 1.1 }),
+    M('aplasta', 'Aplastamiento', ['a2'], { w: 'h', dmg: 1.15, fx: 'sismo', kind: 'heavy', arc: 1.4 }),
+    M('brote', 'Brote en círculo', ['a1', 'a2'], { evo: 1, dmg: 1.2, arc: 2, fx: 'raices', kind: 'spin', cdr: 1.2 }),
+    M('muro', 'Muro de raíces', ['a1', 'a1', 'a2'], { evo: 2, w: 'h', dmg: 1.4, fx: 'raices+onda', kind: 'heavy', cdr: 1.2 }),
+    M('terremoto', 'Terremoto', ['a2', 'a2'], { evo: 3, w: 'h', dmg: 1.8, fx: 'sismo', big: true, arc: 2, kind: 'air', cdr: 1.3 }),
+    M('floracion', 'Floración', ['a1', 'a1', 'a1', 'a2'], { evo: 4, w: 'h', dmg: 2.0, arc: 2, fx: 'raices+sismo+cura', big: true, kind: 'air', cdr: 1.5 }),
+  ],
+  umbra: [    // cortes dimensionales con teletransporte corto
+    M('corte', 'Corte dimensional', ['a1'], { dmg: 1.0 }),
+    M('doble_corte', 'Doble corte', ['a1', 'a1'], { dmg: 1.05, blink: 3 }),
+    M('cruce', 'Cruce de planos', ['a1', 'a1', 'a1'], { dmg: 1.5, blink: 7, line: true, cdr: 1.4, kind: 'lunge' }),
+    M('vacio', 'Tajo del vacío', ['a2'], { w: 'h', dmg: 1.1, rng: 1.25, kind: 'heavy' }),
+    M('paso_cortante', 'Paso cortante', ['a1', 'a2'], { evo: 1, w: 'h', dmg: 1.3, blink: 5, line: true, kind: 'lunge', cdr: 0.9 }),
+    M('desgarro_dim', 'Desgarro dimensional', ['a1', 'a1', 'a2'], { evo: 2, w: 'h', dmg: 1.4, arc: 2, fx: 'pull', kind: 'spin', cdr: 1.2 }),
+    M('eco', 'Eco del vacío', ['a2', 'a1'], { evo: 3, dmg: 1.0, hits: 2, blink: -4, fx: 'desfase', cdr: 0.9 }),
+    M('eclipse_cuchillas', 'Eclipse de cuchillas', ['a1', 'a1', 'a1', 'a2'], { evo: 4, w: 'h', dmg: 0.9, hits: 3, blink: 9, line: true, kind: 'lunge', cdr: 1.5 }),
+  ],
+  seraf: [    // melé-rango: flechas de luz (A2 se CARGA manteniendo)
+    M('flecha', 'Flecha de luz', ['a1'], { ranged: true, dmg: 0.95, rng: 9 }),
+    M('doble_flecha', 'Flecha doble', ['a1', 'a1'], { ranged: true, dmg: 0.8, hits: 2, rng: 9, cdr: 1.05 }),
+    M('salva', 'Salva de luz', ['a1', 'a1', 'a1'], { ranged: true, dmg: 0.8, hits: 3, rng: 9, cdr: 1.5, fan: 0.1 }),
+    M('cargada', 'Flecha cargada', ['a2'], { ranged: true, w: 'h', dmg: 1.4, rng: 14, pierce: true, charge: true, kind: 'heavy' }),
+    M('rematadora', 'Flecha rematadora', ['a1', 'a2'], { evo: 1, ranged: true, w: 'h', dmg: 1.7, rng: 14, pierce: true, fx: 'marca', kind: 'heavy' }),
+    M('sanadora', 'Flecha sanadora', ['a1', 'a1', 'a2'], { evo: 2, ranged: true, w: 'h', dmg: 1.4, rng: 14, pierce: true, fx: 'cura', kind: 'heavy' }),
+    M('doble_tension', 'Doble tensión', ['a2', 'a2'], { evo: 3, ranged: true, w: 'h', dmg: 1.2, hits: 2, rng: 14, pierce: true, fan: 0.06, cdr: 1.1 }),
+    M('lluvia', 'Lluvia de luz', ['a1', 'a1', 'a1', 'a2'], { evo: 4, ranged: true, dmg: 0.85, hits: 7, rng: 9, fan: 0.07, cdr: 1.8 }),
+  ],
+};
+/** Ajuste fino de daño por Huésped para que el Combo rinda como el Melé (tests/combos.test.js: tiempos dentro de ±30 %). */
+export const COMBO_TUNE = { axioma: 1, vesper: 0.5, micelio: 0.65, umbra: 0.8, seraf: 0.7 };
+/** Seraf carga su A2: la flecha sale al soltar (daño ×1 a ×2 según el tiempo). */
+export const COMBO_CHARGE = { seraf: true };
+
 /* Afijos de élite (desde la oleada 3): cada élite lleva UNO, visible (halo + nombre). */
 export const AFFIXES = {
   blindado:   { name: 'Blindado',   color: 0xb0c4de, desc: 'Recibe 40 % menos de daño.' },
@@ -422,4 +510,86 @@ export const EVENTOS_MAPA = {
   m4: { marea_sangre: 3, aurora_bendita: 3, lluvia_astillas: 2, eclipse: 1, niebla_almas: 1 },             // Jardín de Carne
   m5: { tormenta_ecos: 4, silencio: 2, niebla_almas: 2, eclipse: 2, marea_gravedad: 1 },                   // Plaza de los Ecos
   m6: { niebla_almas: 3, eclipse: 3, lluvia_astillas: 3, marea_sangre: 2, marea_gravedad: 1 },             // Osario sin Techo
+};
+
+/* ───────── ARENAS VIVAS (src/sim/arenas-vivas.js · src/client/arenas-vivas-fx.js · docs/MUNDO_VIVO.md) ─────────
+ * Cada arena (m1…m6) es un ORGANISMO con nombre y folclore propio. Tiene un CORAZÓN (se puede dañar para debilitarlo)
+ * y 2 estructuras más; todas tienen DOS CARAS: ayuda (curación / escudo / velocidad / daño extra que hay que reclamar o
+ * defender) y amenaza (ataques con aviso en el suelo: se esquivan moviéndose o cubriéndose, o se apagan rompiendo el órgano).
+ * Fases (ligadas a la oleada y al tiempo): dormido → despierto → furioso → ofrenda (el respiro entre oleadas).
+ * Órganos:  corazon · boca (se alimenta con bajas cerca) · raiz (ataca; se puede romper) · pulmon (nube que sana o envenena) · vena (carril de luz).
+ * Ataques:  golpe (círculo donde estabas) · pulso (anillo alrededor del órgano) · barrido (línea) · giro (línea que gira, como una manecilla).
+ * Coordenadas en metros, y = 0 es el piso (en m2 se dan ángulos `cand` sobre el cascarón y se elige el primero libre). */
+export const ARENA = {
+  telMin: 1.2,                                   // ninguna amenaza golpea antes de 1,2 s de aviso (la regla es ≥ 1 s)
+  maxTel: 3,                                     // como mucho 3 avisos a la vez en toda la arena
+  amen: { dormido: 0, despierto: 0.55, furioso: 1, ofrenda: 0 },     // cuánto ataca el organismo en cada fase (1 = cadencia plena)
+  ayuda: { dormido: 0.4, despierto: 1, furioso: 0.75, ofrenda: 1.5 }, // cuánto ayuda en cada fase
+  dormidoOla1: 25,                               // en la oleada 1 duerme los primeros 25 s
+  furioso: { 1: 1e9, 2: 50, 3: 28, 4: 28, 5: 14, jefe: 8 },          // segundos de oleada para enfurecerse (por oleada; jefe = última)
+  zonaDur: 14,                                   // segundos que dura el beneficio de una boca alimentada
+  hpPorOla: 0.15,                                // los órganos tienen hp × (0,85 + 0,15 × oleada)
+  danioPorOla: 1.2,                              // daño de ataques + 1,2 por oleada
+};
+export const ARENAS_VIVAS = {
+  m1: {
+    id: 'corazon_isla', nombre: 'El Corazón de Isla', color: '#19f0ff', color2: '#ff3df2', motivo: 'medusa',
+    folclore: 'Las islas flotantes son el cuerpo de una medusa-coral que duerme sobre el vacío. Las Luces Malas son sus larvas y su corazón late bajo la isla central. Si lo herís se enfurece; si peleás cerca de su Linterna, te presta su luz.',
+    frases: { despierto: 'El Corazón de Isla despierta', furioso: 'El Corazón de Isla se enfurece: ¡salí del anillo de luz!', ofrenda: 'El Corazón de Isla ofrece su luz: usá la Linterna', roto: 'El Corazón de Isla queda herido y se adormece', renace: 'El Corazón de Isla vuelve a latir' },
+    org: [
+      { k: 'corazon', id: 'corazon', nombre: 'Corazón de Isla', x: 0, z: -16, h: 3.4, hr: 2.2, hp: 700, atk: { tipo: 'pulso', r: 8, tel: 1.6, dmg: 15, cd: 9, rango: 22 }, info: 'Late sobre la isla central. Dispará para adormecerlo; su anillo de luz avisa 1,6 s antes de estallar.' },
+      { k: 'boca', id: 'linterna', nombre: 'Linterna de Luz Mala', x: -15, z: -6, r: 4.6, bene: 'escudo', hambre: 4, info: 'Se alimenta de las bajas que ocurren cerca: al llenarse te da escudo mientras peleás dentro de su luz.' },
+      { k: 'vena', id: 'corriente', nombre: 'Corriente de Luz', a: [2, 10], b: [17, 9.5], w: 2.4, bene: 'veloz', info: 'Carril de luz hacia el portal del este: correr por encima te da velocidad.' },
+    ],
+  },
+  m2: {
+    id: 'espejo_respira', nombre: 'El Espejo que Respira', color: '#9b5cff', color2: '#ffb52e', motivo: 'iris',
+    folclore: 'Dicen que quien se mira demasiado en la Cámara se vuelve eco. El cascarón es un espejo vivo que inspira y exhala: al inspirar abre su corazón, al exhalar suelta una bruma que sana… o que envenena cuando se enfurece.',
+    frases: { despierto: 'El Espejo respira: despierta', furioso: 'El Espejo exhala veneno: ¡salí de la bruma!', ofrenda: 'El Espejo respira en calma: la bruma sana', roto: 'El Núcleo de Eco se quiebra: el Espejo se adormece', renace: 'El Núcleo de Eco vuelve a brillar' },
+    org: [
+      { k: 'corazon', id: 'nucleo', nombre: 'Núcleo de Eco', cand: [[1.15, 4.0], [1.0, 4.6], [1.3, 3.4], [1.2, 5.0]], h: 4.5, hr: 2.4, hp: 800, vuln: 'inspira', info: 'Sólo recibe todo el daño mientras el Fuelle inspira (se abre el espejo); el resto del ciclo se cierra y casi no se lo daña.' },
+      { k: 'boca', id: 'iris', nombre: 'Iris de Espejo', cand: [[0.7, 5.3], [0.8, 5.9], [0.6, 4.7], [0.9, 5.6]], r: 5, bene: 'danio', hambre: 4, info: 'Alimentala con bajas cercanas: al abrirse da +25 % de daño a quien pelee dentro de su luz.' },
+      { k: 'pulmon', id: 'fuelle', nombre: 'Fuelle de Espejo', cand: [[0.9, 4.5], [0.8, 4.2], [1.0, 5.2], [0.95, 3.9]], r: 11, hr: 1.9, hp: 420, ciclo: 16, inhala: 6, retiene: 2, mal: 'dano', dps: 6.5, info: 'Inspira 6 s, retiene 2 s y exhala 8 s una bruma. Calmo: sana. Furioso: envenena (aviso al retener el aire).' },
+    ],
+  },
+  m3: {
+    id: 'garganta', nombre: 'La Garganta del Laberinto', color: '#3dffb8', color2: '#e8fbff', motivo: 'ondas',
+    folclore: 'El laberinto canta para que te pierdas. Cada silbido es un hilo que te tira hacia una pared. Dicen que el Silbón dejó aquí su voz y que el Coro la guarda: quien lo alimenta cantando bajas, canta a su favor.',
+    frases: { despierto: 'La Garganta del Laberinto despierta', furioso: 'La Garganta silba: ¡cubrite detrás de un muro!', ofrenda: 'El Coro canta a tu favor: curá en su círculo', roto: 'La Siringe se quiebra: la Garganta calla', renace: 'La Siringe vuelve a cantar' },
+    org: [
+      { k: 'corazon', id: 'siringe', nombre: 'Siringe de Cristal', x: -10, z: 2, h: 4.4, hr: 2.2, hp: 650, info: 'El corazón del canto. Dañarlo calla a la Garganta hasta la próxima oleada.' },
+      { k: 'boca', id: 'coro', nombre: 'Coro de Cristal', x: 12, z: 2, r: 5.2, bene: 'cura', hambre: 4, info: 'Se alimenta de bajas cercanas: al llenarse cura a quien esté dentro de su círculo.' },
+      { k: 'raiz', id: 'silbido', nombre: 'Silbido de Cristal', x: 0, z: 20, h: 1.4, hr: 1.5, hp: 380, atk: { tipo: 'barrido', largo: 34, w: 3.2, tel: 1.6, dmg: 14, cd: 6, rango: 40 }, info: 'Dispara un haz de sonido en línea recta (aviso de 1,6 s). Los muros del laberinto lo frenan: cubrite o rompelo.' },
+    ],
+  },
+  m4: {
+    id: 'madre_raiz', nombre: 'La Madre Raíz', color: '#ff2f5e', color2: '#b6ff2a', motivo: 'corazon',
+    folclore: 'El Jardín no es un lugar, es un cuerpo que come y se cura. Sus raíces buscan carne tibia y sus pulmones sueltan esporas: dulces cuando duerme, adormecedoras cuando tiene hambre.',
+    frases: { despierto: 'La Madre Raíz despierta', furioso: 'La Madre Raíz tiene hambre: ¡cuidado con las raíces!', ofrenda: 'La Madre Raíz exhala esporas dulces: sanan', roto: 'El Corazón del Jardín se encoge: la Madre Raíz se adormece', renace: 'El Corazón del Jardín vuelve a latir' },
+    org: [
+      { k: 'corazon', id: 'corazon', nombre: 'Corazón del Jardín', x: 0, z: 0, h: 4.4, hr: 2.4, hp: 800, regen: 0.05, info: 'Crece sobre la grada del Corazón y se regenera rápido: hay que dañarlo seguido.' },
+      { k: 'pulmon', id: 'esporas', nombre: 'Pulmón de Esporas', x: -17, z: -12, r: 11, hr: 2.0, hp: 420, ciclo: 14, inhala: 5, retiene: 2, mal: 'lento', dps: 3, info: 'Su bruma verde sana cuando el Jardín está tranquilo. Enfurecido, sus esporas te frenan y te queman un poco.' },
+      { k: 'raiz', id: 'zarcillo', nombre: 'Zarcillo Hambriento', x: 15, z: 14, h: 1.6, hr: 1.7, hp: 380, atk: { tipo: 'golpe', r: 3.4, tel: 1.5, dmg: 13, cd: 5.5, rango: 28 }, info: 'Clava una raíz donde estás parado (círculo rojo 1,5 s antes). También daña a las criaturas: llevalas ahí.' },
+    ],
+  },
+  m5: {
+    id: 'reloj_hambriento', nombre: 'El Reloj Hambriento', color: '#ffcf4a', color2: '#2f63ff', motivo: 'reloj',
+    folclore: 'El relojero firmó un pacto para que el reloj no parara… y el reloj se quedó con hambre de horas. Su péndulo late en la torre, su manecilla barre la plaza desde la fuente y los adoquines de la calle corren hacia donde las horas se acaban.',
+    frases: { despierto: 'El Reloj Hambriento despierta', furioso: 'El Reloj Hambriento da la hora: ¡cuidado con la manecilla!', ofrenda: 'El Reloj marca una hora tranquila: usá los adoquines', roto: 'El Péndulo se detiene: el Reloj se adormece', renace: 'El Péndulo vuelve a oscilar' },
+    org: [
+      { k: 'corazon', id: 'pendulo', nombre: 'Péndulo del Reloj', x: 13, z: -14, h: 4.6, hr: 2.2, hp: 700, atk: { tipo: 'pulso', r: 8, tel: 1.8, dmg: 15, cd: 12, rango: 24 }, info: 'Da la campanada (anillo dorado de 1,8 s). Dañarlo lo detiene hasta la próxima oleada.' },
+      { k: 'raiz', id: 'manecilla', nombre: 'Manecilla de la Fuente', x: 0, z: -4, h: 5.6, hr: 1.5, cover: true, hp: 380, atk: { tipo: 'giro', largo: 26, w: 2.6, tel: 1.8, dmg: 14, cd: 11, rango: 34, omega: 0.9, dur: 2 }, info: 'Gira como la manecilla de un reloj: la línea azul avisa 1,8 s y después barre. Las coberturas la frenan.' },
+      { k: 'vena', id: 'adoquin', nombre: 'Adoquines de Luz', a: [0, 44], b: [0, 19], w: 2.4, bene: 'veloz', info: 'El camino de la Calle a la Plaza: correr por encima te da velocidad.' },
+    ],
+  },
+  m6: {
+    id: 'osario_insomne', nombre: 'El Osario Insomne', color: '#efe6c8', color2: '#ff6a14', motivo: 'costilla',
+    folclore: 'Los huesos que no descansan se vuelven a armar solos. Dicen que el Corazón Calcificado late bajo el altar y que, aunque lo rompas, vuelve. Sus manos salen del suelo donde alguien se quedó quieto.',
+    frases: { despierto: 'El Osario Insomne despierta', furioso: 'El Osario Insomne reclama: ¡no te quedes quieto!', ofrenda: 'El Osario descansa un momento: el Costillar afila tus armas', roto: 'El Corazón Calcificado se parte… pero no descansa', renace: 'El Corazón Calcificado vuelve a latir' },
+    org: [
+      { k: 'corazon', id: 'calcificado', nombre: 'Corazón Calcificado', x: 0, z: -42.5, h: 4.2, hr: 2.2, hp: 750, revive: 26, atk: { tipo: 'golpe', r: 3.2, tel: 1.5, dmg: 16, cd: 6.5, rango: 44 }, info: 'Late sobre el altar y hace brotar manos de hueso donde estás quieto. Si lo rompés, vuelve a los 26 s.' },
+      { k: 'pulmon', id: 'respiradero', nombre: 'Respiradero de Brasas', x: -10.5, z: 17, r: 9, hr: 1.9, hp: 420, ciclo: 16, inhala: 6, retiene: 2, mal: 'dano', dps: 6, info: 'Una grieta que respira ceniza: tibia y sanadora en calma, ardiente cuando el Osario está furioso.' },
+      { k: 'vena', id: 'costillar', nombre: 'Costillar', a: [11, 33], b: [11, 13], w: 2.4, bene: 'danio', info: 'Un camino de costillas luminosas por la nave: pasar por encima te da +25 % de daño.' },
+    ],
+  },
 };

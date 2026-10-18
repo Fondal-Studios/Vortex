@@ -433,3 +433,18 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 .ruta { margin: 0 0 8px; padding: 0 4px; font-size: clamp(11px, 1.9vh, 14px); color: #ffe27a; opacity: .92; }
 .card .meta { color: #ffe27a; font-style: normal; font-size: .92em; }
 @media (pointer: coarse) { #top { top: 5px; } #goal .g-main { line-height: 1.1; padding: 1px 10px; } #mision { margin-top: 2px; line-height: 1.15; padding: 0 8px; } }   /* línea de meta + misión caben sobre #objective (top 44px) */
+/* ───── Modo COMBO (táctil): ATAQUE 1, ATAQUE 2, HABILIDAD (grande), SALTAR + contextuales ───── */
+.combo-mode .tc-btn.tc-hab { right: calc(env(safe-area-inset-right, 0px) + 14px); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); width: calc(2 * var(--u, 56px) + var(--g, 8px)); height: calc(2 * var(--u, 56px) + var(--g, 8px)); border-color: #ffd23f; font-size: 12px; }
+.combo-mode .tc-btn.tc-hab .ic { font-size: 34px; } .combo-mode .tc-btn.tc-hab small { font-size: 12px; }
+.combo-mode .tc-btn.tc-a1 { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); width: calc(1.35 * var(--u, 56px)); height: calc(1.35 * var(--u, 56px)); border-color: #ff6a6a; }
+.combo-mode .tc-btn.tc-a2 { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 1.5 * (var(--u, 56px) + var(--g, 8px))); width: calc(1.2 * var(--u, 56px)); height: calc(1.2 * var(--u, 56px)); border-color: #ff9a3c; }
+.combo-mode .tc-btn.tc-jump { right: calc(env(safe-area-inset-right, 0px) + 14px + 1 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u, 56px) + var(--g, 8px))); width: var(--u, 56px); height: var(--u, 56px); }
+.combo-mode .tc-btn.tc-ult { right: calc(env(safe-area-inset-right, 0px) + 14px); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u, 56px) + var(--g, 8px))); width: var(--u, 56px); height: var(--u, 56px); }
+.combo-mode .tc-btn.tc-use { right: calc(env(safe-area-inset-right, 0px) + 14px + 3.4 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); width: var(--u, 56px); height: var(--u, 56px); }
+.combo-mode .tc-btn.tc-evo { right: calc(env(safe-area-inset-right, 0px) + 14px + 3.4 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 1 * (var(--u, 56px) + var(--g, 8px))); width: var(--u, 56px); height: var(--u, 56px); }
+/* contador de combo (hud-huesped.js) */
+#combohud { position: absolute; left: 50%; bottom: 24%; transform: translateX(-50%); text-align: center; pointer-events: none; font-weight: 900; letter-spacing: .08em; text-shadow: 0 0 10px #000, 0 0 3px #000; opacity: 0; transition: opacity .2s; }
+#combohud.on { opacity: 1; } #combohud b { display: block; font-size: clamp(26px, 5vw, 46px); color: #ffd23f; line-height: 1; } #combohud b i { font-style: normal; font-size: .5em; color: #fff; margin-left: 4px; }
+#combohud small { display: block; font-size: clamp(11px, 1.8vw, 15px); color: #fff; opacity: .9; } #combohud u { display: block; height: 4px; margin: 4px auto 0; width: 120px; max-width: 40vw; border-radius: 2px; background: #ffffff33; text-decoration: none; overflow: hidden; } #combohud u s { display: block; height: 100%; width: 100%; background: #ff9a3c; transform-origin: left; text-decoration: none; }
+#combohud.pop b { animation: cbpop .18s ease-out; } @keyframes cbpop { from { transform: scale(1.5); } }
+.modo-combo #weapons { display: none !important; }

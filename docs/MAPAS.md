@@ -83,3 +83,26 @@ más allá. La bóveda se cayó hacia arriba: sus nervaduras y sillares flotan s
 - **Pruebas:** `node --test tests/limbo-mapas.test.js` (registro, límites, transitabilidad física caminando con la física real, gravedad
   rota, bots que ganan sin trabarse y bots torpes que pierden). **Capturas y medición:** `node tools/shot-limbo.js m5|m6 [carpeta] low|high
   [--sin-criaturas] [--sin-cuerpo]` (imprime llamadas de dibujo y triángulos de la escena y del mapa solo).
+
+## Identidad de arena: el mapa es un organismo (paleta e iconografía)
+Cada arena tiene un **organismo vivo** (nombre, folclore, órganos, fases: ver `docs/MUNDO_VIVO.md` → «Arenas vivas»). Para que se distingan **de un vistazo**, cada una tiene su propia **paleta de identidad** (un color de *ayuda* y uno de *amenaza*, que también son los del halo y el cuerpo de sus órganos) y su propia **silueta** (iconografía). Los colores salen de `ARENAS_VIVAS[mapa].color/color2` en `src/sim/data.js` y de la tabla `PAL` de `src/client/arenas-vivas-fx.js`.
+
+| Arena | Organismo | Color de ayuda | Color de amenaza | Icono / silueta | Cómo reconocerlo de lejos |
+|---|---|---|---|---|---|
+| **m1** Vacío de Islas | El Corazón de Isla | cian `#19f0ff` | magenta `#ff3df2` | **Medusa**: campana, zarcillos que cuelgan, anillos de luz | Una medusa flotando sobre la isla central y un carril de luz cian hacia el portal |
+| **m2** Cámara Fractal | El Espejo que Respira | violeta `#9b5cff` | ámbar `#ffb52e` | **Iris**: octaedros facetados con satélites en órbita | Cristales que giran en el cascarón y una bruma que cambia de violeta a ámbar |
+| **m3** Laberinto Celestial | La Garganta del Laberinto | menta `#3dffb8` | blanco hielo `#e8fbff` | **Ondas de sonido**: garganta de cristal con anillos concéntricos | Tubos y anillos verde menta en la plaza central; el haz del silbido es blanco |
+| **m4** Jardín de Carne | La Madre Raíz | verde ácido `#b6ff2a` | rojo carne `#ff2f5e` | **Corazón anatómico**: lóbulos, vasos y raíces | Un corazón rojo latiendo sobre la grada; esporas verdes que sanan, rojas que queman |
+| **m5** Plaza de los Ecos | El Reloj Hambriento | oro farol `#ffcf4a` | azul cobalto `#5b8bff` | **Reloj**: esfera con 12 marcas, péndulo y manecilla | Esfera dorada con péndulo junto a la torre y una manecilla azul sobre la fuente |
+| **m6** Osario sin Techo | El Osario Insomne | marfil `#efe6c8` | brasa `#ff6a14` | **Jaula de costillas** con un corazón encendido | Costillas color hueso sobre el altar, ceniza tibia que sana o naranja ardiente que quema |
+
+**Lenguaje común (no cambia entre arenas, para que se lea siempre):** lo que **ayuda** son anillos suaves que suben y un faro de luz del color de ayuda; lo que **amenaza** son **franjas de peligro** del color de amenaza con borde blanco que se llena hasta el golpe. Todo está autoiluminado: ninguna zona queda oscura.
+
+### Qué pasa en cada arena (resumen)
+- **m1 — Corazón de Isla:** el corazón suelta un anillo de luz de 8 m cada ~9 s (aviso 1,6 s); la Linterna de Luz Mala da escudo si peleás en su luz; la Corriente de Luz te hace correr ×1,3 hacia el portal del este.
+- **m2 — Espejo que Respira:** el Núcleo de Eco sólo se deja dañar cuando el Fuelle **inspira**; la bruma del Fuelle sana en calma y envenena si el Espejo está furioso; el Iris da +25 % de daño.
+- **m3 — Garganta del Laberinto:** el Silbido barre una línea de sonido (muros y paredes la frenan); el Coro cura a quien lo alimenta con bajas; la Siringe silencia al organismo si la rompés.
+- **m4 — Madre Raíz:** el Zarcillo clava una raíz donde estabas (y daña a las criaturas); el Pulmón de Esporas sana o frena según el humor del Jardín; el corazón se regenera rápido.
+- **m5 — Reloj Hambriento:** el Péndulo da la campanada (anillo de 8 m, aviso 1,8 s); la Manecilla de la Fuente gira como un reloj (las coberturas la frenan); los Adoquines de Luz aceleran de la Calle a la Plaza.
+- **m6 — Osario Insomne:** manos de hueso brotan donde estás quieto (aviso 1,5 s); el Respiradero respira ceniza que sana o quema; el Costillar da +25 % de daño; el corazón roto **vuelve a los 26 s**.
+Capturas de cada órgano en cada fase: `node tools/shot-arenas.js todas shots/arenas low --fase=furioso,aviso`.

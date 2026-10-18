@@ -4,7 +4,7 @@
 //   · nombre, título, rol, dificultad de uso, historia breve, barras de estadísticas comparables, habilidades y «Demostración»
 //   · «Elegir» guarda el Huésped (Equipo.char → localStorage `cristal.huesped.v1`) y vuelve; «‹ Volver» lo pone ui.js
 // El panel de información tiene scroll interno: la cabecera, el 3D y los botones nunca se tapan entre sí. Estilos: public/huespedes.css.
-import { CHARACTERS, CHARACTER_IDS, HOST_IDS, ROLES } from '../sim/data.js';
+import { CHARACTERS, CHARACTER_IDS, HOST_IDS, ROLES, HABILIDADES } from '../sim/data.js';
 import { Equipo, saveEquipo } from './equipo.js';
 import { GLYPHS, HERO_LORE, HERO_STATS } from './heroes-ui.js';
 import { buildHostEvo, REGIONS } from './huespedes-evo.js';
@@ -39,6 +39,7 @@ function abilitiesOf(id) {
   if (c.host) {
     L.push(['Hab. 1', c.mov, cd(c.mov), 'skill'], ['Hab. 2', c.esp, cd(c.esp), 'skill'], ['Hab. 3', c.s3, cd(c.s3), 'skill']);
     L.push(['Definitiva', c.ult, `Se carga con el combate`, 'skill'], ['Pasiva', c.passive, '', 'idle']);
+    const HB = HABILIDADES[id]; if (HB) L.push(['Modo Combo', { name: HB.name, desc: `${HB.rol}. ${HB.desc}` }, `Recarga ${HB.cd} s`, 'skill']);
     const m = c.melee; L.push(['Melee', { name: 'Golpe ligero y pesado', desc: `Tocar = ligero (${m.light.dmg} de daño). Mantener = pesado (${m.heavy.dmg} de daño, alcance ${m.heavy.range} m).` }, '', 'melee']);
   } else { L.push(['Hab. 1', c.mov, cd(c.mov), 'skill'], ['Hab. 2', c.esp, cd(c.esp), 'skill']); const r = ROLES[c.role]; if (r) L.push(['Rol', { name: r.ability, desc: r.desc }, `Recarga ${r.cd} s`, 'skill']); }
   return L;
@@ -62,7 +63,7 @@ export function buildHuespedScreen(menu) {
           <div class="hs-tags"><span class="hs-tag" id="hsrole"></span><span class="hs-tag hs-diff" id="hsdiff"></span><span class="hs-tag hs-chosen" id="hschosen" hidden>✓ Tu Huésped</span></div>
         </header>
         <div class="hs-stage" id="hsstage"><canvas id="hscanvas" aria-label="Modelo 3D del Huésped: arrastrá para girarlo"></canvas><iframe id="hsframe" title="Vista del veterano" tabindex="-1" hidden></iframe><div class="hs-fallback" id="hsfb" hidden></div><div class="hs-region" id="hsregion" aria-live="off"></div></div>
-        <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
+        <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsmode" aria-label="Modo de juego: Shooter o Combo">Modo: Shooter</button><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
       </section>
       <aside class="hs-info" id="hsinfo" aria-label="Información del Huésped"></aside>
     </div>`;

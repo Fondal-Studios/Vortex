@@ -23,7 +23,7 @@ export const GRADE = {
 const VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 const FRAG = `
   #include <packing>
-  uniform sampler2D tDiffuse, tDepth; uniform vec2 uRes; uniform float uTime, uExposure, uNear, uFar, uFogD, uFogH, uFogMode, uFogR, uSat, uContrast, uLift, uCA, uGrain, uVig, uInfect, uAO, uHasDepth;
+  uniform sampler2D tDiffuse, tDepth; uniform vec2 uRes; uniform float uTime, uExposure, uNear, uFar, uFogD, uFogH, uFogMode, uFogR, uSat, uContrast, uLift, uCA, uGrain, uVig, uInfect, uAO, uHasDepth, uFloor, uFogCap, uOutline;
   uniform vec3 uFogCol, uSunDir, uSunCol, uShadow, uHigh, uCamPos; uniform mat4 uProjInv, uCamMat; uniform mat4 uProj;
   varying vec2 vUv;
   float h12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -33,6 +33,7 @@ const FRAG = `
                mix(mix(h13(i + vec3(0,0,1)), h13(i + vec3(1,0,1)), f.x), mix(h13(i + vec3(0,1,1)), h13(i + vec3(1,1,1)), f.x), f.y), f.z); }
   float viewZ(float d){ return perspectiveDepthToViewZ(d, uNear, uFar); }
   vec3 viewPos(vec2 uv, float d){ vec4 c = vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); vec4 v = uProjInv * c; return v.xyz / v.w; }
+  float dd(vec2 u){ return length(viewPos(u, min(texture2D(tDepth, u).x, 0.99999))); }
   vec3 acesFit(vec3 c){ // ACES (RRT+ODT) igual al del renderer de three
     const mat3 I = mat3(0.59719, 0.07600, 0.02840, 0.35458, 0.90834, 0.13383, 0.04823, 0.01566, 0.83777);
     const mat3 O = mat3(1.60475, -0.10208, -0.00327, -0.53108, 1.10813, -0.07276, -0.07367, -0.00605, 1.07602);
@@ -76,7 +77,7 @@ const FRAG = `
       float dens = uFogD * hf * (0.45 + 1.1 * n) * (1.0 + 0.6 * uInfect);
       trans *= exp(-dens * maxD / float(LAYERS));
     }
-    float fogA = (1.0 - trans) * (sky > 0.5 ? 0.35 : 1.0) * (1.0 - 0.85 * keep); fogA = min(fogA, 0.72);
+    float fogA = (1.0 - trans) * (sky > 0.5 ? 0.35 : 1.0) * (1.0 - 0.85 * keep); fogA = min(fogA, uFogCap);
     float sunS = pow(max(dot(rayW, uSunDir), 0.0), 6.0);           // dispersión hacia el sol: «rayos» y halo cálido en la niebla
     vec3 fogC = uFogCol * (0.6 + 0.4 * (1.0 - uInfect * 0.3)) + uSunCol * sunS * 0.55;
     hdr = mix(hdr, fogC, fogA);
@@ -84,11 +85,26 @@ const FRAG = `
     vec3 c = toSRGB(acesFit(hdr * uExposure));
     // grading: lift, curva S, tono partido, saturación
     c = c + uLift * (1.0 - c);
+    { float Lf = dot(c, vec3(0.2126, 0.7152, 0.0722)); vec3 fs = toSRGB(uFogCol); c += (fs / max(max(fs.r, fs.g), max(fs.b, 0.05))) * uFloor * pow(1.0 - Lf, 3.0); } // CLARIDAD: piso tintado en las sombras (tono del mapa), no toca los neones
     c = clamp((c - 0.5) * uContrast + 0.5, 0.0, 1.0); c = c * c * (3.0 - 2.0 * c) * 0.25 + c * 0.75;
     float L = dot(c, vec3(0.2126, 0.7152, 0.0722));
     vec3 split = mix(uShadow, uHigh, smoothstep(0.15, 0.75, L)); c *= split;
     c = mix(vec3(L), c, uSat);
     c = mix(c, c * vec3(1.06, 0.9, 0.96), uInfect * 0.35 * (1.0 - L)); // la infección tiñe las sombras de carne
+    // CLARIDAD · CONTORNO de luz: el píxel que está claramente MÁS CERCA que su vecino (salto de profundidad) toma un borde de luz fino. Separa al Huésped y a los enemigos del fondo
+    // aunque sean oscuros, en Baja también (4 lecturas de profundidad). Se apaga con la distancia y sobre el cielo muy lejano.
+    #if OUTLINE
+    if (uOutline > 0.0 && sky < 0.5 && uHasDepth > 0.5 && dist < 38.0) {
+      vec2 ox = px * max(1.0, uRes.y / 560.0); float e = 0.0, tol = max(0.45, 0.16 * dist);
+      e += step(tol, dd(uv + vec2(ox.x, 0.0)) - dist);
+      e += step(tol, dd(uv - vec2(ox.x, 0.0)) - dist);
+      e += step(tol, dd(uv + vec2(0.0, ox.y)) - dist);
+      e += step(tol, dd(uv - vec2(0.0, ox.y)) - dist);
+      float k = clamp(e * 0.5, 0.0, 1.0) * smoothstep(38.0, 12.0, dist) * uOutline;
+      vec3 oc = mix(vec3(0.82, 0.95, 1.0), c / max(max(c.r, max(c.g, c.b)), 0.05), 0.3); // borde casi blanco con un toque del color del píxel: la psicodelia no se lava
+      c = mix(c, oc, k);
+    }
+    #endif
     // viñeta y grano
     vec2 q = uv - 0.5; q.x *= uRes.x / uRes.y; float vig = smoothstep(1.05, 0.35, length(q) * (1.0 + uInfect * 0.12));
     c *= mix(1.0 - uVig, 1.0, vig);
@@ -107,9 +123,9 @@ export class GradePass extends Pass {
       uFogCol: { value: new THREE.Color() }, uFogD: { value: 0.01 }, uFogH: { value: 0.05 }, uFogMode: { value: 0 }, uFogR: { value: 80 },
       uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color(0xffd9a0) },
       uShadow: { value: new THREE.Vector3(1, 1, 1) }, uHigh: { value: new THREE.Vector3(1, 1, 1) }, uSat: { value: 1 }, uContrast: { value: 1 }, uLift: { value: 0 },
-      uCA: { value: level === 'high' ? 0.0028 : 0.002 }, uGrain: { value: level === 'low' ? 0.018 : 0.024 }, uVig: { value: 0.42 }, uInfect: { value: 0 }, uAO: { value: L.ao ? 1 : 0 },
+      uCA: { value: level === 'high' ? 0.0028 : 0.002 }, uGrain: { value: level === 'low' ? 0.018 : 0.024 }, uVig: { value: 0.42 }, uInfect: { value: 0 }, uAO: { value: L.ao ? 1 : 0 }, uFloor: { value: 0 }, uFogCap: { value: 0.72 }, uOutline: { value: 0 },
     };
-    this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader: FRAG, defines: { AO: L.ao, LAYERS: L.layers, CA: L.ca }, depthTest: false, depthWrite: false });
+    this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader: FRAG, defines: { AO: L.ao, LAYERS: L.layers, CA: L.ca, OUTLINE: 1 }, depthTest: false, depthWrite: false });
     this.quad = new FullScreenQuad(this.material);
     this.preset('def');
   }
@@ -119,6 +135,8 @@ export class GradePass extends Pass {
     u.uShadow.value.set(...g.shadow); u.uHigh.value.set(...g.high); u.uSat.value = g.sat; u.uContrast.value = g.contrast; u.uLift.value = g.lift; u.uSunCol.value.setHex(g.sunCol).convertSRGBToLinear();
     if (this.level === 'low') u.uFogD.value *= 0.8;
   }
+  /** CLARIDAD (quality.js): piso de sombras, tope de niebla y exposición. */
+  clarity({ floor = 0, fog = 0.72, exp = 1, outline = 0 } = {}) { this.uniforms.uOutline.value = outline; this.uniforms.uFloor.value = floor; this.uniforms.uFogCap.value = fog; this.uniforms.uExposure.value = 1.9 * exp; }
   /** Datos de cámara/sol de este cuadro (los llama Renderer.render antes de componer). */
   frame(camera, t, { sunDir = null, infect = 0, fogR = null } = {}) {
     const u = this.uniforms; u.uTime.value = t; u.uNear.value = camera.near; u.uFar.value = camera.far;

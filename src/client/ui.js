@@ -18,9 +18,10 @@ const HERO = {
   territorios: ['Territorios', 'Los seis lugares robados del mundo, cada uno con su folclore. Liberalos venciendo a su jefe y elegí UNA bendición por territorio: la otra queda cerrada para siempre.', ['6 territorios', '12 bendiciones', 'Una por lugar']],
   evolucion: ['Evolución', 'Gastá los núcleos que ganás en combate: evolucioná a tu Huésped (4 niveles, cada uno lo cambia a la vista) y fusioná con él una espada, hacha, martillo, lanza o daga que despierta su poder especial.', ['4 niveles', '15 armas', 'Fusión']],
   loadout: ['Equipo', 'Elegí entre 6 personajes, cada uno con un desplazamiento y un disparo especial propios, y armá tu arsenal con 14 armas. Tras cada oleada mejorás las armas que elegiste.', ['6 personajes', '15 armas', 'Mejoras']],
+  modo: ['Modo de juego', 'Shooter es el de siempre: disparás, apuntás y usás tres habilidades. Combo hace del cuerpo a cuerpo lo principal: DOS botones de ataque que se encadenan en combos (cada Huésped tiene los suyos y los desbloquea al evolucionar) y UNA habilidad muy importante propia. Se cambia cuando quieras, también en Opciones y en la Pausa.', ['Shooter', 'Combo', 'Los 5 Huéspedes']],
   options: ['Opciones', 'Calidad gráfica (Baja para iPhone), controles, sensibilidad, volumen y subtítulos.', ['PC', 'iPhone', 'Mando']],
 };
-const ART = { story: './public/art/historia.jpg', arenas: './public/art/arena-m1.jpg', coop: './public/art/coop.jpg', loadout: './public/art/opciones.jpg', huesped: './public/art/opciones.jpg', territorios: './public/art/opciones.jpg', evolucion: './public/art/opciones.jpg', bestiary: './public/art/bestiario.jpg', options: './public/art/opciones.jpg' };
+const ART = { modo: './public/art/opciones.jpg', story: './public/art/historia.jpg', arenas: './public/art/arena-m1.jpg', coop: './public/art/coop.jpg', loadout: './public/art/opciones.jpg', huesped: './public/art/opciones.jpg', territorios: './public/art/opciones.jpg', evolucion: './public/art/opciones.jpg', bestiary: './public/art/bestiario.jpg', options: './public/art/opciones.jpg' };
 
 export class MenuUI {
   constructor({ sound, actions }) {
@@ -60,7 +61,7 @@ export class MenuUI {
   focus(i, silent = false) {
     const l = this.list(); if (!l.length) return; this.idx = (i + l.length) % l.length;
     l.forEach((e, k) => e.classList.toggle('focus', k === this.idx));
-    const el = l[this.idx]; if (this.screen === 'main') this.updateHero(el.dataset.go);
+    const el = l[this.idx]; if (this.screen === 'main') this.updateHero(el.dataset.go || el.dataset.hero);
     if (this.screen === 'bestiary') this.selectBeast(this.idx);
     if (!silent) this.sound.ui('tick');
   }

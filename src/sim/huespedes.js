@@ -3,6 +3,8 @@ import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clone } from './m
 import { CHARACTERS, PLAYER, MELEE_WEAPONS, MELEE_AFFINITY, EVO_COST, EVO_PATHS, CORES, STYLES, STYLE_NEUTRAL } from './data.js';
 import { blocked } from './physics.js';
 import { initOrgans, champTick, absorb, hasC } from './organos.js';
+import { arMelee } from './arenas-vivas.js';   // arenas vivas (circular a propósito: sólo se usa dentro de funciones)
+import { initCombo, comboStep, comboSnap } from './combos.js';   // modo Combo (circular a propósito: sólo se usan dentro de funciones)
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
@@ -19,7 +21,7 @@ const flat = (p) => norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.head
 
 export function initHost(p) {
   Object.assign(p, { s3Cd: 0, ul: 0, ultT: 0, ultId: '', meleeCd: 0, meleeHold: 0, meleePrev: false, s3Prev: false, ultPrev: false, cmb: 0, cmbT: 0, slam: 0, buf: 0,
-    guardUntil: 0, cloakUntil: 0, cloakBonus: false, desfaseUntil: 0, glideUntil: 0, callo: 0, calloT: 0, adapt: {}, spdMul: 1, symb: null, regen: 0, evo: p.evo || 0, path: Array.isArray(p.path) ? p.path : [], melee: p.melee || '', cores: p.cores || 0, evoPrev: 0 }); initOrgans(p);
+    guardUntil: 0, cloakUntil: 0, cloakBonus: false, desfaseUntil: 0, glideUntil: 0, callo: 0, calloT: 0, adapt: {}, spdMul: 1, symb: null, regen: 0, evo: p.evo || 0, path: Array.isArray(p.path) ? p.path : [], melee: p.melee || '', cores: p.cores || 0, evoPrev: 0 }); initOrgans(p); initCombo(p);
 }
 
 /* ───────── pasos por tick ───────── */
@@ -38,7 +40,7 @@ export function updateHost(g, p, dt) {
     if (p.ultId === 'colapso') { /* la singularidad vive como objeto */ }
     if (p.ultT <= 0) { g.emit({ t: 'ultend', pid: p.id, id: p.ultId }); p.ultId = ''; p.ultT = 0; }
   }
-  p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1) * (hasPath(p, 'velocidad') ? 1.12 : 1) * (p.bn ? p.bn.spd : 1);
+  p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1) * (hasPath(p, 'velocidad') ? 1.12 : 1) * (p.bn ? p.bn.spd : 1) * (g.time < (p.frenzyUntil || 0) ? 1.3 : 1);
   champTick(g, p, dt);
   if (C && C.host) {
     if (inp.s3 && !p.s3Prev && !g.evSilencio) useS3(g, p); p.s3Prev = inp.s3;
@@ -49,7 +51,7 @@ export function updateHost(g, p, dt) {
     p.slam -= dt;
     if (p.grounded) { slamLand(g, p); p.slam = 0; } else if (p.slam <= 0) p.slam = 0;
   }
-  meleeStep(g, p, dt);
+  if (p.mode === 'combo') comboStep(g, p, dt); else meleeStep(g, p, dt);   // Combo: A1/A2 (src/sim/combos.js); Shooter: melee V de siempre
 }
 
 /* ───────── melee ───────── */
@@ -141,12 +143,13 @@ function strike(g, p, M, heavy) {
   }
   g.pierceNow = false;
   for (const ob of [...g.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, o) < range + ob.r && dot(norm(sub(ob.pos, o)), dir0) > cosT) { g.damageObject(ob, dmg, p, ob.pos); hits++; }
+  hits += arMelee(g, o, range, dir0, cosT, dmg, p);   // órganos de la arena viva
   if (fused) meleeAfter(g, p, M.special, heavy, dir0, o, dmg, strong);
   p.inMelee = false;
   g.emit({ t: 'melee', pid: p.id, kind, p: a3(madd(o, dir0, 1.5)), d: a3(dir0), hit: hits, cmb: p.cmb, mw: M.id, sp: fused ? M.special : undefined });
 }
 
-function applyMeleeSpecial(g, p, m, sp, heavy, dealt, strong) {
+export function applyMeleeSpecial(g, p, m, sp, heavy, dealt, strong) {
   switch (sp) {
     case 'quema': m.dotUntil = g.time + 4; m.dotDps = 14 * strong; m.dotKind = 'burn'; m.dotBy = p.id; break;
     case 'sangrado': m.dotUntil = g.time + 5; m.dotDps = 11 * strong; m.dotKind = 'poison'; m.dotBy = p.id; break;
@@ -158,7 +161,7 @@ function applyMeleeSpecial(g, p, m, sp, heavy, dealt, strong) {
   }
 }
 /** Efectos de la fusión que ocurren una vez por golpe (no por criatura). */
-function meleeAfter(g, p, sp, heavy, dir, o, dmg, strong) {
+export function meleeAfter(g, p, sp, heavy, dir, o, dmg, strong) {
   if (sp === 'onda' && heavy) g.addProjectile({ owner: 'p', pid: p.id, kind: 'lanza', pos: madd(o, dir, 1.6), vel: mul(dir, 42), dmg: dmg * 0.5 * strong, splash: 0, r: 0.9, life: 0.7, pierce: true, hit: [] });
   if (sp === 'sismo' && heavy) {
     for (const m of g.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < 7 + m.r) { g.damageMonster(m, dmg * 0.4 * strong, p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 12); } }
@@ -289,10 +292,11 @@ export function hostDamageIn(g, p, dmg) {
   if (hasPath(p, 'coraza')) dmg *= 0.82;
   if (hasC(p, 'placas')) dmg *= 0.88;
   if (p.bn) dmg *= p.bn.dmgIn;
-  if (g.time < p.guardUntil) { const ab = dmg * 0.7; dmg -= ab; for (const m of g.monsters) if (!m.dead && dist(m.pos, p.pos) < 5 + m.r) g.damageMonster(m, ab * 0.6, p, m.pos); }
+  if (g.time < p.guardUntil) { const ab = dmg * 0.7; dmg -= ab; for (const m of g.monsters) if (!m.dead && dist(m.pos, p.pos) < 5 + m.r) g.damageMonster(m, ab * (g.time < (p.baluarteUntil || 0) ? 1 : 0.6), p, m.pos); }
   if (g.time < p.desfaseUntil && C.passive && C.passive.id === 'desfase') dmg *= 0.65;
   if (C.passive && C.passive.id === 'callo') dmg *= 1 - Math.min(0.4, p.callo * 0.04);
   if (p.ultId === 'floracion') dmg *= 0.8;
+  if (g.time < (p.blessUntil || 0)) dmg *= 0.8;   // Bendición de Seraf (modo Combo)
   return dmg;
 }
 export function hostDamaged(g, p) { const C = cdef(p); if (C && C.passive && C.passive.id === 'callo') { p.callo = Math.min(10, p.callo + 1); p.calloT = 6; } }
@@ -388,7 +392,7 @@ export function hostSnap(g, p) {
   if (g.time < p.desfaseUntil) bf |= BF.desfase; if (g.time < p.glideUntil) bf |= BF.glide;
   if (g.objects.some((o) => o.type === 'wall' && o.owner === p.id)) bf |= BF.barrier;
   const sy = g.objects.find((o) => o.type === 'symb' && o.owner === p.id);
-  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, sty: p.style || '', co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), pth: p.path, mw: p.melee || '', mr: p.mastery || 1 };
+  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, sty: p.style || '', co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), pth: p.path, mw: p.melee || '', mr: p.mastery || 1, ...comboSnap(p) };
 }
 
 function useS3(g, p) { const s = g.dmgSrc; g.dmgSrc = 'skill'; try { return useS30(g, p); } finally { g.dmgSrc = s; } }

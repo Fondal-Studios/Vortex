@@ -21,10 +21,11 @@ import { buildMap2 } from './env/map2.js';
 import { Viewmodels, WEAPON_COLORS as WC } from './weapons-vm.js';
 import { kit } from './organism.js';
 import heraldo from './creatures/heraldo.js';
-import { cfg, LEVELS, setCurrent } from './quality.js';
+import { cfg, LEVELS, setCurrent, setClaridad, claridad, initialClaridad } from './quality.js';
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
 import { createHostFx } from './hostfx.js';
 import { EventosFx } from './eventos-fx.js';
+import { ArenasVivasFx } from './arenas-vivas-fx.js';   // órganos del organismo de cada arena (arenas-vivas-fx.js)
 import { createHostBody, isHost } from './host-body.js';
 import { blocked } from '../sim/physics.js';
 import { settings } from './settings.js';
@@ -76,14 +77,23 @@ export class Renderer {
     this.hemi = new THREE.HemisphereLight(0xb9c4ff, 0x2a0f3a, 1.1); this.sun = new THREE.DirectionalLight(0xfff1e0, 2.2); this.sun.position.set(0.4, 1, 0.3);
     this.rim = new THREE.DirectionalLight(0xff66c4, 1.0); this.rim.position.set(-0.6, 0.2, -0.8);
     this.muzzle = new THREE.PointLight(0xffd9a0, 0, 28, 1.6); this.camera.add(this.muzzle); this.muzzle.position.set(0.3, -0.2, -1);
-    this.scene.add(this.hemi, this.sun, this.rim);
+    this.keyLight = new THREE.PointLight(0xffffff, 0, 11, 2); this.keyLight.name = 'luz-relleno-huesped'; // CLARIDAD: luz de relleno que sigue al Huésped propio (quality.js · CLARIDAD)
+    this.scene.add(this.hemi, this.sun, this.rim, this.keyLight);
+    setClaridad(initialClaridad()); this.clar = claridad();
     this.vm = new Viewmodels(this.camera, this.halo);
     try { this.hostfx = createHostFx(this); } catch (err) { console.warn('Efectos de Huéspedes no disponibles', err.message); this.hostfx = null; } // habilidades y melee de los 5 Huéspedes (hostfx.js)
     try { this.evfx = new EventosFx(this); } catch (err) { console.warn('Efectos de eventos no disponibles', err.message); this.evfx = null; } // eventos de oleada (eventos-fx.js)
+    try { this.avfx = new ArenasVivasFx(this); } catch (err) { console.warn('Arenas vivas no disponibles', err.message); this.avfx = null; } // arenas vivas (arenas-vivas-fx.js)
     this.dying = [];
     this.setupPost();
     this.resize();
     window.addEventListener('resize', () => this.resize());
+  }
+  /** CLARIDAD «normal» | «alta» (ajuste del jugador): relleno, borde de luz, halos, piso de sombras, niebla y exposición. */
+  applyClaridad(id) {
+    setClaridad(id); this.clar = claridad(); this.gl.toneMappingExposure = (usesComposer() ? 1.9 : 1.05) * (usesComposer() ? 1 : this.clar.exp);
+    if (this.grade) this.grade.clarity(this.clar);
+    for (const e of this.ents.mon.values()) { const b = e.object.getObjectByName('beacon'); if (b) b.material.opacity = this.clar.beacon; }
   }
   shared(key, make) { let v = this.cache.get(key); if (!v) { v = make(); this.cache.set(key, v); } return v; }
   halo_(color) { return this.shared('halo' + color, () => new THREE.SpriteMaterial({ map: this.halo, color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); }
@@ -110,7 +120,7 @@ export class Renderer {
       const c = new EffectComposer(this.gl, sceneTarget(q.msaa == null ? 4 : q.msaa)); c.setPixelRatio(this.gl.getPixelRatio());
       c.addPass(new RenderPass(this.scene, this.camera));
       if (q.post) { this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), q.bloom || 0.5, 0.55, 0.85); c.addPass(this.bloom); } else this.bloom = null;
-      this.grade = new GradePass(this.level); if (this.mapId) this.grade.preset(this.mapId); c.addPass(this.grade);
+      this.grade = new GradePass(this.level); if (this.mapId) this.grade.preset(this.mapId); this.grade.clarity(this.clar || claridad()); c.addPass(this.grade);
       this.composer = c;
     }
     if (q.env && !this.envTex) { const pm = new THREE.PMREMGenerator(this.gl); this.envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); }
@@ -216,6 +226,7 @@ export class Renderer {
     this.handleEvents(state, me);
     if (this.hostfx) this.hostfx.update(dt, state, me);
     if (this.evfx) { try { this.evfx.update(dt, state, me); } catch (err) { console.warn('evfx', err.message); this.evfx = null; } }
+    if (this.avfx) { try { this.avfx.update(dt, state); } catch (err) { console.warn('avfx', err.message); this.avfx = null; } }
     this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
@@ -339,7 +350,7 @@ export class Renderer {
         e = buildMonster(m.k); e.kind = m.k; e.born = this.t; e.spd = 0; e.far = false; e.frame = 0;
         e.proxy = new THREE.Mesh(this.shared('lodgeo' + m.k, () => bakeProxyGeometry(m.k) || new THREE.IcosahedronGeometry(0.9, 1)), proxyMaterial()); e.proxy.visible = false; e.object.add(e.proxy); // silueta propia de la especie (ver proxy-lod.js)
         if (cfg().shadows) e.object.traverse((q) => { if (q.isMesh) q.castShadow = true; }); e.object.userData.s = new THREE.Vector3();
-        { const bc = COLORS[m.k] || 0xffffff, sp = new THREE.Sprite(this.halo_(bc)); sp.scale.setScalar(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 3.4 : 4.2); sp.material.opacity = 0.38; sp.material.depthWrite = false; sp.name = 'beacon'; e.object.add(sp);
+        { const bc = COLORS[m.k] || 0xffffff, sp = new THREE.Sprite(this.halo_(bc)); sp.scale.setScalar(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 3.4 : 4.2); sp.material.opacity = this.clar.beacon; sp.material.depthWrite = false; sp.name = 'beacon'; e.object.add(sp);
           const dk = new THREE.Sprite(this.shared('haloDark', () => new THREE.SpriteMaterial({ map: this.halo, color: 0x04020c, depthWrite: false, transparent: true, opacity: 0.42 }))); dk.scale.setScalar(sp.scale.x * 1.25); dk.renderOrder = -1; dk.name = 'beaconDark'; e.object.add(dk); } // ARTE: halo OSCURO bajo el aura: la criatura se recorta también sobre fondos claros (muro ámbar, carne rosa) // aura del color de la criatura: se lee a distancia y sobre el fondo
         this.entRoot.add(e.object); this.ents.mon.set(m.id, e);
         e.object.position.set(...m.p);
@@ -451,6 +462,11 @@ export class Renderer {
       const hv = V(p.h), rv = new THREE.Vector3().crossVectors(hv, V(p.up)), dvv = V(dv), dl = dvv.length() || 1; e.moveDir = { x: dvv.dot(rv) / dl, z: dvv.dot(hv) / dl }; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
       const base = V(p.pos).addScaledVector(V(p.up), e.human || e.body ? -0.9 : 0);
       e.object.position.copy(base); this.orient(e.object, p.up, p.h); e.object.visible = true;
+      if (e.body && self && e.body.isReady && !p.dead) { // luz de relleno: desde atrás-arriba del Huésped (el lado que ve la cámara), con el color de su brillo
+        const k = this.keyLight, cam = this.camera.position, c = this.clar, up = V(p.up);
+        k.position.copy(base).addScaledVector(up, 2.5); const toCam = cam.clone().sub(base); toCam.addScaledVector(up, -toCam.dot(up)); if (toCam.lengthSq() > 1e-4) k.position.addScaledVector(toCam.normalize(), 1.7);
+        k.color.set(0xffffff).lerp(new THREE.Color(col), 0.25); k.intensity = 20 * c.key; k.visible = true;
+      } else if (self) this.keyLight.intensity = 0;
       if (e.body) {
         for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev);
         e.shotT = Math.max(0, e.shotT - dt); e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, map: this.mapId, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null });

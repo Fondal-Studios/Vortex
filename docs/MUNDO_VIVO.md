@@ -92,3 +92,60 @@ Desde la oleada 3 las élites llevan un **afijo** visible (halo de color + nombr
 ### Pruebas
 `node --test tests/eventos.test.js` (≈50 s: determinismo, máx. 1 evento, ≥ oleada 3, sin oleadas seguidas, aviso de 4 s, gravedad sólo bajo Marea, 20 s de bloqueo, <3 cambios/min en partidas de 12 oleadas con bot, cada evento, snapshot). Relacionadas: `ai`, `huespedes`, `waves`, `mundo`, `estilos`, `physics`, `camara` (navegador).
 **Sin probar en navegador real:** la sensación del giro de 0,8 s con un dedo/mouse en un celular, el aspecto de la niebla con todas las calidades gráficas y el brillo de los halos con el post-proceso (probado sólo con swiftshader a bajo FPS, sin errores de consola).
+
+## Arenas vivas: cada mapa es un ORGANISMO (identidad de arena, dueño 2026-10-18)
+**Idea:** el mapa deja de ser un decorado. Cada arena (m1…m6) es un **organismo vivo** con nombre, folclore y ciclo de vida. Tiene un **corazón** y dos estructuras más, y todas tienen **dos caras**: *ayuda* (curación, escudo, velocidad o daño extra que hay que **reclamar o defender**) y *amenaza* (ataques del suelo o de las estructuras con **aviso de ≥ 1,2 s** y contrajuego claro). Se distingue de las demás por su nombre, su silueta, su paleta y su mezcla de órganos.
+**Código:** `src/sim/arenas-vivas.js` (simulación determinista, sin DOM) · datos en `src/sim/data.js` (`ARENA`, `ARENAS_VIVAS`) · cliente `src/client/arenas-vivas-fx.js` · enganches de pocas líneas en `game.js`, `huespedes.js` (melé), `render.js` y `main.js` (banner).
+
+### Los seis organismos
+| Arena | Organismo y folclore | Corazón | Estructuras (cara de ayuda / cara de amenaza) | Paleta (ayuda · amenaza) · silueta |
+|---|---|---|---|---|
+| **m1** Vacío de Islas | **El Corazón de Isla**: las islas son el cuerpo de una medusa-coral; las Luces Malas son sus larvas | *Corazón de Isla* (flota sobre la isla central) · ataque **pulso**: anillo de luz de 8 m (aviso 1,6 s) | **Linterna de Luz Mala** (boca): *escudo* · **Corriente de Luz** (vena): carril de *velocidad* hacia el portal del este | cian `#19f0ff` · magenta `#ff3df2` · **medusa** (campana, zarcillos, anillos) |
+| **m2** Cámara Fractal | **El Espejo que Respira**: espejos y ecos; el cascarón inspira y exhala | *Núcleo de Eco*: sólo recibe todo el daño mientras el Fuelle **inspira** (si no, ×0,3) | **Iris de Espejo** (boca): *+25 % de daño* · **Fuelle de Espejo** (pulmón): bruma que **sana** en calma y **envenena** si está furioso | violeta `#9b5cff` · ámbar `#ffb52e` · **iris** (octaedros facetados con satélites) |
+| **m3** Laberinto Celestial | **La Garganta del Laberinto**: cantos y silbidos del Silbón | *Siringe de Cristal* | **Coro de Cristal** (boca): *cura* · **Silbido de Cristal** (raíz): **barrido** de sonido en línea; los muros lo frenan | menta `#3dffb8` · blanco `#e8fbff` · **ondas** (garganta + anillos de sonido) |
+| **m4** Jardín de Carne | **La Madre Raíz**: un cuerpo que come y se cura | *Corazón del Jardín* (regenera 5 %/s: hay que dañarlo seguido) | **Pulmón de Esporas**: sana en calma; furioso **frena y quema** · **Zarcillo Hambriento** (raíz): **golpe** donde estabas | verde ácido `#b6ff2a` · rojo carne `#ff2f5e` · **corazón anatómico** con vasos y raíces |
+| **m5** Plaza de los Ecos | **El Reloj Hambriento**: el pacto del relojero | *Péndulo del Reloj* · ataque **pulso** (campanada de 8 m, aviso 1,8 s) | **Manecilla de la Fuente** (raíz): **giro** que barre como una manecilla (aviso 1,8 s) · **Adoquines de Luz** (vena): carril de *velocidad* de la Calle a la Plaza | oro `#ffcf4a` · azul `#5b8bff` · **reloj** (esfera, marcas, péndulo) |
+| **m6** Osario sin Techo | **El Osario Insomne**: los huesos que no descansan | *Corazón Calcificado* (sobre el altar) · ataque **golpe** de manos de hueso · **vuelve solo a los 26 s** si lo rompés | **Respiradero de Brasas** (pulmón): ceniza que sana o quema · **Costillar** (vena): carril de *+25 % de daño* por la nave | marfil `#efe6c8` · brasa `#ff6a14` · **costillas** (jaula de costillas con corazón encendido) |
+Cada arena combina órganos distintos (boca+vena, boca+pulmón, boca+raíz, pulmón+raíz, raíz+vena, pulmón+vena) y la prueba lo exige. Los textos de folclore completos y qué hace cada órgano están en `ARENAS_VIVAS` (campos `folclore` e `info`).
+
+### Los órganos
+- **Corazón** (se puede dañar con disparos de rayo, proyectiles, explosiones y golpes cuerpo a cuerpo). Tiene `hp × (0,85 + 0,15 × oleada)`. **Si lo rompés:** el organismo se **adormece el resto de la oleada** (sin amenazas), suelta un botiquín y da núcleos a todos; en la oleada siguiente vuelve con el 60 %. Reglas propias: m2 *vulnerable sólo al inspirar* · m4 *regenera rápido* · m6 *revive a los 26 s*.
+- **Boca** (ayuda): se **alimenta** con las bajas que ocurren cerca (4 + oleada/2; las élites cuentan doble). Llena, abre su zona 14 s con su beneficio: `cura` (+6 vida/s y +10 escudo/s), `escudo` (+24 escudo/s), `danio` (+25 % de daño) o `veloz`. **Defenderla:** cada criatura dentro de la luz la apaga más rápido (+35 % por criatura, hasta 6). En el respiro (*ofrenda*) está siempre abierta.
+- **Vena** (ayuda): carril de luz de 2,4 m de ancho: quien lo pisa recibe el beneficio (`veloz` ×1,3, `danio` +25 %). Es un atajo: no es sólido ni teletransporta.
+- **Pulmón** (doble cara, se puede romper): ciclo de 14-16 s = **inspira** 5-6 s, **retiene** 2 s y **exhala** 8 s una nube. *Calmo* (dormido/despierto/ofrenda): la nube **sana**. *Furioso*: la nube **daña** (7 de daño/s en m2 y m6; en m4 3/s y además frena al 60 %) y las criaturas dentro también sufren. El aviso es el momento de **retener el aire** (el borde se llena de franjas de peligro) y la nube que cambia de color: así se «cambia la niebla».
+- **Raíz** (amenaza, se puede romper): lanza un ataque con aviso y después enfría su ciclo. Tipos de ataque (comunes a cualquier órgano con `atk`): **golpe** (círculo donde estabas al empezar el aviso) · **pulso** (anillo alrededor del órgano) · **barrido** (línea larga; la cortan los muros y las coberturas) · **giro** (línea que gira como una manecilla durante 2 s). Todos hieren también a las criaturas (×3): llevarlas al círculo es contrajuego.
+
+### El ciclo de vida (fases)
+| Fase | Cuándo | Amenaza | Ayuda |
+|---|---|---|---|
+| **dormido** | calma inicial, los primeros 25 s de la oleada 1, y toda la oleada si rompiste el corazón | ninguna | ×0,4 (sólo si alimentaste una boca) |
+| **despierto** | oleada en curso | a **media cadencia** (cadencia ÷ 0,55) | ×1 |
+| **furioso** | oleada 2 desde los 50 s · oleadas 3-4 desde los 28 s · oleada 5+ desde los 14 s · jefe desde los 8 s (la oleada 1 nunca se enfurece) | **cadencia plena** y pulmón tóxico | ×0,75 |
+| **ofrenda** | el respiro entre oleadas | ninguna | ×1,5, bocas abiertas y nubes sanadoras |
+Los cambios de fase salen como evento `{t:'ar', m, ph}` y el cliente los muestra con el banner existente (p. ej. «El Corazón de Isla despierta», con un retraso de ~2,5 s para no pisar «OLEADA n»). También `roto` y `renace`.
+
+### Reglas de justicia y de diseño
+- **Aviso:** ningún ataque golpea antes de `ARENA.telMin` = 1,2 s; como mucho **3 avisos a la vez** en toda la arena y nunca dos del mismo órgano. El golpe cae **donde estabas al empezar el aviso** (moverse lo esquiva); las líneas apuntan a donde estabas y cualquier cobertura o muro las corta.
+- **Daño moderado:** de 13 a 20 por golpe (+1,2 por oleada), cadencias de 5,5 a 12 s. Peor caso (quedarse quieto en el lugar más feo): ≈ 1,6 a 3,5 de daño por segundo por organismo. El escudo se recarga solo si dejás de recibir daño 3 s.
+- **Nada bloquea:** los órganos **no son sólidos** (no se agregan sólidos al mapa); no están a menos de 12 m de las apariciones (6 m las venas) ni a menos de 5 m de un punto de objetivo.
+- **Determinismo:** el azar sale de `g.arRng` (derivado de la semilla, como `g.evRng`); **nunca** se usa `g.rng`. (Una criatura que muere por un ataque de la arena sí tira sus botines con `g.rng`, igual que cualquier otra baja.)
+- **Coordinación con los eventos de oleada:** no se duplica nada. Mientras corre *Lluvia de Astillas*, *Tormenta de Ecos* o *Marea de Sangre*, el organismo ataca a **media cadencia**. La *Aurora* (+30 % de daño) y las zonas de daño de la arena se **multiplican** (máx. ×1,6 si estás en las dos). Los botiquines salen del mismo sistema de pickups.
+- **Bajas de la arena:** si un ataque o una nube mata a una criatura, la baja se le **acredita al jugador vivo más cercano** (núcleos, esencias, puntaje y carga de la definitiva), para que usar la arena a tu favor no te cueste progreso.
+- **Los órganos no tapan:** el rayo y los proyectiles de los jugadores **dañan al órgano y siguen de largo** (no frenan el disparo que iba a una criatura que está detrás).
+- **Interruptores para pruebas:** `import { CTL } from './src/sim/arenas-vivas.js'` → `CTL.off = true` apaga todo (partidas A/B) · `CTL.sinAtaques` / `CTL.sinBeneficios` apagan una sola cara.
+
+### Contrato con el resto
+- **Snapshot:** `ar = null | { ph, t, sed, o: [[hp%, roto, hambre%, zona (s; 99 = abierta), respiro 0-1, modo (0 inspira/1 retiene/2 exhala), golpe reciente]…], tl: [[órgano, tipo(0 golpe/1 pulso/2 barrido/3 giro), x,y,z, dx,dy,dz, largo o radio, ancho, segundos que faltan, total, barriendo]…] }`. Las posiciones de los órganos NO viajan: salen de `layoutArena(mapa)` (función pura que comparten sim, cliente y pruebas; en m2 elige el primer candidato libre de colinas y puntos de objetivo).
+- **Eventos del bus:** `ar` (fase/roto/renace) · `arhit` (daño a un órgano) · `arofrenda` (una boca se llenó) · `arfire` (un ataque golpea). El cliente usa `sound.hit/pickup/boom` ya existentes.
+- **Enganches en el sim:** `initArenas` (constructor) · `tickArenas` (cada paso, antes de mover a los jugadores) · `arVel` (velocidad) · `arDanio` (daño del jugador) · `arKill` (alimenta bocas) · `arTargets`/`danarOrgano` (rayo) · `arExplosion` (explosiones de jugadores) · `arMelee` (golpe cuerpo a cuerpo) · `arSnap`.
+
+### Cliente (`arenas-vivas-fx.js`)
+- Un **cuerpo** (malla fusionada con silueta propia de cada arena) + un **halo** + una **marca de suelo/nube** por órgano; **avisos** de ataque en un pozo de 3. Todo **autoiluminado** con piso de brillo (nunca queda una zona oscura que esconda al Huésped), mezcla de la paleta de la arena y borde Fresnel.
+- **Lenguaje común de legibilidad:** *ayuda* = anillos suaves que suben y un faro de luz (se ve de lejos) · *amenaza* = **franjas de peligro** con borde blanco que se llena hasta el golpe (más rápido y más blanco cuanto más cerca) · el color cambia por arena, el lenguaje no.
+- **Latido sincronizado con la fase:** dormido 0,5 Hz tenue · despierto 1 Hz · furioso 1,9 Hz brillante · ofrenda 0,75 Hz cálido. El corazón se contrae y se pone blanco mientras carga un ataque y destella al golpear; roto se ve gris y encogido.
+- Sólo **lee** `state.ar`. No toca iluminación global, `quality.js` ni la niebla: otro equipo trabaja eso.
+
+### Pruebas y medición
+- `node --test tests/arenas-vivas.test.js` (≈ 30 s, 31 pruebas): datos y distinción entre arenas · fases · eventos y snapshot compacto · determinismo (misma semilla = mismo estado cada 0,5 s en 150 s con bot) · `g.rng` intacto · daño, rotura, regeneración y reaparición del corazón · alimentar y defender bocas · venas · avisos (≥ 1,2 s, se esquivan, hieren criaturas, la cobertura corta el haz) · pulmones · apaga/enciende por fase · ningún órgano bloquea apariciones/objetivos y se camina a todos los objetivos de m5/m6 con las arenas furiosas.
+- `node --test --test-name-pattern="^m4:" tests/arenas-vivas-bots.test.js` (**una arena a la vez**, 1-4 min cada una): bots de prueba (4 semillas, habilidad 1,2) CON y SIN organismo.
+- `node --test tests/arenas-vivas-render.test.js` (Chromium por software, ≈ 5 min): presupuesto en Baja con `renderer.info`. Capturas y medición por órgano: `node tools/shot-arenas.js todas shots/arenas low --fase=furioso,aviso`.

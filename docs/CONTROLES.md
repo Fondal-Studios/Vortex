@@ -48,3 +48,14 @@ Sólo usa el snapshot (posición, `up`, velocidad derivada) y, si llega, el even
 
 ## Tarjetas y carteles
 `#cards` es una cuadrícula fluida con zona segura de iPhone y desplazamiento interno de respaldo; `node tools/shot-cartas.js` comprueba 844×390, 667×375, 390×844, 1280×720 y 1920×1080.
+
+## Modo Combo (alternativa a Shooter)
+El modo se elige en el menú principal («Modo de juego»), en la pantalla Huésped (botón «Modo»), en Opciones (`#modesel`), en la Pausa o con `?modo=combo` / `?modo=shooter`; se guarda en `settings.mode`. Shooter queda igual que arriba. Sólo los 5 Huéspedes juegan Combo.
+| Acción | Teclado/ratón | Mando | Táctil |
+|---|---|---|---|
+| Ataque 1 (`a1`) | clic izq. (mantener = repite y encadena) | RT / R2 | ATAQUE 1 (arrastrarlo también apunta) |
+| Ataque 2 (`a2`; Seraf: mantener = cargar, soltar = flecha) | clic der. | RB / R1 o B / ○ | ATAQUE 2 |
+| Habilidad principal (`hab`) | Q o F | LB / L1 | HABILIDAD (grande, con anillo de enfriamiento) |
+| Saltar | Espacio | A / ✕ | SALTO |
+| Usar · Evolucionar · Definitiva | E · N · T | (igual que Shooter) | USAR · EVOLUC. · ULTI (aparecen solos) |
+La **E** sigue siendo USAR (la habilidad no se ata a E para no perder las interacciones). En táctil el HUD de Combo muestra sólo ATAQUE 1, ATAQUE 2, HABILIDAD, SALTO y los contextuales; el modo avanzado no agrega botones de Shooter. Se pueden mover y cambiar de tamaño en «Editar controles» como los demás. Con «Modo simple» activado, A1 se encadena solo cuando hay un enemigo cerca y de frente. Pruebas: `node --test tests/combos.test.js`. Táctil/mando: **no probados en un dispositivo real**.

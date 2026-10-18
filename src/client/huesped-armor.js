@@ -19,6 +19,7 @@ import { mergeGeometries, mergeVertices, toCreasedNormals } from 'three/addons/u
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { phTextures, PH_BASE } from './ph.js';
 import { uBeat } from './shaders.js';
+import { uClar } from './quality.js';
 
 const V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 const TAU = Math.PI * 2;
@@ -166,12 +167,12 @@ function patchMat(m, { sat = 1, gain = 1, cavity = 0, key = '' } = {}) {
 const uTimeG = { value: 0 };
 function spectralMaterial(color, rim, ember, belly = 0) {
   const m = new T.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.2, emissive: 0x000000 });
-  const u = { uRim: { value: new T.Color(rim) }, uEmber: { value: new T.Color(ember) }, uBeat, uK: { value: 1 }, uBelly: { value: belly }, uTime: uTimeG };
+  const u = { uRim: { value: new T.Color(rim) }, uEmber: { value: new T.Color(ember) }, uBeat, uK: { value: 1 }, uBelly: { value: belly }, uTime: uTimeG, uClar };
   m.userData.u = u;
   m.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, u);
     s.vertexShader = 'varying vec3 vRest;\n' + s.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vRest = position;');
-    s.fragmentShader = 'varying vec3 vRest; uniform vec3 uRim, uEmber; uniform float uBeat, uK, uBelly, uTime;\n' + s.fragmentShader
+    s.fragmentShader = 'varying vec3 vRest; uniform vec3 uRim, uEmber; uniform float uBeat, uK, uBelly, uTime, uClar;\n' + s.fragmentShader
       .replace('#include <common>', `#include <common>
         float h_(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
         float n_(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -182,7 +183,7 @@ function spectralMaterial(color, rim, ember, belly = 0) {
           float c1 = abs(n_(vRest * 30.0) - 0.5) * 2.0, c2 = abs(n_(vRest * 14.0 + 4.0) - 0.5) * 2.0;
           float crack = smoothstep(0.07, 0.0, min(c1, c2 * 1.3)) * smoothstep(0.35, 0.65, n_(vRest * 4.0 + 9.0)) * (0.65 + 0.7 * uBeat);
           float belly = smoothstep(1.0, 1.06, vRest.y) * smoothstep(1.215, 1.15, vRest.y) * smoothstep(0.12, 0.05, abs(vRest.x)) * uBelly;
-          totalEmissiveRadiance += uRim * fr * 0.9 * uK + uEmber * (crack * 1.6 + belly * (1.1 + 0.7 * uBeat) * (0.6 + 0.8 * n_(vRest * 12.0 + uTime * 0.6))) * uK; }`);
+          totalEmissiveRadiance += uRim * fr * (1.3 + 1.0 * uClar) * uK + uEmber * (crack * 1.6 + belly * (1.1 + 0.7 * uBeat) * (0.6 + 0.8 * n_(vRest * 12.0 + uTime * 0.6))) * uK; }`);
   };
   m.customProgramCacheKey = () => 'huesped-espectral';
   return m;

@@ -1,6 +1,7 @@
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
-import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS } from '../sim/data.js';
+import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS, GAME_MODES, HABILIDADES } from '../sim/data.js';
+import { comboAssist } from './combo-assist.js';
 import { Equipo } from './equipo.js';
 import { settings, setSetting, sensFromSlider, sliderFromSens } from './settings.js';
 import { WEAPON_COLORS } from './shotfx.js';
@@ -13,7 +14,7 @@ import { NPC_INFO } from '../sim/npcs.js';
 import { createRadar } from './radar.js';
 import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
-import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE, EVENTOS } from '../sim/data.js';
+import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE, EVENTOS, ARENAS_VIVAS } from '../sim/data.js';
 import * as Perfil from './perfil.js';
 import * as Territorios from '../sim/bendiciones.js';
 import { TITULOS } from '../sim/maestria.js';
@@ -24,7 +25,7 @@ import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.
 import { Renderer } from './render.js';
 import { Sound } from './audio.js';
 import { NetClient } from './net.js';
-import { LEVELS, initialQuality, saveQuality, AutoQuality, isTouchDevice, isIOS } from './quality.js';
+import { LEVELS, initialClaridad, initialQuality, saveQuality, AutoQuality, isTouchDevice, isIOS } from './quality.js';
 import { TouchControls } from './touch.js';
 import * as Story from './story.js';
 import { uTime } from './shaders.js';
@@ -45,6 +46,7 @@ const later = (fn, ms) => { if (CAP) timers.push({ at: capT * 1000 + ms, fn }); 
 let level = initialQuality(params);
 const canvas = $('c');
 const renderer = new Renderer(canvas, { level, pixelRatio: params.get('pr') ? +params.get('pr') : null });
+renderer.applyClaridad(initialClaridad(settings().claridad, params)); // ajuste «Claridad» (Normal/Alta; ?claridad= lo fuerza)
 const sound = new Sound();
 if (renderer.hostfx) renderer.hostfx.setSound(sound); // hostfx.js reproduce los sonidos de habilidades y melee de los Huéspedes
 if (CAP) { // no suena nada en vivo: se registra cada sonido con su tiempo virtual para sintetizar la banda sonora
@@ -56,6 +58,9 @@ const useTouch = () => { const p = $('ctrlsel').value; return p === 'touch' || (
 for (const sel of [$('qsel'), $('qsel2')]) { sel.innerHTML = Object.entries(LEVELS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join(''); sel.value = level; }
 $('ctrlsel').value = ctrlPref;
 const myChar = () => Equipo.char;
+/* MODO DE JUEGO «Shooter» o «Combo»: ajuste `mode` (se guarda en el navegador) o ?modo=combo|shooter en el enlace. Sólo los Huéspedes juegan Combo. */
+{ const um = params.get('modo'); if (um === 'combo' || um === 'shooter') setSetting('mode', um); }
+const gameMode = () => (settings().mode === 'combo' && CHARACTERS[myChar()] && CHARACTERS[myChar()].host ? 'combo' : 'shooter');
 function setQuality(l, { save = true } = {}) { if (!LEVELS[l] || l === level) return; level = l; $('qsel').value = $('qsel2').value = l; if (save) saveQuality(l); renderer.applyQuality(l); }
 $('qsel').addEventListener('change', (e) => setQuality(e.target.value)); $('qsel2').addEventListener('change', (e) => setQuality(e.target.value));
 $('ctrlsel').addEventListener('change', () => { try { localStorage.setItem('cristal.ctrl.v1', $('ctrlsel').value); } catch { /* ok */ } });
@@ -137,13 +142,15 @@ const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = local
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { touch.setMode(gameMode()); const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(), style: settings().style,
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
     dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: (evoWant(keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held())), evoChoice ? evoChoice.value() : 0), organ: organInput(), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
+  i.mode = gameMode();   // Combo: clic izq. = ATAQUE 1 · clic der. = ATAQUE 2 · Q o F = HABILIDAD (E sigue siendo USAR)
+  if (i.mode === 'combo') { i.a1 = mouse.fire; i.a2 = mouse.esp; i.hab = keys.has('KeyQ') || keys.has('KeyF'); i.fire = i.esp = i.mov = i.s3 = i.ability = false; }
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
@@ -154,6 +161,7 @@ function readInput() {
     padLatch.next = g.next; padLatch.prev = g.prev; padLatch.jump = g.jump;
     if (g.pause && !padLatch.pause && session && !session.touch) { document.exitPointerLock && document.exitPointerLock(); }
     padLatch.pause = g.pause; renderer.firing = renderer.firing || g.fire;
+    if (i.mode === 'combo') { i.a1 = i.a1 || g.fire; i.a2 = i.a2 || g.esp || g.melee; i.hab = i.hab || g.mov || g.s3; i.fire = i.esp = i.mov = i.s3 = false; }   // mando en Combo: RT/R2 ataque 1 · RB/R1 o B ataque 2 · LB/L1 habilidad
   }
   return npcInput(i);
 }
@@ -186,6 +194,7 @@ function assistAim(inp, state, me, dt, firing = false) {
 /** MODO SIMPLE (para quien nunca jugó un shooter): si hay un enemigo bajo la mira, dispara solo; si lo tenés encima, golpea solo. El jugador sólo mueve y mira. */
 function simpleAssist(inp, state, me) {
   if (!settings().simple || !me || me.dead || session.paused) return;
+  if (me.md) { comboAssist(inp, state, me, { onTarget: session.onTarget }); return; }   // modo Combo: el ataque 1 se encadena solo (combo-assist.js)
   const h = v3(...me.h), st = settings().style || 'disparo'; let close = false;
   for (const m of state.monsters) { const d = { x: m.p[0] - me.pos[0], y: m.p[1] - me.pos[1], z: m.p[2] - me.pos[2] }, l = Math.hypot(d.x, d.y, d.z); if (l < (m.r || 1) + (st === 'melee' ? 4.2 : 3.2) && dot(norm(d), h) > 0.35) { close = true; break; } }
   session.simpleT = (session.simpleT || 0) + 1; const T = session.simpleT;
@@ -204,7 +213,7 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 function startSolo(mapId, opts = {}) {
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
   const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice });
-  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style }); // evolución y arma fusionada del perfil (perfil.js)
+  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode() }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
   session = { practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
@@ -362,7 +371,7 @@ function frame(now) {
   if (me && me.wg && renderer.vm && renderer.vm.setOrgans) me.sl.forEach((w, i) => renderer.vm.setOrgans(w, me.wg[i] || [])); // órganos que crecen en cada arma (organs-vis.js)
   touch.zoomKind = renderer.zoomKind || 0;
   renderer.guideTalk = subs.talking;
-  renderer.firing = !!(session.touch ? touch.fire : mouse.fire);
+  renderer.firing = !!(session.touch ? touch.fire : mouse.fire) && gameMode() !== 'combo';
   renderer.render(state, dt, session.pid, session.look);
   audioAndHud(state, me, dt);
   if (!session.ended && (state.state === 'won' || state.state === 'lost')) endGame(state, me);
@@ -399,6 +408,10 @@ function audioAndHud(state, me, dt) {
       case 'hit': sound.hit(e.p); break;
       case 'kill': if (evoHud && evoHud.absorb && ESSENCE_OF[e.k]) { const v = new THREE.Vector3(e.p[0], e.p[1], e.p[2]).project(renderer.camera); if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) evoHud.absorb((v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight, e.k); } sound.voice(e.k, 'die', e.p); trophy('first', 'Primer contacto', 'Derrotá a tu primera criatura', sound); if (e.k === 'coloso') trophy('b1', 'Corazón roto', 'Derrotá al Coloso Prismático', sound); if (e.k === 'argos') trophy('b3', 'Cerré el ojo', 'Derrotá a Argos, el Ojo Primordial', sound); if (e.k === 'madre') trophy('b2', 'El último latido', 'Derrotá a la Madre Geoda', sound); if (e.k === 'geoda') trophy('geoda', 'Paciencia', 'Derrotá una Geoda', sound); break;
       case 'boom': sound.boom(e.p); break;
+      case 'ar': { const AV = ARENAS_VIVAS[e.m], tx = AV && AV.frases[e.ph]; if (tx && !session.intro) later(() => banner(tx, 2600), e.ph === 'ofrenda' ? 2300 : e.ph === 'roto' || e.ph === 'renace' ? 0 : 2700); break; }   // arenas vivas: «El Corazón de Isla despierta»
+      case 'arhit': sound.hit(e.p); break;
+      case 'arofrenda': sound.pickup(); break;
+      case 'arfire': if (e.k >= 2 && !e.fin) sound.boom(e.p); break;   // golpe y pulso ya suenan con su 'boom'
       case 'hurt': if (mine) { sound.hurt(); const v = $('vignette'); v.classList.add('hurt'); setTimeout(() => v.classList.remove('hurt'), 120); if (navigator.vibrate) navigator.vibrate(30); pad.rumble(120, 0.6); } break;
       case 'pickup': if (mine) sound.pickup(); break;
       case 'revive': trophy('rev', 'Mano amiga', 'Reanimá a un compañero', sound); sound.pickup(); banner(mine ? '¡Te reanimaron!' : 'Compañero reanimado', 1800); break;
@@ -424,6 +437,8 @@ function audioAndHud(state, me, dt) {
       case 'gestate': banner('La Madre pone huevos: ¡rompelos antes de que eclosionen!', 2400); break;
       case 'hatch': sound.boom(e.p); break;
       case 'organ': if (mine && evoHud) { const O = e.target === 'c' ? CHAMP_ORGANS[e.id] : WEAPON_ORGANS[e.id]; evoHud.organ(O ? O.name : ''); sound.pickup(); } break; // un órgano creció (organs-vis.js lo muestra)
+      case 'combo': if (mine && e.fin && e.n >= 3) sound.objective(true); break;   // remate de un combo largo: pequeño acorde
+      case 'hab': if (e.ph === 'cast') { sound.ability(mine ? null : e.p); if (mine && me && HABILIDADES[me.char]) banner(HABILIDADES[me.char].name.toUpperCase(), 700); } break;   // habilidad principal (telegrafía)
       case 'evolve': if (mine && evoHud) { evoHud.celebrate(e.tier); sound.objective(true); flash(); } break; // evolución: destello, onda y texto (hud-evolucion.js)
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con B', 2200); break;
       case 'surge': banner('El Vórtice se enfurece…', 1800); break;
@@ -650,6 +665,8 @@ function bindTouchSettings() {
   const syncCam = () => { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; };
   const setCam = (on) => { renderer.setThird(on); setSetting('third', !!on); syncCam(); };
   const cb = $('camtoggle'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); setCam(!renderer.third); }); syncCam();
+  const syncClar = () => { const b = $('claridad'); if (b) b.querySelector('b').textContent = `Claridad: ${settings().claridad === 'alta' ? 'Alta (más luz sobre vos y los enemigos)' : 'Normal'}`; };
+  const cl = $('claridad'); if (cl) cl.addEventListener('click', (e) => { e.stopPropagation(); const v = settings().claridad === 'alta' ? 'normal' : 'alta'; setSetting('claridad', v); renderer.applyClaridad(v); syncClar(); }); syncClar();
   const syncSide = () => { const b = $('camside'); if (b) b.querySelector('b').textContent = `Hombro de la cámara: ${(settings().camSide || 1) > 0 ? 'derecho' : 'izquierdo'}`; };
   const sb = $('camside'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); setSetting('camSide', (settings().camSide || 1) > 0 ? -1 : 1); syncSide(); }); syncSide();
   for (const [id, key, dflt] of [['camdist', 'camDist', 3.6], ['camfov', 'camFov', 78]]) { const el = $(id); if (!el) continue; el.value = settings()[key] || dflt; el.addEventListener('input', () => setSetting(key, +el.value)); el.addEventListener('pointerdown', (e) => e.stopPropagation()); }
@@ -668,6 +685,20 @@ function bindTouchSettings() {
   const rl = $$('tresetlay'); if (rl) rl.addEventListener('click', () => { touch.setFingers(2); setSetting('hudScale', 1); setSetting('hudOpacity', 0.85); import('./settings.js').then((m) => { m.resetLayout(); touch.applyLayout(); }); });
 }
 bindTouchSettings();
+/* ───── selector de MODO DE JUEGO (Shooter / Combo): menú principal, Huésped, Opciones y Pausa ───── */
+function syncModeUI() {
+  const m = settings().mode === 'combo' ? 'combo' : 'shooter', G = GAME_MODES[m], note = m === 'combo' && gameMode() !== 'combo' ? ' (sólo con Huéspedes)' : '';
+  const mi = $('modeitem'); if (mi) { mi.querySelector('b').textContent = `Modo de juego: ${G.icon} ${G.name}`; mi.querySelector('small').textContent = (m === 'combo' ? 'Dos ataques encadenados + una habilidad' : 'Disparás, apuntás y usás habilidades') + note; }
+  const hb = $('hsmode'); if (hb) { hb.textContent = `Modo: ${G.icon} ${G.name}`; hb.title = G.desc + note; }
+  const sel = $('modesel'); if (sel) sel.value = m;
+  const pb = $('modetoggle'); if (pb) pb.querySelector('b').textContent = `Modo de juego: ${G.icon} ${G.name}`;
+}
+function setGameMode(m) { setSetting('mode', m === 'combo' ? 'combo' : 'shooter'); syncModeUI(); touch.setMode(gameMode()); }
+const toggleMode = (e) => { if (e) e.stopPropagation(); setGameMode(settings().mode === 'combo' ? 'shooter' : 'combo'); sound.ui('ok'); };
+for (const id of ['modeitem', 'hsmode', 'modetoggle']) { const b = $(id); if (b) b.addEventListener('click', toggleMode); }
+{ const sel = $('modesel'); if (sel) sel.addEventListener('change', () => setGameMode(sel.value)); }
+{ const _rh = ui.refreshHuesped.bind(ui); ui.refreshHuesped = () => { _rh(); syncModeUI(); }; }
+syncModeUI();
 // al terminar de editar los botones, se reanuda la partida
 const _tEdit = touch.edit.bind(touch); touch.edit = (on) => { _tEdit(on); if (!on && session && session.paused && session.practice) { session.paused = false; } };
 $('showctl').addEventListener('click', (e) => { e.stopPropagation(); showTutorial(true); });
@@ -684,7 +715,7 @@ if (params.get('auto')) {
   startSolo(params.get('auto'), { bot: params.get('bot') === '1', wave: +params.get('wave') || 0, god: params.get('god') === '1', horde: params.get('horde') === '1', seed: +params.get('seed') || 7, skill: +params.get('skill') || 1.2, difficulty: +params.get('difficulty') || 1, intro: false });
   window.__session = session; window.__renderer = renderer;
 }
-window.__api = { ui, pad, setSetting, settings, get session() { return session; }, get caida() { return caida; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
+window.__api = { ui, pad, setSetting, setGameMode, gameMode, settings, get session() { return session; }, get caida() { return caida; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
 window.__frame = frame; window.__step = (ms) => frame(last + ms); window.__ui = ui; if (!params.get('cap')) requestAnimationFrame(frame);
 
 // En un sitio estático (sin servidor) el cooperativo no está disponible: se avisa y se deshabilita.

@@ -11,9 +11,11 @@ import { spawnNpc, clearNpc, npcStep } from './npcs.js';
 import { orgSnap, loadOrgans, shapeOrgans, hasC } from './organos.js';
 import { applyBend } from './bendiciones.js';
 import { applyMaestria } from './maestria.js';
+import { setMode } from './combos.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
 import { Director } from './director.js';
+import { initArenas, tickArenas, arSnap, arTargets, arExplosion, arKill, arVel, arDanio, danarOrgano } from './arenas-vivas.js'; // arenas vivas (src/sim/arenas-vivas.js)
 import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, limitarCaida } from './eventos.js';
 import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
 import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
@@ -50,6 +52,7 @@ export class Game {
     this.objects = []; this.pings = []; this.objective = null; this.fragments = 0; this.teamBuffUntil = 0; this.director = new Director(); this.curTypes = [];
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
     this.cult = this.map.cultivo ? initCult(this) : null; // acertijo del mapa 4 (src/sim/cultivo.js)
+    initArenas(this);                                     // arenas vivas: cada mapa es un organismo (src/sim/arenas-vivas.js; rng propio g.arRng)
     initEventos(this);                                    // eventos de oleada (src/sim/eventos.js): la gravedad invertida vive dentro de uno de ellos
   }
 
@@ -69,7 +72,8 @@ export class Game {
       cd: 0, ext: v3(), reviveT: 0, lastHurt: -99, flipUntil: 0, portalCd: 0, grounded: false, kills: 0, score: 0, respawnAt: 0,
       input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false, melee: false, s3: false, ult: false, evo: 0, reload: false },
     };
-    if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style]) p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
+    if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style] && opts.style !== 'combo') p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
+    if (opts.mode === 'combo') p.mode = 'combo';
     initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyMaestria(p, opts.maestria); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
     this.players.push(p);
     return p;
@@ -79,9 +83,12 @@ export class Game {
     const p = this.players.find((q) => q.id === id);
     if (!p) return;
     const i = p.input;
+    if (inp.mode === 'combo' || inp.mode === 'shooter') setMode(p, inp.mode);   // modo de juego (src/sim/combos.js)
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style]) p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult; i.soft = !!inp.soft;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style] && inp.style !== 'combo' && p.mode !== 'combo') p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult; i.soft = !!inp.soft;
+    i.a1 = !!inp.a1; i.a2 = !!inp.a2; i.hab = !!inp.hab;   // Combo: ataque 1, ataque 2, habilidad principal
+    if (p.mode === 'combo') { i.fire = false; i.melee = false; i.mov = false; i.esp = false; i.s3 = false; i.reload = false; }   // en Combo los botones de Shooter no hacen nada
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
@@ -121,7 +128,7 @@ export class Game {
     this.tick++; this.time += dt; this.dt = dt;
     if (this.state !== 'playing') return;
     this.director.update(this, dt);
-    this.updateWaves(dt); this.updateOmens();
+    this.updateWaves(dt); this.updateOmens(); tickArenas(this, dt);
     for (const p of this.players) this.updatePlayer(p, dt);
     updateObjective(this, dt); this.updateObjects(dt); if (this.cult) tickCultivo(this, dt);
     if (this.pings.length) this.pings = this.pings.filter((q) => q.until > this.time);
@@ -331,7 +338,7 @@ export class Game {
     p.pitch = clamp(p.pitch + inp.dpitch, -1.5, 1.5);
     inp.dyaw = 0; inp.dpitch = 0;
     const right = cross(p.heading, up);
-    const speed = PLAYER.speed * (inp.dash && !inp.crouch ? PLAYER.dash : 1) * speedMul(p) * (inp.crouch ? 0.55 : 1) * (inp.ads ? 0.8 : 1);
+    const speed = PLAYER.speed * (inp.dash && !inp.crouch ? PLAYER.dash : 1) * speedMul(p) * arVel(this, p) * (inp.crouch ? 0.55 : 1) * (inp.ads ? 0.8 : 1);
     let wish = add(mul(p.heading, inp.mz), mul(right, inp.mx));
     if (zero) {
       wish = add(mul(this.aimDir(p), inp.mz), mul(right, inp.mx));
@@ -524,6 +531,7 @@ export class Game {
       }
       if (!w.pierce) { tEnd = h.t; break; }
     }
+    for (const h of arTargets(this, o, d, w.range)) if (h.t <= tEnd + 0.01) danarOrgano(this, h.ar, w.dmg, p, madd(o, d, Math.max(0, h.t)));   // órganos de la arena viva: reciben el disparo pero NO lo frenan (no tapan a las criaturas)
     return madd(o, d, Math.max(0.5, Math.min(tEnd, w.range)));
   }
 
@@ -563,6 +571,7 @@ export class Game {
     if (by && by.input) { mul_ *= hostOut(this, by, m); if (this.time < (m.dotUntil || 0) && m.dotKind === 'poison' && anyMut(by, 'neurotoxina')) mul_ *= 1.2; }
     if (by && this.time < this.teamBuffUntil) mul_ *= 1.25;
     if (by && by.input && this.evZona && dist(by.pos, this.evZona.pos) < this.evZona.r) mul_ *= 1.3;   // Bendición de la Aurora
+    if (by && by.input) mul_ *= arDanio(this, by);   // Iris de Espejo / Costillar (arenas vivas)
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
@@ -573,7 +582,7 @@ export class Game {
 
   killMonster(m, by) {
     if (m.dead) return;
-    m.dead = true; this.stats.kills++; this.straggleT = 0;
+    m.dead = true; this.stats.kills++; this.straggleT = 0; arKill(this, m);   // alimenta a las Bocas cercanas (arenas vivas)
     if (by && by.input) hostKill(this, by, m);
     if (by) { by.kills++; by.score += m.def.score; if (wstat(by, by.weapon).mod === 'vampirica' && !by.dead) { const mu = wstat(by, by.weapon).mut; by.hp = Math.min(PLAYER.hp, by.hp + (mu === 'simbiosis' ? 10 : 6)); if (mu === 'simbiosis') by.shield = Math.min(PLAYER.shield, by.shield + 8); if (mu === 'parasito') { const w0 = WEAPONS[by.weapon]; if (w0.per > 0) by.ammo[by.weapon] = Math.min(ammoMax(by, by.weapon), by.ammo[by.weapon] + w0.per * 3); } }
       if (m.dotKind === 'poison' && this.time < (m.dotUntil || 0) && anyMut(by, 'plaga')) for (const q of this.monsters) if (!q.dead && q !== m && dist(q.pos, m.pos) < 9) { q.dotUntil = this.time + 4; q.dotDps = 6; q.dotKind = 'poison'; q.dotBy = by.id; } }
@@ -596,7 +605,7 @@ export class Game {
 
   /** Daño en área: a jugadores (pd) y criaturas (md). */
   explode(pos, radius, pd, md, by, hurtPlayers = true) {
-    this.emit({ t: 'boom', p: a3(pos), r: radius });
+    this.emit({ t: 'boom', p: a3(pos), r: radius }); if (by) arExplosion(this, pos, radius, md, by);
     if (hurtPlayers) for (const p of this.players) {
       const d = dist(p.pos, pos);
       if (!p.dead && d < radius + PLAYER.radius) this.hurtPlayer(p, pd * (1 - 0.6 * d / (radius + 1)));
@@ -813,7 +822,7 @@ export class Game {
       obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
       mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
-      ev: evSnap(this),
+      ev: evSnap(this), ar: arSnap(this),
       dir: { stress: r2(this.director.stress), frag: this.fragments, buff: r2(Math.max(0, this.teamBuffUntil - this.time)) },
       events: this.drainEvents(),
     };

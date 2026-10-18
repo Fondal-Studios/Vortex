@@ -48,7 +48,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
   const human = createHuman(kit, { char: p.char, name: p.name || p.char, color: L.glow, accent: L.glow, noGear: true, weapon: null, hands: false, overrides: { body: NEUTRAL } });
   holder.add(human.object); holder.visible = false; // hasta que el kit esté armado no se muestra (si no, se vería el humano desnudo)
   let shownEvo = -1, shape = { g: 1, x: 1, y: 1, z: 1 }, lean = 0, lastPath = '', ak = null, bodyGeo = null, map = opts.map || null, key = '', ready = false, disposed = false, time = Math.random() * 10, act = null, clip = '', fade = 1, fadeMats = [], weapon = null, organs = null, extra = {}, sigil = null;
-  const camera = opts.camera || null, presence = createPresence(T, { glow: L.glow, quality }); object.add(presence.object);
+  const camera = opts.camera || null, presence = createPresence(T, { glow: L.glow, quality, camera }); object.add(presence.object);
 
   async function loadBodyGeometry() {
     const lod = !!kit.profile.lod, m = await kit.store.mesh(lod ? 'body@none' : 'body', lod, 'body'), g = new T.BufferGeometry();

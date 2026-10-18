@@ -3,7 +3,7 @@
 // cmb (combo melee 0..3), bf (máscara de estados). Si un campo falta se trata como 0 (y mv/es, los antiguos, sirven de respaldo).
 // En PC dibuja un panel a la derecha; en táctil dibuja una tira compacta arriba a la izquierda y pone el anillo de enfriamiento
 // (variable CSS --p, clases .ready/.act, número en data-cd) sobre los botones .tc-mov .tc-esp .tc-s3 .tc-ult .tc-melee.
-import { CHARACTERS } from '../sim/data.js';
+import { CHARACTERS, HABILIDADES } from '../sim/data.js';
 
 const STYLE_ID = 'huesped-style';
 const CSS = `
@@ -51,16 +51,18 @@ export function createHuespedHud(rootEl) {
   if (!doc.getElementById(STYLE_ID)) { const s = doc.createElement('style'); s.id = STYLE_ID; s.textContent = CSS; doc.head.appendChild(s); }
   const el = doc.createElement('div'); el.className = 'hq'; el.id = 'huesped'; rootEl.appendChild(el);
   const am = doc.createElement('div'); am.className = 'hq-ammo'; am.innerHTML = '<b></b><small></small><i><u></u></i>'; rootEl.appendChild(am);
-  let built = '', cache = {};
+  const ch = doc.createElement('div'); ch.id = 'combohud'; ch.innerHTML = '<b></b><small></small><u><s></s></u>'; rootEl.appendChild(ch);   // contador de combo (modo Combo)
+  let built = '', cache = {}, me0 = null;
   const rows = {};
-  const build = (C, touch) => {
+  const build = (C, touch, combo) => {
     el.style.setProperty('--hc', hex(C.color || 0xffe27a));
     const sk = (id, cls, key, name) => `<div class="hs ${cls}" data-k="${id}">${touch ? '' : `<kbd>${key}</kbd>`}<span>${name}</span><em></em><i></i></div>`;
     el.innerHTML = `<div class="hn"><b>${(C.name || '').toUpperCase()}</b><small>${C.title || ''}</small><span class="tcm"></span></div>` +
-      sk('mov', 'mov', 'F', C.mov ? C.mov.name : 'Habilidad 1') + sk('esp', 'esp', 'G', C.esp ? C.esp.name : 'Habilidad 2') +
-      sk('s3', 's3', 'Z', C.s3 ? C.s3.name : 'Habilidad 3') + sk('ult', 'ult', 'R', C.ult ? C.ult.name : 'Definitiva') +
-      `<div class="hm"><kbd>V</kbd><span>Melee<span class="pips"></span></span></div><div class="hb"></div>`;
-    for (const k of ['mov', 'esp', 's3', 'ult']) { const r = el.querySelector(`[data-k="${k}"]`); rows[k] = { r, em: r.querySelector('em'), bar: r.querySelector('i') }; }
+      (combo ? sk('hab', 'hab', 'Q', (HABILIDADES[C.id] || HABILIDADES[me0.char] || {}).name || 'Habilidad') + sk('ult', 'ult', 'T', C.ult ? C.ult.name : 'Definitiva')
+        : sk('mov', 'mov', 'F', C.mov ? C.mov.name : 'Habilidad 1') + sk('esp', 'esp', 'G', C.esp ? C.esp.name : 'Habilidad 2') +
+          sk('s3', 's3', 'Z', C.s3 ? C.s3.name : 'Habilidad 3') + sk('ult', 'ult', 'R', C.ult ? C.ult.name : 'Definitiva')) +
+      `<div class="hm"><kbd>${combo ? 'A1·A2' : 'V'}</kbd><span>${combo ? 'Combo' : 'Melee'}<span class="pips"></span></span></div><div class="hb"></div>`;
+    for (const k of combo ? ['hab', 'ult'] : ['mov', 'esp', 's3', 'ult']) { const r = el.querySelector(`[data-k="${k}"]`); rows[k] = { r, em: r.querySelector('em'), bar: r.querySelector('i') }; }
     rows.pips = el.querySelector('.hm .pips'); rows.tcm = el.querySelector('.tcm'); rows.hb = el.querySelector('.hb'); rows.hm = el.querySelector('.hm');
     const pips = '<span class="pip"></span><span class="pip"></span><span class="pip"></span>';
     rows.pips.innerHTML = pips; rows.tcm.innerHTML = pips; cache = {};
@@ -76,9 +78,10 @@ export function createHuespedHud(rootEl) {
   /** me = jugador propio del snapshot (o null). touch = ¿hay botones táctiles? */
   function update(me, touch = false, hudVisible = true) {
     const C = me && CHARACTERS[me.char];
-    if (!C || !hudVisible || me.dead) { el.style.display = 'none'; am.style.display = 'none'; return; }
+    if (!C || !hudVisible || me.dead) { el.style.display = 'none'; am.style.display = 'none'; ch.classList.remove('on'); return; }
     el.style.display = ''; el.classList.toggle('touch', !!touch);
-    const key = `${me.char}|${touch}`; if (key !== built) { built = key; build(C, touch); }
+    me0 = me; const combo = !!me.md; doc.body.classList.toggle('modo-combo', combo);   // en Combo no hay barra de armas ni munición
+    const key = `${me.char}|${touch}|${combo}`; if (key !== built) { built = key; build(C, touch, combo); }
     const cd = (sec, frac, def) => (sec != null ? +sec || 0 : (+frac || 0) * (def ? def.cd : 0));
     const mc = cd(me.mc, me.mv, C.mov), ec = cd(me.ec, me.es, C.esp), s3c = +me.s3c || 0, ul = +me.ul || 0, ua = +me.ua || 0, cmb = Math.max(0, Math.min(3, me.cmb | 0)), bf = me.bf | 0;
     const ultMax = (C.ult && C.ult.charge) || 100;
@@ -87,7 +90,11 @@ export function createHuespedHud(rootEl) {
       const sig = `${Math.ceil(sec * 10)}`; if (cache[k] !== sig) { cache[k] = sig; row.r.classList.toggle('cd', sec > 0.01); row.em.textContent = sec > 0.01 ? `${Math.ceil(sec)} s` : 'LISTA'; row.bar.style.transform = `scaleX(${p})`; }
       setBtn(`.tc-${k}`, p, RING[k], sec, ready, false, def ? def.name : '');
     };
-    skill('mov', mc, C.mov); skill('esp', ec, C.esp); skill('s3', s3c, C.s3);
+    if (combo) { // habilidad principal del modo Combo: enfriamiento (hc de hx s), preparación (hw) y anillo en el botón HABILIDAD
+      const H = HABILIDADES[me.char], hc = +me.hc || 0, hw = +me.hw || 0, total = Math.max(0.01, +me.hx || (H ? H.cd : 1)), p = hc > 0.01 ? 1 - Math.min(1, hc / total) : 1, row = rows.hab;
+      const sig = `${Math.ceil(hc * 10)}|${hw > 0}`; if (cache.hab !== sig) { cache.hab = sig; row.r.classList.toggle('cd', hc > 0.01 && !hw); row.r.classList.toggle('ready', hc <= 0.01); row.r.classList.toggle('act', hw > 0); row.em.textContent = hw > 0 ? '¡YA!' : hc > 0.01 ? `${Math.ceil(hc)} s` : 'LISTA'; row.bar.style.transform = `scaleX(${p})`; }
+      setBtn('.tc-hab', p, '#ffd23f', hc, hc <= 0.01, hw > 0, H ? H.name : 'Habilidad');
+    } else { skill('mov', mc, C.mov); skill('esp', ec, C.esp); skill('s3', s3c, C.s3); }
     { // definitiva: carga 0..100, «lista» al llegar, y cuenta atrás mientras está activa
       const row = rows.ult, active = ua > 0.05, ready = !active && ul >= ultMax - 0.01, p = active ? Math.min(1, ua / 12) : Math.min(1, ul / ultMax);
       const sig = `${active}|${ready}|${Math.round(ul)}|${Math.ceil(ua)}`;
@@ -95,12 +102,18 @@ export function createHuespedHud(rootEl) {
       setBtn('.tc-ult', p, active ? '#ff66c4' : RING.ult, 0, ready, active, C.ult ? C.ult.name : '');
       const b = doc.querySelector('.tc-ult'); if (b) { if (active) b.dataset.cd = String(Math.ceil(ua)); else delete b.dataset.cd; }
     }
+    { // contador de combo grande (modo Combo): ×N, nombre del último golpe y barra de la ventana
+      const n = combo ? (me.cn | 0) : 0, w = combo ? +me.cw || 0 : 0, on = n > 0 && w > 0, sig = `${on}|${n}|${me.cnm}`;
+      if (cache.ch !== sig) { cache.ch = sig; ch.classList.toggle('on', on); if (on) { ch.querySelector('b').innerHTML = `×${n}<i>COMBO</i>`; ch.querySelector('small').textContent = me.cnm || ''; ch.classList.remove('pop'); void ch.offsetWidth; ch.classList.add('pop'); } }
+      ch.querySelector('s').style.transform = `scaleX(${Math.min(1, w / 0.9)})`;
+      if (!combo) ch.classList.remove('on');
+    }
     { // combo de melee
       const sig = `c${cmb}`; if (cache.cmb !== sig) { cache.cmb = sig; for (const host of [rows.pips, rows.tcm]) host.querySelectorAll('.pip').forEach((p, i) => p.classList.toggle('on', i < cmb)); }
       setBtn('.tc-melee', cmb / 3, RING.melee, 0, cmb >= 3, false, 'Melee');
     }
     { // munición: «cargador / reserva» (reserva -1 = ∞) y barrita mientras recarga
-      const has = me.cl != null && me.cm != null; am.style.display = has ? '' : 'none'; am.classList.toggle('touch', !!touch);
+      const has = me.cl != null && me.cm != null && !combo; am.style.display = has ? '' : 'none'; am.classList.toggle('touch', !!touch);
       if (has) { const rl = +me.rl || 0, rs = me.rs == null ? '' : me.rs < 0 ? '∞' : me.rs, sig = `${me.cl}|${me.cm}|${rs}|${rl > 0}`;
         if (cache.am !== sig) { cache.am = sig; am.querySelector('b').innerHTML = `${me.cl}${rs === '' ? '' : ` <span>/ ${rs}</span>`}`; am.classList.toggle('low', me.cm > 0 && me.cl <= Math.max(1, me.cm * 0.25)); am.classList.toggle('rel', rl > 0); am.querySelector('small').textContent = rl > 0 ? 'RECARGANDO' : (me.cl === 0 ? 'RECARGÁ' : ''); }
         am.querySelector('u').style.width = `${Math.round(Math.min(1, rl) * 100)}%`;

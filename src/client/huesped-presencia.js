@@ -10,6 +10,7 @@
 //   cada cuadro: pr.update(dt, t, { speed, moveDir:{x,z}, viewH });   pr.burst(colorHex);   pr.pop (escala) · pr.boost (resplandor) · pr.hide (cuerpo oculto durante la carga)
 import * as T from 'three';
 import { TIER_MARCA, MARCA_COLOR, cosmeticosActivos } from '../sim/maestria.js';
+import { claridad } from './quality.js';
 
 /** Color y comportamiento de cada camino (kind = índice en el shader de partículas). */
 export const PATH_STYLE = {
@@ -51,10 +52,26 @@ const PILLAR_FS = `uniform float uT, uK, uH; uniform vec3 uC; varying vec2 vU; v
 const add = { transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false };
 const SIZE_BY_Q = { low: 1, medium: 1.5, high: 2 };
 
-export function createPresence(_T, { glow = 0x4ab4ff, quality = 'low' } = {}) {
+/** Textura de resplandor suave (radial) compartida por los halos de CLARIDAD. */
+let HALO_TEX = null;
+function haloTex() {
+  if (HALO_TEX || typeof document === 'undefined') return HALO_TEX;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.55)'); g.addColorStop(0.7, 'rgba(255,255,255,0.14)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  HALO_TEX = new T.CanvasTexture(c); HALO_TEX.colorSpace = T.SRGBColorSpace; return HALO_TEX;
+}
+const POOL_FS = `uniform vec3 uC; uniform float uA; varying vec2 vP; void main(){ float r = length(vP) / 2.0, a = smoothstep(1.0, 0.15, r) * (0.55 + 0.45 * smoothstep(0.1, 0.55, r)); gl_FragColor = vec4(uC * 1.5, a * uA); }`; // anillo suave: el cuerpo oscuro se recorta contra el charco
+
+export function createPresence(_T, { glow = 0x4ab4ff, quality = 'low', camera = null } = {}) {
   const object = new T.Group(); object.name = 'presencia'; object.frustumCulled = false;
   const uni = { uT: { value: 0 }, uH: { value: 700 }, uSc: { value: 1 }, uK: { value: 1 }, uSp: { value: 0 }, uMv: { value: new T.Vector2() } };
   let pts = null, ground = null, pillar = null, mark = null, markMat = null, cur = { evo: 0, path: [], rank: 1, scale: 1 }, built = '', sp = 0, mv = new T.Vector2(), time = 0, bursts = [];
+  // CLARIDAD: charco de luz bajo los pies + resplandor detrás de la silueta (2 llamadas, sin importar el nivel). El cuerpo oscuro siempre se lee contra algo más claro.
+  const poolU = { uC: { value: new T.Color(glow) }, uA: { value: 0.5 } };
+  const pool = new T.Mesh(new T.CircleGeometry(2, 28).rotateX(-Math.PI / 2), new T.ShaderMaterial({ ...add, uniforms: poolU, vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: POOL_FS }));
+  pool.position.y = 0.05; pool.frustumCulled = false; pool.renderOrder = -2; pool.name = 'presencia-charco'; object.add(pool);
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: haloTex(), color: glow, ...add })); halo.renderOrder = -1; halo.name = 'presencia-halo'; halo.frustumCulled = false; object.add(halo);
+  const _w = new T.Vector3(), _c = new T.Vector3();
   const own = []; // geometrías y materiales a liberar al reconstruir
   const kill = (o) => { if (!o) return; object.remove(o); o.traverse((x) => { if (x.geometry) x.geometry.dispose(); if (x.material) x.material.dispose(); }); };
   const api = { object, pop: 1, boost: 1, hide: false, burstT: -1, get active() { return this.burstT >= 0; } };
@@ -144,7 +161,10 @@ export function createPresence(_T, { glow = 0x4ab4ff, quality = 'low' } = {}) {
     if (mark) { mark.userData.m.rotation.y = t * (0.8 + cur.rank * 0.08); mark.position.y = 2.02 * cur.scale + 0.16 + 0.03 * Math.sin(t * 2.1); if (TIER_MARCA(cur.rank) === 'prisma') markMat.color.setHSL((t * 0.25) % 1, 0.9, 0.65); markMat.opacity = 0.8 + 0.2 * Math.sin(t * 3); }
     if (ground) ground.userData.u.uK.value = 0.85 + 0.15 * Math.sin(t * 1.7);
     uni.uK.value = api.hide ? 0 : 1; void time;
+    const cl = claridad(), sc = cur.scale, vis = api.hide ? 0 : 1;
+    pool.scale.setScalar(sc * 1.25); poolU.uA.value = cl.pool * vis; halo.material.opacity = cl.halo * vis; halo.scale.setScalar(3.1 * sc);
+    if (camera) { object.getWorldPosition(_w); _c.copy(camera.position).sub(_w); const l = _c.length() || 1; _c.multiplyScalar(-0.75 * sc / l); halo.position.copy(object.worldToLocal(_w.clone().add(_c).addScaledVector(new T.Vector3(0, 1, 0).transformDirection(object.matrixWorld), 1.05 * sc))); } else halo.position.set(0, 1.0 * sc, 0);
   };
-  api.dispose = () => { kill(pts); kill(ground); kill(pillar); kill(mark); kill(api._b); object.removeFromParent(); void own; void bursts; };
+  api.dispose = () => { kill(pool); halo.material.dispose(); object.remove(halo); kill(pts); kill(ground); kill(pillar); kill(mark); kill(api._b); object.removeFromParent(); void own; void bursts; };
   return api;
 }

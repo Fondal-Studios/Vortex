@@ -25,6 +25,9 @@ const BTN = [
   ['ability', 'tc-ability', '✚', 'EQUIPO', 'hold', false],
   ['use', 'tc-use', '✋', 'USAR', 'hold', false],
   ['ping', 'tc-ping', '◆', '', 'hold', false],
+  ['a1', 'tc-a1', '⚔', 'ATAQUE 1', 'hold', true],       // modo COMBO: ataque 1 (arrastrarlo también apunta)
+  ['a2', 'tc-a2', '✦', 'ATAQUE 2', 'hold', true],       // modo COMBO: ataque 2
+  ['hab', 'tc-hab', '✺', 'HABILIDAD', 'hold', false],   // modo COMBO: la habilidad principal del Huésped (grande)
   ['pause', 'tc-pause', '❚❚', '', 'tap', false],
 ];
 // Modo básico: SÓLO 4 botones (disparo, recargar, melee, salto) + pausa. Lo demás:
@@ -34,6 +37,8 @@ const BTN = [
 const BASIC = ['fire', 'reload', 'melee', 'jump', 'mov', 'esp', 'pause'];   // habilidades 1 y 2 siempre a mano (el dueño: «no se pueden usar las habilidades»)
 const ADV = ['s3', 'ads', 'crouch', 'ability', 'ping'];
 const CTX = ['ult', 'use', 'evo'];
+// Modo COMBO (docs/CONTROLES.md): ATAQUE 1, ATAQUE 2, HABILIDAD (grande) y SALTAR; los contextuales (USAR / EVOLUC. / ULTI) aparecen igual.
+const COMBO_SHOW = ['a1', 'a2', 'hab', 'jump', 'pause'];
 const SHOW = (fingers, advanced) => [...BASIC, ...(fingers >= 3 ? ['fireL'] : []), ...(advanced ? ADV : [])];
 const STICK_R = 58;             // radio del recorrido de la palanca (px CSS)
 const STICK_DEAD = 0.1;         // zona muerta (fracción)
@@ -41,14 +46,14 @@ const STICK_DEAD = 0.1;         // zona muerta (fracción)
 export class TouchControls {
   constructor(host, { onPause, onWeapon } = {}) {
     this.host = host; this.onPause = onPause; this.onWeapon = onWeapon;
-    this.reset(true); this.enabled = false; this.editing = false; this.ptrs = new Map();
+    this.mode = 'shooter'; this.reset(true); this.enabled = false; this.editing = false; this.ptrs = new Map();
     this.zoomKind = 0;           // 0 = sin zoom · 1 = ADS común · 2 = mira óptica
     this.gyroOn = false; this.build(); this.applyLayout();
   }
   /* ───── estado de entrada ───── */
   reset(first = false) {
     this.mx = 0; this.mz = 0; this.dyaw = 0; this.dpitch = 0; this.weapon = -1;
-    this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, reload: false, evo: false, ability: false, use: false, ping: false };
+    this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, reload: false, evo: false, ability: false, use: false, ping: false, a1: false, a2: false, hab: false };
     this.dashStick = false; this.adsToggled = false; this.ctx = this.ctx || {};
     if (!first) { this.ptrs.clear(); this.stick.classList.add('hidden'); this.host.querySelectorAll('.on').forEach((b) => b.classList.remove('on')); }
   }
@@ -81,7 +86,7 @@ export class TouchControls {
 
   /* ───── diseño personalizado ───── */
   applyLayout() {
-    const s = settings(), vis = new Set(SHOW(s.fingers, !!s.advanced));
+    const s = settings(), vis = new Set(this.mode === 'combo' ? COMBO_SHOW : SHOW(s.fingers, !!s.advanced));
     this.host.style.setProperty('--hud-op', String(s.hudOpacity)); this.host.style.setProperty('--hud-s', String(s.hudScale));
     for (const [id] of BTN) { const el = this.$(`[data-a="${id}"]`), l = s.layout[id] || {}; if (!el) continue; el.style.setProperty('--dx', `${l.dx || 0}px`); el.style.setProperty('--dy', `${l.dy || 0}px`); el.style.setProperty('--s', String((l.s || 1) * s.hudScale)); el.classList.toggle('tc-off', CTX.includes(id) ? !(this.ctx[id] || this.editing || this.ctxForce) : !(vis.has(id) || this.editing && ADV.includes(id) && s.advanced)); el.classList.toggle('tc-ctx', CTX.includes(id)); }
     const op = this.$('#tcOp'); if (op) op.value = Math.round(s.hudOpacity * 100);
@@ -98,6 +103,8 @@ export class TouchControls {
     this.ctx = this.ctx || {}; let ch = false; for (const k of CTX) { const v = !!c[k]; if (this.ctx[k] !== v) { this.ctx[k] = v; ch = true; if (!v && this.st[k]) { this.st[k] = false; this.host.querySelector(`[data-a="${k}"]`)?.classList.remove('on'); } } }
     if (ch) this.applyLayout();
   }
+  /** Modo de juego: 'combo' muestra sólo ATAQUE 1, ATAQUE 2, HABILIDAD y SALTAR; 'shooter' los botones de siempre. */
+  setMode(m) { m = m === 'combo' ? 'combo' : 'shooter'; if (this.mode === m) return; this.mode = m; this.host.classList.toggle('combo-mode', m === 'combo'); this.reset(); this.applyLayout(); }
   /** Cantidad de dedos (2/3/4): muestra u oculta los botones extra. */
   setFingers(n) { setSetting('fingers', n); this.applyLayout(); }
 
@@ -210,7 +217,7 @@ export class TouchControls {
 
   /** Entrada de este cuadro (los acumulados de giro se consumen). */
   read() {
-    const s = this.st, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: s.fire || s.fireL, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: s.melee, reload: s.reload, evo: s.evo, ads: s.ads, crouch: s.crouch };
+    const s = this.st, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: s.fire || s.fireL, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: s.melee, reload: s.reload, evo: s.evo, ads: s.ads, crouch: s.crouch, a1: s.a1, a2: s.a2, hab: s.hab, mode: this.mode };
     this.dyaw = this.dpitch = 0; this.weapon = -1; return i;
   }
 }

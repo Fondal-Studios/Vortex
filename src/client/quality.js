@@ -36,3 +36,20 @@ export class AutoQuality {
     if (this.bad > 5) { this.bad = 0; this.onDrop(lower(level)); }
   }
 }
+
+/** CLARIDAD (legibilidad del Huésped y los enemigos; la psicodelia sigue a tope, pero la lectura del jugador manda).
+ *  «Normal» ya trae un mínimo medible de contraste (tools/legibilidad.mjs); «Alta» sube relleno, contorno de luz y suelo. Se guarda en ajustes (settings.js · claridad) o con ?claridad=alta.
+ *   key: luz de relleno que sigue al Huésped · rim: fuerza del borde de luz del cuerpo · halo: resplandor detrás de la silueta · pool: charco de luz en el suelo · outline: contorno de luz por salto de profundidad (post.js)
+ *   floor: piso tintado en las sombras (post.js, conserva el tono de cada mapa) · fog: tope de opacidad de la niebla · exp: multiplicador de exposición · beacon: halo de color de cada enemigo */
+export const CLARIDAD = {
+  normal: { id: 'normal', label: 'Normal', key: 1.0, rim: 1.0, halo: 0.34, pool: 0.35, floor: 0.045, outline: 0.55, fog: 0.62, exp: 1.06, beacon: 0.5 },
+  alta:   { id: 'alta',   label: 'Alta',   key: 1.7, rim: 1.9, halo: 0.6,  pool: 0.85, floor: 0.085, outline: 0.9, fog: 0.5,  exp: 1.16, beacon: 0.75 },
+};
+/** Uniforme compartido (0 = Normal, 1 = Alta) que leen los materiales del cuerpo (borde de luz) sin reconstruirse. */
+export const uClar = { value: 0 };
+let clar = 'normal';
+export function setClaridad(id) { if (!CLARIDAD[id]) return clar; clar = id; uClar.value = id === 'alta' ? 1 : 0; return clar; }
+export const claridad = () => CLARIDAD[clar];
+export function initialClaridad(saved, params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams()) {
+  const q = params.get('claridad'); return CLARIDAD[q] ? q : (CLARIDAD[saved] ? saved : 'normal');
+}

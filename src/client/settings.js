@@ -14,8 +14,10 @@ export const DEFAULTS = Object.freeze({
   fingers: 2,         // 2, 3 o 4 dedos
   hudScale: 1, hudOpacity: 0.85,
   advanced: false,    // modo avanzado: muestra HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO y SEÑALAR (básico = sólo disparo, recargar, melee y salto)
+  mode: 'shooter',    // MODO DE JUEGO: 'shooter' (el de siempre) | 'combo' (dos ataques encadenados + una habilidad; data.js GAME_MODES). También por URL ?modo=combo|shooter
   style: 'disparo',  // estilo de combate: 'melee' | 'disparo' | 'habilidad' (data.js STYLES)
   simple: true,       // MODO SIMPLE: ayuda de puntería alta, dispara solo al tener un enemigo en la mira y golpea solo cuando lo tenés encima
+  claridad: 'normal', // CLARIDAD visual (quality.js · CLARIDAD): 'normal' | 'alta' (más luz de relleno y contorno de luz sobre el Huésped y los enemigos)
   third: true,        // cámara en tercera persona sobre el hombro (verte a vos mismo)
   camDist: 3.6, camSide: 1, camFov: 78,   // distancia, hombro (1 derecha / -1 izquierda) y campo de visión de la 3ª persona
   adsMode: 'mantener', // 'mantener' | 'alternar'
