@@ -1,4 +1,4 @@
-# PACTO PSICO
+# VORTEX
 
 Acción de supervivencia por hordas (modos Shooter y Combo) en primera persona, en 3D, **solo o hasta 4 en cooperativo**. Te atropella un tren, despertás en el **Vórtice** —lo que hay entre vivir y no— con armas psicodélicas en las manos y un bicho extraño (el **Heraldo**) te explica la única regla: *sobrevivir a todo para volver al mundo de los vivos*. Los enemigos son **organismos vivos** (carne + biocristal), la gravedad es una mecánica, y corre en **PC y en iPhone**.
 

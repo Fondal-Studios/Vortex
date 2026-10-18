@@ -6,23 +6,23 @@ import { migas, migasTexto, PANTALLAS, HUBS, PUERTAS, continuarDe, avisos, rutaO
 
 // El título del juego vive en UNA constante (src/client/marca.js) y no quedan restos del nombre viejo en lo que ve el jugador.
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
-test('marca: el nombre es PACTO PSICO y el logo se arma con las mismas palabras', () => {
-  assert.equal(MARCA.nombre, 'PACTO PSICO'); assert.equal(MARCA.logo.join(' '), MARCA.nombre); assert.equal(MARCA.mundo, 'el Vórtice');
+test('marca: el nombre es VORTEX y el logo se arma con las mismas palabras', () => {
+  assert.equal(MARCA.nombre, 'VORTEX'); assert.equal(MARCA.logo.join(''), MARCA.nombre); assert.equal(MARCA.mundo, 'el Vórtice');
   assert.ok(MARCA.subtitulo.length > 10 && !/shooter/i.test(MARCA.subtitulo + MARCA.legal + MARCA.descripcion));
 });
 test('marca: index, tarjeta final y manifest dicen lo mismo que la constante y no queda el nombre viejo', () => {
   const html = leer('public/index.html'), end = leer('public/endcard.html'), man = JSON.parse(leer('public/manifest.webmanifest'));
   assert.match(html, new RegExp(`<title>${MARCA.nombre}</title>`)); assert.match(html, new RegExp(`apple-mobile-web-app-title" content="${MARCA.corto}"`));
   assert.equal(man.name, MARCA.nombre); assert.equal(man.short_name, MARCA.corto); assert.equal(man.description, MARCA.descripcion);
-  for (const [n, t] of [['index.html', html], ['endcard.html', end], ['manifest', JSON.stringify(man)]]) assert.doesNotMatch(t, /cristal\s*v[óo]rtice|shower\s*psico/i, n);
-  assert.match(end, /PACTO/); assert.match(end, /PSICO/);
+  for (const [n, t] of [['index.html', html], ['endcard.html', end], ['manifest', JSON.stringify(man)]]) assert.doesNotMatch(t, /cristal\s*v[óo]rtice|shower\s*psico|pacto\s*psico/i, n);
+  assert.match(end, /VORTEX/);
   // el texto visible del título/carga sale de la constante (data-marca), no está repetido a mano en otro lado del JS del menú
-  for (const f of ['src/client/ui.js', 'src/client/menu-hubs.js', 'src/client/tienda-ui.js']) assert.doesNotMatch(leer(f), /CRISTAL|PACTO PSICO/, f);
+  for (const f of ['src/client/ui.js', 'src/client/menu-hubs.js', 'src/client/tienda-ui.js']) assert.doesNotMatch(leer(f), /CRISTAL|VORTEX/, f);
 });
 test('marca: aplicarMarca escribe título, logo, subtítulo y carga en el documento', () => {
   const els = { logo1: { textContent: '' }, logo2: { textContent: '' }, nombre: { textContent: '' }, subtitulo: { textContent: '' }, legal: { textContent: '' } }; const meta = { c: '', setAttribute(k, v) { this.c = v; } };
   const doc = { title: '', querySelectorAll: (sel) => { const m = /data-marca="(\w+)"/.exec(sel); if (m) return [els[m[1]]]; return sel.includes('apple-mobile-web-app-title') ? [meta] : []; } };
-  aplicarMarca(doc); assert.equal(doc.title, 'PACTO PSICO'); assert.equal(els.logo1.textContent, 'PACTO'); assert.equal(els.logo2.textContent, 'PSICO'); assert.equal(els.nombre.textContent, 'PACTO PSICO'); assert.equal(els.subtitulo.textContent, MARCA.subtitulo); assert.equal(meta.c, 'Pacto Psico');
+  aplicarMarca(doc); assert.equal(doc.title, 'VORTEX'); assert.equal(els.logo2.textContent, 'VORTEX'); assert.equal(els.nombre.textContent, 'VORTEX'); assert.equal(els.subtitulo.textContent, MARCA.subtitulo); assert.equal(meta.c, 'Vortex');
 });
 test('menú: 4 puertas, cada pantalla colgada de un hub, migas «Inicio › Mi Huésped › Inventario»', () => {
   assert.deepEqual(PUERTAS.map((d) => d.id), ['jugar', 'huesped', 'mundo', 'ajustes']);

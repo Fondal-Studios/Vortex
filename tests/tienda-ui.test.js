@@ -27,7 +27,7 @@ const perfil = (pg) => pg.evaluate((k) => JSON.parse(localStorage.getItem(k)), K
 test('menú: 4 puertas + Continuar; Mundo › Tienda con migas y Esc que vuelve de a un paso', { skip: !hasChromium, timeout: 600000 }, async () => {
   const errors = [], { ctx, pg } = await abrir(1280, 720, false, { cores: 700 }, errors);
   assert.equal(await pg.locator('#mainlist .door').count(), 4); assert.ok(await pg.locator('#continuar').isVisible(), 'Continuar siempre visible');
-  assert.match(await pg.textContent('#continuar'), /Jugar|Continuar/); assert.equal(await pg.title(), 'PACTO PSICO');
+  assert.match(await pg.textContent('#continuar'), /Jugar|Continuar/); assert.equal(await pg.title(), 'VORTEX');
   await pg.click('#mainlist [data-door=mundo]'); await pg.waitForSelector('#hub-mundo.on');
   assert.deepEqual(await pg.locator('#hub-mundo .hubcard').allInnerTexts().then((a) => a.map((t) => t.split('\n')[0].trim())), ['TERRITORIOS', 'BESTIARIO', 'TIENDA']);
   assert.match(await pg.textContent('#hub-mundo [data-go=tienda]'), /700 núcleos/, 'la tarjeta de la Tienda muestra el saldo');

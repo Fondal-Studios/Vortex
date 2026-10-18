@@ -109,7 +109,7 @@ Dos ataques encadenados + tres habilidades. Ya no se elige sólo en el menú: se
 - Opciones › «Efectos de golpe» (Completos / Reducidos) y «Reducir movimiento» apagan o atenúan sacudida, FOV, hit-stop y cámara lenta. En 3.ª persona el contador de combo se corre a la derecha para no tapar al héroe.
 - Detalle técnico y tabla de poses: docs/HUESPEDES.md → «Golpes que se ven y se sienten». **No probado**: iPhone real, táctil real, mando, coop.
 
-## Menú principal en 4 puertas (PACTO PSICO)
+## Menú principal en 4 puertas (VORTEX)
 Inicio = botón grande **Continuar / Jugar** (retoma lo último que jugaste: Historia o la última arena) + 4 puertas. Cada una abre un «hub» de tarjetas:
 
 | Puerta | Qué trae |

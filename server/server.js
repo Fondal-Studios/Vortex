@@ -120,5 +120,5 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const port = +process.env.PORT || 8080;
-  startServer({ port }).then((s) => console.log(`Cristal Vórtice en http://localhost:${s.port}`));
+  startServer({ port }).then((s) => console.log(`VORTEX en http://localhost:${s.port}`));
 }

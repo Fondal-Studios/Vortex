@@ -1,10 +1,10 @@
 // MARCA del juego: el nombre y el subtítulo viven SOLO acá. Si algún día cambia el título, se cambia en este archivo
 // (y en public/manifest.webmanifest, que el navegador lee aparte; tests/marca.test.js avisa si dejan de coincidir).
 export const MARCA = {
-  nombre: 'PACTO PSICO',
+  nombre: 'VORTEX',
   /** Dos líneas del logo grande (título y menú): la primera en fino, la segunda en grande. */
-  logo: ['PACTO', 'PSICO'],
-  corto: 'Pacto Psico',
+  logo: ['', 'VORTEX'],
+  corto: 'Vortex',
   subtitulo: 'Sobrevivir al Vórtice, donde la gravedad es solo una opinión',
   legal: 'Acción psicodélica en 3D · PC · iPhone · 1–4 jugadores',
   /** Nombre del mundo: el limbo donde pasa todo. */
