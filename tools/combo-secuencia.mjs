@@ -11,7 +11,7 @@ const SECS = { todos: [['a1'], ['a1', 'a1'], ['a1', 'a1', 'a1'], ['a2'], ['a1', 
 const seqs = SEQ === 'todos' ? SECS.todos : [SEQ.split(',')];
 const srv = await startServer({ port: 0 }), b = await launch(), errors = [], reg = { char: CHAR, cam: CAM, golpes: [] };
 const ctx = await b.newContext({ viewport: { width: 640, height: 400 } });
-await ctx.addInitScript((c) => { try { localStorage.setItem('cristal.huesped.v1', c); } catch { /* ok */ } }, CHAR);
+await ctx.addInitScript((c) => { try { localStorage.setItem('cristal.huesped.v1', c); localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } }, CHAR);
 const pg = await ctx.newPage();
 pg.on('pageerror', (e) => errors.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(m.text()); if (/\[combo\]/.test(m.text())) console.log(m.text()); });
 await pg.goto(`http://localhost:${srv.port}/?auto=m1&god=1&seed=3&q=low&autoq=0&nolock=1&skipintro=1&cam=${CAM}&modo=combo&cap=1&dev=1`, { timeout: 180000 });
