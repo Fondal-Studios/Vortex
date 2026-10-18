@@ -40,7 +40,7 @@ export class MenuUI {
     if (push && this.screen !== name && name !== 'title') this.stack.push(this.screen);
     const antes = this.screen; this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';   // dirección de la transición corta (menu.css)
     this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name));
-    dibujarMigas(this, name); const inicio = name === 'main' || name.startsWith('hub-') || name === 'tienda'; const sal = $('saldo'); if (sal) sal.hidden = !inicio;
+    dibujarMigas(this, name); const inicio = name === 'main' || name.startsWith('hub-'); this.root.dataset.inicio = inicio ? '1' : '0'; const sal = $('saldo'); if (sal) sal.hidden = !inicio;   // (la Tienda trae su propio saldo)
     if (inicio) refrescarInicio(this);
     this.idx = name === 'bestiary' ? 0 : 0; this.focus(this.idx, true);
     $('prompts').style.opacity = name === 'title' || name === 'tienda' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
@@ -55,7 +55,7 @@ export class MenuUI {
     if (name === 'main') this.refreshHuesped();
   }
   /** Rótulo del menú principal: qué Huésped está elegido (el panel de Mi Huésped, Continuar y los avisos se recalculan). */
-  refreshHuesped() { if (this.screen === 'main' || this.screen.startsWith('hub-') || this.screen === 'tienda') refrescarInicio(this); }
+  refreshHuesped() { if (this.screen === 'main' || this.screen.startsWith('hub-')) refrescarInicio(this); }
   back() {
     if (this.screen === 'title') return;
     if (this.screen === 'tienda' && this.tn && this.tn.dialogoAbierto()) { this.tn.cerrarDialogo(); this.sound.ui('back'); this.focus(this.idx, true); return; }   // Esc cierra primero el cartel de confirmación

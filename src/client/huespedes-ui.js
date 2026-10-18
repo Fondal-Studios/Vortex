@@ -212,7 +212,7 @@ export function buildHuespedScreen(menu) {
     const d = C.stats ? C.stats.dificultad : null; const dd = $('#hsdiff'); dd.hidden = d == null;
     if (d != null) dd.innerHTML = `Dificultad: <b>${LEVEL(d)}</b> <span class="hs-pips" aria-hidden="true">${Array.from({ length: 5 }, (_, i) => `<i class="${i < Math.ceil(d / 2) ? 'on' : ''}"></i>`).join('')}</span>`;
     $('#hschosen').hidden = Equipo.char !== id;
-    const own = poseeHuesped(Perfil.perfil(), id), pk = $('#hspick'); pk.textContent = own ? 'Elegir' : 'Comprar en la Tienda'; pk.dataset.locked = own ? '' : '1'; pk.title = own ? '' : `${C.name} no es tuyo todavía: el Cambista de Almas lo vende.`;   // se puede mirar y probar antes de comprar
+    const own = poseeHuesped(Perfil.perfil(), id), pk = $('#hspick'); pk.textContent = own ? 'Elegir' : 'Comprar'; pk.dataset.locked = own ? '' : '1'; pk.title = own ? '' : `${C.name} no es tuyo todavía: el Cambista de Almas lo vende.`;   // se puede mirar y probar antes de comprar
     root.querySelectorAll('.hs-chip').forEach((b) => { const on = b.dataset.id === id; b.classList.toggle('sel', on); b.classList.toggle('chosen', b.dataset.id === Equipo.char); b.classList.toggle('locked', !poseeHuesped(Perfil.perfil(), b.dataset.id)); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     if (vet && $('#hsvets').hidden) toggleVets(true);
     renderInfo(id);

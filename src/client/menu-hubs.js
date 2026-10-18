@@ -8,13 +8,15 @@ import * as Perfil from './perfil.js';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ULTIMO = 'pacto.ultimo.v1';
+/** Las imágenes de las tarjetas van como variable CSS: se pasan a dirección completa porque ahí las rutas relativas se leen desde el .css, no desde la página. */
+const url = (u) => `url('${new URL(u, document.baseURI).href}')`;
 export const guardarUltimo = (u) => { try { localStorage.setItem(ULTIMO, JSON.stringify(u)); } catch { /* sin almacenamiento */ } };
 export const leerUltimo = () => { try { return JSON.parse(localStorage.getItem(ULTIMO) || 'null'); } catch { return null; } };
 
 /** Dibuja la pantalla de inicio: marca, botón Continuar y las 4 puertas. */
 export function buildMain(menu) {
   const main = menu.root.querySelector('#main'); if (!main) return;
-  main.querySelector('#mainlist').innerHTML = PUERTAS.map((d) => `<button class="door" type="button" data-go="${d.hub}" data-door="${d.id}" title="${esc(d.desc)}" style="--art:url('${d.art}')"><i class="dot" data-aviso-puerta="${d.id}" hidden></i><span class="door-t"><b>${esc(d.titulo)}</b><small>${esc(d.desc)}</small></span></button>`).join('');
+  main.querySelector('#mainlist').innerHTML = PUERTAS.map((d) => `<button class="door" type="button" data-go="${d.hub}" data-door="${d.id}" title="${esc(d.desc)}" style="--art:${url(d.art)}"><i class="dot" data-aviso-puerta="${d.id}" hidden></i><span class="door-t"><b>${esc(d.titulo)}</b><small>${esc(d.desc)}</small></span></button>`).join('');
   main.querySelector('#continuar').addEventListener('click', (e) => { e.stopPropagation(); menu.continuar(); });
 }
 
@@ -26,7 +28,7 @@ export function buildHubs(menu) {
     const estado = id === 'hub-huesped' ? '<div class="hub-status" id="hubstatus" aria-live="polite"></div>' : '';
     const ruta = id === 'hub-jugar' ? '<section class="ruta-obj" aria-label="Ruta de objetivos"><h4>Tu ruta</h4><div id="rutaobj" class="ruta-list"></div></section>' : '';
     sec.innerHTML = `<h3 class="stitle">${esc(H.titulo)}</h3><p class="hub-sub">${esc(H.sub)}</p>${extra}${estado}
-      <div class="hubgrid" data-n="${H.items.length}">${H.items.map((it) => `<button class="hubcard" type="button" data-go="${it.go}" title="${esc(it.desc)}" style="--art:url('${it.art}')"><i class="dot" ${it.aviso ? `data-aviso="${it.aviso}"` : ''} hidden></i><b>${esc(it.titulo)}</b><small>${esc(it.desc)}</small>${it.saldo ? '<em class="hc-saldo" data-saldo></em>' : ''}</button>`).join('')}</div>${ruta}`;
+      <div class="hubgrid" data-n="${H.items.length}">${H.items.map((it) => `<button class="hubcard" type="button" data-go="${it.go}" title="${esc(it.desc)}" style="--art:${url(it.art)}"><i class="dot" ${it.aviso ? `data-aviso="${it.aviso}"` : ''} hidden></i><b>${esc(it.titulo)}</b><small>${esc(it.desc)}</small>${it.saldo ? '<em class="hc-saldo" data-saldo></em>' : ''}</button>`).join('')}</div>${ruta}`;
   }
 }
 

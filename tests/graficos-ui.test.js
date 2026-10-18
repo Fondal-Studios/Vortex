@@ -22,7 +22,8 @@ test('menú principal › Gráficos: presets, resolución y efectos se aplican e
   await pg.goto(`${base}/?autoq=0&nolock=1`, { waitUntil: 'domcontentloaded', timeout: 300000 });   // (sin ?q= para que mande lo guardado)
   await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 300000 });
   await pg.evaluate(() => { window.__api.ui.confirmTitle(); });
-  const item = pg.locator('#mainlist [data-go=graficos]'); await item.waitFor({ timeout: 240000 }); assert.match(await item.innerText(), /gráficos/i);
+  await pg.locator('#mainlist [data-door=ajustes]').click(T);   // menú en 4 puertas: Ajustes › Gráficos
+  const item = pg.locator('#hub-ajustes [data-go=graficos]'); await item.waitFor({ timeout: 240000 }); assert.match(await item.innerText(), /gráficos/i);
   await item.click(T); await pg.waitForSelector('#graficos.on .gr-card', { timeout: 240000 });
   // 4 tarjetas con para quién sirve
   const cards = await pg.$$eval('#graficos .gr-card', (c) => c.map((x) => x.innerText));
@@ -53,8 +54,8 @@ test('menú principal › Gráficos: presets, resolución y efectos se aplican e
   const g = await pg.evaluate(() => JSON.parse(localStorage.getItem('cristal.graficos.v1')));
   assert.equal(g.preset, 'baja'); assert.equal(g.ajustes.escala, 150); assert.equal(g.ajustes.fps, 30); assert.equal(g.medidor, true); assert.equal(g.auto, false);
   assert.ok(await pg.locator('#fpsmeter').count() === 1, 'el medidor sigue prendido');
-  assert.equal(await pg.evaluate(() => window.__api.level), 'low'); assert.ok(Math.abs(await pr() - 1.5) < 0.01, 'resolución 150 % recordada');
-  await pg.evaluate(() => window.__api.ui.confirmTitle()); await pg.locator('#mainlist [data-go=graficos]').click(T);
+  assert.equal(await pg.evaluate(() => window.__api.level), 'low'); assert.ok(Math.abs(await pr() - 1.275) < 0.01, 'resolución 150 % recordada (0,85 × 1,5 con dpr 1)');
+  await pg.evaluate(() => window.__api.ui.confirmTitle()); await pg.locator('#mainlist [data-door=ajustes]').click(T); await pg.locator('#hub-ajustes [data-go=graficos]').click(T);
   await pg.click('#graficos [data-reset]', T); assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('cristal.graficos.v1')).preset), 'auto');
   assert.deepEqual(errores, []); await ctx.close();
 });

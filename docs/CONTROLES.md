@@ -50,7 +50,7 @@ Sólo usa el snapshot (posición, `up`, velocidad derivada) y, si llega, el even
 `#cards` es una cuadrícula fluida con zona segura de iPhone y desplazamiento interno de respaldo; `node tools/shot-cartas.js` comprueba 844×390, 667×375, 390×844, 1280×720 y 1920×1080.
 
 ## Modo Combo (alternativa a Shooter)
-El modo se elige en el menú principal («Modo de juego»), en la pantalla Huésped (botón «Modo»), en Opciones (`#modesel`), en la Pausa o con `?modo=combo` / `?modo=shooter`; se guarda en `settings.mode`. Shooter queda igual que arriba. Sólo los 5 Huéspedes juegan Combo.
+El modo se elige arriba de **Jugar** (barra «Modo de juego», siempre visible en ese hub), en la pantalla Huésped (botón «Modo»), en Opciones (`#modesel`), en la Pausa o con `?modo=combo` / `?modo=shooter`; se guarda en `settings.mode`. Shooter queda igual que arriba. Sólo los 5 Huéspedes juegan Combo.
 | Acción | Teclado/ratón | Mando | Táctil |
 |---|---|---|---|
 | Ataque 1 (`a1`) | clic izq. (mantener = repite y encadena) | RT / R2 | ATAQUE 1 (arrastrarlo también apunta) |
@@ -64,3 +64,20 @@ La **E** sigue siendo USAR (la habilidad no se ata a E para no perder las intera
 - A1/A2 (clic izq./der., RT/RB, botones táctiles) lanzan golpes distintos por Huésped y por golpe: el héroe se agacha, gira el torso, da el paso y avanza hacia la criatura más cercana; sale una estela del arma y, al contacto, hit-stop breve, destello/chispas del color del Huésped, sacudida y empujón de FOV de la cámara. El remate de una cadena (2+ golpes) trae onda grande y 0,12 s de cámara lenta visual.
 - Opciones › «Efectos de golpe» (Completos / Reducidos) y «Reducir movimiento» apagan o atenúan sacudida, FOV, hit-stop y cámara lenta. En 3.ª persona el contador de combo se corre a la derecha para no tapar al héroe.
 - Detalle técnico y tabla de poses: docs/HUESPEDES.md → «Golpes que se ven y se sienten». **No probado**: iPhone real, táctil real, mando, coop.
+
+## Menú principal en 4 puertas (PACTO PSICO)
+Inicio = botón grande **Continuar / Jugar** (retoma lo último que jugaste: Historia o la última arena) + 4 puertas. Cada una abre un «hub» de tarjetas:
+
+| Puerta | Qué trae |
+|---|---|
+| **Jugar** | Barra de modo **Shooter / Combo** (siempre arriba) · Historia · Arenas · Cooperativo · «Tu ruta» (próximos objetivos) |
+| **Mi Huésped** | Huésped (elegir, maestría, progresión Shooter/Combo) · Evolución · Inventario y Forja · Equipo |
+| **Mundo** | Territorios · Bestiario · Tienda (con tu saldo) |
+| **Ajustes** | Gráficos · Controles y sonido |
+
+- **Volver**: botón «‹ Volver», **Esc / Retroceso**, botón ○ del mando, o (táctil) deslizar desde el **borde izquierdo** hacia la derecha. En la Tienda, Esc cierra primero el cartel de confirmación.
+- **Migas de pan** arriba («Inicio › Mi Huésped › Inventario»): cada miga anterior es clicable y salta directo.
+- **Teclado / mando**: flechas o WASD mueven el foco al vecino más cercano en esa dirección (rejillas y pestañas incluidas); Enter/Espacio/✕ abre; en un `<select>` izquierda/derecha lo cambia.
+- **Ayuda breve**: cada puerta y tarjeta muestra una línea de qué hace (y la repite como `title` al pasar el mouse).
+- **Puntitos rojos**: botín nuevo, puntos de progresión sin gastar, Huésped comprable, stock nuevo en la Tienda, bendición para elegir, territorio recién abierto. Se calculan del perfil (`src/client/menu-nav.js → avisos`), no se guardan aparte (salvo «inventario visto» y «stock visto» en `perfil.menu`).
+- Los ids de siempre se conservan (`#huesped`, `#inventario`, `#evolucion`, `#loadout`, `#graficos`, `#options`, `#modeitem`…): sólo cambió dónde se llega a ellos. Código: `src/client/menu-hubs.js` (dibujo), `menu-nav.js` (mapa, avisos, ruta), `ui.js` (navegación), `public/menu.css`.

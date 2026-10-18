@@ -4,8 +4,8 @@ import { launch } from './browser.js';
 import { startServer } from '../server/server.js';
 const OUT = process.argv[2] || 'shots/menus'; fs.mkdirSync(OUT, { recursive: true });
 const srv = await startServer({ port: 0 }); const b = await launch(); const base = `http://localhost:${srv.port}`; const errors = [];
-const VPS = [['pc', 1280, 720, false], ['movilH', 844, 390, true], ['movilV', 390, 844, true], ['movilH-pequeno', 667, 375, true], ['pc-fhd', 1920, 1080, false]];
-const SCREENS = ['main', 'story', 'arenas', 'loadout', 'coop', 'bestiary', 'options'];
+const VPS = [['pc', 1280, 720, false], ['movilH', 844, 390, true], ['movilV', 390, 844, true], ['tablet', 820, 1180, true], ['movilH-pequeno', 667, 375, true], ['pc-fhd', 1920, 1080, false]];
+const SCREENS = ['main', 'hub-jugar', 'hub-huesped', 'hub-mundo', 'hub-ajustes', 'story', 'arenas', 'loadout', 'coop', 'bestiary', 'options', 'tienda'];
 for (const [vn, w, h, touch] of VPS) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch }); const pg = await ctx.newPage();
   pg.on('pageerror', (e) => errors.push(`${vn}: ${e.message}`));

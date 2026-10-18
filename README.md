@@ -59,7 +59,10 @@ docs/         diseño, historia, bestiario, mapas, decisiones, arte/audio, licen
 shots/        capturas reales (Chromium) de cada mapa y criatura
 ```
 
+## Menú y Tienda
+El menú tiene **Continuar** y cuatro puertas: **Jugar** (Historia, Arenas, Cooperativo y el selector Shooter/Combo), **Mi Huésped** (Huésped, Evolución, Inventario y Forja, Equipo), **Mundo** (Territorios, Bestiario, Tienda) y **Ajustes** (Gráficos, Controles y sonido). Volvés con Esc, el botón ○ del mando o deslizando desde el borde izquierdo. En la **Tienda** el Cambista de Almas vende Huéspedes (empezás con Axioma, Vesper y Micelio), planos, materiales, objetos y servicios a cambio de núcleos. Detalles: [`docs/TIENDA.md`](docs/TIENDA.md) · [`docs/CONTROLES.md`](docs/CONTROLES.md). El nombre y el subtítulo del juego viven en un solo archivo: `src/client/marca.js`.
+
 ## Documentación
-[Diseño](docs/DISENO.md) · [Historia](docs/HISTORIA.md) · [Bestiario](docs/BESTIARIO.md) · [Mapas](docs/MAPAS.md) · [Decisiones](docs/DECISIONES.md) · [Arte y audio](docs/ARTE_AUDIO.md) · [Licencias](docs/LICENCIAS.md) · [Informe de calidad](docs/INFORME_CALIDAD.md)
+[Tienda](docs/TIENDA.md) · [Diseño](docs/DISENO.md) · [Historia](docs/HISTORIA.md) · [Bestiario](docs/BESTIARIO.md) · [Mapas](docs/MAPAS.md) · [Decisiones](docs/DECISIONES.md) · [Arte y audio](docs/ARTE_AUDIO.md) · [Licencias](docs/LICENCIAS.md) · [Informe de calidad](docs/INFORME_CALIDAD.md)
 
 Licencia: MIT. Modelos de criaturas, armas, shaders y audio son procedurales. Las **personas** usan la NPC Factory de *Duelo Arcano* (assets CC0 de MakeHuman + animaciones Quaternius CC0): ver [`docs/PERSONAS.md`](docs/PERSONAS.md).

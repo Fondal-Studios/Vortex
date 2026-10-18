@@ -4,7 +4,7 @@ import { TERRITORIOS, BENDICIONES, cleanBend, hermana } from '../sim/bendiciones
 import { organError } from '../sim/organos.js';
 import { xpPartida, progreso, rangoDeXp, RANGO_MAX } from '../sim/maestria.js';
 import { MODOS_ARBOL, cleanNodos, nodosDe, gastado, errorNodo, costeReinicio, puntosCombo, puntosDisparo } from '../sim/progresion.js';
-import { migrarHuespedes } from '../sim/tienda.js';
+import { migrarHuespedes, poseeHuesped } from '../sim/tienda.js';
 import { ITEMS, SLOTS, SIGNATURES, LIMITE_INVENTARIO, MATERIAL_IDS, MAT_STOCK_MAX, PLANOS, PLANOS_INICIALES, RECETAS, qForja, cleanEquip, equipError, desguaceValor, faseDe, poder } from '../sim/items.js';
 const KEY = 'cristal.perfil.v1';
 let cache = null;
@@ -91,7 +91,7 @@ export function cerrarPartida(char, jugador, info = {}) {
 }
 export const costeSiguiente = (char) => { const t = perfil().evo[char] || 0; return t >= 4 ? 0 : EVO_COST[t + 1]; };
 export function evolucionar(char, pick = 0) {
-  const p = perfil(), c = costeSiguiente(char); if (!CHARACTERS[char] || !c || p.cores < c) return false;
+  const p = perfil(), c = costeSiguiente(char); if (!CHARACTERS[char] || !c || p.cores < c || !poseeHuesped(p, char)) return false;   // sólo se evoluciona un Huésped que es tuyo (Tienda)
   const opts = evoPathsFor(char)[(p.evo[char] || 0) + 1]; if (!opts) return false;
   p.cores -= c; p.evo[char] = (p.evo[char] || 0) + 1; (p.path[char] ||= []).push(opts[pick === 1 ? 1 : 0].id); guardar(); return true;
 }
@@ -185,6 +185,7 @@ export const arbolParaPartida = (char) => ({ combo: arbol(char, 'combo').nodos, 
 /** Gasta puntos en un nodo. Devuelve null si salió bien o el motivo (texto en español) si no se pudo. */
 export function comprarNodo(char, modo, id) {
   if (!CHARACTERS[char] || !CHARACTERS[char].host || !MODOS_ARBOL.includes(modo)) return 'Ese Huésped no tiene árbol.';
+  if (!poseeHuesped(perfil(), char)) return 'Ese Huésped todavía no es tuyo: comprálo en la Tienda.';
   const e = arbDe(char, modo), err = errorNodo(modo, char, e.nodos, id, e.pc); if (err) return err;
   e.nodos = cleanNodos(modo, char, [...e.nodos, id]); guardar(); return null;
 }

@@ -127,3 +127,8 @@ test('botiquín en la simulación: la primera caída te levanta con la mitad de 
   g.time += 5; g.hurtPlayer(p, 1e6, true); assert.equal(p.dead, true);
   const q = new Game({ mapId: 'm1', seed: 1 }).addPlayer('t', null, { char: 'axioma' }); assert.equal(q.kit, 0);
 });
+test('un Huésped que no es tuyo no evoluciona ni gasta puntos de árbol; el que sí es tuyo sí', () => {
+  reset({ cores: 1000 }); assert.equal(PM.evolucionar('seraf'), false); assert.equal(PM.perfil().cores, 1000); assert.match(PM.comprarNodo('seraf', 'combo', 'x'), /Tienda/);
+  assert.equal(PM.evolucionar('axioma'), true, 'los iniciales evolucionan'); assert.ok(PM.perfil().cores < 1000);
+  reset({ cores: 1000, huespedes: ['seraf'] }); assert.equal(PM.evolucionar('seraf'), true);
+});

@@ -14,6 +14,7 @@ import { createHostBody } from './huesped-cuerpo.js';
 const qs = new URLSearchParams(location.search), quality = qs.get('q') || 'low', char = qs.get('char') || 'axioma', camMode = qs.get('cam') || 'full';
 const W = Number(qs.get('w')) || innerWidth, H = Number(qs.get('h')) || innerHeight, frozen = qs.get('frozen') === '1';
 const canvas = document.getElementById('c'), hud = document.getElementById('hud');
+if (qs.get('hud') === '0') hud.style.display = 'none';   // hud=0: sin rótulo (la Tienda lo usa como retrato)
 const gl = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 gl.setPixelRatio(1); gl.setSize(W, H, false); canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = Number(qs.get('exp')) || 1.15;

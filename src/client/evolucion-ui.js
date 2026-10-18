@@ -10,6 +10,7 @@ import { CHARACTERS, HOST_IDS, MELEE_TYPES, MELEE_WEAPONS, MELEE_AFFINITY, NATIV
 import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
 import { buildWeaponOrgans } from './organs-vis.js';
 import * as Perfil from './perfil.js';
+import { poseeHuesped } from '../sim/tienda.js';
 import { buildHostEvo, EVO_VISUAL } from './huespedes-evo.js';
 import { tickMenuBeat } from './shaders.js';
 import { loadEnvHDRI } from './ph.js';
@@ -330,7 +331,8 @@ export function buildEvolucionScreen(menu) {
     if (ev.host) ev.host.pose('skill');
   }
   $('#evbtn').addEventListener('click', (e) => {
-    e.stopPropagation(); if (!Perfil.evolucionar(ev.char)) { menu.sound.ui('back'); return; }
+    e.stopPropagation(); if (!poseeHuesped(Perfil.perfil(), ev.char)) { menu.sound.ui('ok'); if (menu.tn) menu.tn.host = ev.char; menu.go('tienda'); return; }   // no es tuyo: a la Tienda
+    if (!Perfil.evolucionar(ev.char)) { menu.sound.ui('back'); return; }
     ev.peek = false; menu.sound.ui('ok'); refresh(); setHost(true); setPrev(true); celebrate();
     const evo = evoOf(ev.char); $('#evtier').classList.add('pop'); setTimeout(() => $('#evtier').classList.remove('pop'), 900); $('#evstage').dataset.msg = `EVOLUCIÓN: ${EVO_TIERS[evo].name}`;
   });

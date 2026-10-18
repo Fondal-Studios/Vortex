@@ -89,14 +89,14 @@ export function buildTiendaScreen(menu) {
   }
   function ponerRetrato() {
     const fr = root.querySelector('#tnframe'); if (!fr || tn.tab !== 'hue') return; const id = tn.host, quality = matchMedia('(pointer: coarse)').matches ? 'low' : (window.__api && window.__api.level === 'low' ? 'low' : 'medium');
-    clearTimeout(tn.prevT); tn.prevT = setTimeout(() => { const f = root.querySelector('#tnframe'); if (!f || tn.host !== id || tn.tab !== 'hue') return; f.src = new URL(`public/huesped-arte.html?char=${id}&q=${quality}&cam=full&w=480&h=560`, location.href.replace(/[^/?#]*([?#].*)?$/, '')).href; }, 350);
+    clearTimeout(tn.prevT); tn.prevT = setTimeout(() => { const f = root.querySelector('#tnframe'); if (!f || tn.host !== id || tn.tab !== 'hue') return; f.classList.remove('ok'); f.onload = () => setTimeout(() => { if (f.isConnected) f.classList.add('ok'); }, 1200); f.src = new URL(`public/huesped-arte.html?char=${id}&q=${quality}&cam=full&hud=0&spin=1&w=420&h=480`, location.href.replace(/[^/?#]*([?#].*)?$/, '')).href; }, 350);
   }
 
   /* ───── Planos y materiales ───── */
   function rowMat(m, of) {
     const M = MATERIALS[m.mat], cant = textoMat(m), off = m.comprado || Tienda.saldo() < m.precio, motivo = m.comprado ? 'Vendido' : Tienda.saldo() < m.precio ? 'No alcanzan núcleos' : `Comprar · ${m.precio} ◆`;
     return `<article class="tn-card${m.especial ? ' esp' : ''}${m.comprado ? ' done' : ''}" style="--c:${hex(M.color)}">${m.especial ? '<em class="tn-oferta">Oferta del día</em>' : ''}<div class="tn-ico mat" aria-hidden="true"><i style="background:linear-gradient(135deg,${hex(M.color)},${hex(M.dark)})"></i></div>
-      <div class="tn-ct"><b>${esc(cant)}</b><small>${esc(M.lema)} · ${esc(CALIDADES[m.cal])}</small>${precioTxt(m)}</div>
+      <div class="tn-ct"><b>${esc(cant)}</b><small>${esc(M.lema)}</small>${precioTxt(m)}</div>
       <button class="tn-btn tn-nav ${m.comprado ? 'own' : off ? 'poor' : 'buy'}" type="button" data-renglon="materiales:${m.k}" ${off ? 'aria-disabled="true"' : ''}>${motivo}</button></article>`;
   }
   const precioTxt = (r) => `<span class="tn-pr">${r.desc ? `<s>${r.base}</s> <em>−${r.desc} %</em> ` : ''}${nuc(r.precio)}</span>`;
@@ -168,7 +168,7 @@ export function buildTiendaScreen(menu) {
     const body = $('#tnbody'), stop = (fn) => (e) => { e.stopPropagation(); fn(e); };
     body.querySelectorAll('[data-host]').forEach((b) => b.addEventListener('click', stop(() => { tn.host = b.dataset.host; sound('tick'); render(true); ponerRetrato(); })));
     body.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', stop(() => { menu.go(b.dataset.ir); })));
-    const negado = (b, tipo) => { if (b.getAttribute('aria-disabled') !== 'true') return false; sound('back'); const t = b.textContent; toast(t, false); decir(CAMBISTA.frases[tipo(t)][0]); return true; };
+    const negado = (b, tipo) => { if (b.getAttribute('aria-disabled') !== 'true') return false; sound('back'); const t = b.textContent; toast(t, false); decir(b.classList.contains('own') ? 'Eso ya lo tenés. No cobro dos veces lo mismo.' : CAMBISTA.frases[tipo(t)][0]); return true; };
     const tipoDe = (t) => (/requisito/i.test(t) ? 'requisito' : /núcleos/i.test(t) ? 'pobre' : 'nada');
     body.querySelectorAll('[data-comprar-host]').forEach((b) => b.addEventListener('click', stop(() => {
       if (negado(b, tipoDe)) { const rq = reqHuesped(Perfil.perfil(), b.dataset.comprarHost); if (rq.texto && !rq.ok) decir(`${CAMBISTA.frases.requisito[0]} ${rq.texto}`); return; }
@@ -200,7 +200,7 @@ export function buildTiendaScreen(menu) {
     if (sh) sh.addEventListener('change', () => { tn.arbolHost = sh.value; render(true); }); if (sm) sm.addEventListener('change', () => { tn.arbolModo = sm.value; render(true); }); if (sr) sr.addEventListener('change', () => { tn.rerollSel = sr.value; render(true); });
     [sh, sm, sr].forEach((s) => s && s.addEventListener('click', (e) => e.stopPropagation()));
   }
-  root.querySelectorAll('.tn-tab').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); tn.tab = b.dataset.t; sound('tick'); render(true); }));
+  root.querySelectorAll('.tn-tab').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); tn.tab = b.dataset.t; sound('tick'); const i = menu.list().indexOf(b); if (i >= 0) menu.idx = i; render(true); }));
   tn.setTab = (t) => { if (TABS.some((x) => x[0] === t)) { tn.tab = t; render(); } };
   tn.enter = () => {
     cerrarDialogo(); const of = Tienda.ofertaActual(); const p = Perfil.perfil(); p.menu.tv = of.clave; Perfil.guardar();   // ya viste el stock de hoy
