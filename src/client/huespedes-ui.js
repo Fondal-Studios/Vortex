@@ -42,7 +42,7 @@ function abilitiesOf(id) {
   const cd = (a) => (a.cd ? `Recarga ${a.cd} s` : '');
   if (c.host) {
     L.push(['Hab. 1', c.mov, cd(c.mov), 'skill'], ['Hab. 2', c.esp, cd(c.esp), 'skill'], ['Hab. 3', c.s3, cd(c.s3), 'skill']);
-    L.push(['Definitiva', c.ult, `Se carga con el combate`, 'skill'], ['Pasiva', c.passive, '', 'idle']); if (c.extra) L.push(['Mecánica', c.extra, '', 'idle']);   // mecánica propia (p. ej. los satélites de Singular)
+    L.push(['Definitiva', c.ult, `Se carga con el combate`, 'skill'], ['Pasiva', c.extra ? { ...c.passive, desc: `${c.passive.desc} ${c.extra.name}: ${c.extra.desc}` } : c.passive, '', 'idle']);   // `extra` = mecánica propia (p. ej. los satélites de Singular): se suma al texto de la pasiva para no agregar una fila más
     const HB = HABILIDADES[id]; if (HB) L.push(['Modo Combo', { name: HB.name, desc: `${HB.rol}. ${HB.desc}` }, `Recarga ${HB.cd} s`, 'skill']);
     const m = c.melee; L.push(['Melee', { name: 'Golpe ligero y pesado', desc: `Tocar = ligero (${m.light.dmg} de daño). Mantener = pesado (${m.heavy.dmg} de daño, alcance ${m.heavy.range} m).` }, '', 'melee']);
   } else { L.push(['Hab. 1', c.mov, cd(c.mov), 'skill'], ['Hab. 2', c.esp, cd(c.esp), 'skill']); const r = ROLES[c.role]; if (r) L.push(['Rol', { name: r.ability, desc: r.desc }, `Recarga ${r.cd} s`, 'skill']); }

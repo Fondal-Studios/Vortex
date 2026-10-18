@@ -52,6 +52,7 @@ const canvas = $('c');
 const renderer = new Renderer(canvas, { level, pixelRatio: params.get('pr') ? +params.get('pr') : null });
 renderer.applyClaridad(initialClaridad(settings().claridad, params)); // ajuste «Claridad» (Normal/Alta; ?claridad= lo fuerza)
 const sound = new Sound();
+if (renderer.comboFx) renderer.comboFx.setSound(sound);   // golpes del modo Combo (combo-fx.js): barrido e impacto escalados por golpe
 if (renderer.hostfx) renderer.hostfx.setSound(sound); // hostfx.js reproduce los sonidos de habilidades y melee de los Huéspedes
 if (CAP) { // no suena nada en vivo: se registra cada sonido con su tiempo virtual para sintetizar la banda sonora
   window.__evlog = []; for (const m of ['ui', 'chirp', 'train', 'heartbeat', 'shot', 'boom', 'hit', 'voice', 'hurt', 'pickup', 'gravity', 'portal', 'wave', 'ability', 'objective', 'ping', 'ray', 'purge', 'stagger', 'down', 'init', 'resume', 'startMusic', 'setListener']) sound[m] = (...a) => { if (m !== 'init' && m !== 'resume' && m !== 'setListener' && m !== 'startMusic') window.__evlog.push({ t: window.__capT || 0, m, a: JSON.parse(JSON.stringify(a)) }); };
@@ -148,6 +149,7 @@ function evoWant(on) {
 }
 let combatHud = null, huespedHud = null, caida = null, evoHud = null, evoMenu = null, organReq = null, organReqT = 0;
 const organInput = () => { if (organReq && performance.now() - organReqT > 400) organReq = null; return organReq; }; // input.organ se mantiene 0,4 s (la simulación cobra una sola vez)
+const fxSel = $('fxsel'); if (fxSel) { try { fxSel.value = localStorage.getItem('cristal.reduceFx') === '1' ? '1' : '0'; } catch { /* ok */ } fxSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceFx', fxSel.value); } catch { /* ok */ } }); }   // «Efectos de golpe»: reducidos = menos partículas, sacudida y hit-stop a la mitad, sin cámara lenta
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
@@ -328,6 +330,7 @@ function frame(now) {
   if (!CAP && now - last < 1000 / Graficos.fpsTope() - 4) return;   // límite de FPS del menú Gráficos (30 / 60): se salta el cuadro sin perder tiempo de simulación
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; // nunca negativo (carga lenta)
   if (CAP) { capT += dt; window.__capT = capT; for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= capT * 1000) { const f = timers[i].fn; timers.splice(i, 1); f(); } if (cine && cine.tick) cine.tick(dt); }
+  document.body.classList.toggle('cam3', !!renderer.third);   // en 3.ª persona el contador de combo se corre a un costado (no tapa al héroe)
   { const q = $('camquick'); if (q) { q.classList.toggle('hidden', !session || !!session.intro || !!session.paused); q.classList.toggle('third', !!renderer.third); } }
   window.__fps = (window.__fps || 60) * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;
   uTime.value += 0; subs.update(dt); padDt = dt;

@@ -24,6 +24,7 @@ import heraldo from './creatures/heraldo.js';
 import { cfg, LEVELS, setCurrent, setClaridad, setClaridadMapa, claridad, initialClaridad } from './quality.js';
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
 import { createHostFx } from './hostfx.js';
+import { createComboFx } from './combo-fx.js';   // golpes del modo Combo: pose del cuerpo, estelas, impacto, hit-stop (docs/HUESPEDES.md)
 import { createSingularFx } from './singular-fx.js';   // pozos de gravedad y satélites de Singular (singular-fx.js)
 import { EventosFx } from './eventos-fx.js';
 import { LuzArenas } from './luz-arenas.js';   // luz propia de cada arena + ciclo día/ocaso/eclipse + luces de los órganos (luz-arenas.js)
@@ -85,6 +86,7 @@ export class Renderer {
     setClaridad(initialClaridad()); this.clar = claridad();
     this.vm = new Viewmodels(this.camera, this.halo);
     try { this.hostfx = createHostFx(this); } catch (err) { console.warn('Efectos de Huéspedes no disponibles', err.message); this.hostfx = null; } // habilidades y melee de los 5 Huéspedes (hostfx.js)
+    try { this.comboFx = createComboFx(this); } catch (err) { console.warn('Efectos de golpes (Combo) no disponibles', err.message); this.comboFx = null; }
     try { this.singularfx = createSingularFx(this); } catch (err) { console.warn('Efectos de Singular no disponibles', err.message); this.singularfx = null; }
     try { this.evfx = new EventosFx(this); } catch (err) { console.warn('Efectos de eventos no disponibles', err.message); this.evfx = null; } // eventos de oleada (eventos-fx.js)
     try { this.avfx = new ArenasVivasFx(this); } catch (err) { console.warn('Arenas vivas no disponibles', err.message); this.avfx = null; } // arenas vivas (arenas-vivas-fx.js)
@@ -218,6 +220,7 @@ export class Renderer {
 
   /* ───────── cuadro ───────── */
   render(state, dt, myId, look) {
+    if (this.comboFx) dt *= this.comboFx.timeScale();   // remate del Combo: cámara lenta VISUAL de 0,12 s (la simulación no se toca)
     this.gl.info.reset(); this.t += dt; uTime.value = this.t;
     this.setMap(state.map);
     { // tejido vivo que avanza con la oleada (uInfect) y latido del mundo (uBeat) que se acelera con la infección y el combate
@@ -233,11 +236,13 @@ export class Renderer {
     this.syncMonsters(state, dt);
     this.syncProjectiles(state, dt);
     this.syncPickups(state);
+    if (this.comboFx) { try { this.comboFx.ingest(state, me); } catch (err) { console.warn('comboFx', err.message); this.comboFx = null; } }   // ANTES de syncPlayers: arranca la pose de cada golpe
     this.syncPlayers(state, myId, dt);
     if ((state.objs || []).some((o) => o.t === 'npc')) { if (!this.humansKit) this.ensureHumans(); if (this.humansKit && this.hm && !this.objects.humans) this.objects.humans = { kit: this.humansKit, hm: this.hm }; } // NPC del respiro: humano espectral cuando el kit ya cargó
     this.objects.sync(state, dt, state.map, this.camera.position);
     this.handleEvents(state, me);
     if (this.hostfx) this.hostfx.update(dt, state, me);
+    if (this.comboFx) { try { this.comboFx.update(dt, state, me); } catch (err) { console.warn('comboFx', err.message); this.comboFx = null; } }
     if (this.singularfx) { try { this.singularfx.update(dt, state, me); } catch (err) { console.warn('singularfx', err.message); this.singularfx = null; } }
     if (this.evfx) { try { this.evfx.update(dt, state, me); } catch (err) { console.warn('evfx', err.message); this.evfx = null; } }
     if (this.avfx) { try { this.avfx.update(dt, state); } catch (err) { console.warn('avfx', err.message); this.avfx = null; } }
@@ -299,6 +304,7 @@ export class Renderer {
       // CÁMARA SOBRE EL HOMBRO: misma fórmula que la simulación (game.camPos) para que la retícula y el disparo coincidan; se acerca si hay paredes.
       const S = settings(), k = me.ads ? 0.7 : 1, rw = new THREE.Vector3().crossVectors(h, up).normalize();
       const pivot = V(me.pos).addScaledVector(up, 0.6 - (me.cr ? 0.3 : 0));
+      if (this.comboFx) pivot.addScaledVector(h, this.comboFx.lead(me.id));   // la cámara acompaña el avance del golpe (el héroe no se escapa de cuadro)
       const ray = new THREE.Vector3().addScaledVector(aim, -(S.camDist || 3.6) * k).addScaledVector(rw, (S.camSide || 1) * 0.8 * k).addScaledVector(up, 0.25);
       const mp = this.collMap || MAPS[this.mapId]; let t = 1;
       if (mp) for (let s2 = 0.1; s2 <= 1.0001; s2 += 0.07) { const pt = pivot.clone().addScaledVector(ray, s2); if (blocked(mp, { x: pt.x, y: pt.y, z: pt.z })) { t = Math.max(0.12, s2 - 0.1); break; } }
@@ -485,7 +491,8 @@ export class Renderer {
       } else if (self) this.keyLight.intensity = 0;
       if (e.body) {
         for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev);
-        e.shotT = Math.max(0, e.shotT - dt); e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, map: this.mapId, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null });
+        e.shotT = Math.max(0, e.shotT - dt); const cx = this.comboFx ? this.comboFx.frameFor(p.id, dt, p, state) : null;   // Combo: pose del golpe, avance visual y hit-stop del cuerpo
+        e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, map: this.mapId, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null, ...cx });
       } else if (e.human) {
         e.shotT = Math.max(0, e.shotT - dt);
         const clip = p.dead ? 'death' : e.shotT > 0 ? 'shoot' : e.spd > 6 ? 'sprint' : e.spd > 1.5 ? 'jog' : 'aimIdle';

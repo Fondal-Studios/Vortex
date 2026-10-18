@@ -30,7 +30,7 @@ const hot = (p) => !!(p.cb && p.cb.win > 0);   // en Combo: mientras la cadena s
 /** Crea un zángano junto al dueño. Devuelve el objeto o null (límite). `renew`: si está lleno, renueva el tiempo del más viejo. */
 export function spawnUnit(g, p, { life = ENJ.life, renew = false } = {}) {
   const mine = unitsOf(g, p), cap = unitCap(p);
-  if (mine.length >= cap || g.objects.filter((o) => o.type === 'zangano').length >= LIMITS.unitsTotal) {
+  if (mine.length >= cap || g.objects.filter((o) => o.type === 'zangano').length >= LIMITS.unitsTotal || g.objects.length >= 38) {   // 38: g.addObject recicla objetos desde 40 y no debe llevarse los de otros sistemas
     if (renew && mine.length) { const old = mine.reduce((a, b) => (b.life < a.life ? b : a)); old.life = Math.max(old.life, old.max || life); }
     return null;
   }
@@ -58,14 +58,15 @@ function poison(g, p, m) { if (m.dead) return; m.dotUntil = g.time + 4; m.dotDps
 /** Una picadura de zángano (o de la Reina/nido con k propio). Aplica veneno (Aguijón) y área (Nube). */
 function sting(g, p, from, m, dmg) {
   g.enjDmg = true;   // el daño de las unidades NO carga la definitiva (si no, la Marabunta se realimentaría sola)
-  try { g.damageMonster(m, dmg, p, m.pos); } finally { g.enjDmg = false; }
-  g.emit({ t: 'tshot', o: a3(from), to: a3(m.pos) });
-  if (m.dead) return;
-  if (has(p, 'aguijon')) poison(g, p, m);
-  if (has(p, 'nube')) {
-    let n = 0; m.slowUntil = Math.max(m.slowUntil || 0, g.time + 1);
-    for (const q of g.monsters) { if (q.dead || q === m || n >= 5 || dist(q.pos, m.pos) > 2.8 + q.r) continue; n++; g.damageMonster(q, dmg * 0.5, p, q.pos); if (!q.dead) q.slowUntil = Math.max(q.slowUntil || 0, g.time + 1); }
-  }
+  try {
+    g.damageMonster(m, dmg, p, m.pos); g.emit({ t: 'tshot', o: a3(from), to: a3(m.pos) });
+    if (m.dead) return;
+    if (has(p, 'aguijon')) poison(g, p, m);
+    if (has(p, 'nube')) {
+      let n = 0; m.slowUntil = Math.max(m.slowUntil || 0, g.time + 1);
+      for (const q of g.monsters) { if (q.dead || q === m || n >= 5 || dist(q.pos, m.pos) > 2.8 + q.r) continue; n++; g.damageMonster(q, dmg * 0.5, p, q.pos); if (!q.dead) q.slowUntil = Math.max(q.slowUntil || 0, g.time + 1); }
+    }
+  } finally { g.enjDmg = false; }
 }
 function boom(g, p, pos) {
   const s0 = g.dmgSrc; g.dmgSrc = 'skill';

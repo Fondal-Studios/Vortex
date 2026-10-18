@@ -59,3 +59,8 @@ El modo se elige en el menú principal («Modo de juego»), en la pantalla Hués
 | Saltar | Espacio | A / ✕ | SALTO |
 | Usar · Evolucionar · Definitiva | E · N · T | (igual que Shooter) | USAR · EVOLUC. · ULTI (aparecen solos) |
 La **E** sigue siendo USAR (la habilidad no se ata a E para no perder las interacciones). En táctil el HUD de Combo muestra sólo ATAQUE 1, ATAQUE 2, HABILIDAD, SALTO y los contextuales; el modo avanzado no agrega botones de Shooter. Se pueden mover y cambiar de tamaño en «Editar controles» como los demás. Con «Modo simple» activado, A1 se encadena solo cuando hay un enemigo cerca y de frente. Pruebas: `node --test tests/combos.test.js`. Táctil/mando: **no probados en un dispositivo real**.
+
+## Modo Combo: qué se ve y se siente al golpear
+- A1/A2 (clic izq./der., RT/RB, botones táctiles) lanzan golpes distintos por Huésped y por golpe: el héroe se agacha, gira el torso, da el paso y avanza hacia la criatura más cercana; sale una estela del arma y, al contacto, hit-stop breve, destello/chispas del color del Huésped, sacudida y empujón de FOV de la cámara. El remate de una cadena (2+ golpes) trae onda grande y 0,12 s de cámara lenta visual.
+- Opciones › «Efectos de golpe» (Completos / Reducidos) y «Reducir movimiento» apagan o atenúan sacudida, FOV, hit-stop y cámara lenta. En 3.ª persona el contador de combo se corre a la derecha para no tapar al héroe.
+- Detalle técnico y tabla de poses: docs/HUESPEDES.md → «Golpes que se ven y se sienten». **No probado**: iPhone real, táctil real, mando, coop.

@@ -110,11 +110,11 @@ export function addEvolucionSingular(ak, ctx, o = {}) {
 
   // ═════════════ NIVEL 4
   if (has('apoteosis')) { // supernova: explosión radial de rayos de oro a la espalda + corona de eclipse con rayos larguísimos
-    const sol = ak.bone('sol', 'spine02', V(0, 1.25, -0.36)), N = low ? 20 : 30;
+    const sol = ak.bone('sol', 'spine02', V(0, 1.25, -0.36)), N = low ? 18 : 22;
     for (let i = 0; i < N; i++) { const a = (i / N) * TAU, long = i % 2 === 0, L = long ? 0.95 : 0.55, r0 = 0.5;
-      add('ember', spikeAt(V(Math.cos(a) * r0, 1.25 + Math.sin(a) * r0, -0.36), V(Math.cos(a), Math.sin(a), -0.1), L, long ? 0.012 : 0.008, 0, Zv, { radial: 3, tubular: 2 }), 'sol', { color: long ? ORO : ORO_L }); }
-    add('light', X(G.torus(0.48, 0.0055, 3, S(48, 22)), { p: [0, 1.25, -0.36], r: [Math.PI / 2, 0, 0] }), 'sol', { color: ORO_L });
-    for (let i = 0; i < (low ? 6 : 10); i++) { const a = (i / (low ? 6 : 10)) * TAU + 0.3, HC = V(0, 1.575, 0.035); add('ember', spikeAt(V(HC.x + Math.cos(a) * 0.17, HC.y + Math.sin(a) * 0.17, HC.z - 0.1), V(Math.cos(a), Math.sin(a), -0.35), 0.74, 0.011, 0, Zv, { radial: 3, tubular: 2 }), 'corona', { color: ORO_L }); }
+      add('ember', spikeAt(V(Math.cos(a) * r0, 1.25 + Math.sin(a) * r0, -0.36), V(Math.cos(a), Math.sin(a), -0.1), L, long ? 0.0105 : 0.0065, 0, Zv, { radial: 3, tubular: 2 }), 'sol', { color: long ? ORO : 0xe8a838 }); }
+    add('ember', X(G.torus(0.48, 0.0055, 3, S(48, 22)), { p: [0, 1.25, -0.36], r: [Math.PI / 2, 0, 0] }), 'sol', { color: ORO });
+    for (let i = 0; i < (low ? 5 : 8); i++) { const a = (i / (low ? 5 : 8)) * TAU + 0.3, HC = V(0, 1.575, 0.035); add('ember', spikeAt(V(HC.x + Math.cos(a) * 0.17, HC.y + Math.sin(a) * 0.17, HC.z - 0.1), V(Math.cos(a), Math.sin(a), -0.35), 0.7, 0.009, 0, Zv, { radial: 3, tubular: 2 }), 'corona', { color: ORO }); }
     upd.push((dt, tt) => { sol.rotation.z = tt * 0.12; });
   }
   if (has('anomalia')) { // el pecho se abre a un vacío negro: anillos de fotones, esquirlas en órbita y rayos violeta sobre el cuerpo

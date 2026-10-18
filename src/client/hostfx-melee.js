@@ -364,7 +364,7 @@ export function createHostMelee(renderer, D) {
   return {
     onEvent, update, key, clear, stats, worldImpact, dispose() { clear(); dispose1(); cam.remove(rig); for (const d of disposables) d.dispose(); },
     /** Para el banco de pruebas: dispara un golpe local sin pasar por la sim. */
-    play(kind, o = {}) { const hid = o.char || host || 'axioma'; if (!built || host !== hid) build(hid); if (!o.keepCombo) comboT = o.idx != null ? 0 : 9; if (o.idx != null) comboIdx = (o.idx + 2) % 3; start(kind, { hit: o.hit || 0, exec: kind === 'exec', d: o.d, predicted: false, u0: o.u0 || 0, silent: !!o.silent }); },
+    play(kind, o = {}) { const hid = o.char || host || 'axioma'; if (!built || host !== hid) build(hid); if (!o.keepCombo) comboT = o.idx != null ? 0 : 9; if (o.idx != null) comboIdx = (o.idx + 2) % 3; start(kind, { hit: o.hit || 0, exec: kind === 'exec', d: o.d, predicted: false, u0: o.u0 || 0, silent: !!o.silent, fp: o.fp }); },
     get swing() { return swing; }, get engage() { return engage; },
   };
 }

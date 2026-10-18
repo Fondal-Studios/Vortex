@@ -66,7 +66,7 @@ Desde la oleada 3 las élites llevan un **afijo** visible (halo de color + nombr
 ### Los 8 eventos
 | Evento | Qué pasa | Cómo se ve (telegrafía) | Contrapartida / premio |
 |---|---|---|---|
-| **Marea de Gravedad** (10 s) | Única ocasión en que la gravedad se invierte: cuenta atrás de 3 s y luego inversión de máx. 3,5 s. Los Familiares y jefes sólo pueden invertir durante ella. En m2 es la **ingravidez** de siempre (6 s). | Tinte violeta, cuenta atrás grande en la barra, giro de cámara de 0,8 s con viñeta | Podés moverte y disparar; aterrizaje blando; núcleos + botiquín |
+| **Marea de Gravedad** (10 s) | Única ocasión en que la gravedad se invierte: cuenta atrás de 3 s y luego inversión de máx. 3,5 s. Los Familiares y jefes sólo pueden invertir durante ella. En m2 es la **ingravidez** de siempre (6 s). **Singular** (octavo Huésped) es inmune: su pasiva Horizonte absorbe la inversión (`singularInmune` en `volteaJugador`) y la Marea le da +35 % a pozos y satélites. | Tinte violeta, cuenta atrás grande en la barra, giro de cámara de 0,8 s con viñeta | Podés moverte y disparar; aterrizaje blando; núcleos + botiquín |
 | **Niebla de Almas** (20 s) | Visibilidad corta **y 3 bancos de niebla blanca** (sistema de nieblas: quien se queda adentro no es visto por las criaturas a más de 9 m) | Pantalla lechosa; las criaturas brillan (halos que se ven a través de la niebla) | +50 % núcleos por baja |
 | **Lluvia de Astillas** (16 s) | Esquirlas caen cerca de vos | Círculo naranja que se llena 1,5 s antes del impacto | También hieren a las criaturas; núcleos |
 | **Tormenta de Ecos** (18 s) | Rayos caen donde estabas | Círculo celeste y columna de luz 2 s antes | El rayo destroza criaturas: llevalas al círculo; núcleos |

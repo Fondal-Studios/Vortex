@@ -8,6 +8,7 @@ import { CHARACTERS, HOST_IDS, LIMITS, COMBO_SETS, HABILIDADES, EVO_PATHS } from
 import { Game } from '../src/sim/game.js';
 import { iniciarEvento } from '../src/sim/eventos.js';
 import { SING, orbN, orbPos } from '../src/sim/singular.js';
+import { makeBot } from '../src/sim/bot.js';
 
 const target = (g, p, d = 3, hp = 5000, kind = 'astilla') => { const m = g.spawnMonster(kind, ahead(p, d)); m.cd = 1e9; m.open = true; m.hp = m.maxhp = hp; m.passive = true; return m; };
 const tap = (g, p, k, secs = 0.05) => { g.setInput(p.id, { [k]: true }); run(g, secs); g.setInput(p.id, { [k]: false }); run(g, 0.05); };
@@ -111,4 +112,16 @@ test('determinismo y límites: dos partidas iguales dan lo mismo; los objetos no
   };
   assert.equal(play(), play());
   const fs = import('node:fs'); void fs;
+});
+
+test('bot: una partida con Singular (nivel 4, todas las habilidades) no revienta: sin NaN, entidades acotadas y usa pozos', () => {
+  const g = new Game({ mapId: 'm1', seed: 6, difficulty: 1.5 }); const p = g.addPlayer('b', null, { char: 'singular', evo: 4, path: ['depredador', 'velocidad', 'simbiosis', 'apoteosis'] });
+  const think = makeBot(g, p.id, { seed: 2, skill: 1.3 }); let pozosMax = 0, usados = 0;
+  for (let i = 0; i < 60 * 120 && g.state === 'playing'; i++) {
+    const inp = think(1 / 60); inp.s3 = inp.s3 || i % 600 === 300; inp.mov = inp.mov || i % 480 === 100; inp.ult = i % 1500 === 700; p.ul = i % 1500 === 600 ? 100 : p.ul; p.hp = Math.max(p.hp, 60);
+    g.setInput(p.id, inp); g.step(1 / 60); const n = pozos(g).length; pozosMax = Math.max(pozosMax, n); if (g.events.some((e) => e.t === 'pozo')) usados++; g.events.length = 0;
+    assert.ok(g.objects.length <= 40 && g.monsters.length <= LIMITS.monsters && g.projectiles.length <= LIMITS.projectiles);
+  }
+  assert.ok(usados >= 1, 'el bot abrió pozos'); assert.ok(pozosMax <= LIMITS.pozos + 2, `pozos a la vez: ${pozosMax}`);
+  assert.equal(JSON.stringify(g.snapshot()).includes('NaN'), false);
 });

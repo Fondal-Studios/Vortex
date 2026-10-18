@@ -12,7 +12,7 @@ import { tools, V, basisQ } from '../huesped-piezas.js';
 
 export const BELLY = 0;   // sin vientre brillante: la jalea vive en la celda-corazón y en las costuras
 const CH_D = 0x1c060c, CH = 0x340c16, CH_L = 0x501522, CH_HI = 0x6e2232;               // quitina burdeos (de oscuro a lustre)
-const WAX = 0xc4ae82, WAX_D = 0x9a7a4c, WAX_S = 0x6a4c28;                               // cera de panal
+const WAX = 0xe2ce9e, WAX_D = 0xb89c66, WAX_S = 0x7e6236;                               // cera de panal
 const HONEY = 0xe48a10, HONEY_L = 0xe6a838, HONEY_D = 0xa8500a;                         // miel ámbar
 const CORAL = 0xf02848, CORAL_L = 0xff7080;                                             // jalea real (rojo sangre-miel: nadie más es rojo)
 const TAU = Math.PI * 2, clamp01 = (x) => Math.max(0, Math.min(1, x));
@@ -124,7 +124,7 @@ export function build(ak, ctx) {
     for (let i = 0; i < 5; i++) {
       const a = pts[i], b = pts[i + 1], L = a.distanceTo(b), r = rad[i];
       const egg = G.lathe([[0, -L * 0.62], [r * 0.7, -L * 0.52], [r, -L * 0.1], [r * 0.95, L * 0.25], [r * 0.7, L * 0.52], [0, L * 0.62]], S(14, 8), 0, TAU, 34);
-      add('dark', limb(egg, a, b, 0.5, { s: [1, 1, 0.92] }), ch.bones[i].name, { color: i === 1 || i === 2 ? CHM : CHD });
+      add('dark', limb(egg, a, b, 0.5, { s: [1, 1, 0.92] }), ch.bones[i].name, { color: i % 2 ? 0xc27c1c : CHM });   // segmentos alternos de miel y quitina (como una avispa)
       add('marble', limb(G.band(r * 0.96, 0.028, 0.014, { seg: S(16, 9), bevel: 0.4 }), a, b, 0.0), ch.bones[i].name, { color: WAX_D });   // anillo de cera entre segmentos
       add('light', limb(G.torus(r * 0.97, 0.0032, 3, S(16, 9)), a, b, 0.0, { off: [0, 0.014, 0] }), ch.bones[i].name, { color: CORAL });
       if (i >= 1 && i <= 3) add('crystal', limb(flat(new T.IcosahedronGeometry(r * 0.72, low ? 0 : 1)), a, b, 0.5, { s: [0.95, 0.8, 0.5], off: [0, 0, -r * 0.62] }), ch.bones[i].name, { color: (x, y) => C(HONEY_D).lerp(C(CORAL), clamp01(0.4 + (y - 0.7) * 1.2)) });   // ventana de miel: se ven las larvas dentro
@@ -147,7 +147,7 @@ export function build(ak, ctx) {
   };
   const mkWing = (nm, L, Wf, Wb, theta, psi, hub, o = {}) => ak.both((side) => {
     const w = wingGeo(L, Wf, Wb, theta, psi, hub), bn = ak.bone(nm + side, 'spine01', hub);
-    add('crystal', w.place(G.plate(w.poly, 0.004, 0.0014)), bn.name, { color: (x, y, z) => { const d = Math.hypot(x - hub.x, y - hub.y, z - hub.z) / L; return C(0xe8960c).lerp(C(0xa84a04), clamp01(d * 1.2 - 0.2)).lerp(C(0xc42030), clamp01((d - 0.72) * 2.8)).multiplyScalar(0.5); } });
+    add('crystal', w.place(G.plate(w.poly, 0.004, 0.0014)), bn.name, { color: (x, y, z) => { const d = Math.hypot(x - hub.x, y - hub.y, z - hub.z) / L; return C(0xe08000).lerp(C(0x8a3a04), clamp01(d * 1.2 - 0.2)).lerp(C(0xc42030), clamp01((d - 0.72) * 2.8)).multiplyScalar(1.0); } });
     const nv = low ? 3 : 5;   // venas radiales desde la raíz al borde de fuga
     for (let k = 0; k <= nv; k++) { const s = 0.3 + 0.66 * (k / nv), tail = w.bot[Math.min(w.bot.length - 1, Math.round(s * (w.bot.length - 1)))]; add('dark', w.place(G.tube([V(0, 0, 0.004), V(tail[0] * 0.5, tail[1] * 0.35, 0.006), V(tail[0], tail[1] * 0.97, 0.004)], 0.0045 - k * 0.0003, 0.0022, { radial: 3, tubular: 5, closeStart: false })), bn.name, { color: CH_D }); }
     add('dark', w.place(G.tube(w.top.map((q) => V(q[0], q[1] * 0.96, 0.005)), 0.0085, 0.003, { radial: S(5, 4), tubular: S(10, 8), closeStart: true })), bn.name, { color: CH });   // vena costal gruesa

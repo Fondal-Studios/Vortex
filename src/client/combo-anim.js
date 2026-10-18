@@ -158,6 +158,33 @@ export const ANIM_HAB = {
 };
 /** Golpe «Caída» (en el aire, mirando abajo): un solo descriptor para todos. */
 export const ANIM_PLUNGE = D('caida', { av: 0.4, peso: 1.8, hs: 5, trk: 0.8, fp: 'SLAM' });
+// SINGULAR: ganchos que ARRASTRAN hacia adentro, giros que tiran de todo y mazazos de plomada
+ANIM_GOLPE.singular = {
+  roce: D('tajo', { av: 0.9, peso: 1.0, trk: 0.8, fp: 'HOOK' }),
+  arrastre: D('giro', { m: true, esc: 1.05, av: 0.3, peso: 1.2, hs: 3, trk: 1.0, fp: 'HOOK_L' }),
+  compresion: D('martillo', { esc: 1.1, av: 0.6, peso: 1.7, hs: 5, trk: 0.8, fp: 'SLAM' }),
+  cuasar: D('punio', { esc: 1.15, av: 0.8, peso: 1.6, hs: 4, trk: 0.6, fp: 'HOOK' }),
+  doble_polo: D('giro', { esc: 1.1, av: 0.3, peso: 1.5, hs: 4, trk: 1.1, fp: 'SWEEP' }),
+  meteoros: D('caida', { esc: 1.1, av: 0.4, peso: 2.0, hs: 5, trk: 1.0, fp: 'SLAM' }),
+  acrecion: D('giro', { esc: 1.2, av: 0.2, peso: 2.0, hs: 5, trk: 1.3, fp: 'SWEEP' }),
+  colapso_estelar: D('caida', { esc: 1.3, av: 0.4, peso: 2.8, hs: 6, trk: 1.4, fp: 'SLAM' }),
+};
+ANIM_HAB.singular = { cast: 'suelo', go: 'estallar' };
+// COLMENA: picotazos rápidos (estocadas cortas), barrido de alas, giros del enjambre y el remate de la Reina; la habilidad alza los brazos para llamar
+ANIM_GOLPE.colmena = {
+  picotazo: D('estocada', { esc: 0.8, av: 0.7, peso: 0.9, hs: 2, trk: 0.5, fp: 'THRUST' }),
+  doble_aguijon: D('estocada', { m: true, esc: 0.8, av: 0.8, peso: 1.0, hs: 2, trk: 0.6, fp: 'THRUST' }),
+  aguijonada: D('estocada', { esc: 1.1, av: 1.2, peso: 1.7, hs: 5, trk: 1.0, fp: 'THRUST' }),
+  barrido_alas: D('giro', { esc: 0.9, av: 0.2, peso: 1.3, hs: 3, trk: 1.2, fp: 'SWEEP' }),
+  brote_crias: D('apertura', { esc: 0.9, av: 0, peso: 1.1, hs: 2, trk: 0, fp: 'SWEEP' }),
+  torbellino_alas: D('giro', { esc: 1.1, av: 0.3, peso: 1.5, hs: 4, trk: 1.3, fp: 'SWEEP' }),
+  lluvia_aguijones: D('zarpa', { m: true, esc: 0.85, av: 0.4, peso: 1.2, hs: 3, trk: 0.7, fp: 'RAKE' }),
+  llamado_reina: D('caida', { esc: 1.25, av: 0.4, peso: 2.4, hs: 6, trk: 1.2, fp: 'SLAM' }),
+  // golpes que añade el árbol de combos (progresion.js)
+  enjambre_cerrado: D('giro', { esc: 1.1, av: 0.3, peso: 1.5, hs: 4, trk: 1.2, fp: 'SWEEP' }),
+  colmena_total: D('caida', { esc: 1.3, av: 0.4, peso: 2.6, hs: 6, trk: 1.4, fp: 'SLAM' }),
+};
+ANIM_HAB.colmena = { cast: 'alzar', go: 'estallar' };
 /** Respaldo cuando un Huésped (o un golpe) no está en la tabla: se deduce del TIPO del golpe de COMBO_SETS (kind, dash, blink, ranged…). */
 export function deducir(mv = {}, n = 1) {
   const par = n % 2 === 0;

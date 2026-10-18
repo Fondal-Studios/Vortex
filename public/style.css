@@ -446,6 +446,7 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 #combohud { position: absolute; left: 50%; bottom: 24%; transform: translateX(-50%); text-align: center; pointer-events: none; font-weight: 900; letter-spacing: .08em; text-shadow: 0 0 10px #000, 0 0 3px #000; opacity: 0; transition: opacity .2s; }
 #combohud.on { opacity: 1; } #combohud b { display: block; font-size: clamp(26px, 5vw, 46px); color: #ffd23f; line-height: 1; } #combohud b i { font-style: normal; font-size: .5em; color: #fff; margin-left: 4px; }
 #combohud small { display: block; font-size: clamp(11px, 1.8vw, 15px); color: #fff; opacity: .9; } #combohud u { display: block; height: 4px; margin: 4px auto 0; width: 120px; max-width: 40vw; border-radius: 2px; background: #ffffff33; text-decoration: none; overflow: hidden; } #combohud u s { display: block; height: 100%; width: 100%; background: #ff9a3c; transform-origin: left; text-decoration: none; }
+body.cam3 #combohud { left: auto; right: 7%; bottom: 36%; transform: none; text-align: right; } body.cam3 #combohud u { margin-right: 0; }
 #combohud.pop b { animation: cbpop .18s ease-out; } @keyframes cbpop { from { transform: scale(1.5); } }
 .modo-combo #weapons { display: none !important; }
 

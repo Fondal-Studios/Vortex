@@ -186,7 +186,7 @@ export function build(ak, ctx) {
   }
 
   ak.embers(ORO, low ? 18 : 36, { radius: 0.7, height: 2.2, size: 5 });
-  if (!low) ak.embers(VIO, 22, { radius: 1.0, height: 2.0, size: 9 });
+  if (!low && ctx.evo < 3) ak.embers(VIO, 22, { radius: 1.0, height: 2.0, size: 9 });   // la nube grande se omite en los niveles altos: con el brillo de la forma final tapa el cuerpo
 
   const evo = addEvolucionSingular(ak, ctx, { t, upd, has, nMoons });
   return { update: (dt, tt, c) => { for (const f of upd) f(dt, tt, c); evo.update(dt, tt, c); } };

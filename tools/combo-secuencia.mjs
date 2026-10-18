@@ -1,14 +1,14 @@
 // Secuencias de cuadros del MODO COMBO (diagnóstico y verificación visual): ejecuta el combo completo de un Huésped en 3.ª (o 1.ª) persona contra muñecos
 // pasivos y captura un cuadro cada ~80 ms de juego (reloj determinista ?cap=1 + __step). Arma una hoja de contactos por golpe (mosaico HTML → JPG).
-// Uso: node tools/combo-secuencia.mjs [carpeta=/tmp/combo] [huesped=axioma] [golpes=todos|a1,a1,a2] [cam=third|first] [evo=4] [paso=80] [vista=juego|lado|frente]
+// Uso: node tools/combo-secuencia.mjs [carpeta=/tmp/combo] [huesped=axioma] [golpes=todos|a1,a1,a2] [cam=third|first] [evo=4] [paso=80] [vista=juego|lado|frente] [sinfx]
 // Salida: <carpeta>/<huesped>-<cam>-NN.jpg (cuadros) + <carpeta>/<huesped>-<cam>-hoja.jpg (contactos) + registro.json (clip, golpes, medidas de dibujo).
 import fs from 'node:fs';
 import { launch } from './browser.js';
 import { startServer } from '../server/server.js';
-const OUT = process.argv[2] || '/tmp/combo', CHAR = process.argv[3] || 'axioma', SEQ = (process.argv[4] || 'todos'), CAM = process.argv[5] || 'third', EVO = +(process.argv[6] ?? 4), PASO = +(process.argv[7] || 80), VISTA = process.argv[8] || 'juego', COLS = 5;
+const OUT = process.argv[2] || '/tmp/combo', CHAR = process.argv[3] || 'axioma', SEQ = (process.argv[4] || 'todos'), CAM = process.argv[5] || 'third', EVO = +(process.argv[6] ?? 4), PASO = +(process.argv[7] || 80), VISTA = process.argv[8] || 'juego', SINFX = process.argv[9] === 'sinfx', COLS = 5;
 fs.mkdirSync(OUT, { recursive: true });
 const SECS = { todos: [['a1'], ['a1', 'a1'], ['a1', 'a1', 'a1'], ['a2'], ['a1', 'a2'], ['a1', 'a1', 'a2'], ['a1', 'a1', 'a1', 'a1'], ['a1', 'a1', 'a1', 'a2'], ['a2', 'a2'], ['a2', 'a1']] };
-const seqs = SEQ === 'todos' ? SECS.todos : [SEQ.split(',')];
+const seqs = SEQ === 'todos' ? SECS.todos : SEQ.split(';').map((q) => q.split(','));   // «a1,a1;a2» = dos secuencias
 const srv = await startServer({ port: 0 }), b = await launch(), errors = [], reg = { char: CHAR, cam: CAM, golpes: [] };
 const ctx = await b.newContext({ viewport: { width: 800, height: 500 } });
 await ctx.addInitScript((c) => { try { localStorage.setItem('cristal.huesped.v1', c); localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } }, CHAR);
@@ -24,9 +24,10 @@ await pg.evaluate((evo) => {
 }, EVO);
 await pg.evaluate((vista) => { if (vista === 'juego') return; document.getElementById('hud').style.visibility = 'hidden'; const R = window.__api.renderer, orig = R.updateCamera.bind(R);   // cámara de exhibición: de costado (se ve el avance) o de frente
   R.updateCamera = (me, dt, look) => { orig(me, dt, look); const T = R.camera.position.constructor, up = new T(...me.up), h = new T(...me.h), rt = new T().crossVectors(h, up).normalize();
-    const c = new T(...me.pos).addScaledVector(up, 0.25).addScaledVector(h, 1.2), eye = vista === 'lado' ? c.clone().addScaledVector(rt, 4.2).addScaledVector(h, -0.8).addScaledVector(up, 0.9) : c.clone().addScaledVector(h, 4.6).addScaledVector(rt, -1.2).addScaledVector(up, 0.8);
+    const c = new T(...me.pos).addScaledVector(up, 0.25).addScaledVector(h, 1.2), eye = vista === 'lado' ? c.clone().addScaledVector(rt, 3.4).addScaledVector(h, -0.4).addScaledVector(up, 0.7) : c.clone().addScaledVector(h, 4.6).addScaledVector(rt, -1.2).addScaledVector(up, 0.8);
     R.camera.position.copy(eye); R.camera.up.copy(up); R.camera.lookAt(c); }; }, VISTA);
 const step = (ms) => pg.evaluate((ms) => { for (let i = 0; i < Math.ceil(ms / 16); i++) window.__step(16); }, ms);
+if (SINFX) await pg.evaluate(() => { const f = window.__api.renderer.fx; for (const k of ['flash', 'sparks', 'spray', 'ring', 'ringChroma', 'line', 'shatter', 'blast', 'decal', 'burst', 'dart', 'tracer']) f[k] = () => {}; });   // aísla la pose del cuerpo (sin destellos)
 await pg.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => /Entendido/.test(x.textContent)); if (b) b.click(); });
 for (let i = 0; i < 400; i++) { // carga del cuerpo (asíncrona: hay que seguir dando cuadros para que renderer.syncPlayers lo cree)
   await step(100); const ok = await pg.evaluate(() => { const e = [...window.__api.renderer.ents.ply.values()][0]; return window.__api.renderer.third ? !!(e && e.body && e.body.isReady) : true; });
@@ -39,14 +40,15 @@ for (const seq of seqs) {
   await pg.evaluate(() => { window.__btn.a1 = window.__btn.a2 = false; window.__dummies(); });
   await step(1200);
   const tag = seq.join('+'), frames = [], clips = [];
-  const snap = async (lbl) => { const f = `${CHAR}-${CAM}${VISTA === 'juego' ? '' : '-' + VISTA}-${String(n++).padStart(3, '0')}.jpg`; await pg.screenshot({ path: `${OUT}/${f}`, type: 'jpeg', quality: 70, timeout: 120000 }); frames.push({ f, lbl }); };
+  const snap = async (lbl) => { const f = `${CHAR}-${CAM}${VISTA === 'juego' ? '' : '-' + VISTA}-${String(n++).padStart(3, '0')}.jpg`; for (let k = 0; k < 4; k++) { try { await pg.screenshot({ path: `${OUT}/${f}`, type: 'jpeg', quality: 70, timeout: 90000 }); break; } catch (err) { if (k === 3) throw err; await pg.waitForTimeout(1500); } } frames.push({ f, lbl }); };
   await snap('reposo');
   for (let i = 0; i < seq.length; i++) {
     const nt = seq[i];
     await pg.evaluate((k) => { window.__btn[k] = true; }, nt); await step(50); await pg.evaluate((k) => { window.__btn[k] = false; }, nt);
     // 8 cuadros de ~PASO ms tras cada pulsación (anticipación → golpe → recuperación)
     const t = await pg.evaluate(() => { const e = [...window.__api.renderer.ents.ply.values()][0]; return e && e.body ? 1 : 0; });
-    for (let k = 0; k < (i === seq.length - 1 ? 9 : 4); k++) { await step(PASO); await snap(`${tag} #${i + 1} +${(k + 1) * PASO}ms`); clips.push(await pg.evaluate(() => { const e = [...window.__api.renderer.ents.ply.values()][0]; const s = window.__api.session.game.players[0]; return { clip: e && e.body && e.body.person ? e.body.person.clip : '?', last: s.cb && s.cb.last, cmb: s.cmb }; })); }
+    if (i < seq.length - 1) { await step(260); continue; }   // golpes previos de la cadena: sólo se dejan pasar (la hoja muestra el último)
+    for (let k = 0; k < 7; k++) { await step(PASO); await snap(`${tag} #${i + 1} +${(k + 1) * PASO}ms`); clips.push(await pg.evaluate(() => { const e = [...window.__api.renderer.ents.ply.values()][0]; const s = window.__api.session.game.players[0]; return { clip: e && e.body && e.body.person ? e.body.person.clip : '?', last: s.cb && s.cb.last, cmb: s.cmb }; })); }
     void t;
   }
   shots.push({ tag, frames });

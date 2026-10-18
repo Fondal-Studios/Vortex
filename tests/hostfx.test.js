@@ -15,6 +15,7 @@ const SKILLS = {
   seraf: [['mov', 'planeo'], ['esp', 'pulso'], ['s3', 'simbionte'], ['ult', 'metamorfosis']],
   danzante: [['mov', 'pirueta'], ['esp', 'parada'], ['s3', 'cintas'], ['ult', 'danza']],
 };
+SKILLS.colmena = [['mov', 'zumbido'], ['esp', 'cria'], ['s3', 'nido'], ['ult', 'marabunta']];   // Colmena
 const BUDGET = 12; // draw calls extra por efecto
 
 
@@ -83,7 +84,7 @@ test('hostfx: melee de los 5 Huéspedes (evento de la sim + tecla V)', { skip: !
     // melee: por evento de la sim (todos los tipos, todos los Huéspedes) y por la tecla V
     const me = await pg.evaluate(() => {
       const d = window.__demo, out = {};
-      for (const host of ['axioma', 'vesper', 'micelio', 'umbra', 'seraf', 'danzante']) {
+      for (const host of ['axioma', 'vesper', 'micelio', 'umbra', 'seraf', 'danzante', 'colmena']) {
         d.setup(host, { third: false, ally: host }); d.run(0.3, 1 / 10); const base = d.r.gl.info.render.calls; let pk = 0;
         for (const kind of ['light', 'light', 'light', 'heavy', 'air', 'exec']) { d.melee(kind, kind === 'light' ? 1 : 2); d.frame(1 / 60, 1); d.melee('light', 1, true); for (let i = 0; i < 30; i++) { d.frame(1 / 60, 1); pk = Math.max(pk, d.r.gl.info.render.calls); } }
         out[host] = { extra: pk - base, calls: d.r.hostfx.melee.stats() };

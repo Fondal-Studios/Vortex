@@ -81,6 +81,7 @@ Baja (`q=low`, ≤ 45 llamadas / ≤ 20 000 triángulos por Huésped; el cuerpo 
 | Micelio | 6 · 8 916 | 20 · 13 738 |
 | Umbra | 10 · 5 360 | 24 · 10 182 |
 | Seraf (v2, detallado) | 17 · 15 934 | 29 · 19 364 |
+| Singular (astro muerto: vidrio negro, corona de eclipse, esfera armilar, lunas; `huesped/singular.js` + `singular-evo.js`) | 14 · 12 700 | 21 · 15 800 |
 Media/Alta usan más segmentos (`ak.Q` 1,0 / 1,25) y la piel completa (26 756 tris); Axioma Alta ≈ 80 000 tris en el kit (sin límite fijo).
 
 ### Pendiente para quien siga

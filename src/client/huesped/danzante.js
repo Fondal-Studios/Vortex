@@ -10,14 +10,15 @@ import { addEvolution } from '../huesped-evo-piezas.js';
 export const BELLY = 1; // vientre de luz de cempasúchil entre las costillas
 const BONE = 0xeadfc6, BONE_D = 0xb9a98a, FUC = 0xff3fa0, FUC_D = 0xa8125f, TUR = 0x2fe6d0, TUR_D = 0x0b8a86, MAR = 0xffb020, MAR_D = 0xd9780a, PLUM = 0x2f1040, PLUM_L = 0x5a2272, INK = 0x0b0614;
 const CYC = [FUC, TUR, MAR];   // el ciclo de colores de las cintas
-const LK = 0.86;   // las cintas y plumas brillan por sí solas: se bajan un poco para que el bloom no las vuelva pastel
+const LK0 = 0.86;   // las cintas y plumas brillan por sí solas: se bajan un poco para que el bloom no las vuelva pastel
 
 export function build(ak, ctx) {
+  const LK = ak.low ? LK0 : LK0 * 0.9;   // con bloom (Media/Alta) un poco menos de brillo propio
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, dome, cuff, bonelump, S, low } = t, P = (n) => ak.P(n), add = ak.add;
   const HC = V(0, 1.6, 0.06), Y = V(0, 1, 0), Zv = V(0, 0, 1), upd = [], R = t.rng(77), evo = ctx.evo | 0;
   const C = (h) => new T.Color(h);
   {  // materiales: la tela algo apagada, y el oro vivo (si no, los aros de la evolución salen marrones)
-    const mc = ak.material('cloth'), mg = ak.material('gold'); mc.color.setRGB(0.9, 0.8, 0.95);
+    const mc = ak.material('cloth'), mg = ak.material('gold'), mm = ak.material('metal'); mc.color.setRGB(0.9, 0.8, 0.95); mm.color.setRGB(1.9, 1.5, 2.2); mm.roughness = 0.55;   // el metal de la evolución (hombreras, placas) en lila claro, no negro
     mg.color.setRGB(1.8, 1.2, 0.45); mg.roughness = 0.5; mg.metalness = 0.8; mg.normalScale.set(0.22, 0.22); mg.userData.uvk = 0.45;
   }
 
@@ -266,8 +267,9 @@ export function build(ak, ctx) {
     add('light', X(G.torus(WR - 0.05, 0.0045, 3, S(34, 16)), { p: [hub.x, hub.y, hub.z], r: [Math.PI / 2, 0, 0] }), 'ruedaMascaras', { color: TUR });
     for (let i = 0; i < nm; i++) {   // calaveritas de azúcar con ojos de luz que giran con la rueda
       const a = (i / nm) * Math.PI * 2, c = V(hub.x + Math.cos(a) * WR, hub.y + Math.sin(a) * WR, hub.z);
-      add('bone', X(G.sphere(0.066, S(8, 6), S(6, 5)), { p: [c.x, c.y, c.z], s: [0.85, 1, 0.5] }), 'ruedaMascaras', { color: BONE });
-      for (const s of [-1, 1]) add('light', X(G.sphere(0.015, 4, 3), { p: [c.x + s * 0.024, c.y + 0.01, c.z - 0.03] }), 'ruedaMascaras', { color: CYC[i % 3] });
+      add('light', X(G.sphere(0.066, S(8, 6), S(6, 5)), { p: [c.x, c.y, c.z], s: [0.85, 1, 0.5] }), 'ruedaMascaras', { color: 0xa89f88 });   // calaverita con luz propia, apagada para que el bloom no la queme
+      for (const s of [-1, 1]) add('dark', X(G.sphere(0.017, 4, 3), { p: [c.x + s * 0.024, c.y + 0.01, c.z - 0.028] }), 'ruedaMascaras', { color: INK });
+      add('dark', X(t.box(0.04, 0.008, 0.01, 0.002, 1), { p: [c.x, c.y - 0.03, c.z - 0.03] }), 'ruedaMascaras', { color: INK });
       add('light', X(leaf(0.26, 0.07, 0.004, 3), { q: t.basisQ(V(Math.cos(a), Math.sin(a), 0), Zv), p: [c.x + Math.cos(a) * 0.06, c.y + Math.sin(a) * 0.06, c.z] }), 'ruedaMascaras', { color: CYC[(i + 1) % 3] });
     }
     ak.halo('ruedaMascaras', hub, FUC, 1.6, 0.2);
