@@ -40,16 +40,25 @@ export class AutoQuality {
 /** CLARIDAD (legibilidad del Huésped y los enemigos; la psicodelia sigue a tope, pero la lectura del jugador manda).
  *  «Normal» ya trae un mínimo medible de contraste (tools/legibilidad.mjs); «Alta» sube relleno, contorno de luz y suelo. Se guarda en ajustes (settings.js · claridad) o con ?claridad=alta.
  *   key: luz de relleno que sigue al Huésped · rim: fuerza del borde de luz del cuerpo · halo: resplandor detrás de la silueta · pool: charco de luz en el suelo · outline: contorno de luz por salto de profundidad (post.js)
- *   floor: piso tintado en las sombras (post.js, conserva el tono de cada mapa) · fog: tope de opacidad de la niebla · exp: multiplicador de exposición · beacon: halo de color de cada enemigo */
+ *   floor: piso tintado en las sombras (post.js, conserva el tono de cada mapa) · fog: tope de opacidad de la niebla · exp: multiplicador de exposición · beacon: halo de color de cada enemigo · beaconDark: halo oscuro detrás (recorta al enemigo claro del fondo) */
 export const CLARIDAD = {
-  normal: { id: 'normal', label: 'Normal', key: 1.0, rim: 1.0, halo: 0.34, pool: 0.35, floor: 0.045, outline: 0.8, fog: 0.62, exp: 1.06, beacon: 0.5 },
-  alta:   { id: 'alta',   label: 'Alta',   key: 1.7, rim: 1.9, halo: 0.6,  pool: 0.85, floor: 0.085, outline: 1.0, fog: 0.5,  exp: 1.16, beacon: 0.75 },
+  normal: { id: 'normal', label: 'Normal', key: 1.0, rim: 1.0, halo: 0.34, pool: 0.35, floor: 0.04, outline: 0.8, fog: 0.62, exp: 1.05, beacon: 0.42, beaconDark: 0.6 },
+  alta:   { id: 'alta',   label: 'Alta',   key: 1.7, rim: 1.9, halo: 0.6,  pool: 0.85, floor: 0.085, outline: 1.0, fog: 0.5,  exp: 1.12, beacon: 0.6, beaconDark: 0.78 },
 };
 /** Uniforme compartido (0 = Normal, 1 = Alta) que leen los materiales del cuerpo (borde de luz) sin reconstruirse. */
 export const uClar = { value: 0 };
-let clar = 'normal';
-export function setClaridad(id) { if (!CLARIDAD[id]) return clar; clar = id; uClar.value = id === 'alta' ? 1 : 0; return clar; }
-export const claridad = () => CLARIDAD[clar];
+/** Qué tan OSCURO es cada mapa (medido en tools/legibilidad.mjs: luma media de la imagen en 3ª persona, sin Claridad): los mapas ya claros (m4-m6) no necesitan relleno,
+ *  que sólo les restaría contraste y lavaría los neones; los oscuros (m1-m3) lo llevan completo. Escala relleno, charco, piso de sombras y exposición. */
+export const MAP_OSCURO = { m1: 1, m2: 1.2, m3: 1.1, m4: 0.45, m5: 0.3, m6: 0.25 };
+let clar = 'normal', mapa = 'm1', eff = null;
+function calc() {
+  const b = CLARIDAD[clar], f = MAP_OSCURO[mapa] ?? 1;
+  eff = { ...b, key: b.key * f, pool: b.pool * f, floor: b.floor * f, exp: 1 + (b.exp - 1) * f, halo: b.halo * (0.5 + 0.5 * f), oscuro: f };
+}
+export function setClaridad(id) { if (CLARIDAD[id]) { clar = id; uClar.value = id === 'alta' ? 1 : 0; calc(); } return clar; }
+export function setClaridadMapa(id) { mapa = id; calc(); }
+/** Valores EFECTIVOS de la Claridad para el mapa actual. */
+export const claridad = () => eff || (calc(), eff);
 export function initialClaridad(saved, params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams()) {
   const q = params.get('claridad'); return CLARIDAD[q] ? q : (CLARIDAD[saved] ? saved : 'normal');
 }

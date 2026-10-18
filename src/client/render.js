@@ -21,7 +21,7 @@ import { buildMap2 } from './env/map2.js';
 import { Viewmodels, WEAPON_COLORS as WC } from './weapons-vm.js';
 import { kit } from './organism.js';
 import heraldo from './creatures/heraldo.js';
-import { cfg, LEVELS, setCurrent, setClaridad, claridad, initialClaridad } from './quality.js';
+import { cfg, LEVELS, setCurrent, setClaridad, setClaridadMapa, claridad, initialClaridad } from './quality.js';
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
 import { createHostFx } from './hostfx.js';
 import { EventosFx } from './eventos-fx.js';
@@ -94,6 +94,7 @@ export class Renderer {
     setClaridad(id); this.clar = claridad(); this.gl.toneMappingExposure = (usesComposer() ? 1.9 : 1.05) * (usesComposer() ? 1 : this.clar.exp);
     if (this.grade) this.grade.clarity(this.clar);
     for (const e of this.ents.mon.values()) { const b = e.object.getObjectByName('beacon'); if (b) b.material.opacity = this.clar.beacon; }
+    const hd = this.cache.get('haloDark'); if (hd) hd.opacity = this.clar.beaconDark;
   }
   shared(key, make) { let v = this.cache.get(key); if (!v) { v = make(); this.cache.set(key, v); } return v; }
   halo_(color) { return this.shared('halo' + color, () => new THREE.SpriteMaterial({ map: this.halo, color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); }
@@ -146,7 +147,7 @@ export class Renderer {
     this.dyn = [];
     const warm = mapId === 'm2', dream = mapId === 'm3';
     this.hemi.color.setHex(warm ? 0xffb0d8 : dream ? 0xd0b8ff : 0xaab8ff); this.hemi.groundColor.setHex(warm ? 0x3a0a2a : dream ? 0x2a1050 : 0x1a0f3a); this.sun.color.setHex(warm ? 0xffd2c0 : 0xe8f0ff); this.rim.color.setHex(warm ? 0x66ffd8 : 0xff66c4);
-    if (this.grade) this.grade.preset(mapId);
+    setClaridadMapa(mapId); this.clar = claridad(); if (this.grade) { this.grade.preset(mapId); this.grade.clarity(this.clar); }
     this.useHDRI(mapId);
     this.sunDir = null; // el entorno fija la dirección del sol; luego las sombras la siguen
     if (mapId === 'm3') this.loadMap3(MAPS.m3); else if (mapId === 'm4') this.loadMap4(MAPS.m4); else if (mapId === 'm5' || mapId === 'm6') this.loadLimbo(mapId); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
@@ -351,7 +352,7 @@ export class Renderer {
         e.proxy = new THREE.Mesh(this.shared('lodgeo' + m.k, () => bakeProxyGeometry(m.k) || new THREE.IcosahedronGeometry(0.9, 1)), proxyMaterial()); e.proxy.visible = false; e.object.add(e.proxy); // silueta propia de la especie (ver proxy-lod.js)
         if (cfg().shadows) e.object.traverse((q) => { if (q.isMesh) q.castShadow = true; }); e.object.userData.s = new THREE.Vector3();
         { const bc = COLORS[m.k] || 0xffffff, sp = new THREE.Sprite(this.halo_(bc)); sp.scale.setScalar(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 3.4 : 4.2); sp.material.opacity = this.clar.beacon; sp.material.depthWrite = false; sp.name = 'beacon'; e.object.add(sp);
-          const dk = new THREE.Sprite(this.shared('haloDark', () => new THREE.SpriteMaterial({ map: this.halo, color: 0x04020c, depthWrite: false, transparent: true, opacity: 0.42 }))); dk.scale.setScalar(sp.scale.x * 1.25); dk.renderOrder = -1; dk.name = 'beaconDark'; e.object.add(dk); } // ARTE: halo OSCURO bajo el aura: la criatura se recorta también sobre fondos claros (muro ámbar, carne rosa) // aura del color de la criatura: se lee a distancia y sobre el fondo
+          const dk = new THREE.Sprite(this.shared('haloDark', () => new THREE.SpriteMaterial({ map: this.halo, color: 0x04020c, depthWrite: false, transparent: true, opacity: this.clar.beaconDark }))); dk.scale.setScalar(sp.scale.x * 1.25); dk.renderOrder = -1; dk.name = 'beaconDark'; e.object.add(dk); } // ARTE: halo OSCURO bajo el aura: la criatura se recorta también sobre fondos claros (muro ámbar, carne rosa) // aura del color de la criatura: se lee a distancia y sobre el fondo
         this.entRoot.add(e.object); this.ents.mon.set(m.id, e);
         e.object.position.set(...m.p);
       }

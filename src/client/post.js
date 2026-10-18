@@ -95,13 +95,14 @@ const FRAG = `
     // aunque sean oscuros, en Baja también (4 lecturas de profundidad). Se apaga con la distancia y sobre el cielo muy lejano.
     #if OUTLINE
     if (uOutline > 0.0 && sky < 0.5 && uHasDepth > 0.5 && dist < 38.0) {
-      vec2 ox = px * max(2.0, uRes.y / 330.0); float e = 0.0, tol = max(0.45, 0.16 * dist);
-      e += step(tol, dd(uv + vec2(ox.x, 0.0)) - dist);
-      e += step(tol, dd(uv - vec2(ox.x, 0.0)) - dist);
-      e += step(tol, dd(uv + vec2(0.0, ox.y)) - dist);
-      e += step(tol, dd(uv - vec2(0.0, ox.y)) - dist);
+      vec2 ox = px * max(2.0, uRes.y / 330.0), o1 = vec2(ox.x, 0.0), o2 = -o1, o3 = vec2(0.0, ox.y), o4 = -o3; float tol = max(0.45, 0.16 * dist);
+      float j1 = dd(uv + o1) - dist, j2 = dd(uv + o2) - dist, j3 = dd(uv + o3) - dist, j4 = dd(uv + o4) - dist, bj = j1; vec2 bo = o1;
+      if (j2 > bj) { bj = j2; bo = o2; } if (j3 > bj) { bj = j3; bo = o3; } if (j4 > bj) { bj = j4; bo = o4; }
+      float e = step(tol, j1) + step(tol, j2) + step(tol, j3) + step(tol, j4);
       float k = clamp(e, 0.0, 1.0) * smoothstep(38.0, 12.0, dist) * uOutline;
-      vec3 oc = mix(vec3(0.82, 0.95, 1.0), c / max(max(c.r, max(c.g, c.b)), 0.05), 0.3); // borde casi blanco con un toque del color del píxel: la psicodelia no se lava
+      // el color del borde se opone al fondo que tiene detrás: claro sobre fondos oscuros, hondo (violeta casi negro) sobre fondos claros
+      vec3 nb = texture2D(tDiffuse, uv + bo * 1.5).rgb * uExposure; float Lb = dot(nb, vec3(0.2126, 0.7152, 0.0722)); Lb = Lb / (1.0 + Lb);
+      vec3 oc = mix(mix(vec3(0.82, 0.95, 1.0), c / max(max(c.r, max(c.g, c.b)), 0.05), 0.3), vec3(0.05, 0.02, 0.14), smoothstep(0.2, 0.45, Lb));
       c = mix(c, oc, k);
     }
     #endif

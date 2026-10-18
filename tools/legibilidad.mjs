@@ -1,7 +1,7 @@
 // LEGIBILIDAD del Huésped y los enemigos en 3ª persona: captura real de cada mapa y mide el contraste silueta↔fondo.
 // Método: la misma escena se fotografía 3 veces (todo visible / sin el CUERPO del Huésped / sin enemigos); la diferencia da la MÁSCARA de cada uno.
 // Se compara la luminancia lineal (Rec.709) del cuerpo y de su banda de borde (3 px interiores) contra un anillo de fondo (4..14 px fuera, de la captura sin ese objeto):
-//   ratio = (Lmax+0.05)/(Lmin+0.05) (WCAG) y ΔE de Lab entre colores medios. Legible si ratio ≥ 1.5 o ΔE ≥ 30 (el color también separa figura y fondo).
+//   ratio = (Lmax+0.05)/(Lmin+0.05) (WCAG) y ΔE de Lab entre colores medios. Legible si ratio ≥ 1.5, o ΔE ≥ 30 (el color también separa figura y fondo).
 // Criterio (CRITERIO): LEGIBLE en TODOS los mapas, para el Huésped y los enemigos, en Baja y Alta. El mismo script mide además la luma media y la saturación
 // media de la imagen (para vigilar que el relleno no lave los neones: la saturación no puede bajar más de 10 %).
 // Uso: node tools/legibilidad.mjs [carpeta] [calidades=low,high] [mapas=m1..m6] [claridad=normal|alta] [medir]   (medir = sólo re-analiza las PNG ya guardadas)
@@ -41,10 +41,13 @@ async function analizar(A, B, C) {
       const body = acc(full, (i) => m2[i]), band = acc(full, (i) => m2[i] && er[i]), ring = acc(bg, (i) => d14[i] && !d4[i]);
       if (band.c < 20 || ring.c < 50) return { area, ok: false };
       const w = (p, q) => (Math.max(p, q) + 0.05) / (Math.min(p, q) + 0.05), lc = (o) => { const f = (v) => lin(v); const r = f(o.rgb[0]), g = f(o.rgb[1]), b = f(o.rgb[2]); const X = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047, Y = 0.2126 * r + 0.7152 * g + 0.0722 * b, Z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883, h = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116); return [116 * h(Y) - 16, 500 * (h(X) - h(Y)), 200 * (h(Y) - h(Z))]; };
+      // borde: fracción de píxeles de la banda de borde que se separan del fondo medio (ratio ≥ 1.5 o ΔE ≥ 30): cuenta el CONTORNO de luz aunque el interior se parezca al fondo
+      let sep = 0, bn = 0; const ringLab = lc(ring); for (let i = 0; i < n; i++) if (m2[i] && er[i]) { bn++; if (w(L(full, i), ring.l) >= 1.5 || dE(lab(full, i), ringLab) >= 30) sep++; }
+      const fBorde = sep / Math.max(1, bn);
       const rCuerpo = w(body.l, ring.l), rBorde = w(band.l, ring.l), de = Math.max(dE(lc(body), lc(ring)), dE(lc(band), lc(ring)));
       const q = (arr, p) => { const s2 = [...arr].sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(p * s2.length))]; };
       const ratio = Math.max(rCuerpo, rBorde);
-      return { ok: true, area, bandPx: band.c, ringPx: ring.c, ratio: +ratio.toFixed(2), rCuerpo: +rCuerpo.toFixed(2), rBorde: +rBorde.toFixed(2), dE: +de.toFixed(0), legible: ratio >= 1.5 || de >= 30, lumaCuerpo: +body.l.toFixed(3), lumaBorde: +band.l.toFixed(3), lumaFondo: +ring.l.toFixed(3), fondoP10: +q(ring.ls, 0.1).toFixed(3), fondoP90: +q(ring.ls, 0.9).toFixed(3) };
+      return { ok: true, area, bandPx: band.c, ringPx: ring.c, ratio: +ratio.toFixed(2), rCuerpo: +rCuerpo.toFixed(2), rBorde: +rBorde.toFixed(2), dE: +de.toFixed(0), fBorde: +fBorde.toFixed(2), legible: ratio >= 1.5 || de >= 30, lumaCuerpo: +body.l.toFixed(3), lumaBorde: +band.l.toFixed(3), lumaFondo: +ring.l.toFixed(3), fondoP10: +q(ring.ls, 0.1).toFixed(3), fondoP90: +q(ring.ls, 0.9).toFixed(3) };
     };
     // luma media (sRGB perceptual 0-255) de toda la imagen y del centro, para vigilar que no se lave
     let sum = 0, sumC = 0, nC = 0, sat = 0; for (let i = 0; i < W * H; i++) { const k = i * 4, y = 0.2126 * a.d[k] + 0.7152 * a.d[k + 1] + 0.0722 * a.d[k + 2]; sum += y; const mx = Math.max(a.d[k], a.d[k + 1], a.d[k + 2]), mn = Math.min(a.d[k], a.d[k + 1], a.d[k + 2]); sat += mx ? (mx - mn) / mx : 0; const x = i % W, yy = (i / W) | 0; if (x > W * 0.25 && x < W * 0.75 && yy > H * 0.25 && yy < H * 0.75) { sumC += y; nC++; } }
@@ -76,7 +79,7 @@ for (const q of QS) for (const map of MAPS) {
   info = await pg.evaluate(() => { const R = window.__api.renderer, i = R.gl.info.render; return { calls: i.calls, tris: i.triangles }; });
   }
   const r = { mapa: map, calidad: q, claridad: CL, ...(await analizar(A, B, C)), ...info }; rows.push(r);
-  const f = (s) => (s.ok ? `área ${s.area}px ratio ${s.ratio} (cuerpo ${s.rCuerpo} borde ${s.rBorde}) dE ${s.dE} [luma cuerpo ${s.lumaCuerpo} borde ${s.lumaBorde} fondo ${s.lumaFondo}]` : 'sin máscara');
+  const f = (s) => (s.ok ? `área ${s.area}px ratio ${s.ratio} (cuerpo ${s.rCuerpo} borde ${s.rBorde}) dE ${s.dE} borde% ${(s.fBorde * 100) | 0} [luma cuerpo ${s.lumaCuerpo} borde ${s.lumaBorde} fondo ${s.lumaFondo}]` : 'sin máscara');
   const bien = (s) => s.ok && s.legible;
   console.log(`${map} ${q} ${CL}  HUÉSPED ${f(r.huesped)} ${bien(r.huesped) ? 'OK' : 'BAJO'} | ENEMIGOS ${f(r.enemigos)} ${bien(r.enemigos) ? 'OK' : 'BAJO'} | luma img ${r.lumaImg} centro ${r.lumaCentro} sat ${r.satMedia} | calls ${r.calls} tris ${r.tris}`);
   if (pg) await pg.context().close();
