@@ -10,7 +10,7 @@ import { GradePass, sceneTarget } from './post.js';
 import { loadEnvHDRI, MAP_HDRI } from './ph.js';
 const POST_OFF = typeof location !== 'undefined' && /[?&]post=0/.test(location.search); // ?post=0: render directo (diagnóstico)
 const INFECT_OVERRIDE = typeof location !== 'undefined' && /[?&]infect=([\d.]+)/.test(location.search) ? Math.min(1, +RegExp.$1) : null;
-const HUMAN_HOSTS = !(typeof location !== 'undefined' && /[?&]cuerpo=bloques/.test(location.search)); // ?cuerpo=bloques vuelve al Huésped de bloques
+const HUMAN_HOSTS = typeof location !== 'undefined' && /[?&]cuerpo=humano/.test(location.search); // ?cuerpo=humano: prueba con el cuerpo humano de ARCANUM (host-human.js); por defecto los Huéspedes son almas y bestias (huespedes-limbo.js)
 const usesComposer = () => !POST_OFF && !!(cfg().post || cfg().grade);
 import { buildMonster, COLORS } from './models.js';
 import { Effects } from './effects.js';
@@ -413,7 +413,7 @@ export class Renderer {
       e.object.position.copy(base); this.orient(e.object, p.up, p.h); e.object.visible = true;
       if (e.body) {
         for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev);
-        e.shotT = Math.max(0, e.shotT - dt); e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null });
+        e.shotT = Math.max(0, e.shotT - dt); e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, map: this.mapId, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null });
       } else if (e.human) {
         e.shotT = Math.max(0, e.shotT - dt);
         const clip = p.dead ? 'death' : e.shotT > 0 ? 'shoot' : e.spd > 6 ? 'sprint' : e.spd > 1.5 ? 'jog' : 'aimIdle';

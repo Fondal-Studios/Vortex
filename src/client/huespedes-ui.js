@@ -7,13 +7,16 @@
 import { CHARACTERS, CHARACTER_IDS, HOST_IDS, ROLES } from '../sim/data.js';
 import { Equipo, saveEquipo } from './equipo.js';
 import { GLYPHS, HERO_LORE, HERO_STATS } from './heroes-ui.js';
-import { buildHost } from './huespedes-view.js';
+import { buildHostEvo, REGIONS } from './huespedes-evo.js';
+import * as Perfil from './perfil.js';
+import { tickMenuBeat } from './shaders.js';
+import { loadEnvHDRI } from './ph.js';
 
 const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 const ROLE_ES = { asalto: 'Asalto', asesina: 'Asesina', tanque: 'Tanque', control: 'Control', 'híbrido': 'Híbrido' };
 const STAT_ES = { dano: 'Daño', resistencia: 'Resistencia', movilidad: 'Movilidad', control: 'Control', utilidad: 'Utilidad', dificultad: 'Dificultad' };
 const STAT_KEYS = ['dano', 'resistencia', 'movilidad', 'control', 'utilidad', 'dificultad'];
-const FRAME = { axioma: [1.02, 2.3], vesper: [1.05, 2.4], micelio: [1.2, 3.1], umbra: [1.45, 3.2], seraf: [1.1, 2.7] }; // [centro y, alto a encuadrar]
+const FRAME = { axioma: [1.15, 2.7, 2.0], vesper: [0.95, 2.1, 3.0], micelio: [1.35, 3.5, 3.0], umbra: [1.3, 3.1, 2.6], seraf: [1.2, 3.1, 3.0] }; // [centro y, alto a encuadrar, ancho a encuadrar]
 const LEVEL = (d) => (d <= 3 ? 'Fácil' : d <= 6 ? 'Media' : d <= 8 ? 'Alta' : 'Experta');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const roleName = (c) => ROLE_ES[c.role] || (ROLES[c.role] && ROLES[c.role].name) || c.role;
@@ -56,7 +59,7 @@ export function buildHuespedScreen(menu) {
           <h2 id="hsname"></h2><div class="hs-title" id="hstitle"></div>
           <div class="hs-tags"><span class="hs-tag" id="hsrole"></span><span class="hs-tag hs-diff" id="hsdiff"></span><span class="hs-tag hs-chosen" id="hschosen" hidden>✓ Tu Huésped</span></div>
         </header>
-        <div class="hs-stage" id="hsstage"><canvas id="hscanvas" aria-label="Modelo 3D del Huésped: arrastrá para girarlo"></canvas><iframe id="hsframe" title="Vista del veterano" tabindex="-1" hidden></iframe><div class="hs-fallback" id="hsfb" hidden></div></div>
+        <div class="hs-stage" id="hsstage"><canvas id="hscanvas" aria-label="Modelo 3D del Huésped: arrastrá para girarlo"></canvas><iframe id="hsframe" title="Vista del veterano" tabindex="-1" hidden></iframe><div class="hs-fallback" id="hsfb" hidden></div><div class="hs-region" id="hsregion" aria-live="off"></div></div>
         <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
       </section>
       <aside class="hs-info" id="hsinfo" aria-label="Información del Huésped"></aside>
@@ -84,13 +87,14 @@ export function buildHuespedScreen(menu) {
       const ring2 = new THREE.Mesh(new THREE.RingGeometry(0.8, 0.83, 6), new THREE.MeshBasicMaterial({ color: 0xffffff, ...add, opacity: 0.5 })); ring2.rotation.x = -Math.PI / 2; ring2.position.y = 0.012;
       scene.add(pad, ring, ring2);
       Object.assign(hs, { THREE, renderer: gl, scene, cam, rim, kick, pad, ring, ring2 });
+      loadEnvHDRI(gl, 'small_cathedral_02').then((t) => { scene.environment = t; scene.environmentIntensity = 0.9; }).catch(() => { /* sin cielo HDRI: luces simples */ });
       new ResizeObserver(() => resize()).observe($('#hsstage'));
     } catch (err) { hs.failed = true; console.warn('Huéspedes: sin 3D —', err.message); }
   }
   function frame() {
     const id = hs.sel, f = hs.host && hs.host.human ? [1.0, 2.3] : FRAME[id] || [1, 2.4], st = $('#hsstage'), w = st.clientWidth, h = st.clientHeight; if (!hs.cam || w < 8 || h < 8) return;
     hs.renderer.setSize(w, h, false); hs.cam.aspect = w / h;
-    const fov = hs.THREE.MathUtils.degToRad(hs.cam.fov), dH = (f[1] / 2) / Math.tan(fov / 2), dW = ((f[1] * 0.62) / 2) / (Math.tan(fov / 2) * hs.cam.aspect);
+    const fov = hs.THREE.MathUtils.degToRad(hs.cam.fov), dH = (f[1] / 2) / Math.tan(fov / 2), dW = ((f[2] || f[1] * 0.62) / 2) / (Math.tan(fov / 2) * hs.cam.aspect);
     const d = Math.max(dH, dW) * 1.04; hs.cam.position.set(0, f[0] + 0.15, d); hs.cam.lookAt(0, f[0], 0); hs.cam.updateProjectionMatrix();
   }
   const resize = () => frame();
@@ -98,12 +102,15 @@ export function buildHuespedScreen(menu) {
     if (hs.host) { hs.scene.remove(hs.host.group); hs.host.dispose(); hs.host = null; }
     const C = CHARACTERS[id], col = new hs.THREE.Color(C.color);
     hs.rim.color.copy(col).lerp(new hs.THREE.Color(0xffffff), 0.45); hs.kick.color.copy(col).lerp(new hs.THREE.Color(0xffffff), 0.2); for (const m of [hs.pad, hs.ring, hs.ring2]) m.material.color.copy(col);
-    if (C.host) { hs.host = buildHost(hs.THREE, id, hs.quality); hs.scene.add(hs.host.group); hs.user = 0; hs.idle = 0; humanize(id); }
+    if (C.host) { // el alma/bestia con la evolución, el camino y los órganos que ya tiene el jugador (perfil) y el aspecto regional que rota
+      const pp = Perfil.paraPartida(id); hs.region = hs.region || 'm1';
+      hs.host = buildHostEvo(hs.THREE, id, { evo: pp.evo || 0, path: pp.path || [], organs: pp.corg || [], map: hs.region, quality: hs.quality }); hs.scene.add(hs.host.group); hs.user = 0; hs.idle = 0; hs.regionT = 0; regionLabel(); humanize(id);
+    }
     frame();
   }
   /** Cuerpo humano real intervenido (host-human.js, el mismo de la 3ª persona) con la evolución y órganos del perfil; mientras carga, el modelo de bloques. */
   async function humanize(id) {
-    if (/[?&]cuerpo=bloques/.test(location.search)) return;
+    if (!/[?&]cuerpo=humano/.test(location.search)) return; // por defecto la selección muestra el alma/bestia (huespedes-limbo.js)
     try {
       if (!hs.hk) { const hm = await import('./humans.js'), mod = await import('./host-human.js'), ph = await import('./ph.js'); hs.hk = { hm, mod, kit: await hm.loadHumanKit({ quality: hs.quality }) };
         ph.loadEnvHDRI(hs.renderer, 'small_cathedral_02').then((t) => { hs.scene.environment = t; hs.scene.environmentIntensity = 0.8; }).catch(() => {}); }
@@ -115,6 +122,9 @@ export function buildHuespedScreen(menu) {
       if (hs.host) { hs.scene.remove(hs.host.group); hs.host.dispose(); } hs.host = wrap; hs.scene.add(b.object); hs.humanFrame = true; frame();
     } catch (err) { console.warn('Huésped humano (selección):', err.message); }
   }
+  /** Etiqueta del aspecto regional (rota cada ~5 s entre los mapas: así se ven las variaciones del Huésped por folclore). */
+  function regionLabel() { const el = $('#hsregion'); if (el) el.textContent = hs.host && hs.host.map && REGIONS[hs.host.map] ? `Aspecto: ${REGIONS[hs.host.map].name} · ${REGIONS[hs.host.map].note}` : ''; }
+  const REG_ORDER = ['m1', 'm2', 'm3', 'm4', 'm5'];
   let last = 0;
   function loop(now) {
     if (!root.classList.contains('on') || document.hidden) { hs.running = false; return; }
@@ -124,7 +134,8 @@ export function buildHuespedScreen(menu) {
     if (!hs.renderer || !hs.host || $('#hscanvas').hidden) return;
     hs.idle += dt; if (!hs.drag && hs.idle > 2.5) hs.user += dt * 0.35;
     hs.host.group.rotation.y = -0.3 + hs.user + (hs.drag ? 0 : Math.sin(t * 0.5) * 0.12);
-    hs.host.update(dt, t); hs.ring.rotation.z += dt * 0.4; hs.ring2.rotation.z -= dt * 0.25; hs.pad.material.opacity = 0.14 + Math.sin(t * 2) * 0.05;
+    hs.regionT = (hs.regionT || 0) + dt; if (hs.regionT > 5 && hs.host.setMap) { hs.regionT = 0; hs.region = REG_ORDER[(REG_ORDER.indexOf(hs.region) + 1) % REG_ORDER.length]; hs.host.setMap(hs.region); regionLabel(); }
+    tickMenuBeat(t); hs.host.update(dt, t); hs.ring.rotation.z += dt * 0.4; hs.ring2.rotation.z -= dt * 0.25; hs.pad.material.opacity = 0.14 + Math.sin(t * 2) * 0.05;
     hs.renderer.render(hs.scene, hs.cam);
   }
   function start() { if (hs.running) return; hs.running = true; last = performance.now(); requestAnimationFrame(loop); }

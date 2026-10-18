@@ -26,3 +26,22 @@ Simulación (ya hecha, `src/sim/huespedes.js`): núcleos → 4 niveles (`EVO_COS
 - **Huésped evolucionado en 3D**: `src/client/huespedes-evo.js` → `buildHostEvo(THREE, id, {evo, melee, quality}) → {group, update, pose, setEvo(n), setMelee(id), dispose, info}` (envuelve `buildHost`, que ahora acepta `opts.native=false` para quitar el arma innata y expone `joints` y `mats`). Cada nivel agrega mutaciones propias de cada Huésped (`EVO_VISUAL` las describe en español).
 - **Primera persona (viewmodel)**: `attachToViewmodel(THREE, anchor, id, {tier, quality, color, size, offset, frame:'vm'|'host'}) → {group, update(dt,t), setTier, setWeapon(id), dispose}` cuelga el modelo de cualquier `Object3D` (en `vm` la hoja apunta a −Z). **Ya está integrado** en `hostfx-melee.js` (función `syncWeapon`): usa `me.mw` y `me.evo` del snapshot, cuelga el arma de la mano derecha (`limbs.R.g`, offset z −0.4, escala 0.5), oculta el arma innata mientras haya arma del catálogo (`l.catalog`) y reconstruye sólo cuando cambia el arma o el nivel. Si el agente de hostfx cambia la estructura de `limbs`, basta mantener esas 5 líneas: crear con `attachToViewmodel` cuando cambie `mw|evo`, llamar `wm.update(dt, T)` cada cuadro y ocultar `wpn`/`glow` innatos.
 - Pruebas: `node --test tests/melee-ui.test.js` · capturas: `node tools/shot-evolucion.js [carpeta] [armas|hosts|ui|todo]`.
+
+## REWORK de los Huéspedes (2026-10-14): almas y bestias en pena del limbo
+Los Huéspedes ya no son soldados de bloques: son **guardianes entre los muertos y los vivos** (ver `docs/CONCEPTO_ARTE.md`, sección «REWORK DE LOS HUÉSPEDES»).
+- **Cuerpos** (`src/client/huespedes-limbo.js`): Axioma = Guerrero Caído (hueso, carbón y brasas, capa en jirones, fragmentos de espada que giran) ·
+  Vesper = Bestia Cazadora (lupina/felina traslúcida, ojos fosforescentes, vela dorsal de nervios, crin de luz, colmillos flotantes) ·
+  Micelio = Coloso Raíz (corteza, raíces, hongos de repisa, cavidad que late, cornamenta) · Umbra = el Errante (sudario de obsidiana, capucha sin rostro,
+  fragmentos de espejo en órbita y un espejo mayor) · Seraf = Ángel Caído (túnica de luz con filigrana, aureola quebrada, ala entera y ala quemada).
+  Se arman con las piezas de `makeBuilder` (`huespedes-view.js`; nuevas: `tube`, `sheet`, `lump`, `lathe`) y **se funden en 3 mallas con esqueleto** (cuerpo,
+  brillo, membrana): un Huésped cuesta **3 llamadas de dibujo** sin importar cuántas piezas o mutaciones tenga.
+- **Materiales y partículas** (`src/client/huesped-mat.js`): grano procedural, borde de luz (fresnel), venas que laten con `uBeat`, membrana translúcida con jirones que
+  fluyen; partículas propias de cada uno (brasas, fósforo, esporas, destellos de espejo, polvo de luz). Reflejos del cielo HDRI (`ph.js`).
+- **Evolución por camino** (`huespedes-mut.js`): cada nivel agrega una mutación física según el camino elegido en `pth` (EVO_PATHS): depredador (garras) | coraza (placas) ·
+  velocidad (tendones y estelas) | resonancia (núcleo con anillos) · simbiosis (brazo fundido + simbionte) | artillería (cañones de cristal) · apoteosis (alas de luz) |
+  anomalía (grietas de vacío). Los órganos `cg` cuelgan de pecho y cabeza (`organs-vis.js`).
+- **Aspecto regional** (`REGIONS` en `huespedes-mut.js`): según el mapa actual cambia el color del borde de luz, las partículas y suma un ornamento del folclore
+  (m1 astros · m2 geoda · m3 runas · m4 flores-ojo · m5/m6 velos). En la selección el aspecto rota solo cada ~5 s con una etiqueta.
+- **Pruebas / capturas**: `node tools/shot-sheet.mjs salida.jpg "q=low&evo=4&pth=coraza,resonancia,simbiosis,apoteosis&map=m2"` (hoja de los 5 en `public/huesped-sheet.html`,
+  `variants=` para ver un solo Huésped con varios caminos), `node tools/shot-huesped3p.mjs` (en partida, 3ª persona). El cuerpo humano de ARCANUM
+  (`host-human.js`) queda como prueba opcional con `?cuerpo=humano`.

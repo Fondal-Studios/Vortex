@@ -6,6 +6,8 @@ export const uTime = { value: 0 }; // reloj global compartido por todos los shad
 export const uInfect = { value: 0 };
 /** Latido global del mundo (0..~1.2, doble golpe); se acelera con la infección y con el combate. Lo fija Renderer.render. */
 export const uBeat = { value: 0 };
+/** Para pantallas sin partida (menús de Huésped / Evolución): reloj y latido del mundo a ritmo base (doble golpe cada 1,55 s). */
+export function tickMenuBeat(t) { uTime.value = t; const ph = (t / 1.55) % 1; uBeat.value = Math.exp(-((ph * 10) ** 2)) + 0.65 * Math.exp(-(((ph - 0.27) * 10) ** 2)); }
 /** Si hay post-proceso (bloom), los ShaderMaterial propios deben escribir color lineal (el OutputPass lo codifica a sRGB). */
 export const OUT = { linear: false };
 export function finish(mat) {

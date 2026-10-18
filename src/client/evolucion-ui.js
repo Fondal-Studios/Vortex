@@ -11,6 +11,8 @@ import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
 import { buildWeaponOrgans } from './organs-vis.js';
 import * as Perfil from './perfil.js';
 import { buildHostEvo, EVO_VISUAL } from './huespedes-evo.js';
+import { tickMenuBeat } from './shaders.js';
+import { loadEnvHDRI } from './ph.js';
 import { buildMelee, NATIVE_NAMES } from './melee-models.js';
 
 const hex = (c) => '#' + c.toString(16).padStart(6, '0');
@@ -106,6 +108,7 @@ export function buildEvolucionScreen(menu) {
         key.position.set(2.2, 3.4, 4); rim.position.set(-3, 2.4, -3.5); kick.position.set(3, 0.4, -2); scene.add(hemi, key, rim, kick); return { scene, cam, rim, kick };
       };
       const A = mkScene(30), Bq = mkScene(26);
+      loadEnvHDRI(gl, 'small_cathedral_02').then((t) => { A.scene.environment = t; A.scene.environmentIntensity = 0.9; Bq.scene.environment = t; Bq.scene.environmentIntensity = 0.9; }).catch(() => { /* sin cielo HDRI */ });
       Object.assign(ev, { THREE, renderer: gl, sceneA: A.scene, camA: A.cam, rimA: A.rim, kickA: A.kick, sceneB: Bq.scene, camB: Bq.cam, rimB: Bq.rim, kickB: Bq.kick });
       new ResizeObserver(() => { ev.size = [0, 0]; }).observe(root);
     } catch (err) { ev.failed = true; console.warn('Evolución: sin 3D —', err.message); }
@@ -123,10 +126,10 @@ export function buildEvolucionScreen(menu) {
   function bbox(obj) { const T = ev.THREE, b = new T.Box3().setFromObject(obj), s = new T.Vector3(); b.getSize(s); return { cy: (b.max.y + b.min.y) / 2, h: s.y, w: Math.max(s.x, s.z), top: b.max.y, bot: b.min.y }; }
   function setHost(force) {
     if (!ev.THREE) return;
-    const shownEvo = ev.peek ? Math.min(4, evoOf(ev.char) + 1) : evoOf(ev.char), eq = perfil().melee[ev.char] || '', org = perfil().corg[ev.char] || [], key = `${ev.char}|${shownEvo}|${eq}|${org.join()}`;
+    const shownEvo = ev.peek ? Math.min(4, evoOf(ev.char) + 1) : evoOf(ev.char), eq = perfil().melee[ev.char] || '', org = perfil().corg[ev.char] || [], pth = perfil().path[ev.char] || [], key = `${ev.char}|${shownEvo}|${pth.join()}|${eq}|${org.join()}`;
     if (!force && key === ev.hostKey && ev.host) return;
     if (ev.host) { ev.sceneA.remove(ev.host.group); ev.host.dispose(); ev.host = null; }
-    ev.hostKey = key; ev.host = buildHostEvo(ev.THREE, ev.char, { evo: shownEvo, melee: eq, organs: org, quality: ev.quality });
+    ev.hostKey = key; ev.host = buildHostEvo(ev.THREE, ev.char, { evo: shownEvo, path: pth, melee: eq, organs: org, quality: ev.quality });
     ev.sceneA.add(ev.host.group); ev.host.update(0.016, 0.3); tint();
     const b = bbox(ev.host.group.children[0]); ev.frameA = [b.cy, Math.max(1.6, b.h * 1.12), Math.max(1.2, b.w * 1.02)]; ev.size = [0, 0];
   }
@@ -170,7 +173,7 @@ export function buildEvolucionScreen(menu) {
       if (sa.width > 6) fit(ev.camA, ev.frameA[0], ev.frameA[1], ev.frameA[2], sa.width, sa.height); if (sb.width > 6) fit(ev.camB, ev.frameB[0], ev.frameB[1], ev.frameB[2], sb.width, sb.height);
     }
     ev.idleA += dt; ev.idleB += dt; if (!ev.dragA && ev.idleA > 2.5) ev.yawA += dt * 0.35; ev.idleB = ev.dragB ? 0 : ev.idleB; if (!ev.dragB) ev.yawB += dt * 0.7;
-    if (ev.host) { ev.host.group.rotation.y = -0.3 + ev.yawA + (ev.dragA ? 0 : Math.sin(t * 0.5) * 0.12); ev.host.update(dt, t); }
+    if (ev.host) { ev.host.group.rotation.y = -0.3 + ev.yawA + (ev.dragA ? 0 : Math.sin(t * 0.5) * 0.12); tickMenuBeat(t); ev.host.update(dt, t); }
     if (ev.prev) { ev.prev.group.rotation.y = ev.yawB; ev.prev.update(dt, t); }
     if (ev.fxT > 0) ev.fxT -= dt;
     ev.renderer.setScissor(0, 0, rr.width, rr.height); ev.renderer.setViewport(0, 0, rr.width, rr.height); ev.renderer.clear();
