@@ -46,6 +46,8 @@ function haloTexture() {
   return new THREE.CanvasTexture(c);
 }
 
+const GRAV_GIRO = 0.8;   // s: duración fija del giro de cámara en una inversión de gravedad
+
 export class Renderer {
   constructor(canvas, { level = 'high', pixelRatio = null } = {}) {
     setCurrent(level); OUT.linear = usesComposer();
@@ -229,15 +231,28 @@ export class Renderer {
     const up0 = V(me.up);
     if (!this.camInit || !this.upSm) { this.upSm = up0.clone(); this.camInit = true; this.comfort = 0; this.camAge = 0; }
     else {
-      // Giro de horizonte CÓMODO: velocidad angular acotada (≤ 2,2 rad/s, frena al llegar) en vez de un latigazo; mientras gira se oscurecen los bordes (viñeta) y se avisa.
+      // Giro de horizonte CÓMODO. Inversión de gravedad (salto grande del «arriba»): giro de DURACIÓN FIJA ~0,8 s con arranque y frenado suaves,
+      // rodando alrededor de la mirada (el horizonte da la vuelta sin que la vista se dispare); mientras dura, viñeta oscura y aviso.
+      // Cambios chicos (zonas, marea radial): velocidad angular acotada (≤ 2,2 rad/s, frena al llegar) como siempre.
       const dotv = Math.max(-1, Math.min(1, this.upSm.dot(up0))), ang = Math.acos(dotv);
-      if (ang > 1e-3) {
+      if (this.gT > 0) {
+        this.gT = Math.max(0, this.gT - dt); const k = 1 - this.gT / GRAV_GIRO, e = k * k * (3 - 2 * k);
+        this.upSm.copy(this.gFrom).applyAxisAngle(this.gAxis, this.gAng * e).normalize();
+        this.comfort = Math.min(1, this.comfort + (1 - this.comfort) * (1 - Math.exp(-10 * dt)));
+      } else if (ang > 1.1) {
+        this.gT = GRAV_GIRO; this.gFrom = this.upSm.clone(); this.gAng = ang;
+        const cr = new THREE.Vector3().crossVectors(this.upSm, up0), aimV = this.aim && Math.abs(this.aim.dot(this.upSm)) < 0.95 ? this.aim : null;
+        this.gAxis = dotv < -0.9 && aimV ? aimV.clone().normalize() : cr; // casi opuestos: rodar alrededor de la mirada
+        if (this.gAxis.lengthSq() < 1e-8) this.gAxis.set(1, 0, 0).cross(this.upSm); this.gAxis.normalize();
+        if (dotv < -0.9 && aimV && this.gAxis.dot(cr) < -1e-6) this.gAxis.negate();
+        if ((this.camAge || 0) > 4) this.gravMsgT = 1.6;   // (no avisar en los primeros segundos de la partida)
+      } else if (ang > 1e-3) {
         const step = Math.min(ang, Math.max(0.5, Math.min(2.2, ang * 3)) * dt);
         const axis = new THREE.Vector3().crossVectors(this.upSm, up0); if (axis.lengthSq() < 1e-8) axis.set(1, 0, 0).cross(this.upSm); axis.normalize();
         this.upSm.applyAxisAngle(axis, step).normalize();
-        this.camAge = (this.camAge || 0) + dt; if (ang > 0.6 && !this.gravAnn) { this.gravAnn = true; if (this.camAge > 4) this.gravMsgT = 1.6; }
-      } else this.gravAnn = false;
-      this.comfort = this.comfort + ((ang > 0.05 ? Math.min(1, ang / 0.7) : 0) - this.comfort) * (1 - Math.exp(-8 * dt));
+      }
+      this.camAge = (this.camAge || 0) + dt;
+      if (!(this.gT > 0)) this.comfort = this.comfort + ((ang > 0.05 ? Math.min(1, ang / 0.7) : 0) - this.comfort) * (1 - Math.exp(-8 * dt));
     }
     if (!this.comfortEl) { this.comfortEl = document.getElementById('comfort'); this.gravEl = document.getElementById('gravmsg'); }
     if (this.comfortEl) this.comfortEl.style.opacity = String(Math.min(0.7, this.comfort * 0.7));

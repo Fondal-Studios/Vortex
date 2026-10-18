@@ -14,9 +14,14 @@ function limpiarTerr(t) {
 /** guia = { off: saltada del todo, vistos: [ids de pasos ya mostrados] }. Se sanea al cargar. */
 function limpiarGuia(g) { const o = g && typeof g === 'object' ? g : {}; return { off: o.off === true, vistos: Array.isArray(o.vistos) ? o.vistos.filter((x) => typeof x === 'string').slice(0, 12) : [] }; }
 const fresh = () => ({ cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {} });
+function limpiarMae(m) { // maestría por Huésped: { xp, partidas, kills, oleada } (sólo personajes conocidos, números sanos)
+  const out = {}; if (!m || typeof m !== 'object') return out; const n = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
+  for (const id of Object.keys(CHARACTERS)) { const e = m[id]; if (e && typeof e === 'object') out[id] = { xp: n(e.xp, 99999), partidas: n(e.partidas, 99999), kills: n(e.kills, 999999), oleada: n(e.oleada, 99) }; }
+  return out;
+}
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
-  cache = { ...fresh(), ...o, evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: (o.mae && typeof o.mae === 'object') ? { ...o.mae } : {} };
+  cache = { ...fresh(), ...o, evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae) };
   return cache;
 }
 export const perfil = () => cache || load();

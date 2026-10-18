@@ -11,7 +11,7 @@ Catorce **organismos** (12 criaturas + 2 jefes), no formas geométricas: mitad *
 | **Cuarzo** | invocador | 95 | Madre-pólipo con sacos de huevos | los sacos se hinchan **1 s** y suelta 2 Astillas | priorizarlo |
 | **Espejo** | emboscador | 62 | Camaleón de piel espejada | casi invisible; parpadea detrás tuyo (gira 0,6 s antes) | se revela 2 s al recibir daño |
 | **Racimo** | explosivo | 26 | Racimo de vejigas de gas | late más rápido al acercarse y estalla (36 de área) | matarlo lejos; daña vecinos |
-| **Gravitón** | control | 115 | Embrión flotante | **carga 1,3 s** y invierte la gravedad 3,5 s | prioridad alta |
+| **Gravitón** | control | 115 | Embrión flotante | **carga 1,3 s** y **atrae** a los jugadores y dispara 3 esquirlas; sólo dentro de la **Marea de Gravedad** (docs/MUNDO_VIVO.md) invierte la gravedad (máx. 3,5 s) | prioridad alta |
 | **Obelisco** | francotirador | 140 | Torreta-planta con ojo-flor | **línea láser 1,6 s**, se fija 0,4 s antes y dispara un rayo veloz | moverse al fijarse |
 | **Aurora** | sanadora | 90 | Medusa-ángel | canaliza 0,9 s: cura 30 % y escuda (×0,5) a aliados | matarla primero |
 | **Ariete** | embestidor | 190 | Escarabajo-rinoceronte acorazado | patea 1 s, embiste en línea recta, queda **aturdido** (×1,5) | hacerse a un lado |
