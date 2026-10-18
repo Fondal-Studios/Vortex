@@ -3,7 +3,9 @@
 // cmb (combo melee 0..3), bf (máscara de estados). Si un campo falta se trata como 0 (y mv/es, los antiguos, sirven de respaldo).
 // En PC dibuja un panel a la derecha; en táctil dibuja una tira compacta arriba a la izquierda y pone el anillo de enfriamiento
 // (variable CSS --p, clases .ready/.act, número en data-cd) sobre los botones .tc-mov .tc-esp .tc-s3 .tc-ult .tc-melee.
+// Las TRES habilidades se ven SIEMPRE (slots HAB.1/2/3); en Melé el slot 3 es la habilidad principal de Combo (src/sim/modos.js).
 import { CHARACTERS, HABILIDADES } from '../sim/data.js';
+import { habSlots, MODOS } from '../sim/modos.js';   // las 3 habilidades por modo (Disparo / Melé)
 
 const STYLE_ID = 'huesped-style';
 const CSS = `
@@ -26,7 +28,9 @@ const CSS = `
 .hq .hm>span{flex:1}.hq .pip{display:inline-block;width:11px;height:11px;margin-left:4px;border-radius:50%;border:2px solid #ffffff66;vertical-align:middle}.hq .pip.on{background:#ff9a3c;border-color:#ffd23f;box-shadow:0 0 8px #ff9a3c}
 .hq .hb{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;min-height:0}
 .hq .hb u{text-decoration:none;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.05em;background:#2a1a5acc;border:1px solid #b9a4ff;color:#fff}
-.hq.touch{left:calc(12px + env(safe-area-inset-left,0px));right:auto;top:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:auto;max-width:150px;gap:3px}
+.hq.touch{left:calc(12px + env(safe-area-inset-left,0px));right:auto;top:calc(86px + env(safe-area-inset-top,0px));bottom:auto;width:auto;max-width:150px;gap:3px}
+.hq .hmode{flex:none;font-size:10px;font-weight:800;letter-spacing:.08em;padding:1px 7px;border-radius:999px;border:1px solid #ffe27a99;color:#ffe27a;background:#0c0822bb}
+.hq.touch .hmode{display:none}
 .hq.touch .hs,.hq.touch .hm{display:none}.hq.touch .hn b{font-size:12px}.hq.touch .hn small{display:none}
 .hq.touch .hb{justify-content:flex-start}.hq.touch .hb u{font-size:10px;padding:1px 6px}
 .hq.touch .tcm{display:inline-flex}
@@ -39,7 +43,7 @@ const CSS = `
 .hq-ammo b{font-size:clamp(18px,3vw,28px);color:#fff}.hq-ammo b span{opacity:.6;font-size:.7em}.hq-ammo.low b{color:#ff6a6a}
 .hq-ammo i{display:none;height:4px;margin-top:3px;border-radius:2px;background:#ffffff33;overflow:hidden}.hq-ammo.rel i{display:block}.hq-ammo i u{display:block;height:100%;width:0;background:#7dff9a;text-decoration:none}
 .hq-ammo small{display:block;font-size:10px;color:#7dff9a;letter-spacing:.14em}
-.hq-ammo.touch{bottom:calc(66px + env(safe-area-inset-bottom,0px))}.hq-ammo.touch b{font-size:16px}
+.hq-ammo.touch{left:calc(176px + env(safe-area-inset-left,0px));transform:none;bottom:calc(60px + env(safe-area-inset-bottom,0px));min-width:0;text-align:left;display:flex;align-items:baseline;gap:8px}.hq-ammo.touch b{font-size:17px}.hq-ammo.touch small{display:inline}.hq-ammo.touch i{width:70px;margin:0;align-self:center}
 @media (max-height:460px){.hq .hs{min-height:22px;padding:3px 8px}}
 `;
 const BF = [[1, 'Caparazón'], [2, 'Camuflaje'], [4, 'Sobrecarga'], [8, 'Frenesí'], [16, 'Floración'], [32, 'Metamorfosis'], [64, 'Desfase'], [128, 'Planeo'], [256, 'Barrera'], [512, 'Enjambre furioso']];
@@ -57,14 +61,14 @@ export function createHuespedHud(rootEl) {
   const rows = {};
   const build = (C, touch, combo) => {
     el.style.setProperty('--hc', hex(C.color || 0xffe27a));
+    const S = habSlots(me0.char, combo ? 'combo' : 'shooter'), M = MODOS[combo ? 'combo' : 'shooter'];
+    const keys = combo ? ['F·1', 'G·2', 'Z·3'] : ['F', 'G', 'Z'];
     const sk = (id, cls, key, name) => `<div class="hs ${cls}" data-k="${id}">${touch ? '' : `<kbd>${key}</kbd>`}<span>${name}</span><em></em><i></i></div>`;
-    el.innerHTML = `<div class="hn"><b>${(C.name || '').toUpperCase()}</b><small>${C.title || ''}</small><span class="tcm"></span></div>` +
-      (combo ? sk('hab', 'hab', 'Q', (HABILIDADES[C.id] || HABILIDADES[me0.char] || {}).name || 'Habilidad') + sk('ult', 'ult', 'T', C.ult ? C.ult.name : 'Definitiva')
-        : sk('mov', 'mov', 'F', C.mov ? C.mov.name : 'Habilidad 1') + sk('esp', 'esp', 'G', C.esp ? C.esp.name : 'Habilidad 2') +
-          sk('s3', 's3', 'Z', C.s3 ? C.s3.name : 'Habilidad 3') + sk('ult', 'ult', 'R', C.ult ? C.ult.name : 'Definitiva')) +
-      `<div class="hm"><kbd>${combo ? 'A1·A2' : 'V'}</kbd><span>${combo ? 'Combo' : 'Melee'}<span class="pips"></span></span></div><div class="hb"></div>`;
-    for (const k of combo ? ['hab', 'ult'] : ['mov', 'esp', 's3', 'ult']) { const r = el.querySelector(`[data-k="${k}"]`); rows[k] = { r, em: r.querySelector('em'), bar: r.querySelector('i') }; }
-    rows.pips = el.querySelector('.hm .pips'); rows.tcm = el.querySelector('.tcm'); rows.hb = el.querySelector('.hb'); rows.hm = el.querySelector('.hm');
+    el.innerHTML = `<div class="hn"><b>${(C.name || '').toUpperCase()}</b><small>${C.title || ''}</small><span class="hmode">${M.icono} ${M.nombre.toUpperCase()} · Tab</span><span class="tcm"></span></div>` +
+      ['mov', 'esp', 's3'].map((k, i) => sk(k, k, keys[i], S[i].name)).join('') + sk('ult', 'ult', 'T', C.ult ? C.ult.name : 'Definitiva') +
+      `<div class="hm"><kbd>${combo ? 'A1·A2' : 'V'}</kbd><span>${combo ? 'Combo' : 'Melé'}<span class="pips"></span></span></div><div class="hb"></div>`;
+    for (const k of ['mov', 'esp', 's3', 'ult']) { const r = el.querySelector(`[data-k="${k}"]`); rows[k] = { r, em: r.querySelector('em'), bar: r.querySelector('i') }; }
+    rows.pips = el.querySelector('.hm .pips'); rows.tcm = el.querySelector('.tcm'); rows.hb = el.querySelector('.hb'); rows.hm = el.querySelector('.hm'); rows.slots = S;
     const pips = '<span class="pip"></span><span class="pip"></span><span class="pip"></span>';
     rows.pips.innerHTML = pips; rows.tcm.innerHTML = pips; cache = {};
   };
@@ -86,16 +90,17 @@ export function createHuespedHud(rootEl) {
     const cd = (sec, frac, def) => (sec != null ? +sec || 0 : (+frac || 0) * (def ? def.cd : 0));
     const mc = cd(me.mc, me.mv, C.mov), ec = cd(me.ec, me.es, C.esp), s3c = +me.s3c || 0, ul = +me.ul || 0, ua = +me.ua || 0, cmb = Math.max(0, Math.min(3, me.cmb | 0)), bf = me.bf | 0;
     const ultMax = (C.ult && C.ult.charge) || 100;
-    const skill = (k, sec, def) => {
-      const total = Math.max(0.01, def ? def.cd : 1), p = sec > 0.01 ? 1 - Math.min(1, sec / total) : 1, ready = sec <= 0.01 && !!def, row = rows[k];
-      const sig = `${Math.ceil(sec * 10)}`; if (cache[k] !== sig) { cache[k] = sig; row.r.classList.toggle('cd', sec > 0.01); row.em.textContent = sec > 0.01 ? `${Math.ceil(sec)} s` : 'LISTA'; row.bar.style.transform = `scaleX(${p})`; }
-      setBtn(`.tc-${k}`, p, RING[k], sec, ready, false, def ? def.name : '');
+    // una fila/botón por SLOT (mov = HAB.1, esp = HAB.2, s3 = HAB.3); de dónde sale cada uno lo dice modos.js (en Melé el slot 3 es la principal de Combo)
+    const skill = (k, sec, def, extra = {}) => {
+      const total = Math.max(0.01, extra.total || (def ? def.cd : 1)), p = sec > 0.01 ? 1 - Math.min(1, sec / total) : 1, ready = sec <= 0.01 && !!def, row = rows[k], act = !!extra.act;
+      const sig = `${Math.ceil(sec * 10)}|${act}`; if (cache[k] !== sig) { cache[k] = sig; row.r.classList.toggle('cd', sec > 0.01 && !act); row.r.classList.toggle('ready', ready && !act); row.r.classList.toggle('act', act); row.em.textContent = act ? '¡YA!' : sec > 0.01 ? `${Math.ceil(sec)} s` : 'LISTA'; row.bar.style.transform = `scaleX(${p})`; }
+      setBtn(`.tc-${k}`, p, RING[k], act ? 0 : sec, ready || act, act, def ? def.name : '');
     };
-    if (combo) { // habilidad principal del modo Combo: enfriamiento (hc de hx s), preparación (hw) y anillo en el botón HABILIDAD
-      const H = HABILIDADES[me.char], hc = +me.hc || 0, hw = +me.hw || 0, total = Math.max(0.01, +me.hx || (H ? H.cd : 1)), p = hc > 0.01 ? 1 - Math.min(1, hc / total) : 1, row = rows.hab;
-      const sig = `${Math.ceil(hc * 10)}|${hw > 0}`; if (cache.hab !== sig) { cache.hab = sig; row.r.classList.toggle('cd', hc > 0.01 && !hw); row.r.classList.toggle('ready', hc <= 0.01); row.r.classList.toggle('act', hw > 0); row.em.textContent = hw > 0 ? '¡YA!' : hc > 0.01 ? `${Math.ceil(hc)} s` : 'LISTA'; row.bar.style.transform = `scaleX(${p})`; }
-      setBtn('.tc-hab', p, '#ffd23f', hc, hc <= 0.01, hw > 0, H ? H.name : 'Habilidad');
-    } else { skill('mov', mc, C.mov); skill('esp', ec, C.esp); skill('s3', s3c, C.s3); }
+    {
+      const S = rows.slots, H = HABILIDADES[me.char], hc = +me.hc || 0, hw = +me.hw || 0, hx = +me.hx || (H ? H.cd : 1);
+      const val = { mov: [mc, C.mov, {}], esp: [ec, C.esp, {}], s3: [s3c, C.s3, {}], hab: [hc, H, { total: hx, act: hw > 0 }] };
+      ['mov', 'esp', 's3'].forEach((k, i) => { const v = val[S[i].src]; skill(k, v[0], v[1], v[2]); });
+    }
     { // definitiva: carga 0..100, «lista» al llegar, y cuenta atrás mientras está activa
       const row = rows.ult, active = ua > 0.05, ready = !active && ul >= ultMax - 0.01, p = active ? Math.min(1, ua / 12) : Math.min(1, ul / ultMax);
       const sig = `${active}|${ready}|${Math.round(ul)}|${Math.ceil(ua)}`;
@@ -108,6 +113,8 @@ export function createHuespedHud(rootEl) {
       if (cache.ch !== sig) { cache.ch = sig; ch.classList.toggle('on', on); if (on) { ch.querySelector('b').innerHTML = `×${n}<i>COMBO</i>`; ch.querySelector('small').textContent = (me.cnm || '') + (cp ? `  ·  COMPÁS ${'♪'.repeat(cp)}` : ''); ch.classList.remove('pop'); void ch.offsetWidth; ch.classList.add('pop'); } }
       ch.querySelector('s').style.transform = `scaleX(${Math.min(1, w / 0.9)})`;
       if (!combo) ch.classList.remove('on');
+      // Melé: el anillo del botón de ataque 1 muestra cuánto falta para que se corte la cadena (ventana de encadenado)
+      const fb = doc.querySelector('.tc-fire'); if (fb) { if (combo && on) setBtn('.tc-fire', Math.min(1, w / 0.9), '#ffd23f', 0, false, false); else if (fb.dataset.ring) { delete fb.dataset.ring; fb.classList.remove('ready', 'act'); } }
     }
     { // rango de estilo (D → S) y bajas del multi-kill en curso: mínimo, arriba a la derecha del combo
       const rk = combo ? me.rk | 0 : 0, mk = me.mk | 0, rp = combo ? +me.rp || 0 : 0, on = combo && (rk > 0 || rp > 0.05 || mk >= 2), sig = `${on}|${rk}|${mk}`;
@@ -116,7 +123,7 @@ export function createHuespedHud(rootEl) {
     }
     { // combo de melee
       const sig = `c${cmb}`; if (cache.cmb !== sig) { cache.cmb = sig; for (const host of [rows.pips, rows.tcm]) host.querySelectorAll('.pip').forEach((p, i) => p.classList.toggle('on', i < cmb)); }
-      setBtn('.tc-melee', cmb / 3, RING.melee, 0, cmb >= 3, false, 'Melee');
+      setBtn('.tc-melee', cmb / 3, RING.melee, 0, cmb >= 3, false, 'Melé rápido');
     }
     { // munición: «cargador / reserva» (reserva -1 = ∞) y barrita mientras recarga
       const has = me.cl != null && me.cm != null && !combo; am.style.display = has ? '' : 'none'; am.classList.toggle('touch', !!touch);
@@ -124,6 +131,7 @@ export function createHuespedHud(rootEl) {
         if (cache.am !== sig) { cache.am = sig; am.querySelector('b').innerHTML = `${me.cl}${rs === '' ? '' : ` <span>/ ${rs}</span>`}`; am.classList.toggle('low', me.cm > 0 && me.cl <= Math.max(1, me.cm * 0.25)); am.classList.toggle('rel', rl > 0); am.querySelector('small').textContent = rl > 0 ? 'RECARGANDO' : (me.cl === 0 ? 'RECARGÁ' : ''); }
         am.querySelector('u').style.width = `${Math.round(Math.min(1, rl) * 100)}%`;
         setBtn('.tc-reload', rl > 0 ? rl : (me.cm > 0 ? me.cl / me.cm : 1), '#7dff9a', 0, me.cl === 0 && rl === 0, rl > 0, 'Recargar'); }
+      if (combo) { const rb = doc.querySelector('.tc-reload'); if (rb) { if (rb.dataset.ring) { delete rb.dataset.ring; rb.classList.remove('ready', 'act'); } if (rb.getAttribute('aria-label') !== 'Ataque 2') rb.setAttribute('aria-label', 'Ataque 2'); } }   // en Melé ese botón es ATAQUE 2: sin anillo de munición
     }
     { // estados activos
       const un = me.char === 'colmena' ? `${me.un | 0}/${me.uc | 0}` : '', sig = `b${bf}|${un}`;   // Colmena: cuántos zánganos tiene vivos / su límite

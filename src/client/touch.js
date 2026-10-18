@@ -5,13 +5,17 @@
 //  · disparo y movimiento y cámara a la vez (multitáctil); arrastrar desde DISPARO también apunta;
 //  · sensibilidad horizontal y vertical independientes, multiplicadores de ADS y mira óptica, aceleración opcional, giroscopio opcional;
 //  · botones reubicables y redimensionables (modo «Editar controles»), transparencia, preajustes de 2/3/4 dedos.
+// DOS MODOS en partida (docs/CONTROLES.md): Disparo y Melé. Un botón MODO los alterna al instante; cada modo muestra SÓLO sus botones.
+//  · el botón grande es el ataque principal (Disparo: DISPARAR · Melé: ATAQUE 1 que encadena el combo);
+//  · el pequeño de arriba es RECARGAR (Disparo) o ATAQUE 2 (Melé); HAB.1, HAB.2 y HAB.3 se ven siempre, en arco alrededor del ataque.
 // Todo se guarda en settings.js. La cámara depende sólo de píxeles recorridos (no de los FPS).
 import { settings, setSetting, save, resetLayout } from './settings.js';
+import { fuentes, MODOS } from '../sim/modos.js';   // qué habilidad hay en cada slot según el modo (Disparo / Melé)
 
 const BTN = [
   // id, clase, icono, rótulo, tipo ('hold' | 'toggle' | 'tap'), arrastra la cámara
-  ['fire', 'tc-fire', '◉', 'DISPARO', 'hold', true],
-  ['fireL', 'tc-fireL', '◉', 'DISPARO', 'hold', true],
+  ['fire', 'tc-fire', '◉', 'DISPARAR', 'hold', true],       // Disparo: DISPARAR · Melé: ATAQUE 1 (arrastrarlo también apunta)
+  ['fireL', 'tc-fireL', '◉', 'DISPARAR', 'hold', true],     // el mismo ataque principal, del lado izquierdo (3 y 4 dedos)
   ['ads', 'tc-ads', '◎', 'APUNTAR', 'hold', false],
   ['jump', 'tc-jump', '⤒', 'SALTO', 'hold', false],
   ['crouch', 'tc-crouch', '⤓', 'AGACHAR', 'toggle', false],
@@ -19,41 +23,45 @@ const BTN = [
   ['esp', 'tc-esp', '✦', 'HAB.2', 'hold', false],
   ['s3', 'tc-s3', '❖', 'HAB.3', 'hold', false],
   ['ult', 'tc-ult', '★', 'ULTI', 'hold', false],
-  ['reload', 'tc-reload', '↻', 'RECARGA', 'hold', false],
+  ['reload', 'tc-reload', '↻', 'RECARGA', 'hold', false],   // Disparo: RECARGAR · Melé: ATAQUE 2 (Seraf: mantener = cargar la flecha)
   ['evo', 'tc-evo', '✺', 'EVOLUC.', 'hold', false],
-  ['melee', 'tc-melee', '⚔', 'MELEE', 'hold', false],
+  ['melee', 'tc-melee', '⚔', 'MELÉ', 'hold', false],         // Disparo: golpe rápido (mantener = pesado)
   ['ability', 'tc-ability', '✚', 'EQUIPO', 'hold', false],
   ['use', 'tc-use', '✋', 'USAR', 'hold', false],
   ['ping', 'tc-ping', '◆', '', 'hold', false],
-  ['a1', 'tc-a1', '⚔', 'ATAQUE 1', 'hold', true],       // modo COMBO: ataque 1 (arrastrarlo también apunta)
-  ['a2', 'tc-a2', '✦', 'ATAQUE 2', 'hold', true],       // modo COMBO: ataque 2
-  ['hab', 'tc-hab', '✺', 'HABILIDAD', 'hold', false],   // modo COMBO: la habilidad principal del Huésped (grande)
+  ['mode', 'tc-mode', '⌖', 'MODO', 'tap', false],           // alterna Disparo ↔ Melé al instante (con una pequeña espera)
   ['pause', 'tc-pause', '❚❚', '', 'tap', false],
 ];
-// Modo básico: SÓLO 4 botones (disparo, recargar, melee, salto) + pausa. Lo demás:
+// Disparo (por defecto): ataque, recargar, melé rápido, salto, HAB.1/2/3 y MODO (+ pausa). Melé: ataque 1, ataque 2, salto, HAB.1/2/3 y MODO.
 //  · contextuales (CTX): aparecen sólo cuando sirven (definitiva cargada, algo para usar, evolución lista);
-//  · modo avanzado (setting `advanced`): habilidades 1/2/3, apuntar, agachar, equipo y señalar.
-// Correr es automático (palanca al máximo) y el arma se cambia tocando/deslizando la barra de armas de abajo.
-const BASIC = ['fire', 'reload', 'melee', 'jump', 'mov', 'esp', 'pause'];   // habilidades 1 y 2 siempre a mano (el dueño: «no se pueden usar las habilidades»)
-const ADV = ['s3', 'ads', 'crouch', 'ability', 'ping'];
+//  · modo avanzado (setting `advanced`, sólo Disparo): apuntar, agachar, equipo y señalar.
+// Correr es automático (palanca al máximo) y el arma se cambia tocando/deslizando la barra de armas de abajo (sólo Disparo).
+const BASIC = ['fire', 'reload', 'melee', 'jump', 'mov', 'esp', 's3', 'mode', 'pause'];
+const MELE = ['fire', 'reload', 'jump', 'mov', 'esp', 's3', 'mode', 'pause'];
+const ADV = ['ads', 'crouch', 'ability', 'ping'];
 const CTX = ['ult', 'use', 'evo'];
-// Modo COMBO (docs/CONTROLES.md): ATAQUE 1, ATAQUE 2, HABILIDAD (grande) y SALTAR; los contextuales (USAR / EVOLUC. / ULTI) aparecen igual.
-const COMBO_SHOW = ['a1', 'a2', 'hab', 'jump', 'pause'];
-const SHOW = (fingers, advanced) => [...BASIC, ...(fingers >= 3 ? ['fireL'] : []), ...(advanced ? ADV : [])];
+const TAP = new Set(['pause', 'mode', 'prev', 'next']);   // botones de un solo toque (no se mantienen)
+/** Rótulo e icono que cambian con el modo (el resto de los botones se llama igual en los dos). */
+const POR_MODO = {
+  shooter: { fire: ['◉', 'DISPARAR'], fireL: ['◉', 'DISPARAR'], reload: ['↻', 'RECARGA'] },
+  combo:   { fire: ['⚔', 'ATAQUE 1'], fireL: ['⚔', 'ATAQUE 1'], reload: ['✦', 'ATAQUE 2'] },
+};
+const ICONO_SRC = { mov: '⇢', esp: '✦', s3: '❖', hab: '✺' };   // icono de cada habilidad según de dónde viene (Melé: la principal es ✺)
+const SHOW = (fingers, advanced, combo) => (combo ? [...MELE, ...(fingers >= 3 ? ['fireL'] : [])] : [...BASIC, ...(fingers >= 3 ? ['fireL'] : []), ...(advanced ? ADV : [])]);
 const STICK_R = 58;             // radio del recorrido de la palanca (px CSS)
 const STICK_DEAD = 0.1;         // zona muerta (fracción)
 
 export class TouchControls {
-  constructor(host, { onPause, onWeapon } = {}) {
+  constructor(host, { onPause, onWeapon, onMode } = {}) {
     this.host = host; this.onPause = onPause; this.onWeapon = onWeapon;
-    this.mode = 'shooter'; this.reset(true); this.enabled = false; this.editing = false; this.ptrs = new Map();
+    this.mode = 'shooter'; this.char = ''; this.onMode = onMode; this.reset(true); this.enabled = false; this.editing = false; this.ptrs = new Map();
     this.zoomKind = 0;           // 0 = sin zoom · 1 = ADS común · 2 = mira óptica
     this.gyroOn = false; this.build(); this.applyLayout();
   }
   /* ───── estado de entrada ───── */
   reset(first = false) {
     this.mx = 0; this.mz = 0; this.dyaw = 0; this.dpitch = 0; this.weapon = -1;
-    this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, reload: false, evo: false, ability: false, use: false, ping: false, a1: false, a2: false, hab: false };
+    this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, reload: false, evo: false, ability: false, use: false, ping: false, };
     this.dashStick = false; this.adsToggled = false; this.ctx = this.ctx || {};
     if (!first) { this.ptrs.clear(); this.stick.classList.add('hidden'); this.host.querySelectorAll('.on').forEach((b) => b.classList.remove('on')); }
   }
@@ -66,11 +74,11 @@ export class TouchControls {
     const h = this.host;
     h.innerHTML = `<div class="tc-zone tc-left"></div><div class="tc-zone tc-right"></div><div class="tc-stick hidden"><i></i></div>` +
       BTN.map(([id, cls, ic, label]) => `<button class="tc-btn ${cls}" data-a="${id}" type="button" aria-label="${label || id}"><span class="ic">${ic}</span>${label ? `<small>${label}</small>` : ''}</button>`).join('') +
-      `<div class="tc-edit hidden"><b>EDITAR CONTROLES</b><span>Arrastrá un botón · tocá para elegirlo</span>
+      `<div class="tc-tip hidden"></div><div class="tc-edit hidden"><b>EDITAR CONTROLES</b><span>Arrastrá un botón · tocá para elegirlo</span>
         <label>Tamaño <input type="range" id="tcSize" min="60" max="180" value="100"></label>
         <label>Transparencia <input type="range" id="tcOp" min="25" max="100" value="85"></label>
         <button type="button" id="tcReset">Restablecer</button><button type="button" id="tcDone" class="ok">Listo</button></div>`;
-    this.$ = (s) => h.querySelector(s); this.stick = this.$('.tc-stick'); this.knob = this.stick.querySelector('i'); this.editBox = this.$('.tc-edit');
+    this.$ = (s) => h.querySelector(s); this.stick = this.$('.tc-stick'); this.knob = this.stick.querySelector('i'); this.editBox = this.$('.tc-edit'); this.tip = this.$('.tc-tip');
     const opts = { passive: false };
     h.addEventListener('pointerdown', (e) => this.down(e), opts);
     addEventListener('pointermove', (e) => this.move(e), opts); addEventListener('pointerup', (e) => this.up(e)); addEventListener('pointercancel', (e) => this.up(e));
@@ -82,13 +90,13 @@ export class TouchControls {
     this.$('#tcReset').addEventListener('click', () => { resetLayout(); this.applyLayout(); });
     this.$('#tcDone').addEventListener('click', () => this.edit(false));
   }
-  show(on) { this.enabled = on; this.host.classList.toggle('hidden', !on); if (!on) { this.reset(); this.edit(false); } }
+  show(on) { this.enabled = on; this.host.classList.toggle('hidden', !on); document.body.classList.toggle('touch-ui', !!on); if (!on) { this.reset(); this.edit(false); } }
 
   /* ───── diseño personalizado ───── */
   applyLayout() {
-    const s = settings(), vis = new Set(this.mode === 'combo' ? COMBO_SHOW : SHOW(s.fingers, !!s.advanced));
+    const s = settings(), vis = new Set(SHOW(s.fingers, !!s.advanced, this.mode === 'combo'));
     this.host.style.setProperty('--hud-op', String(s.hudOpacity)); this.host.style.setProperty('--hud-s', String(s.hudScale));
-    for (const [id] of BTN) { const el = this.$(`[data-a="${id}"]`), l = s.layout[id] || {}; if (!el) continue; el.style.setProperty('--dx', `${l.dx || 0}px`); el.style.setProperty('--dy', `${l.dy || 0}px`); el.style.setProperty('--s', String((l.s || 1) * s.hudScale)); el.classList.toggle('tc-off', CTX.includes(id) ? !(this.ctx[id] || this.editing || this.ctxForce) : !(vis.has(id) || this.editing && ADV.includes(id) && s.advanced)); el.classList.toggle('tc-ctx', CTX.includes(id)); }
+    for (const [id] of BTN) { const el = this.$(`[data-a="${id}"]`), l = s.layout[id] || {}; if (!el) continue; el.style.setProperty('--dx', `${l.dx || 0}px`); el.style.setProperty('--dy', `${l.dy || 0}px`); el.style.setProperty('--s', String((l.s || 1) * s.hudScale)); el.classList.toggle('tc-off', CTX.includes(id) ? !(this.ctx[id] || this.editing || this.ctxForce) : !(vis.has(id) || this.editing && this.mode !== 'combo' && ADV.includes(id) && s.advanced)); el.classList.toggle('tc-ctx', CTX.includes(id)); }
     const op = this.$('#tcOp'); if (op) op.value = Math.round(s.hudOpacity * 100);
   }
   edit(on) {
@@ -103,8 +111,34 @@ export class TouchControls {
     this.ctx = this.ctx || {}; let ch = false; for (const k of CTX) { const v = !!c[k]; if (this.ctx[k] !== v) { this.ctx[k] = v; ch = true; if (!v && this.st[k]) { this.st[k] = false; this.host.querySelector(`[data-a="${k}"]`)?.classList.remove('on'); } } }
     if (ch) this.applyLayout();
   }
-  /** Modo de juego: 'combo' muestra sólo ATAQUE 1, ATAQUE 2, HABILIDAD y SALTAR; 'shooter' los botones de siempre. */
-  setMode(m) { m = m === 'combo' ? 'combo' : 'shooter'; if (this.mode === m) return; this.mode = m; this.host.classList.toggle('combo-mode', m === 'combo'); this.reset(); this.applyLayout(); }
+  /** Modo de combate: 'shooter' (Disparo) o 'combo' (Melé). Cambia los botones, sus rótulos y el HUD con una animación corta. `char` = Huésped (para los iconos de HAB.1/2/3). */
+  setMode(m, char) {
+    m = m === 'combo' ? 'combo' : 'shooter'; if (char != null) char = char || '';
+    const cambio = this.mode !== m, otro = char != null && char !== this.char; if (!cambio && !otro) return;
+    this.mode = m; if (char != null) this.char = char;
+    this.host.classList.toggle('combo-mode', m === 'combo'); this.host.classList.toggle('mode-shooter', m !== 'combo');
+    if (cambio) { this.reset(); this.swap(); }
+    this.relabel(); this.applyLayout();
+  }
+  /** Rótulos e iconos según el modo y el Huésped (HAB.3 de Melé = la habilidad principal ✺). */
+  relabel() {
+    const set = (id, ic, label) => { const el = this.$(`[data-a="${id}"]`); if (!el) return; const i = el.querySelector('.ic'), sm = el.querySelector('small'); if (i && i.textContent !== ic) i.textContent = ic; if (sm && label && sm.textContent !== label) sm.textContent = label; };
+    for (const [id, [ic, label]] of Object.entries(POR_MODO[this.mode])) { set(id, ic, label); const el = this.$(`[data-a="${id}"]`); if (el && el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label); }
+    const src = fuentes(this.char, this.mode); ['mov', 'esp', 's3'].forEach((id, i) => set(id, ICONO_SRC[src[i]] || '•', `HAB.${i + 1}`));
+    const M = MODOS[this.mode]; set('mode', M.icono, 'MODO'); const mb = this.$('[data-a="mode"]'); if (mb) mb.setAttribute('aria-label', `Modo ${M.nombre}: tocá para cambiar`);
+  }
+  /** Animación corta al cambiar de modo: los botones nuevos «brotan». */
+  swap() {
+    this.host.classList.add('tc-swap'); clearTimeout(this.swapT); this.swapT = setTimeout(() => this.host.classList.remove('tc-swap'), 320);
+  }
+  /** Anillo de espera del botón MODO (0..1; 1 = listo). */
+  setModeCd(p) { const b = this.$('[data-a="mode"]'); if (!b) return; b.dataset.ring = '1'; b.style.setProperty('--p', String(Math.max(0, Math.min(1, p)).toFixed(3))); b.style.setProperty('--rc', '#ffe27a'); b.classList.toggle('cd', p < 1); }
+  /** Nombre corto de una habilidad al tocar su botón (flota unos instantes sobre él). */
+  showTip(el, text) {
+    if (!this.tip || !el || !text) return; const r = el.getBoundingClientRect(), W = innerWidth;
+    this.tip.textContent = text; this.tip.classList.remove('hidden'); this.tip.style.left = `${Math.max(70, Math.min(W - 70, r.left + r.width / 2))}px`; this.tip.style.top = `${Math.max(4, r.top - 6)}px`;
+    this.tip.classList.remove('pop'); void this.tip.offsetWidth; this.tip.classList.add('pop'); clearTimeout(this.tipT); this.tipT = setTimeout(() => this.tip.classList.add('hidden'), 1100);
+  }
   /** Cantidad de dedos (2/3/4): muestra u oculta los botones extra. */
   setFingers(n) { setSetting('fingers', n); this.applyLayout(); }
 
@@ -142,6 +176,8 @@ export class TouchControls {
     if (a === 'pause') { if (this.onPause) this.onPause(); return; }
     if (a === 'prev' || a === 'next') { el.classList.add('on'); if (this.onWeapon) this.weapon = this.onWeapon(a === 'next' ? 1 : -1); return; }
     el.classList.add('on');
+    if (a === 'mode') { if (this.onMode) this.onMode(); return; }   // un solo toque: main.js decide (espera de ~0,6 s) y llama a setMode
+    if (a === 'mov' || a === 'esp' || a === 's3' || a === 'ult') this.showTip(el, el.getAttribute('aria-label'));   // nombre corto al tocar
     if (p.type === 'toggle') { this.st[a] = !this.st[a]; el.classList.toggle('lock', this.st[a]); return; }
     if (a === 'ads' && settings().adsMode === 'alternar') { this.st.ads = !this.st.ads; el.classList.toggle('lock', this.st.ads); return; }
     this.st[a] = true;
@@ -178,7 +214,7 @@ export class TouchControls {
     const p = this.ptrs.get(e.pointerId); if (!p) return; this.ptrs.delete(e.pointerId);
     if (p.kind === 'move') { this.mx = this.mz = 0; this.dashStick = false; this.stick.classList.add('hidden'); }
     if (p.kind === 'btn') {
-      const a = p.act; if (a !== 'prev' && a !== 'next' && a !== 'pause') {
+      const a = p.act; if (!TAP.has(a)) {
         const stays = p.type === 'toggle' || (a === 'ads' && settings().adsMode === 'alternar');
         if (!stays) { this.st[a] = false; p.el.classList.remove('on'); } else p.el.classList.remove('on');
       } else p.el.classList.remove('on');
@@ -217,7 +253,7 @@ export class TouchControls {
 
   /** Entrada de este cuadro (los acumulados de giro se consumen). */
   read() {
-    const s = this.st, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: s.fire || s.fireL, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: s.melee, reload: s.reload, evo: s.evo, ads: s.ads, crouch: s.crouch, a1: s.a1, a2: s.a2, hab: s.hab, mode: this.mode };
+    const s = this.st, combo = this.mode === 'combo', atk = s.fire || s.fireL, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: !combo && atk, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: !combo && s.melee, reload: !combo && s.reload, evo: s.evo, ads: s.ads, crouch: s.crouch, a1: combo && atk, a2: combo && s.reload, hab: false, mode: this.mode };   // Melé: el botón grande es A1 y el pequeño A2; HAB.3 (s3) la traduce la simulación
     this.dyaw = this.dpitch = 0; this.weapon = -1; return i;
   }
 }

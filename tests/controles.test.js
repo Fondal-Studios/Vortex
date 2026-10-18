@@ -20,7 +20,7 @@ test('controles táctiles: giro exacto, 180°, microajuste, multitoque, zonas, A
   const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   try {
     await pg.goto(`http://localhost:${srv.port}/?auto=m1&skipintro=1&god=1&seed=3&autoq=0`); await pg.waitForFunction(() => window.__api && window.__api.session && window.__api.session.game);
-    await pg.evaluate(() => { localStorage.removeItem('cristal.ajustes.v2'); window.__api.setSetting('simple', false); localStorage.setItem('cristal.aim.v1', '0'); window.__api.session.touch = true; window.__api.touch.show(true); document.querySelector('#tadv').value = '1'; document.querySelector('#tadv').dispatchEvent(new Event('input')); }); // modo avanzado: esta prueba usa APUNTAR
+    await pg.evaluate(() => { localStorage.removeItem('cristal.ajustes.v2'); window.__api.setSetting('simple', false); localStorage.setItem('cristal.aim.v1', '0'); window.__api.session.touch = true; window.__api.touch.show(true); }); // (APUNTAR es del modo avanzado: se activa más abajo, antes de usarlo; así sus botones no quedan cerca de la zona de giro de los primeros pasos)
     await simWait(pg, 0.3);
     const cdp = await ctx.newCDPSession(pg); const T = (t, p) => cdp.send('Input.dispatchTouchEvent', { type: t, touchPoints: p });
     const me = () => pg.evaluate(() => { const g = window.__api.session.game, p = g.players[0]; return { x: p.pos.x, z: p.pos.z, pitch: p.pitch, h: { ...p.heading }, up: { ...p.up }, w: p.weapon, a: [...p.ammo].map((v) => (v === Infinity ? -1 : v)), ads: p.input && p.input.ads, cr: p.input && p.input.crouch }; });
@@ -53,6 +53,7 @@ test('controles táctiles: giro exacto, 180°, microajuste, multitoque, zonas, A
     // 7) arrastrar desde el botón de disparo también apunta (sin soltar) y no cambia de rol
     a = await me(); await T('touchStart', [{ x: f.x + 40, y: f.y + 40, id: 31 }]); for (let i = 1; i <= 6; i++) { await T('touchMove', [{ x: f.x + 40 - i * 6, y: f.y + 40, id: 31 }]); await pg.waitForTimeout(20); } await simWait(pg, 0.3); await T('touchEnd', []); c = await me();
     assert.ok(ang(a, c) > 0.1, 'arrastrar sobre el gatillo gira la cámara');
+    await pg.evaluate(() => { document.querySelector('#tadv').value = '1'; document.querySelector('#tadv').dispatchEvent(new Event('input')); }); await pg.waitForTimeout(200);   // modo avanzado: APUNTAR, AGACHAR…
     // 8) un dedo que gira y cruza sobre botones NO los activa (jump/agacharse/dash)
     const j = await pg.locator('.tc-jump').boundingBox(); const y0 = await pg.evaluate(() => window.__api.session.game.players[0].vel ? 0 : 0);
     const jumpsBefore = await pg.evaluate(() => (window.__jumpCount = 0)); 
@@ -62,7 +63,7 @@ test('controles táctiles: giro exacto, 180°, microajuste, multitoque, zonas, A
     // 9) ADS reduce el giro y agacharse se refleja en la simulación
     await pg.locator('.tc-ads').evaluate((el) => el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 91, clientX: 700, clientY: 100 })));
     await simWait(pg, 0.2); const ad = await me(); assert.ok(ad.ads, 'ADS activo en la simulación');
-    a = await me(); await swipe(16, 560, 200, 100, 0); await simWait(pg, 0.3); c = await me();
+    a = await me(); await swipe(16, 440, 200, 100, 0); await simWait(pg, 0.3); c = await me();   // (la zona de giro libre queda a la izquierda de los botones nuevos)
     assert.ok(ang(a, c) < want * 0.8, `con ADS el giro baja (${ang(a, c).toFixed(3)} < ${(want * 0.8).toFixed(3)})`);
     await pg.locator('.tc-ads').evaluate((el) => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 91, clientX: 700, clientY: 100 })));
     await simWait(pg, 0.2); assert.ok(!(await me()).ads, 'al soltar ADS se desactiva');
@@ -71,7 +72,7 @@ test('controles táctiles: giro exacto, 180°, microajuste, multitoque, zonas, A
     const stored = await pg.evaluate(() => { localStorage.setItem('cristal.ajustes.v2', JSON.stringify({ ver: 3, sensX: 0.01, fingers: 3, advanced: true, layout: { fire: { dx: -20, dy: 0, s: 1.2 } } })); return true; });
     await pg.reload(); await pg.waitForFunction(() => window.__api && window.__api.session && window.__api.session.game);
     await pg.evaluate(() => { window.__api.session.touch = true; window.__api.touch.show(true); }); await simWait(pg, 0.3);
-    a = await me(); await swipe(17, 560, 200, 100, 0); await simWait(pg, 0.4); c = await me();
+    a = await me(); await swipe(17, 440, 200, 100, 0); await simWait(pg, 0.4); c = await me();
     assert.ok(Math.abs(ang(a, c) - 1.0) < 0.2, `la sensibilidad guardada (0.01) se aplica tras recargar (${ang(a, c).toFixed(3)})`);
     assert.ok(await pg.locator('.tc-fire').evaluate((el) => (el.style.getPropertyValue('--s') || '') === '1.2' || getComputedStyle(el).getPropertyValue('--s').trim() === '1.2'), 'el tamaño personalizado del botón se restaura');
     assert.deepEqual(errs, [], 'sin errores: ' + errs.join(' | '));

@@ -138,6 +138,7 @@ export class NieblasFx {
     let n = 0;
     for (const z of zs) {
       const [id, ti, x, y, zz, r, k, ph, ux, uy, uz] = z; if (n >= MAX_Z) break;
+      if (ph === 0 && k < 0.05) continue;   // dormida y ya disuelta: no se dibuja nada (no ensucia el suelo ni el fondo del Huésped)
       const T = nieblaPorIndice(ti); if (!T) continue;
       this.u.set(ux, uy, uz).normalize();
       this.tmpQ.setFromUnitVectors(Z, this.u);

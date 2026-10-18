@@ -8,6 +8,7 @@ import { initCombo, comboStep, comboSnap } from './combos.js';
 import { dzTick, dzSpd, dzGuard, dzOut, dzBits, dzPirueta, dzParada, dzCintas } from './danzante.js';   // Danzante: paradas/esquivas perfectas y compás (src/sim/danzante.js)
 import { singularTick, singularMove, singularSpecial, singularReflujo, singularUlt, singularObject, singularOut, singularKill, singularSnap } from './singular.js';   // Singular: pozos, satélites y Horizonte (src/sim/singular.js)
 import { enjambreTick, enjambreObject, enjambreOut, enjambreIn, enjambreKill, enjambreSkill, enjambreSnap } from './enjambre.js';   // Colmena: zánganos, nidos y la Reina (src/sim/enjambre.js)
+import { MODO_K } from './modos.js';   // Melé: HAB.1 y HAB.2 no suman el ×1,5 de habilidad del estilo Combo (sólo la principal)
 import { progStep } from './progresion.js';   // progresión permanente: multi-kills y rango de estilo (docs/EVOLUCION.md)
 import { itemOut, itemDamageIn, itemHit, itemKill, itemTick, itemMeleeSet, execThreshold, itemStrike } from './items-fx.js';   // objetos equipados (docs/INVENTARIO.md)   // modo Combo (circular a propósito: sólo se usan dentro de funciones)
 
@@ -330,7 +331,7 @@ export function hostDamaged(g, p) { const C = cdef(p); if (C && C.passive && C.p
 /** Multiplicador de daño que hace un jugador a una criatura. */
 export function hostOut(g, p, m) {
   const st = STYLES[p.style] || STYLE_NEUTRAL, src = g.dmgSrc || (p.inMelee ? 'melee' : 'gun');
-  let k = (st.mul[src] || 1) * (p.bn && (src === 'melee' || src === 'gun' || src === 'skill') ? p.bn[src] : 1) * itemOut(g, p, m, src);
+  let k = (st.mul[src] || 1) * (p.mode === 'combo' && src === 'skill' && !p.inHab ? MODO_K : 1) * (p.bn && (src === 'melee' || src === 'gun' || src === 'skill') ? p.bn[src] : 1) * itemOut(g, p, m, src);
   const C = cdef(p); if (!C) return k;
   const id = C.passive && C.passive.id;
   if (id === 'desprevenido') { const f = m.fwd ? dot(norm(sub(p.pos, m.pos)), m.fwd) : 1; if (f < 0.3 || m.cloak) k *= 1.5; }

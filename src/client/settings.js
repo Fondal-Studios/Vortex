@@ -15,6 +15,8 @@ export const DEFAULTS = Object.freeze({
   hudScale: 1, hudOpacity: 0.85,
   advanced: false,    // modo avanzado: muestra HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO y SEÑALAR (básico = sólo disparo, recargar, melee y salto)
   mode: 'shooter',    // MODO DE JUEGO: 'shooter' (el de siempre) | 'combo' (dos ataques encadenados + una habilidad; data.js GAME_MODES). También por URL ?modo=combo|shooter
+  modes: {},          // MODO elegido por Huésped en partida: { axioma: 'combo', vesper: 'shooter', … } ('shooter' = Disparo, 'combo' = Melé); sin entrada ⇒ vale `mode`
+  showKeys: false,    // «Mostrar controles»: pista de teclas en pantalla (PC)
   style: 'disparo',  // estilo de combate: 'melee' | 'disparo' | 'habilidad' (data.js STYLES)
   simple: true,       // MODO SIMPLE: ayuda de puntería alta, dispara solo al tener un enemigo en la mira y golpea solo cuando lo tenés encima
   claridad: 'normal', // CLARIDAD visual (quality.js · CLARIDAD): 'normal' | 'alta' (más luz de relleno y contorno de luz sobre el Huésped y los enemigos)
@@ -28,7 +30,7 @@ function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
   if (o.sensX == null) { try { const old = parseFloat(localStorage.getItem(OLD_SENS)); if (old > 0) o.sensX = Math.min(0.012, old * 1.35); } catch { /* ok */ } } // migración
   if (o.ver !== 3) { delete o.sensX; delete o.sensY; o.ver = 3; }   // v3: sensibilidad por defecto más baja (la anterior se sentía nerviosa)
-  cache = { ...DEFAULTS, ...o, layout: { ...(o.layout || {}) } };
+  cache = { ...DEFAULTS, ...o, layout: { ...(o.layout || {}) }, modes: { ...(o.modes || {}) } };
   return cache;
 }
 export const settings = () => cache || load();

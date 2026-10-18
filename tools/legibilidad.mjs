@@ -62,7 +62,7 @@ for (const q of QS) for (const map of MAPS) {
   pg = await (await b.newContext({ viewport: { width: 960, height: 720 } })).newPage();
   if (process.env.HUESPED || process.env.EVO) await pg.addInitScript(([h, e]) => { window.__HUESPED = h; window.__EVO = e; }, [process.env.HUESPED || '', process.env.EVO || 0]);   // HUESPED=danzante EVO=4 node tools/legibilidad.mjs …
   pg.on('pageerror', (e) => errors.push(`${map}: ${e.message}`)); pg.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(`${map}: ${m.text()}`); });
-  await pg.goto(`http://localhost:${srv.port}/?auto=${map}&god=1&seed=3&q=${q}&autoq=0&nolock=1&skipintro=1&cam=third&claridad=${CL}${process.env.CICLO ? '&ciclo=' + process.env.CICLO : ''}`, { timeout: 180000 });
+  await pg.goto(`http://localhost:${srv.port}/?auto=${map}&god=1&seed=3&q=${q}&autoq=0&nolock=1&skipintro=1&cam=third&claridad=${CL}${process.env.CICLO ? '&ciclo=' + process.env.CICLO : ''}${process.env.LUZ0 ? '&luz=0' : ''}`, { timeout: 180000 });
   await pg.waitForFunction(() => window.__api && window.__api.session && window.__api.session.game, null, { timeout: 90000 });
   await pg.addStyleTag({ content: 'body > *:not(canvas#c){visibility:hidden !important} #c{visibility:visible !important}' });
   await pg.evaluate(() => { const g = window.__api.session.game, p = g.players[0]; g.phaseT = 1e9; g.queue = []; for (const m of g.monsters) m.dead = true; p.char = window.__HUESPED || 'axioma'; p.evo = +(window.__EVO || 0); window.__api.setSetting('simple', false); p.input.fire = false;

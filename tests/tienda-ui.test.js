@@ -16,7 +16,7 @@ async function abrir(w, h, touch, perfil, errors) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch }), pg = await ctx.newPage();
   pg.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`)); pg.on('console', (m) => { if (m.type() === 'error' && !/WebGL|GPU|favicon/i.test(m.text())) errors.push(`console: ${m.text()}`); });
   pg.setDefaultTimeout(120000);
-  await pg.addInitScript(([k, p]) => { try { if (!sessionStorage.getItem('tn-seed')) { localStorage.setItem(k, JSON.stringify(p)); sessionStorage.setItem('tn-seed', '1'); } } catch { /* ok */ } }, [KEY, perfil]);
+  await pg.addInitScript(([k, p]) => { try { if (window.top !== window) return; /* (el retrato 3D es un iframe del mismo origen: no se vuelve a sembrar) */ if (!sessionStorage.getItem('tn-seed')) { localStorage.setItem(k, JSON.stringify(p)); sessionStorage.setItem('tn-seed', '1'); } } catch { /* ok */ } }, [KEY, perfil]);
   await pg.goto(`${base}/?q=low&autoq=0`, { waitUntil: 'domcontentloaded', timeout: 120000 }); await pg.waitForFunction(() => window.__api && window.__api.ui, null, { timeout: 120000 });
   await pg.addStyleTag({ content: '#menu *, #menu { transition: none !important; animation: none !important; }' });
   await pg.evaluate(() => window.__api.ui.confirmTitle());
@@ -32,11 +32,11 @@ test('menú: 4 puertas + Continuar; Mundo › Tienda con migas y Esc que vuelve 
   assert.deepEqual(await pg.locator('#hub-mundo .hubcard').allInnerTexts().then((a) => a.map((t) => t.split('\n')[0].trim())), ['TERRITORIOS', 'BESTIARIO', 'TIENDA']);
   assert.match(await pg.textContent('#hub-mundo [data-go=tienda]'), /700 núcleos/, 'la tarjeta de la Tienda muestra el saldo');
   await pg.click('#hub-mundo [data-go=tienda]'); await pg.waitForSelector('#tienda.on .tn-tab');
-  assert.equal((await pg.textContent('#crumbs')).replace(/\s+/g, ' ').trim(), 'Inicio › Mundo › Tienda');
+  assert.equal((await pg.textContent('#crumbs')).replace(/\s*›\s*/g, ' › ').trim(), 'Inicio › Mundo › Tienda');
   assert.match(await pg.textContent('#tnsaldo'), /700/);
   await pg.keyboard.press('Escape'); await pg.waitForSelector('#hub-mundo.on'); await pg.keyboard.press('Escape'); await pg.waitForSelector('#main.on');
-  // teclado: Enter sobre la puerta enfocada abre su hub; flechas mueven al vecino
-  await pg.keyboard.press('ArrowDown'); await pg.keyboard.press('ArrowRight'); await pg.keyboard.press('Enter'); await pg.waitForSelector('#hub-huesped.on', { timeout: 20000 });
+  // teclado: el foco arranca en Continuar; ↓ baja a la puerta más cercana (Mi Huésped) y Enter abre su hub
+  await pg.keyboard.press('ArrowDown'); await pg.keyboard.press('Enter'); await pg.waitForSelector('#hub-huesped.on', { timeout: 20000 });
   assert.deepEqual(errors, [], errors.join('\n')); await ctx.close();
 });
 
@@ -46,11 +46,11 @@ test('Tienda: comprar un Huésped pide confirmación, descuenta núcleos, lo vue
   await pg.click('[data-host=danzante]'); assert.match(await pg.textContent('#tnbody .tn-info h2'), /Danzante/i);
   await pg.click('[data-comprar-host=danzante]'); assert.ok(await pg.locator('#tnmodal').isVisible(), 'pide confirmación'); assert.equal((await perfil(pg)).cores, 650, 'todavía no cobró');
   await pg.click('#tnno'); assert.ok(!(await pg.locator('#tnmodal').isVisible())); assert.equal((await perfil(pg)).cores, 650);
-  await pg.click('[data-comprar-host=danzante]'); await pg.click('#tnyes'); await pg.waitForSelector('#tntoast:not([hidden])');
-  assert.match(await pg.textContent('#tntoast'), /Comprado/); const p = await perfil(pg); assert.equal(p.cores, 50); assert.ok(p.huespedes.includes('danzante'));
+  await pg.click('[data-comprar-host=danzante]'); await pg.click('#tnyes'); await pg.waitForFunction(() => /Comprado/.test(document.querySelector('#tntoast').textContent));   // (el aviso dura 2 s: con la máquina lenta puede esconderse antes de mirarlo)
+  assert.match(await pg.textContent('#tnfrase'), /\S/, 'el Cambista contesta'); const p = await perfil(pg); assert.equal(p.cores, 50); assert.ok(p.huespedes.includes('danzante'));
   assert.match(await pg.textContent('#tnsaldo'), /50/);
   // ahora no alcanzan los núcleos para otro
-  await pg.click('[data-host=umbra]'); assert.match(await pg.textContent('[data-comprar-host=umbra]'), /No alcanzan núcleos/); await pg.click('[data-comprar-host=umbra]');
+  await pg.click('[data-host=umbra]'); assert.match(await pg.textContent('[data-comprar-host=umbra]'), /No alcanzan núcleos/); await pg.click('[data-comprar-host=umbra]', { force: true });   // (aria-disabled: la pantalla explica por qué no se puede, no abre el cartel)
   assert.ok(!(await pg.locator('#tnmodal').isVisible()), 'sin núcleos no abre la confirmación'); assert.equal((await perfil(pg)).cores, 50);
   // Colmena pide rango 3 con otro Huésped: dice «Falta requisito»
   await pg.click('[data-host=colmena]'); assert.match(await pg.textContent('[data-comprar-host=colmena]'), /Falta requisito|No alcanzan/);

@@ -13,28 +13,80 @@
 - Giroscopio opcional (en iPhone pide permiso; **no probado en un dispositivo real**).
 - Ayuda de puntería suave configurable (0–3).
 - HUD personalizable (posición, tamaño, opacidad), presets de 2/3/4 dedos; todo se guarda por jugador en `localStorage` (`cristal.ajustes.v2`).
-- No hay botón "Recargar": el juego usa reservas de munición, no cargadores.
+- Desde la reforma del HUD sí hay botón RECARGA (modo Disparo; en Melé ese botón es ATAQUE 2).
 
 ## Pruebas
 `node --test tests/controles.test.js` (Chromium con toques reales vía CDP): giro exacto por píxel, ida y vuelta, giro ~180° con dos deslizamientos, microajuste de 3 px, vertical independiente, palanca+cámara+disparo simultáneos, arrastre desde el gatillo, cruce de botones sin pulsarlos, ADS reduce la sensibilidad, persistencia tras recargar. `npm test` completo: 101/101.
 
-## HUD táctil simple (por defecto) y modo avanzado
-- **Básico**: sólo DISPARO (grande; arrastrarlo también apunta), RECARGA, MELEE y SALTO (+ pausa). Correr es automático (palanca al máximo). El arma se cambia tocando o deslizando sobre la barra de armas de abajo.
-- **Contextuales** (aparecen solos): ULTI con la definitiva cargada, USAR con algo cerca u objetivo activo, EVOLUC. cuando `co ≥ evn`.
-- **Modo avanzado** (`advanced`; Opciones táctiles o «Habilidades» en Pausa): HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO y SEÑALAR.
-- Munición: «cargador / reserva» (`cl`/`rs`, ∞ si `rs=-1`) y barrita de recarga (`rl`) en `hud-huesped.js`.
+## Dos modos en partida: Disparo ↔ Melé (HUD estilo Wild Rift)
+En partida hay un botón **MODO** (táctil), **Tab** (PC) o **Select/Back** (mando) que pasa de **Disparo** a **Melé** y viceversa **al instante, sin pausar**. Tiene una espera de ~0,6 s (`MODO_ESPERA` en `src/sim/modos.js`) para no cambiar sin querer; el botón muestra un anillo mientras espera. Disparo es el modo `shooter` y Melé es el modo `combo` de la simulación (`src/sim/combos.js`): el cliente manda `mode` en cada entrada, así que también viaja por `setInput` en cooperativo y es determinista. El modo se **recuerda por Huésped** (`settings.modes`, p. ej. Vesper en Melé y Axioma en Disparo); si un Huésped no eligió, vale el último usado (`settings.mode`, el selector del menú). Sólo los 8 Huéspedes juegan Melé.
 
-## Huéspedes: teclas
-| Acción | Teclado/ratón | Mando | Táctil |
+### Botones táctiles (pulgar izquierdo = palanca, derecho = ataque con las 3 habilidades en arco)
+| Botón | Disparo | Melé |
+|---|---|---|
+| **Grande** (abajo a la derecha) | DISPARAR (tocar o mantener = ráfaga/carga; arrastrarlo apunta) | ATAQUE 1 (mantener repite y encadena el combo; arrastrarlo apunta) |
+| **Chico** (encima del grande) | RECARGA | ATAQUE 2 (Seraf: mantener = cargar la flecha) |
+| **Arco** a la izquierda del grande | HAB.1 · HAB.2 · HAB.3 (siempre visibles: anillo de enfriamiento, icono y, al tocar, el nombre corto de la habilidad) | HAB.1 · HAB.2 · HAB.3 (igual) |
+| SALTO | sí | sí |
+| MELÉ (golpe rápido; mantener = pesado) | sí | no (el ataque es A1/A2) |
+| MODO (⌖ ↔ ⚔, con badge ⇄) | sí | sí |
+| Contextuales (segundo arco): ULTI · USAR · EVOLUC. | aparecen solos cuando sirven | igual |
+| Modo avanzado (Opciones táctiles o «Habilidades» en Pausa): APUNTAR · AGACHAR · EQUIPO · SEÑALAR | sí | no |
+
+Cada modo muestra **sólo sus botones**; al cambiar, los botones «brotan» con una animación de 0,3 s y los rótulos cambian. La botonera se ubica por el centro de cada botón en múltiplos de una unidad `--u` (12,5 % del alto, entre 44 y 64 px: todos los toques son ≥ 44 px), respetando las zonas seguras del iPhone, y no tapa el centro de la pantalla (hay prueba). Correr es automático (palanca al máximo); el arma se cambia tocando o deslizando la barra de armas de abajo (sólo Disparo; en Melé no hay barra).
+
+### HUD de pantalla (táctil)
+- **Arriba al centro**: la línea de meta (`#goal`) y la mini-misión (`#mision`), con puntos suspensivos si son largas.
+- **Arriba a la izquierda**: pausa, cámara, mini-barras de vida y escudo (sin números), nombre del Huésped con sus estados, y el contador de esencias/núcleos (`#evohud`; su botón EVOLUC. propio se oculta porque ya está el de la botonera).
+- **Disparo**: la munición («cargador / reserva», con barrita al recargar) arriba de la barra de armas; la mira en el centro.
+- **Melé**: arriba a la derecha el contador de combo (×N, nombre del último golpe, barra de la ventana) y el rango de estilo D–S con las bajas de un golpe; el anillo del botón ATAQUE 1 muestra cuánto falta para que se corte la cadena.
+- El cambio de modo reordena el HUD con una transición corta (`body.modo-swap`).
+- Botín: el resumen (`#botin-toasts`) sale a la izquierda, a la altura del pulgar izquierdo pero sin tapar el ataque, y el aviso «USAR · recoger …» (en PC «E · …») sale a la izquierda del centro.
+- **Editor de botones** y **preajustes de 2/3/4 dedos** siguen igual (cada botón se mueve/escala por su id; ATAQUE 1 y DISPARAR comparten botón, igual que RECARGA y ATAQUE 2). 3 y 4 dedos agregan el mismo ataque principal a la izquierda (`fireL`).
+- Munición: `cl`/`rs` (∞ si `rs=-1`) y barrita de recarga (`rl`) en `hud-huesped.js`.
+
+## Tabla Huésped × modo × slot (las TRES habilidades en los dos modos)
+Las teclas y botones son **los mismos** en los dos modos: HAB.1 = `mov`, HAB.2 = `esp`, HAB.3 = `s3` en la entrada. La simulación (`src/sim/modos.js → enrutar`, llamada desde `game.js → setInput`) decide qué habilidad dispara cada slot. En **Melé** HAB.3 es la **habilidad principal de Combo** (★, `HABILIDADES` en `data.js`); cuando esa principal repite lo que ya hacía la HAB.2 de Disparo (Colmena, Danzante, Singular), la HAB.2 de Melé pasa a ser la HAB.3 de Disparo, así no hay dos botones casi iguales.
+
+| Huésped | Modo | HAB.1 | HAB.2 | HAB.3 |
+|---|---|---|---|---|
+| Axioma | Disparo | Impulso muscular | Descarga de espinas | Caparazón |
+| | Melé | Impulso muscular | Descarga de espinas | Baluarte ★ |
+| Vesper | Disparo | Desplazamiento | Camuflaje refractivo | Marca biológica |
+| | Melé | Desplazamiento | Camuflaje refractivo | Frenesí de caza ★ |
+| Micelio | Disparo | Barrera orgánica | Nube de esporas | Absorción de biomasa |
+| | Melé | Barrera orgánica | Nube de esporas | Estallido de esporas ★ |
+| Umbra | Disparo | Fase | Campo gravitatorio | Distorsión temporal |
+| | Melé | Fase | Campo gravitatorio | Eclipse ★ |
+| Seraf | Disparo | Alas membranosas | Pulso vital | Simbionte |
+| | Melé | Alas membranosas | Pulso vital | Bendición ★ |
+| Colmena | Disparo | Zumbido | Criar enjambre | Nido-torreta |
+| | Melé | Zumbido | Nido-torreta | Llamado del enjambre ★ |
+| Danzante | Disparo | Pirueta | Parada perfecta | Lazo de cintas |
+| | Melé | Pirueta | Lazo de cintas | Contrapaso ★ |
+| Singular | Disparo | Honda gravitatoria | Pozo gravitatorio | Reflujo de marea |
+| | Melé | Honda gravitatoria | Reflujo de marea | Colapso gravitatorio ★ |
+
+La **definitiva** (ULTI) funciona igual en los dos modos y aparece cuando está cargada.
+
+**Balance**: el estilo interno «combo» multiplica ×1,5 el daño de habilidad (pensado para la principal, que enfría 9–22 s). Para que HAB.1 y HAB.2 no sumen ese bono extra, en Melé pegan × `MODO_K` = 0,67 (≈ ×1,0, igual que en Disparo); la principal conserva el ×1,5 (`p.inHab` en `combos.js`, `hostOut` en `huespedes.js`). En Melé el disparo, el golpe rápido y recargar no hacen nada. Pruebas: `node --test tests/modos.test.js` (tabla, enrutado, cambio de modo, determinismo y balance), `tests/combos.test.js`, `tests/estilos.test.js`, `tests/huespedes.test.js`.
+
+## Huéspedes: teclas (PC) y mando
+| Acción | Disparo | Melé | Mando |
 |---|---|---|---|
-| Habilidad 1 (`mov`) | F | LB | HAB.1 (avanzado) |
-| Habilidad 2 (`esp`) | G · clic der. | RB | HAB.2 (avanzado) |
-| Habilidad 3 (`s3`) | Z | cruceta ↑ | HAB.3 (avanzado) |
-| Definitiva (`ult`) | T | cruceta ↓ | ULTI (contextual) |
-| Recargar (`reload`) | R | X / □ | RECARGA |
-| Melee (`melee`; mantener = pesado) | V | B / ○ | MELEE |
-| Señalar | B · clic central | R3 | ◆ (avanzado) |
-| 3.ª persona | P | — | — |
+| Ataque principal | clic izq. (mantener = ráfaga) | clic izq. = ATAQUE 1 (mantener repite y encadena) | RT |
+| Secundario | clic der. = HAB.2 · R recarga · V melé rápido | clic der. = ATAQUE 2 | LT o B / ○ = ATAQUE 2 (en Disparo: LT apunta, B melé rápido, X / □ recarga) |
+| HAB.1 | F | F o 1 | LB |
+| HAB.2 | G (o clic der.) | G o 2 | RB |
+| HAB.3 | Z | Z, Q o 3 | cruceta ↑ |
+| Definitiva | T | T | cruceta ↓ |
+| Cambiar de modo | **Tab** | **Tab** | **Select / Back** |
+| Saltar · usar | Espacio · E | Espacio · E | A / ✕ · Y / △ |
+| Equipo (rol) · señalar | Q · B / clic central | B / clic central | Select + LB · R3 |
+| Armas | 1–5 · rueda | (no hay barra de armas: 1/2/3 son habilidades) | cruceta ← / → |
+| 3.ª persona · pista de teclas | P · K | P · K | — |
+
+`X` queda como APUNTAR (mantener) y no cambia de modo (el pedido original decía «Tab o X»; X ya era el apuntado, así que se usa sólo Tab). La **pista de teclas** («Mostrar controles»): una línea chica abajo a la izquierda que cambia con el modo; se prende con **K** o con «Ver controles» en la Pausa. En el panel del Huésped (derecha, PC) cada habilidad muestra su tecla y la definitiva es **T** (antes decía R por error). Táctil/mando: **no probados en un dispositivo real**.
 
 ## Percepción de caída y bordes (`src/client/caida.js`)
 Sólo usa el snapshot (posición, `up`, velocidad derivada) y, si llega, el evento `{t:'fall'}`:
@@ -49,16 +101,8 @@ Sólo usa el snapshot (posición, `up`, velocidad derivada) y, si llega, el even
 ## Tarjetas y carteles
 `#cards` es una cuadrícula fluida con zona segura de iPhone y desplazamiento interno de respaldo; `node tools/shot-cartas.js` comprueba 844×390, 667×375, 390×844, 1280×720 y 1920×1080.
 
-## Modo Combo (alternativa a Shooter)
-El modo se elige arriba de **Jugar** (barra «Modo de juego», siempre visible en ese hub), en la pantalla Huésped (botón «Modo»), en Opciones (`#modesel`), en la Pausa o con `?modo=combo` / `?modo=shooter`; se guarda en `settings.mode`. Shooter queda igual que arriba. Sólo los 5 Huéspedes juegan Combo.
-| Acción | Teclado/ratón | Mando | Táctil |
-|---|---|---|---|
-| Ataque 1 (`a1`) | clic izq. (mantener = repite y encadena) | RT / R2 | ATAQUE 1 (arrastrarlo también apunta) |
-| Ataque 2 (`a2`; Seraf: mantener = cargar, soltar = flecha) | clic der. | RB / R1 o B / ○ | ATAQUE 2 |
-| Habilidad principal (`hab`) | Q o F | LB / L1 | HABILIDAD (grande, con anillo de enfriamiento) |
-| Saltar | Espacio | A / ✕ | SALTO |
-| Usar · Evolucionar · Definitiva | E · N · T | (igual que Shooter) | USAR · EVOLUC. · ULTI (aparecen solos) |
-La **E** sigue siendo USAR (la habilidad no se ata a E para no perder las interacciones). En táctil el HUD de Combo muestra sólo ATAQUE 1, ATAQUE 2, HABILIDAD, SALTO y los contextuales; el modo avanzado no agrega botones de Shooter. Se pueden mover y cambiar de tamaño en «Editar controles» como los demás. Con «Modo simple» activado, A1 se encadena solo cuando hay un enemigo cerca y de frente. Pruebas: `node --test tests/combos.test.js`. Táctil/mando: **no probados en un dispositivo real**.
+## Modo Melé (antes «Combo»)
+Dos ataques encadenados + tres habilidades. Ya no se elige sólo en el menú: se alterna en partida (ver «Dos modos en partida» arriba). Con «Modo simple» activado, ATAQUE 1 se encadena solo cuando hay un enemigo cerca y de frente. Los ajustes de menú (`?modo=combo`, `settings.mode`) siguen existiendo y fijan el modo inicial de un Huésped que todavía no eligió el suyo. Pruebas: `node --test tests/combos.test.js`.
 
 ## Modo Combo: qué se ve y se siente al golpear
 - A1/A2 (clic izq./der., RT/RB, botones táctiles) lanzan golpes distintos por Huésped y por golpe: el héroe se agacha, gira el torso, da el paso y avanza hacia la criatura más cercana; sale una estela del arma y, al contacto, hit-stop breve, destello/chispas del color del Huésped, sacudida y empujón de FOV de la cámara. El remate de una cadena (2+ golpes) trae onda grande y 0,12 s de cámara lenta visual.

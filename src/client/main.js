@@ -20,6 +20,7 @@ import * as Tienda from './tienda.js';   // Tienda del Cambista (docs/TIENDA.md)
 import * as Territorios from '../sim/bendiciones.js';
 import { TITULOS } from '../sim/maestria.js';
 import { createCaida } from './caida.js';
+import { MODOS, MODO_ESPERA } from '../sim/modos.js';   // Disparo ↔ Melé en partida (docs/CONTROLES.md)
 import { createBotin, nombreBotin } from './botin-hud.js';   // botín en partida (docs/INVENTARIO.md)
 import { parseEq } from './items-vis.js';
 import { MAPS } from '../sim/maps.js';
@@ -66,7 +67,9 @@ $('ctrlsel').value = ctrlPref;
 const myChar = () => Equipo.char;
 /* MODO DE JUEGO «Shooter» o «Combo»: ajuste `mode` (se guarda en el navegador) o ?modo=combo|shooter en el enlace. Sólo los Huéspedes juegan Combo. */
 { const um = params.get('modo'); if (um === 'combo' || um === 'shooter') setSetting('mode', um); }
-const gameMode = () => (settings().mode === 'combo' && CHARACTERS[myChar()] && CHARACTERS[myChar()].host ? 'combo' : 'shooter');
+/** Modo elegido para ESTE Huésped (se recuerda por Huésped: settings.modes); sin elección propia vale el último modo usado (settings.mode). */
+const modoElegido = (ch) => { const S = settings(), m = S.modes && S.modes[ch]; return m === 'combo' || m === 'shooter' ? m : S.mode; };
+const gameMode = () => (modoElegido(myChar()) === 'combo' && CHARACTERS[myChar()] && CHARACTERS[myChar()].host ? 'combo' : 'shooter');
 const NIVEL_PRESET = { low: 'baja', medium: 'media', high: 'alta' };
 function setQuality(l, { save = true } = {}) {   // selector rápido de Opciones y bajada automática; el menú Gráficos es la vía completa
   if (!LEVELS[l] || l === level) return;
@@ -94,7 +97,9 @@ addEventListener('keydown', (e) => {
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { npcPanel.choose(+e.code.slice(5) - 1); return; }
     if (e.code === 'Escape' || e.code === 'KeyE') { npcPanel.close(); return; }
   }
-  if (e.code >= 'Digit1' && e.code <= 'Digit5') { const n = +e.code.slice(5) - 1; if (cardsOpen && n < 3) pickReq = n; else wantWeapon = n; }
+  if (e.code >= 'Digit1' && e.code <= 'Digit5') { const n = +e.code.slice(5) - 1; if (cardsOpen && n < 3) pickReq = n; else if (gameMode() !== 'combo') wantWeapon = n; }   // en Melé 1/2/3 son HAB.1/2/3 (no hay barra de armas)
+  if (e.code === 'Tab') { e.preventDefault(); if (!e.repeat && session && !session.intro && !session.ended) cambiarModo(); }   // Tab = cambiar Disparo ↔ Melé
+  if (e.code === 'KeyK' && session && !e.repeat) { setSetting('showKeys', !settings().showKeys); keyHint(true); }   // K = mostrar/ocultar la pista de teclas
   if (e.code === 'Space') e.preventDefault();
   if ((e.code === 'Enter' || e.code === 'Escape') && session && session.intro) skipIntro();
   if (session && session.practice && session.game && !e.repeat) {
@@ -109,7 +114,7 @@ addEventListener('mousedown', (e) => { if (e.button === 1) { mouse.ping = true; 
 addEventListener('mouseup', (e) => { if (e.button === 0) mouse.fire = false; if (e.button === 1) mouse.ping = false; if (e.button === 2) mouse.esp = false; });
 addEventListener('contextmenu', (e) => { if (session) e.preventDefault(); });
 let cardsOpen = false;
-addEventListener('wheel', (e) => { if (session) wantWeapon = (((session.mySlot || 0) + (e.deltaY > 0 ? 1 : -1)) % 5 + 5) % 5; });
+addEventListener('wheel', (e) => { if (session && gameMode() !== 'combo') wantWeapon = (((session.mySlot || 0) + (e.deltaY > 0 ? 1 : -1)) % 5 + 5) % 5; });
 addEventListener('mousemove', (e) => { if (locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
   if (NOLOCK) return; locked = document.pointerLockElement === canvas;
@@ -119,6 +124,7 @@ const lockPointer = () => { try { canvas.requestPointerLock(); } catch { /* sin 
 
 const touch = new TouchControls($('touch'), {
   onPause: () => pauseTouch(true),
+  onMode: () => cambiarModo(),
   onWeapon: (d) => { const w = (((session ? session.mySlot || 0 : 0) + d) % 5 + 5) % 5; return w; },
 });
 let tapSkip = 0;
@@ -155,15 +161,18 @@ const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = local
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { touch.setMode(gameMode()); const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(), style: settings().style,
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
     dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: (evoWant(keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held())), evoChoice ? evoChoice.value() : 0), organ: organInput(), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
-  i.mode = gameMode();   // Combo: clic izq. = ATAQUE 1 · clic der. = ATAQUE 2 · Q o F = HABILIDAD (E sigue siendo USAR)
-  if (i.mode === 'combo') { i.a1 = mouse.fire; i.a2 = mouse.esp; i.hab = keys.has('KeyQ') || keys.has('KeyF'); i.fire = i.esp = i.mov = i.s3 = i.ability = false; }
+  i.mode = gameMode();   // Disparo: clic izq. dispara · clic der. o G = HAB.2 · F = HAB.1 · Z = HAB.3 · Q = equipo
+  if (i.mode === 'combo') {   // Melé: clic izq. = ATAQUE 1 · clic der. = ATAQUE 2 · F/1 = HAB.1 · G/2 = HAB.2 · Z/Q/3 = HAB.3 (la simulación traduce HAB.3); E sigue siendo USAR
+    i.a1 = mouse.fire; i.a2 = mouse.esp; i.fire = i.ability = false;
+    i.mov = keys.has('KeyF') || keys.has('Digit1'); i.esp = keys.has('KeyG') || keys.has('Digit2'); i.s3 = keys.has('KeyZ') || keys.has('KeyQ') || keys.has('Digit3');
+  }
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
@@ -174,11 +183,12 @@ function readInput() {
     padLatch.next = g.next; padLatch.prev = g.prev; padLatch.jump = g.jump;
     if (g.pause && !padLatch.pause && session && !session.touch) { document.exitPointerLock && document.exitPointerLock(); }
     padLatch.pause = g.pause; renderer.firing = renderer.firing || g.fire;
-    if (i.mode === 'combo') { i.a1 = i.a1 || g.fire; i.a2 = i.a2 || g.esp || g.melee; i.hab = i.hab || g.mov || g.s3; i.fire = i.esp = i.mov = i.s3 = false; }   // mando en Combo: RT/R2 ataque 1 · RB/R1 o B ataque 2 · LB/L1 habilidad
+    if (i.mode === 'combo') { i.a1 = i.a1 || g.fire; i.a2 = i.a2 || g.melee || g.ads; i.fire = false; }   // mando en Melé: RT ataque 1 · B o LT ataque 2 · LB/RB/cruceta ↑ = HAB.1/2/3 (igual que en Disparo)
+    if (g.mode && !padLatch.mode) cambiarModo(); padLatch.mode = g.mode;   // Select/Back = cambiar de modo
   }
   return npcInput(i);
 }
-const padLatch = { next: false, prev: false, pause: false, jump: false }; let padDt = 0.016;
+const padLatch = { next: false, prev: false, pause: false, jump: false, mode: false }; let padDt = 0.016;
 
 /** Ayuda de puntería: (1) fricción: la mira se vuelve más lenta sobre un blanco; (2) imán: empuja suave hacia la criatura más cercana al centro. Nivel 0 = apagada, 1 baja, 2 media, 3 alta. Marca `session.onTarget` para el color de la mira. */
 function assistAim(inp, state, me, dt, firing = false) {
@@ -254,7 +264,7 @@ function enter(mapId) {
   sound.init(); sound.resume(); sound.startMusic(mapId);
   renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : !!settings().third);
   buildWeaponHud();
-  touch.show(!!session.touch);
+  touch.show(!!session.touch); touch.setMode(gameMode(), myChar()); keyHint();
   if (!session.touch && !session.headless && !NOLOCK && !params.get('auto')) lockPointer(); // requiere gesto del usuario
   if (session.touch && screen.orientation && screen.orientation.lock) { try { screen.orientation.lock('landscape').catch(() => {}); } catch { /* iOS no lo permite */ } }
 }
@@ -287,8 +297,8 @@ function showTutorial(force = false) {
   if ((seen && !force) || !session || session.headless) return;
   const touchUI = !!session.touch, el = $('tutorial');
   const rows = touchUI
-    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARO', 'botón grande', 'disparar (mantené para ráfaga)'], ['RECARGAR', 'MELEE · SALTO', 'los 4 botones básicos'], ['ULTI', 'USAR', 'aparecen solos cuando sirven · «Habilidades» en Pausa muestra el resto'], ['HABILIDAD', '◆', 'ayuda de equipo · señalar'], ['‹ ›', 'o tocá la barra', 'cambiar de arma']]
-    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar'], ['F', 'G · clic der.', 'habilidad 1 · habilidad 2'], ['Z', 'T', 'habilidad 3 · definitiva'], ['V', 'R', 'golpe cuerpo a cuerpo (mantener = fuerte) · recargar'], ['Q', 'E · B', 'habilidad de equipo · usar · señalar'], ['1–5', 'rueda', 'cambiar de arma'], ['Esc', '', 'pausa']];
+    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARAR', 'botón grande', 'Disparo: tocá o mantené · en Melé es ATAQUE 1 y encadena el combo'], ['HAB.1 · HAB.2 · HAB.3', 'arco alrededor', 'tus tres habilidades, siempre a mano (tocá una para ver su nombre)'], ['MODO', '⌖ ⇄ ⚔', 'pasa de Disparo a Melé al instante y cambia los botones'], ['RECARGAR', 'ATAQUE 2', 'el botón chico: recargar (Disparo) o ataque 2 (Melé)'], ['ULTI', 'USAR · EVOLUC.', 'aparecen solos cuando sirven'], ['‹ ›', 'o tocá la barra', 'cambiar de arma (Disparo)']]
+    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar (Melé: ATAQUE 1, mantené para encadenar)'], ['F · G · Z', '(Melé: 1 · 2 · 3)', 'HAB.1 · HAB.2 · HAB.3'], ['Clic der.', 'G', 'Disparo: HAB.2 · Melé: ATAQUE 2'], ['Tab', 'Select (mando)', 'cambiar de Disparo a Melé y viceversa'], ['T', 'R · V', 'definitiva · recargar · melé rápido (Disparo)'], ['E', 'Q · B', 'usar · habilidad de equipo · señalar'], ['1–5', 'rueda · K', 'cambiar de arma (Disparo) · pista de teclas']];
   el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Sobreviví las oleadas. Tu <b>meta actual</b> siempre está en la línea de arriba. Cumplí el objetivo de cada oleada y elegí una <b>mejora de arma</b> al terminarla.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   el.classList.remove('hidden'); const close = () => { el.classList.add('hidden'); try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
   $('tutok').onclick = close; later(close, force ? 20000 : 16000);
@@ -586,6 +596,7 @@ function hudDirector(state, me) {
     const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)) || (state.lt || []).some((o) => o[2] >= 2 && (!o[6] || o[6] === me.id) && near([o[3], o[4], o[5]], 4.6)));   // + botín épico/legendario cerca (USAR lo recoge)
     const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ul || 0) >= (C.ult.charge || 100) - 0.01 || (+me.ua || 0) > 0.05));
     touch.setContext({ ult: ultOn, use, evo: me.co != null && me.evn != null && me.co >= me.evn });
+    const mp = Math.min(1, (performance.now() - modoT) / (MODO_ESPERA * 1000)); if (mp < 1 || session.modeP == null || session.modeP < 1) touch.setModeCd(mp); session.modeP = mp;   // anillo de espera del botón MODO
   }
   const dn = $('downed');
   if (me && me.dead) { dn.classList.remove('hidden'); dn.textContent = me.lost ? 'PERDIDO… esperá la próxima oleada' : `CAÍDO · te desangrás ${Math.ceil(me.bleed)} s · ¡pedí ayuda con B!`; } else dn.classList.add('hidden');
@@ -725,7 +736,27 @@ function syncModeUI() {
   const sel = $('modesel'); if (sel) sel.value = m;
   const pb = $('modetoggle'); if (pb) pb.querySelector('b').textContent = `Modo de juego: ${G.icon} ${G.name}`;
 }
-function setGameMode(m) { setSetting('mode', m === 'combo' ? 'combo' : 'shooter'); syncModeUI(); touch.setMode(gameMode()); }
+function setGameMode(m) { const mm = m === 'combo' ? 'combo' : 'shooter'; settings().modes[myChar()] = mm; setSetting('mode', mm); syncModeUI(); touch.setMode(gameMode(), myChar()); if (session) keyHint(); }
+/** Botón MODO (táctil), Tab (PC) o Select (mando): alterna Disparo ↔ Melé al instante, sin pausar. Hay una espera corta para no cambiar sin querer. */
+let modoT = -1e9;
+function cambiarModo() {
+  if (!session || session.intro || session.ended) return false;
+  if (!(CHARACTERS[myChar()] && CHARACTERS[myChar()].host)) { banner('Este personaje solo juega en modo Disparo', 1400); return false; }
+  const ahora = performance.now(); if (ahora - modoT < MODO_ESPERA * 1000) return false;
+  modoT = ahora; const nuevo = gameMode() === 'combo' ? 'shooter' : 'combo'; setGameMode(nuevo); sound.ui('ok');
+  const nom = `Modo ${MODOS[nuevo].nombre}`; if (session.touch) touch.showTip(document.querySelector('#touch [data-a="mode"]'), nom); else banner(`${MODOS[nuevo].icono} ${nom.toUpperCase()}`, 800);
+  document.body.classList.remove('modo-swap'); void document.body.offsetWidth; document.body.classList.add('modo-swap'); setTimeout(() => document.body.classList.remove('modo-swap'), 360);   // el HUD se reordena con una transición corta
+  return true;
+}
+/** Pista de teclas en pantalla (PC): una línea que cambia con el modo. `mostrarAviso` = avisa si se prendió o apagó. */
+function keyHint(aviso = false) {
+  let el = $('keyhint'); if (!el) { el = document.createElement('div'); el.id = 'keyhint'; $('hud').appendChild(el); }
+  const on = !!settings().showKeys && !(session && session.touch), combo = gameMode() === 'combo';
+  el.classList.toggle('on', on);
+  el.textContent = combo ? 'Clic izq. ATAQUE 1 · Clic der. ATAQUE 2 · F/1 HAB.1 · G/2 HAB.2 · Z/Q/3 HAB.3 · T ulti · E usar · Tab → Disparo · K ocultar'
+    : 'Clic izq. disparar · F HAB.1 · G/clic der. HAB.2 · Z HAB.3 · T ulti · R recargar · V melé · Tab → Melé · K ocultar';
+  if (aviso && !(session && session.touch)) banner(on ? 'Pista de teclas: activada (K la oculta)' : 'Pista de teclas: oculta (K la muestra)', 1200);
+}
 const toggleMode = (e) => { if (e) e.stopPropagation(); setGameMode(settings().mode === 'combo' ? 'shooter' : 'combo'); sound.ui('ok'); };
 for (const id of ['modeitem', 'hsmode', 'modetoggle']) { const b = $(id); if (b) b.addEventListener('click', toggleMode); }
 { const sel = $('modesel'); if (sel) sel.addEventListener('change', () => setGameMode(sel.value)); }
@@ -733,7 +764,7 @@ for (const id of ['modeitem', 'hsmode', 'modetoggle']) { const b = $(id); if (b)
 syncModeUI();
 // al terminar de editar los botones, se reanuda la partida
 const _tEdit = touch.edit.bind(touch); touch.edit = (on) => { _tEdit(on); if (!on && session && session.paused && session.practice) { session.paused = false; } };
-$('showctl').addEventListener('click', (e) => { e.stopPropagation(); showTutorial(true); });
+$('showctl').addEventListener('click', (e) => { e.stopPropagation(); showTutorial(true); if (!(session && session.touch)) { setSetting('showKeys', true); keyHint(); } });   // «Ver controles» también deja la pista de teclas en pantalla (K la oculta)
 $('tomenu').addEventListener('click', () => location.reload());
 $('again').addEventListener('click', () => {
   if (session.mode === 'coop') { session.net.send({ t: 'restart' }); return; }

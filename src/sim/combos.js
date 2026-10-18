@@ -307,7 +307,7 @@ function useHab(g, p, H) {
 }
 function resolveHab(g, p, id) {
   const H = HABILIDADES[p.char]; if (!H || p.dead) return;
-  const r = H.r * habScale(p), s0 = g.dmgSrc; g.dmgSrc = 'skill';
+  const r = H.r * habScale(p), s0 = g.dmgSrc; g.dmgSrc = 'skill'; p.inHab = true;   // inHab: la principal conserva el ×1,5 del estilo Combo (hostOut)
   const near = (rr) => g.monsters.filter((m) => !m.dead && dist(m.pos, p.pos) < rr + m.r);
   try {
     if (id === 'baluarte') {
@@ -349,14 +349,14 @@ function resolveHab(g, p, id) {
       g.emit({ t: 'skill', pid: p.id, k: 'esp', id: 'pulso', p: a3(p.pos) });
     }
     g.emit({ t: 'hab', pid: p.id, id, ph: 'go', p: a3(p.pos), r: r2(r) });
-  } finally { g.dmgSrc = s0; }
+  } finally { g.dmgSrc = s0; p.inHab = false; }
 }
 /** Eclipse de Umbra: daño continuo dentro de la zona (la lentitud la da el objeto 'chrono'). */
 function eclipseTick(g, p, dt) {
   const e = p.eclipse; if (!e) return;
   if (g.time >= e.until) { p.eclipse = null; return; }
-  const s0 = g.dmgSrc; g.dmgSrc = 'skill';
-  try { for (const m of g.monsters) { if (m.dead || dist(m.pos, e.pos) > e.r + m.r) continue; m.slowUntil = g.time + 0.4; m.hp -= 24 * dt; m.hurt = Math.max(m.hurt, 0.05); if (m.hp <= 0) g.killMonster(m, p); } } finally { g.dmgSrc = s0; }
+  const s0 = g.dmgSrc; g.dmgSrc = 'skill'; p.inHab = true;
+  try { for (const m of g.monsters) { if (m.dead || dist(m.pos, e.pos) > e.r + m.r) continue; m.slowUntil = g.time + 0.4; m.hp -= 24 * dt; m.hurt = Math.max(m.hurt, 0.05); if (m.hp <= 0) g.killMonster(m, p); } } finally { g.dmgSrc = s0; p.inHab = false; }
 }
 
 /* ───────── snapshot ───────── */

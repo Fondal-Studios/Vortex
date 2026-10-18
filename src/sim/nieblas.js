@@ -79,7 +79,7 @@ function anclaPos(g, a) {
 }
 function nuevaZona(g, d) {
   const N = g.ng, z = {
-    id: N.nextId++, tipo: d.tipo, nombre: d.nombre || NIEBLAS[d.tipo].nombre, r: d.r, src: d.src, born: g.time, ph: 'dormida', k: 0.1,
+    id: N.nextId++, tipo: d.tipo, nombre: d.nombre || NIEBLAS[d.tipo].nombre, r: d.r, src: d.src, born: g.time, ph: 'dormida', k: 0,
     pos: d.pos, u: d.u, ciclo: d.ciclo || 0, fase: d.fase || 0, act: d.act || 0.6, vida: d.vida ?? Infinity, vel: d.vel || null, evId: d.evId || null, org: d.org ?? -1,
   };
   N.zonas.push(z); return z;
@@ -159,7 +159,7 @@ function pasoZonas(g, dt) {
     if (z.ph !== antes && (antes !== 'dormida' || z.ph !== 'dormida')) {
       g.emit({ t: 'ng', ph: z.ph === 'dormida' ? 'fin' : z.ph, k: NIEBLAS[z.tipo].i, z: z.id, p: a3(z.pos), n: z.nombre });
     }
-    const meta = z.ph === 'activo' ? 1 : z.ph === 'aviso' ? 0.6 : (z.src === 'arena' ? 0.1 : 0);
+    const meta = z.ph === 'activo' ? 1 : z.ph === 'aviso' ? 0.6 : 0;
     z.k += Math.max(-NIEBLA.fadeRate * dt, Math.min(NIEBLA.fadeRate * dt, meta - z.k));
     if (z.vel) z.pos = madd(z.pos, z.vel, dt);
     if (z.src !== 'arena' && z.ph === 'dormida' && z.k <= 0.02) quita.push(z);

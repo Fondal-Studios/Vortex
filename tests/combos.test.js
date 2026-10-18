@@ -50,10 +50,13 @@ test('Shooter queda igual: a1/a2/hab no hacen nada y el disparo y el melé de si
   const c2 = mk('axioma', { mode: 'shooter' }); run(c2, 1, (i) => ({ melee: i % 20 < 8 })); assert.ok(dmgDone(c2) > 0, 'melee V');
 });
 
-test('Combo: los botones de Shooter (fire, melee, mov, esp, s3) no hacen nada; sólo A1/A2/habilidad/ulti', () => {
-  const c = mk('axioma'); run(c, 1.5, { fire: true, melee: true, mov: true, esp: true, s3: true });
-  assert.equal(dmgDone(c), 0); assert.equal(c.p.movCd, 0); assert.equal(c.p.s3Cd, 0);
+test('Melé: el disparo, el melé rápido y recargar no hacen nada (el ataque es A1/A2); HAB.1/HAB.2 sí funcionan y HAB.3 es la habilidad principal (docs/CONTROLES.md)', () => {
+  const c = mk('axioma'); run(c, 1.5, { fire: true, melee: true, reload: true });
+  assert.equal(dmgDone(c), 0); assert.equal(c.p.movCd, 0); assert.equal(c.p.s3Cd, 0); assert.equal(c.p.habCd, 0);
   run(c, 0.5, { a1: true }); assert.ok(dmgDone(c) > 0);
+  const d = mk('axioma'); run(d, 0.3, { mov: true }); assert.ok(d.p.movCd > 0, 'HAB.1 (mov) funciona en Melé');
+  const e = mk('axioma'); run(e, 0.3, { esp: true }); assert.ok(e.p.espCd > 0, 'HAB.2 (esp) funciona en Melé');
+  const f = mk('axioma'); run(f, 0.3, { s3: true }); assert.ok(f.p.habCd > 0, 'HAB.3 (s3) lanza la habilidad principal de Combo'); assert.equal(f.p.s3Cd, 0, 'la s3 de Disparo no se usa en Melé');
 });
 
 test('cambiar de modo en plena partida por la entrada (mode) y los no-Huéspedes siguen en Shooter', () => {

@@ -36,7 +36,7 @@ test('presupuesto de render de las nieblas (Baja, 9 zonas activas): ≤ 6 llamad
       window.__NG = N;
     });
     await pg.waitForTimeout(5000);   // todas pasan a «activa»
-    let peor = { calls: 0, tris: 0 }, nube = 0, zonas = 0;
+    const calls = [], tris = []; let nube = 0, zonas = 0;
     for (let k = 0; k < 4; k++) {
       await pg.waitForTimeout(500);
       const m = await pg.evaluate(() => new Promise((res) => {
@@ -45,9 +45,10 @@ test('presupuesto de render de las nieblas (Baja, 9 zonas activas): ≤ 6 llamad
         f.root.visible = false;
         medir((sin) => { f.root.visible = true; medir((con) => { f.update = upd; res({ sin, con, nube: f.cloud.geometry.instanceCount, zonas: window.__api.session.game.ng.zonas.length }); }); });
       }));
-      peor = { calls: Math.max(peor.calls, m.con.calls - m.sin.calls), tris: Math.max(peor.tris, m.con.tris - m.sin.tris) }; nube = Math.max(nube, m.nube); zonas = m.zonas;
+      calls.push(m.con.calls - m.sin.calls); tris.push(m.con.tris - m.sin.tris); nube = Math.max(nube, m.nube); zonas = m.zonas;
     }
-    filas.push({ mapId, ...peor, instanciasDeNube: nube, zonas }); await pg.close();
+    const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];   // mediana de 4 cuadros: en m3-m6 el mapa termina de construirse a destiempo y un cuadro suelto suma cosas ajenas a las nieblas
+    filas.push({ mapId, calls: med(calls), tris: med(tris), cuadros: tris.join('/'), instanciasDeNube: nube, zonas }); await pg.close();
   }
   console.log('presupuesto de las nieblas (renderer.info, Baja):', JSON.stringify(filas));
   assert.deepEqual(errores, [], 'sin errores de consola');

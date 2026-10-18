@@ -13,6 +13,7 @@ import { applyBend } from './bendiciones.js';
 import { applyMaestria } from './maestria.js';
 import { applyArbol, shapeArbolGun } from './progresion.js';   // árbol de combos y de disparo permanentes (docs/EVOLUCION.md)
 import { setMode } from './combos.js';
+import { enrutar } from './modos.js';   // slots de habilidad por modo (Disparo / Melé)
 import { initDrops, initPity, updateLoot, flushLoot, lootSnap, dropsKill, dropsJefe, dropsRespiro } from './drops.js';   // dropeo de objetos (docs/INVENTARIO.md): rng propio g.drRng
 import { applyEquip, itemsSnap, shapeItemGun, ensureGunSlot } from './items-fx.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
@@ -96,7 +97,10 @@ export class Game {
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
     i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1 || inp.npc.offer === 2 || inp.npc.offer === 3)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style] && inp.style !== 'combo' && p.mode !== 'combo') p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult; i.soft = !!inp.soft;
     i.a1 = !!inp.a1; i.a2 = !!inp.a2; i.hab = !!inp.hab;   // Combo: ataque 1, ataque 2, habilidad principal
-    if (p.mode === 'combo') { i.fire = false; i.melee = false; i.mov = false; i.esp = false; i.s3 = false; i.reload = false; }   // en Combo los botones de Shooter no hacen nada
+    { // los 3 slots de habilidad (HAB.1 = mov, HAB.2 = esp, HAB.3 = s3) se traducen según el modo (src/sim/modos.js): en Melé HAB.3 es la habilidad principal de Combo
+      const r = enrutar(p.char, p.mode, { mov: i.mov, esp: i.esp, s3: i.s3 }, i.hab); i.mov = r.mov; i.esp = r.esp; i.s3 = r.s3; i.hab = r.hab;
+      if (p.mode === 'combo') { i.fire = false; i.melee = false; i.reload = false; }   // en Melé el disparo, el melé rápido y recargar no hacen nada (el ataque es A1/A2)
+    }
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;

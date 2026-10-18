@@ -44,7 +44,7 @@ export function createBotin(THREE, scene, hudEl) {
         if (me) { const d = Math.hypot(o[3] - me.pos[0], o[4] - me.pos[1], o[5] - me.pos[2]); if (d < nd && d < 4.6 && o[2] >= 2) { nd = d; near = o; } }
       }
       for (const [id, g] of live) if (!seen.has(id)) { group.remove(g); live.delete(id); }
-      if (near) { prompt.hidden = false; prompt.style.setProperty('--c', RARITIES[rarDe(null, near[2])].css); prompt.textContent = `E · recoger ${nombreBotin(near[1], near[2], near[7] || 1)}`; } else prompt.hidden = true;
+      if (near) { prompt.hidden = false; prompt.style.setProperty('--c', RARITIES[rarDe(null, near[2])].css); prompt.textContent = `${document.body.classList.contains('touch-ui') ? 'USAR' : 'E'} · recoger ${nombreBotin(near[1], near[2], near[7] || 1)}`; } else prompt.hidden = true;
     },
     /** Eventos del bus: `drop` (cayó algo), `loot` (lo recogiste), `madura` (un objeto subió de fase), `firma` (se cumplió la condición de tu arma firma). */
     event(e, mine) {

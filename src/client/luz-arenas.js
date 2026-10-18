@@ -39,7 +39,7 @@ export const LUZ = {
     eclipse: { sol: '#d04a30', solI: 0.72, az: 26, el: -18, rel: '#a04858', relI: 0.95, rim: '#ff6a14', rimI: 1.8, niebla: '#2a0e0e', sat: 1.1 } },
 };
 /** Luces puntuales de ambiente ligadas a los órganos. dist/decay como las demás luces del juego; i: intensidad base (se multiplica por el latido de la fase). */
-export const LUZ_ORGANO = { dist: 28, decay: 1.6, i: 62, iBaja: 46, alto: 1.6, fase: { dormido: 0.35, despierto: 0.7, furioso: 1.15, ofrenda: 0.9 }, latido: { dormido: 0.5, despierto: 1.0, furioso: 1.9, ofrenda: 0.75 } };
+export const LUZ_ORGANO = { dist: 28, decay: 1.6, i: 44, iBaja: 32, alto: 1.6, fase: { dormido: 0.2, despierto: 0.6, furioso: 1.1, ofrenda: 0.3 }, latido: { dormido: 0.5, despierto: 1.0, furioso: 1.9, ofrenda: 0.75 } };
 export const FASES_CICLO = ['dia', 'ocaso', 'eclipse'];
 
 /* ───────── funciones puras (probadas en tests/luz-arenas.test.js) ───────── */
@@ -82,6 +82,7 @@ export function luzOrgano(mapId, cual, fase, roto = false, t = 0, baja = false) 
 
 /* ───────── cliente ───────── */
 const URL_CICLO = typeof location !== 'undefined' ? (/[?&]ciclo=(dia|ocaso|eclipse)/.exec(location.search) || [])[1] || null : null;
+const APAGADA = typeof location !== 'undefined' && /[?&]luz=0/.test(location.search);   // ?luz=0: sin luz de arenas (diagnóstico A/B)
 const same = (a, b) => a && b && a.r === b.r && a.g === b.g && a.b === b.b;
 
 export class LuzArenas {
@@ -106,7 +107,8 @@ export class LuzArenas {
     b.sol = R.sun.color.toArray(); b.rim = R.rim.color.toArray(); b.rel = R.hemi.color.toArray(); b.solI = R.sun.intensity; b.rimI = R.rim.intensity; b.relI = R.hemi.intensity;
   }
   update(dt, state) {
-    const R = this.r; this.t += dt; if (!this.mapId || this.mapId !== R.mapId) this.setMap(R.mapId);
+    const R = this.r; this.t += dt; if (APAGADA) { for (const l of this.luces) l.intensity = 0; return; }
+    if (!this.mapId || this.mapId !== R.mapId) this.setMap(R.mapId);
     if (!this.mapId || !LUZ[this.mapId]) return;
     this.tomarBase(); const b = this.base; if (!b.sol) return;
     // ciclo: sigue al mundo (infección) + pulso lento; el evento «Eclipse» lo lleva al final

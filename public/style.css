@@ -434,14 +434,6 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 .card .meta { color: #ffe27a; font-style: normal; font-size: .92em; }
 @media (pointer: coarse) { #top { top: 5px; } #goal .g-main { line-height: 1.1; padding: 1px 10px; } #mision { margin-top: 2px; line-height: 1.15; padding: 0 8px; } }   /* línea de meta + misión caben sobre #objective (top 44px) */
 /* ───── Modo COMBO (táctil): ATAQUE 1, ATAQUE 2, HABILIDAD (grande), SALTAR + contextuales ───── */
-.combo-mode .tc-btn.tc-hab { right: calc(env(safe-area-inset-right, 0px) + 14px); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); width: calc(2 * var(--u, 56px) + var(--g, 8px)); height: calc(2 * var(--u, 56px) + var(--g, 8px)); border-color: #ffd23f; font-size: 12px; }
-.combo-mode .tc-btn.tc-hab .ic { font-size: 34px; } .combo-mode .tc-btn.tc-hab small { font-size: 12px; }
-.combo-mode .tc-btn.tc-a1 { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); width: calc(1.35 * var(--u, 56px)); height: calc(1.35 * var(--u, 56px)); border-color: #ff6a6a; }
-.combo-mode .tc-btn.tc-a2 { right: calc(env(safe-area-inset-right, 0px) + 14px + 2 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 1.5 * (var(--u, 56px) + var(--g, 8px))); width: calc(1.2 * var(--u, 56px)); height: calc(1.2 * var(--u, 56px)); border-color: #ff9a3c; }
-.combo-mode .tc-btn.tc-jump { right: calc(env(safe-area-inset-right, 0px) + 14px + 1 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u, 56px) + var(--g, 8px))); width: var(--u, 56px); height: var(--u, 56px); }
-.combo-mode .tc-btn.tc-ult { right: calc(env(safe-area-inset-right, 0px) + 14px); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 2 * (var(--u, 56px) + var(--g, 8px))); width: var(--u, 56px); height: var(--u, 56px); }
-.combo-mode .tc-btn.tc-use { right: calc(env(safe-area-inset-right, 0px) + 14px + 3.4 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); width: var(--u, 56px); height: var(--u, 56px); }
-.combo-mode .tc-btn.tc-evo { right: calc(env(safe-area-inset-right, 0px) + 14px + 3.4 * (var(--u, 56px) + var(--g, 8px))); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + 1 * (var(--u, 56px) + var(--g, 8px))); width: var(--u, 56px); height: var(--u, 56px); }
 /* contador de combo (hud-huesped.js) */
 #combohud { position: absolute; left: 50%; bottom: 24%; transform: translateX(-50%); text-align: center; pointer-events: none; font-weight: 900; letter-spacing: .08em; text-shadow: 0 0 10px #000, 0 0 3px #000; opacity: 0; transition: opacity .2s; }
 #combohud.on { opacity: 1; } #combohud b { display: block; font-size: clamp(26px, 5vw, 46px); color: #ffd23f; line-height: 1; } #combohud b i { font-style: normal; font-size: .5em; color: #fff; margin-left: 4px; }
@@ -457,3 +449,87 @@ body.cam3 #combohud { left: auto; right: 7%; bottom: 36%; transform: none; text-
 #estilohud u { display: block; height: 4px; margin: 3px auto 2px; width: 54px; border-radius: 2px; background: #ffffff33; overflow: hidden; } #estilohud s { display: block; height: 100%; background: currentColor; color: #ffd23f; transform-origin: left; transform: scaleX(0); transition: transform .12s; text-decoration: none; }
 #estilohud.pop b { animation: cbpop .18s ease-out; }
 @media (max-width: 700px) { #estilohud { left: auto; right: 16px; bottom: 34%; } }
+
+/* ═══════════════ HUD táctil estilo Wild Rift: Disparo ↔ Melé ═══════════════
+   Pulgar izquierdo = palanca (flotante). Pulgar derecho = ataque principal grande (DISPARAR / ATAQUE 1) con HAB.1, HAB.2 y HAB.3 en arco
+   alrededor, un botón chico (RECARGAR / ATAQUE 2), SALTO y MODO. ULTI / USAR / EVOLUC. salen en un segundo arco SÓLO cuando sirven.
+   Cada botón se ubica por su CENTRO (--cx, --cy) medido desde la esquina inferior derecha segura; todo en múltiplos de --u (≥ 44 px).
+   Arriba a la izquierda: pausa, cámara, mini barras de vida/escudo, nombre del Huésped y munición (Disparo) o contador de combo (Melé). */
+#touch { --u: clamp(44px, 12.5vh, 64px); --g: 8px; --f: calc(var(--u) + var(--g) / 2); --s2: max(44px, calc(var(--u) * .95));
+  --sr: env(safe-area-inset-right, 0px); --sb: env(safe-area-inset-bottom, 0px); --sl: env(safe-area-inset-left, 0px); --st: env(safe-area-inset-top, 0px); }
+#touch .tc-btn.tc-fire, #touch .tc-btn.tc-mov, #touch .tc-btn.tc-esp, #touch .tc-btn.tc-s3, #touch .tc-btn.tc-jump, #touch .tc-btn.tc-reload, #touch .tc-btn.tc-melee,
+#touch .tc-btn.tc-mode, #touch .tc-btn.tc-ult, #touch .tc-btn.tc-use, #touch .tc-btn.tc-evo, #touch .tc-btn.tc-ads, #touch .tc-btn.tc-crouch, #touch .tc-btn.tc-ability {
+  left: auto; top: auto; width: var(--sz, var(--u)); height: var(--sz, var(--u));
+  right: calc(var(--sr) + 14px + var(--cx) - var(--sz, var(--u)) / 2); bottom: calc(var(--sb) + 14px + var(--cy) - var(--sz, var(--u)) / 2); }
+#touch .tc-btn.tc-fire   { --sz: calc(2 * var(--u) + var(--g)); --cx: var(--f); --cy: var(--f); border-color: #ff66c4; }
+/* arco de habilidades (radio 2,05 u; 15°, 45° y 75° sobre la horizontal) */
+#touch .tc-btn.tc-mov    { --cx: calc(var(--f) + 1.98 * var(--u)); --cy: calc(var(--f) + .53 * var(--u)); border-color: #5cf2ff; }
+#touch .tc-btn.tc-esp    { --cx: calc(var(--f) + 1.45 * var(--u)); --cy: calc(var(--f) + 1.45 * var(--u)); border-color: #ff9a3c; }
+#touch .tc-btn.tc-s3     { --cx: calc(var(--f) + .53 * var(--u)); --cy: calc(var(--f) + 1.98 * var(--u)); border-color: #b9a4ff; }
+#touch .tc-btn.tc-jump   { --cx: calc(var(--f) + 2.12 * var(--u)); --cy: calc(var(--f) - .57 * var(--u)); }
+/* botones chicos y MODO, alineados a la derecha por encima del ataque */
+#touch .tc-btn.tc-reload { --sz: var(--s2); --cx: calc(var(--s2) / 2); --cy: calc(2 * var(--f) + var(--g) + var(--s2) / 2); border-color: #7dff9a; }
+#touch .tc-btn.tc-mode   { --sz: var(--s2); --cx: calc(var(--s2) / 2); --cy: calc(2 * var(--f) + 2 * var(--g) + 1.5 * var(--s2)); border-color: #ffe27a; }
+#touch .tc-btn.tc-melee  { --sz: var(--s2); --cx: calc(var(--f) + 3.25 * var(--u)); --cy: calc(var(--f) - .57 * var(--u)); border-color: #ff6a6a; }
+/* segundo arco (radio 3,3 u): sólo cuando sirven */
+#touch .tc-btn.tc-ult    { --cx: calc(var(--f) + 2.33 * var(--u)); --cy: calc(var(--f) + 2.33 * var(--u)); border-color: #ffd23f; }
+#touch .tc-btn.tc-use    { --cx: calc(var(--f) + 3.19 * var(--u)); --cy: calc(var(--f) + .85 * var(--u)); border-color: #7dff9a; }
+#touch .tc-btn.tc-evo    { --cx: calc(var(--f) + .85 * var(--u)); --cy: calc(var(--f) + 3.19 * var(--u)); border-color: #ff66c4; }
+/* modo avanzado (sólo Disparo): tercer arco */
+#touch .tc-btn.tc-ads    { --cx: calc(var(--f) + 3.9 * var(--u)); --cy: calc(var(--f) + 2.25 * var(--u)); border-color: #ffe27a; }
+#touch .tc-btn.tc-crouch { --cx: calc(var(--f) + 4.48 * var(--u)); --cy: calc(var(--f) + .39 * var(--u)); border-color: #9dff5a; }
+#touch .tc-btn.tc-ability{ --cx: calc(var(--f) + .39 * var(--u)); --cy: calc(var(--f) + 4.48 * var(--u)); border-color: #b9a4ff; }
+#touch .tc-btn.tc-pause { left: calc(var(--sl) + 10px); top: calc(var(--st) + 6px); width: 44px; height: 44px; }
+#touch .tc-btn { font-size: 9px; } #touch .tc-btn small { font-size: 9px; letter-spacing: .02em; }
+#touch .tc-btn .ic { font-size: 18px; } #touch .tc-btn.tc-fire .ic { font-size: 34px; } #touch .tc-btn.tc-fire small { font-size: 12px; }
+#touch .tc-btn.tc-mode .ic { font-size: 22px; line-height: 1; } #touch .tc-btn.tc-mode small { font-size: 8px; }
+#touch .tc-btn.tc-mode::after { content: "⇄"; position: absolute; right: -3px; top: -3px; width: 17px; height: 17px; border-radius: 50%; background: #ffe27a; color: #1a0f3a; font-size: 11px; line-height: 17px; text-align: center; font-weight: 900; }
+#touch .tc-btn.tc-mode.cd { opacity: .6; }
+#touch.combo-mode .tc-btn.tc-fire { border-color: #ff6a6a; box-shadow: 0 0 14px #ff6a6a66; }
+#touch.combo-mode .tc-btn.tc-reload { border-color: #ff9a6a; }
+#touch.combo-mode .tc-btn.tc-mode { border-color: #ff6a6a; }
+#touch .tc-btn[data-ring][data-cd]:not(.tc-ult)::after { font-size: 14px; }
+/* al cambiar de modo los botones «brotan» (corta, sin molestar) */
+@keyframes tcswap { from { transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(.5); opacity: 0; } }
+#touch.tc-swap .tc-btn:not(.tc-off):not(.tc-pause) { animation: tcswap .3s ease-out; }
+/* nombre corto de la habilidad al tocarla */
+.tc-tip { position: fixed; z-index: 7; transform: translate(-50%, -100%); padding: 3px 11px; border-radius: 999px; background: #1a0f3aee; border: 1px solid #ffe27a; color: #fff; font: 800 12px/1.2 system-ui, sans-serif; letter-spacing: .04em; white-space: nowrap; pointer-events: none; text-shadow: 0 0 6px #000; }
+.tc-tip.pop { animation: tctip .18s ease-out; } @keyframes tctip { from { opacity: 0; margin-top: 6px; } }
+
+/* ── HUD de pantalla en modo táctil (body.touch-ui lo pone touch.js al mostrar los controles) ── */
+body.touch-ui { --u: clamp(44px, 12.5vh, 64px); --g: 8px; }
+body.touch-ui #bars { left: calc(env(safe-area-inset-left, 0px) + 12px) !important; top: calc(env(safe-area-inset-top, 0px) + 56px) !important; bottom: auto !important; width: 124px !important; }
+body.touch-ui .bar { height: 7px; margin-top: 3px; border-radius: 4px; overflow: hidden; } body.touch-ui .bar span { display: none; } body.touch-ui #score { display: none; }
+body.touch-ui #camquick { left: calc(env(safe-area-inset-left, 0px) + 62px); top: calc(env(safe-area-inset-top, 0px) + 6px); width: 44px; height: 44px; }
+body.touch-ui #coop { left: auto !important; right: calc(env(safe-area-inset-right, 0px) + 10px) !important; top: calc(env(safe-area-inset-top, 0px) + 8px) !important; text-align: right; }
+body.touch-ui #goal .g-main { display: inline-block; max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.touch-ui #mision { max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.touch-ui #weapons { left: calc(env(safe-area-inset-left, 0px) + 176px) !important; right: calc(env(safe-area-inset-right, 0px) + 14px + 4.85 * var(--u) + 6px) !important; }
+body.touch-ui #weapons div { min-height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding-top: 0 !important; padding-bottom: 0 !important; }
+body.touch-ui #botin-toasts { left: calc(env(safe-area-inset-left, 0px) + 100px); right: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); max-width: min(150px, 26vw); }
+body.touch-ui .hq-ammo { display: block; }
+/* contador de combo y rango de estilo (Melé) debajo del nombre, a la izquierda: nunca tapan al héroe ni el centro */
+body.touch-ui #combohud, body.touch-ui.cam3 #combohud { left: auto; right: calc(env(safe-area-inset-right, 0px) + 62px); top: calc(env(safe-area-inset-top, 0px) + 52px); bottom: auto; transform: none; text-align: right; max-width: 100px; }
+body.touch-ui #combohud b { font-size: 26px; } body.touch-ui #combohud small { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } body.touch-ui #combohud u { margin: 3px 0 0 auto; width: 84px; }
+body.touch-ui #estilohud, body.touch-ui.cam3 #estilohud { left: auto; right: calc(env(safe-area-inset-right, 0px) + 12px); top: calc(env(safe-area-inset-top, 0px) + 54px); bottom: auto; text-align: center; width: 44px; }
+body.touch-ui #estilohud b { font-size: 28px; } body.touch-ui #estilohud small { font-size: 9px; white-space: nowrap; } body.touch-ui #estilohud u { margin: 2px auto; width: 34px; }
+body.touch-ui #evohud .eh-go { display: none !important; }   /* el botón EVOLUC. de la botonera ya hace lo mismo */
+/* el HUD se reordena con una transición corta al cambiar de modo */
+@keyframes hudswap { from { opacity: 0; transform: translateY(-6px); } }
+body.modo-swap .hq, body.modo-swap .hq-ammo { animation: hudswap .3s ease-out; }
+body.modo-swap #cross { animation: hudswap .3s ease-out; }
+/* pista de teclas (PC), opcional: K la muestra u oculta; «Ver controles» en Pausa la deja prendida */
+#keyhint { display: none; position: absolute; left: calc(env(safe-area-inset-left, 0px) + 24px); bottom: 104px; max-width: min(520px, 60vw); padding: 4px 10px; border-radius: 8px; background: #0c0822aa; border: 1px solid #ffffff2a; color: #cfc6ff; font: 600 11px/1.35 system-ui, sans-serif; pointer-events: none; }
+#keyhint.on { display: block; }
+body.touch-ui #botin-prompt { left: 30%; bottom: 24%; max-width: 40vw; white-space: normal; text-align: center; font-size: 12px; }
+#touch .tc-btn.tc-ping { width: 44px; height: 44px; }
+#touch .tc-btn.tc-reload small { font-size: 8px; letter-spacing: 0; } #touch .tc-btn.tc-reload.tc-off { display: none; }
+#touch .tc-btn.tc-fireL { left: calc(var(--sl) + 18px); bottom: calc(var(--sb) + 110px); }
+/* PC: el contador de combo y el rango van a la izquierda (el panel del Huésped está a la derecha) y el aviso de botín sube sobre la munición */
+body:not(.touch-ui) #combohud, body:not(.touch-ui).cam3 #combohud { left: 24px; right: auto; bottom: 34%; transform: none; text-align: left; max-width: 200px; }
+body:not(.touch-ui) #combohud small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } body:not(.touch-ui) #combohud u { margin-left: 0; }
+body:not(.touch-ui) #estilohud, body:not(.touch-ui).cam3 #estilohud { left: 236px; right: auto; bottom: 34%; text-align: left; }
+body:not(.touch-ui) #botin-prompt { bottom: 30%; }
+
+/* editor de botones: compacto en pantallas bajas, para que no tape los botones de la botonera nueva */
+@media (max-height: 460px) { .tc-edit { gap: 4px 10px; padding: 5px 10px; } .tc-edit span { display: none; } .tc-edit input[type=range] { width: 64px; } .tc-edit button { min-height: 34px; padding: 0 12px; } }
