@@ -10,6 +10,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CHARACTERS } from '../sim/data.js';
 import { SHAPE, GAM, INT } from './effects.js';
 import { attachToViewmodel } from './melee-models.js';
+import { parseEq, mountItemWeapon, fxOf, ITEM_FX } from './items-vis.js';
 
 const TAU = Math.PI * 2, Y = new THREE.Vector3(0, 1, 0);
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3(), WHITE = new THREE.Color(0xffffff), WB = new THREE.Vector3();
@@ -97,11 +98,18 @@ export function createHostMelee(renderer, D) {
   let gunHidden = false, worldSide = 1, host = null, built = null, engage = 0, idleT = 9, swing = null, charge = null, freeze = 0, comboIdx = 0, comboT = 9, T = 0, lastPredict = null, vmOff = 0, cdUntil = 0, impactKick = 0;
   const limbs = {}; // R / L: { g, body, wpn, glow, trail:[] }
   // Arma del catálogo FUSIONADA (me.mw + me.evo del snapshot): modelo de melee-models.js colgado de la mano derecha; reemplaza el arma innata mientras esté equipada.
-  let wm = null, wmKey = '';
+  let wm = null, wmL = null, wmKey = '';
   function syncWeapon(me, dt) {
-    const l = limbs.R; if (!l || !built) return; const id = (me && me.mw) || '', tier = (me && me.evo) | 0, key = `${host}|${id}|${tier}`;
-    if (key !== wmKey) { wmKey = key; if (wm) { wm.dispose(); wm = null; } l.catalog = !!id; if (id) wm = attachToViewmodel(THREE, l.g, id, { tier, quality: 'low', color: D.hostPal(host).c, offset: [0, 0.02, -0.4], size: 0.5, aura: false }); }
-    if (wm) wm.update(dt, T);
+    const l = limbs.R; if (!l || !built) return;
+    const iw = (me && me.iw) || '', ie = iw ? parseEq(me.eq).find((e) => e.id === iw) : null, id = iw ? '' : (me && me.mw) || '', tier = (me && me.evo) | 0, ph = ie ? ie.fase : 0, key = `${host}|${iw}|${ph}|${id}|${tier}`;
+    if (key !== wmKey) {
+      wmKey = key; if (wm) { wm.dispose(); wm = null; } if (wmL) { wmL.dispose(); wmL = null; } l.catalog = !!(id || iw); limbs.L.catalog = !!(ie && ie.it.m.dual);
+      if (ie) { // arma de objeto (docs/INVENTARIO.md): las de dos hojas van en las dos manos
+        const o = { frame: 'vm', quality: 'low', phase: ph, offset: [0, 0.02, -0.4], size: 0.5 };
+        wm = mountItemWeapon(THREE, l.g, iw, { ...o, side: 'R' }); if (ie.it.m.dual) wmL = mountItemWeapon(THREE, limbs.L.g, iw, { ...o, side: 'L' });
+      } else if (id) wm = attachToViewmodel(THREE, l.g, id, { tier, quality: 'low', color: D.hostPal(host).c, offset: [0, 0.02, -0.4], size: 0.5, aura: false });
+    }
+    if (wm) wm.update(dt, T); if (wmL) wmL.update(dt, T);
   }
   // sprites: destello de impacto y marcador (X de impacto / ejecución)
   const canvasTex = (draw, s = 128) => { const c = document.createElement('canvas'); c.width = c.height = s; draw(c.getContext('2d'), s); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; disposables.push(t); return t; };
@@ -230,14 +238,25 @@ export function createHostMelee(renderer, D) {
     sw.impacted = true; const hit = sw.hit > 0 || sw.exec; if (!hit) return;
     const me = D.info(D.getMe(), null, { id: D.getMe() }), pal = D.hostPal(host), heavy = sw.shape !== 'light', big = sw.exec ? 1.6 : heavy ? 1.2 : 0.8, rm = D.reduced();
     const P = impactPoint(sw, me), dir = sw.d ? V(sw.d).normalize() : me.aim, n = dir.clone().negate();
-    worldImpact(host, P, n, pal, heavy, sw.exec, me.up);
+    worldImpact(host, P, n, pal, heavy, sw.exec, me.up, sw.iw);
     freeze = rm ? 0.03 : sw.exec ? 0.11 : heavy ? 0.075 : 0.045;
     fl.t = fl.max = sw.exec ? 0.32 : 0.16; fl.size = (sw.exec ? 0.9 : heavy ? 0.6 : 0.4); flashSpr.material.color.set(sw.exec ? 0xffd2a0 : pal.a).lerp(WHITE, 0.35); flashSpr.position.set(srnd(0.08), -0.04 + srnd(0.04), -1.2); flashSpr.visible = true; flashSpr.material.rotation = rnd(6);
     mk.t = mk.max = sw.exec ? 0.55 : 0.28; mk.size = sw.exec ? 0.26 : 0.12; mk.tex = sw.exec ? execTex : hitTex; markSpr.material.map = mk.tex; markSpr.material.color.set(sw.exec ? 0xff5a3a : 0xffffff); markSpr.position.set(0, 0, -1.0); markSpr.visible = true; markSpr.material.opacity = 1;
     D.shake(me, (sw.exec ? 0.7 : heavy ? 0.45 : 0.22) * (host === 'micelio' ? 1.3 : 1)); if (fx.combat && !rm) fx.combat.K.fov = Math.min(fx.combat.K.fov + (heavy ? 1.6 : 0.6), 3.2);
     const snd = D.getSound(); if (snd) snd.melee(host, sw.exec ? 'exec' : 'hit', null, sw.hit || 1, heavy);
   }
-  function worldImpact(h, P, n, pal, heavy, exec, up) { // chispas, destello y marca en el mundo (también lo ven los demás)
+  /** Efecto de golpe PROPIO de las armas de objeto (docs/INVENTARIO.md): cruz de dos tajos (gemelas), cuatro marcas de garra, brotes de raíz, media luna de vacío. */
+  function itemImpact(P, n, up, heavy, iw) {
+    const F = fxOf(iw); if (!F) return; const k = heavy ? 1.3 : 1, side = _c.copy(n).cross(up).normalize().clone(), ln = (a, b, c, w, life) => fx.line(a, b, c, w, life, { a0: 1, a1: 0, shrink: 0.9 });
+    switch (F.name) {
+      case 'cruz': for (const s of [-1, 1]) { _a.copy(P).addScaledVector(side, -1.1 * s).addScaledVector(up, 0.9); _b.copy(P).addScaledVector(side, 1.1 * s).addScaledVector(up, -0.9); ln(_a, _b, s > 0 ? 0xfff0c0 : F.a, 0.11 * k, 0.28); } D.sparks(P, F.c, 8 * k, 14, 0.4, { dir: n, cone: 1.4, c2: F.a }); break;
+      case 'garras': for (let i = -1; i <= 2; i++) { _a.copy(P).addScaledVector(side, (i - 0.5) * 0.28).addScaledVector(up, 0.8); _b.copy(P).addScaledVector(side, (i - 0.5) * 0.2).addScaledVector(up, -0.8); ln(_a, _b, i % 2 ? F.c : F.a, 0.06 * k, 0.3); } D.sparks(P, F.a, 6 * k, 12, 0.4, { dir: n, cone: 1.2, c2: F.c }); break;
+      case 'raices': D.ring(P, up, 0.3, 3 * k, 0.4, F.c, { th: 0.12 }); D.spray(P, F.c, 8 * k, 6, 0.8, 0.6, { shape: SHAPE.star, c2: F.a, spin: 3 }); break;
+      case 'media_luna': for (let i = 0; i < 3; i++) { _a.copy(P).addScaledVector(side, -1.6).addScaledVector(up, 0.2 + i * 0.12); _b.copy(P).addScaledVector(side, 1.6).addScaledVector(up, -0.2 - i * 0.12); ln(_a, _b, i === 1 ? 0xffffff : F.c, (i === 1 ? 0.12 : 0.07) * k, 0.3); } D.sparks(P, F.a, 6 * k, 14, 0.4, { dir: n, cone: 1.5, c2: F.c }); break;
+      default: D.sparks(P, F.c, 8 * k, 14, 0.4, { dir: n, cone: 1.5, c2: F.a });
+    }
+  }
+  function worldImpact(h, P, n, pal, heavy, exec, up, iw) { // chispas, destello y marca en el mundo (también lo ven los demás)
     const k = exec ? 1.7 : heavy ? 1.25 : 1, c = pal.c, a = pal.a;
     fx.flash(P, 0xffffff, 1.5 * k, 0.12, { burst: true }); fx.flash(P, exec ? 0xff7a3a : c, 2.4 * k, 0.2); // flashes contenidos: el impacto no debe tapar a la criatura
     switch (h) {
@@ -247,6 +266,7 @@ export function createHostMelee(renderer, D) {
       case 'seraf': D.ring(P, n, 0.3, 3 * k, 0.35, a, { th: 0.12 }); D.sparks(P, 0xffffff, 8 * k, 18, 0.4, { dir: n, cone: 1.3, c2: c }); D.spray(P, c, 6 * k, 6, 0.6, 0.6, { shape: SHAPE.star, c2: a, spin: 4 }); break;
       default: D.sparks(P, 0xffffff, 10 * k, 18, 0.4, { dir: n, cone: 1.5, c2: c }); D.spray(P, 0xe9eef2, 4 * k, 8, 0.6, 0.7, { shape: SHAPE.shard, grav: 9, spin: 8, c2: c, grow: -0.4 });
     }
+    if (iw) itemImpact(P, n, up, heavy, iw);
     if (exec) { fx.shatter(P, a, { size: 0.45, n: 3, speed: 9, dir: n }); D.ring(P, null, 0.4, 5, 0.5, 0xff7a3a, { th: 0.09 }); }
     if (heavy && h !== 'micelio') D.ring(P, n, 0.3, 2.6 * k, 0.4, c, { th: 0.12 });
   }
@@ -273,10 +293,12 @@ export function createHostMelee(renderer, D) {
       const sw = swing, conf = sw && sw.predicted && !sw.confirmed && lastPredict && T - lastPredict.t < 0.7 && (lastPredict.kind === e.kind || (e.kind !== 'light' && lastPredict.kind !== 'light') || e.kind === 'exec');
       if (conf) { sw.confirmed = true; sw.hit = e.hit || 0; sw.exec = e.kind === 'exec'; sw.d = e.d || null; sw.kind = e.kind; if (sw.u >= HIT_AT && !sw.impacted) impact(sw); if (snd) { /* el sonido de barrido ya sonó al predecir */ } }
       else start(e.kind, { hit: e.hit, exec: e.kind === 'exec', d: e.d, p: e.p, u0: e.kind === 'light' ? 0.2 : 0.22, fast: true });
+      if (swing) swing.iw = e.iw || '';   // estela y golpe propios del arma de objeto
+      trailMat.uniforms.uC.value.set(e.iw ? fxOf(e.iw).c : pal.c).lerp(WHITE, 0.35);
     } else { // otro jugador (o 3.ª persona): tajo en el mundo
       if (snd) snd.melee(hostId, e.kind === 'exec' ? 'light' : e.kind, e.p || null, 0, e.kind !== 'light');
       host = host || hostId; worldSwing(I, { ...e, char: hostId }, pal);
-      if (e.hit > 0 || e.kind === 'exec') { const dir = e.d ? V(e.d).normalize() : I.aim, range = (CHARACTERS[hostId].melee.light.range || 3.6) * 0.7; const P = I.eye.clone().addScaledVector(dir, range); later(0.12, () => { worldImpact(hostId, P, dir.clone().negate(), pal, e.kind !== 'light', e.kind === 'exec', I.up); if (snd) snd.melee(hostId, e.kind === 'exec' ? 'exec' : 'hit', P.toArray(), e.hit || 1, e.kind !== 'light'); }); }
+      if (e.hit > 0 || e.kind === 'exec') { const dir = e.d ? V(e.d).normalize() : I.aim, range = (CHARACTERS[hostId].melee.light.range || 3.6) * 0.7; const P = I.eye.clone().addScaledVector(dir, range); later(0.12, () => { worldImpact(hostId, P, dir.clone().negate(), pal, e.kind !== 'light', e.kind === 'exec', I.up, e.iw); if (snd) snd.melee(hostId, e.kind === 'exec' ? 'exec' : 'hit', P.toArray(), e.hit || 1, e.kind !== 'light'); }); }
     }
   }
   const pend = []; const later = (s, fn) => pend.push({ t: s, fn });

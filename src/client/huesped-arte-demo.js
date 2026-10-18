@@ -30,7 +30,7 @@ if (qs.get('bloom') === '1' || quality !== 'low') {
 const hdri = qs.get('hdri') || 'small_cathedral_02';
 const env = loadEnvHDRI(gl, hdri).then((t) => { scene.environment = t; scene.environmentIntensity = Number(qs.get('envi')) || 1.3; }).catch(() => {});
 const kit = await loadHumanKit({ quality });
-const pl = { char, name: char, evo: Number(qs.get('evo')) || 0, pth: (qs.get('pth') || '').split(',').filter(Boolean), cg: (qs.get('cg') || '').split(',').filter(Boolean), mw: qs.get('mw') || '', mr: Number(qs.get('mr')) || 1, dead: false };
+const pl = { char, name: char, evo: Number(qs.get('evo')) || 0, pth: (qs.get('pth') || '').split(',').filter(Boolean), cg: (qs.get('cg') || '').split(',').filter(Boolean), mw: qs.get('mw') || '', mr: Number(qs.get('mr')) || 1, eq: qs.get('eq') || '', dead: false };
 const body = createHostBody(THREE, kit, pl, { quality, camera: cam, map: qs.get('map') || null });
 scene.add(body.object); await body.ready; await env;
 body.object.rotation.y = THREE.MathUtils.degToRad(Number(qs.get('yaw')) || 0);

@@ -4,7 +4,7 @@
 // Datos puros y deterministas (sin DOM, sin azar, sin g.rng, sin perfil). El perfil (src/client/perfil.js) guarda los puntos y los nodos
 // elegidos; la simulación sólo recibe los ids (opts.arbol de addPlayer / prof.arbol de setLoadout) y los convierte en efectos (p.ac / p.as).
 // Los nodos de Combo NO tocan Shooter y viceversa: p.ac sólo lo lee combos.js; p.as sólo lo leen firePlayer (game.js) y clipOf/reloadTime (loadout.js).
-import { HOST_IDS } from './data.js';
+import { HOST_IDS, COMBO_SETS } from './data.js';
 
 /** Costo en puntos de cada nodo de una rama (1.º, 2.º, 3.º). Una rama completa = 195 puntos. */
 export const PC_COSTE = [25, 60, 110];
@@ -31,32 +31,39 @@ export const RAMAS = {
 
 /* ───────── árbol de COMBOS: nombres e identidad por Huésped ───────── */
 /** Finisher de área de cada Huésped (nodo «area2»): onda/cono (Axioma), torbellino (Vesper), sismo (Micelio), vacío que arrastra (Umbra), cadena de rayos (Seraf). */
-export const FIN_HUESPED = { axioma: 'cono', vesper: 'torbellino', micelio: 'sismo', umbra: 'vacio', seraf: 'rayos' };
+export const FIN_HUESPED = { axioma: 'cono', vesper: 'torbellino', micelio: 'sismo', umbra: 'vacio', seraf: 'rayos', singular: 'pozo', danzante: 'abanico', colmena: 'torbellino' };
 const FIN_TEXTO = {
   cono: 'El remate de cada cadena lanza un IMPACTO EN CONO que empuja a todo lo de enfrente.',
   torbellino: 'El remate de cada cadena abre un TORBELLINO de garras alrededor tuyo.',
   sismo: 'El remate de cada cadena hace un SISMO: daña, ralentiza y suelta raíces alrededor.',
   vacio: 'El remate de cada cadena abre un VACÍO que ARRASTRA a los enemigos hacia un punto y los golpea.',
+  abanico: 'El remate de cada cadena abre un ABANICO de listones: barre en arco todo lo que tenés delante y lo empuja.',
   rayos: 'El remate de cada cadena dispara una CADENA DE RAYOS que salta entre hasta 7 enemigos.',
+  pozo: 'El remate de cada cadena ARRASTRA a todos hacia un punto delante tuyo, los golpea y deja un POZO chico que los retiene un instante.',
 };
 const NOMBRES_C = {
   axioma:  { cadena: ['Ritmo de acero', 'Contragolpe de coraza', 'Cataclismo'],     area: ['Filo atravesador', 'Impacto en cono', 'Ola de choque'],      ejecucion: ['Marca de sentencia', 'Remate cobrador', 'Veredicto de acero'] },
   vesper:  { cadena: ['Pulso de manada', 'Remolino de zarpas', 'Furia de la manada'], area: ['Zarpas voraces', 'Torbellino de garras', 'Estampida'],      ejecucion: ['Rastro de sangre', 'Remate cobrador', 'Cazadora implacable'] },
   micelio: { cadena: ['Raíz tenaz', 'Lluvia de esporas', 'Floración total'],         area: ['Puños de bosque', 'Sismo de raíces', 'Micelio en cadena'],    ejecucion: ['Esporas de sentencia', 'Cosecha', 'Podredumbre final'] },
   umbra:   { cadena: ['Paso largo', 'Cruce invertido', 'Mil planos'],                area: ['Filo sin borde', 'Vacío que arrastra', 'Eco que se contagia'], ejecucion: ['Marca del vacío', 'Corte cobrador', 'Eclipse de sentencia'] },
+  danzante: { cadena: ['Compás largo', 'Doble parada', 'Gran vals'],               area: ['Listones que cortan', 'Abanico de listones', 'Eco del compás'], ejecucion: ['Marca del compás', 'Réplica cobradora', 'Último baile'] },
+  singular: { cadena: ['Órbita larga', 'Polo inverso', 'Horizonte de sucesos'],    area: ['Roce que atraviesa', 'Pozo que arrastra', 'Colapso en cadena'], ejecucion: ['Marca gravitatoria', 'Pozo cobrador', 'Más allá del horizonte'] },
+  colmena: { cadena: ['Zumbido largo', 'Nube de aguijones', 'Marea del enjambre'],  area: ['Aguijones que atraviesan', 'Torbellino de alas', 'Plaga en cadena'], ejecucion: ['Marca de la Reina', 'Cosecha del enjambre', 'Sentencia de la Reina'] },
   seraf:   { cadena: ['Pulso de luz', 'Flecha gemela', 'Lluvia estelar'],            area: ['Luz que atraviesa', 'Cadena de rayos', 'Resplandor en cadena'], ejecucion: ['Marca de luz', 'Flecha cobradora', 'Juicio de luz'] },
 };
 const TEXTO_C = {
-  cadena1: 'Ventana de encadenado ×1,6, la siguiente pulsación se guarda más tiempo y se acepta antes: ya al 50 % de la recuperación (antes, al 70 %).',
-  cadena2: (c) => `NUEVO GOLPE en la cadena: «${EXTRA_C2[c].name}» (${EXTRA_C2[c].seq.map((b) => b.toUpperCase()).join(' → ')}).`,
-  cadena3: (c) => `Cadena +1, cualquier ataque cancela la recuperación a tiempo y se abre el golpe final «${CAPITULO[c].name}» (${CAPITULO[c].seq.map((b) => b.toUpperCase()).join(' → ')}).`,
+  cadena1: 'Ventana de encadenado ×1,6, la siguiente pulsación se guarda más tiempo y se acepta antes: ya al 60 % de la recuperación (antes, al 70 %).',
+  cadena2: (c) => `NUEVO GOLPE en la cadena: «${extraDe(c).name}» (${extraDe(c).seq.map((b) => b.toUpperCase()).join(' → ')}).`,
+  cadena3: (c) => `Cadena +1, cualquier ataque cancela la recuperación a tiempo y se abre el golpe final «${capituloDe(c).name}» (${capituloDe(c).seq.map((b) => b.toUpperCase()).join(' → ')}).`,
   area1: 'Tus golpes ATRAVIESAN: alcance +15 %, ángulo +25 %, hasta 14 enemigos por golpe (antes 4) e ignoran la guardia de los arietes. Las flechas de Seraf atraviesan.',
-  area2: (c) => FIN_TEXTO[FIN_HUESPED[c]],
+  area2: (c) => FIN_TEXTO[finDe(c)],
   area3: 'RESONANCIA: cada baja empuja a los de alrededor y les propaga parte del daño, en cadena (máx. 2 saltos y 14 golpes por ataque).',
   ejecucion1: 'Cada golpe MARCA al enemigo 4 s (recibe +15 % de daño) y ejecutás con un 5 % más de vida restante.',
   ejecucion2: 'El remate pega un 35 % más; cada baja con un remate te cura 4 y acelera 1,2 s tu habilidad (hasta 5 bajas).',
   ejecucion3: 'Ejecutás con un 7 % más de vida restante y cada ejecución cancela la recuperación: el golpe siguiente sale ya.',
 };
+/** Respaldo para un Huésped nuevo que todavía no tenga nombres propios aquí. */
+const NOMBRES_GEN = { cadena: ['Ritmo largo', 'Golpe añadido', 'Golpe final'], area: ['Golpes que atraviesan', 'Remate de área', 'Resonancia'], ejecucion: ['Marca de sentencia', 'Remate cobrador', 'Sentencia'] };
 const mv = (id, name, seq, o = {}) => ({ id, name, seq, evo: 0, w: 'l', dmg: 1, rng: 1, arc: 1, cdr: 1, hits: 1, kind: 'light', ...o });
 /** Golpe nuevo del nodo «cadena2» (secuencia que el set base no usa). Reutiliza las mecánicas de los 8 golpes de cada Huésped. */
 export const EXTRA_C2 = {
@@ -64,16 +71,35 @@ export const EXTRA_C2 = {
   vesper:  mv('remolino', 'Remolino de zarpas', ['a2', 'a1'], { dmg: 0.6, hits: 3, arc: 2, kind: 'spin', cdr: 1.1 }),
   micelio: mv('lluvia_esporas', 'Lluvia de esporas', ['a2', 'a1'], { w: 'h', dmg: 1.3, fx: 'raices', arc: 1.8, kind: 'heavy', cdr: 1.1 }),
   umbra:   mv('cruce_invertido', 'Cruce invertido', ['a2', 'a2'], { w: 'h', dmg: 1.3, blink: 5, line: true, kind: 'lunge', cdr: 1.1 }),
+  danzante: mv('doble_parada', 'Doble parada', ['a2', 'a2'], { w: 'h', dmg: 1.2, arc: 1.5, kind: 'heavy', cdr: 1.1 }),
+  singular: mv('polo_inverso', 'Polo inverso', ['a2', 'a1'], { w: 'h', dmg: 1.2, arc: 1.8, fx: 'atrae', kind: 'heavy', cdr: 1.1 }),
+  colmena: mv('nube_aguijones', 'Nube de aguijones', ['a2', 'a1'], { dmg: 0.6, hits: 3, arc: 1.8, kind: 'light', cdr: 1.1 }),
   seraf:   mv('flecha_gemela', 'Flecha gemela', ['a2', 'a1'], { ranged: true, w: 'h', dmg: 1.1, hits: 2, rng: 14, pierce: true, fan: 0.05, kind: 'heavy', cdr: 1.1 }),
 };
 /** Golpe final del nodo «cadena3» (continúa el de cadena2, así que la cadena llega hasta él aunque el nivel de evolución sea bajo). */
 export const CAPITULO = {
-  axioma:  mv('cataclismo', 'Cataclismo de acero', ['a2', 'a1', 'a2'], { w: 'h', dmg: 2.1, fx: 'sismo+onda', arc: 2, kind: 'air', cdr: 1.5 }),
+  axioma:  mv('cataclismo', 'Cataclismo de acero', ['a2', 'a1', 'a2'], { w: 'h', dmg: 1.0, fx: 'sismo', arc: 2, kind: 'air', cdr: 1.5 }),
   vesper:  mv('furia_manada', 'Furia de la manada', ['a2', 'a1', 'a2'], { dmg: 0.7, hits: 4, arc: 2, dash: 8, kind: 'spin', cdr: 1.5 }),
   micelio: mv('floracion_total', 'Floración total', ['a2', 'a1', 'a2'], { w: 'h', dmg: 1.9, arc: 2, fx: 'raices+sismo', big: true, kind: 'air', cdr: 1.5 }),
   umbra:   mv('mil_planos', 'Mil planos', ['a2', 'a2', 'a1'], { w: 'h', dmg: 0.8, hits: 3, blink: 8, line: true, kind: 'lunge', cdr: 1.5 }),
+  danzante: mv('gran_vals', 'Gran vals', ['a2', 'a2', 'a1'], { dmg: 0.8, hits: 3, arc: 2, dash: 6, kind: 'spin', cdr: 1.5 }),
+  singular: mv('horizonte', 'Horizonte de sucesos', ['a2', 'a1', 'a2'], { w: 'h', dmg: 1.0, arc: 2, fx: 'atrae+orbita+pozo', big: true, kind: 'air', cdr: 1.5 }),
+  colmena: mv('marea_enjambre', 'Marea del enjambre', ['a2', 'a1', 'a2'], { dmg: 0.5, hits: 4, arc: 2, kind: 'spin', cdr: 1.5 }),
   seraf:   mv('lluvia_estelar', 'Lluvia estelar', ['a2', 'a1', 'a2'], { ranged: true, dmg: 0.8, hits: 9, rng: 12, fan: 0.08, pierce: true, kind: 'heavy', cdr: 1.8 }),
 };
+
+const libre = (char, cand) => cand.find((q) => !(COMBO_SETS[char] || []).some((m) => m.seq.join() === q.join())) || cand[0];
+/** Golpe nuevo y golpe final de un Huésped (con respaldo si es un Huésped sin tablas propias: secuencia libre y golpe genérico). */
+export const extraDe = (char) => EXTRA_C2[char] || mv('golpe_nuevo_' + char, 'Golpe añadido', libre(char, [['a2', 'a1'], ['a2', 'a2']]), { w: 'h', dmg: 1.25, arc: 1.6, kind: 'heavy', cdr: 1.1 });
+export const capituloDe = (char) => CAPITULO[char] || mv('golpe_final_' + char, 'Golpe final', [...extraDe(char).seq, extraDe(char).seq[1] === 'a1' ? 'a2' : 'a1'], { w: 'h', dmg: 1.2, arc: 2, kind: 'air', cdr: 1.5 });
+export const finDe = (char) => FIN_HUESPED[char] || 'torbellino';
+
+/* COLMENA (invocador): su árbol de combos manda al ENJAMBRE (zánganos que pican con cada golpe). */
+FIN_HUESPED.colmena = 'enjambre';
+FIN_TEXTO.enjambre = 'El remate de cada cadena MANDA ATACAR a todo el enjambre y suelta una NUBE DE AGUIJONES que daña y ralentiza.';
+NOMBRES_C.colmena = { cadena: ['Zumbido a coro', 'Panal cerrado', 'Colmena total'], area: ['Aguijón largo', 'Nube de aguijones', 'Plaga en cadena'], ejecucion: ['Marca de la reina', 'Cosecha de miel', 'Veredicto del enjambre'] };
+EXTRA_C2.colmena = mv('enjambre_cerrado', 'Enjambre cerrado', ['a2', 'a1'], { w: 'h', dmg: 1.1, arc: 1.8, kind: 'heavy', fx: 'orden+nube', cdr: 1.1 });
+CAPITULO.colmena = mv('colmena_total', 'Colmena total', ['a2', 'a1', 'a2'], { w: 'h', dmg: 1.8, arc: 2, kind: 'air', fx: 'orden+nube+cria', cdr: 1.5 });
 
 /** Efectos NEUTROS del árbol de combos (sin nodos): combos.js los lee con `p.ac || NEUTRO_C`. */
 export const NEUTRO_C = Object.freeze({ win: 1, buf: 1, cancel: 0, chain: 0, extra: Object.freeze([]), freeCancel: false, maxT: 0, rng: 1, arc: 1, pen: false, fin: '', res: false, mark: false, exec: 0, finMul: 1, refund: false, execCancel: false });
@@ -85,7 +111,7 @@ export function arbolCombo(char) {
   const out = [];
   for (const rama of Object.keys(RAMAS.combo)) for (let n = 1; n <= 3; n++) {
     const id = rama + n, t = TEXTO_C[rama + n];
-    out.push({ id, rama, nivel: n, nombre: NOMBRES_C[char][rama][n - 1], texto: typeof t === 'function' ? t(char) : t, coste: PC_COSTE[n - 1] });
+    out.push({ id, rama, nivel: n, nombre: (NOMBRES_C[char] || NOMBRES_GEN)[rama][n - 1], texto: typeof t === 'function' ? t(char) : t, coste: PC_COSTE[n - 1] });
   }
   return out;
 }
@@ -149,11 +175,11 @@ export function puntosDisparo(st = {}, wave = 0) {
 export function efectosCombo(char, ids) {
   const ac = { ...NEUTRO_C, extra: [] }, own = cleanNodos('combo', char, ids);
   for (const id of own) {
-    if (id === 'cadena1') { ac.win = 1.6; ac.buf = 1.5; ac.cancel = 0.5; }
-    else if (id === 'cadena2') ac.extra.push(EXTRA_C2[char]);
-    else if (id === 'cadena3') { ac.chain = 1; ac.freeCancel = true; ac.extra.push(CAPITULO[char]); }
+    if (id === 'cadena1') { ac.win = 1.6; ac.buf = 1.5; ac.cancel = 0.6; }
+    else if (id === 'cadena2') ac.extra.push(extraDe(char));
+    else if (id === 'cadena3') { ac.chain = 1; ac.freeCancel = true; ac.extra.push(capituloDe(char)); }
     else if (id === 'area1') { ac.pen = true; ac.maxT = 14; ac.rng = 1.15; ac.arc = 1.25; }
-    else if (id === 'area2') ac.fin = FIN_HUESPED[char];
+    else if (id === 'area2') ac.fin = finDe(char);
     else if (id === 'area3') ac.res = true;
     else if (id === 'ejecucion1') { ac.mark = true; ac.exec += 0.05; }
     else if (id === 'ejecucion2') { ac.finMul = 1.35; ac.refund = true; }

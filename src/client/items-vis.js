@@ -9,7 +9,7 @@
 // venas que laten con el pulso (uBeat) y un halo en las legendarias Maduras. Presupuesto en Baja: la armadura SUSTITUYE la geometría base de su zona
 // (ak.replaceSlots) y suma muy pocas llamadas de dibujo (un material nuevo = una llamada, nunca más por pieza). Medido en docs/INVENTARIO.md.
 import * as T from 'three';
-import { ITEMS, MATERIALS, ARMOR_SLOTS } from '../sim/items.js';
+import { ITEMS, MATERIALS, ARMOR_SLOTS, SETS, setCounts } from '../sim/items.js';
 import { tools, V } from './huesped-piezas.js';
 import { makeBuilder, buildMelee } from './melee-models.js';
 import { uBeat } from './shaders.js';
@@ -118,7 +118,7 @@ function head(ak, t, e, p) {
   // collar
   add(p.key === 'crystal' ? 'bone' : p.key, G.band(0.075, 0.03, 0.012, { seg: S(14, 8), simple: low }).translate(0, 1.455, 0.03), 'neck01', { color: p.dark });
   // cicatriz de luz
-  const pts = []; for (let i = 0; i <= 7; i++) { const u = i / 7; pts.push(V(HC.x + Math.sin((u - 0.5) * 0.4) * 0.01, HC.y + 0.12 - u * 0.16 + Math.sin(u * 5) * 0.004, HC.z + 0.14 - u * 0.04)); } if (p.f >= 1) add('ember', t.seam(pts, 0.003), 'head', { color: p.glow });
+  const scar = []; for (let i = 0; i <= 7; i++) { const u = i / 7; scar.push(V(HC.x + Math.sin((u - 0.5) * 0.4) * 0.01, HC.y + 0.12 - u * 0.16 + Math.sin(u * 5) * 0.004, HC.z + 0.14 - u * 0.04)); } if (p.f >= 1) add('ember', t.seam(scar, 0.003), 'head', { color: p.glow });
   if (p.r >= 3 && p.f >= 2) ak.halo('head', V(0, 1.64, 0.02), p.glowRaw, 0.5, 0.35);
 }
 
@@ -205,9 +205,17 @@ const BUILD = { head, torso, arms, legs, relic };
  * Las zonas con armadura pierden la geometría base de esa parte; el resto del cuerpo queda igual.
  */
 export function addEquipmentArmor(ak, eq) {
-  const t = tools(ak), done = [];
-  for (const e of eq) { const fn = BUILD[e.slot]; if (!fn) continue; try { fn(ak, t, e, palette(e)); done.push(e.slot); } catch (err) { console.warn('Armadura ' + e.id + ':', err.message); } }
-  return { slots: done };
+  const t = tools(ak), done = [], sc = setCounts(eq), full = [];
+  for (const e of eq) {
+    const fn = BUILD[e.slot]; if (!fn) continue;
+    const n = e.it.set ? sc[e.it.set] || 0 : 0, p = palette(e);
+    if (n >= 2) { p.vk *= 1.15; p.glow = scaleHex(p.glowRaw, p.vk); }                     // con 2 piezas del set las vetas brillan más
+    if (n >= 4) { p.f = Math.min(3, p.f + 1); p.vk *= 1.2; p.glow = scaleHex(p.glowRaw, p.vk); if (!full.includes(e.it.set)) full.push(e.it.set); }   // con 4 el set «despierta»: una fase más de aspecto
+    try { fn(ak, t, e, p); done.push(e.slot); } catch (err) { console.warn('Armadura ' + e.id + ':', err.message); }
+  }
+  // set completo: aura de pulso que rodea el torso y anillos de luz en los hombros
+  for (const sid of full) { const g = MATERIALS[SETS[sid].mat].glow; ak.halo('spine01', V(0, 1.2, 0.05), g, 0.95, 0.28); ak.both(() => { const C = ak.P('upperarm01'); ak.add('ember', t.G.torus(0.09, 0.0035, 3, t.S(16, 8)).rotateZ(0.55).translate(C.x + 0.01, C.y + 0.05, C.z), 'upperarm01', { color: scaleHex(g, 1.4) }); }); }
+  return { slots: done, sets: full };
 }
 
 /* ═════════════════════════ ARMAS ═════════════════════════ */

@@ -12,7 +12,8 @@ const tap = (g, p, k, secs = 0.05) => { g.setInput(p.id, { [k]: true }); run(g, 
 const mk = (id) => { const { g, p } = arena(); g.setLoadout(p.id, id); return { g, p }; };
 
 test('los 5 Huéspedes tienen todo lo pedido: melee, 3 habilidades, definitiva, pasiva, stats e historia', () => {
-  assert.deepEqual([...HOST_IDS].sort(), ['axioma', 'micelio', 'seraf', 'umbra', 'vesper']);
+  for (const id of ['axioma', 'vesper', 'micelio', 'umbra', 'seraf', 'danzante', 'singular', 'colmena']) assert.ok(HOST_IDS.includes(id), id);   // + los que se sumen después
+  assert.equal(new Set(HOST_IDS).size, HOST_IDS.length);
   for (const id of HOST_IDS) {
     const C = CHARACTERS[id];
     for (const k of ['mov', 'esp', 's3']) assert.ok(C[k].id && C[k].name && C[k].cd > 0 && C[k].desc, `${id}.${k}`);

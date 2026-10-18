@@ -33,7 +33,7 @@ export const NIEBLAS = {
     par: { dps: 2.6, dpsOla: 0.08, vel: 0.78, mDps: 4.5 } },
   cian:    { i: 1, nombre: 'Niebla restauradora', corto: 'Cura', color: '#19f0ff', icono: '✚', nocivo: false, minOla: 1, aviso: 0.8,
     desc: 'Cura y da escudo si te quedás adentro, pero ATRAE a las criaturas hacia su centro: es un descanso con precio.',
-    par: { hp: 4.5, sh: 9, tira: 6, alcance: 2.2 } },
+    par: { hp: 4.5, sh: 9, tira: 3.2, alcance: 2.2 } },   // tira: m/s que arrastra a las criaturas hacia el centro
   magenta: { i: 2, nombre: 'Niebla alucinógena', corto: 'Ecos falsos', color: '#ff3df2', icono: '✺', nocivo: true, minOla: 2, aviso: 2.4,
     desc: 'Muestra ecos falsos de criaturas en pantalla y tuerce un poco tu rumbo al caminar (se apaga con «Reducir efectos»). A cambio, tus golpes pegan +15 %.',
     par: { deriva: 0.2, danio: 1.15 } },
@@ -228,7 +228,7 @@ function efectosCriaturas(g, dt, zs) {
         if (m.hp <= 0) { g.killMonster(m, credito(g, m)); }
       } else if (dist(m.pos, z.pos) > z.r * 0.6) {   // cian: tira suave hacia el centro (en el piso: sólo por el plano tangente)
         let dir = norm(sub(z.pos, m.pos)); if (!m.def.fly) dir = norm(project(dir, m.up || z.u), dir);
-        m.vel = madd(m.vel, dir, P.tira * dt);
+        m.pos = madd(m.pos, dir, P.tira * dt);   // arrastre directo (la IA recalcula su velocidad cada paso, un empujón de velocidad no se notaría)
       }
     }
   }

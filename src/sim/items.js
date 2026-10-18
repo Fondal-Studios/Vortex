@@ -50,7 +50,7 @@ export const ADD_KEYS = ['heal', 'kheal'];
 export const UTIL_KEYS = ['shield', 'ess', 'cores'];
 export const STAT_ES = { spd: 'Velocidad', gun: 'Daño de disparo', melee: 'Daño cuerpo a cuerpo', skill: 'Daño de habilidades', dmgIn: 'Daño recibido', ult: 'Carga de la definitiva', shield: 'Recarga del escudo', ess: 'Esencias', cores: 'Núcleos', cd: 'Recarga de habilidades', heal: 'Vida entre oleadas', kheal: 'Vida por baja' };
 /** Topes del total (con todo puesto y fase Plena): nada se sale de acá aunque se sumen 7 legendarias. */
-export const CAPS = { spd: [0.92, 1.12], gun: [0.8, 1.06], melee: [0.8, 1.1], skill: [0.8, 1.1], dmgIn: [0.78, 1.1], ult: [0.8, 1.35], shield: [0.8, 1.5], ess: [0.8, 1.4], cores: [0.8, 1.3], cd: [0.8, 1.2], heal: [0, 20], kheal: [0, 2] };
+export const CAPS = { spd: [0.92, 1.12], gun: [0.8, 1.05], melee: [0.8, 1.1], skill: [0.8, 1.1], dmgIn: [0.78, 1.1], ult: [0.8, 1.35], shield: [0.8, 1.5], ess: [0.8, 1.4], cores: [0.8, 1.3], cd: [0.8, 1.2], heal: [0, 20], kheal: [0, 2] };
 
 /* ───────── pasivos con condición ─────────  id → { name, txt(v) }. La lógica está en items-fx.js. `f` en el objeto = fase mínima. */
 export const PASIVOS = {

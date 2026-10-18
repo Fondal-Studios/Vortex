@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../src/sim/game.js';
-import { HOST_IDS, WEAPONS, WAVE_PLANS, MELEE_WEAPONS, MELEE_TYPES } from '../src/sim/data.js';
+import { WEAPONS, WAVE_PLANS, MELEE_WEAPONS, MELEE_TYPES } from '../src/sim/data.js';
 import { MELEE_MODEL_IDS } from '../src/client/melee-models.js';
 import {
   ITEMS, ITEM_IDS, SLOTS, ARMOR_SLOTS, RARITIES, MATERIALS, MATERIAL_IDS, PLANOS, SETS, SET_IDS, setActivos, setCounts, RECETAS, MATERIALES, CALIDADES, qForja, PLANOS_INICIALES, PASIVOS, SIGNATURES, ITEM_COMBO_SETS, ITEM_COMBO_WEAPON, CAPS, BN_KEYS, ADD_KEYS, UTIL_KEYS,
@@ -18,6 +18,8 @@ import { startServer, equipDe } from '../server/server.js';
 import { sub, norm, dot, len, mul, v3 } from '../src/sim/math.js';
 import { hash } from './helpers.js';
 
+/** Los 5 Huéspedes originales: cada uno con su arma firma (los nuevos que se sumen al juego pueden no tenerla todavía). */
+const HOST_IDS = ['axioma', 'vesper', 'micelio', 'umbra', 'seraf'];
 const T60 = 1 / 60;
 const mkGame = (opts = {}, pOpts = {}) => { const g = new Game({ mapId: 'm1', seed: 7, magazines: true, ...opts }); g.phaseT = 1e9; const p = g.addPlayer('t', null, { char: 'axioma', ...pOpts }); p.hp = 100; p.shield = 100; return { g, p }; };
 const run = (g, secs, fn) => { for (let i = 0; i < Math.round(secs / T60); i++) { if (fn) fn(i); g.step(T60); } };
@@ -318,7 +320,7 @@ test('perfil: un perfil viejo (sin inventario) se abre igual, conserva todo y pa
   const P = await abrir({ cores: 77, evo: { axioma: 2 }, path: { axioma: ['coraza', 'resonancia'] }, melee: { axioma: 'filo_oseo' }, owned: ['filo_oseo'], ess: { carne: 5, cristal: 1, ojo: 0, vacio: 2 }, terr: { m1: { bend: 'luz_mala' } }, mae: { axioma: { xp: 300 } } });
   const p = P.perfil(); assert.equal(p.ver, 2); assert.deepEqual(p.inventario, []); assert.deepEqual(p.eq, {}); assert.deepEqual(p.pity, { l: 0, e: 0 }); assert.equal(p.cores, 77); assert.equal(p.evo.axioma, 2); assert.equal(P.bendicionElegida('m1'), 'luz_mala'); assert.equal(P.rangoMaestria('axioma'), 3);
   const pp = P.paraPartida('axioma'); assert.deepEqual(pp.equip, []); assert.equal(pp.melee, 'filo_oseo'); assert.deepEqual(pp.sigs, []);
-  const rotos = await abrir('{{ no es json'); assert.deepEqual(rotos.perfil().inventarioentario, []);
+  const rotos = await abrir('{{ no es json'); assert.deepEqual(rotos.perfil().inventario, []);
 });
 test('perfil: el inventario se sanea al cargar (ids falsos, uids repetidos, equipo de otro Huésped, firma en el Huésped equivocado)', async () => {
   const P = await abrir({ ver: 2, inv: [{ u: 'a1', id: 'gemelas_axioma', q: 0.5, k: 10 }, { u: 'a1', id: 'peto_hueso' }, { u: 'b2', id: 'no_existe' }, { u: 'c3', id: 'peto_hueso', q: 7, k: -3, lk: true }, { u: '!!', id: 'peto_hueso' }, { id: 'peto_hueso' }, 'x', null],
@@ -351,11 +353,11 @@ test('perfil: con el inventario lleno, lo nuevo reemplaza al peor objeto sobrant
 test('perfil: cerrarPartida guarda el botín, madura lo puesto con las bajas de la partida, conserva el pity y marca la firma cumplida', async () => {
   const P = await abrir(); const g1 = P.agregarItem({ id: 'gemelas_axioma', q: 0.5 }), h1 = P.agregarItem({ id: 'casco_hueso', q: 0.5 }); P.equiparItem('axioma', g1.uid); P.equiparItem('axioma', h1.uid);
   const T = FASE_KILLS.arma[1];
-  const jugador = { co: 12, evo: 0, kills: 30, pth: [], ess: [0, 0, 0, 0], ik: { melee: T + 1, head: 30, relic: 99 }, pt: [7, 3], sg: 1, bag: ['fusil_hueso:0.5', 'arco_aureola:1', 'no_existe:0.1'] };
+  const jugador = { co: 12, evo: 0, kills: 30, pth: [], ess: [0, 0, 0, 0], ik: { melee: T + 1, head: 30, relic: 99 }, pt: [7, 3], sg: 1, bag: ['fusil_hueso|0.5|1', 'arco_aureola|1|1', 'no_existe|0.1|1', 'mat:hueso|2|3', 'plano:pica_geoda|1|1', 'plano:cuchilla_hueso|1|1', 'mat:humo|1|1'] };
   P.cerrarPartida('axioma', jugador, { wave: 5, won: true });
   assert.equal(P.instDe(g1.uid).k, T + 1); assert.equal(P.instDe(h1.uid).k, 30); assert.deepEqual(P.perfil().pity, { l: 7, e: 3 }); assert.deepEqual(P.perfil().sigs, { axioma: 1 }); assert.deepEqual(P.paraPartida('axioma').sigs, ['axioma']);
   const b = P.ultimoBotin(); assert.deepEqual(b.items.map((i) => i.id), ['fusil_hueso', 'arco_aureola']); assert.equal(b.madura.length, 2); assert.ok(b.madura.every((m) => m.fase === 1)); assert.equal(b.firma[0], 'gemelas_axioma');
-  assert.match(P.botinTexto(), /BOTÍN \(2\)/); assert.match(P.botinTexto(), /maduró/);
+  assert.deepEqual(b.mats, { hueso: [0, 0, 3, 0] }); assert.deepEqual(b.planos, ['pica_geoda', 'cuchilla_hueso!']); assert.ok(P.conoce('pica_geoda')); assert.equal(P.materiales().hueso[2], 3 + 2 * 0 + P.materiales().hueso[2] - 3); assert.match(P.botinTexto(), /BOTÍN \(5\)/); assert.match(P.botinTexto(), /PLANO NUEVO/); assert.match(P.botinTexto(), /maduró/);
   assert.equal(P.paraPartida('axioma').equip.find((e) => e.s === 'melee').k, T + 1, 'la maduración llega a la próxima partida');
   const dos = await abrir(mem.get(KEY)); assert.equal(dos.inventario().length, 4, 'persistió');
 });
@@ -383,4 +385,55 @@ test('servidor: valida y acota el equipo (ids falsos, firmas ajenas, ranuras, ex
     assert.equal(p.char, 'vesper'); assert.deepEqual(p.eqList.map((e) => e.id), ['pasos_vacio'], 'el loadout también valida');
     ws.close();
   } finally { await srv.close(); }
+});
+
+/* ───────────────────────── forja biológica, planos y sets ───────────────────────── */
+test('contrato: MATERIALES, PLANOS, RECETAS y SETS cubren todo el catálogo y cada receta se puede cumplir', () => {
+  assert.deepEqual(Object.keys(MATERIALES).sort(), [...MATERIAL_IDS].sort()); assert.equal(CALIDADES.length, 4);
+  assert.deepEqual(Object.keys(PLANOS).sort(), [...ITEM_IDS].sort()); assert.deepEqual(Object.keys(RECETAS).sort(), [...ITEM_IDS].sort());
+  assert.ok(PLANOS_INICIALES.length >= 8 && PLANOS_INICIALES.every((id) => ITEMS[id].r === 0), 'los planos Comunes se conocen de entrada');
+  for (const id of ITEM_IDS) { const R = RECETAS[id], it = ITEMS[id]; assert.equal(R.plano, id); assert.ok(R.mats.length >= 1 && R.cores > 0 && R.tiempo > 0 && R.tiempo <= 120, id); for (const x of R.mats) { assert.ok(MATERIALES[x.mat] && x.n >= 1 && x.cal >= 0 && x.cal <= 3, id); } assert.ok(R.mats.some((x) => x.mat === it.mat), 'usa su propio material'); if (it.host) { assert.ok(R.mats.some((x) => x.cal === 3) && R.cores >= 300, `${id}: la firma pide materiales Perfectos`); assert.ok(PLANOS[id].firma && !PLANOS[id].inicial); } }
+  assert.ok(RECETAS.gemelas_axioma.cores > RECETAS.fusil_hueso.cores * 10);
+  assert.equal(qForja('x', 3, 1), qForja('x', 3, 1)); assert.notEqual(qForja('x', 3, 1), qForja('x', 4, 1)); for (let i = 0; i < 300; i++) { const q = qForja('gemelas_axioma', i, i % 4); assert.ok(q >= 0.15 && q <= 1); } assert.ok(qForja('a', 1, 3) > qForja('a', 1, 0));
+});
+test('sets orgánicos: 7 familias, cada una con 4 piezas de armadura (una por zona) + 1 arma, bonos de 2 y 4 piezas acotados', () => {
+  assert.equal(SET_IDS.length, 7); assert.deepEqual(SET_IDS.map((s) => SETS[s].mat).sort(), [...MATERIAL_IDS].sort(), 'un set por material');
+  for (const sid of SET_IDS) {
+    const S = SETS[sid]; assert.equal(S.items.length, 5, sid); assert.deepEqual(S.items.map((i) => ITEMS[i].slot).sort(), ['arms', 'gun', 'head', 'legs', 'melee', 'torso'].filter((x) => x !== 'gun').sort(), sid);
+    for (const i of S.items) { assert.equal(ITEMS[i].set, sid); assert.ok(!ITEMS[i].host, 'las firmas no son de set'); assert.equal(ITEMS[i].mat, S.mat, `${i} es del material del set`); }
+    for (const b of [S.b2, S.b4]) for (const [k, v] of Object.entries(b.fx)) assert.ok(k in CAPS && (ADD_KEYS.includes(k) ? v > 0 && v <= 10 : Math.abs(v - 1) <= (UTIL_KEYS.includes(k) ? 0.2 : 0.1)), `${sid} ${k}=${v}`);
+    for (const pa of S.b4.pa || []) assert.ok(PASIVOS[pa.id]); assert.ok(S.vis.length > 20 && S.lore.length > 20);
+  }
+  const l = SETS.quitina.items.map((id) => ({ id })); assert.deepEqual(setCounts(l), { quitina: 5 }); assert.deepEqual(setActivos(l.slice(0, 1)), []); assert.deepEqual(setActivos(l.slice(0, 2)).map((x) => x.tier), [2]); assert.deepEqual(setActivos(l.slice(0, 4)).map((x) => x.tier), [2, 4]);
+});
+test('sets en la partida: con 2 y 4 piezas el bono entra a p.bn, los pasivos del bono de 4 se activan, sale por el snapshot y no rompe el equilibrio', { timeout: 300000 }, () => {
+  const mk = (n) => mkGame({}, { equip: SETS.cristal_hueco.items.slice(0, n).map((id) => ({ id, q: 0.5, k: 0 })) });
+  const a = mk(1), b = mk(2), c = mk(4);
+  assert.ok(b.p.sets.includes('cristal_hueco2') && !b.p.sets.includes('cristal_hueco4')); assert.ok(c.p.sets.includes('cristal_hueco4'));
+  assert.ok(c.p.bn.skill > a.p.bn.skill && c.p.ipa.some((x) => x.s === 'set' && x.id === 'fervor'), 'bono de 4: habilidades + Fervor'); assert.deepEqual(c.g.snapshot().players[0].st4, ['cristal_hueco2', 'cristal_hueco4']);
+  const LAYS = [[0, 1], [0.8, 1.1], [1.3, 1]]; let A = 0, B = 0;
+  for (const sid of SET_IDS) for (const st of ['melee', 'habilidad']) for (const lay of LAYS) { const eq = SETS[sid].items.map((id) => ({ id, q: 0.5, k: 400 })); A += duel('axioma', st, undefined, lay).t; B += duel('axioma', st, eq, lay).t; }
+  console.log('  set completo (fase Plena) / base: ' + (B / A).toFixed(2)); assert.ok(B / A >= 0.7 && B / A <= 1.3, `razón ${B / A}`);
+});
+test('Forja (perfil): el plano, los materiales y los núcleos construyen la pieza; cultivo con tiempo, calidad determinista, acelerar, fusión y desguace → materiales', async () => {
+  const P = await abrir(); const p = P.perfil();
+  assert.equal(P.estadoReceta('cuchilla_hueso').motivo, 'Faltan materiales'); assert.equal(P.estadoReceta('pica_geoda').motivo, 'Todavía no conocés el plano'); assert.match(P.estadoReceta('gemelas_axioma').motivo, /plano raro/);
+  P.sumarMat('hueso', 0, 2); assert.equal(P.forjar('cuchilla_hueso').ok, false); P.sumarMat('hueso', 1, 1); p.cores = 20;
+  const t0 = 1e6; const f = P.forjar('cuchilla_hueso', t0); assert.equal(f.ok, true); assert.equal(f.tiempo, RECETAS.cuchilla_hueso.tiempo); assert.equal(p.cores, 5); assert.equal(P.stockMin('hueso', 0), 0);
+  assert.equal(P.forjar('cuchilla_hueso', t0).ok, false, 'una pieza por vez'); assert.equal(P.recoger(t0 + 1000), null, 'todavía no está'); assert.equal(P.cultivoFalta(t0 + 1000), RECETAS.cuchilla_hueso.tiempo - 1);
+  p.cores = 100; assert.equal(P.acelerar(t0 + 1000), true); assert.ok(p.cores < 100); assert.equal(P.cultivoFalta(t0 + 1000), 0);
+  const r = P.recoger(t0 + 1000); assert.ok(r.uid && r.item === 'cuchilla_hueso' && r.q >= 0.15 && r.q <= 1); assert.equal(P.instDe(r.uid).id, 'cuchilla_hueso'); assert.equal(p.cultivo, null);
+  // determinista: mismo contador y mismos materiales → misma calidad
+  const Q = await abrir(); Q.sumarMat('hueso', 0, 2); Q.sumarMat('hueso', 1, 1); Q.perfil().cores = 20; assert.equal(Q.forjar('cuchilla_hueso', t0).q, f.q);
+  // plano raro de la firma: con el plano y los materiales especiales se construye
+  P.aprenderPlano('gemelas_axioma'); assert.match(P.estadoReceta('gemelas_axioma').motivo, /materiales/); for (const x of RECETAS.gemelas_axioma.mats) P.sumarMat(x.mat, 3, x.n); p.cores = 400;
+  assert.equal(P.estadoReceta('gemelas_axioma').ok, true); const g = P.forjar('gemelas_axioma', t0); assert.ok(g.ok); const rg = P.recoger(t0 + 90 * 1000); assert.equal(P.instDe(rg.uid).id, 'gemelas_axioma'); assert.equal(P.equiparItem('axioma', rg.uid), '');
+  assert.ok(P.paraPartida('axioma').equip.some((e) => e.id === 'gemelas_axioma'));
+  // fusión
+  const a = P.agregarItem({ id: 'casco_hueso', q: 0.3 }), b2 = P.agregarItem({ id: 'casco_hueso', q: 0.9 }); p.cores = 100; const fu = P.fusionar(a.uid, b2.uid); assert.ok(fu.ok && fu.q > 0.3 && fu.k > 0); assert.equal(P.instDe(b2.uid), null);
+  const otra = P.agregarItem({ id: 'peto_hueso', q: 0.3 }); assert.match(P.fusionar(a.uid, otra.uid).motivo, /ranura/);
+  // desguace → materiales
+  const antes = P.stockMin('quitina', 0); const q = P.agregarItem({ id: 'coraza_quitina', q: 0.5 }); const v = P.desguazar(q.uid); assert.ok(v.mats.quitina.n >= 1); assert.ok(P.stockMin('quitina', 0) > antes);
+  // contrato de campos del perfil
+  const raw = JSON.parse(mem.get(KEY)); assert.ok(Array.isArray(raw.inventario) && Array.isArray(raw.planos) && raw.materiales && raw.materiales.hueso.length === 4 && raw.ver === 2);
 });

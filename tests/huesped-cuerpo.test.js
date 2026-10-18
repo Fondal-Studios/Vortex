@@ -7,7 +7,7 @@ import { startServer } from '../server/server.js';
 // Cuerpo UNIFICADO de los Huéspedes (src/client/huesped-cuerpo.js + huesped-armor.js): los cinco se arman sin errores, en todos los niveles y caminos, y caben en el
 // presupuesto de Baja (≤ 45 llamadas de dibujo y ≤ 20 000 triángulos por Huésped, medido con renderer.info sobre una escena que sólo tiene a ese Huésped).
 const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
-const HOSTS = ['axioma', 'vesper', 'micelio', 'umbra', 'seraf'];
+const HOSTS = ['axioma', 'vesper', 'micelio', 'umbra', 'seraf', 'singular'];
 const CASES = [['', 0], ['coraza,resonancia,simbiosis,apoteosis', 4], ['depredador,velocidad,artilleria,anomalia', 4]];
 let srv, browser, base;
 test.before(async () => { if (!hasChromium) return; srv = await startServer({ port: 0 }); browser = await launch(); base = `http://localhost:${srv.port}`; });

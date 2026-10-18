@@ -19,6 +19,8 @@ import * as Perfil from './perfil.js';
 import * as Territorios from '../sim/bendiciones.js';
 import { TITULOS } from '../sim/maestria.js';
 import { createCaida } from './caida.js';
+import { createBotin, nombreBotin } from './botin-hud.js';   // botín en partida (docs/INVENTARIO.md)
+import { parseEq } from './items-vis.js';
 import { MAPS } from '../sim/maps.js';
 import { blocked } from '../sim/physics.js';
 import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.js';
@@ -26,6 +28,7 @@ import { Renderer } from './render.js';
 import { Sound } from './audio.js';
 import { NetClient } from './net.js';
 import { LEVELS, initialClaridad, AutoQuality, isTouchDevice, isIOS, cfg } from './quality.js';
+import { nieblaPorIndice as NIEBLAS_T } from '../sim/nieblas.js';   // nieblas de colores: nombre, color y función por índice
 import * as Graficos from './graficos-ui.js';   // menú «Gráficos»: presets, resolución, efectos, FPS (graficos.js es la parte pura)
 import { TouchControls } from './touch.js';
 import * as Story from './story.js';
@@ -86,7 +89,7 @@ addEventListener('keydown', (e) => {
   if (typeof ui !== 'undefined' && !session && ui.handleKey(e)) return;
   keys.add(e.code);
   if (npcPanel && npcPanel.open) { // panel de un NPC: 1 / 2 eligen la oferta, Esc o E lo cierran (no se cambia de arma ni de tarjeta)
-    if (e.code === 'Digit1' || e.code === 'Digit2') { npcPanel.choose(+e.code.slice(5) - 1); return; }
+    if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { npcPanel.choose(+e.code.slice(5) - 1); return; }
     if (e.code === 'Escape' || e.code === 'KeyE') { npcPanel.close(); return; }
   }
   if (e.code >= 'Digit1' && e.code <= 'Digit5') { const n = +e.code.slice(5) - 1; if (cardsOpen && n < 3) pickReq = n; else wantWeapon = n; }
@@ -234,7 +237,7 @@ async function startCoop(create, code, mapId) {
   net.onError = (m) => { $('menuerr').textContent = m; };
   net.welcomed = (m) => { session.map = m.map; session.pid = m.pid; renderer.camInit = false; session.look = null; session.ended = false; $('end').classList.add('hidden'); };
   session = { mode: 'coop', net, pid: null, map: mapId, ended: false, look: null, touch: useTouch(), intro: null };
-  net.send(create ? { t: 'create', map: mapId, name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char) } : { t: 'join', room: code, name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char) });
+  net.send(create ? { t: 'create', map: mapId, name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char), equip: Perfil.equipoParaPartida(Equipo.char), pity: Perfil.perfil().pity } : { t: 'join', room: code, name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char), equip: Perfil.equipoParaPartida(Equipo.char), pity: Perfil.perfil().pity });
   await new Promise((r) => { const t = setInterval(() => { if (net.pid || net.closed) { clearInterval(t); r(); } }, 30); setTimeout(() => { clearInterval(t); r(); }, 2500); });
   if (!net.pid) { session = null; $('menuerr').textContent ||= 'no se pudo entrar a la sala'; return; }
   enter(net.map);
@@ -377,10 +380,12 @@ function frame(now) {
   if (me && me.char && session.handChar !== me.char && renderer.vm && renderer.vm.setHandStyle) { session.handChar = me.char; try { renderer.vm.setHandStyle(me.char); } catch { /* estilo de mano no disponible */ } }
   if (me && renderer.vm && renderer.vm.setUpgrades) me.sl.forEach((w, i) => { const u = me.ug[i]; renderer.vm.setUpgrades(w, u ? { dmg: u[0], rate: u[1], mag: u[2], mod: u[3] || null } : { dmg: 0, rate: 0, mag: 0, mod: null }); });
   if (me && me.wg && renderer.vm && renderer.vm.setOrgans) me.sl.forEach((w, i) => renderer.vm.setOrgans(w, me.wg[i] || [])); // órganos que crecen en cada arma (organs-vis.js)
+  if (me && renderer.vm && renderer.vm.setItemGun) { const ig = me.ig ? parseEq(me.eq).find((e) => e.id === me.ig) : null, wid = ig ? WEAPONS.findIndex((w) => w.id === ig.it.g.base) : -1; for (const w of me.sl) renderer.vm.setItemGun(w, w === wid ? ig.id : '', ig ? ig.fase : 0); }   // arma de disparo de un objeto (items-vis.js)
   touch.zoomKind = renderer.zoomKind || 0;
   renderer.guideTalk = subs.talking;
   renderer.firing = !!(session.touch ? touch.fire : mouse.fire) && gameMode() !== 'combo';
   renderer.render(state, dt, session.pid, session.look);
+  try { if (!botin) botin = createBotin(THREE, renderer.scene, $('hud')); botin.update(state, me, dt); } catch (err) { if (!window.__botinErr) { window.__botinErr = err; console.warn('Botín:', err.message); } botin = botin || { update() {}, event() {} }; }
   audioAndHud(state, me, dt);
   if (!session.ended && (state.state === 'won' || state.state === 'lost')) endGame(state, me);
 }
@@ -416,6 +421,10 @@ function audioAndHud(state, me, dt) {
       case 'hit': sound.hit(e.p); break;
       case 'kill': if (evoHud && evoHud.absorb && ESSENCE_OF[e.k]) { const v = new THREE.Vector3(e.p[0], e.p[1], e.p[2]).project(renderer.camera); if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) evoHud.absorb((v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight, e.k); } sound.voice(e.k, 'die', e.p); trophy('first', 'Primer contacto', 'Derrotá a tu primera criatura', sound); if (e.k === 'coloso') trophy('b1', 'Corazón roto', 'Derrotá al Coloso Prismático', sound); if (e.k === 'argos') trophy('b3', 'Cerré el ojo', 'Derrotá a Argos, el Ojo Primordial', sound); if (e.k === 'madre') trophy('b2', 'El último latido', 'Derrotá a la Madre Geoda', sound); if (e.k === 'geoda') trophy('geoda', 'Paciencia', 'Derrotá una Geoda', sound); break;
       case 'boom': sound.boom(e.p); break;
+      case 'ng': { // nieblas de colores (src/sim/nieblas.js): al entrar a una, cartel con su función (el HUD fijo `#ngchip` queda mientras estés adentro)
+        const T = NIEBLAS_T(e.k); if (T && e.ph === 'entra' && e.pid === session.pid && !session.intro) banner(`${T.icono} ${T.nombre}: ${T.corto}`, 2200);
+        if (T && e.ph === 'aviso' && T.nocivo && !session.intro && session.lastMe && Math.hypot(e.p[0] - session.lastMe.pos[0], e.p[2] - session.lastMe.pos[2]) < 22) sound.ui && sound.ui('tick');
+        break; }
       case 'ar': { const AV = ARENAS_VIVAS[e.m], tx = AV && AV.frases[e.ph]; if (tx && !session.intro) later(() => banner(tx, 2600), e.ph === 'ofrenda' ? 2300 : e.ph === 'roto' || e.ph === 'renace' ? 0 : 2700); break; }   // arenas vivas: «El Corazón de Isla despierta»
       case 'arhit': sound.hit(e.p); break;
       case 'arofrenda': sound.pickup(); break;
@@ -444,6 +453,8 @@ function audioAndHud(state, me, dt) {
       case 'purge': sound.gravity(); banner('¡PURGA! La Madre está abierta: ¡disparale!', 2400); flash(); break;
       case 'gestate': banner('La Madre pone huevos: ¡rompelos antes de que eclosionen!', 2400); break;
       case 'hatch': sound.boom(e.p); break;
+      case 'drop': case 'madura': case 'firma': if (botin) botin.event(e, mine || !e.pid); if (e.t === 'drop' && e.r >= 3) sound.objective(true); break;   // objetos: botín del piso, maduración y arma firma
+      case 'loot': if (mine) { (session.bag ||= []).push({ id: e.id, q: e.k === 'mat' ? e.q : e.q, n: e.n || 1, r: e.r }); if (botin) botin.event(e, true); sound.pickup(); } break;
       case 'organ': if (mine && evoHud) { const O = e.target === 'c' ? CHAMP_ORGANS[e.id] : WEAPON_ORGANS[e.id]; evoHud.organ(O ? O.name : ''); sound.pickup(); } break; // un órgano creció (organs-vis.js lo muestra)
       case 'combo': if (mine && e.fin && e.n >= 3) sound.objective(true); break;   // remate de un combo largo: pequeño acorde
       case 'multi': if (mine && e.n >= 3) { banner(`¡${e.n} BAJAS DE UN GOLPE!`, 900); if (e.n >= 5) sound.boom(e.p); else sound.pickup(); } break;   // multi-kill (progresion.js)
@@ -551,7 +562,7 @@ function hudDirector(state, me) {
   huespedHud.update(me, !!(session && session.touch), !(session && session.intro));
   if (!evoHud) { try { evoHud = createEvoHud($('hud')); } catch (err) { console.warn('HUD de evolución no disponible', err.message); evoHud = { update() {}, celebrate() {}, held() { return false; } }; } }
   if (session) session.lastMe = me;
-  try { if (!window.__radar) window.__radar = createRadar(document.body); window.__radar.update(session && !session.intro ? state : null, me, renderer.camera); } catch (err) { /* el radar nunca debe romper el HUD */ }
+  try { if (!window.__radar) window.__radar = createRadar(document.body); window.__radar.update(session && !session.intro ? state : null, me, renderer.camera, renderer.nfx ? renderer.nfx.ecos : null); } catch (err) { /* el radar nunca debe romper el HUD */ }
   evoHud.update(me, !!(session && session.touch), !(session && session.intro));
   try { // META: línea de objetivo, misión opcional, flecha y guía (meta-ui.js); nunca debe romper el HUD
     metaCtx.solo = session.mode === 'solo'; metaCtx.sinGuia = !!(session.headless || params.get('auto'));
@@ -608,13 +619,14 @@ function flash() { const f = $('flash'); f.classList.add('on'); const my = ++fla
 
 /* ───────── final / campaña ───────── */
 /** Suma los núcleos de la partida al banco del perfil y guarda la evolución (una sola vez por partida solitaria). */
-function bankProfile(me, state) { if (!session || session.mode !== 'solo' || session.banked || !me) return; session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
+let botin = null;
+function bankProfile(me, state) { if (!session || session.mode !== 'solo' || session.banked || !me) return; session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { bag: session.bag, wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
 function endGame(state, me) {
   bankProfile(me, state);
   let terrNuevo = null; if (state.state === 'won' && session.mode === 'solo' && !session.practice) { try { if (Perfil.liberarTerritorio(session.map)) terrNuevo = Territorios.TERRITORIOS[session.map]; } catch (err) { console.warn('Territorios: no se pudo guardar', err.message); } } // ganar el mapa libera el territorio (perfil.js)
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);
   const won = state.state === 'won'; window.__ended = state.state;
-  const stats = `Oleada ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n') + maestriaTxt();
+  const stats = `Oleada ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n') + maestriaTxt() + Perfil.botinTexto();
   const ruta = Story.RUTAS[params.get('ruta')] || Story.RUTAS.corta, nextCap = session.campaign ? ruta[ruta.indexOf(session.campaign) + 1] : null; // ?ruta=larga: m1 → m5 → m6 → m2
   if (session.mode === 'solo' && session.campaign && won && nextCap) { // → interludio y el capítulo siguiente
     renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap }); });

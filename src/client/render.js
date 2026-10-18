@@ -25,6 +25,8 @@ import { cfg, LEVELS, setCurrent, setClaridad, setClaridadMapa, claridad, initia
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
 import { createHostFx } from './hostfx.js';
 import { EventosFx } from './eventos-fx.js';
+import { LuzArenas } from './luz-arenas.js';   // luz propia de cada arena + ciclo día/ocaso/eclipse + luces de los órganos (luz-arenas.js)
+import { NieblasFx } from './nieblas-fx.js';   // nieblas de colores con función (nieblas-fx.js)
 import { ArenasVivasFx } from './arenas-vivas-fx.js';   // órganos del organismo de cada arena (arenas-vivas-fx.js)
 import { createHostBody, isHost } from './host-body.js';
 import { blocked } from '../sim/physics.js';
@@ -84,6 +86,8 @@ export class Renderer {
     try { this.hostfx = createHostFx(this); } catch (err) { console.warn('Efectos de Huéspedes no disponibles', err.message); this.hostfx = null; } // habilidades y melee de los 5 Huéspedes (hostfx.js)
     try { this.evfx = new EventosFx(this); } catch (err) { console.warn('Efectos de eventos no disponibles', err.message); this.evfx = null; } // eventos de oleada (eventos-fx.js)
     try { this.avfx = new ArenasVivasFx(this); } catch (err) { console.warn('Arenas vivas no disponibles', err.message); this.avfx = null; } // arenas vivas (arenas-vivas-fx.js)
+    try { this.nfx = new NieblasFx(this); this.nfx.configure(cfg()); } catch (err) { console.warn('Nieblas de colores no disponibles', err.message); this.nfx = null; } // nieblas de colores (nieblas-fx.js)
+    try { this.luz = new LuzArenas(this); this.luz.configure(cfg()); } catch (err) { console.warn('Luz de arenas no disponible', err.message); this.luz = null; }
     this.dying = [];
     this.setupPost();
     this.resize();
@@ -110,6 +114,7 @@ export class Renderer {
     this.gl.setPixelRatio(this.pixelRatioFor(level)); this.resize();
     this.fx.configure(cfg());
     if (this.nfx) this.nfx.configure(cfg());   // nieblas de colores (nieblas-fx.js): cantidad de nubes según el nivel
+    if (this.luz) this.luz.configure(cfg());   // luces de órganos: una en Baja, dos en Media/Alta
     if (this.clar) this.applyClaridad(this.claridadId || 'normal');
     if (!rebuild) return;   // ajustes «en vivo» del menú Gráficos (resolución, bloom, post, niebla de aire, partículas…): no se reconstruye el mapa
     for (const m of Object.values(this.ents)) { for (const o of m.values()) this.entRoot.remove(o.object || o); m.clear(); }
@@ -233,6 +238,8 @@ export class Renderer {
     if (this.hostfx) this.hostfx.update(dt, state, me);
     if (this.evfx) { try { this.evfx.update(dt, state, me); } catch (err) { console.warn('evfx', err.message); this.evfx = null; } }
     if (this.avfx) { try { this.avfx.update(dt, state); } catch (err) { console.warn('avfx', err.message); this.avfx = null; } }
+    if (this.luz) { try { this.luz.update(dt, state); } catch (err) { console.warn('luz', err.message); this.luz = null; } }
+    if (this.nfx) { try { this.nfx.update(dt, state, me); } catch (err) { console.warn('nfx', err.message); this.nfx = null; } }
     this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
@@ -471,7 +478,7 @@ export class Renderer {
       if (e.body && self && e.body.isReady && !p.dead) { // luz de relleno: desde atrás-arriba del Huésped (el lado que ve la cámara), con el color de su brillo
         const k = this.keyLight, cam = this.camera.position, c = this.clar, up = V(p.up);
         k.position.copy(base).addScaledVector(up, 2.5); const toCam = cam.clone().sub(base); toCam.addScaledVector(up, -toCam.dot(up)); if (toCam.lengthSq() > 1e-4) k.position.addScaledVector(toCam.normalize(), 1.7);
-        k.color.set(0xffffff).lerp(new THREE.Color(col), 0.25); k.intensity = 20 * c.key; k.visible = true;
+        k.color.set(0xffffff).lerp(new THREE.Color(col), 0.25); k.intensity = 20 * c.key * (this.luzKey || 1); k.visible = true;
       } else if (self) this.keyLight.intensity = 0;
       if (e.body) {
         for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev);

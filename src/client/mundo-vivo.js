@@ -38,7 +38,7 @@ export function lineageStyle(id) {
 /** Texto del resultado de un trato (evento npcdeal: { kind, offer, ok }). */
 export function dealText(e) {
   const info = NPC_INFO[e && e.kind]; if (!info) return 'No pasó nada.';
-  const of = info.offers[e.offer === 1 ? 1 : 0];
+  const of = e.offer === 2 && info.forja ? info.forja[0] : info.offers[e.offer === 1 ? 1 : 0];
   return e.ok ? `Trato hecho con ${info.name}: ${of.text}.` : `No pudo ser (${of.cost}). Revisá si te alcanza o si ya no es el momento.`;
 }
 
@@ -50,14 +50,14 @@ export function createNpcPanel(host, { onToggle } = {}) {
   const stop = (e) => e.stopPropagation();
   for (const t of ['mousedown', 'mouseup', 'pointerdown', 'touchstart']) el.addEventListener(t, stop);
   const close = () => { if (!open) return; open = false; el.classList.add('hidden'); if (onToggle) onToggle(false); };
-  const choose = (n) => { if (!open || (n !== 0 && n !== 1)) return false; pending = { offer: n }; return true; };
+  const choose = (n) => { if (!open || (n !== 0 && n !== 1 && !(n === 2 && NPC_INFO[kind] && NPC_INFO[kind].forja))) return false; pending = { offer: n }; return true; };
   const api = {
     get open() { return open; },
     get kind() { return kind; },
     show(k) {
       const info = NPC_INFO[k]; if (!info) return false; kind = k; open = true;
       el.innerHTML = `<div class="np-in"><h3>${info.name}</h3><p class="np-says">«${info.says}»</p>
-        <div class="np-offers">${info.offers.map((o, i) => `<button class="np-offer" data-i="${i}" type="button"><kbd>${i + 1}</kbd><span>${o.text}</span><em>${o.cost}</em></button>`).join('')}</div>
+        <div class="np-offers">${[...info.offers, ...(info.forja || [])].map((o, i) => `<button class="np-offer" data-i="${i}" type="button"><kbd>${i + 1}</kbd><span>${o.text}</span><em>${o.cost}</em></button>`).join('')}</div>
         <p class="np-msg" id="npmsg"></p><button class="np-close" type="button">Irme</button></div>`;
       el.querySelectorAll('.np-offer').forEach((b) => b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); choose(+b.dataset.i); }));
       el.querySelector('.np-close').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); close(); });

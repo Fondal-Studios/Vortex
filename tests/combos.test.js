@@ -40,7 +40,7 @@ test('cada Huésped tiene su set propio (8 golpes, ids únicos) y UNA habilidad 
     for (const m of set) { assert.ok(!all.has(m.id), `id repetido ${m.id}`); all.add(m.id); assert.ok(m.name && m.seq.every((b) => b === 'a1' || b === 'a2')); }
     const H = HABILIDADES[h]; assert.ok(H && H.name && H.cd > 5 && H.wind > 0 && H.r > 0 && H.desc, h);
   }
-  assert.equal(new Set(HOST_IDS.map((h) => HABILIDADES[h].id)).size, 5);
+  assert.equal(new Set(HOST_IDS.map((h) => HABILIDADES[h].id)).size, HOST_IDS.length);
 });
 
 test('Shooter queda igual: a1/a2/hab no hacen nada y el disparo y el melé de siempre funcionan', () => {
@@ -146,7 +146,7 @@ test('habilidad: cooldown visible, telegrafía (hab/cast antes de hab/go) y no s
   for (const h of HOST_IDS) {
     const c = mk(h, {}, 3, 2); run(c, 0.05, { hab: true }); run(c, 0.9, {});
     const ev = c.log.filter((e) => e.t === 'hab'); assert.equal(ev[0] && ev[0].ph, 'cast', h); assert.equal(ev[1] && ev[1].ph, 'go', h); assert.ok(ev[0].r > 0 && ev[0].dur === HABILIDADES[h].wind);
-    const hc = c.g.snapshot().players[0].hc; assert.ok(hc > HABILIDADES[h].cd - 2 && hc < HABILIDADES[h].cd, `${h} enfría ${hc}`);
+    const hc = c.g.snapshot().players[0].hc; assert.ok(hc > (h === 'danzante' ? HABILIDADES[h].cd * 0.5 - 2 : HABILIDADES[h].cd - 2) && hc < HABILIDADES[h].cd, `${h} enfría ${hc}`);   // Danzante: si el Contrapaso falla, vuelve en la mitad
     c.log = []; run(c, 0.2, { hab: true }); assert.equal(c.log.filter((e) => e.t === 'hab').length, 0, `${h} no se repite`);
     run(c, HABILIDADES[h].cd, {}); assert.equal(c.g.snapshot().players[0].hc, 0); run(c, 0.1, { hab: true }); run(c, 0.9, {}); assert.ok(c.log.some((e) => e.t === 'hab' && e.ph === 'go'), `${h} vuelve a estar lista`);
   }

@@ -1,7 +1,8 @@
 // Datos de diseño: armas, bestiario, oleadas. Todo número de balance vive acá.
+import { COLMENA } from './colmena-data.js';   // sexto Huésped (invocador/enjambre): datos puros; lógica en enjambre.js
 export const G = 28; // magnitud de gravedad
 
-export const LIMITS = { monsters: 90, projectiles: 300, pickups: 40, events: 240, units: 10, unitsTotal: 24, nests: 2 };   // units = zánganos de Colmena por jugador, unitsTotal = en toda la partida, nests = nidos-torreta por jugador (src/sim/enjambre.js)
+export const LIMITS = { monsters: 90, projectiles: 300, pickups: 40, events: 240, units: 10, unitsTotal: 24, nests: 2, pozos: 3, satelites: 8 };   // units = zánganos de Colmena por jugador, unitsTotal = en toda la partida, nests = nidos-torreta por jugador (src/sim/enjambre.js)
 
 export const WEAPONS = [
   { id: 'haz',    name: 'Haz',    kind: 'hitscan', dmg: 22, rate: 0.26, pellets: 1, spread: 0.004, range: 320, max: Infinity, start: Infinity, per: 0 },
@@ -82,8 +83,8 @@ export const MELEE_WEAPONS = {
   aguja_fantasma: { type: 'daga',     name: 'Aguja fantasma',     cost: 170, special: 'destello', desc: 'El golpe pesado es un destello: te lanza hacia adelante cortando todo a su paso.', light: L(32, 3.0, 0.6, 0.2), heavy: L(100, 3.6, 0.5, 0.7) },
 };
 // armas innatas de cada Huésped (las de data.js → CHARACTERS[*].melee)
-export const NATIVE_MELEE = { axioma: 'cuchillas', vesper: 'garras', micelio: 'punos', umbra: 'hoja_dim', seraf: 'latigo' };
-export const MELEE_AFFINITY = { axioma: ['espada', 'hacha'], vesper: ['daga'], micelio: ['martillo', 'hacha'], umbra: ['lanza', 'espada'], seraf: ['lanza', 'daga'] };
+export const NATIVE_MELEE = { axioma: 'cuchillas', vesper: 'garras', micelio: 'punos', umbra: 'hoja_dim', seraf: 'latigo', danzante: 'listones', singular: 'orbita' };
+export const MELEE_AFFINITY = { axioma: ['espada', 'hacha'], vesper: ['daga'], micelio: ['martillo', 'hacha'], umbra: ['lanza', 'espada'], seraf: ['lanza', 'daga'], danzante: ['daga', 'espada'], singular: ['martillo', 'lanza'] };
 /* Evolución del Huésped con NÚCLEOS (se ganan matando criaturas, completando objetivos y oleadas, y jefes). Coste = núcleos para pasar al nivel siguiente. */
 export const EVO_COST = [0, 40, 90, 160, 280];
 export const EVO_TIERS = [
@@ -105,6 +106,29 @@ export const EVO_PATHS = [
   [{ id: 'apoteosis',  name: 'Apoteosis',  vis: 'alas',    desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más.' },
    { id: 'anomalia',   name: 'Anomalía',   vis: 'grietas', desc: 'Una de cada cuatro bajas estalla en esencia: 70 de daño en área.' }],
 ];
+/** Lectura propia de cada camino para un Huésped: mismos ids y MISMOS bonos que EVO_PATHS, más un extra que sólo ese Huésped tiene (lo aplica su archivo de la sim). Si falta, vale el texto general. */
+export const EVO_FLAVOR = {
+  danzante: {
+    depredador: { name: 'Colmillo de Carnaval', desc: 'Melee +20 % y cada golpe te cura un 6 % del daño. Tu Réplica dura 6 s en vez de 4.' },
+    coraza:     { name: 'Máscara de Hueso',     desc: 'Recibís 18 % menos de daño. La ventana de la Parada perfecta es un 40 % más larga.' },
+    velocidad:  { name: 'Pies de Seda',         desc: '+12 % de velocidad y habilidades 15 % más rápidas. La Pirueta esquiva 0,1 s más.' },
+    resonancia: { name: 'Compás Eterno',        desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más. Cada golpe a tiempo suma 2 de compás (no 1).' },
+    simbiosis:  { name: 'Hilo de Listones',     desc: 'El melee suma +15 %. Lo que devolvés con una parada pega un 50 % más.' },
+    artilleria: { name: 'Salva de Gala',        desc: '+15 % de daño con armas a distancia y +30 % de cargador. El estallido de tus paradas llega un 50 % más lejos.' },
+    apoteosis:  { name: 'Gala de los Muertos',  desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más. En la Danza Macabra, las paradas automáticas se repiten cada 0,4 s.' },
+    anomalia:   { name: 'Baile de Máscaras',    desc: 'Una de cada cuatro bajas estalla en esencia (70 de daño). Cada parada o esquiva perfecta deja un eco que estalla (60 de daño en área).' },
+  },
+  singular: {
+    depredador: { name: 'Devoradora de Mundos',     desc: 'Melee +20 % y cada golpe te cura un 6 % del daño. Un satélite más girando a tu alrededor.' },
+    coraza:     { name: 'Corteza Estelar',          desc: 'Recibís 18 % menos de daño. Tus satélites se comen los proyectiles enemigos que cruzan.' },
+    velocidad:  { name: 'Perihelio',                desc: '+12 % de velocidad y habilidades 15 % más rápidas. Tus satélites giran un 40 % más rápido (más golpes).' },
+    resonancia: { name: 'Resonancia Gravitatoria',  desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más. Tus pozos duran un 35 % más.' },
+    simbiosis:  { name: 'Anillo de Acreción',       desc: 'El melee suma +15 %. Un satélite más y todos pegan un 25 % más fuerte.' },
+    artilleria: { name: 'Cañón de Marea',           desc: '+15 % de daño con armas a distancia y +30 % de cargador. Tus pozos son un 12 % más grandes y su implosión pega un 50 % más.' },
+    apoteosis:  { name: 'Supernova Interior',       desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más. Podés sostener un pozo más a la vez.' },
+    anomalia:   { name: 'Singularidad Desnuda',     desc: 'Una de cada cuatro bajas estalla en esencia (70 de daño). Además, cada baja tira de las criaturas vecinas hacia el cadáver.' },
+  },
+};
 /* ───────── TRES ESTILOS DE COMBATE (elegís uno; equilibrados entre sí: tests/estilos.test.js) ─────────
    mul = multiplicador de daño según la fuente (melee / gun = disparos / skill = habilidades); cd = enfriamiento de habilidades;
    taken = daño recibido; ult = carga de la definitiva. */
@@ -142,6 +166,8 @@ export const HABILIDADES = {
   micelio: { id: 'estallido', name: 'Estallido de esporas', cd: 16, wind: 0.45, r: 9,  rol: 'curación + control', desc: 'Tras una breve carga, las esporas estallan: dañan y enraízan a las criaturas y CURAN al equipo cercano.' },
   umbra:   { id: 'eclipse',   name: 'Eclipse',             cd: 18, wind: 0.3,  r: 8,   rol: 'control de zona', desc: 'Una zona de sombra de 6 s: las criaturas dentro van al 25 % de velocidad y reciben daño continuo.' },
   seraf:   { id: 'bendicion', name: 'Bendición',           cd: 22, wind: 0.4,  r: 15,  rol: 'curación + escudo', desc: 'Luz sobre el equipo: cura fuerte, escudo completo y 20 % menos de daño 6 s. Reanima a un caído cercano.' },
+  danzante: { id: 'contrapaso', name: 'Contrapaso',        cd: 9,  wind: 0.08, r: 6,   rol: 'contraataque', desc: 'Te plantás 0,65 s en guardia perfecta: lo que te golpee en ese instante se anula, se devuelve ×3 en área y quedás en Réplica (+35 % de daño 4 s). Si nadie te golpea, la habilidad vuelve en la mitad de tiempo.' },
+  singular: { id: 'gravedad', name: 'Colapso gravitatorio', cd: 15, wind: 0.35, r: 9, rol: 'control de área', desc: 'Abrís un pozo delante tuyo: 2,6 s tirando de TODAS las criaturas hacia su centro (las agrupa para tus combos) y, al cerrarse, implosiona: daña en área y las frena. Lo que está adentro recibe +20 % de daño.' },
 };
 /** Un Huésped se juega con A1 (ataque 1) y A2 (ataque 2) encadenados: cada «move» es una secuencia. seq = entradas, evo = nivel mínimo,
     path = camino de evolución requerido (opcional), w = 'l' ligero | 'h' pesado (stats del arma), dmg = × daño, rng/arc = × alcance/ángulo (arc ≥ 2 = giro de 360°),
@@ -198,11 +224,36 @@ export const COMBO_SETS = {
     M('doble_tension', 'Doble tensión', ['a2', 'a2'], { evo: 3, ranged: true, w: 'h', dmg: 1.2, hits: 2, rng: 14, pierce: true, fan: 0.06, cdr: 1.1 }),
     M('lluvia', 'Lluvia de luz', ['a1', 'a1', 'a1', 'a2'], { evo: 4, ranged: true, dmg: 0.85, hits: 7, rng: 9, fan: 0.07, cdr: 1.8 }),
   ],
+  danzante: [ // duelista: pasos rápidos, paradas y réplicas. Cada golpe pulsado A TIEMPO suma compás (src/sim/danzante.js): más daño, recuperaciones cortas y cadenas más largas
+    M('paso', 'Paso de vals', ['a1'], { dmg: 0.85, arc: 1.2 }),
+    M('giro', 'Giro de cinta', ['a1', 'a1'], { dmg: 0.62, hits: 2, arc: 1.5, cdr: 0.95 }),
+    M('floreo', 'Floreo', ['a1', 'a1', 'a1'], { dmg: 1.3, blink: 2.5, line: true, kind: 'lunge', cdr: 1.25 }),
+    M('parada', 'Parada y réplica', ['a2'], { w: 'h', dmg: 1.1, fx: 'parada', kind: 'heavy', cdr: 0.85 }),
+    M('quiebre', 'Quiebre de cintura', ['a1', 'a2'], { evo: 1, w: 'h', dmg: 1.3, blink: -3, fx: 'esquiva', kind: 'lunge', cdr: 0.85 }),
+    M('contracompas', 'Contracompás', ['a1', 'a1', 'a2'], { evo: 2, w: 'h', dmg: 1.2, arc: 2, fx: 'parada', kind: 'spin', cdr: 1.1 }),
+    M('vals_huesos', 'Vals de huesos', ['a2', 'a1'], { evo: 3, dmg: 0.55, hits: 3, dash: 5, fx: 'esquiva', cdr: 1 }),
+    M('gran_final', 'Gran final de carnaval', ['a1', 'a1', 'a1', 'a2'], { evo: 4, w: 'h', dmg: 1.9, fx: 'onda', arc: 2, kind: 'air', cdr: 1.5 }),
+  ],
+  singular: [ // control de gravedad / área: ARRASTRA a las criaturas hacia vos y las aplasta; sus golpes dejan pozos chicos y sueltan los satélites (src/sim/singular.js)
+    M('roce', 'Roce orbital', ['a1'], { arc: 1.35 }),
+    M('arrastre', 'Arrastre', ['a1', 'a1'], { dmg: 1.05, arc: 1.5, fx: 'atrae', cdr: 1.05 }),
+    M('compresion', 'Compresión', ['a1', 'a1', 'a1'], { w: 'h', dmg: 1.35, fx: 'atrae+pozo', kind: 'heavy', cdr: 1.4 }),
+    M('cuasar', 'Pulso de cuásar', ['a2'], { w: 'h', dmg: 1.1, rng: 1.2, arc: 1.6, fx: 'atrae', kind: 'heavy' }),
+    M('doble_polo', 'Doble polo', ['a1', 'a2'], { evo: 1, w: 'h', dmg: 1.2, arc: 2, fx: 'atrae', kind: 'spin', cdr: 1.1 }),
+    M('meteoros', 'Lluvia de meteoros', ['a1', 'a1', 'a2'], { evo: 2, w: 'h', dmg: 1.3, arc: 2, fx: 'orbita', kind: 'air', cdr: 1.25 }),
+    M('acrecion', 'Disco de acreción', ['a2', 'a2'], { evo: 3, w: 'h', dmg: 1.7, arc: 2, fx: 'atrae+pozo', big: true, kind: 'spin', cdr: 1.3 }),
+    M('colapso_estelar', 'Colapso estelar', ['a1', 'a1', 'a1', 'a2'], { evo: 4, w: 'h', dmg: 2.2, arc: 2, fx: 'atrae+orbita+pozo', big: true, kind: 'air', cdr: 1.5 }),
+  ],
 };
 /** Ajuste fino de daño por Huésped para que el Combo rinda como el Melé (tests/combos.test.js: tiempos dentro de ±30 %). */
-export const COMBO_TUNE = { axioma: 1, vesper: 0.5, micelio: 0.65, umbra: 0.8, seraf: 0.7 };
+export const COMBO_TUNE = { axioma: 1, vesper: 0.5, micelio: 0.65, umbra: 0.8, seraf: 0.7, danzante: 0.85, singular: 0.62 };
 /** Seraf carga su A2: la flecha sale al soltar (daño ×1 a ×2 según el tiempo). */
 export const COMBO_CHARGE = { seraf: true };
+/* COLMENA (invocador): se registra aparte para no pisar las líneas de los demás Huéspedes. Datos en colmena-data.js, lógica en enjambre.js. */
+NATIVE_MELEE.colmena = COLMENA.native; MELEE_AFFINITY.colmena = COLMENA.affinity;
+COMBO_SETS.colmena = COLMENA.combo; HABILIDADES.colmena = COLMENA.hab; COMBO_TUNE.colmena = COLMENA.tune;
+/** Caminos de evolución de un Huésped: los propios (`CHARACTERS[id].evoPaths`, p. ej. Colmena) o los comunes de EVO_PATHS. */
+export const evoPathsFor = (char) => (CHARACTERS[char] && CHARACTERS[char].evoPaths) || EVO_PATHS;
 
 /* Afijos de élite (desde la oleada 3): cada élite lleva UNO, visible (halo + nombre). */
 export const AFFIXES = {
@@ -308,7 +359,31 @@ const HOSTS = {
     s3: { id: 'simbionte', name: 'Simbionte', cd: 20, desc: 'Invoca un organismo aliado 10 s que ataca y distrae.' },
     ult: { id: 'metamorfosis', name: 'Metamorfosis', cd: 0, charge: 100, desc: '12 s: forma alada. Tus disparos perforan y curan, el látigo ataca en área.' },
     passive: { id: 'adaptacion', name: 'Adaptación', desc: 'Cada tipo de criatura que eliminás (hasta 5) da +2 % de daño contra ese tipo.' } },
+  danzante: { team: 'explorador', name: 'Danzante', title: 'El Último Baile de los Muertos', role: 'duelista', host: true, preset: 'jugador4', seed: null, color: 0xff3fa0, hp: 0.84, speed: 1.15, slots: [5, 22, 21, 6],
+    desc: 'Duelista acrobático de contraataque. Estoque de listones, esquivas y paradas perfectas que devuelven el golpe. Frágil si baila mal, letal si baila a tiempo.',
+    story: 'En el limbo hay un salón que nunca cierra: los muertos de todos los carnavales siguen bailando para no acordarse de que pararon. La Danzante es la que no pierde el paso. Pactó con el Pasajero porque quiere saber cómo suena una canción cuando alguien la termina.',
+    stats: { dano: 7, resistencia: 3, movilidad: 9, control: 5, utilidad: 4, dificultad: 9 },
+    melee: { light: { dmg: 34, range: 3.4, arc: 0.6, cd: 0.24 }, heavy: { dmg: 96, range: 4.0, arc: 0.5, cd: 0.62, knock: 8 } },
+    mov: { id: 'pirueta', name: 'Pirueta', cd: 4.2, desc: 'Te deslizás hacia donde te movés (o atrás). Durante 0,34 s estás en ESQUIVA PERFECTA: lo que te golpee se anula y se devuelve (como la Parada). Si nada te toca, vuelve enseguida.' },
+    esp: { id: 'parada', name: 'Parada perfecta', cd: 7, desc: 'Ventana de 0,4 s: el primer golpe que recibas se anula por completo, se devuelve ×3 en área y quedás en Réplica (+35 % de daño 4 s). Si fallás, recarga en la mitad.' },
+    s3: { id: 'cintas', name: 'Lazo de cintas', cd: 13, desc: 'Lanza listones en abanico: dañan, enredan (lentitud 3 s), arrastran hacia vos y marcan (+20 % de daño) hasta a 6 criaturas.' },
+    ult: { id: 'danza', name: 'Danza Macabra', cd: 0, charge: 100, desc: '10 s: +25 % de velocidad, un remolino de cintas daña a todo lo cercano y CADA golpe que recibís se para solo (una vez cada 0,7 s), con réplica.' },
+    passive: { id: 'contratiempo', name: 'Contratiempo', desc: 'Cada parada o esquiva perfecta te da Réplica (+35 % de daño 4 s) y 10 de carga de la definitiva. En Combo, además, los golpes pulsados A TIEMPO suman compás.' },
+    unlock: { precio: 600 }, starter: false },   // se compra en la tienda (núcleos); `req` (condición opcional) lo define la tienda si hace falta
+  singular: { team: 'ingeniero', name: 'Singular', title: 'El Astro Muerto', role: 'gravedad', host: true, preset: null, seed: 'singular-8', color: 0xb26bff, hp: 1.15, speed: 0.95, slots: [10, 11, 3, 8],
+    desc: 'Control de gravedad y de área. Abre pozos que arrastran a las hordas, lanza satélites de roca que giran a tu alrededor y la Marea de Gravedad no le hace nada: la usa a favor.',
+    story: 'Fue una estrella. Murió hace tanto que su luz todavía viaja y nadie se la avisó. En el limbo, donde la gravedad es una opinión, él es la única que nadie discute: todo lo que cae, cae hacia él. Eligió al Pasajero porque su caída fue la primera en siglos que le hizo sentir peso.',
+    stats: { dano: 5, resistencia: 6, movilidad: 4, control: 10, utilidad: 7, dificultad: 7 },
+    extra: { name: 'Órbita', desc: 'Tres satélites de roca estelar giran a tu alrededor y golpean a todo lo que cruzan (cada nivel de evolución los hace más fuertes). Con Coraza, además, frenan los proyectiles enemigos.' },
+    melee: { light: { dmg: 38, range: 3.8, arc: 0.6, cd: 0.4, knock: -5 }, heavy: { dmg: 110, range: 4.8, arc: 0.7, cd: 1.0, knock: -14 } },
+    mov: { id: 'honda', name: 'Honda gravitatoria', cd: 7, desc: 'Rodeás tu pozo más cercano y salís disparado por la tangente (y le das cuerda). Sin pozo, pegás un salto corto y dejás uno chico detrás.' },
+    esp: { id: 'pozo', name: 'Pozo gravitatorio', cd: 9, desc: 'Abrís un pozo donde mirás (hasta 3 a la vez): 6 s tirando de las criaturas hacia el centro, aplastándolas y comiéndose los proyectiles; al cerrarse implosiona.' },
+    s3: { id: 'reflujo', name: 'Reflujo de marea', cd: 14, desc: 'Tus pozos se dan vuelta y escupen: empujan hacia afuera con fuerza, dañan y frenan a todo lo cercano. Sin pozos, es una onda a tu alrededor.' },
+    ult: { id: 'supernova', name: 'Supernova', cd: 0, charge: 100, desc: '9 s: tus pozos se funden en uno enorme que te sigue y lleva a todos a órbita; tus satélites se duplican, recibís 25 % menos de daño y al final estalla.' },
+    passive: { id: 'horizonte', name: 'Horizonte inmóvil', desc: 'La gravedad no se invierte sobre vos (ni en la Marea ni por jefes). Y cuando llega la Marea de Gravedad, tus pozos y tus satélites se hacen un 35 % más fuertes mientras dure.' },
+    unlock: { precio: 750, req: { tipo: 'maestria', rango: 3, texto: 'Alcanzá el rango 3 de maestría con cualquier Huésped.' } }, starter: false },   // se compra en la tienda (núcleos); `req` = condición opcional (maestría de cualquier Huésped)
 };
+HOSTS.colmena = { ...COLMENA.char, evoPaths: COLMENA.paths };   // Colmena: invocadora de enjambre, con sus propios caminos de evolución
 for (const [k, v] of Object.entries(HOSTS)) CHARACTERS[k] = { ...(CHARACTERS[k] || {}), ...v };   // umbra extiende al héroe previo
 for (const k of Object.keys(CHARACTERS)) if (!CHARACTERS[k].host) CHARACTERS[k].legacy = true;
 export const CHARACTER_IDS = Object.keys(CHARACTERS);

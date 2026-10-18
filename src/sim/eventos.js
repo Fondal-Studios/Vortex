@@ -5,6 +5,7 @@
 import { v3, mul, madd, dot, cross, len, dist, norm, makeRng } from './math.js';
 import { EVENTO, EVENTOS, EVENTOS_MAPA, PLAYER } from './data.js';
 import { addCores } from './huespedes.js';
+import { singularInmune } from './singular.js';
 import { dropsEvento } from './drops.js';
 import { nieblaEvento } from './nieblas.js';   // «Niebla de Almas» y «Marea de Sangre» usan el sistema de nieblas de colores (src/sim/nieblas.js)
 
@@ -35,6 +36,7 @@ export function factorFlip(t, from, until) {
 export function volteaJugador(g, p, secs = EVENTO.flipMax) {
   if (!p || p.dead || g.time < (p.flipLock || 0)) return false;
   secs = Math.min(secs, EVENTO.flipMax);
+  if (singularInmune(g, p, secs)) return false;   // Singular (pasiva Horizonte): la gravedad no se le invierte y la Marea le da +35 % a pozos y satélites
   p.flipLock = g.time + secs + EVENTO.flipBloqueo;
   if (p.input && p.input.soft) { // sin giro de cámara: un salto hacia arriba y listo
     p.vel = madd(p.vel, p.up, 10); p.grounded = false; g.evStats.suaves++;

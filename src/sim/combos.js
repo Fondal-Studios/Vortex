@@ -10,8 +10,11 @@ import { PLAYER, COMBO_SETS, COMBO_WEAPON, COMBO_RULES, COMBO_CHARGE, COMBO_TUNE
 import { blocked } from './physics.js';
 import { hasC } from './organos.js';
 import { cdef, isHost, meleeSet, hasPath, evoMeleeMul, cdMul, applyMeleeSpecial, meleeAfter } from './huespedes.js';
+import { ordenar, nubeArea, spawnUnits, llamado } from './enjambre.js';   // Colmena: el enjambre ataca con tus golpes (fx 'orden' | 'nube' | 'cria') y 'llamado'
+import { addPozo, singularFx, singularHab, SING } from './singular.js';   // Singular: pozos de gravedad y satélites (fx 'atrae' | 'pozo' | 'orbita', habilidad 'gravedad', remate 'pozo')
 import { NEUTRO_C, ARRASE_PRESUPUESTO, progHit, progSnap } from './progresion.js';   // árbol de combos permanente (docs/EVOLUCION.md): p.ac = efectos de los nodos
-import { itemComboSet, itemComboShape, itemStrike, execThreshold } from './items-fx.js';   // objetos equipados (docs/INVENTARIO.md)
+import { itemComboSet, itemComboShape, itemStrike, execThreshold } from './items-fx.js';
+import { dzInit, dzOpen, dzBeat, dzDmg, dzRec, dzChain, dzContrapaso } from './danzante.js';   // Danzante: compás, parada y esquiva perfectas   // objetos equipados (docs/INVENTARIO.md)
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
@@ -27,6 +30,7 @@ export function initCombo(p) {
   p.cb = { buf: [], n: 0, win: 0, cd: 0, rec: 0, cancel: COMBO_RULES.cancel, q: '', qp: 1, qt: 0, prev1: false, prev2: false, chg: 0, last: '', lastName: '' };
   Object.assign(p, { habCd: 0, habPend: null, habPrev: false, frenzyUntil: 0, blessUntil: 0, baluarteUntil: 0, eclipse: null });
   if (p.mode === 'combo') p.style = 'combo';
+  dzInit(p);
 }
 /** Cambia entre 'shooter' y 'combo'. Sólo los Huéspedes pueden jugar Combo. Devuelve el modo resultante. */
 export function setMode(p, mode) {
@@ -37,7 +41,7 @@ export function setMode(p, mode) {
 }
 
 /* ───────── set de golpes ───────── */
-const shapeOf = (p) => { const t = meleeSet(p).type, W = COMBO_WEAPON[t] || itemComboShape(t) || COMBO_WEAPON.innata, c = AC(p).chain; return c ? { ...W, chain: W.chain + c } : W; };
+const shapeOf = (p) => { const t = meleeSet(p).type, W = COMBO_WEAPON[t] || itemComboShape(t) || COMBO_WEAPON.innata, c = AC(p).chain + dzChain(p); return c ? { ...W, chain: W.chain + c } : W; };
 /** Golpes disponibles ahora: desbloqueados por nivel/camino y que caben en el largo de cadena que permite el arma fusionada. */
 export function comboUnlocked(p) {
   const set = [...(itemComboSet(p) || COMBO_SETS[p.char] || []), ...AC(p).extra], W = shapeOf(p);   // + golpes nuevos del árbol de combos
@@ -66,6 +70,7 @@ export function comboStep(g, p, dt) {
   if (p.habPend) { p.habPend.t -= dt; if (p.habPend.t <= 0) { const id = p.habPend.id; p.habPend = null; resolveHab(g, p, id); } }
   const e1 = !!inp.a1 && !cb.prev1, e2 = !!inp.a2 && !cb.prev2, rel2 = !inp.a2 && cb.prev2;
   cb.prev1 = !!inp.a1; cb.prev2 = !!inp.a2;
+  if ((e1 || e2) && !cb.q) cb.pt = g.time;   // hora de la PRIMERA pulsación pendiente (la Danzante mide el compás con esto; aporrear no la mueve)
   if (p.dead || p.carry) { cb.q = ''; cb.chg = 0; p.habPrev = !!inp.hab; return; }
   // habilidad principal: un toque
   if (inp.hab && !p.habPrev && !g.evSilencio) useHab(g, p, H);
@@ -100,6 +105,7 @@ function fire(g, p, name, power, moves, W) {
   cb.n = buf.length === 1 ? 1 : cb.n + 1;
   const last = !hasLonger(moves, buf);
   const mv = pick.mv;
+  dzBeat(g, p);   // Danzante: ¿se pulsó a tiempo? (suma o corta el compás)
   const ac = AC(p), fin = last && pick.len >= 2, k0 = p.kills | 0;   // fin = remate de una cadena de 2+ golpes (activa los finishers del árbol)
   cb.xc = false;
   const hits = resolve(g, p, mv, power, W, last, fin);
@@ -108,8 +114,8 @@ function fire(g, p, name, power, moves, W) {
   if (fin && kk > 0 && ac.refund && !p.dead) { const n = Math.min(kk, 5); heal(p, 4 * n); p.habCd = Math.max(0, p.habCd - 1.2 * n); }   // Remate cobrador
   const M = meleeSet(p), base = mv.w === 'h' ? M.heavy : M.light;
   const fr = g.time < p.frenzyUntil ? 0.75 : 1, over = p.ultId === 'sobrecarga' ? 0.6 : 1;
-  cb.rec = Math.max(0.12, base.cd * mv.cdr * W.cd * fr * over * (hasPath(p, 'velocidad') ? 0.92 : 1)); cb.cd = cb.rec;
-  cb.cancel = ac.cancel ? Math.min(mv.cancel || COMBO_RULES.cancel, ac.cancel) : mv.cancel || COMBO_RULES.cancel;   // cancel = fracción de la recuperación que ya pasó para aceptar el golpe siguiente (menor = antes) cb.last = mv.id; cb.lastName = mv.name;
+  cb.rec = Math.max(0.12, base.cd * mv.cdr * W.cd * fr * over * (hasPath(p, 'velocidad') ? 0.92 : 1)); cb.rec *= dzRec(p); cb.cd = cb.rec;
+  cb.cancel = ac.cancel ? Math.min(mv.cancel || COMBO_RULES.cancel, ac.cancel) : mv.cancel || COMBO_RULES.cancel; cb.last = mv.id; cb.lastName = mv.name;   // cancel = fracción de la recuperación que ya pasó para aceptar el golpe siguiente (menor = antes)
   if (cb.xc && ac.execCancel) cb.cd = 0;   // Sentencia: ejecutar cancela la recuperación
   if (last) { cb.buf = []; cb.win = cb.rec + 0.2; cb.nEnd = cb.n; cb.n = last ? 0 : cb.n; }
   else { cb.buf = buf; cb.win = cb.rec + COMBO_RULES.window * ac.win; }
@@ -126,7 +132,7 @@ function resolve(g, p, mv0, power, W, last, fin) {
   const side = mv.seq[mv.seq.length - 1] === 'a2' ? W.a2 : W.a1;
   const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis', strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
   const frenzy = g.time < p.frenzyUntil, IS = itemStrike(p), exT = execThreshold(p) + ac.exec;
-  let dmg = base.dmg * mv.dmg * W.dmg * (mv.charge ? power : 1) * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1) * (frenzy ? 1.2 : 1) * (last && W.fin ? W.fin : 1) * (fin ? ac.finMul : 1) * (COMBO_TUNE[p.char] || 1) * IS.mul * (mv.ranged ? p.irng || 1 : 1);
+  let dmg = base.dmg * mv.dmg * W.dmg * (mv.charge ? power : 1) * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1) * (frenzy ? 1.2 : 1) * (last && W.fin ? W.fin : 1) * (fin ? ac.finMul : 1) * (COMBO_TUNE[p.char] || 1) * IS.mul * (mv.ranged ? p.irng || 1 : 1) * dzDmg(p);
   const range = base.range * mv.rng * (mv.ranged ? 1 : side.rng * ac.rng) * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1);
   const arcv = base.arc * mv.arc * (mv.ranged ? 1 : side.arc * ac.arc), full = mv.arc >= 2 || meta;
   const cosT = full ? -1 : Math.max(-1, 1 - arcv * (heavy ? 1.1 : 1));
@@ -218,9 +224,10 @@ function propagar(g, p, bud, dmg, killed) {
 /** Remate de área propio de cada Huésped (nodo «area2»): cono, torbellino, sismo, vacío que arrastra o cadena de rayos. Devuelve cuántos golpeó. */
 function finisherArea(g, p, kind, bud, dmg, o, dir) {
   let n = 0; const h = flat(p);
-  if (kind === 'cono') {
-    for (const m of g.monsters) { if (m.dead || n >= 14) continue; const to = sub(m.pos, o), l = len(to); if (l > 9 + m.r || (dot(norm(to), dir) < 0.5 && l > m.r + 1)) continue; if (extra(g, p, bud, m, dmg * 0.9, 16, p.pos)) n++; }
-    g.emit({ t: 'boom', p: a3(madd(p.pos, h, 4)), r: 5 });
+  if (kind === 'cono' || kind === 'abanico') {   // cono: corto y empuja fuerte · abanico (Danzante): ancho, largo y suave
+    const ab = kind === 'abanico', cosT = ab ? 0.1 : 0.5, rr = ab ? 11 : 9, kn = ab ? 7 : 16, k = ab ? 0.8 : 0.9;
+    for (const m of g.monsters) { if (m.dead || n >= 14) continue; const to = sub(m.pos, o), l = len(to); if (l > rr + m.r || (dot(norm(to), dir) < cosT && l > m.r + 1)) continue; if (extra(g, p, bud, m, dmg * k, kn, p.pos)) n++; }
+    g.emit({ t: 'boom', p: a3(madd(p.pos, h, 4)), r: ab ? 6 : 5 });
   } else if (kind === 'torbellino') {
     for (const m of cercanos(g, p.pos, 5.5, 14)) if (extra(g, p, bud, m, dmg * 0.9, 8, p.pos)) n++;
     g.emit({ t: 'boom', p: a3(p.pos), r: 5.5 });
@@ -231,6 +238,13 @@ function finisherArea(g, p, kind, bud, dmg, o, dir) {
     const c = madd(p.pos, h, 3.5);   // el punto hacia el que se arrastra a todos
     for (const m of cercanos(g, c, 11, 14)) { if (!m.def.boss) m.vel = madd(m.vel, norm(sub(c, m.pos)), 22); if (extra(g, p, bud, m, dmg * 0.6, 0, c)) n++; }
     g.emit({ t: 'boom', p: a3(c), r: 4 });
+  } else if (kind === 'pozo') {   // Singular: arrastra a todos hacia un punto adelante y deja un pozo chico que los retiene
+    const c = madd(p.pos, h, 3);
+    for (const m of cercanos(g, c, 12, 14)) { if (!m.def.boss) m.vel = madd(m.vel, norm(sub(c, m.pos)), 20); if (extra(g, p, bud, m, dmg * 0.55, 0, c)) n++; }
+    addPozo(g, p, madd(c, p.up, 0.6), { mini: true, life: SING.miniLife, r: SING.miniR, core: SING.miniCore });
+    g.emit({ t: 'boom', p: a3(c), r: 4 });
+  } else if (kind === 'enjambre') {   // Colmena: el remate manda a todo el enjambre y suelta una nube
+    n += ordenar(g, p, dmg * 1.6, madd(o, dir, 3)); n += nubeArea(g, p, dmg, 1.2);
   } else if (kind === 'rayos') {
     let cur = null, bd = 22; for (const m of g.monsters) { if (m.dead) continue; const to = sub(m.pos, o), l = len(to); if (l < bd && dot(norm(to), dir) > 0.3) { bd = l; cur = m; } }
     const used = new Set(); let from = { pos: o };
@@ -271,7 +285,13 @@ function applyFx(g, p, mv, dmg, o, dir) {
     g.addObject('spores', madd(p.pos, flat(p), 2.5), { owner: p.id, life: 2.5, r: 4 * big });
   }
   if (fx.includes('pull')) for (const m of g.monsters) { if (m.dead || m.def.boss) continue; const d = dist(m.pos, p.pos); if (d < 9 + m.r) m.vel = madd(m.vel, norm(sub(p.pos, m.pos)), 14); }
+  if (fx.includes('parada')) dzOpen(g, p, 'parada', 0.35, 'combo');
+  if (fx.includes('esquiva')) dzOpen(g, p, 'esquiva', 0.3);
   if (fx.includes('desfase')) p.desfaseUntil = Math.max(p.desfaseUntil || 0, g.time + 2);
+  if (fx.includes('atrae') || fx.includes('pozo') || fx.includes('orbita')) singularFx(g, p, fx, dmg, mv.big);   // Singular (src/sim/singular.js)
+  if (fx.includes('orden')) ordenar(g, p, dmg, madd(o, dir, 3));
+  if (fx.includes('nube')) nubeArea(g, p, dmg, big);
+  if (fx.includes('cria')) spawnUnits(g, p, 2, {});
   if (fx.includes('cura')) { heal(p, 10); for (const q of g.players) if (q !== p && !q.dead && dist(q.pos, p.pos) < 12) heal(q, 10); }
 }
 
@@ -314,6 +334,12 @@ function resolveHab(g, p, id) {
       const pos = madd(p.pos, flat(p), 4); p.invulUntil = Math.max(p.invulUntil, g.time + 0.4);
       g.addObject('chrono', clone(pos), { owner: p.id, life: 6, r }); p.eclipse = { pos: clone(pos), until: g.time + 6, r };
       g.emit({ t: 'skill', pid: p.id, k: 's3', id: 'tiempo', p: a3(pos) });
+    } else if (id === 'gravedad') {
+      singularHab(g, p, r); g.emit({ t: 'skill', pid: p.id, k: 'esp', id: 'pozo', p: a3(p.pos) });
+    } else if (id === 'contrapaso') {
+      dzContrapaso(g, p); g.emit({ t: 'skill', pid: p.id, k: 'esp', id: 'parada', p: a3(p.pos) });
+    } else if (id === 'llamado') {
+      llamado(g, p); g.emit({ t: 'skill', pid: p.id, k: 'esp', id: 'cria', p: a3(p.pos) });
     } else if (id === 'bendicion') {
       for (const q of g.players) {
         if (dist(q.pos, p.pos) > r) continue;

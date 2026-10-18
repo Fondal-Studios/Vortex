@@ -7,10 +7,11 @@ export function createRadar(host) {
   const arrows = []; for (let i = 0; i < N; i++) { const a = document.createElement('div'); a.className = 'rd-arrow'; a.innerHTML = '<i>➤</i><span></span>'; root.appendChild(a); arrows.push(a); }
   const v = new THREE.Vector3(), cam = new THREE.Vector3();
   return {
-    update(state, me, camera) {
+    /** `falsos`: ecos falsos de la niebla magenta ([x,y,z]…): se dibujan como criaturas más (no existen). */
+    update(state, me, camera, falsos = null) {
       if (!state || !me || me.dead || !camera) { for (const a of arrows) a.style.display = 'none'; return; }
       camera.getWorldPosition(cam);
-      const list = state.monsters.filter((m) => !m.c).map((m) => ({ m, d: Math.hypot(m.p[0] - me.pos[0], m.p[1] - me.pos[1], m.p[2] - me.pos[2]) })).sort((a, b) => a.d - b.d);
+      const list = state.monsters.filter((m) => !m.c).concat((falsos || []).map((f) => ({ p: f }))).map((m) => ({ m, d: Math.hypot(m.p[0] - me.pos[0], m.p[1] - me.pos[1], m.p[2] - me.pos[2]) })).sort((a, b) => a.d - b.d);
       let k = 0; const W = innerWidth, H = innerHeight, few = list.length <= 4;
       for (const { m, d } of list) {
         if (k >= N) break;

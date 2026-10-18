@@ -13,7 +13,7 @@ import { cleanSlots } from './loadout.js';
 
 const r2 = (n) => Math.round(n * 100) / 100;
 /** Lo más que pueden sumar JUNTOS los bonos fijos de daño y los pasivos con condición de todo el equipo (el balance de los estilos no se rompe: tests/inventario.test.js). */
-export const TOPE_DANIO = 1.12;
+export const TOPE_DANIO = { melee: 1.12, gun: 1.07, skill: 1.12 };
 const wIndex = (id) => WEAPONS.findIndex((w) => w.id === id);
 
 /** Lista del equipo con las bajas VIVAS (las de antes + las de esta partida). */
@@ -121,7 +121,7 @@ export function itemOut(g, p, m, src) {
   if (p.racha && p.racha.length) { const n = Math.min(5, p.racha.filter((t) => g.time - t < 5).length); if (n) for (const pa of p.ipa) if (pa.id === 'racha') k *= 1 + pa.v * n; }
   if (m && (m.elite || (m.def && m.def.boss))) k *= ix.elite;
   const st = p.ifold && (src === 'melee' || src === 'gun' || src === 'skill') ? p.ifold[src] || 1 : 1;
-  k = Math.min(k, TOPE_DANIO / st);   // tope: bonos fijos de los objetos × pasivos con condición ≤ TOPE_DANIO
+  k = Math.min(k, (TOPE_DANIO[src] || 1.1) / st);   // tope: bonos fijos de los objetos × pasivos con condición ≤ TOPE_DANIO
   if (ix.presa && m && m.hp >= m.maxhp * 0.999 && g.time >= (m.markUntil || 0)) { m.markUntil = g.time + 4; m.markMul = Math.max(m.markMul || 1, 1 + ix.presa); }
   return k;
 }

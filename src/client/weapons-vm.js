@@ -7,6 +7,7 @@ import { BUILD, WEAPON_COLORS } from './weapons/guns.js';
 import { VMFx, flashTexture, makeBeam } from './weapons/fx.js';
 import { applyUpgrades } from './weapons/mods.js';
 import { buildWeaponOrgans } from './organs-vis.js';
+import { buildGunGraft } from './items-vis.js';
 import { setHandStyle, HAND_STYLE, HAND_PRESETS, HU, TATTOOS, GLOVES } from './weapons/handmat.js';
 
 /** FOV propio del viewmodel (vertical, grados). La cámara del juego usa ~82° (en un celular apaisado el arma se ve diminuta);
@@ -55,7 +56,7 @@ export class Viewmodels {
     };
     it = { W, rig, sp, shape, glow, beam, f: 0, ctx, auto: W.flash.shape === 'jet' };
     if (this.ammo.n !== undefined) W.setAmmo(this.ammo.n, this.ammo.max);
-    this.items[i] = it; if (this.org && this.org[i]) this._applyOrgans(i); return it;
+    this.items[i] = it; if (this.org && this.org[i]) this._applyOrgans(i); if (this.itg && this.itg[i]) this._applyItemGun(i); return it;
   }
   /** Estilo de las manos: { color, accent, tattoo: 'runas'|'ojos'|'constelacion'|'venas'|'ninguno', glove: 'tactico'|'cristal'|'desnudo', skin }.
    *  Parcial (lo no pasado se conserva), en caliente, sin reconstruir. También sirve un nombre de HAND_PRESETS ('egida'...'umbra'). Devuelve el estilo vigente. */
@@ -67,6 +68,16 @@ export class Viewmodels {
   setOrgans(weaponId, ids) {
     this.org = this.org || {}; ids = ids || []; const key = ids.join(), o = this.org[weaponId]; if (o && o.key === key) return;
     this.org[weaponId] = { key, ids: ids.slice(), obj: o && o.obj, dirty: true }; this._applyOrgans(weaponId);
+  }
+  /** Arma de disparo de un OBJETO (docs/INVENTARIO.md): un injerto orgánico del material que crece sobre el arma base (o, en el Arco de la Aureola, el arco entero). Se recuerda por arma; null lo quita. */
+  setItemGun(weaponId, itemId, phase = 0) {
+    this.itg = this.itg || {}; const key = itemId ? `${itemId}|${phase}` : '', o = this.itg[weaponId];
+    if ((o ? o.key : '') === key) return; this.itg[weaponId] = { key, id: itemId, phase, obj: o && o.obj, dirty: true }; this._applyItemGun(weaponId);
+  }
+  _applyItemGun(i) {
+    const it = this.items[i], o = this.itg && this.itg[i]; if (!it || !o || !o.dirty) return; o.dirty = false;
+    if (o.obj) { it.rig.remove(o.obj.group); o.obj.dispose(); o.obj = null; } it.W.group.visible = true;
+    if (o.id) { try { o.obj = buildGunGraft(THREE, o.id, { phase: o.phase, quality: cfg().humans === 'low' ? 'low' : 'medium' }); if (o.obj.replaces) { o.obj.group.position.set(0.1, -0.1, -0.5); o.obj.group.scale.setScalar(0.85); it.rig.add(o.obj.group); it.W.group.visible = false; } else it.W.group.add(o.obj.group); } catch (err) { console.warn('Arma de objeto:', err.message); } }
   }
   _applyOrgans(i) {
     const it = this.items[i], o = this.org && this.org[i]; if (!it || !o || !o.dirty) return; o.dirty = false;
@@ -104,6 +115,7 @@ export class Viewmodels {
   update(dt, { firing = false, hidden = false, look = [0, 0], speed = 0, ammo, maxAmmo } = {}) {
     dt = Math.min(dt, 0.1); this.t += dt; this.hidden = hidden;
     { const o = this.org && this.org[this.cur]; if (o && o.obj) o.obj.update(dt, this.t); } // órganos del arma actual (organs-vis.js)
+    { const o = this.itg && this.itg[this.cur]; if (o && o.obj) o.obj.update(dt, this.t); } // injerto del objeto (items-vis.js)
     const kf = Math.tan((this.camera.fov || 82) * Math.PI / 360) / Math.tan(VM_FOV * Math.PI / 360); this.root.scale.set(kf, kf, 1);
     if (ammo !== undefined) this.setAmmo(ammo, maxAmmo === undefined ? ammo : maxAmmo);
     this.fx.setScale(this.camera.fov || 82, (typeof window !== 'undefined' ? window.innerHeight : 720) * 0.8);

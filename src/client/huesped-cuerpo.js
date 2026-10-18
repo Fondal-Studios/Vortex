@@ -11,20 +11,24 @@ import { addRegion } from './huesped-evo-piezas.js';
 import { tools } from './huesped-piezas.js';
 import { attachChampOrgans } from './organs-vis.js';
 import { attachToViewmodel } from './melee-models.js';
+import { parseEq, armorSlots, itemOfSlot, addEquipmentArmor, mountItemWeapon, buildGunBack } from './items-vis.js';
 import { uBeat } from './shaders.js';
-import { createPresence, pathColor } from './huesped-presencia.js';
+import { createPresence, pathColor, PATH_STYLE } from './huesped-presencia.js';
 import { REGION, pathFor } from './host-human.js';
-import { CHARACTERS, MELEE_WEAPONS } from '../sim/data.js';
+import { CHARACTERS, MELEE_WEAPONS, EVO_PATHS, evoPathsFor } from '../sim/data.js';
 import * as AXIOMA from './huesped/axioma.js';
 import * as VESPER from './huesped/vesper.js';
 import * as MICELIO from './huesped/micelio.js';
 import * as UMBRA from './huesped/umbra.js';
 import * as SERAF from './huesped/seraf.js';
+import * as COLMENA from './huesped/colmena.js';
+import * as DANZANTE from './huesped/danzante.js';
+import * as SINGULAR from './huesped/singular.js';
 
 /** Encuadre de cada Huésped para las pantallas de selección y evolución: [centro y, alto, ancho] (m, sin escala de pantalla). */
-export const FRAME = { axioma: [0.98, 2.5, 1.9], vesper: [0.98, 2.4, 1.8], micelio: [1.2, 3.5, 2.7], umbra: [1.0, 2.4, 1.8], seraf: [1.0, 2.45, 2.3] };
+export const FRAME = { axioma: [0.98, 2.5, 1.9], vesper: [0.98, 2.4, 1.8], micelio: [1.2, 3.5, 2.7], umbra: [1.0, 2.4, 1.8], seraf: [1.0, 2.45, 2.3], danzante: [1.05, 2.6, 2.0], singular: [1.1, 2.8, 2.6] };
 export const isHost = (char) => !!(CHARACTERS[char] && CHARACTERS[char].host);
-const DESIGN = { axioma: AXIOMA, vesper: VESPER, micelio: MICELIO, umbra: UMBRA, seraf: SERAF };
+const DESIGN = { axioma: AXIOMA, vesper: VESPER, micelio: MICELIO, umbra: UMBRA, seraf: SERAF, danzante: DANZANTE, singular: SINGULAR };
 /** Humano base (preset de la fábrica), escala del Huésped y colores clave. */
 const LOOK = {
   axioma: { preset: 'jugador1', scale: 1.0, glow: 0x4ab4ff, ember: 0xff6a1a },
@@ -32,6 +36,8 @@ const LOOK = {
   micelio: { preset: 'jugador3', scale: 1.25, glow: 0x7be03a, ember: 0xc8ff4a },
   umbra: { preset: 'jugador2', scale: 1.0, glow: 0xb98cff, ember: 0x9a6aff, hover: 0.14 }, // flota: el sudario cubre los pies
   seraf: { preset: 'jugador2', scale: 1.0, glow: 0xffd45a, ember: 0xffb040 },
+  danzante: { preset: 'jugador4', scale: 1.0, glow: 0xff3fa0, ember: 0xffb020 },
+  singular: { preset: 'jugador3', scale: 1.08, glow: 0xb26bff, ember: 0xffc23a },   // ultravioleta + oro de estrella muerta   // fucsia de carnaval + cempasúchil
 };
 const NEUTRAL = { height: 1, width: 1, shoulders: 1, belly: 0, head: 1, jaw: 1, nose: 1 };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -39,6 +45,12 @@ const FADE_FAR = 1.6, FADE_NEAR = 0.7;
 /** Crecimiento por nivel (+4,5 % por nivel, hasta +18 %) y proporciones propias de cada camino elegido: [ancho, alto] que se SUMAN (coraza ancha y maciza, velocidad esbelta, depredador alto…). */
 export const GROW = 0.045;
 const PATH_SHAPE = { depredador: [0.03, 0.05], coraza: [0.1, 0.0], velocidad: [-0.04, 0.03], resonancia: [0.0, 0.02], simbiosis: [0.07, 0.03], artilleria: [0.05, 0.0], apoteosis: [0.0, 0.06], anomalia: [0.03, 0.04] };
+// COLMENA (invocadora de enjambre, caminos propios): diseño, aspecto, encuadre, forma y aura de cada camino; `pathOf` respeta los caminos propios de un Huésped (EVO_PATHS sólo vale para los demás)
+DESIGN.colmena = COLMENA; FRAME.colmena = [1.0, 2.5, 2.3];
+LOOK.colmena = { preset: 'jugador3', scale: 1.0, glow: 0xff4d63, ember: 0xffb02e };   // coral de jalea real + ámbar de miel sobre quitina burdeos
+Object.assign(PATH_SHAPE, { criador: [0.0, 0.02], aguijon: [0.0, 0.03], nidos: [0.04, 0.02], nube: [0.02, 0.0], cohabita: [0.05, 0.03], detonador: [0.03, 0.0], reina: [0.03, 0.07], plaga: [0.06, 0.04] });
+Object.assign(PATH_STYLE, { criador: { color: 0xffc24a, kind: 4, n: 16 }, aguijon: { color: 0xff3b55, kind: 2, n: 18 }, nidos: { color: 0xffa21c, kind: 8, n: 16 }, nube: { color: 0xffd070, kind: 1, n: 22 }, cohabita: { color: 0xff7a90, kind: 3, n: 14 }, detonador: { color: 0xff6a1a, kind: 0, n: 18 }, reina: { color: 0xffe08a, kind: 6, n: 18 }, plaga: { color: 0xd8402f, kind: 7, n: 20 } });
+function pathOf(char, evo, pth) { const EP = evoPathsFor(char); if (EP === EVO_PATHS) return pathFor(evo, pth); const out = []; for (let i = 1; i <= evo; i++) { const id = pth && pth[i - 1]; out.push((EP[i] || []).some((o) => o.id === id) ? id : EP[i][0].id); } return out; }
 export function bodyScale(evo, path) { let w = 0, h = 0; for (const id of path.slice(0, evo)) { const q = PATH_SHAPE[id]; if (q) { w += q[0]; h += q[1]; } } const g = 1 + evo * GROW; return { g, x: g * (1 + w), y: g * (1 + h), z: g * (1 + w) }; }
 
 export function createHostBody(THREE, kit, p, opts = {}) {
@@ -47,7 +59,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
   const holder = new T.Group(); holder.scale.setScalar(L.scale); object.add(holder);
   const human = createHuman(kit, { char: p.char, name: p.name || p.char, color: L.glow, accent: L.glow, noGear: true, weapon: null, hands: false, overrides: { body: NEUTRAL } });
   holder.add(human.object); holder.visible = false; // hasta que el kit esté armado no se muestra (si no, se vería el humano desnudo)
-  let shownEvo = -1, shape = { g: 1, x: 1, y: 1, z: 1 }, lean = 0, lastPath = '', ak = null, bodyGeo = null, map = opts.map || null, key = '', ready = false, disposed = false, time = Math.random() * 10, act = null, clip = '', fade = 1, fadeMats = [], weapon = null, organs = null, extra = {}, sigil = null;
+  let itemW = [], shownEvo = -1, shape = { g: 1, x: 1, y: 1, z: 1 }, lean = 0, lastPath = '', ak = null, bodyGeo = null, map = opts.map || null, key = '', ready = false, disposed = false, time = Math.random() * 10, act = null, clip = '', fade = 1, fadeMats = [], weapon = null, organs = null, extra = {}, sigil = null;
   const camera = opts.camera || null, presence = createPresence(T, { glow: L.glow, quality, camera }); object.add(presence.object);
 
   async function loadBodyGeometry() {
@@ -55,23 +67,25 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     for (const [k, a] of Object.entries(m.attrs)) { if (k === 'index') g.setIndex(a.clone()); else g.setAttribute(k, a.clone()); }
     g.computeBoundingSphere(); return g;
   }
-  const keyOf = (pl, mp) => `${pl.mr | 0}|${pl.evo | 0}|${(pl.pth || []).join()}|${pl.mw || ''}|${(pl.cg || []).join()}|${mp}`;
+  const keyOf = (pl, mp) => `${pl.mr | 0}|${pl.evo | 0}|${(pl.pth || []).join()}|${pl.mw || ''}|${(pl.cg || []).join()}|${mp}|${pl.eq || ''}`;
   function teardown() {
-    if (weapon) { weapon.dispose(); weapon = null; } if (organs) { organs.dispose(); organs = null; }
+    if (weapon) { weapon.dispose(); weapon = null; } for (const w of itemW) w.dispose(); itemW = []; if (organs) { organs.dispose(); organs = null; }
     if (ak) { ak.dispose(); ak = null; } extra = {};
     if (sigil) { object.remove(sigil); sigil.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); sigil = null; }
   }
   function assemble(pl) {
     teardown();
-    const evo = pl.evo | 0, path = pathFor(evo, pl.pth), region = map ? (REGION[map] || null) : null;
+    const evo = pl.evo | 0, path = pathOf(p.char, evo, pl.pth), region = map ? (REGION[map] || null) : null;
     const rimC = new T.Color(L.glow).lerp(new T.Color(region ? region.accent : L.glow), 0.45); if (evo > 0) rimC.lerp(new T.Color(pathColor(path[evo - 1], L.glow)), 0.5); // la luz de borde toma el color del último camino
     ak = createArmorKit(human, kit, { quality, accent: L.ember, rim: rimC, crack: L.ember, belly: D.BELLY ?? 0 });
     curPath = path; shape = bodyScale(evo, path); holder.scale.set(L.scale * shape.x, L.scale * shape.y, L.scale * shape.z); // el cuerpo crece con cada nivel y cambia de proporciones según el camino
     const up = shownEvo >= 0 && evo > shownEvo; shownEvo = evo; lastPath = path[evo - 1] || '';
     presence.set({ evo, path, rank: Math.max(1, pl.mr | 0), scale: L.scale * shape.g });
     const ctx = { evo, path, has: (id) => path.includes(id), region, map, glow: L.glow, ember: L.ember, char: p.char, quality, melee: pl.mw || '' };
+    const eq = parseEq(pl.eq); ak.replaceSlots(armorSlots(eq));   // el equipo SUSTITUYE la geometría base de las zonas con armadura (items-vis.js)
     extra = D.build(ak, ctx) || {};
     const reg = addRegion(ak, ctx, { t: tools(ak) }), own = extra.update; extra.update = (dt, tt, c) => { if (own) own(dt, tt, c); reg.update(dt, tt, c); };
+    ak.keepAll(); addEquipmentArmor(ak, eq);
     ak.finish({ bodyGeometry: bodyGeo });
     for (const r of ak.extraRoots) object.add(r);
     ak.setObject(object);
@@ -81,11 +95,22 @@ export function createHostBody(THREE, kit, p, opts = {}) {
       for (const r of [r1, r2]) { r.rotation.x = -Math.PI / 2; r.position.y = 0.03; r.frustumCulled = false; sigil.add(r); } sigil.userData.r = [r1, r2]; object.add(sigil);
     }
     // arma melee fusionada en la mano derecha
-    if (pl.mw && MELEE_WEAPONS[pl.mw]) {
+    const iwE = itemOfSlot(eq, 'melee'), igE = itemOfSlot(eq, 'gun');
+    if (iwE) { // arma cuerpo a cuerpo de objeto: reemplaza a la fusionada; las de dos hojas cuelgan de las dos manos
+      const sd = iwE.it.m.dual || iwE.id === 'gemelas_axioma' || iwE.id === 'colmillos_luna';
+      for (const [bn, side] of sd ? [['wrist_R', 'R'], ['wrist_L', 'L']] : [['wrist_R', 'R']]) {
+        const mount = ak.mount(bn, ak.P(bn)); if (!mount) continue; mount.rotation.set(-Math.PI / 2 + 0.2, 0, 0);
+        itemW.push(mountItemWeapon(T, mount, iwE.id, { frame: 'host', size: L.scale * (iwE.it.m.dual ? 0.9 : 1), offset: [0, -0.1, 0], phase: iwE.fase, quality, side }));
+      }
+    } else if (pl.mw && MELEE_WEAPONS[pl.mw]) {
       const mount = ak.mount('wrist_R', ak.P('wrist_R')); if (mount) {
         mount.rotation.set(-Math.PI / 2 + 0.2, 0, 0); // hoja hacia delante
         weapon = attachToViewmodel(T, mount, pl.mw, { frame: 'host', size: 1 * (L.scale), offset: [0, -0.1, 0.0], tier: evo, quality, color: L.glow, aura: false });
       }
+    }
+    if (igE) { // arma de disparo de objeto: cruzada a la espalda
+      const back = ak.mount('spine03', ak.P('spine03').add(new T.Vector3(0, 0.25, -0.16)));
+      if (back) { const g = buildGunBack(T, igE.id, { phase: igE.fase, quality }); g.group.rotation.set(0.2, 0, 0.9); g.group.scale.setScalar(L.scale * 0.9); back.add(g.group); itemW.push({ update: g.update, dispose() { back.remove(g.group); g.dispose(); } }); }
     }
     // órganos del campeón
     if ((pl.cg || []).length) {
@@ -120,14 +145,14 @@ export function createHostBody(THREE, kit, p, opts = {}) {
       if (c !== clip) { clip = c; human.play(c, { fade: 0.16, restart: c === 'punch' || c === 'cast' }); }
       human.update(dt, { speed: spd, moveDir: ctx.moveDir, pitch: ctx.pitch || 0, camera });
       presence.update(dt, time, { speed: spd, moveDir: ctx.moveDir, viewH: ctx.viewH });
-      const evoN = shownEvo, lev = (has2('apoteosis') ? 0.2 + 0.05 * Math.sin(time * 1.6) : has2('anomalia') ? 0.07 + 0.03 * Math.sin(time * 1.2) : 0); // la forma final levita
+      const evoN = shownEvo, lev = ((has2('apoteosis') || has2('reina')) ? 0.2 + 0.05 * Math.sin(time * 1.6) : has2('anomalia') ? 0.07 + 0.03 * Math.sin(time * 1.2) : 0); // la forma final levita
       holder.position.y = (L.hover ? L.hover + 0.035 * Math.sin(time * 1.4) + 0.02 * Math.sin(time * 2.3) : 0) + lev * (L.scale);
       lean += ((has2('velocidad') ? Math.min(1, spd / 7) * 0.16 : has2('depredador') ? 0.05 + Math.min(1, spd / 7) * 0.07 : 0) - lean) * Math.min(1, 6 * dt); holder.rotation.x = lean; // postura: la Velocidad se inclina al correr, el Depredador va encorvado
       const br = 1 + 0.006 * evoN * Math.sin(time * 1.9), pp = presence.pop; holder.scale.set(L.scale * shape.x * pp * (2 - br), L.scale * shape.y * pp * br, L.scale * shape.z * pp * (2 - br)); holder.visible = !presence.hide;
       object.updateWorldMatrix(true, true);
       ak.update(dt, time, { object, speed: spd, glow: presence.boost });
       if (sigil) { const r = sigil.userData.r; r[0].rotation.z += dt * 0.3; r[1].rotation.z -= dt * 0.4; }
-      if (weapon) weapon.update(dt, time);
+      if (weapon) weapon.update(dt, time); for (const w of itemW) w.update(dt, time);
       if (organs) organs.update(dt, time);
       if (extra.update) extra.update(dt, time, ctx);
       presence.object.visible = !(ctx.self && ctx.camDist != null && ctx.camDist < 1.3);
