@@ -67,7 +67,7 @@ export function build(ak, ctx) {
     add('dark', X(G.wrapE(G.plate(t.platePts([[0.0, 0.0], [0.07, 0.012], [0.1, 0.0], [0.07, -0.026], [0, -0.03]]), 0.012, 0.003), 0.116, 0.144), { p: [HC.x, HC.y - 0.002, HC.z] }), 'head', { color: 0x040802 }); // cuenca
     ak.both(() => {
       add('light', G.wrapE(G.plate([[0.012, 0.0], [0.05, 0.02], [0.1, 0.016], [0.082, -0.01], [0.022, -0.016]], 0.013, 0.003), 0.118, 0.148).translate(HC.x, HC.y + 0.004, HC.z + 0.002), 'head', { color: MOSS }); // ojo de luz rasgado
-      ak.halo('head', V(0.058, HC.y + 0.006, HC.z + 0.15), MOSS2, 0.2, 0.55);
+      ak.halo('head', V(0.058, HC.y + 0.006, HC.z + 0.15), MOSS2, 0.13, 0.35);
       add('bark', X(G.wrapE(G.plate([[0.004, 0.03], [0.05, 0.02], [0.095, -0.03], [0.078, -0.09], [0.032, -0.1], [0.004, -0.06]], 0.016, 0.005), 0.114, 0.142), { p: [HC.x, HC.y - 0.015, HC.z], r: [0, 0.4, 0] }), 'head', { color: BM }); // mejilla
       add('light', seam([V(0.04, HC.y - 0.1, HC.z + 0.1), V(0.07, HC.y - 0.06, HC.z + 0.095), V(0.088, HC.y - 0.02, HC.z + 0.075)], 0.0026), 'head', { color: MOSS });
       add('bone', t.box(0.05, 0.05, 0.02, 0.006, 1).translate(0.125, HC.y - 0.005, HC.z - 0.01), 'head', { color: BL }); // oreja de corteza
@@ -103,7 +103,7 @@ export function build(ak, ctx) {
     add('light', G.sphere(0.034, S(10, 7), S(8, 6)).translate(0, 1.29, 0.2), 'spine01', { color: MOSS2 });
     add('crystal', X(new T.OctahedronGeometry(0.044, 0), { p: [0, 1.29, 0.204], s: [0.8, 1.2, 0.8] }), 'spine01', { color: 0x86ff3a });
     for (let i = 0; i < 3; i++) add('bark', G.torus(0.062 + i * 0.006, 0.0075, 4, S(14, 8)).rotateX(Math.PI / 2 + (i - 1) * 0.55).scale(1, 1.25, 1).translate(0, 1.29, 0.206), 'spine01', { color: BM });
-    ak.halo('spine01', V(0, 1.29, 0.25), MOSS, 0.55, 0.55);
+    ak.halo('spine01', V(0, 1.29, 0.25), MOSS, 0.42, 0.42);
     // vientre: costillar de 5 raíces gruesas sobre el vientre verde + espina de raíz
     for (let i = 0; i < 5; i += (low ? 1 : 1)) {
       if (low && i === 4) continue;
@@ -125,6 +125,17 @@ export function build(ak, ctx) {
     shroom('spine01', V(0, 1.42, -0.22), V(0, 1, -0.4), 0.1, 0.05, [MAG, 0xffd8f4]); if (!low) shroom('spine01', V(0.1, 1.38, -0.2), V(0.5, 1, -0.5), 0.07, 0.035, [CYAN, 0xd8fff8]);
     for (let k = 0; k < (low ? 1 : 4); k++) add('light', t.crackLine(V(-0.14 + k * 0.09, 1.42, -0.3), V(-0.1 + k * 0.07, 1.1, -0.22), { n: 9, jag: 0.016, r: 0.0036, seed: 60 + k }), 'spine01', { color: k % 2 ? CYAN : MOSS });
     tuft('spine01', V(0, 1.45, -0.13), low ? 3 : 12, 0.015, 0.03, 0.12, Y, 21);
+  }
+
+  // ═══════════════════════════ DETALLE EXTRA (sólo Media/Alta): escamas de corteza, espinas de la joroba, venas de luz y nudos
+  if (!low) {
+    ak.both(() => {
+      for (let i = 0; i < 3; i++) t.armorPlate('spine01', [[-0.07, 0.07], [0.07, 0.07], [0.085, 0.0], [0.04, -0.08], [-0.04, -0.08], [-0.085, 0.0]], { mat: 'bark', depth: 0.03, bevel: 0.01, wrap: { rx: 0.26, rz: 0.22 }, color: i % 2 ? BM : BL, trim: 'ember', trimColor: i === 1 ? CYAN : MOSS, trimInset: 0.16, place: (g) => X(g, { p: [0.28 + i * 0.015, 1.34 - i * 0.08, 0.0], r: [0, 1.2 + i * 0.25, -0.55] }) }); // escamas sobre el peñasco del hombro
+      for (let k = 0; k < 3; k++) add('bone', spikeAt(V(0.1 + k * 0.07, 1.46 - k * 0.04, -0.2 - k * 0.02), V(0.3 + k * 0.5, 0.9, -0.6), 0.2 - k * 0.04, 0.03 - k * 0.006, 0.03, Y, { ridges: 4, ridgeAmp: 0.2 }), 'spine01', { color: BL }); // espinas de la joroba
+      for (let k = 0; k < 2; k++) add('light', G.tube([V(0.03, 1.29, 0.2), V(0.1 + k * 0.03, 1.33 - k * 0.1, 0.19), V(0.17 + k * 0.01, 1.3 - k * 0.14, 0.15), V(0.22, 1.25 - k * 0.16, 0.08)], 0.0042, 0.0025, { radial: 4, tubular: 14 }), 'spine01', { color: k ? CYAN : MOSS2 }); // venas de luz desde el corazón
+      for (let k = 0; k < 4; k++) add('bark', bonelump(0.028 + (k % 2) * 0.01, [1, 0.8, 1], 40 + k, 0.35).translate(0.19 - k * 0.012, 1.3 - k * 0.07, 0.15 + k * 0.02), 'spine01', { color: BL }); // nudos de corteza
+    });
+    for (let k = 0; k < 6; k++) { const a = k * 1.0 + 0.3; add('bark', G.tube([V(Math.sin(a) * 0.12, 1.16 - k * 0.012, 0.0 + Math.cos(a) * 0.1 - 0.02), V(Math.sin(a) * 0.17, 1.12 - k * 0.012, Math.cos(a) * 0.14 - 0.03), V(Math.sin(a + 0.4) * 0.2, 1.06 - k * 0.012, Math.cos(a + 0.4) * 0.15 - 0.02)], 0.014, 0.01, { radial: 5, tubular: 6 }), 'spine02', { color: BM }); } // raíces que rodean la cintura
   }
 
   // ═══════════════════════════ HOMBROS DESCOMUNALES, BRAZOS ENORMES, PUÑOS DE RAÍZ

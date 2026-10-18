@@ -36,3 +36,25 @@ test('navegador: cámara finita y unitaria; apuntar arriba/abajo mueve la mira; 
     assert.deepEqual(errs, [], errs.join(' | '));
   } finally { await b.close(); await srv.close(); }
 });
+
+test('navegador: todos los tipos de tarjeta (mejora, mutación, órgano de arma, órgano de cuerpo) se muestran sin error', { skip: !hasChromium, timeout: 120000 }, async () => {
+  const { launch } = await import('../tools/browser.js'); const { devices } = await import('playwright-core');
+  const srv = await startServer({ port: 0 }); const b = await launch();
+  const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, userAgent: devices['iPhone 13'].userAgent });
+  const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+  try {
+    await pg.goto(`http://localhost:${srv.port}/?auto=m1&skipintro=1&god=1&seed=3&autoq=0&q=low`); await pg.waitForFunction(() => window.__api && window.__api.session && window.__api.session.game);
+    await pg.evaluate(() => { window.__api.session.touch = true; window.__api.touch.show(true); const b = [...document.querySelectorAll('button')].find((x) => /Entendido/.test(x.textContent)); if (b) b.click(); });
+    await pg.waitForTimeout(800);
+    const sets = [
+      (p) => [{ w: p.slots[1], k: 'organ', t: 'w', id: 'glandula_osea' }, { w: p.slots[0], k: 'organ', t: 'c', id: 'placas' }, { w: p.slots[2], k: 'dmg' }],
+      (p) => [{ w: p.slots[1], k: 'mod', mod: 'cadena' }, { w: p.slots[2], k: 'rate' }, { w: p.slots[3], k: 'mag' }],
+    ];
+    for (const mk of sets) {
+      await pg.evaluate((src) => { const g = window.__api.session.game, p = g.players[0]; p.ess = { carne: 50, cristal: 50, ojo: 50, vacio: 50 }; p.cards = eval('(' + src + ')')(p); g.phase = 'intermission'; g.phaseT = 30; }, mk.toString());
+      await pg.waitForTimeout(1200); assert.equal(await pg.locator('#cardlist .ucard').count(), 3); assert.equal(await pg.evaluate(() => (window.__hudErr ? String(window.__hudErr) : null)), null);
+      await pg.locator('#cardlist .ucard').first().dispatchEvent('pointerdown'); await pg.waitForTimeout(1500);
+    }
+    assert.deepEqual(errs, [], errs.join(' | '));
+  } finally { await b.close(); await srv.close(); }
+});

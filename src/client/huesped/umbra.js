@@ -57,7 +57,9 @@ export function build(ak, ctx) {
 
   // ═══════════════════════════ TORSO: sudario ajustado, peto de obsidiana, filigrana y núcleo que late
   {
-    add('dark', X(G.lathe([[0.17, 0.92], [0.185, 1.08], [0.2, 1.28], [0.175, 1.4], [0.1, 1.47], [0.07, 1.5]], S(16, 10), 0, TAU, 28), { p: [0, 0, 0.02], s: [1, 1, 0.72] }), 'spine01', { color: OBS_D });
+    // sudario ajustado del torso en dos tramos (el bajo sigue a la columna baja y el alto a los hombros: así no asoma la piel al balancearse)
+    add('dark', X(G.lathe([[0.17, 0.9], [0.19, 1.0], [0.2, 1.1], [0.2, 1.2]], S(16, 10), 0, TAU, 28), { p: [0, 0, 0.02], s: [1, 1, 0.8] }), 'spine03', { color: OBS_D });
+    add('dark', X(G.lathe([[0.2, 1.16], [0.2, 1.28], [0.175, 1.4], [0.1, 1.47], [0.07, 1.5]], S(16, 10), 0, TAU, 28), { p: [0, 0, 0.02], s: [1, 1, 0.8] }), 'spine01', { color: OBS_D });
     ak.both((s) => {
       t.armorPlate('spine01', [[0.012, 0.125], [0.08, 0.14], [0.15, 0.1], [0.162, 0.01], [0.12, -0.075], [0.06, -0.12], [0.012, -0.1]], { mat: 'mirror', depth: 0.03, bevel: 0.01, wrap: { rx: 0.176, rz: 0.13 }, place: (g) => X(g, { p: [0, 1.295, 0.04], r: [0.07, 0, 0] }), color: OBS, trim: 'ember', trimColor: VIO, trimInset: 0.14, trimR: 0.0032 });
       // filigrana: ramas de luz que nacen del núcleo y suben hacia los hombros
@@ -88,7 +90,7 @@ export function build(ak, ctx) {
     const S0 = P('upperarm01'), E0 = P('lowerarm01'), W0 = P('wrist'), P0 = S0.clone().add(V(0, 0.055, 0)), big = s === 'L';
     for (let i = 0; i < (low ? 3 : 4); i++) {
       const R0 = 0.128 - i * 0.006, len = 0.14 + (i === 0 ? 0.04 : 0), wArc = 0.28 - i * 0.02, th = 0.018 - i * 0.002;
-      t.armorPlate('upperarm01', [[-wArc / 2, 0.0], [-wArc * 0.5, len * 0.55], [-wArc * 0.3, len], [0, len * 1.1], [wArc * 0.3, len], [wArc * 0.5, len * 0.55], [wArc / 2, 0.0]], { mat: 'mirror', depth: th, bevel: th * 0.38, wrap: { rx: R0, rz: R0 * 0.94 }, color: i % 2 ? OBS : 0x382458, trim: i < 2 ? 'ember' : null, trimColor: VIO, trimInset: 0.1, trimR: 0.0028,
+      t.armorPlate('upperarm01', [[-wArc / 2, 0.0], [-wArc * 0.5, len * 0.55], [-wArc * 0.3, len], [0, len * 1.1], [wArc * 0.3, len], [wArc * 0.5, len * 0.55], [wArc / 2, 0.0]], { mat: 'mirror', depth: th, bevel: th * 0.38, wrap: { rx: R0, rz: R0 * 0.94 }, color: i % 2 ? OBS : 0x382458, trim: i < 2 ? 'ember' : null, lowSkip: i > 0, trimColor: VIO, trimInset: 0.1, trimR: 0.0028,
         place: (g) => { X(g, { r: [-Math.PI / 2, 0, -Math.PI / 2] }); return X(g, { p: [P0.x + 0.02 + i * 0.04, P0.y - i * 0.035, P0.z], r: [0, 0, -0.1 - i * 0.2] }); } });
     }
     // esquirlas de espejo que brotan del hombro (la izquierda, más alta; la derecha, rota con luz en la fractura)
@@ -113,7 +115,7 @@ export function build(ak, ctx) {
   });
 
   // ═══════════════════════════ HOJA DIMENSIONAL (mano derecha): atraviesa dos planos de luz y reaparece desplazada
-  ak.one('R', () => {
+  if (!ctx.melee) ak.one('R', () => { // si el jugador fusionó un arma melee, ella ocupa la mano derecha
     const W0 = P('wrist'), D = V(0.85, 0.2, 0.62).normalize(), tip = (u) => W0.clone().addScaledVector(D, u), seg = (g, u, off, col, mat = 'mirror') => add(mat, limb(g, W0, tip(1), u, { off }), 'wrist', { color: col });
     seg(t.box(0.03, 0.04, 0.16, 0.01, 1), 0.04, [0, 0, 0], OBS); // empuñadura
     seg(t.box(0.05, 0.05, 0.05, 0.01, 1), 0.075, [0, 0, 0], VIO, 'light');
@@ -122,7 +124,7 @@ export function build(ak, ctx) {
     for (const [u0, u1, dx, w] of parts) {
       const len = u1 - u0, ang = 0.0, base = limb(G.blade(len, w, 0.014, { n: low ? 3 : 6, tipLean: u1 > 1.3 ? 0.12 : 0 }), tip(0), tip(1), 0, { off: [dx, 0, 0] }); void ang;
       base.translate(D.x * u0, D.y * u0, D.z * u0); add('mirror', base, 'wrist', { color: u0 > 1 ? MIRV : OBS });
-      const edge = limb(G.blade(len, 0.022, 0.02), tip(0), tip(1), 0, { off: [dx, 0, 0.001] }); edge.translate(D.x * u0, D.y * u0, D.z * u0); add('light', edge, 'wrist', { color: VIO });
+      const edge = limb(G.blade(len, 0.05, 0.022), tip(0), tip(1), 0, { off: [dx, 0, 0.001] }); edge.translate(D.x * u0, D.y * u0, D.z * u0); add('light', edge, 'wrist', { color: VIO });
     }
     // planos: marco de luz + membrana translúcida perpendicular a la hoja
     for (const [u, sz, dx] of [[0.54, 0.3, 0.045], [0.965, 0.38, 0.14]]) {
@@ -145,11 +147,11 @@ export function build(ak, ctx) {
     { const cm = ak.material('cloth'); cm.map = null; cm.roughnessMap = null; cm.roughness = 0.62; cm.metalness = 1; cm.envMapIntensity = 0.8; cm.color.set(0xffffff); cm.needsUpdate = true; } // tela lisa: el color sale del vértice (sin el tono marrón del lino)
     const flare = (cl, k, cx, cz, pw = 1.4) => { for (let i = 0; i < cl.rows; i++) for (let j = 0; j < cl.cols; j++) { const b = cl.bind[i * cl.cols + j], f = i / (cl.rows - 1); const dx = cl.top[j].p.x - cx, dz = cl.top[j].p.z - cz, l = Math.hypot(dx, dz) || 1; b.x += (dx / l) * k * Math.pow(f, pw); b.z += (dz / l) * k * Math.pow(f, pw); } return cl; }; // abre el vuelo de la tela hacia afuera
     // bordados: dos cintas de luz alrededor del sudario con glifos entre ellas
-    for (const [y, r0] of [[0.74, 0.228], [0.5, 0.25]]) { add('ember', G.torus(r0, 0.0032, 3, S(36, 18)).scale(1, 1, 0.92).translate(0, y, 0.02), 'spine05', { color: VIO }); add('ember', G.torus(r0 + 0.003, 0.0032, 3, S(36, 18)).scale(1, 1, 0.92).translate(0, y - 0.05, 0.02), 'spine05', { color: VIO });
+    for (const [y, r0] of [[0.74, 0.228], [0.5, 0.25]]) { add('ember', G.torus(r0, 0.0032, 3, S(36, 18)).scale(1, 1, 0.92).translate(0, y, 0.02), 'spine05', { color: VIO }); if (!low) add('ember', G.torus(r0 + 0.003, 0.0032, 3, S(36, 18)).scale(1, 1, 0.92).translate(0, y - 0.05, 0.02), 'spine05', { color: VIO });
       const gl = []; const rg = t.rng(Math.round(y * 100)); for (let i = 0; i < (low ? 16 : 28); i++) { const a = (i / (low ? 16 : 28)) * TAU, w = 0.008 + rg() * 0.016, hh = 0.012 + rg() * 0.022; const g = new T.PlaneGeometry(rg() > 0.5 ? w : 0.004, hh).translate(0, y - 0.025, 0); X(g, { p: [Math.sin(a) * (r0 + 0.012), 0, 0.02 + Math.cos(a) * (r0 + 0.012) * 0.92], r: [0, a, 0] }); gl.push(g); }
       add('light', G.merge(gl), 'spine05', { color: VIO }); }
     // filigrana en el sudario: ramas de luz que bajan por la espalda
-    for (let k = -2; k <= 2; k++) { const pts = []; for (let i = 0; i <= 6; i++) { const y = 0.95 - i * 0.14, x = k * (0.03 + i * 0.018) + Math.sin(i * 1.3 + k) * 0.012, rr = (0.2 + i * 0.016) * 1.1; pts.push(V(x, y, 0.02 - Math.sqrt(Math.max(0.001, rr * rr - x * x)) * 0.93)); } add('ember', seam(pts, 0.0024), 'spine05', { color: VIO }); }
+    for (let k = -2; k <= 2; k += (low ? 2 : 1)) { const pts = []; for (let i = 0; i <= 6; i++) { const y = 0.95 - i * 0.14, x = k * (0.03 + i * 0.018) + Math.sin(i * 1.3 + k) * 0.012, rr = (0.2 + i * 0.016) * 1.1; pts.push(V(x, y, 0.02 - Math.sqrt(Math.max(0.001, rr * rr - x * x)) * 0.93)); } add('ember', seam(pts, 0.0024), 'spine05', { color: VIO }); }
     // pinta la tela por vértice (bandas y rayas de luz tenue: la tela no tiene costuras propias)
     const paint = (cl, bands, stripe) => { const c = cl.geo.attributes.color; for (let i = 0; i < cl.rows; i++) for (let j = 0; j < cl.cols; j++) { const k = i * cl.cols + j, f = i / (cl.rows - 1); let m = 1, v = 0; for (const b of bands) { const d = Math.abs(f - b) / 0.06; if (d < 1) v = Math.max(v, 1 - d); } if (stripe && j % stripe === 0 && f > 0.1) v = Math.max(v, 0.45 * Math.min(1, f * 2)); m = 1 + v * 2.2; c.setXYZ(k, c.getX(k) * (1 + v * 1.6), c.getY(k) * (1 + v * 0.9), c.getZ(k) * m); } c.needsUpdate = true; return cl; };
     // faldón de telas: anillo de 18 jirones de largo distinto
@@ -165,6 +167,7 @@ export function build(ak, ctx) {
     ak.collider('spine02', V(0, 1.0, 0.045), V(0, 1.36, 0.045), 0.18); ak.collider('spine05', V(0, 0.86, 0.045), V(0, 0.98, 0.045), 0.21); ak.collider('spine05', V(0, 0.3, 0.03), V(0, 0.8, 0.03), 0.3);
     ak.both(() => { ak.collider('upperleg01', P('upperleg01'), P('lowerleg01'), 0.13);
       const H = P('upperleg01'), K = P('lowerleg01'), A = P('foot'); // piernas y pies cubiertos de sombra (por si asoman bajo el sudario)
+      if (low) return;
       add('dark', limb(cuff(0.1, 0.08, H.distanceTo(K) * 0.98, 0.01, S(9, 6), 20), H, K, 0.5), 'upperleg01', { color: OBS_D });
       add('dark', limb(cuff(0.075, 0.06, K.distanceTo(A) * 0.98, 0.01, S(9, 6), 20), K, A, 0.5), 'lowerleg01', { color: OBS_D });
     });
@@ -211,7 +214,7 @@ export function build(ak, ctx) {
     const ring = (name, parent, c, R0, h, nG, seed, tilt = null) => {
       const rr = t.rng(seed), pb = tilt ? ak.bone(name + 'T', parent, c) : null, sb = ak.bone(name, tilt ? name + 'T' : parent, c);
       add('mirror', X(G.band(R0, h, 0.016, { seg: S(36, 18), simple: low }), { p: [c.x, c.y, c.z] }), name, { color: OBS });
-      add('ember', X(G.torus(R0 + 0.001, 0.0032, 3, S(36, 18)), { p: [c.x, c.y + h * 0.5, c.z] }), name, { color: VIO }); add('ember', X(G.torus(R0 + 0.001, 0.0032, 3, S(36, 18)), { p: [c.x, c.y - h * 0.5, c.z] }), name, { color: VIO });
+      add('ember', X(G.torus(R0 + 0.001, 0.0032, 3, S(36, 18)), { p: [c.x, c.y + h * 0.5, c.z] }), name, { color: VIO }); if (!low) add('ember', X(G.torus(R0 + 0.001, 0.0032, 3, S(36, 18)), { p: [c.x, c.y - h * 0.5, c.z] }), name, { color: VIO });
       for (let i = 0; i < nG; i++) {
         const a = (i / nG) * TAU, gs = [], nb = 2 + ((rr() * 2) | 0), gw = (R0 * TAU / nG) * 0.55;
         for (let k = 0; k < nb; k++) { const horiz = rr() > 0.5, w = horiz ? gw * (0.4 + rr() * 0.6) : 0.008, hh = horiz ? 0.008 : h * (0.35 + rr() * 0.5); gs.push(new T.PlaneGeometry(w, hh).translate((rr() - 0.5) * gw * 0.7, (rr() - 0.5) * h * 0.4, 0.003)); }
@@ -240,7 +243,7 @@ export function build(ak, ctx) {
       add('ember', seam([V(hub.x + c(a0) * r0, hub.y + sn(a0) * r0, hub.z - 0.012), V(hub.x + c(a0) * (r0 + r1) * 0.5, hub.y + sn(a0) * (r0 + r1) * 0.5, hub.z - 0.012), V(hub.x + c(a0) * r1 * 1.03, hub.y + sn(a0) * r1 * 1.03, hub.z - 0.012)], 0.0028), 'espejo', { color: VIO });
     }
     add('light', X(G.sphere(0.03, 8, 6), { p: [hub.x, hub.y, hub.z - 0.01], s: [1, 1, 0.5] }), 'espejo', { color: 0xffffff });
-    add('ember', G.torus(R1 * 1.3, 0.0035, 3, S(30, 16)).rotateX(Math.PI / 2).translate(hub.x, hub.y, hub.z), 'espejo', { color: VIO });
+    if (!low) add('ember', G.torus(R1 * 1.3, 0.0035, 3, S(30, 16)).rotateX(Math.PI / 2).translate(hub.x, hub.y, hub.z), 'espejo', { color: VIO });
     ak.halo('espejo', V(hub.x, hub.y, hub.z - 0.05), VIO, 0.5, 0.35);
     upd.push((dt, tt) => { mb.rotation.set(0.06 * Math.sin(tt * 0.6), 0.1 * Math.sin(tt * 0.45), tt * 0.08); mb.scale.setScalar(1 + 0.05 * uBeat.value); });
   }
