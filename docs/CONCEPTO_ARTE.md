@@ -75,3 +75,6 @@ relleno que sigue al Huésped, charco de luz bajo los pies y resplandor detrás,
 (claro sobre fondos oscuros, oscuro sobre fondos claros) y un piso tintado en las sombras (conserva el tono de cada mapa). Los mapas ya claros
 (m4–m6) reciben menos relleno (`MAP_OSCURO` en `src/client/quality.js`). Ajuste del jugador: «Claridad» Normal/Alta (pausa, o `?claridad=alta`).
 Medición: `node tools/legibilidad.mjs <carpeta> low,high m1,m2,m3,m4,m5,m6 normal|alta` (contraste silueta/fondo: ratio de luma ≥ 1,5 o ΔE ≥ 30).
+
+## Luz y nieblas por arena
+Cada arena tiene su luz propia (dirección y color del sol, contraluz, luces de sus órganos y un ciclo día → ocaso → eclipse que **no toca el día medido**): ver `docs/MAPAS.md` → «Luz de las arenas». Las **nieblas de colores** (verde ácido, cian, magenta, ámbar, blanca y del vacío) son zonas con función de juego, no decorado: ver `docs/MUNDO_VIVO.md` → «Nieblas tóxicas de colores». Los gráficos se eligen en el menú **Gráficos** (`docs/GRAFICOS.md`).

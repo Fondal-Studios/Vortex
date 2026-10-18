@@ -43,7 +43,7 @@ export function build(ak, ctx) {
       const nz = V(0, 0, 0.0012).applyQuaternion(q);
       add('light', X(disc(w * 0.34, low ? 6 : 9), { q, p: [tp.x, tp.y, tp.z], s: [1, 1.25, 1] }), bone, { color: o.eyeC ?? MAR });
       add('light', X(disc(w * 0.2, low ? 5 : 8), { q, p: [tp.x + nz.x, tp.y + nz.y, tp.z + nz.z], s: [1, 1.25, 1] }), bone, { color: o.eyeD ?? PLUM_L });
-      add('light', X(disc(w * 0.11, 5), { q, p: [tp.x + nz.x * 2, tp.y + nz.y * 2, tp.z + nz.z * 2], s: [1, 1.25, 1] }), bone, { color: o.eyeI ?? TUR });
+      if (!low) add('light', X(disc(w * 0.11, 5), { q, p: [tp.x + nz.x * 2, tp.y + nz.y * 2, tp.z + nz.z * 2], s: [1, 1.25, 1] }), bone, { color: o.eyeI ?? TUR });
     }
     return g;
   }
@@ -65,7 +65,7 @@ export function build(ak, ctx) {
   /** Flor de cempasúchil: dos coronas de pétalos y un corazón de luz. */
   function flower(bone, c, s = 1, nx = V(0, 0, 1), col = MAR) {
     const q = t.basisQ(nx, Y), cc = V().copy(c);
-    for (let k = 0; k < 2; k++) add('light', X(G.torus(0.024 * s - k * 0.006 * s, 0.0125 * s, 4, low ? 7 : 11).rotateX(Math.PI / 2), { q, p: [cc.x + nx.x * k * 0.006 * s, cc.y + nx.y * k * 0.006 * s, cc.z + nx.z * k * 0.006 * s] }), bone, { color: k ? 0xffd070 : col });
+    for (let k = 0; k < (low ? 1 : 2); k++) add('light', X(G.torus(0.024 * s - k * 0.006 * s, 0.0125 * s, low ? 3 : 4, low ? 6 : 11).rotateX(Math.PI / 2), { q, p: [cc.x + nx.x * k * 0.006 * s, cc.y + nx.y * k * 0.006 * s, cc.z + nx.z * k * 0.006 * s] }), bone, { color: k ? 0xffd070 : col });
     add('light', X(G.sphere(0.011 * s, 5, 4), { p: [cc.x + nx.x * 0.012 * s, cc.y + nx.y * 0.012 * s, cc.z + nx.z * 0.012 * s] }), bone, { color: FUC });
   }
   // ───────────────────────── cráneo: radio del casco a una altura y z delante del casco en (x, y)
@@ -88,7 +88,7 @@ export function build(ak, ctx) {
       add('light', X(G.torus(0.0285, 0.0036, 3, S(14, 8)).rotateX(Math.PI / 2), { p: [ex, HC.y + ey, HC.z + ez + 0.008], s: [1, 1.18, 1] }), 'head', { color: FUC });
       add('light', X(G.sphere(0.0085, 5, 4), { p: [ex, HC.y + ey - 0.002, HC.z + ez + 0.004] }), 'head', { color: TUR });
       // pétalos de azúcar alrededor del ojo
-      const np = low ? 5 : 8;
+      const np = low ? 4 : 8;
       for (let i = 0; i < np; i++) { const a = -0.4 + (i / (np - 1)) * (Math.PI * 1.7); const px = ex + Math.cos(a) * 0.043, py = ey + Math.sin(a) * 0.05; add('light', sline([[ex + Math.cos(a) * 0.033, ey + Math.sin(a) * 0.04], [px, py]], 0.0029, 0.0035), 'head', { color: i % 2 ? MAR : TUR }); add('light', X(G.sphere(0.0046, 4, 3), { p: [fp(px, py, 0.004).x, fp(px, py, 0.004).y, fp(px, py, 0.004).z] }), 'head', { color: i % 2 ? FUC : MAR }); }
       // enredadera turquesa que baja por la mejilla
       add('light', sline([[0.075, -0.018], [0.082, -0.04], [0.074, -0.06], [0.062, -0.078], [0.07, -0.098]], 0.0028), 'head', { color: TUR });
@@ -254,12 +254,12 @@ export function build(ak, ctx) {
 
   // ═══════════════════════════ EVOLUCIÓN PROPIA: nivel 3 = flores en órbita, nivel 4 = rueda de máscaras giratoria
   if (evo >= 3) {
-    const orb = ak.bone('orbita', 'spine05', V(0, 0.95, 0)), nfl = low ? 4 : 6;
+    const orb = ak.bone('orbita', 'spine05', V(0, 0.95, 0)), nfl = low ? 3 : 6;
     for (let i = 0; i < nfl; i++) { const a = (i / nfl) * Math.PI * 2; flower('orbita', V(Math.sin(a) * 0.46, 0.95 + 0.12 * Math.sin(i * 2), Math.cos(a) * 0.46), 1.1, V(Math.sin(a), 0, Math.cos(a)), CYC[i % 3]); }
     upd.push((dt, tt) => { orb.rotation.y = tt * 0.7; });
   }
   if (evo >= 4) {
-    const hub = V(0, 1.34, -0.3), wh = ak.bone('ruedaMascaras', 'spine01', hub), nm = low ? 6 : 9;
+    const hub = V(0, 1.34, -0.3), wh = ak.bone('ruedaMascaras', 'spine01', hub), nm = low ? 5 : 9;
     add('light', X(G.torus(0.34, 0.006, 3, S(30, 14)), { p: [hub.x, hub.y, hub.z], r: [Math.PI / 2, 0, 0] }), 'ruedaMascaras', { color: FUC });
     add('light', X(G.torus(0.3, 0.0035, 3, S(30, 14)), { p: [hub.x, hub.y, hub.z], r: [Math.PI / 2, 0, 0] }), 'ruedaMascaras', { color: TUR });
     for (let i = 0; i < nm; i++) {   // calaveritas de azúcar con ojos de luz que giran con la rueda

@@ -106,3 +106,27 @@ Cada arena tiene un **organismo vivo** (nombre, folclore, órganos, fases: ver `
 - **m5 — Reloj Hambriento:** el Péndulo da la campanada (anillo de 8 m, aviso 1,8 s); la Manecilla de la Fuente gira como un reloj (las coberturas la frenan); los Adoquines de Luz aceleran de la Calle a la Plaza.
 - **m6 — Osario Insomne:** manos de hueso brotan donde estás quieto (aviso 1,5 s); el Respiradero respira ceniza que sana o quema; el Costillar da +25 % de daño; el corazón roto **vuelve a los 26 s**.
 Capturas de cada órgano en cada fase: `node tools/shot-arenas.js todas shots/arenas low --fase=furioso,aviso`.
+
+## Luz de las arenas (dueño, 2026-10-18)
+**Idea:** cada arena tiene su **propia luz**: dirección y color del sol, un **contraluz** de otro color, **luces puntuales de ambiente ligadas a sus órganos vivos** y un **ciclo suave día → ocaso → eclipse del limbo**. La psicodelia flashera sigue a tope; lo que cambia es el *tono* y el *ánimo*, no la lectura.
+**Código:** `src/client/luz-arenas.js` (datos `LUZ` + funciones puras probadas en `tests/luz-arenas.test.js` + la clase `LuzArenas` que `render.js` actualiza cada cuadro).
+
+### La luz de cada arena
+| Arena | Luz de día (la medida por `tools/legibilidad.mjs`) | Ocaso | Eclipse | Luz del órgano (Baja: sólo la primera) |
+|---|---|---|---|---|
+| **m1** Vacío de Islas | sol frío y alto desde atrás a la izquierda · contraluz magenta | sol rosado que se hunde tras las islas · contraluz cian | sol violeta apagado · contraluz magenta fuerte | corazón (magenta si está furioso, cian si no) · Linterna cian que sigue a quien corre por la Corriente de Luz |
+| **m2** Cámara Fractal | sol interior ámbar-rosa (la luz sale del centro de la esfera) | violeta frío · contraluz ámbar | sólo brillan los bordes del espejo | Núcleo de Eco · Fuelle de Espejo |
+| **m3** Laberinto Celestial | cenital blanco-menta con rayos oblicuos · contraluz rosa | dorado · contraluz menta | blanco hielo · contraluz menta | Siringe de Cristal · Coro de Cristal |
+| **m4** Jardín de Carne | luz tibia rosada de costado · contraluz verde ácido | rojo carne | casi negro rojizo con el corazón latiendo | Corazón del Jardín · Pulmón de Esporas |
+| **m5** Plaza de los Ecos | sol bajo azulado detrás de la torre del reloj · contraluz rosa | oro de farol · contraluz dorado | azul cobalto frío · contraluz dorado | Péndulo del Reloj · Adoquines de Luz (sigue al jugador a lo largo del carril) |
+| **m6** Osario sin Techo | marfil que entra por la nave desde el fondo · contraluz turquesa | brasa naranja | rojo ceniza · contraluz de brasa | Corazón Calcificado · Respiradero de Brasas |
+
+### Reglas (para no perder la legibilidad que ya se logró)
+- **El día es la luz base de cada mapa, intacta.** `luz-arenas.js` guarda lo que fijó el constructor del mapa (en m3-m6 es asíncrono) y mezcla *sobre* eso; en día no cambia nada (la prueba lo exige).
+- **Ocaso y eclipse sólo cambian tono y dirección:** el sol nunca baja de ×0,72, el cielo de relleno nunca de ×0,94, el contraluz sube (×1,25-1,3 al ocaso, ×1,7-1,8 en el eclipse) y el sol gira ≤ 40° (así el disco del cielo sigue cerca). Cuando el sol baja, **sube el relleno que sigue al Huésped** (hasta ×1,6: lo que se oscurece lo compensa su propia luz, ver «Claridad» en `docs/CONCEPTO_ARTE.md`).
+- **Ciclo:** sigue el avance del mundo (oleada 1 = día, mitad = ocaso, jefe = ocaso profundo) más un pulso lento de 90 s que nunca baja de «día» en la oleada 1. El evento **«Eclipse»** lo lleva al eclipse completo mientras dura. `?ciclo=dia|ocaso|eclipse` lo congela (capturas y mediciones: `CICLO=ocaso node tools/legibilidad.mjs …`).
+- **Luces de órgano:** 2 `PointLight` siempre en la escena (intensidad 0 si no hacen falta: no se recompilan los materiales), **una en Baja**. Color de la paleta de la arena (ayuda · amenaza), intensidad 46-62 × la fase (dormido 0,35 · despierto 0,7 · furioso 1,15 con latido más rápido · ofrenda 0,9); casi apagada si el órgano está roto.
+- Capturas: `node tools/shot-nieblas.mjs todas shots/nieblas low ocaso luz`.
+
+## Nieblas de colores por arena
+Cada arena tiene 2 nieblas temáticas (más las nubes de los pulmones y las de los eventos): ver la tabla completa y las reglas en `docs/MUNDO_VIVO.md` → «Nieblas tóxicas de colores». m1 cian + vacío · m2 magenta + ámbar · m3 blanca + cian · m4 ácida + magenta · m5 ámbar + blanca · m6 vacío + ácida. Las nubes se ven sobre el suelo de cada mapa con un aro del color de la niebla (siempre visible, aun con las nubes apagadas en Baja).

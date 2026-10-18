@@ -68,6 +68,7 @@ export class MenuUI {
     const l = this.list(); if (!l.length) return; this.idx = (i + l.length) % l.length;
     l.forEach((e, k) => e.classList.toggle('focus', k === this.idx));
     const el = l[this.idx]; if (this.screen === 'main') this.updateHero(el.dataset.go || el.dataset.hero);
+    if (this.screen === 'graficos' && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
     if (this.screen === 'bestiary') this.selectBeast(this.idx);
     if (!silent) this.sound.ui('tick');
   }

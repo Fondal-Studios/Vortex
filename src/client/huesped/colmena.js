@@ -205,8 +205,8 @@ export function build(ak, ctx) {
   if (has('aguijon')) {   // lanzas de veneno en los antebrazos
     ak.both(() => {
       const E0 = P('lowerarm01'), W0 = P('wrist');
-      add('dark', limb(G.tube([V(0, 0, 0), V(-0.01, 0.25, 0.03), V(-0.03, 0.55, 0.14), V(-0.04, 0.8, 0.36)], 0.032, 0.004, { radial: S(6, 4), tubular: S(14, 9), ridges: 3, ridgeAmp: 0.16 }), E0, W0, 0.9, { off: [-0.075, 0, -0.04], r: [Math.PI, 0, 0] }), 'wrist', { color: CHD });
-      add('light', limb(G.sphere(0.011, 5, 4).translate(-0.04, 0.8, 0.36), E0, W0, 0.9, { off: [-0.075, 0, -0.04], r: [Math.PI, 0, 0] }), 'wrist', { color: CORAL });
+      add('dark', limb(G.tube([V(0, 0, 0), V(0.0, 0.2, 0.0), V(0.0, 0.42, 0.06), V(0.0, 0.62, 0.2)], 0.03, 0.004, { radial: S(6, 4), tubular: S(14, 9), ridges: 3, ridgeAmp: 0.16 }), E0, W0, 1.05, { off: [-0.03, 0, -0.045] }), 'wrist', { color: CHD });
+      add('light', limb(G.sphere(0.011, 5, 4).translate(0.0, 0.62, 0.2), E0, W0, 1.05, { off: [-0.03, 0, -0.045] }), 'wrist', { color: CORAL });
       for (let k = 0; k < (low ? 1 : 3); k++) add('dark', spikeAt(P('spine01').add(V(0.12 + k * 0.05, 0.14 - k * 0.02, -0.16 - k * 0.02)), V(0.4 + k * 0.4, 1, -0.7), 0.2 - k * 0.04, 0.02, 0.03, Zv, { radial: S(5, 4) }), 'spine01', { color: CH });
     });
   }

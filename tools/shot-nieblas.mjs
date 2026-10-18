@@ -34,7 +34,7 @@ for (const MAP of maps) {
     if (t) await pg.evaluate(async (t) => { const N = window.__NG, g = window.__api.session.game, p = g.players[0]; g.ng.zonas = g.ng.zonas.filter((z) => z.src === 'arena'); N.nieblaTemporal(g, t, { x: p.pos.x, y: p.pos.y + p.up.y * 1.2, z: p.pos.z }, 9, 600); }, t);
     await pg.waitForTimeout(5500);
     const info = await pg.evaluate(() => { const r = window.__api.renderer, i = r.gl.info.render; return { calls: i.calls, tris: i.triangles, nube: r.nfx ? r.nfx.cloud.geometry.instanceCount : 0 }; });
-    await pg.screenshot({ path: `${OUT}/${MAP}-${MODO}-${CICLO}${t ? '-' + t : ''}.png` });
+    await pg.screenshot({ path: `${OUT}/${MAP}-${MODO}-${CICLO}${t ? '-' + t : ''}.png`, timeout: 240000 });
     console.log(`${MAP} ${MODO} ${CICLO}${t ? ' ' + t : ''}: llamadas ${info.calls} triángulos ${info.tris} nubes ${info.nube}`);
   }
   await pg.close();

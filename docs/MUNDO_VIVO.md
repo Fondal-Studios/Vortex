@@ -151,3 +151,46 @@ Los cambios de fase salen como evento `{t:'ar', m, ph}` y el cliente los muestra
 - `node --test tests/arenas-vivas-render.test.js` (Chromium por software, ≈ 5 min): presupuesto en Baja con `renderer.info`. Capturas y medición por órgano: `node tools/shot-arenas.js todas shots/arenas low --fase=furioso,aviso`.
 - **Medido (2026-10-18):** *bots* (8 semillas, habilidad 1,2; victorias CON organismo / SIN él): m1 8/8 · 7/8, m2 8/8 · 8/8, m3 7/8 · 5/8, m4 6/8 · 6/8, m5 7/8 · 7/8, m6 6/8 · 4/8. Los bots de prueba **no esquivan avisos ni buscan beneficios** (sólo se llevan algún golpe y aprovechan sin querer una vena o una boca): sirven para demostrar que el organismo no vuelve injugable la arena, no para afinar el equilibrio humano. *Render (Baja, `renderer.info`, peor cuadro con los 3 órganos a la vista):* m1 12 llamadas / 2 930 triángulos · m2 5 / 1 860 · m3 8 / 1 728 · m4 8 / 2 720 · m5 7 / 1 338 · m6 8 / 2 178 agregados a la escena (con un aviso de ataque suman ≤ 3 llamadas más).
 - **Conocido y previo a este trabajo:** `tests/limbo-mapas.test.js` falla en «m6: el jefe es derrotable» (los bots de prueba ganan 1 de 4 en m6 incluso sin organismo; con el organismo ganan más) y `tests/map4.test.js` («llegan al jefe») y dos pruebas de `tests/e2e.test.js` (coop por tiempo agotado y «el modo básico esconde mov») fallan igual en el commit `aec4d29`, antes de las arenas vivas.
+
+## Nieblas tóxicas de colores: zonas con función (dueño, 2026-10-18)
+**Idea:** las nieblas dejan de ser un adorno. Hay **6 colores** y cada uno **hace algo** en el juego (ayuda, castiga o cambia cómo peleás). Todas se **ven venir** (círculo en el suelo que parpadea + cartel de aviso) antes de actuar, y todas **respiran**: aparecen, actúan un rato y se retiran. Cada arena tiene **2 nieblas temáticas**; además las sueltan los **pulmones** de las arenas vivas y los eventos **«Niebla de Almas»** y **«Marea de Sangre»** (que ahora usan este sistema, no uno aparte).
+**Código:** `src/sim/nieblas.js` (determinista, sin DOM; rng propio `g.ngRng`, nunca `g.rng`) · cliente `src/client/nieblas-fx.js` · enganches de 1 línea en `game.js` y 2 en `eventos.js` (`nieblaEvento`).
+
+### Los 6 colores
+| Color | Nombre / función | Qué hace dentro | Contrajuego |
+|---|---|---|---|
+| **Verde ácido** | **Niebla ácida** · veneno | Quema ≈ 2,6 de vida/s (+0,08 por oleada; **nunca deja menos de 8**), te frena al 78 %. A las criaturas las frena y las quema 4,5/s (jefes no). | Salir del círculo; llevar criaturas adentro. |
+| **Cian** | **Niebla restauradora** · cura | +4,5 de vida/s y +9 de escudo/s. **Atrae** a las criaturas hacia su centro (3,2 m/s, hasta 2,2 radios). | Es un descanso con precio: te vienen a buscar. |
+| **Magenta** | **Niebla alucinógena** · ecos falsos | Siluetas brillantes que no existen (en pantalla y en el radar de bordes) y tu rumbo se tuerce un poco al caminar (±0,2 rad, lento; **se apaga con «Reducir efectos»**). A cambio, **+15 % de daño**. | Mirar la barra de vida de la criatura, no el eco. |
+| **Ámbar** | **Niebla de frenesí** | **+30 % de daño hecho y recibido** por todo el que esté adentro: vos, las criaturas y otros jugadores. | Entrar a propósito para cerrar una pelea, o evitarla con poca vida. |
+| **Blanco** | **Niebla de ocultamiento** | Las criaturas a más de 9 m **dejan de verte**. Los jefes no se engañan y quien recibe un disparo tuyo te ve 3 s. | No sirve para disparar «gratis» a jefes; sirve para respirar y reagruparse. |
+| **Negro violeta** | **Niebla del vacío** · drena | Congela la recarga de TODAS tus habilidades (rol, desplazamiento, especial, 3.ª, combo) y apaga la carga de la definitiva (−8/s). | Cruzarla rápido; no empezar una pelea larga adentro. |
+
+### Reglas de justicia y de diseño
+- **Aviso:** toda niebla dañina muestra su círculo parpadeando y el cartel «¡Se acerca niebla X!» **≥ 2 s** (`NIEBLA.avisoMin`) antes de actuar (2,4 s las dañinas; 0,8-1,2 s las buenas).
+- **Respiro:** entre oleadas y en el campo de pruebas, las dañinas **duermen**. Ninguna actúa en la oleada 1 (ácida, magenta y ámbar desde la 2; vacío desde la 3).
+- **El veneno no mata** (deja ≥ 8 de vida) y el ámbar sólo multiplica lo que ya pasa: nunca una niebla te deja en el suelo sola.
+- **Determinismo:** el azar (compás de cada ciclo ±8 %, dirección de las nubes de los pulmones, posición de los bancos de evento) sale de `g.ngRng` (derivado de la semilla). `tests/nieblas.test.js` cuenta las llamadas de azar: `tickNieblas` nunca consume `g.rng`, `g.evRng` ni `g.arRng`.
+- **Máximo 9 zonas vivas** (`NIEBLA.maxZonas`); el cliente las dibuja todas con un solo `InstancedMesh`.
+- **Bajas:** si el ácido mata a una criatura, la baja se acredita al jugador vivo más cercano (igual que las arenas vivas).
+
+### Orígenes de niebla
+- **Arena (2 por mapa, fijas, ciclo de 36-44 s con aviso → activa → dormida):** m1 Vacío de Islas **cian** «Bruma de Luz Mala» + **vacío** «Vacío de la Isla» · m2 Cámara Fractal **magenta** «Niebla de Espejos» + **ámbar** «Brasa del Espejo» · m3 Laberinto **blanca** «Silbido Blanco» + **cian** «Aliento del Coro» · m4 Jardín **ácida** «Esporas Agrias» + **magenta** «Esporas del Sueño» · m5 Plaza **ámbar** «Hora de Oro» + **blanca** «Bruma de la Plaza» · m6 Osario **vacío** «Ceniza del Osario» + **ácida** «Moho de Hueso». (Los 6 colores salen dos veces.) Anclas: puntos de objetivo del mapa (`spots`), nunca encima de la aparición de una niebla dañina.
+- **Órgano:** el **Fuelle de Espejo (m2), el Pulmón de Esporas (m4) y el Respiradero de Brasas (m6)** sueltan una nube de 6 m de radio al empezar a **exhalar**, que se aleja 9 s. Calmo → **cian**; furioso → m2 **magenta**, m4 **ácida**, m6 **ámbar**. Se suma al efecto propio del pulmón (no lo reemplaza): por eso los números son moderados.
+- **Evento:** **«Niebla de Almas»** → 3 bancos de niebla **blanca** (radio 10) en su aviso, activos mientras dura y se retiran al terminar (se conserva la pantalla lechosa y el +50 % de núcleos); **«Marea de Sangre»** → 1 banco **ámbar** (radio 10).
+
+### Contrato con el resto
+- **Snapshot** `ng = null | { z: [[id, tipo 0-5, x,y,z, radio, densidad 0-1, fase (0 dormida/1 aviso/2 activa), ux,uy,uz]…], d: [[jugador, tipo, zona, segundos adentro]…] }` (≈ 100 bytes por zona; `null` en el campo de pruebas). Tipos: 0 ácida · 1 cian · 2 magenta · 3 ámbar · 4 blanca · 5 vacío.
+- **Eventos del bus:** `{t:'ng', ph:'aviso'|'activo'|'fin'|'entra'|'sale', k, z, p, pid?}`; el cliente muestra el cartel al entrar y un tic de aviso si es dañina y está cerca.
+- **Enganches en el sim:** `initNieblas` · `tickNieblas` (después de `tickArenas`, antes de mover a los jugadores) · `ngVel` (velocidad) · `ngDeforma` (rumbo) · `ngRecibe` (daño recibido) · `ngDanio` y `ngMonstruoRecibe` (daño hecho / daño a la criatura de adentro) · `ngOculta` (objetivo de las criaturas) · `ngSnap`. Interruptores para pruebas: `CTL.off`, `CTL.sinOrganos`, `CTL.sinEventos`; `nieblaTemporal(g, tipo, pos, radio, vida)` crea una niebla a mano (modo desarrollo y pruebas).
+- **HUD:** cartel `#ngchip` («Dentro de: Niebla ácida» + su función; si se acerca una dañina «¡Se acerca…!» con barra que se llena hasta que actúa), viñeta de color mientras estás adentro y banner al entrar.
+
+### Cliente (`nieblas-fx.js`)
+- **Nubes:** un solo `InstancedMesh` de cartulinas (billboards) con shader de ruido para **todas** las zonas: 9 nubes por zona en Baja, 18 en Media, 30 en Alta (ajuste «Nubes de las nieblas de colores» en el menú Gráficos: *Sólo aviso* las apaga). Se disuelven al acercarse a la cámara. Aro + disco en el suelo (2 llamadas) y ecos falsos magenta (1).
+- Colores **flashero-psicodélicos** con borde claro y respiración de tono; la niebla blanca y la del vacío son opacas (tapan) y las demás son luz aditiva. La viñeta de pantalla nunca pasa de 0,5-0,6 de opacidad (se sigue viendo al Huésped).
+- **«Reducir efectos»** apaga los ecos falsos y la ondulación de la viñeta.
+
+### Pruebas
+- `node --test tests/nieblas.test.js` (16 pruebas, ≈ 1 min): datos · cada arena · determinismo y conteo de azar · avisos ≥ 2 s · respiro · cada color · eventos · pulmones · snapshot.
+- `node --test --test-name-pattern="^m4" tests/nieblas-bots.test.js` (**de a una arena**, ≈ 1-4 min cada una): bots CON y SIN nieblas, sin trabarse y sin NaN.
+- `node --test tests/nieblas-render.test.js` (Chromium por software): presupuesto de render en Baja con las 9 zonas activas. Capturas: `node tools/shot-nieblas.mjs todas shots/nieblas low dia zona|dentro|luz`.
