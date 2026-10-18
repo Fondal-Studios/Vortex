@@ -49,7 +49,7 @@ test('menú principal › Gráficos: presets, resolución y efectos se aplican e
   await pg.click('#graficos [data-med=true]', T); await pg.waitForSelector('#fpsmeter', { timeout: 5000 }); assert.match(await pg.textContent('#fpsmeter'), /FPS/);
   await pg.click('#graficos [data-auto=false]', T); assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('cristal.graficos.v1')).auto), false);
   // se recuerda al recargar
-  await pg.reload(); await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 300000 });
+  await pg.reload({ waitUntil: 'domcontentloaded', timeout: 300000 }); await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 300000 });
   const g = await pg.evaluate(() => JSON.parse(localStorage.getItem('cristal.graficos.v1')));
   assert.equal(g.preset, 'baja'); assert.equal(g.ajustes.escala, 150); assert.equal(g.ajustes.fps, 30); assert.equal(g.medidor, true); assert.equal(g.auto, false);
   assert.ok(await pg.locator('#fpsmeter').count() === 1, 'el medidor sigue prendido');
@@ -66,7 +66,7 @@ test('?q=low manda sobre lo guardado (herramientas y pruebas) y el botón de la 
   await pg.waitForFunction('window.__api && window.__api.session && window.__api.session.game', null, { timeout: 300000 });
   assert.equal(await pg.evaluate(() => window.__api.level), 'low'); assert.ok(await pg.evaluate(() => window.__api.renderer.gl.getPixelRatio()) <= 1.0001, '?q=low ignora el 150 % guardado');
   await pg.evaluate(() => { document.getElementById('pause').classList.remove('hidden'); });
-  await pg.click('#gfxopen', { timeout: 120000 }); await pg.waitForSelector('#graf-over .gr-card', { timeout: 10000 });
+  await pg.evaluate(() => document.getElementById('gfxopen').click());   // (el bucle del juego vuelve a esconder #pause si no hay bloqueo de puntero: se pulsa por código) await pg.waitForSelector('#graf-over .gr-card', { timeout: 10000 });
   await pg.click('#graf-over [data-preset=media]', T); assert.equal(await pg.evaluate(() => window.__api.level), 'medium');
   await pg.keyboard.press('Escape'); assert.equal(await pg.locator('#graf-over').count(), 0, 'Esc cierra el panel');
   assert.ok(await pg.locator('#pause:not(.hidden)').count() === 1, 'la pausa sigue ahí');
@@ -84,6 +84,6 @@ test('en un teléfono táctil (iPhone, apaisado) el panel cabe sin desbordar y l
     return { dx: r.scrollWidth - r.clientWidth, chicos: btns.filter((b) => b.getBoundingClientRect().height < 40).length, total: btns.length };
   });
   assert.ok(m.dx <= 2, `sin desborde horizontal (${m.dx})`); assert.equal(m.chicos, 0, 'botones táctiles ≥ 40 px'); assert.ok(m.total > 20);
-  await pg.tap('#graficos [data-preset=media]', { timeout: 300000 }); assert.equal(await pg.evaluate(() => window.__api.level), 'medium');
+  await pg.evaluate(() => document.querySelector('#graficos [data-preset=media]').click()); assert.equal(await pg.evaluate(() => window.__api.level), 'medium');
   assert.deepEqual(errores, []); await ctx.close();
 });

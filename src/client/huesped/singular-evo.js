@@ -12,7 +12,7 @@ import * as T from 'three';
 import { V } from '../huesped-piezas.js';
 import { uBeat } from '../shaders.js';
 
-export const PAL = { ROC: 0x3c3250, ROC_D: 0x221a30, ROC_L: 0x62547c, CRY: 0x1d1034, CRY_V: 0x6a30c8, VIO: 0xa05cff, VIO_L: 0xd8b8ff, ORO: 0xffc23a, ORO_L: 0xffeaa6, NEG: 0x07040e };
+export const PAL = { ROC: 0x9a8abe, ROC_D: 0x6a5a88, ROC_L: 0xc8b8e8, CRY: 0x1d1034, CRY_V: 0x6a30c8, VIO: 0xa05cff, VIO_L: 0xd8b8ff, ORO: 0xffc23a, ORO_L: 0xffeaa6, NEG: 0x07040e };
 const { ROC, ROC_D, ROC_L, CRY_V, VIO, VIO_L, ORO, ORO_L, NEG } = PAL;
 const TAU = Math.PI * 2;
 /** Gradiente radial de un disco (centro → borde): color por vértice. */
