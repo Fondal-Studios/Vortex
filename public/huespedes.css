@@ -67,3 +67,17 @@
 
 /* Etiqueta del aspecto regional del Huésped (rota entre los mapas): dentro del escenario, sin capturar toques */
 .hs-stage .hs-region{position:absolute;left:10px;right:10px;bottom:8px;text-align:center;font-size:12px;letter-spacing:.04em;color:#fff;opacity:.82;text-shadow:0 1px 6px #000c;pointer-events:none;line-height:1.25}
+
+/* ───── Maestría del Huésped (huespedes-ui.js › maestriaHtml): rango, barra de XP, próxima recompensa y lista de recompensas ───── */
+.hs-mae { --mt: #b8c0e0; border: 1px solid color-mix(in srgb, var(--mt) 40%, transparent); background: linear-gradient(160deg, color-mix(in srgb, var(--mt) 14%, #0a0716), #08050f); border-radius: 12px; padding: 10px 12px; font-size: 12px; color: #dde4ff; }
+.hs-mae[data-tier="bronce"] { --mt: #d08a4a; } .hs-mae[data-tier="plata"] { --mt: #dfe6f5; } .hs-mae[data-tier="oro"] { --mt: #ffd24a; } .hs-mae[data-tier="prisma"] { --mt: #ff9ae6; }
+.hs-mae-top { display: flex; align-items: baseline; gap: 10px; } .hs-mae-r { font-size: 30px; line-height: 1; color: var(--mt); text-shadow: 0 0 14px color-mix(in srgb, var(--mt) 70%, transparent); font-variant-numeric: tabular-nums; }
+.hs-mae-t { font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #fff; } .hs-mae-top em { margin-left: auto; font-style: normal; color: #aab3d8; font-size: 11px; }
+.hs-mae-bar { position: relative; height: 10px; margin: 8px 0 4px; border-radius: 5px; background: #ffffff1c; overflow: hidden; } .hs-mae-bar b { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: linear-gradient(90deg, color-mix(in srgb, var(--mt) 50%, #000), var(--mt)); box-shadow: 0 0 10px color-mix(in srgb, var(--mt) 70%, transparent); transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+.hs-mae-sub { color: #aab3d8; font-variant-numeric: tabular-nums; } .hs-mae-next { margin-top: 8px; padding: 7px 9px; border-radius: 8px; background: #ffffff0f; border-left: 3px solid var(--mt); line-height: 1.4; }
+.hs-mae-next b, .hs-mae-list b { display: block; color: #fff; } .hs-mb, .hs-mc { display: block; } .hs-mb { color: var(--mt); } .hs-mc { color: #cfd7f7; }
+.hs-mae-act { margin-top: 6px; color: #aab3d8; line-height: 1.4; } .hs-mae-det { margin-top: 8px; } .hs-mae-det summary { cursor: pointer; color: var(--mt); font-weight: 700; letter-spacing: .06em; padding: 4px 0; }
+.hs-mae-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 5px; } .hs-mae-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; opacity: .55; line-height: 1.35; }
+.hs-mae-list li i { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff55; font-style: normal; font-size: 11px; }
+.hs-mae-list li.done { opacity: 1; } .hs-mae-list li.done i { background: var(--mt); color: #120a1c; border-color: var(--mt); } .hs-mae-list li.next { opacity: 1; } .hs-mae-list li.next i { border-color: var(--mt); color: var(--mt); box-shadow: 0 0 8px color-mix(in srgb, var(--mt) 60%, transparent); }
+.hs-mae-st { margin-top: 8px; color: #aab3d8; font-size: 11px; font-variant-numeric: tabular-nums; }

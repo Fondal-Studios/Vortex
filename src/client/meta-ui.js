@@ -53,10 +53,10 @@ export function createMetaHud(host, ctx = {}) {
     const d = Math.round(Math.hypot(tg[0] - me.pos[0], tg[1] - me.pos[1], tg[2] - me.pos[2]));
     flecha.classList.remove('hidden'); flecha.querySelector('span').textContent = `${d} m`;
     let x = v.x, y = v.y; if (behind) { x = -x; y = -y; }
-    if (on) { flecha.classList.add('in'); flecha.style.transform = `translate(${(x * 0.5 + 0.5) * W}px, ${(-y * 0.5 + 0.5) * H - 38}px)`; flecha.querySelector('i').style.transform = 'rotate(90deg)'; return; }
+    if (on) { flecha.classList.add('in'); flecha.style.transform = `translate(${(x * 0.5 + 0.5) * W}px, ${Math.max(100, (-y * 0.5 + 0.5) * H - 38)}px)`; flecha.querySelector('i').style.transform = 'rotate(90deg)'; return; }
     flecha.classList.remove('in');
     const ang = Math.atan2(y, x), s = Math.min(0.9 / Math.abs(Math.cos(ang) || 1e-6), 0.82 / Math.abs(Math.sin(ang) || 1e-6));
-    flecha.style.transform = `translate(${(Math.cos(ang) * s * 0.5 + 0.5) * W}px, ${(-Math.sin(ang) * s * 0.5 + 0.5) * H}px)`;
+    flecha.style.transform = `translate(${(Math.cos(ang) * s * 0.5 + 0.5) * W}px, ${Math.max(100, (-Math.sin(ang) * s * 0.5 + 0.5) * H)}px)`;   // nunca tapa la línea de meta de arriba
     flecha.querySelector('i').style.transform = `rotate(${-ang}rad)`;
   }
 

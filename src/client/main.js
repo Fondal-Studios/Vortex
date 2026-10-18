@@ -11,10 +11,12 @@ import { createEvoChoice } from './evo-choice.js';
 import { createNpcPanel, npcNear, dealText } from './mundo-vivo.js';
 import { NPC_INFO } from '../sim/npcs.js';
 import { createRadar } from './radar.js';
+import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
 import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE } from '../sim/data.js';
 import * as Perfil from './perfil.js';
 import * as Territorios from '../sim/bendiciones.js';
+import { TITULOS } from '../sim/maestria.js';
 import { createCaida } from './caida.js';
 import { MAPS } from '../sim/maps.js';
 import { blocked } from '../sim/physics.js';
@@ -262,7 +264,7 @@ function showTutorial(force = false) {
   const rows = touchUI
     ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARO', 'botón grande', 'disparar (mantené para ráfaga)'], ['RECARGAR', 'MELEE · SALTO', 'los 4 botones básicos'], ['ULTI', 'USAR', 'aparecen solos cuando sirven · «Habilidades» en Pausa muestra el resto'], ['HABILIDAD', '◆', 'ayuda de equipo · señalar'], ['‹ ›', 'o tocá la barra', 'cambiar de arma']]
     : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar'], ['F', 'G · clic der.', 'habilidad 1 · habilidad 2'], ['Z', 'T', 'habilidad 3 · definitiva'], ['V', 'R', 'golpe cuerpo a cuerpo (mantener = fuerte) · recargar'], ['Q', 'E · B', 'habilidad de equipo · usar · señalar'], ['1–5', 'rueda', 'cambiar de arma'], ['Esc', '', 'pausa']];
-  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Sobreviví las oleadas. Cumplí el objetivo de cada oleada y elegí una <b>mejora de arma</b> al terminarla.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
+  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Sobreviví las oleadas. Tu <b>meta actual</b> siempre está en la línea de arriba. Cumplí el objetivo de cada oleada y elegí una <b>mejora de arma</b> al terminarla.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   el.classList.remove('hidden'); const close = () => { el.classList.add('hidden'); try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
   $('tutok').onclick = close; later(close, force ? 20000 : 16000);
 }
@@ -348,7 +350,7 @@ function frame(now) {
     if (session.sendT > 1 / 30) { net.send({ t: 'in', i: { ...inp, dyaw: session.inAcc.dyaw, dpitch: session.inAcc.dpitch } }); session.inAcc = { dyaw: 0, dpitch: 0 }; session.sendT = 0; }
   }
   const me = state.players.find((p) => p.id === session.pid) || state.players[0];
-  if (me) session.lastMe = me; // para guardar los núcleos al salir (bankProfile)
+  if (me) { session.lastMe = me; session.lastWave = state.wave; } // para guardar los núcleos y la maestría al salir (bankProfile)
   if (params.get('look') === 'boss' && me) {
     const b = state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre' || m.k === 'argos');
     if (b) { const up = v3(...me.up), d = norm(v3(b.p[0] - me.pos[0], b.p[1] - me.pos[1], b.p[2] - me.pos[2])), h = norm(project(d, up), v3(...me.h)); session.look = { h: [h.x, h.y, h.z], pitch: Math.asin(Math.max(-1, Math.min(1, d.x * up.x + d.y * up.y + d.z * up.z))) }; }
@@ -409,6 +411,7 @@ function audioAndHud(state, me, dt) {
       case 'summon': sound.voice('cuarzo', 'cast', e.p); break;
       case 'ability': sound.ability(mine ? null : (me ? e.p : null)); if (mine) banner(ROLES[e.role].ability.toUpperCase(), 900); break;
       case 'objective': objectiveEvent(e); break;
+      case 'mision': if (metaHud) metaHud.evento(e, banner, sound); break;
       case 'ping': sound.ping(); break;
       case 'pass': sound.pickup(); break;
       case 'npc': if (NPC_INFO[e.kind]) banner(`${NPC_INFO[e.kind].name} aparece cerca`, 2200); break;
@@ -472,6 +475,7 @@ function objectiveEvent(e) {
     const o = $('objective'); o.classList.add('done');
   } else if (e.ph === 'failed') { sound.hurt(); banner('Objetivo fallido: el Vórtice se enfurece', 2800); }
 }
+let metaHud = null; const metaCtx = { solo: true, sinGuia: false };
 function hudDirector(state, me) {
   const o = state.obj, box = $('objective');
   if (o && o.state === 'active') {
@@ -517,6 +521,11 @@ function hudDirector(state, me) {
   if (session) session.lastMe = me;
   try { if (!window.__radar) window.__radar = createRadar(document.body); window.__radar.update(session && !session.intro ? state : null, me, renderer.camera); } catch (err) { /* el radar nunca debe romper el HUD */ }
   evoHud.update(me, !!(session && session.touch), !(session && session.intro));
+  try { // META: línea de objetivo, misión opcional, flecha y guía (meta-ui.js); nunca debe romper el HUD
+    metaCtx.solo = session.mode === 'solo'; metaCtx.sinGuia = !!(session.headless || params.get('auto'));
+    if (!metaHud) metaHud = createMetaHud($('hud'), metaCtx);
+    metaHud.update(state, me, renderer.camera, { touch: !!session.touch, oculto: !!(session.intro || session.practice) });
+  } catch (err) { if (!window.__metaErr) { window.__metaErr = err; console.warn('Meta HUD:', err.message); } metaHud = metaHud || { update() {}, evento() {} }; }
   { // Limbo vivo: NPC cercano (cartel «E · hablar»; en táctil el botón USAR ya aparece solo porque hay un objeto a menos de 7)
     npcCtx.npc = session && !session.intro ? npcNear(state, me) : null;
     if (npcPanel) { if (npcPanel.open && (!npcCtx.npc || npcCtx.npc.nk !== npcPanel.kind)) npcPanel.close(); npcPanel.setHint(npcCtx.npc ? NPC_INFO[npcCtx.npc.nk] : null, !!(session && session.touch)); }
@@ -567,13 +576,13 @@ function flash() { const f = $('flash'); f.classList.add('on'); const my = ++fla
 
 /* ───────── final / campaña ───────── */
 /** Suma los núcleos de la partida al banco del perfil y guarda la evolución (una sola vez por partida solitaria). */
-function bankProfile(me) { if (!session || session.mode !== 'solo' || session.banked || !me) return; session.banked = true; try { Perfil.cerrarPartida(Equipo.char, me); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
+function bankProfile(me, state) { if (!session || session.mode !== 'solo' || session.banked || !me) return; session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
 function endGame(state, me) {
-  bankProfile(me);
+  bankProfile(me, state);
   let terrNuevo = null; if (state.state === 'won' && session.mode === 'solo' && !session.practice) { try { if (Perfil.liberarTerritorio(session.map)) terrNuevo = Territorios.TERRITORIOS[session.map]; } catch (err) { console.warn('Territorios: no se pudo guardar', err.message); } } // ganar el mapa libera el territorio (perfil.js)
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);
   const won = state.state === 'won'; window.__ended = state.state;
-  const stats = `Oleada ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n');
+  const stats = `Oleada ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n') + maestriaTxt();
   const ruta = Story.RUTAS[params.get('ruta')] || Story.RUTAS.corta, nextCap = session.campaign ? ruta[ruta.indexOf(session.campaign) + 1] : null; // ?ruta=larga: m1 → m5 → m6 → m2
   if (session.mode === 'solo' && session.campaign && won && nextCap) { // → interludio y el capítulo siguiente
     renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap }); });
@@ -583,6 +592,8 @@ function endGame(state, me) {
   if (!won) { subs.play(Story.DEFEAT, () => showEnd(false, stats)); return; }
   showEnd(true, stats + (terrNuevo ? `\n\nTERRITORIO LIBERADO: ${terrNuevo.nombre}. Elegí su bendición en el menú › Territorios.` : ''));
 }
+/** Línea de maestría del fin de partida (XP ganada y, si subió, el rango nuevo). */
+function maestriaTxt() { const m = session && session.mae; return m ? `\nMaestría +${m.ganada} XP` + (m.subio ? ` · ¡RANGO ${m.rangoDespues}: ${TITULOS[m.rangoDespues]}!` : '') : ''; }
 function showEnd(won, stats, title) {
   $('endtitle').textContent = title || (won ? 'VÓRTICE ROTO' : 'ATRAPADO EN EL VÓRTICE');
   $('endstats').textContent = stats + (won && title ? '\n\nUn abajo bajo los pies. El tren pasó de largo.' : '');

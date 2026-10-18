@@ -102,7 +102,7 @@ function makeMap1() {
 }
 
 /* ───────────── Mapa 2: Cámara Fractal (gravedad radial hacia afuera) ───────────── */
-function makeMap2() {
+function makeMap2(porEvento = false) {
   const C = v3(0, 0, 0), R = 85, rng = makeRng(77);
   const solids = [{ type: 'inner', c: C, R }];
   const hills = [];
@@ -125,11 +125,15 @@ function makeMap2() {
   };
   const TIDE = { period: 60, warn: 47, zeroAt: 50, zeroEnd: 59 };
   const phase = (t) => t % TIDE.period;
+  // Instancia de PARTIDA (porEvento): la marea ya no es un reloj; sólo ocurre dentro del evento «Marea de Gravedad» (src/sim/eventos.js),
+  // que fija tideWin = { warn, from, to } (tiempos absolutos de la partida). El mapa estático (cliente/pruebas) conserva el reloj de 60 s.
   return {
+    tideWin: porEvento ? null : undefined,
+    instance() { return makeMap2(true); },
     id: 'm2', name: 'Cámara Fractal', solids, hills, zones: [], portals: [],
     center: C, bounds: R + 6, voidY: -1e9, bossAnchor: v3(0, 0, 0), R, tide: TIDE, spots,
     playerSpawn: (i) => mul(norm(v3(((i % 4) - 1.5) * 0.04, -1, 0.05)), R - 0.9),
-    zeroG: (t) => phase(t) >= TIDE.zeroAt && phase(t) < TIDE.zeroEnd,
+    zeroG(t) { return this.tideWin !== undefined ? !!(this.tideWin && t >= this.tideWin.from && t < this.tideWin.to) : phase(t) >= TIDE.zeroAt && phase(t) < TIDE.zeroEnd; },
     gravityAt(p, t) {
       if (this.zeroG(t)) return v3(0, 0, 0);
       const l = len(p);
@@ -151,7 +155,10 @@ function makeMap2() {
       const t = norm(cross(up, rng.unit()), v3(1, 0, 0));
       return add(add(ref, mul(up, rng.range(12, 30))), mul(t, rng.range(25, 45)));
     },
-    fx: (t) => ({ warn: phase(t) >= TIDE.warn && phase(t) < TIDE.zeroAt, zero: phase(t) >= TIDE.zeroAt && phase(t) < TIDE.zeroEnd }),
+    fx(t) {
+      if (this.tideWin !== undefined) { const w = this.tideWin; return { warn: !!(w && t >= w.warn && t < w.from), zero: this.zeroG(t) }; }
+      return { warn: phase(t) >= TIDE.warn && phase(t) < TIDE.zeroAt, zero: phase(t) >= TIDE.zeroAt && phase(t) < TIDE.zeroEnd };
+    },
   };
 }
 

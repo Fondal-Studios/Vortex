@@ -5,12 +5,12 @@
 import * as THREE from 'three';
 import { buildMonster, COLORS } from './models.js';
 
-const MAX_TRIS = 260;      // presupuesto por especie
+const MAX_TRIS = 320;      // presupuesto por especie
 const LIGHT = new THREE.Vector3(0.35, 0.8, 0.5).normalize();
 
 /** Material único y barato para todos los proxies (el color va en los vértices). */
 let sharedMat = null;
-export function proxyMaterial() { return sharedMat || (sharedMat = new THREE.MeshBasicMaterial({ vertexColors: true })); }
+export function proxyMaterial() { return sharedMat || (sharedMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })); }
 
 /** Pose de asentamiento: unos cuantos pasos de animación a velocidad de marcha. */
 function settle(b) {
@@ -40,7 +40,7 @@ function collect(b) {
       if (C) c.setRGB(C.getX(k), C.getY(k), C.getZ(k)); else if (tint) c.copy(tint); else c.copy(base).multiplyScalar(0.55);
       // las partes brillantes (ojos, núcleo) conservan el color de la especie
       if (mt.emissive && mt.emissive.isColor && mt.emissive.getHex() > 0 && (mt.emissiveIntensity || 1) > 0.8) c.copy(base).lerp(new THREE.Color(0xffffff), 0.25);
-      col.push(c.r, c.g, c.b);
+      c.lerp(base, 0.5); col.push(c.r, c.g, c.b); // los colores de los shaders no se ven en el horneado: se tiñe con el de la especie
     }
   });
   return { pos, col };

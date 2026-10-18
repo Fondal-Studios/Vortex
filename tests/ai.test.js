@@ -4,6 +4,7 @@ import { arena, run, ahead, v3, sum } from './helpers.js';
 import { MONSTERS } from '../src/sim/data.js';
 import { AI } from '../src/sim/ai.js';
 import { dist, len, dot } from '../src/sim/math.js';
+import { iniciarEvento } from '../src/sim/eventos.js';
 
 const spawn = (g, p, kind, d, lift = 0) => g.spawnMonster(kind, ahead(p, d, lift));
 const watch = (g, secs, fn) => run(g, secs, (t) => fn && fn(t));
@@ -65,9 +66,16 @@ test('Racimo (explosivo): detona al contacto dañando al jugador y a los vecinos
   assert.ok(neighbor.hp < nh, 'reacción en cadena sobre vecinos');
 });
 
-test('Gravitón (control): carga y luego invierte la gravedad del jugador unos segundos', () => {
-  const { g, p } = arena(); spawn(g, p, 'graviton', 20, 10); const ev = []; const drain = events(g, ev); let flipped = false, upDown = false;
-  watch(g, 15, () => { drain(); if (g.time < p.flipUntil) { flipped = true; if (p.up.y < -0.5) upDown = true; } });
+test('Gravitón (El Familiar) FUERA de la Marea: atrae y dispara, pero NO invierte la gravedad', () => {
+  const { g, p } = arena(); spawn(g, p, 'graviton', 20, 10); const ev = []; const drain = events(g, ev); let flipped = false;
+  watch(g, 15, () => { drain(); if (g.time < p.flipUntil) flipped = true; });
+  assert.ok(ev.some((e) => e.t === 'pull'), 'tiró de los jugadores'); assert.ok(!ev.some((e) => e.t === 'gravity') && !flipped, 'no invirtió la gravedad'); assert.ok(p.up.y > 0.9);
+});
+
+test('Gravitón (El Familiar) DENTRO de la Marea de Gravedad: carga y luego invierte la gravedad del jugador unos segundos', () => {
+  const { g, p } = arena(); iniciarEvento(g, 'marea_gravedad', { aviso: 0 });
+  spawn(g, p, 'graviton', 20, 10); const ev = []; const drain = events(g, ev); let flipped = false, upDown = false;
+  watch(g, 8, () => { drain(); if (g.time < p.flipUntil) { flipped = true; if (p.up.y < -0.5) upDown = true; } });
   assert.ok(ev.some((e) => e.t === 'gravity') && flipped); assert.ok(upDown, 'el jugador pasó a caminar "al revés"');
 });
 
@@ -80,7 +88,7 @@ function bossFight(mapId, kind) {
 test('Coloso (jefe M1): 3 fases por vida, lluvia de orbes, invoca refuerzos, invierte gravedad y es derrotable', () => {
   const { g, p, b } = bossFight('m1', 'coloso'); const phases = new Set(), ev = []; let summoned = false, shots = 0;
   const step = () => { for (const e of g.drainEvents()) { ev.push(e); if (e.t === 'phase') phases.add(e.n); } shots += g.projectiles.filter((q) => q.owner === 'm' && q.age < 0.02).length; summoned ||= g.monsters.some((m) => m.parent === b.id); };
-  run(g, 8, step); b.hp = b.maxhp * 0.6; run(g, 20, step); b.hp = b.maxhp * 0.3; run(g, 16, step);
+  run(g, 8, step); b.hp = b.maxhp * 0.6; run(g, 20, step); assert.equal(p.flipLock || 0, 0, 'sin Marea el jefe no invierte la gravedad'); b.hp = b.maxhp * 0.3; iniciarEvento(g, 'marea_gravedad', { aviso: 0 }); run(g, 9, step);
   assert.ok([1, 2, 3].every((n) => phases.has(n)), [...phases].join()); assert.ok(shots > 40, `proyectiles ${shots}`); assert.ok(summoned);
   assert.ok(ev.some((e) => e.t === 'gravity'), 'pulso de gravedad en fase 3');
   g.damageMonster(b, 1e9, p); g.step(1 / 60); g.step(1 / 60);

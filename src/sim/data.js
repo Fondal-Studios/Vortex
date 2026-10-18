@@ -374,3 +374,52 @@ export const BOSS_MECH = { shield: 0.05, stagger: 2.5, rayCd: [0, 14, 11, 9], ra
 
 /** Ritmo de las criaturas: 1 = velocidad original. Todas (movimiento, ataques y avisos) corren a este ritmo: más tiempo para reaccionar. Los jefes un poco más rápido. */
 export const MONSTER_PACE = 0.7, BOSS_PACE = 0.9;
+
+/* ───────── EVENTOS DE OLEADA (src/sim/eventos.js, docs/MUNDO_VIVO.md) ─────────
+ * Como máximo UNO por oleada, desde la oleada EVENTO.minOleada, con oleadas normales entre medias.
+ * Cada uno avisa EVENTO.aviso segundos antes. La gravedad invertida sólo existe dentro de «Marea de Gravedad». */
+export const EVENTO = { minOleada: 3, aviso: 4, prob: 0.7, demoraMin: 6, demoraMax: 13, flipMax: 3.5, flipBloqueo: 20, rampa: 0.6, caidaMax: 16, amortigua: 5, amortiguaCaida: 10 };
+export const EVENTOS = {
+  marea_gravedad: { icon: '🌀', color: '#8a9bff', dur: 10, name: 'Marea de Gravedad',
+    desc: 'El Vórtice respira al revés: el suelo se vuelve techo unos segundos. Es el ÚNICO momento en que los Familiares y los jefes pueden invertir la gravedad.',
+    tele: 'Cuenta atrás de 3 segundos en pantalla antes de la inversión; el giro de cámara dura 0,8 s y termina con aterrizaje blando.',
+    contra: 'Seguís pudiendo moverte y disparar. Si aguantás la marea, ganás núcleos y un botiquín.' },
+  niebla_almas: { icon: '🌫', color: '#9fd6c4', dur: 20, name: 'Niebla de Almas',
+    desc: 'Una bruma espesa tapa el mapa: apenas ves lejos. Las criaturas brillan entre la niebla.',
+    tele: 'La pantalla se vuelve lechosa y las criaturas ganan un halo de luz.',
+    contra: 'Cada baja da +50 % de núcleos mientras dura. Seguí los halos.' },
+  lluvia_astillas: { icon: '☄', color: '#ff9a5a', dur: 16, name: 'Lluvia de Astillas',
+    desc: 'Esquirlas caen del cielo en círculos marcados en el suelo, cerca de vos.',
+    tele: 'Cada impacto muestra un círculo naranja que se llena durante 1,5 s antes de caer.',
+    contra: 'Las astillas también hieren a las criaturas: llevalas a la lluvia. Al final, núcleos.' },
+  tormenta_ecos: { icon: '⚡', color: '#7feaff', dur: 18, name: 'Tormenta de Ecos',
+    desc: 'Rayos caen sobre el punto donde estabas parado. Quedarse quieto es peligroso.',
+    tele: 'Un círculo celeste se marca 2 s antes del rayo, siguiendo tu último lugar.',
+    contra: 'El rayo hace mucho daño a las criaturas: atraelas al círculo. Al final, núcleos.' },
+  eclipse: { icon: '🌑', color: '#b04a7a', dur: 24, name: 'Eclipse',
+    desc: 'El cielo se oscurece: aparecen más élites con afijo, más fuertes.',
+    tele: 'La pantalla se tiñe de oscuro rojizo.',
+    contra: 'Núcleos ×1,8 por baja mientras dura y un bono al final.' },
+  marea_sangre: { icon: '🩸', color: '#ff4a5a', dur: 14, name: 'Marea de Sangre',
+    desc: 'Una horda veloz de criaturas débiles se lanza sobre vos.',
+    tele: 'Pulso rojo en los bordes; las criaturas llegan por tandas rápidas.',
+    contra: 'Son frágiles y dan racha de bajas. Al sobrevivir: vida completa y núcleos.' },
+  aurora_bendita: { icon: '✨', color: '#ffd45a', dur: 22, name: 'Bendición de la Aurora',
+    desc: 'Aparece una zona dorada que cura y da +30 % de daño. Hay que defenderla: las criaturas la apagan.',
+    tele: 'Un pilar de luz dorada marca el lugar durante el aviso.',
+    contra: 'Quedate dentro: curación continua y más daño. Si la zona sobrevive, núcleos y escudo completo.' },
+  silencio: { icon: '🔇', color: '#a8b4c8', dur: 12, name: 'Silencio',
+    desc: 'Nadie puede usar habilidades (ni definitiva) mientras dura. El cuerpo a cuerpo pega más fuerte.',
+    tele: 'La pantalla se apaga en grises y las habilidades se bloquean.',
+    contra: 'Golpes cuerpo a cuerpo ×1,5 y +30 % de núcleos por baja.' },
+};
+export const EVENTO_IDS = Object.keys(EVENTOS);
+/** Pesos por mapa: cada territorio tiene su subconjunto temático (peso 0 / ausente = no aparece ahí). */
+export const EVENTOS_MAPA = {
+  m1: { marea_gravedad: 4, tormenta_ecos: 2, eclipse: 2, aurora_bendita: 2, marea_sangre: 1 },            // Vacío de Islas: la gravedad rota
+  m2: { marea_gravedad: 4, niebla_almas: 2, silencio: 2, lluvia_astillas: 1, eclipse: 1 },                  // Cámara Fractal: su marea de ingravidez ya era esto
+  m3: { niebla_almas: 3, silencio: 2, tormenta_ecos: 2, marea_sangre: 2, aurora_bendita: 1 },              // Laberinto Celestial
+  m4: { marea_sangre: 3, aurora_bendita: 3, lluvia_astillas: 2, eclipse: 1, niebla_almas: 1 },             // Jardín de Carne
+  m5: { tormenta_ecos: 4, silencio: 2, niebla_almas: 2, eclipse: 2, marea_gravedad: 1 },                   // Plaza de los Ecos
+  m6: { niebla_almas: 3, eclipse: 3, lluvia_astillas: 3, marea_sangre: 2, marea_gravedad: 1 },             // Osario sin Techo
+};

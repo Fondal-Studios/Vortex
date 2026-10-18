@@ -41,8 +41,8 @@ export function updateHost(g, p, dt) {
   p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1) * (hasPath(p, 'velocidad') ? 1.12 : 1) * (p.bn ? p.bn.spd : 1);
   champTick(g, p, dt);
   if (C && C.host) {
-    if (inp.s3 && !p.s3Prev) useS3(g, p); p.s3Prev = inp.s3;
-    if (inp.ult && !p.ultPrev) useUlt(g, p); p.ultPrev = inp.ult;
+    if (inp.s3 && !p.s3Prev && !g.evSilencio) useS3(g, p); p.s3Prev = inp.s3;
+    if (inp.ult && !p.ultPrev && !g.evSilencio) useUlt(g, p); p.ultPrev = inp.ult;
   }
   // aterrizaje del golpe descendente
   if (p.slam) {
@@ -92,7 +92,7 @@ function strike(g, p, M, heavy) {
   const air = !p.grounded && p.pitch < -0.45;
   const def = heavy ? M.heavy : M.light;
   const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis';
-  let dmg = def.dmg * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1), range = def.range * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1), arc = def.arc;
+  let dmg = def.dmg * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1), range = def.range * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1), arc = def.arc;
   const fused = (p.evo || 0) >= 1 && M.special, strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
   let kind = heavy ? 'heavy' : 'light';
   const prevCmb = p.cmb, speed = len(sub(p.vel, mul(p.up, dot(p.vel, p.up))));
@@ -324,7 +324,7 @@ export function hostKill(g, p, m) {
   absorb(p, m);
   if (p.bn && p.bn.kheal && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + p.bn.kheal); // bendición Descanso Ajeno
   if (hasPath(p, 'anomalia') && !m.def.boss && g.rng.next() < 0.25) g.explode(m.pos, 5, 0, 70, p, false);
-  addCores(g, p, m.def.cost * CORES.perCost * (m.elite ? CORES.eliteMul : 1) + (m.def.boss ? CORES.boss : 0));
+  addCores(g, p, m.def.cost * CORES.perCost * (m.elite ? CORES.eliteMul : 1) * (g.evCoreMul || 1) + (m.def.boss ? CORES.boss : 0));
   const C = cdef(p); if (!C) return;
   if (p.ultId === '') p.ul = Math.min(100, p.ul + ULT_PER_KILL);
   const id = C.passive && C.passive.id;
@@ -388,7 +388,7 @@ export function hostSnap(g, p) {
   if (g.time < p.desfaseUntil) bf |= BF.desfase; if (g.time < p.glideUntil) bf |= BF.glide;
   if (g.objects.some((o) => o.type === 'wall' && o.owner === p.id)) bf |= BF.barrier;
   const sy = g.objects.find((o) => o.type === 'symb' && o.owner === p.id);
-  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, sty: p.style || '', co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), pth: p.path, mw: p.melee || '' };
+  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, sty: p.style || '', co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), pth: p.path, mw: p.melee || '', mr: p.mastery || 1 };
 }
 
 function useS3(g, p) { const s = g.dmgSrc; g.dmgSrc = 'skill'; try { return useS30(g, p); } finally { g.dmgSrc = s; } }

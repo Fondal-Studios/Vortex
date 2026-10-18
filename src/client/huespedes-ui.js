@@ -9,6 +9,7 @@ import { Equipo, saveEquipo } from './equipo.js';
 import { GLYPHS, HERO_LORE, HERO_STATS } from './heroes-ui.js';
 import { buildHostEvo, REGIONS } from './huespedes-evo.js';
 import * as Perfil from './perfil.js';
+import { recompensas, proximaRecompensa, maestriaMods, TITULOS, TIER_MARCA, RANGO_MAX } from '../sim/maestria.js';
 import { tickMenuBeat } from './shaders.js';
 import { loadEnvHDRI } from './ph.js';
 
@@ -116,7 +117,7 @@ export function buildHuespedScreen(menu) {
         ph.loadEnvHDRI(hs.renderer, 'small_cathedral_02').then((t) => { hs.scene.environment = t; hs.scene.environmentIntensity = 1.2; }).catch(() => {});
       }
       if (hs.sel !== id || tok !== hs.tok) return;
-      const pp = Perfil.paraPartida(id), pl = { char: id, name: CHARACTERS[id].name, evo: pp.evo || 0, pth: pp.path || [], cg: pp.corg || [], mw: pp.melee || '' };
+      const pp = Perfil.paraPartida(id), pl = { char: id, name: CHARACTERS[id].name, evo: pp.evo || 0, pth: pp.path || [], cg: pp.corg || [], mw: pp.melee || '', mr: pp.maestria || 1 };
       const b = hs.hk.mod.createHostBody(hs.THREE, hs.hk.kit, pl, { quality: hs.quality, camera: hs.cam, map: hs.region });
       hs.scene.add(b.object); await b.ready;
       if (hs.sel !== id || tok !== hs.tok) { hs.scene.remove(b.object); b.dispose(); return; }
@@ -152,12 +153,27 @@ export function buildHuespedScreen(menu) {
   cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
 
   /* ───── información ───── */
+  /** Panel «Maestría» del Huésped (src/sim/maestria.js + perfil): rango, barra de XP, próxima recompensa, lista de recompensas y estadísticas de uso. */
+  const BONO_ES = { melee: 'cuerpo a cuerpo', gun: 'disparo', skill: 'habilidades', dmgIn: 'daño recibido', ult: 'definitiva', shield: 'escudo', ess: 'esencias', cores: 'núcleos', cd: 'recarga', spd: 'velocidad', heal: 'vida entre oleadas', kheal: 'vida por baja' };
+  function maestriaHtml(id) {
+    const pr = Perfil.progresoMaestria(id), rec = recompensas(id), prox = proximaRecompensa(id, pr.rango), tier = TIER_MARCA(pr.rango) || 'sin';
+    const pct = Math.round(pr.frac * 100), sub = pr.max ? `${pr.xp} XP · rango máximo` : `${pr.xp - pr.desde} / ${pr.hasta - pr.desde} XP para el rango ${pr.rango + 1} · faltan ${pr.falta}`;
+    const items = rec.map((r) => { const st = pr.rango >= r.rango ? 'done' : prox && prox.rango === r.rango ? 'next' : 'lock'; const txt = [r.bono && `<span class="hs-mb">${esc(r.bono)}</span>`, r.cosmetico && `<span class="hs-mc">${esc(r.cosmetico.nombre)}: ${esc(r.cosmetico.texto)}</span>`].filter(Boolean).join('') || '<span class="hs-mc">Un rombo más en la marca.</span>';
+      return `<li class="${st}"><i aria-hidden="true">${st === 'done' ? '✓' : r.rango}</i><span><b>Rango ${r.rango} · ${esc(r.titulo)}</b>${txt}</span></li>`; }).join('');
+    const nextTxt = prox ? `<b>Próxima recompensa · Rango ${prox.rango} (${esc(prox.titulo)})</b>${prox.bono ? `<span class="hs-mb">${esc(prox.bono)}</span>` : ''}${prox.cosmetico ? `<span class="hs-mc">${esc(prox.cosmetico.nombre)}: ${esc(prox.cosmetico.texto)}</span>` : ''}` : '<b>Llegaste al rango máximo: Arcano.</b>';
+    const act = Object.entries(maestriaMods(id, pr.rango)).map(([k, v]) => `${BONO_ES[k] || k} ${k === 'heal' || k === 'kheal' ? '+' + v : (v >= 1 ? '+' : '−') + Math.round(Math.abs(v - 1) * 100) + ' %'}`).join(' · ');
+    return `<h4>Maestría</h4><div class="hs-mae" data-tier="${tier}"><div class="hs-mae-top"><b class="hs-mae-r">${pr.rango}</b><span class="hs-mae-t">${esc(TITULOS[pr.rango])}</span><em>Rango ${pr.rango} de ${RANGO_MAX}</em></div>
+      <div class="hs-mae-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><b style="width:${pct}%"></b></div><div class="hs-mae-sub">${sub}</div>
+      <div class="hs-mae-next">${nextTxt}</div>${act ? `<div class="hs-mae-act">Bonos activos: ${esc(act)}</div>` : ''}
+      <details class="hs-mae-det"><summary>Todas las recompensas</summary><ol class="hs-mae-list">${items}</ol></details>
+      <div class="hs-mae-st">Partidas ${pr.partidas} · Bajas ${pr.kills} · Mejor oleada ${pr.oleada}</div><p class="hs-legend">Ganás XP con este Huésped por jugar, por cada baja, por cada oleada y por ganar. Los bonos son chicos; la marca se ve en tu cuerpo.</p></div>`;
+  }
   function renderInfo(id) {
     const C = CHARACTERS[id], S = statsOf(id), story = C.story || (HERO_LORE[id] || []).join(' ') || C.desc || '';
     const keys = C.host ? STAT_KEYS : ['dano', 'resistencia', 'movilidad', 'control', 'utilidad'].filter((k) => k in S);
     const bars = keys.map((k) => `<div class="hs-stat${k === 'dificultad' ? ' hs-sd' : ''}"><span class="hs-sl">${STAT_ES[k]}</span><span class="hs-bar"><b style="width:${S[k] * 10}%"></b>${C.host && k !== 'dificultad' ? `<u style="left:${avg[k] * 10}%" title="Promedio de los Huéspedes"></u>` : ''}</span><em>${S[k]}/10</em></div>`).join('');
     const abs = abilitiesOf(id).map(([tag, a, cd, kind]) => `<button class="hs-ab" type="button" data-kind="${kind}"><span class="hs-at">${tag}</span><span class="hs-ax"><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>${cd ? `<small>${esc(cd)}</small>` : ''}</span></button>`).join('');
-    $('#hsinfo').innerHTML = `<p class="hs-story">${esc(story)}</p><h4>Estadísticas</h4><div class="hs-stats">${bars}</div>${C.host ? '<p class="hs-legend"><u></u> promedio de los 5 Huéspedes</p>' : '<p class="hs-legend">Veterano: vista y datos del héroe anterior.</p>'}<h4>Habilidades</h4><div class="hs-abs">${abs}</div>`;
+    $('#hsinfo').innerHTML = `<p class="hs-story">${esc(story)}</p>${C.host ? maestriaHtml(id) : ''}<h4>Estadísticas</h4><div class="hs-stats">${bars}</div>${C.host ? '<p class="hs-legend"><u></u> promedio de los 5 Huéspedes</p>' : '<p class="hs-legend">Veterano: vista y datos del héroe anterior.</p>'}<h4>Habilidades</h4><div class="hs-abs">${abs}</div>`;
     $('#hsinfo').scrollTop = 0;
     root.querySelectorAll('.hs-ab').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); demo(b.dataset.kind); }));
   }

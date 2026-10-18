@@ -5,6 +5,7 @@ import { Game } from '../src/sim/game.js';
 import { MAPS } from '../src/sim/maps.js';
 import { len, dist, dot, finite, makeRng } from '../src/sim/math.js';
 import { G, PLAYER } from '../src/sim/data.js';
+import { iniciarEvento } from '../src/sim/eventos.js';
 
 test('M1: el jugador queda apoyado sobre la isla central (grounded, y≈0.9)', () => {
   const { g, p } = arena('m1'); run(g, 2);
@@ -93,7 +94,7 @@ test('M2: la marea apaga la gravedad en la ventana programada y avisa antes', ()
 });
 
 test('M2: en marea cero-G el jugador flota (no cae) y puede nadar con 3D', () => {
-  const { g, p } = arena('m2'); g.time = MAPS.m2.tide.zeroAt + 0.5; p.pos = v3(0, -40, 0);
+  const { g, p } = arena('m2'); iniciarEvento(g, 'marea_gravedad', { aviso: 0 }); p.pos = v3(0, -40, 0); // la ingravidez de la Cámara Fractal ahora es un evento de oleada
   run(g, 1.5);
   assert.ok(Math.abs(p.pos.y + 40) < 1, `no cae: y=${p.pos.y}`);
   p.pitch = 0.0; run(g, 1.5, () => g.setInput(p.id, { mz: 1 }));

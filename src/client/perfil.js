@@ -2,6 +2,7 @@
 import { EVO_COST, EVO_PATHS, MELEE_WEAPONS, CHARACTERS, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
 import { TERRITORIOS, BENDICIONES, cleanBend, hermana } from '../sim/bendiciones.js';
 import { organError } from '../sim/organos.js';
+import { xpPartida, progreso, rangoDeXp, RANGO_MAX } from '../sim/maestria.js';
 const KEY = 'cristal.perfil.v1';
 let cache = null;
 /** terr = { m1: { bend: null|'id' } }: la clave existe = territorio liberado; bend = bendición elegida (null = liberado pero sin elegir). Se sanea al cargar. */
@@ -12,19 +13,19 @@ function limpiarTerr(t) {
 }
 /** guia = { off: saltada del todo, vistos: [ids de pasos ya mostrados] }. Se sanea al cargar. */
 function limpiarGuia(g) { const o = g && typeof g === 'object' ? g : {}; return { off: o.off === true, vistos: Array.isArray(o.vistos) ? o.vistos.filter((x) => typeof x === 'string').slice(0, 12) : [] }; }
-const fresh = () => ({ cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] } });
+const fresh = () => ({ cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {} });
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
-  cache = { ...fresh(), ...o, evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia) };
+  cache = { ...fresh(), ...o, evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: (o.mae && typeof o.mae === 'object') ? { ...o.mae } : {} };
   return cache;
 }
 export const perfil = () => cache || load();
 export function guardar() { try { localStorage.setItem(KEY, JSON.stringify(perfil())); } catch { /* sin almacenamiento */ } }
 /** Datos que recibe la simulación al empezar una partida con este Huésped. */
-export const paraPartida = (char) => { const p = perfil(); return { melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas() }; };
+export const paraPartida = (char) => { const p = perfil(); return { melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas(), maestria: rangoMaestria(char) }; };
 /** Al terminar (o pasar de oleada): guarda núcleos ganados y el nivel de evolución alcanzado. */
-export function cerrarPartida(char, jugador) {
-  if (!jugador) return; const p = perfil();
+export function cerrarPartida(char, jugador, info = {}) {
+  if (!jugador) return null; const p = perfil(); const mae = ganarMaestria(char, jugador, info);
   p.cores += Math.max(0, Math.floor(jugador.co || 0));
   p.evo[char] = Math.max(p.evo[char] || 0, jugador.evo || 0);
   if (Array.isArray(jugador.pth) && jugador.pth.length >= (p.path[char] || []).length) p.path[char] = jugador.pth.slice();
@@ -32,7 +33,7 @@ export function cerrarPartida(char, jugador) {
   if (Array.isArray(jugador.ess)) ['carne', 'cristal', 'ojo', 'vacio'].forEach((k, i) => { p.ess[k] = Math.min(999, jugador.ess[i] || 0); });
   if (Array.isArray(jugador.wg) && Array.isArray(jugador.sl)) jugador.sl.forEach((w, i) => { if ((jugador.wg[i] || []).length) p.worg[w] = jugador.wg[i].slice(); });
   if (Array.isArray(jugador.cg)) p.corg[char] = jugador.cg.slice();
-  guardar();
+  guardar(); return mae;
 }
 export const costeSiguiente = (char) => { const t = perfil().evo[char] || 0; return t >= 4 ? 0 : EVO_COST[t + 1]; };
 export function evolucionar(char, pick = 0) {
@@ -103,3 +104,16 @@ export const guiaPendiente = (id) => { const g = perfil().guia; return !g.off &&
 export function guiaVisto(id) { const g = perfil().guia; if (!g.vistos.includes(id)) { g.vistos.push(id); guardar(); } }
 /** Salta toda la guía (para siempre en este perfil). */
 export function guiaSaltar() { perfil().guia.off = true; guardar(); }
+
+/* ───── maestría por Huésped (src/sim/maestria.js): XP persistente → rangos 1–10 → bonos chicos y marca visible en el cuerpo ───── */
+export const maestria = (char) => (perfil().mae[char] || { xp: 0, partidas: 0, kills: 0, oleada: 0 });
+export const rangoMaestria = (char) => rangoDeXp(maestria(char).xp);
+export const progresoMaestria = (char) => ({ ...progreso(maestria(char).xp), ...maestria(char) });
+/** Suma la XP de una partida (jugador = snapshot; info = { wave, won }). Devuelve { xp, ganada, rangoAntes, rangoDespues, subio } (no guarda: lo hace cerrarPartida). */
+function ganarMaestria(char, jugador, info) {
+  if (!CHARACTERS[char] || !CHARACTERS[char].host) return null;
+  const m = (perfil().mae[char] ||= { xp: 0, partidas: 0, kills: 0, oleada: 0 }), antes = rangoDeXp(m.xp);
+  const kills = Math.max(0, jugador.kills | 0), wave = Math.max(0, info.wave | 0), ganada = xpPartida({ kills, wave, won: !!info.won });
+  m.xp = Math.min(99999, m.xp + ganada); m.partidas++; m.kills += kills; m.oleada = Math.max(m.oleada, wave);
+  const despues = rangoDeXp(m.xp); return { xp: m.xp, ganada, rangoAntes: antes, rangoDespues: despues, subio: despues > antes, max: despues >= RANGO_MAX };
+}

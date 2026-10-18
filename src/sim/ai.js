@@ -2,6 +2,7 @@ import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, project, rotAroun
 import { MONSTERS, G } from './data.js';
 import { collide } from './physics.js';
 import { updateColoso, updateMadre, updateArgos } from './bossmech.js';
+import { pulso } from './eventos.js';
 
 /* ───── utilidades de movimiento compartidas ───── */
 const nearest = (targets, pos) => {
@@ -60,11 +61,19 @@ function summon(game, m, kind, n, spread = 4) {
   game.emit({ t: 'summon', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] });
 }
 
+/** Pulso de gravedad de un Familiar o jefe. SÓLO invierte la gravedad dentro del evento «Marea de Gravedad» (src/sim/eventos.js, que además
+ *  limita a 3,5 s y a una inversión por jugador cada 20 s). El resto del tiempo no invierte: el Familiar ATRAE y dispara; el jefe EMPUJA hacia afuera. */
 function pulseGravity(game, m, range, secs) {
-  // Un jugador no puede ser invertido otra vez hasta ~20 s después de que termine la inversión anterior:
-  // sin esto, con varios Familiares y jefes la gravedad cambiaba sin parar en las últimas oleadas.
-  for (const p of game.alivePlayers()) if (dist(p.pos, m.pos) < range && game.time >= (p.flipLock || 0)) { p.flipUntil = game.time + secs; p.flipLock = game.time + secs + 20; }
-  game.emit({ t: 'gravity', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] });
+  if (pulso(game, m, range, secs)) return;
+  const near = game.alivePlayers().filter((p) => dist(p.pos, m.pos) < range);
+  if (m.def.boss) { // onda de choque: aleja a todos (se ve y se oye como el pulso, pero no cambia el piso)
+    for (const p of near) game.push(p, madd(mul(norm(sub(p.pos, m.pos)), 18), p.up, 4));
+  } else { // Familiar: tira de los jugadores hacia sí y suelta una ráfaga corta de esquirlas
+    for (const p of near) { const dd = dist(p.pos, m.pos); if (dd > 4) game.push(p, mul(norm(sub(m.pos, p.pos)), 14)); }
+    const tgt = near.length ? nearest(near, m.pos) : null;
+    if (tgt) for (let i = -1; i <= 1; i++) shoot(game, m, m.pos, rotAround(norm(sub(tgt.pos, m.pos)), tgt.up, i * 0.14), 24, 8 * dmgMul(game), 'shard');
+  }
+  game.emit({ t: 'pull', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] });
 }
 
 function bite(game, m, p, dmg, rate) {
@@ -192,7 +201,7 @@ export const AI = {
     if (d < m.r + 2.6) { m.dead = true; game.explode(m.pos, 6, 36 * dmgMul(game), 40, null); game.emit({ t: 'kill', id: m.id, k: 'racimo', p: [m.pos.x, m.pos.y, m.pos.z] }); }
   },
 
-  // 8) Gravitón: flota a distancia y, tras cargar 1.3s, invierte la gravedad de los jugadores 3.5s
+  // 8) Gravitón (El Familiar): flota a distancia y, tras cargar 1.3s, ATRAE y dispara; sólo en la «Marea de Gravedad» invierte la gravedad (hasta 3.5s)
   gravitron(game, m, dt, targets) {
     const p = nearest(targets, m.pos), to = sub(p.pos, m.pos), d = len(to), dir = norm(to);
     m.cd -= dt;

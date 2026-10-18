@@ -101,7 +101,7 @@ export function buildMap2(r, map) {
   const sunV = new THREE.Vector3();
   r.dyn.push((dt, t) => {
     let zero = false, warn = r.shellMat.uniforms.uWarn.value > 0.5;
-    try { const g = window.__api && window.__api.session && window.__api.session.game; if (g && g.map && g.map.id === 'm2' && typeof g.time === 'number') { zero = !!map.zeroG(g.time); const ph = g.time % map.tide.period; warn = ph >= map.tide.warn && ph < map.tide.zeroAt; zeroT = 0; prevWarn = warn; }
+    try { const g = window.__api && window.__api.session && window.__api.session.game; if (g && g.map && g.map.id === 'm2' && typeof g.time === 'number') { const gm = g.map.zeroG ? g.map : map, fx = gm.fx(g.time); zero = !!gm.zeroG(g.time); warn = !!fx.warn; zeroT = 0; prevWarn = warn; } // la marea ahora es un evento de oleada: se lee del mapa de la partida
       else { if (prevWarn && !warn) zeroT = map.tide.zeroEnd - map.tide.zeroAt; prevWarn = warn; if (zeroT > 0) { zeroT -= dt; zero = true; } } } catch { /* sin acceso al juego: sólo por el aviso */ }
     const target = zero ? 1 : warn ? 0.35 : 0; uTide.value += (target - uTide.value) * Math.min(1, dt * 2.2);
     sp.material.uniforms.uK.value = uTide.value; if (motes) { motes.material.uniforms.uAlpha.value = uTide.value * 0.9; motes.material.uniforms.uK.value = uTide.value; motes.visible = uTide.value > 0.03; }

@@ -21,7 +21,7 @@ await pg.evaluate(({ KINDS, n, d0, d1 }) => {
   }
   g.phase = 'intermission'; g.phaseT = 1e6;
 }, { KINDS, n: +n, d0: +d0, d1: +d1 });
-await pg.waitForTimeout(3500);
-const info = await pg.evaluate(() => { const i = window.__api.renderer.gl.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries }; });
+await pg.waitForTimeout(2500);
+const info = await pg.evaluate(() => { const i = window.__api.renderer.gl.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, monstruos: window.__api.session.game.monsters.length }; });
 await pg.screenshot({ path: `${out}.jpg`, type: 'jpeg', quality: 88 });
 console.log(JSON.stringify({ q, n: +n, ...info }), errs.slice(0, 4)); await b.close(); await srv.close();

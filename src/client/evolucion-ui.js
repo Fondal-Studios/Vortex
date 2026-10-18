@@ -137,7 +137,7 @@ export function buildEvolucionScreen(menu) {
     // el MISMO cuerpo que en la partida y en la selección (huesped-cuerpo.js): humano de ARCANUM con idle real + armadura/mutación del camino elegido; rotación con el dedo
     hostKit().then(async (hk) => {
       if (tok !== ev.hostTok) return;
-      const pl = { char: id, name: CHARACTERS[id].name, evo: shownEvo, pth, cg: org, mw: eq }, b = hk.mod.createHostBody(ev.THREE, hk.kit, pl, { quality: ev.quality, camera: ev.camA });
+      const pl = { char: id, name: CHARACTERS[id].name, evo: shownEvo, pth, cg: org, mw: eq, mr: Perfil.rangoMaestria(id) }, b = hk.mod.createHostBody(ev.THREE, hk.kit, pl, { quality: ev.quality, camera: ev.camA });
       ev.sceneA.add(b.object); await b.ready;
       if (tok !== ev.hostTok) { ev.sceneA.remove(b.object); b.dispose(); return; }
       ev.host = { group: b.object, body: b, update: (dt) => b.update(dt, pl, { speed: 0, pitch: 0 }), pose: (k) => { if (k === 'melee' || k === 'skill') b.event({ t: k }); }, dispose: () => b.dispose() };

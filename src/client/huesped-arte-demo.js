@@ -30,22 +30,23 @@ if (qs.get('bloom') === '1' || quality !== 'low') {
 const hdri = qs.get('hdri') || 'small_cathedral_02';
 const env = loadEnvHDRI(gl, hdri).then((t) => { scene.environment = t; scene.environmentIntensity = Number(qs.get('envi')) || 1.3; }).catch(() => {});
 const kit = await loadHumanKit({ quality });
-const pl = { char, name: char, evo: Number(qs.get('evo')) || 0, pth: (qs.get('pth') || '').split(',').filter(Boolean), cg: (qs.get('cg') || '').split(',').filter(Boolean), mw: qs.get('mw') || '', dead: false };
+const pl = { char, name: char, evo: Number(qs.get('evo')) || 0, pth: (qs.get('pth') || '').split(',').filter(Boolean), cg: (qs.get('cg') || '').split(',').filter(Boolean), mw: qs.get('mw') || '', mr: Number(qs.get('mr')) || 1, dead: false };
 const body = createHostBody(THREE, kit, pl, { quality, camera: cam, map: qs.get('map') || null });
 scene.add(body.object); await body.ready; await env;
 body.object.rotation.y = THREE.MathUtils.degToRad(Number(qs.get('yaw')) || 0);
 const CAMS = { // [x, y, z, mirax, miray, miraz, fov] relativos a la escala
   full: [0, 1.1, 5.4, 0, 0.9, 0, 30], q34: [2.6, 1.45, 3.9, 0, 0.9, 0, 30], close: [0, 1.25, 3.3, 0, 1.05, 0, 30], head: [0.5, 1.65, 1.55, 0, 1.58, 0, 30], torso: [0.6, 1.3, 2.3, 0, 1.2, 0, 30],
-  back: [0.9, 1.3, -4.4, 0, 1.0, 0, 30], side: [4.4, 1.2, 0.3, 0, 1.0, 0, 30], legs: [1.5, 0.5, 2.4, 0, 0.5, 0, 30], hands: [1.3, 1.2, 1.7, 0.4, 1.1, 0.1, 30], backq: [-2.6, 1.5, -4.0, 0, 1.0, 0, 30],
+  back: [0.9, 1.3, -4.4, 0, 1.0, 0, 30], side: [4.4, 1.2, 0.3, 0, 1.0, 0, 30], legs: [1.5, 0.5, 2.4, 0, 0.5, 0, 30], hands: [1.3, 1.2, 1.7, 0.4, 1.1, 0.1, 30], backq: [-2.6, 1.5, -4.0, 0, 1.0, 0, 30], lejos: [3.2, 2.3, 8.2, 0, 1.05, 0, 30], lejosback: [-3.2, 2.3, -8.2, 0, 1.05, 0, 30],
 };
 function frame() { const c = CAMS[camMode] || CAMS.full, s = body.object.scale.x * (CHARS_SCALE[char] || 1); cam.position.set(c[0] * s, c[1], c[2] * s); cam.lookAt(c[3], c[4] * s ** 0.5, c[5]); cam.fov = c[6]; cam.updateProjectionMatrix(); }
 const CHARS_SCALE = { micelio: 1.5 };
 frame();
-let time = 0; const ctxm = { speed: Number(qs.get('speed')) || 0, moveDir: { x: 0, z: 1 }, pitch: 0 };
+let time = 0; const ctxm = { speed: Number(qs.get('speed')) || 0, moveDir: { x: 0, z: 1 }, pitch: 0, viewH: H };
 if (qs.get('clip')) body.event({ t: qs.get('clip') === 'punch' ? 'melee' : 'skill' });
 function tick(dt) { time += dt; tickMenuBeat(time); body.update(dt, pl, ctxm); ring.rotation.z += dt * 0.3; }
 window.__advance = (s, dt = 1 / 30) => { for (let t = 0; t < s; t += dt) tick(dt); };
 window.__render = () => { frame(); composer ? composer.render() : gl.render(scene, cam); };
+window.__evolve = (pth, evo) => { pl.pth = pth.split(',').filter(Boolean); pl.evo = evo; }; window.__mr = (r) => { pl.mr = r; };
 window.__THREE = THREE; window.__body = body; window.__gl = gl; window.__scene = scene; window.__pl = pl; window.__cam = cam;
 window.__info = () => ({ ...body.stats(), calls: gl.info.render.calls, tris: gl.info.render.triangles, geometries: gl.info.memory.geometries });
 if (frozen) { window.__advance(Number(qs.get('t')) || 2); window.__render(); hud.textContent = ''; }

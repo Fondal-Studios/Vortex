@@ -10,9 +10,11 @@ import { useMove, useSpecial } from './characters.js';
 import { spawnNpc, clearNpc, npcStep } from './npcs.js';
 import { orgSnap, loadOrgans, shapeOrgans, hasC } from './organos.js';
 import { applyBend } from './bendiciones.js';
+import { applyMaestria } from './maestria.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
 import { Director } from './director.js';
+import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, limitarCaida } from './eventos.js';
 import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
 import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
 import { ROLES, ROLE_IDS } from './data.js';
@@ -34,7 +36,7 @@ export class Game {
     if (!this.map) throw new Error('mapa desconocido: ' + mapId);
     if (this.map.instance) this.map = this.map.instance(); // mapas que cambian durante la partida (mapa 4: el puente crece)
     this.mapId = mapId;
-    this.rng = makeRng(seed);
+    this.rng = makeRng(seed); this.seed = seed;
     this.difficulty = difficulty * (mapId === 'm2' ? 1.35 : 1); // la Cámara Fractal es más exigente (el bot ganaba 8/8)
     this.tick = 0; this.time = 0; this.dt = 1 / 60;
     this.players = []; this.monsters = []; this.projectiles = []; this.pickups = [];
@@ -48,6 +50,7 @@ export class Game {
     this.objects = []; this.pings = []; this.objective = null; this.fragments = 0; this.teamBuffUntil = 0; this.director = new Director(); this.curTypes = [];
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
     this.cult = this.map.cultivo ? initCult(this) : null; // acertijo del mapa 4 (src/sim/cultivo.js)
+    initEventos(this);                                    // eventos de oleada (src/sim/eventos.js): la gravedad invertida vive dentro de uno de ellos
   }
 
   /* ─────────── jugadores ─────────── */
@@ -67,7 +70,7 @@ export class Game {
       input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false, melee: false, s3: false, ult: false, evo: 0, reload: false },
     };
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style]) p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
-    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); // bendiciones de territorio (src/sim/bendiciones.js)
+    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyMaestria(p, opts.maestria); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
     this.players.push(p);
     return p;
   }
@@ -78,14 +81,14 @@ export class Game {
     const i = p.input;
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style]) p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style]) p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult; i.soft = !!inp.soft;
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); } } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); }
+  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria); } } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -155,6 +158,7 @@ export class Game {
       return;
     }
     // fase 'wave': spawnear en goteo
+    tickEventos(this, dt);
     this.spawnT -= dt;
     const cap = Math.min(LIMITS.monsters - 12, 44 + 10 * (this.players.length - 1));
     if (this.queue.length && this.spawnT <= 0 && this.monsters.length < cap) {
@@ -174,7 +178,7 @@ export class Game {
     } else this.straggleT = 0;
     if (!this.queue.length && !this.omens.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
-      misionFin(this);
+      misionFin(this); finOleada(this);
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
       for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
       this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this);
@@ -218,6 +222,7 @@ export class Game {
     for (let i = this.queue.length - 1; i > 0; i--) { const j = Math.floor(this.rng.next() * (i + 1)); [this.queue[i], this.queue[j]] = [this.queue[j], this.queue[i]]; }
     if (boss) this.queue.unshift(boss);
     this.spawnGap = Math.min(Math.max(0.45, 1.9 - 0.12 * n), Math.max(0.16, 42 / Math.max(1, this.queue.length))); // la oleada dura ~40 s sin importar el tamaño
+    planOleada(this, n, isBoss);
     this.emit({ t: 'wave', n, boss: isBoss });
   }
 
@@ -263,7 +268,7 @@ export class Game {
     const def = MONSTERS[kind];
     const w = Math.max(1, this.wave);
     const pm = def.boss ? 1 + 0.7 * (this.players.length - 1) : 1;
-    let elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5;
+    let elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5 + (this.evEliteBoost || 0);
     if (!elite && this.forceElite && !def.boss && !extra.noElite) elite = true; // misión «Caza mayor»: garantiza un élite
     if (elite) this.forceElite = false;
     const hp = def.hp * (def.boss ? 1 : (1 + WAVE_SCALE.hp * (w - 1)) * (elite ? 2.2 : 1)) * pm;
@@ -273,6 +278,7 @@ export class Game {
       state: 'idle', stateT: 0, dead: false, hurt: 0, kids: 0, parent: 0, far: 0, ...extra,
     };
     if (extra.affix && !def.boss) m.elite = true;
+    if (!def.boss && this.evSpeedMul !== 1) m.speedMul *= this.evSpeedMul;   // Marea de Sangre: horda veloz
     if (m.elite && !def.boss) { m.affix = extra.affix || AFFIX_IDS[Math.floor(this.rng.next() * AFFIX_IDS.length)]; if (m.affix === 'veloz') m.speedMul *= 1.35; }
     this.monsters.push(m);
     if (def.boss) { this.boss = m; if (kind === 'coloso') initColoso(this, m); else if (kind === 'argos') initArgos(this, m); else initMadre(this, m); }
@@ -305,16 +311,17 @@ export class Game {
   /** Empuje externo (embestidas, atracción): se suma a la velocidad y decae. */
   push(p, v) { p.ext = add(p.ext, v); }
 
-  gravityFor(ent, flipUntil = 0) {
+  /** Gravedad que siente `ent`. Durante una inversión pasa de +1 a −1 con una rampa suave (eventos.js factorFlip), no de golpe. */
+  gravityFor(ent, flipUntil = 0, flipFrom = -1e9) {
     const g = this.map.gravityAt(ent.pos, this.time);
-    if (this.time < flipUntil) return len(g) > 0.1 ? mul(g, -1) : mul(ent.up, G);
+    if (this.time < flipUntil) return mul(len(g) > 0.1 ? g : mul(ent.up, -G), factorFlip(this.time, flipFrom, flipUntil));
     return g;
   }
 
   updatePlayer(p, dt) {
     const inp = p.input;
     if (p.dead) { inp.dyaw = inp.dpitch = 0; p.abilityCd = Math.max(0, p.abilityCd - dt); if (inp.ping && !p.pingPrev) this.doPing(p); p.pingPrev = inp.ping; this.updateRevive(p, dt); return; }
-    const g = this.gravityFor(p, p.flipUntil);
+    const g = this.gravityFor(p, p.flipUntil, p.flipFrom);
     const zero = len(g) < 0.5;
     if (!zero) p.up = norm(mul(g, -1));
     const up = p.up;
@@ -340,6 +347,7 @@ export class Game {
       if (inp.jump && p.grounded) nvu = PLAYER.jump * (p.jumpMul || 1);
       p.vel = madd(nvt, up, nvu);
       p.vel = madd(p.vel, g, dt * (this.time < (p.glideUntil || 0) ? 0.12 : 1));
+      limitarCaida(this, p, g);   // tope de velocidad en la inversión + aterrizaje blando al terminar
       const sp = len(p.vel); if (sp > 62) p.vel = mul(p.vel, 62 / sp);
     }
     // integrar en 2 subpasos y colisionar
@@ -370,12 +378,12 @@ export class Game {
     if (inp.weapon >= 0) { p.weapon = inp.weapon < 5 ? p.slots[inp.weapon] : inp.weapon; inp.weapon = -1; }
     if (inp.pick >= 0) { if (p.cards.length) { applyCard(p, p.cards[inp.pick] || p.cards[0], this); p.cards = []; this.emit({ t: 'upgrade', pid: p.id }); } inp.pick = -1; }
     p.movCd = Math.max(0, p.movCd - dt); p.espCd = Math.max(0, p.espCd - dt);
-    if (inp.mov && !p.movPrev) useMove(this, p); p.movPrev = inp.mov;
-    if (inp.esp && !p.espPrev) useSpecial(this, p); p.espPrev = inp.esp;
+    if (inp.mov && !p.movPrev && !this.evSilencio) useMove(this, p); p.movPrev = inp.mov;
+    if (inp.esp && !p.espPrev && !this.evSilencio) useSpecial(this, p); p.espPrev = inp.esp;
     p.cd -= dt;
     p.abilityCd = Math.max(0, p.abilityCd - dt);
     p.interactEdge = inp.interact && !p.interactPrev; p.interactPrev = inp.interact;
-    if (inp.ability && !p.abilityPrev) useAbility(this, p); p.abilityPrev = inp.ability;
+    if (inp.ability && !p.abilityPrev && !this.evSilencio) useAbility(this, p); p.abilityPrev = inp.ability;
     if (inp.ping && !p.pingPrev) this.doPing(p); p.pingPrev = inp.ping;
     updateHost(this, p, dt); npcStep(this, p);
     if (this.magazines) this.updateReload(p, dt);
@@ -554,6 +562,7 @@ export class Game {
     if (this.time < (m.markUntil || 0)) mul_ *= m.markMul || 1.3;
     if (by && by.input) { mul_ *= hostOut(this, by, m); if (this.time < (m.dotUntil || 0) && m.dotKind === 'poison' && anyMut(by, 'neurotoxina')) mul_ *= 1.2; }
     if (by && this.time < this.teamBuffUntil) mul_ *= 1.25;
+    if (by && by.input && this.evZona && dist(by.pos, this.evZona.pos) < this.evZona.r) mul_ *= 1.3;   // Bendición de la Aurora
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
@@ -804,6 +813,7 @@ export class Game {
       obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
       mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
+      ev: evSnap(this),
       dir: { stress: r2(this.director.stress), frag: this.fragments, buff: r2(Math.max(0, this.teamBuffUntil - this.time)) },
       events: this.drainEvents(),
     };
