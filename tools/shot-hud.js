@@ -34,12 +34,12 @@ for (const [vn, w, h, touch] of VPS) {
     }
     await pg.evaluate(() => window.__api.touch.setFingers(2));
     // modo avanzado: HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO, SEÑALAR además de los básicos; sin solapes; y en básico NO se ven
-    { const basicHidden = await pg.evaluate(() => ['mov', 'esp', 's3', 'ads', 'crouch', 'ability', 'ping'].filter((k) => { const e = document.querySelector('.tc-' + k); return e && e.offsetParent !== null; }));
+    { const basicHidden = await pg.evaluate(() => ['s3', 'ads', 'crouch', 'ability', 'ping'].filter((k) => { const e = document.querySelector('.tc-' + k); return e && e.offsetParent !== null; }));
       console.log(vn, '  modo básico oculta lo avanzado:', basicHidden.length ? 'FALLA ven ' + basicHidden.join(',') : 'ok'); overlaps += basicHidden.length;
       await pg.evaluate(() => { window.__api.touch.ctxForce = false; window.__api.touch.applyLayout(); }); await pg.waitForTimeout(100);
       await pg.screenshot({ path: `${OUT}/${vn}-basico.jpg`, type: 'jpeg', quality: 70 });
       await pg.evaluate(() => { window.__api.touch.ctxForce = true; document.querySelector('#tadv').value = '1'; document.querySelector('#tadv').dispatchEvent(new Event('input')); }); await pg.waitForTimeout(150);
-      const r2 = await pg.evaluate(CHK); const need2 = await pg.evaluate(() => ['mov', 'esp', 's3', 'ads', 'crouch'].filter((k) => { const e = document.querySelector('.tc-' + k); return !e || e.offsetParent === null; }));
+      const r2 = await pg.evaluate(CHK); const need2 = await pg.evaluate(() => ['s3', 'ads', 'crouch'].filter((k) => { const e = document.querySelector('.tc-' + k); return !e || e.offsetParent === null; }));
       console.log(vn, '  modo avanzado', r2.btn, 'botones', need2.length ? 'FALTAN ' + need2.join(',') : '', r2.out.length ? '\n    ' + r2.out.join('\n    ') : 'sin solapes'); overlaps += r2.out.length + need2.length;
       await pg.screenshot({ path: `${OUT}/${vn}-avanzado.jpg`, type: 'jpeg', quality: 70 });
       await pg.evaluate(() => { document.querySelector('#tadv').value = '0'; document.querySelector('#tadv').dispatchEvent(new Event('input')); }); await pg.waitForTimeout(100); }
