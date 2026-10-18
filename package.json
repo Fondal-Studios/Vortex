@@ -1,7 +1,7 @@
 {
   "name": "cristal-vortex",
   "version": "0.1.0",
-  "description": "Shooter de supervivencia psicodélico en 3D con gravedad rota (Three.js + simulación autoritativa)",
+  "description": "Acción psicodélica en 3D con gravedad rota (PACTO PSICO) (Three.js + simulación autoritativa)",
   "type": "module",
   "license": "MIT",
   "scripts": {

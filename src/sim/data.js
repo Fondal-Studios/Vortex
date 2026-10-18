@@ -348,7 +348,8 @@ const HOSTS = {
     esp: { id: 'singularidad', name: 'Campo gravitatorio', cd: 14, desc: 'Un agujero que agrupa criaturas y estalla.' },
     s3: { id: 'tiempo', name: 'Distorsión temporal', cd: 18, desc: 'Burbuja de 5 s donde las criaturas se mueven al 25 %.' },
     ult: { id: 'colapso', name: 'Colapso del Umbral', cd: 0, charge: 100, desc: 'Singularidad grande de 6 s: arrastra, daña y detiene el tiempo local.' },
-    passive: { id: 'desfase', name: 'Desfase', desc: '-35 % de daño recibido durante 2 s después de usar Fase o un desplazamiento.' } },
+    passive: { id: 'desfase', name: 'Desfase', desc: '-35 % de daño recibido durante 2 s después de usar Fase o un desplazamiento.' },
+    unlock: { precio: 500 }, starter: false },   // se compra en la Tienda (docs/TIENDA.md); quien ya la usaba conserva el acceso (migración en perfil.js)
   seraf: { team: 'soporte', name: 'Seraf', title: 'La Simbiosis Prohibida', role: 'híbrido', host: true, preset: 'jugador3', seed: null, color: 0xffd45a, hp: 0.92, speed: 1.06, slots: [9, 11, 7, 20],
     desc: 'Híbrido de apoyo, daño y evolución. Emisor biológico y látigo extensible. El más técnico y espectacular.',
     story: 'Su simbionte no era un arma: era una pregunta. Seraf todavía no sabe si el organismo la usa a ella o ella a él, y eso la hace muy buena.',
@@ -358,7 +359,8 @@ const HOSTS = {
     esp: { id: 'pulso', name: 'Pulso vital', cd: 9, desc: 'Daña a las criaturas alrededor y te devuelve vida y carga.' },
     s3: { id: 'simbionte', name: 'Simbionte', cd: 20, desc: 'Invoca un organismo aliado 10 s que ataca y distrae.' },
     ult: { id: 'metamorfosis', name: 'Metamorfosis', cd: 0, charge: 100, desc: '12 s: forma alada. Tus disparos perforan y curan, el látigo ataca en área.' },
-    passive: { id: 'adaptacion', name: 'Adaptación', desc: 'Cada tipo de criatura que eliminás (hasta 5) da +2 % de daño contra ese tipo.' } },
+    passive: { id: 'adaptacion', name: 'Adaptación', desc: 'Cada tipo de criatura que eliminás (hasta 5) da +2 % de daño contra ese tipo.' },
+    unlock: { precio: 500 }, starter: false },   // se compra en la Tienda (docs/TIENDA.md); quien ya la usaba conserva el acceso (migración en perfil.js)
   danzante: { team: 'explorador', name: 'Danzante', title: 'El Último Baile de los Muertos', role: 'duelista', host: true, preset: 'jugador4', seed: null, color: 0xff3fa0, hp: 0.84, speed: 1.15, slots: [5, 22, 21, 6],
     desc: 'Duelista acrobático de contraataque. Estoque de listones, esquivas y paradas perfectas que devuelven el golpe. Frágil si baila mal, letal si baila a tiempo.',
     story: 'En el limbo hay un salón que nunca cierra: los muertos de todos los carnavales siguen bailando para no acordarse de que pararon. La Danzante es la que no pierde el paso. Pactó con el Pasajero porque quiere saber cómo suena una canción cuando alguien la termina.',
