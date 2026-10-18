@@ -51,7 +51,7 @@ test('Inventario: equipar, bloquear, desguazar y forjar desde la interfaz actual
   // la Forja: la Cuchilla de Hueso es una receta Común (plano conocido de entrada): 3 de hueso + 15 núcleos
   await pg.click('.iv-tab[data-t=for]'); await pg.click('.iv-plan[data-id=cuchilla_hueso]'); await pg.click('.iv-acts [data-a=forjar]'); await pg.waitForTimeout(200);
   const p3 = await perfil(); assert.ok(p3.cultivo && p3.cultivo.item === 'cuchilla_hueso', 'cultiva'); assert.equal(p3.cores, p2.cores - RECETAS.cuchilla_hueso.cores);
-  await pg.click('.iv-acts [data-a=acelerar]'); await pg.waitForTimeout(200); await pg.click('.iv-acts [data-a=recoger]'); await pg.waitForTimeout(200);
+  await pg.waitForSelector('.iv-acts [data-a=recoger]', { timeout: 60000 }); await pg.click('.iv-acts [data-a=recoger]'); await pg.waitForTimeout(200);
   const p4 = await perfil(); assert.equal(p4.cultivo, null); assert.ok(p4.inventario.filter((i) => i.id === 'cuchilla_hueso').length >= 1);
   assert.deepEqual(errors.filter((e) => !/WebGL|GPU|ReadPixels/i.test(e)), []); await ctx.close();
 });

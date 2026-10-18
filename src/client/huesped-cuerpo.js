@@ -37,7 +37,7 @@ const LOOK = {
   umbra: { preset: 'jugador2', scale: 1.0, glow: 0xb98cff, ember: 0x9a6aff, hover: 0.14 }, // flota: el sudario cubre los pies
   seraf: { preset: 'jugador2', scale: 1.0, glow: 0xffd45a, ember: 0xffb040 },
   danzante: { preset: 'jugador4', scale: 1.0, glow: 0xff3fa0, ember: 0xffb020, skin: 0x2b1240 },   // fucsia de carnaval + cempasúchil, piel de ciruela
-  singular: { preset: 'jugador3', scale: 1.08, glow: 0xb26bff, ember: 0xffc23a },   // ultravioleta + oro de estrella muerta
+  singular: { preset: 'jugador3', scale: 1.08, glow: 0xe0b0ff, ember: 0xffd24a },   // ultravioleta + oro de estrella muerta
 };
 const NEUTRAL = { height: 1, width: 1, shoulders: 1, belly: 0, head: 1, jaw: 1, nose: 1 };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
