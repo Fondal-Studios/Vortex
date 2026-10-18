@@ -10,8 +10,8 @@
 import * as T from 'three';
 import { tools, V, basisQ } from '../huesped-piezas.js';
 
-export const BELLY = 1;   // vientre de jalea que late entre las placas
-const CH_D = 0x4a1424, CH = 0x7a2236, CH_L = 0xa3364a, CH_HI = 0xc65060;               // quitina burdeos (de oscuro a lustre)
+export const BELLY = 0;   // sin vientre brillante: la jalea vive en la celda-corazón y en las costuras
+const CH_D = 0x2a0911, CH = 0x4c1220, CH_L = 0x741d30, CH_HI = 0x9c3446;               // quitina burdeos (de oscuro a lustre)
 const WAX = 0xf2dfb4, WAX_D = 0xc9a874, WAX_S = 0x9a7440;                               // cera de panal
 const HONEY = 0xffa81c, HONEY_L = 0xffd668, HONEY_D = 0xc4650a;                         // miel ámbar
 const CORAL = 0xff3b55, CORAL_L = 0xff8a98;                                             // jalea real
@@ -28,8 +28,8 @@ export function build(ak, ctx) {
   /** Celda de panal: prisma hexagonal de cera (eje = dir) con un hexágono de miel que asoma por la cara; core = brasa de jalea dentro. */
   const cell = (bone, p, dir, r, h, o = {}) => {
     const q = basisQ(dir, o.toward || Zv), d = dir.clone().normalize();
-    add('bone', X(hexG(r, h), { q, p: [p.x, p.y, p.z] }), bone, { color: o.wax ?? WAX });
-    if (o.honey !== false) { const c2 = p.clone().addScaledVector(d, h * 0.42); add('crystal', X(hexG(r * 0.7, h * 0.6), { q, p: [c2.x, c2.y, c2.z] }), bone, { color: o.honeyC ?? HONEY }); }
+    add('marble', X(hexG(r, h), { q, p: [p.x, p.y, p.z] }), bone, { color: o.wax ?? WAX });
+    if (o.honey !== false) { const c2 = p.clone().addScaledVector(d, h * 0.5); add('crystal', X(hexG(r * 0.72, h * 1.0), { q, p: [c2.x, c2.y, c2.z] }), bone, { color: o.honeyC ?? HONEY }); }
     if (o.core && !low) { const c3 = p.clone().addScaledVector(d, h * 0.78); add('light', X(G.sphere(r * 0.28, 6, 4), { p: [c3.x, c3.y, c3.z], s: [1, 1, 0.6] }), bone, { color: o.core }); }
   };
   /** Posiciones (plano XY) de una flor hexagonal de anillos 0..n, con celdas "pointy-top" de radio rad. */
@@ -39,20 +39,20 @@ export function build(ak, ctx) {
   {
     const shell = G.lathe([[0.094, -0.082], [0.106, -0.04], [0.111, 0.015], [0.1, 0.072], [0.08, 0.116], [0.045, 0.141], [0, 0.149]], S(14, 8), 0, TAU, 34); X(shell, { p: [HC.x, HC.y, HC.z], s: [1, 1.02, 1.18] });
     add('dark', shell, 'head', { color: CHM });
-    add('bone', G.wrapE(G.plate(t.platePts([[0.0, 0.078], [0.03, 0.058], [0.04, -0.01], [0.027, -0.1], [0, -0.128]]), 0.02, 0.006), 0.07, 0.142).translate(HC.x, HC.y, HC.z), 'head', { color: WAX });   // quilla de la cara
+    add('marble', G.wrapE(G.plate(t.platePts([[0.0, 0.078], [0.03, 0.058], [0.04, -0.01], [0.027, -0.1], [0, -0.128]]), 0.02, 0.006), 0.07, 0.142).translate(HC.x, HC.y, HC.z), 'head', { color: WAX });   // quilla de la cara
     add('light', G.wrapE(G.plate([[0.0, 0.1], [0.012, 0.075], [0.0, 0.05], [-0.012, 0.075]], 0.012, 0.003), 0.05, 0.146).translate(HC.x, HC.y + 0.0, HC.z + 0.004), 'head', { color: CORAL });   // gema de la frente
     add('dark', t.box(0.07, 0.024, 0.016, 0.004, 1).translate(HC.x, HC.y - 0.108, HC.z + 0.128), 'head', { color: 0x120308 });   // boca
     ak.both(() => {
       // ojo compuesto: gema facetada ámbar → coral, con un destello de luz
-      const eye = flat(new T.IcosahedronGeometry(0.052, low ? 0 : 1)); X(eye, { p: [0.066, HC.y + 0.01, HC.z + 0.088], s: [0.85, 1.2, 0.85] });
+      const eye = flat(new T.IcosahedronGeometry(0.06, low ? 0 : 1)); X(eye, { p: [0.07, HC.y + 0.012, HC.z + 0.09], s: [0.9, 1.25, 0.9] });
       add('crystal', eye, 'head', { color: (x, y, z) => C(HONEY_D).lerp(C(CORAL), clamp01(0.5 + (y - HC.y) * 7 + (x - 0.066) * 6)).lerp(C(HONEY_L), clamp01(0.4 - Math.hypot(x - 0.075, y - HC.y - 0.02, z - HC.z - 0.12) * 12)) });
       add('light', X(G.sphere(0.012, 6, 4), { p: [0.078, HC.y + 0.03, HC.z + 0.126] }), 'head', { color: 0xfff0c8 });
       ak.halo('head', V(0.07, HC.y + 0.01, HC.z + 0.13), CORAL, 0.1, 0.4);
       // ceja de quitina que se prolonga hacia atrás, mejilla y mandíbulas cruzadas
       add('dark', X(G.wrapE(G.plate([[0.0, 0.018], [0.07, 0.034], [0.128, 0.0], [0.07, -0.014], [0.0, -0.006]], 0.02, 0.006), 0.113, 0.146), { p: [HC.x, HC.y + 0.045, HC.z] }), 'head', { color: CHL });
       add('dark', X(G.wrapE(G.plate([[0.004, 0.02], [0.05, 0.012], [0.09, -0.04], [0.07, -0.098], [0.03, -0.108], [0.004, -0.06]], 0.016, 0.005), 0.108, 0.14), { p: [HC.x, HC.y - 0.015, HC.z], r: [0, 0.36, 0] }), 'head', { color: CHM });
-      add('bone', spikeAt(V(0.034, HC.y - 0.1, HC.z + 0.122), V(0.55, -0.9, 0.7), 0.13, 0.013, 0.03, Zv, { radial: S(5, 4), ridges: 3, ridgeAmp: 0.15 }), 'head', { color: WAX });
-      add('bone', spikeAt(V(0.052, HC.y - 0.082, HC.z + 0.108), V(0.9, -0.5, 0.5), 0.085, 0.009, 0.02, Zv, { radial: S(5, 4) }), 'head', { color: WAX_D });
+      add('marble', spikeAt(V(0.034, HC.y - 0.1, HC.z + 0.122), V(0.55, -0.9, 0.7), 0.13, 0.013, 0.03, Zv, { radial: S(5, 4), ridges: 3, ridgeAmp: 0.15 }), 'head', { color: WAX });
+      add('marble', spikeAt(V(0.052, HC.y - 0.082, HC.z + 0.108), V(0.9, -0.5, 0.5), 0.085, 0.009, 0.02, Zv, { radial: S(5, 4) }), 'head', { color: WAX_D });
       // antenas con física (cadena de muelles) y bulbo de luz en la punta
       const ap = [V(0.035, 1.715, 0.1), V(0.07, 1.8, 0.14), V(0.105, 1.9, 0.16), V(0.15, 1.99, 0.145), V(0.205, 2.06, 0.1), V(0.265, 2.1, 0.04), V(0.32, 2.11, -0.03)];
       const ch = ak.chain('antena', 'head', ap, { stiff: 0.09, damp: 0.92, gravity: 1.8, sway: 1.3 });
@@ -60,7 +60,7 @@ export function build(ak, ctx) {
       add('light', G.sphere(0.017, S(7, 5), S(5, 4)).translate(ap[6].x, ap[6].y, ap[6].z), ch.bones[6].name, { color: HONEY_L });
     });
     // collar: tres anillos de cera con fino filete de jalea
-    for (let i = 0; i < 3; i++) add('bone', G.band(0.07 - i * 0.002, 0.022, 0.009, { seg: S(16, 8) }).translate(0, 1.446 + i * 0.02, 0.025), 'neck01', { color: i === 1 ? WAX : WAX_D });
+    for (let i = 0; i < 3; i++) add('marble', G.band(0.07 - i * 0.002, 0.022, 0.009, { seg: S(16, 8) }).translate(0, 1.446 + i * 0.02, 0.025), 'neck01', { color: i === 1 ? WAX : WAX_D });
     add('light', G.torus(0.071, 0.0028, 3, S(16, 8)).translate(0, 1.456, 0.025), 'neck01', { color: CORAL });
     // NIMBO: disco de celdas hexagonales detrás de la cabeza (gira despacio; algunas celdas rotas, otras con miel que brilla)
     const nb = ak.bone('nimbo', 'head', V(0, HC.y + 0.04, HC.z - 0.17)), rr = t.rng(5), rad = 0.064, cells = flower(low ? 2 : 2, rad);
@@ -78,7 +78,7 @@ export function build(ak, ctx) {
   {
     const chest = G.lathe([[0.1, 1.17], [0.136, 1.22], [0.158, 1.28], [0.162, 1.335], [0.14, 1.39], [0.1, 1.425], [0.082, 1.44]], S(14, 9), 0, TAU, 30); X(chest, { p: [0, 0, 0.02], s: [1, 1, 0.8] });
     add('dark', chest, 'spine01', { color: CHD });
-    for (let i = 0; i < 3; i++) add('bone', G.band(0.157 - i * 0.012, 0.05, 0.018, { seg: S(18, 10), sz: 0.82 }).translate(0, 1.355 - i * 0.075, 0.022), i < 1 ? 'spine01' : 'spine02', { color: i % 2 ? WAX_D : WAX });
+    for (let i = 0; i < 3; i++) add('marble', G.band(0.157 - i * 0.012, 0.05, 0.018, { seg: S(18, 10), sz: 0.82 }).translate(0, 1.355 - i * 0.075, 0.022), i < 1 ? 'spine01' : 'spine02', { color: i % 2 ? WAX_D : WAX });
     for (let i = 0; i < 3; i++) add('light', G.torus(0.158 - i * 0.012, 0.0028, 3, S(18, 10)).scale(1, 1, 0.82).translate(0, 1.327 - i * 0.075, 0.022), i < 1 ? 'spine01' : 'spine02', { color: CORAL });
     // celda-corazón: marco hexagonal de cera, miel dentro y una larva de luz (tres segmentos) que late
     cell('spine01', V(0, 1.285, 0.172), V(0, 0.08, 1), 0.07, 0.034, { honeyC: HONEY, toward: Y });
@@ -99,13 +99,13 @@ export function build(ak, ctx) {
       add('light', spikeAt(V(S0.x + 0.115, S0.y + 0.2, S0.z - 0.11), V(0.45, 1, -0.75), 0.13, 0.0075, 0.03, Zv, { radial: 3, tubular: 3 }), 'spine01', { color: CORAL });
       // brazo: manga de quitina con anillos de cera, púa en el codo; antebrazo-guantelete con placa de cera y garras en la mano
       const E0 = P('lowerarm01'), W0 = P('wrist'), F3 = P('finger3-1'), F3e = P('finger3-3');
-      add('dark', limb(G.tube([V(0, 0.15, 0), V(0, -0.15, 0)], 0.052, 0.044, { radial: S(7, 5), tubular: 2 }), S0, E0, 0.5), 'upperarm01', { color: CHM });
-      for (const u of low ? [0.3] : [0.2, 0.5, 0.8]) add('bone', limb(G.band(0.058, 0.02, 0.01, { seg: S(10, 7) }), S0, E0, u), 'upperarm01', { color: WAX_D });
+      add('dark', limb(G.tube([V(0, 0.15, 0), V(0, -0.15, 0)], 0.064, 0.054, { radial: S(7, 5), tubular: 2 }), S0, E0, 0.5), 'upperarm01', { color: CHM });
+      for (const u of low ? [0.3] : [0.2, 0.5, 0.8]) add('marble', limb(G.band(0.058, 0.02, 0.01, { seg: S(10, 7) }), S0, E0, u), 'upperarm01', { color: WAX_D });
       add('dark', spikeAt(E0.clone().add(V(0.05, 0.0, -0.04)), V(0.9, 0.3, -0.8), 0.17, 0.02, 0.03, Y, { radial: S(5, 4), ridges: 3 }), 'lowerarm01', { color: CHL });
-      add('dark', limb(cuff(0.058, 0.044, 0.2, 0.012, S(10, 7), 30), E0, W0, 0.5), 'lowerarm01', { color: CHM });
-      t.armorPlate('lowerarm01', [[-0.04, 0.1], [0.04, 0.1], [0.032, -0.09], [0, -0.115], [-0.032, -0.09]], { mat: 'bone', depth: 0.02, bevel: 0.007, wrap: { rx: 0.066, rz: 0.07 }, color: WAX, trim: 'ember', trimColor: CORAL, trimInset: 0.18, place: (g) => limb(g, E0, W0, 0.5, { r: [0, -0.5, 0] }) });
+      add('dark', limb(cuff(0.07, 0.054, 0.2, 0.012, S(10, 7), 30), E0, W0, 0.5), 'lowerarm01', { color: CHM });
+      t.armorPlate('lowerarm01', [[-0.04, 0.1], [0.04, 0.1], [0.032, -0.09], [0, -0.115], [-0.032, -0.09]], { mat: 'marble', depth: 0.02, bevel: 0.007, wrap: { rx: 0.066, rz: 0.07 }, color: WAX, trim: 'ember', trimColor: CORAL, trimInset: 0.18, place: (g) => limb(g, E0, W0, 0.5, { r: [0, -0.5, 0] }) });
       cell('wrist', W0.clone().add(V(0.012, 0.012, -0.036)), V(0.3, 0.4, -1), 0.036, 0.022, { honeyC: CORAL });
-      for (const [f, len] of (low ? [['finger3', 0.1]] : [['finger2', 0.075], ['finger3', 0.1], ['finger4', 0.085]])) { const a = P(`${f}-2`), b = P(`${f}-3`), d = b.clone().sub(a).normalize(); add('bone', spikeAt(b.clone().addScaledVector(d, 0.01), d.clone().add(V(0, -0.1, 0.25)), len, 0.0085, -0.015, V(0, 0.4, 0.2), { radial: S(4, 3) }), `${f}-3`, { color: WAX }); }
+      for (const [f, len] of (low ? [['finger3', 0.1]] : [['finger2', 0.075], ['finger3', 0.1], ['finger4', 0.085]])) { const a = P(`${f}-2`), b = P(`${f}-3`), d = b.clone().sub(a).normalize(); add('marble', spikeAt(b.clone().addScaledVector(d, 0.01), d.clone().add(V(0, -0.1, 0.25)), len, 0.0085, -0.015, V(0, 0.4, 0.2), { radial: S(4, 3) }), `${f}-3`, { color: WAX }); }
       void F3; void F3e;
     });
   }
@@ -118,7 +118,7 @@ export function build(ak, ctx) {
       const a = pts[i], b = pts[i + 1], L = a.distanceTo(b), r = rad[i];
       const egg = G.lathe([[0, -L * 0.62], [r * 0.7, -L * 0.52], [r, -L * 0.1], [r * 0.95, L * 0.25], [r * 0.7, L * 0.52], [0, L * 0.62]], S(14, 8), 0, TAU, 34);
       add('dark', limb(egg, a, b, 0.5, { s: [1, 1, 0.92] }), ch.bones[i].name, { color: i === 1 || i === 2 ? CHM : CHD });
-      add('bone', limb(G.band(r * 0.96, 0.028, 0.014, { seg: S(16, 9), bevel: 0.4 }), a, b, 0.0), ch.bones[i].name, { color: WAX_D });   // anillo de cera entre segmentos
+      add('marble', limb(G.band(r * 0.96, 0.028, 0.014, { seg: S(16, 9), bevel: 0.4 }), a, b, 0.0), ch.bones[i].name, { color: WAX_D });   // anillo de cera entre segmentos
       add('light', limb(G.torus(r * 0.97, 0.0032, 3, S(16, 9)), a, b, 0.0, { off: [0, 0.014, 0] }), ch.bones[i].name, { color: CORAL });
       if (i >= 1 && i <= 3) add('crystal', limb(flat(new T.IcosahedronGeometry(r * 0.72, low ? 0 : 1)), a, b, 0.5, { s: [0.95, 0.8, 0.5], off: [0, 0, -r * 0.62] }), ch.bones[i].name, { color: (x, y) => C(HONEY_D).lerp(C(CORAL), clamp01(0.4 + (y - 0.7) * 1.2)) });   // ventana de miel: se ven las larvas dentro
       if (i >= 1 && i <= 2 && !low) { cell(ch.bones[i].name, a.clone().lerp(b, 0.5).add(V(r * 0.9, 0.03, 0.02)), V(1, 0.1, 0.1), 0.05, 0.026, { honeyC: HONEY }); cell(ch.bones[i].name, a.clone().lerp(b, 0.5).add(V(-r * 0.9, 0.03, 0.02)), V(-1, 0.1, 0.1), 0.05, 0.026, { honeyC: HONEY }); }
@@ -140,7 +140,7 @@ export function build(ak, ctx) {
   };
   const mkWing = (nm, L, Wf, Wb, theta, psi, hub, o = {}) => ak.both((side) => {
     const w = wingGeo(L, Wf, Wb, theta, psi, hub), bn = ak.bone(nm + side, 'spine01', hub);
-    add('crystal', w.place(G.plate(w.poly, 0.004, 0.0014)), bn.name, { color: (x, y, z) => { const d = Math.hypot(x - hub.x, y - hub.y, z - hub.z) / L; return C(HONEY_L).lerp(C(HONEY_D), clamp01(d * 1.1 - 0.15)).lerp(C(CORAL), clamp01((d - 0.7) * 2.4)); } });
+    add('crystal', w.place(G.plate(w.poly, 0.004, 0.0014)), bn.name, { color: (x, y, z) => { const d = Math.hypot(x - hub.x, y - hub.y, z - hub.z) / L; return C(0xe8960c).lerp(C(0xa84a04), clamp01(d * 1.2 - 0.2)).lerp(C(0xc42030), clamp01((d - 0.72) * 2.8)).multiplyScalar(0.8); } });
     const nv = low ? 3 : 5;   // venas radiales desde la raíz al borde de fuga
     for (let k = 0; k <= nv; k++) { const s = 0.3 + 0.66 * (k / nv), tail = w.bot[Math.min(w.bot.length - 1, Math.round(s * (w.bot.length - 1)))]; add('dark', w.place(G.tube([V(0, 0, 0.004), V(tail[0] * 0.5, tail[1] * 0.35, 0.006), V(tail[0], tail[1] * 0.97, 0.004)], 0.0045 - k * 0.0003, 0.0022, { radial: 3, tubular: 5, closeStart: false })), bn.name, { color: CH_D }); }
     add('dark', w.place(G.tube(w.top.map((q) => V(q[0], q[1] * 0.96, 0.005)), 0.0085, 0.003, { radial: S(5, 4), tubular: S(10, 8), closeStart: true })), bn.name, { color: CH });   // vena costal gruesa
@@ -161,8 +161,8 @@ export function build(ak, ctx) {
     const ap = [V(0.1, 1.1, 0.1), V(0.17, 1.06, 0.19), V(0.19, 1.0, 0.27), V(0.12, 1.0, 0.31), V(0.04, 1.03, 0.3)];
     const ch = ak.chain('brazo', 'spine03', ap, { stiff: 0.1, damp: 0.9, gravity: 1.5, sway: 0.5 });
     for (let i = 0; i < 4; i++) add('dark', G.tube([ap[i], ap[i + 1]], 0.019 - i * 0.003, 0.016 - i * 0.003, { radial: S(5, 4), tubular: 2, ridges: 3, ridgeAmp: 0.15 }), ch.bones[i].name, { color: i % 2 ? CHL : CHM });
-    add('bone', spikeAt(ap[4], V(-1, -0.2, 0.6), 0.075, 0.009, 0.01, Y, { radial: S(4, 3) }), ch.bones[4].name, { color: WAX });
-    add('bone', spikeAt(ap[4], V(-0.6, 0.3, 1), 0.065, 0.008, 0.01, Y, { radial: S(4, 3) }), ch.bones[4].name, { color: WAX_D });
+    add('marble', spikeAt(ap[4], V(-1, -0.2, 0.6), 0.075, 0.009, 0.01, Y, { radial: S(4, 3) }), ch.bones[4].name, { color: WAX });
+    add('marble', spikeAt(ap[4], V(-0.6, 0.3, 1), 0.065, 0.008, 0.01, Y, { radial: S(4, 3) }), ch.bones[4].name, { color: WAX_D });
   });
   {
     const cols = [], lens = [], r2 = t.rng(21);
@@ -173,15 +173,15 @@ export function build(ak, ctx) {
   // ═══════════════════════════ PIERNAS: grebas de quitina con rodillera de panal, espolón trasero y pies con tres garras
   ak.both(() => {
     const H = P('upperleg01'), K = P('lowerleg01'), A = P('foot'), TO = P('toe3-1');
-    add('dark', limb(G.tube([V(0, 0.2, 0), V(0, -0.2, 0)], 0.075, 0.056, { radial: S(7, 5), tubular: 2 }), H, K, 0.5), 'upperleg01', { color: CHM });
-    for (const u of low ? [0.25, 0.7] : [0.2, 0.45, 0.7]) add('bone', limb(G.band(0.08 - u * 0.02, 0.022, 0.01, { seg: S(10, 7) }), H, K, u), 'upperleg01', { color: WAX_D });
+    add('dark', limb(G.tube([V(0, 0.2, 0), V(0, -0.2, 0)], 0.1, 0.07, { radial: S(7, 5), tubular: 2 }), H, K, 0.5), 'upperleg01', { color: CHM });
+    for (const u of low ? [0.25, 0.7] : [0.2, 0.45, 0.7]) add('marble', limb(G.band(0.08 - u * 0.02, 0.022, 0.01, { seg: S(10, 7) }), H, K, u), 'upperleg01', { color: WAX_D });
     cell('lowerleg01', K.clone().add(V(0.0, 0.04, 0.085)), V(0, 0.15, 1), 0.058, 0.032, { honeyC: HONEY, toward: Y });   // rodillera de panal
-    add('dark', limb(G.tube([V(0, 0.2, 0), V(0, -0.2, 0)], 0.058, 0.036, { radial: S(7, 5), tubular: 2, ridges: 3, ridgeAmp: 0.12 }), K, A, 0.5), 'lowerleg01', { color: CHD });
-    t.armorPlate('lowerleg01', [[0, 0.1], [0.045, 0.06], [0.05, -0.04], [0.02, -0.12], [-0.02, -0.12], [-0.05, -0.04], [-0.045, 0.06]], { mat: 'bone', depth: 0.022, bevel: 0.008, wrap: { rx: 0.062, rz: 0.066 }, color: WAX, trim: 'ember', trimColor: CORAL, trimInset: 0.2, place: (g) => limb(g, K, A, 0.42) });
+    add('dark', limb(G.tube([V(0, 0.2, 0), V(0, -0.2, 0)], 0.072, 0.045, { radial: S(7, 5), tubular: 2, ridges: 3, ridgeAmp: 0.12 }), K, A, 0.5), 'lowerleg01', { color: CHD });
+    t.armorPlate('lowerleg01', [[0, 0.1], [0.045, 0.06], [0.05, -0.04], [0.02, -0.12], [-0.02, -0.12], [-0.05, -0.04], [-0.045, 0.06]], { mat: 'marble', depth: 0.022, bevel: 0.008, wrap: { rx: 0.062, rz: 0.066 }, color: WAX, trim: 'ember', trimColor: CORAL, trimInset: 0.2, place: (g) => limb(g, K, A, 0.42) });
     add('dark', spikeAt(K.clone().add(V(-0.01, -0.12, -0.05)), V(0, -0.4, -1), 0.15, 0.02, 0.02, Y, { radial: S(5, 4), ridges: 3 }), 'lowerleg01', { color: CHL });   // espolón
     add('light', ringAt_(K, A, 0.78, 0.062), 'lowerleg01', { color: CORAL });
     add('dark', X(G.box(0.1, 0.07, 0.2, 0.02, 1), { p: [A.x, 0.07, 0.07] }), 'foot', { color: CHD });
-    for (let k = -1; k <= 1; k += (low ? 2 : 1)) add('bone', spikeAt(V(TO.x + k * 0.032, 0.045, 0.14), V(k * 0.18, -0.12, 1), 0.12, 0.014, 0.012, Y, { radial: S(5, 4) }), 'toe3-1', { color: WAX });
+    for (let k = -1; k <= 1; k += (low ? 2 : 1)) add('marble', spikeAt(V(TO.x + k * 0.032, 0.045, 0.14), V(k * 0.18, -0.12, 1), 0.12, 0.014, 0.012, Y, { radial: S(5, 4) }), 'toe3-1', { color: WAX });
     function ringAt_(a, b, u, R) { return t.ringAt(a, b, u, R, 0.012, 0.005); }
   });
 
@@ -192,14 +192,14 @@ export function build(ak, ctx) {
   // ═══════════════════════════ EVOLUCIÓN POR CAMINO (ids de colmena-data.js)
   const drone = (bone, p, sc = 1, ang = 0) => {   // zángano pequeño: cuerpo, cabeza, dos alas y ojo de jalea
     add('dark', X(G.sphere(0.022 * sc, 6, 4), { p: [p.x, p.y, p.z], s: [1, 0.85, 1.5] }), bone, { color: CH });
-    add('bone', X(G.sphere(0.015 * sc, 5, 4), { p: [p.x, p.y + 0.004 * sc, p.z + 0.03 * sc] }), bone, { color: WAX });
+    add('marble', X(G.sphere(0.015 * sc, 5, 4), { p: [p.x, p.y + 0.004 * sc, p.z + 0.03 * sc] }), bone, { color: WAX });
     add('light', X(G.sphere(0.006 * sc, 4, 3), { p: [p.x, p.y + 0.008 * sc, p.z + 0.042 * sc] }), bone, { color: CORAL });
     for (const s of [-1, 1]) add('crystal', X(G.plate([[0, 0], [0.05 * sc, 0.012 * sc], [0.07 * sc, -0.01 * sc], [0.03 * sc, -0.02 * sc]], 0.002, 0.0006), { p: [p.x + s * 0.012 * sc, p.y + 0.016 * sc, p.z - 0.005 * sc], r: [0.5, s * 0.5 + (s < 0 ? Math.PI : 0), 0.15 + ang] }), bone, { color: HONEY_L });
   };
   if (has('criador')) {   // panal de larvas en la espalda + dos bolsas de huevos en las caderas
     const cells = flower(1, 0.056);
     cells.forEach((c, i) => { if (low && i > 4) return; cell('spine02', V(c.x, 1.14 + c.y, -0.15 - c.ring * 0.01), V(0, 0.1, -1), 0.052, 0.026, { honey: true, honeyC: i % 2 ? HONEY : HONEY_L, core: i % 3 === 0 ? CORAL : null, wax: WAX, toward: Y }); });
-    ak.both(() => { const o = V(0.2, 0.9, -0.1); add('bone', G.sphere(0.075, S(9, 6), S(7, 5)).translate(o.x, o.y, o.z), 'spine05', { color: WAX_D }); add('crystal', X(G.sphere(0.06, S(8, 5), S(6, 4)), { p: [o.x + 0.02, o.y, o.z - 0.02] }), 'spine05', { color: HONEY }); add('light', X(G.sphere(0.022, 6, 4), { p: [o.x + 0.03, o.y, o.z - 0.03], s: [1, 1.4, 1] }), 'spine05', { color: CORAL }); });
+    ak.both(() => { const o = V(0.2, 0.9, -0.1); add('marble', G.sphere(0.075, S(9, 6), S(7, 5)).translate(o.x, o.y, o.z), 'spine05', { color: WAX_D }); add('crystal', X(G.sphere(0.06, S(8, 5), S(6, 4)), { p: [o.x + 0.02, o.y, o.z - 0.02] }), 'spine05', { color: HONEY }); add('light', X(G.sphere(0.022, 6, 4), { p: [o.x + 0.03, o.y, o.z - 0.03], s: [1, 1.4, 1] }), 'spine05', { color: CORAL }); });
   }
   if (has('aguijon')) {   // lanzas de veneno en los antebrazos
     ak.both(() => {
@@ -214,7 +214,7 @@ export function build(ak, ctx) {
       const b0 = V(0.14, 1.44, -0.21), d = V(0.35, 1, -0.45).normalize();
       add('dark', X(G.lathe([[0.03, 0], [0.05, 0.05], [0.04, 0.14], [0.075, 0.24], [0.062, 0.26], [0.032, 0.17], [0.022, 0.05], [0.0, 0.0]], S(10, 7), 0, TAU, 30), { q: basisQ(d, Zv), p: [b0.x, b0.y, b0.z] }), 'spine01', { color: CHM });
       add('light', X(G.sphere(0.034, S(8, 5), S(6, 4)), { p: [b0.x + d.x * 0.22, b0.y + d.y * 0.22, b0.z + d.z * 0.22] }), 'spine01', { color: CORAL });
-      add('bone', X(G.band(0.07, 0.022, 0.012, { seg: S(10, 7) }), { q: basisQ(d, Zv), p: [b0.x + d.x * 0.1, b0.y + d.y * 0.1, b0.z + d.z * 0.1] }), 'spine01', { color: WAX });
+      add('marble', X(G.band(0.07, 0.022, 0.012, { seg: S(10, 7) }), { q: basisQ(d, Zv), p: [b0.x + d.x * 0.1, b0.y + d.y * 0.1, b0.z + d.z * 0.1] }), 'spine01', { color: WAX });
       ak.halo('spine01', V(b0.x + d.x * 0.24, b0.y + d.y * 0.24, b0.z + d.z * 0.24), HONEY_L, 0.18, 0.4);
     });
   }
@@ -228,7 +228,7 @@ export function build(ak, ctx) {
   }
   if (has('detonador')) {   // glándulas de carga que laten (el cristal brilla con uBeat)
     const gl = [[V(0.11, 1.22, -0.17), 0.055], [V(-0.11, 1.18, -0.17), 0.05], [V(0.17, 0.98, -0.1), 0.045], [V(-0.17, 1.0, -0.1), 0.045]];
-    gl.forEach(([p, r], i) => { if (low && i > 1) return; add('crystal', G.sphere(r, S(9, 6), S(7, 5)).translate(p.x, p.y, p.z), i < 2 ? 'spine02' : 'spine05', { color: i % 2 ? 0xff5a22 : CORAL }); add('bone', G.band(r * 0.78, 0.014, 0.008, { seg: S(10, 7) }).rotateX(Math.PI / 2).translate(p.x, p.y, p.z - r * 0.8), i < 2 ? 'spine02' : 'spine05', { color: WAX_D }); });
+    gl.forEach(([p, r], i) => { if (low && i > 1) return; add('crystal', G.sphere(r, S(9, 6), S(7, 5)).translate(p.x, p.y, p.z), i < 2 ? 'spine02' : 'spine05', { color: i % 2 ? 0xff5a22 : CORAL }); add('marble', G.band(r * 0.78, 0.014, 0.008, { seg: S(10, 7) }).rotateX(Math.PI / 2).translate(p.x, p.y, p.z - r * 0.8), i < 2 ? 'spine02' : 'spine05', { color: WAX_D }); });
     for (let k = 0; k < (low ? 1 : 3); k++) add('ember', t.crackLine(V(-0.12 + k * 0.1, 1.38, -0.2), V(-0.08 + k * 0.08, 1.14, -0.17), { n: 6, jag: 0.012, r: 0.003, seed: 9 + k }), 'spine01', { color: k % 2 ? HONEY_L : CORAL });
   }
   if (has('reina')) {   // corona de panal: columnas hexagonales en abanico sobre la frente
