@@ -154,6 +154,9 @@ test('blanca: las criaturas lejanas dejan de ver al jugador; las cercanas (≤ 9
   const X = v3(0, 0, -1), lejos = g.spawnMonster('astilla', madd(p.pos, X, 25), { noElite: true }), cerca = g.spawnMonster('astilla', madd(p.pos, X, 6), { noElite: true });
   assert.equal(ngOculta(g, p, lejos), true); assert.equal(ngOculta(g, p, cerca), false);
   const l0 = { ...lejos.pos }; run(g, 2, null); assert.ok(dist(lejos.pos, l0) < 0.01, 'la criatura que no te ve no avanza');
+  g.damageMonster(lejos, 1, p, lejos.pos); assert.equal(ngOculta(g, p, lejos), false, 'quien recibe un disparo tuyo te ve unos segundos');
+  run(g, NIEBLAS.blanca.par.revela + 0.5, null); lejos.pos = madd(p.pos, X, 25); assert.equal(ngOculta(g, p, lejos), true, 'y después te vuelve a perder');
+  const jefe = g.spawnMonster('coloso', madd(p.pos, v3(0, 0, -1), 30)); if (jefe) assert.equal(ngOculta(g, p, jefe), false, 'los jefes no se engañan');
   p.pos = madd(p.pos, v3(0, 0, -1), 30); run(g, 2, null); assert.equal(ngOculta(g, p, lejos), false, 'fuera de la niebla te ve');
 });
 

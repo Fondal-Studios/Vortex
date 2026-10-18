@@ -583,7 +583,7 @@ export class Game {
     if (by && by.input && this.evZona && dist(by.pos, this.evZona.pos) < this.evZona.r) mul_ *= 1.3;   // Bendición de la Aurora
     if (by && by.input) mul_ *= arDanio(this, by);   // Iris de Espejo / Costillar (arenas vivas)
     if (by && by.input) mul_ *= ngDanio(this, by);   // nieblas ámbar y magenta: daño que hace el jugador de adentro
-    mul_ *= ngMonstruoRecibe(this, m);               // niebla ámbar: la criatura de adentro también recibe +30 %
+    mul_ *= ngMonstruoRecibe(this, m, by);           // niebla ámbar: la criatura de adentro también recibe +30 % · niebla blanca: disparar desde adentro te delata
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }

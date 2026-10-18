@@ -41,8 +41,8 @@ export const NIEBLAS = {
     desc: 'Sangre en el aire: TODO el que esté adentro hace y recibe +30 % de daño (vos, las criaturas y los demás jugadores).',
     par: { mul: 1.3 } },
   blanca:  { i: 4, nombre: 'Niebla de ocultamiento', corto: 'Oculto', color: '#eef4ff', icono: '☁', nocivo: false, minOla: 1, aviso: 1.2,
-    desc: 'Las criaturas que estén a más de 9 m dejan de verte. Escondete para respirar, pero no te alejes de tu objetivo.',
-    par: { ver: 9 } },
+    desc: 'Las criaturas a más de 9 m dejan de verte (los jefes no se engañan, y quien recibe un disparo tuyo te ve 3 s). Escondete para respirar.',
+    par: { ver: 9, revela: 3 } },
   negra:   { i: 5, nombre: 'Niebla del vacío', corto: 'Drena', color: '#7a4dff', icono: '◍', nocivo: true, minOla: 3, aviso: 2.4,
     desc: 'Drena tus habilidades: los tiempos de recarga se congelan y la carga de la definitiva se apaga. Cruzala rápido.',
     par: { drenaUlt: 8 } },
@@ -199,7 +199,7 @@ function efectosJugador(g, p, dt, zs) {
     } else if (z.tipo === 'blanca') {
       B.oculto = true;
     } else if (z.tipo === 'negra') {
-      for (const k of ['movCd', 'espCd', 'abilityCd', 's3Cd']) if (p[k] > 0) { p[k] += dt; N.stats.drenado += dt; }   // congela la recarga (updatePlayer resta dt después)
+      for (const k of ['movCd', 'espCd', 'abilityCd', 's3Cd', 'habCd']) if (p[k] > 0) { p[k] += dt; N.stats.drenado += dt; }   // congela la recarga (updatePlayer resta dt después)
       if (!(p.ultT > 0) && p.ul > 0) p.ul = Math.max(0, p.ul - P.drenaUlt * dt);
     }
   }
@@ -252,13 +252,14 @@ export const ngDanio = (g, p) => (p.ngB ? p.ngB.dOut : 1);
 /** Multiplicador del daño que RECIBE el jugador (ámbar). */
 export const ngRecibe = (g, p) => (p.ngB ? p.ngB.dIn : 1);
 /** Multiplicador del daño que recibe una criatura que está dentro de una niebla ámbar activa. */
-export function ngMonstruoRecibe(g, m) {
+export function ngMonstruoRecibe(g, m, by = null) {
   const N = g.ng; if (!N) return 1;
+  if (by && by.ngB && by.ngB.oculto) m.ngVisto = g.time + NIEBLAS.blanca.par.revela;   // disparar desde la niebla blanca delata tu posición un rato
   for (const z of N.zonas) if (z.tipo === 'ambar' && activa(z) && dist(m.pos, z.pos) < z.r) return NIEBLAS.ambar.par.mul;
   return 1;
 }
 /** ¿Esta criatura NO ve a este jugador por la niebla blanca? (sólo a más de `ver` metros; de cerca lo siguen viendo). */
-export const ngOculta = (g, p, m) => !!(p.ngB && p.ngB.oculto) && dist(p.pos, m.pos) > NIEBLAS.blanca.par.ver;
+export const ngOculta = (g, p, m) => !!(p.ngB && p.ngB.oculto) && !m.def.boss && g.time >= (m.ngVisto || 0) && dist(p.pos, m.pos) > NIEBLAS.blanca.par.ver;
 /** Tuerce un poco el rumbo deseado dentro de la niebla magenta (±0,2 rad, lento). Con «Reducir efectos» no hace nada. */
 export function ngDeforma(g, p, wish) {
   const B = p.ngB; if (!B || !B.deriva || (p.input && p.input.soft)) return wish;

@@ -27,7 +27,7 @@ const VISTA = ['radial-gradient(ellipse at 50% 50%, rgba(120,255,30,.06) 30%, rg
 
 const CSS = `
 #ngfx{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .45s}
-#ngchip{position:absolute;left:calc(env(safe-area-inset-left,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 92px);max-width:min(330px,56vw);display:none;padding:7px 11px 8px;border-radius:12px;background:rgba(10,8,28,.82);border:1px solid var(--nc,#fff);color:#fff;font-size:12px;line-height:1.35;box-shadow:0 0 16px color-mix(in srgb,var(--nc,#fff) 45%,transparent);pointer-events:none}
+#ngchip{position:absolute;left:calc(env(safe-area-inset-left,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 148px);max-width:min(236px,30vw);display:none;padding:7px 11px 8px;border-radius:12px;background:rgba(10,8,28,.82);border:1px solid var(--nc,#fff);color:#fff;font-size:12px;line-height:1.35;box-shadow:0 0 16px color-mix(in srgb,var(--nc,#fff) 45%,transparent);pointer-events:none}
 #ngchip.on{display:block}
 #ngchip .n{display:flex;gap:6px;align-items:baseline;font-weight:800;letter-spacing:.05em;color:var(--nc,#fff);font-size:13px}
 #ngchip .n i{font-style:normal;font-size:15px}
@@ -36,7 +36,7 @@ const CSS = `
 #ngchip .b i{display:block;height:100%;width:100%;background:var(--nc,#fff);transform-origin:left}
 #ngchip.aviso{border-style:dashed;animation:ngpulse .7s ease-in-out infinite alternate}
 @keyframes ngpulse{from{box-shadow:0 0 6px color-mix(in srgb,var(--nc,#fff) 30%,transparent)}to{box-shadow:0 0 22px color-mix(in srgb,var(--nc,#fff) 80%,transparent)}}
-@media (max-width:700px){#ngchip{top:calc(env(safe-area-inset-top,0px) + 66px);font-size:11px;max-width:48vw}#ngchip .n{font-size:12px}}
+@media (max-width:700px){#ngchip{top:calc(env(safe-area-inset-top,0px) + 112px);font-size:11px;max-width:34vw}#ngchip .n{font-size:12px}}
 `;
 
 const VERT = `

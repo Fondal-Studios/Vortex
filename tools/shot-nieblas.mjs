@@ -22,9 +22,10 @@ for (const MAP of maps) {
     const N = await import('/src/sim/nieblas.js'), s = window.__api.session, g = s.game, p = g.players[0];
     s.bot = () => ({ mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, pick: -1 });
     g.queue = []; g.phaseT = 1e9; for (const m of g.monsters) m.dead = true; g.wave = 5; g.phase = 'wave'; if (g.ar) { g.ar.wave = 5; g.ar.t0 = g.time - 60; }
-    const ti = Object.keys(N.NIEBLAS), X = (a, d) => ({ x: p.pos.x + Math.cos(a) * d, y: p.pos.y + p.up.y * 1.2, z: p.pos.z + Math.sin(a) * d });
+    const ti = Object.keys(N.NIEBLAS), h = p.heading, rt = { x: h.y * p.up.z - h.z * p.up.y, y: h.z * p.up.x - h.x * p.up.z, z: h.x * p.up.y - h.y * p.up.x };
+    const X = (f, side) => ({ x: p.pos.x + h.x * f + rt.x * side + p.up.x * 1.2, y: p.pos.y + h.y * f + rt.y * side + p.up.y * 1.2, z: p.pos.z + h.z * f + rt.z * side + p.up.z * 1.2 });   // delante del jugador (f) y a su derecha (side)
     if (modo === 'luz') g.ng.zonas = [];
-    else if (modo === 'zona') for (let i = 0; i < 6; i++) N.nieblaTemporal(g, ti[i], X(-1.1 + i * 0.45, 13 + (i % 2) * 3), 8, 600);
+    else if (modo === 'zona') for (let i = 0; i < 6; i++) N.nieblaTemporal(g, ti[i], X(14 + (i % 2) * 7, (i - 2.5) * 7.5), 7, 600);
     else { N.nieblaTemporal(g, 'acida', { x: p.pos.x, y: p.pos.y + p.up.y * 1.2, z: p.pos.z }, 9, 600); }
     window.__NG = N;
   }, MODO);

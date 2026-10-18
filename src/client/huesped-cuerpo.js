@@ -47,7 +47,7 @@ export const GROW = 0.045;
 const PATH_SHAPE = { depredador: [0.03, 0.05], coraza: [0.1, 0.0], velocidad: [-0.04, 0.03], resonancia: [0.0, 0.02], simbiosis: [0.07, 0.03], artilleria: [0.05, 0.0], apoteosis: [0.0, 0.06], anomalia: [0.03, 0.04] };
 // COLMENA (invocadora de enjambre, caminos propios): diseño, aspecto, encuadre, forma y aura de cada camino; `pathOf` respeta los caminos propios de un Huésped (EVO_PATHS sólo vale para los demás)
 DESIGN.colmena = COLMENA; FRAME.colmena = [1.0, 2.5, 2.3];
-LOOK.colmena = { preset: 'jugador3', scale: 1.0, glow: 0xff4d63, ember: 0xffb02e };   // coral de jalea real + ámbar de miel sobre quitina burdeos
+LOOK.colmena = { preset: 'jugador3', scale: 1.0, glow: 0xffb83a, ember: 0xe8203c };   // borde de miel ámbar y venas rojas de jalea sobre quitina burdeos (Danzante es fucsia/cempasúchil, Seraf oro: Colmena es el ÚNICO rojo)
 Object.assign(PATH_SHAPE, { criador: [0.0, 0.02], aguijon: [0.0, 0.03], nidos: [0.04, 0.02], nube: [0.02, 0.0], cohabita: [0.05, 0.03], detonador: [0.03, 0.0], reina: [0.03, 0.07], plaga: [0.06, 0.04] });
 Object.assign(PATH_STYLE, { criador: { color: 0xffc24a, kind: 4, n: 16 }, aguijon: { color: 0xff3b55, kind: 2, n: 18 }, nidos: { color: 0xffa21c, kind: 8, n: 16 }, nube: { color: 0xffd070, kind: 1, n: 22 }, cohabita: { color: 0xff7a90, kind: 3, n: 14 }, detonador: { color: 0xff6a1a, kind: 0, n: 18 }, reina: { color: 0xffe08a, kind: 6, n: 18 }, plaga: { color: 0xd8402f, kind: 7, n: 20 } });
 function pathOf(char, evo, pth) { const EP = evoPathsFor(char); if (EP === EVO_PATHS) return pathFor(evo, pth); const out = []; for (let i = 1; i <= evo; i++) { const id = pth && pth[i - 1]; out.push((EP[i] || []).some((o) => o.id === id) ? id : EP[i][0].id); } return out; }

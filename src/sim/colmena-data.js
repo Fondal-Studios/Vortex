@@ -9,7 +9,7 @@ export const COLMENA = {
   char: {
     team: 'ingeniero', name: 'Colmena', title: 'La Soberana del Enjambre', role: 'invocador', host: true, starter: false,
     unlock: { precio: 600, req: { rango: 3, texto: 'Llegá al rango 3 de maestría con cualquier otro Huésped.' } },
-    preset: 'jugador3', seed: null, color: 0xff4d63, hp: 0.9, speed: 1, slots: [17, 9, 19, 13],
+    preset: 'jugador3', seed: null, color: 0xf0384e, hp: 0.9, speed: 1, slots: [17, 9, 19, 13],
     desc: 'Invocadora. Cría un enjambre de zánganos que atacan solos, planta nidos que disparan y manda sobre el campo sin moverse demasiado. Sola es frágil; acompañada, no hay quien la pare.',
     story: 'Era un colmenar al pie de una estación que ya no figura en ningún mapa. Se quemó, y las abejas no se fueron: aprendieron a pensar juntas. Ahora son una sola voz con miles de alas y te piden, muy educadas, un lugar donde poner el panal.',
     stats: { dano: 6, resistencia: 4, movilidad: 6, control: 7, utilidad: 8, dificultad: 7 },

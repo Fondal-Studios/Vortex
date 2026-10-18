@@ -21,11 +21,16 @@ export function build(ak, ctx) {
 
   // ───────────────────────── utilidades de diseño
   /** Hoja lenticular (pluma / pétalo / cinta con punta): base en el origen, eje +Y, plana en XY. */
-  const leaf = (len, w, th = 0.004, n = low ? 3 : 5, tip = 0.75) => {
-    const L = [], Rr = [];
-    for (let i = 0; i <= n; i++) { const u = i / n, hw = (w / 2) * Math.pow(Math.sin(Math.PI * Math.pow(u, tip)), 0.8) * (1 - 0.1 * u); L.push([-Math.max(hw, 0.0004), u * len]); Rr.push([Math.max(hw, 0.0004), u * len]); }
-    return G.plate([...Rr, ...L.reverse().slice(1, -1)], th, th * 0.4, { crease: 60 });
+  const leaf = (len, w, th = 0.004, n = low ? 3 : 5, tip = 0.75) => {   // malla plana de doble cara con un lomo central (8 triángulos por tramo): barata y se ve bien con luz propia
+    const pos = [], idx = [];
+    for (let i = 0; i <= n; i++) { const u = i / n, hw = Math.max(0.0005, (w / 2) * Math.pow(Math.sin(Math.PI * Math.pow(u, tip)), 0.8) * (1 - 0.1 * u)); pos.push(-hw, u * len, 0, 0, u * len, th, hw, u * len, 0); }
+    for (let i = 0; i < n; i++) { const a = i * 3, b = a + 3; idx.push(a, a + 1, b, b, a + 1, b + 1, a + 1, a + 2, b + 1, b + 1, a + 2, b + 2); idx.push(a, b, a + 1, b, b + 1, a + 1, a + 1, b + 1, a + 2, b + 1, b + 2, a + 2); }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
   };
+  /** Disco plano de doble cara (ojos de pluma, centros de flor): n lados. */
+  const disc = (r, n = 6) => { const a = new T.CircleGeometry(r, n), b = a.clone(); b.scale(1, 1, -1); const ib = b.index.array; for (let i = 0; i < ib.length; i += 3) { const k = ib[i + 1]; ib[i + 1] = ib[i + 2]; ib[i + 2] = k; } return G.merge([a, b]); };
+  /** Tira plana de doble cara (cuatro triángulos). */
+  const strip = (wa, wb, L) => { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute([-wa / 2, 0, 0, wa / 2, 0, 0, -wb / 2, L, 0, wb / 2, L, 0], 3)); g.setIndex([0, 1, 2, 2, 1, 3, 0, 2, 1, 2, 3, 1]); g.computeVertexNormals(); return g; };
   /** Degradado base→punta a lo largo de `dir` (largo L). */
   const grad = (base, dir, L, c0, c1, k = 1) => { const a = C(c0), b = C(c1), c = new T.Color(); return (x, y, z) => { const u = Math.min(1, Math.max(0, ((x - base.x) * dir.x + (y - base.y) * dir.y + (z - base.z) * dir.z) / L)); return c.copy(a).lerp(b, Math.pow(u, k)); }; };
   /** Pluma con ojo de pavo real en la punta. */
@@ -35,9 +40,10 @@ export function build(ak, ctx) {
     add(o.mat || 'light', g, bone, { color: grad(base, d, len, c0, c1, o.k || 1.3) });
     if (o.eye !== false) {
       const tp = base.clone().addScaledVector(d, len * 0.86), q = t.basisQ(d, o.toward || Zv);
-      add('light', X(G.cyl(w * 0.34, w * 0.34, 0.006, low ? 6 : 9).rotateX(Math.PI / 2), { q, p: [tp.x, tp.y, tp.z], s: [1, 1.25, 1] }), bone, { color: o.eyeC ?? MAR });
-      add('dark', X(G.cyl(w * 0.2, w * 0.2, 0.01, low ? 5 : 8).rotateX(Math.PI / 2), { q, p: [tp.x, tp.y, tp.z + 0.0005], s: [1, 1.25, 1] }), bone, { color: o.eyeD ?? PLUM });
-      add('light', X(G.cyl(w * 0.12, w * 0.12, 0.012, 6).rotateX(Math.PI / 2), { q, p: [tp.x, tp.y, tp.z + 0.001], s: [1, 1.25, 1] }), bone, { color: o.eyeI ?? TUR });
+      const nz = V(0, 0, 0.0012).applyQuaternion(q);
+      add('light', X(disc(w * 0.34, low ? 6 : 9), { q, p: [tp.x, tp.y, tp.z], s: [1, 1.25, 1] }), bone, { color: o.eyeC ?? MAR });
+      add('light', X(disc(w * 0.2, low ? 5 : 8), { q, p: [tp.x + nz.x, tp.y + nz.y, tp.z + nz.z], s: [1, 1.25, 1] }), bone, { color: o.eyeD ?? PLUM_L });
+      add('light', X(disc(w * 0.11, 5), { q, p: [tp.x + nz.x * 2, tp.y + nz.y * 2, tp.z + nz.z * 2], s: [1, 1.25, 1] }), bone, { color: o.eyeI ?? TUR });
     }
     return g;
   }
@@ -49,7 +55,7 @@ export function build(ak, ctx) {
     const ch = ak.chain('cinta' + ribN++, parent, pts, { stiff: o.stiff ?? 0.075, damp: 0.94, gravity: o.grav ?? 3.2, sway: o.sway ?? 1.7 });
     for (let i = 0; i < n; i++) {
       const a = pts[i], b = pts[i + 1], dd = b.clone().sub(a), L = dd.length(), wa = w * (1 - 0.35 * (i / n)), wb = w * (1 - 0.35 * ((i + 1) / n)) * (i === n - 1 ? 0.25 : 1);
-      const g = G.plate([[-wa / 2, 0], [wa / 2, 0], [wb / 2, L], [-wb / 2, L]], 0.003, 0.001, { crease: 60 });
+      const g = strip(wa, wb, L);
       X(g, { q: t.basisQ(dd, o.toward || Zv), p: [a.x, a.y, a.z] });
       const k0 = i / n, k1 = (i + 1) / n, ca = C(c0), cb = C(c1);
       add(o.mat || 'light', g, ch.bones[i].name, { color: (x, y, z) => { const u = Math.min(1, Math.max(0, ((x - a.x) * dd.x + (y - a.y) * dd.y + (z - a.z) * dd.z) / (L * L))); return new T.Color().copy(ca).lerp(cb, k0 + (k1 - k0) * u); } });

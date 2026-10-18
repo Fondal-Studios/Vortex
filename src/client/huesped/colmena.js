@@ -14,7 +14,7 @@ export const BELLY = 0;   // sin vientre brillante: la jalea vive en la celda-co
 const CH_D = 0x2a0911, CH = 0x4c1220, CH_L = 0x741d30, CH_HI = 0x9c3446;               // quitina burdeos (de oscuro a lustre)
 const WAX = 0xf2dfb4, WAX_D = 0xc9a874, WAX_S = 0x9a7440;                               // cera de panal
 const HONEY = 0xffa81c, HONEY_L = 0xffd668, HONEY_D = 0xc4650a;                         // miel ámbar
-const CORAL = 0xff3b55, CORAL_L = 0xff8a98;                                             // jalea real
+const CORAL = 0xf02848, CORAL_L = 0xff7080;                                             // jalea real (rojo sangre-miel: nadie más es rojo)
 const TAU = Math.PI * 2, clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 export function build(ak, ctx) {
@@ -30,6 +30,7 @@ export function build(ak, ctx) {
     const q = basisQ(dir, o.toward || Zv), d = dir.clone().normalize();
     add('marble', X(hexG(r, h), { q, p: [p.x, p.y, p.z] }), bone, { color: o.wax ?? WAX });
     if (o.honey !== false) { const c2 = p.clone().addScaledVector(d, h * 0.5); add('crystal', X(hexG(r * 0.72, h * 1.0), { q, p: [c2.x, c2.y, c2.z] }), bone, { color: o.honeyC ?? HONEY }); }
+    if (o.both && !low) { const c4 = p.clone().addScaledVector(d, -h * 0.5); add('crystal', X(hexG(r * 0.72, h * 1.0), { q, p: [c4.x, c4.y, c4.z] }), bone, { color: o.honeyC ?? HONEY }); }
     if (o.core && !low) { const c3 = p.clone().addScaledVector(d, h * 0.78); add('light', X(G.sphere(r * 0.28, 6, 4), { p: [c3.x, c3.y, c3.z], s: [1, 1, 0.6] }), bone, { color: o.core }); }
   };
   /** Posiciones (plano XY) de una flor hexagonal de anillos 0..n, con celdas "pointy-top" de radio rad. */
@@ -44,10 +45,10 @@ export function build(ak, ctx) {
     add('dark', t.box(0.07, 0.024, 0.016, 0.004, 1).translate(HC.x, HC.y - 0.108, HC.z + 0.128), 'head', { color: 0x120308 });   // boca
     ak.both(() => {
       // ojo compuesto: gema facetada ámbar → coral, con un destello de luz
-      const eye = flat(new T.IcosahedronGeometry(0.06, low ? 0 : 1)); X(eye, { p: [0.07, HC.y + 0.012, HC.z + 0.09], s: [0.9, 1.25, 0.9] });
-      add('crystal', eye, 'head', { color: (x, y, z) => C(HONEY_D).lerp(C(CORAL), clamp01(0.5 + (y - HC.y) * 7 + (x - 0.066) * 6)).lerp(C(HONEY_L), clamp01(0.4 - Math.hypot(x - 0.075, y - HC.y - 0.02, z - HC.z - 0.12) * 12)) });
-      add('light', X(G.sphere(0.012, 6, 4), { p: [0.078, HC.y + 0.03, HC.z + 0.126] }), 'head', { color: 0xfff0c8 });
-      ak.halo('head', V(0.07, HC.y + 0.01, HC.z + 0.13), CORAL, 0.1, 0.4);
+      const eye = flat(new T.IcosahedronGeometry(0.056, low ? 0 : 1)); X(eye, { p: [0.078, HC.y + 0.015, HC.z + 0.118], s: [0.9, 1.25, 0.8] });
+      add('crystal', eye, 'head', { color: (x, y, z) => C(HONEY_D).lerp(C(CORAL), clamp01(0.5 + (y - HC.y) * 7 + (x - 0.078) * 6)).lerp(C(HONEY_L), clamp01(0.4 - Math.hypot(x - 0.085, y - HC.y - 0.025, z - HC.z - 0.15) * 12)) });
+      add('light', X(G.sphere(0.012, 6, 4), { p: [0.088, HC.y + 0.04, HC.z + 0.158] }), 'head', { color: 0xfff0c8 });
+      ak.halo('head', V(0.078, HC.y + 0.015, HC.z + 0.17), CORAL, 0.1, 0.4);
       // ceja de quitina que se prolonga hacia atrás, mejilla y mandíbulas cruzadas
       add('dark', X(G.wrapE(G.plate([[0.0, 0.018], [0.07, 0.034], [0.128, 0.0], [0.07, -0.014], [0.0, -0.006]], 0.02, 0.006), 0.113, 0.146), { p: [HC.x, HC.y + 0.045, HC.z] }), 'head', { color: CHL });
       add('dark', X(G.wrapE(G.plate([[0.004, 0.02], [0.05, 0.012], [0.09, -0.04], [0.07, -0.098], [0.03, -0.108], [0.004, -0.06]], 0.016, 0.005), 0.108, 0.14), { p: [HC.x, HC.y - 0.015, HC.z], r: [0, 0.36, 0] }), 'head', { color: CHM });
@@ -67,7 +68,7 @@ export function build(ak, ctx) {
     for (const c of cells) {
       if (c.ring === 2 && rr() < 0.3) continue;   // hueco: panal roto
       const p = V(c.x, HC.y + 0.04 + c.y, HC.z - 0.17 - c.ring * 0.012), full = rr() < 0.55;
-      cell('nimbo', p, V(0, 0.12, -1), rad * 0.93, 0.016 + 0.006 * (3 - c.ring), { honey: full && c.ring > 0, honeyC: [HONEY, HONEY_L, 0xff7a2a][c.ring % 3], wax: c.ring === 2 ? WAX_D : WAX, toward: Y });
+      cell('nimbo', p, V(0, 0.12, -1), rad * 0.93, 0.016 + 0.006 * (3 - c.ring), { honey: full && c.ring > 0, both: true, honeyC: [HONEY, HONEY_L, 0xff7a2a][c.ring % 3], wax: c.ring === 2 ? WAX_D : WAX, toward: Y });
     }
     add('light', G.torus(0.34, 0.0036, 3, S(34, 14)).rotateX(Math.PI / 2 - 0.12).translate(0, HC.y + 0.04, HC.z - 0.18), 'nimbo', { color: CORAL });   // aro fino de luz
     ak.halo('head', V(0, HC.y + 0.04, HC.z - 0.2), HONEY, 0.8, 0.2);
@@ -167,7 +168,7 @@ export function build(ak, ctx) {
   {
     const cols = [], lens = [], r2 = t.rng(21);
     for (let j = 0; j < 9; j++) { const a = -Math.PI * 0.95 + (j / 8) * Math.PI * 1.9; cols.push({ bone: 'spine05', p: V(Math.sin(a) * 0.125, 0.95, Math.cos(a) * 0.1) }); lens.push((a > -1.1 && a < 1.1 ? 0.42 : 0.34) + (r2() - 0.5) * 0.12); }
-    ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(8, 5), color: new T.Color(2.6, 0.45, 0.8), hem: new T.Color(3.4, 1.7, 0.4), gravity: 8, stiff: 0.03, drag: 0.98, wave: 0.02, ember: 1 });
+    ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(8, 5), color: new T.Color(2.6, 0.45, 0.8), hem: new T.Color(3.2, 0.5, 0.35), gravity: 8, stiff: 0.03, drag: 0.98, wave: 0.02, ember: 1 });
   }
 
   // ═══════════════════════════ PIERNAS: grebas de quitina con rodillera de panal, espolón trasero y pies con tres garras
