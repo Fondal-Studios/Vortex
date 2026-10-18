@@ -91,7 +91,7 @@ export class Renderer {
   }
   /** CLARIDAD «normal» | «alta» (ajuste del jugador): relleno, borde de luz, halos, piso de sombras, niebla y exposición. */
   applyClaridad(id) {
-    setClaridad(id); this.clar = claridad(); this.gl.toneMappingExposure = (usesComposer() ? 1.9 : 1.05) * (usesComposer() ? 1 : this.clar.exp);
+    this.claridadId = id; setClaridad(id); this.clar = claridad(); this.gl.toneMappingExposure = (usesComposer() ? 1.9 : 1.05) * (usesComposer() ? 1 : this.clar.exp);
     if (this.grade) this.grade.clarity(this.clar);
     for (const e of this.ents.mon.values()) { const b = e.object.getObjectByName('beacon'); if (b) b.material.opacity = this.clar.beacon; }
     const hd = this.cache.get('haloDark'); if (hd) hd.opacity = this.clar.beaconDark;
@@ -100,18 +100,23 @@ export class Renderer {
   halo_(color) { return this.shared('halo' + color, () => new THREE.SpriteMaterial({ map: this.halo, color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); }
   pixelRatioFor(level) {
     if (this.prOverride) return this.prOverride;
-    const L = LEVELS[level], dpr = window.devicePixelRatio || 1;
-    return Math.max(0.5, Math.min(L.maxPR, dpr * L.pixelRatio));
+    const L = level === this.level || !LEVELS[level] ? cfg() : LEVELS[level], dpr = window.devicePixelRatio || 1, k = L.scale || 1;   // k: «Resolución» del menú Gráficos (0,5…1,5 × la del nivel)
+    return Math.max(0.4, Math.min(L.maxPR * Math.max(1, k), dpr * L.pixelRatio * k));
   }
   /** Cambia la calidad en caliente: resolución, partículas, aristas, decorado y shaders del cielo. */
-  applyQuality(level) {
+  applyQuality(level, { rebuild = true } = {}) {
     if (!LEVELS[level]) return;
     this.level = level; setCurrent(level); OUT.linear = usesComposer(); this.gl.toneMappingExposure = usesComposer() ? 1.9 : 1.05; this.setupPost();
     this.gl.setPixelRatio(this.pixelRatioFor(level)); this.resize();
     this.fx.configure(cfg());
+    if (this.nfx) this.nfx.configure(cfg());   // nieblas de colores (nieblas-fx.js): cantidad de nubes según el nivel
+    if (this.clar) this.applyClaridad(this.claridadId || 'normal');
+    if (!rebuild) return;   // ajustes «en vivo» del menú Gráficos (resolución, bloom, post, niebla de aire, partículas…): no se reconstruye el mapa
     for (const m of Object.values(this.ents)) { for (const o of m.values()) this.entRoot.remove(o.object || o); m.clear(); }
     const id = this.mapId; this.mapId = null; if (id) this.setMap(id);
   }
+  /** Resolución en vivo (menú Gráficos y Automático): sólo cambia el pixelRatio, sin reconstruir nada. */
+  applyScale() { this.gl.setPixelRatio(this.pixelRatioFor(this.level)); this.resize(); }
   /** Post-proceso (post.js): escena a un destino HDR con MSAA y profundidad → bloom (Media/Alta) → pasada final de grading
    *  (AO por profundidad, niebla volumétrica falsa, ACES, curvas, viñeta, grano). Baja: sólo la pasada final barata. */
   setupPost() {
@@ -121,7 +126,7 @@ export class Renderer {
       const c = new EffectComposer(this.gl, sceneTarget(q.msaa == null ? 4 : q.msaa)); c.setPixelRatio(this.gl.getPixelRatio());
       c.addPass(new RenderPass(this.scene, this.camera));
       if (q.post) { this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), q.bloom || 0.5, 0.55, 0.85); c.addPass(this.bloom); } else this.bloom = null;
-      this.grade = new GradePass(this.level); if (this.mapId) this.grade.preset(this.mapId); this.grade.clarity(this.clar || claridad()); c.addPass(this.grade);
+      this.grade = new GradePass(this.level, { layers: q.fogLayers }); if (this.mapId) this.grade.preset(this.mapId); this.grade.clarity(this.clar || claridad()); c.addPass(this.grade);
       this.composer = c;
     }
     if (q.env && !this.envTex) { const pm = new THREE.PMREMGenerator(this.gl); this.envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); }

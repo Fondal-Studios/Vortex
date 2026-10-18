@@ -11,6 +11,7 @@ import { spawnNpc, clearNpc, npcStep } from './npcs.js';
 import { orgSnap, loadOrgans, shapeOrgans, hasC } from './organos.js';
 import { applyBend } from './bendiciones.js';
 import { applyMaestria } from './maestria.js';
+import { applyArbol, shapeArbolGun } from './progresion.js';   // árbol de combos y de disparo permanentes (docs/EVOLUCION.md)
 import { setMode } from './combos.js';
 import { initDrops, initPity, updateLoot, flushLoot, lootSnap, dropsKill, dropsJefe, dropsRespiro } from './drops.js';   // dropeo de objetos (docs/INVENTARIO.md): rng propio g.drRng
 import { applyEquip, itemsSnap, shapeItemGun, ensureGunSlot } from './items-fx.js';
@@ -79,7 +80,7 @@ export class Game {
     };
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style] && opts.style !== 'combo') p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     if (opts.mode === 'combo') p.mode = 'combo';
-    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyMaestria(p, opts.maestria); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
+    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
     initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
     this.players.push(p);
     return p;
@@ -101,7 +102,7 @@ export class Game {
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
+  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); applyArbol(p, prof.arbol ?? p.arb); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -465,7 +466,7 @@ export class Game {
     const origin = this.eyePos(p);
     const base = this.aimDir(p);
     const w = { ...w0, dmg: w0.dmg * st.dmg, mod: st.mod, pierce: w0.pierce || st.mod === 'perfora', chain: w0.chain || (st.mod === 'cadena' ? 2 : 0) };
-    shapeWeapon(w, st); shapeOrgans(w, p, p.weapon); shapeItemGun(w, p, p.weapon);
+    shapeWeapon(w, st); shapeOrgans(w, p, p.weapon); shapeItemGun(w, p, p.weapon); shapeArbolGun(w, p);   // + nodos del árbol de disparo
     if (w.kind === 'pulse') { // onda radial sin apuntar
       for (const m of this.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < w.radius + m.r) { this.damageMonster(m, w.dmg * (1 - 0.4 * d / (w.radius + m.r)), p, m.pos); m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), w.knock); } }
       for (const ob of [...this.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, p.pos) < w.radius + ob.r) this.damageObject(ob, w.dmg, p, ob.pos);

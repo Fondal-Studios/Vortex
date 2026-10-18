@@ -53,7 +53,7 @@ const TEXTO_C = {
   area1: 'Tus golpes ATRAVIESAN: alcance +15 %, ángulo +25 %, hasta 14 enemigos por golpe (antes 4) e ignoran la guardia de los arietes. Las flechas de Seraf atraviesan.',
   area2: (c) => FIN_TEXTO[FIN_HUESPED[c]],
   area3: 'RESONANCIA: cada baja empuja a los de alrededor y les propaga parte del daño, en cadena (máx. 2 saltos y 14 golpes por ataque).',
-  ejecucion1: 'Cada golpe MARCA al enemigo 4 s (recibe +20 % de daño) y ejecutás con un 5 % más de vida restante.',
+  ejecucion1: 'Cada golpe MARCA al enemigo 4 s (recibe +15 % de daño) y ejecutás con un 5 % más de vida restante.',
   ejecucion2: 'El remate pega un 35 % más; cada baja con un remate te cura 4 y acelera 1,2 s tu habilidad (hasta 5 bajas).',
   ejecucion3: 'Ejecutás con un 7 % más de vida restante y cada ejecución cancela la recuperación: el golpe siguiente sale ya.',
 };
@@ -194,7 +194,7 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
 /** Estadísticas de la partida (p.ps) y efectos (p.ac, p.as) de un jugador. `arbol` = lo que mandó el perfil/cliente. Idempotente. */
 export function applyArbol(p, arbol) {
   const a = cleanArbol(p.char, arbol);
-  p.arb = a; p.ac = efectosCombo(p.char, a.combo); p.as = efectosDisparo(p.char, a.disparo);
+  p.arbChar = p.char; p.arb = a; p.ac = efectosCombo(p.char, a.combo); p.as = efectosDisparo(p.char, a.disparo);
   p.ps = { c: { h: 0, f: 0, m: 0, mm: 0, k: 0 }, s: { k: 0, m: 0, mm: 0 }, pts: 0, rk: 0, mk: 0, mkT: 0, k0: p.kills | 0, idle: 0 };
   return p;
 }

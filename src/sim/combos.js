@@ -10,15 +10,19 @@ import { PLAYER, COMBO_SETS, COMBO_WEAPON, COMBO_RULES, COMBO_CHARGE, COMBO_TUNE
 import { blocked } from './physics.js';
 import { hasC } from './organos.js';
 import { cdef, isHost, meleeSet, hasPath, evoMeleeMul, cdMul, applyMeleeSpecial, meleeAfter } from './huespedes.js';
+import { NEUTRO_C, ARRASE_PRESUPUESTO, progHit, progSnap } from './progresion.js';   // árbol de combos permanente (docs/EVOLUCION.md): p.ac = efectos de los nodos
 import { itemComboSet, itemComboShape, itemStrike, execThreshold } from './items-fx.js';   // objetos equipados (docs/INVENTARIO.md)
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
 const flat = (p) => norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.heading);
+const AC = (p) => p.ac || NEUTRO_C;
+const bufT = (p) => COMBO_RULES.buffer * AC(p).buf;
 const heal = (q, n) => { q.hp = Math.min(PLAYER.hp, q.hp + n); };
 
 /** Pone en el jugador el estado de combos y habilidad (lo llama initHost; conserva el modo si ya estaba elegido). */
 export function initCombo(p) {
+  if (p.arbChar !== p.char) { p.ac = p.as = p.arb = null; }   // otro Huésped: los nodos del anterior no valen (applyArbol los vuelve a poner)
   p.mode = p.mode === 'combo' && isHost(p) ? 'combo' : 'shooter';
   p.cb = { buf: [], n: 0, win: 0, cd: 0, rec: 0, cancel: COMBO_RULES.cancel, q: '', qp: 1, qt: 0, prev1: false, prev2: false, chg: 0, last: '', lastName: '' };
   Object.assign(p, { habCd: 0, habPend: null, habPrev: false, frenzyUntil: 0, blessUntil: 0, baluarteUntil: 0, eclipse: null });
@@ -33,10 +37,10 @@ export function setMode(p, mode) {
 }
 
 /* ───────── set de golpes ───────── */
-const shapeOf = (p) => { const t = meleeSet(p).type; return COMBO_WEAPON[t] || itemComboShape(t) || COMBO_WEAPON.innata; };
+const shapeOf = (p) => { const t = meleeSet(p).type, W = COMBO_WEAPON[t] || itemComboShape(t) || COMBO_WEAPON.innata, c = AC(p).chain; return c ? { ...W, chain: W.chain + c } : W; };
 /** Golpes disponibles ahora: desbloqueados por nivel/camino y que caben en el largo de cadena que permite el arma fusionada. */
 export function comboUnlocked(p) {
-  const set = itemComboSet(p) || COMBO_SETS[p.char] || [], W = shapeOf(p);
+  const set = [...(itemComboSet(p) || COMBO_SETS[p.char] || []), ...AC(p).extra], W = shapeOf(p);   // + golpes nuevos del árbol de combos
   return set.filter((m) => (p.evo || 0) >= m.evo && (!m.path || hasPath(p, m.path)) && m.seq.length <= W.chain);
 }
 const sameTail = (buf, seq) => seq.length <= buf.length && seq.every((x, i) => buf[buf.length - seq.length + i] === x);
@@ -70,18 +74,18 @@ export function comboStep(g, p, dt) {
   if (inp.jump && cb.cd > 0.05) cb.cd = 0;
   // entradas de ataque: A1 al pulsar (mantener repite); A2 al pulsar, o al soltar si se CARGA (Seraf)
   const charge = !!COMBO_CHARGE[p.char];
-  if (e1) { cb.q = 'a1'; cb.qp = 1; cb.qt = COMBO_RULES.buffer; }
+  if (e1) { cb.q = 'a1'; cb.qp = 1; cb.qt = bufT(p); }
   if (charge) {
     if (inp.a2) cb.chg = Math.min(COMBO_RULES.chargeMax, cb.chg + dt);
-    if (rel2) { cb.q = 'a2'; cb.qp = 1 + cb.chg / COMBO_RULES.chargeMax; cb.qt = COMBO_RULES.buffer; cb.chg = 0; }
+    if (rel2) { cb.q = 'a2'; cb.qp = 1 + cb.chg / COMBO_RULES.chargeMax; cb.qt = bufT(p); cb.chg = 0; }
     if (!inp.a2 && !rel2) cb.chg = 0;
-  } else if (e2) { cb.q = 'a2'; cb.qp = 1; cb.qt = COMBO_RULES.buffer; }
-  if (!cb.q && cb.cd <= 0) { if (inp.a1) { cb.q = 'a1'; cb.qp = 1; cb.qt = COMBO_RULES.buffer; } else if (inp.a2 && !charge) { cb.q = 'a2'; cb.qp = 1; cb.qt = COMBO_RULES.buffer; } }
+  } else if (e2) { cb.q = 'a2'; cb.qp = 1; cb.qt = bufT(p); }
+  if (!cb.q && cb.cd <= 0) { if (inp.a1) { cb.q = 'a1'; cb.qp = 1; cb.qt = bufT(p); } else if (inp.a2 && !charge) { cb.q = 'a2'; cb.qp = 1; cb.qt = bufT(p); } }
   if (!cb.q) return;
   const moves = comboUnlocked(p), W = shapeOf(p);
   const tentative = [...cb.buf, cb.q].slice(-W.chain), pick = pickMove(moves, tentative);
   const chains = pick && pick.len > 1;   // ¿continúa un combo válido?
-  if (cb.cd > 0 && !(chains && cb.cd <= cb.rec * (1 - cb.cancel))) return;
+  if (cb.cd > 0 && !((chains || AC(p).freeCancel) && cb.cd <= cb.rec * (1 - cb.cancel))) return;
   const name = cb.q, power = cb.qp; cb.q = '';
   // golpe descendente en el aire (mirando abajo): reutiliza el aterrizaje del melé de siempre (huespedes.js → slamLand)
   if (name === 'a2' && !p.grounded && p.pitch < -0.35 && !(C && COMBO_CHARGE[p.char])) { p.slam = 3; p.vel = madd(p.vel, p.up, -42); cb.cd = 0.5; cb.rec = 0.5; g.emit({ t: 'combo', pid: p.id, n: cb.n, id: 'plunge', name: 'Caída', hit: 0, p: a3(p.pos), air: true }); return; }
@@ -96,33 +100,39 @@ function fire(g, p, name, power, moves, W) {
   cb.n = buf.length === 1 ? 1 : cb.n + 1;
   const last = !hasLonger(moves, buf);
   const mv = pick.mv;
-  const hits = resolve(g, p, mv, power, W, last);
+  const ac = AC(p), fin = last && pick.len >= 2, k0 = p.kills | 0;   // fin = remate de una cadena de 2+ golpes (activa los finishers del árbol)
+  cb.xc = false;
+  const hits = resolve(g, p, mv, power, W, last, fin);
+  progHit(p, hits, fin);
+  const kk = (p.kills | 0) - k0;
+  if (fin && kk > 0 && ac.refund && !p.dead) { const n = Math.min(kk, 5); heal(p, 4 * n); p.habCd = Math.max(0, p.habCd - 1.2 * n); }   // Remate cobrador
   const M = meleeSet(p), base = mv.w === 'h' ? M.heavy : M.light;
   const fr = g.time < p.frenzyUntil ? 0.75 : 1, over = p.ultId === 'sobrecarga' ? 0.6 : 1;
   cb.rec = Math.max(0.12, base.cd * mv.cdr * W.cd * fr * over * (hasPath(p, 'velocidad') ? 0.92 : 1)); cb.cd = cb.rec;
-  cb.cancel = mv.cancel || COMBO_RULES.cancel; cb.last = mv.id; cb.lastName = mv.name;
+  cb.cancel = Math.max(mv.cancel || COMBO_RULES.cancel, ac.cancel); cb.last = mv.id; cb.lastName = mv.name;
+  if (cb.xc && ac.execCancel) cb.cd = 0;   // Sentencia: ejecutar cancela la recuperación
   if (last) { cb.buf = []; cb.win = cb.rec + 0.2; cb.nEnd = cb.n; cb.n = last ? 0 : cb.n; }
-  else { cb.buf = buf; cb.win = cb.rec + COMBO_RULES.window; }
+  else { cb.buf = buf; cb.win = cb.rec + COMBO_RULES.window * ac.win; }
   p.cmb = Math.min(3, last ? 3 : cb.n); p.cmbT = cb.win;
   g.emit({ t: 'combo', pid: p.id, n: last ? cb.nEnd : cb.n, id: mv.id, name: mv.name, hit: hits, fin: last, p: a3(p.pos) });
 }
 
 /* ───────── un golpe ───────── */
-function resolve(g, p, mv0, power, W, last) {
-  const M = meleeSet(p), cb = p.cb;
+function resolve(g, p, mv0, power, W, last, fin) {
+  const M = meleeSet(p), cb = p.cb, ac = AC(p);
   let mv = mv0;
   if (W.spinAt && cb.n >= W.spinAt && !mv.ranged) mv = { ...mv, arc: 2, kind: 'spin', dmg: mv.dmg * 1.15, hits: 1 };   // hacha: el 3.º golpe es un giro
   const heavy = mv.w === 'h', base = heavy ? M.heavy : M.light;
   const side = mv.seq[mv.seq.length - 1] === 'a2' ? W.a2 : W.a1;
   const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis', strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
-  const frenzy = g.time < p.frenzyUntil, IS = itemStrike(p), exT = execThreshold(p);
-  let dmg = base.dmg * mv.dmg * W.dmg * (mv.charge ? power : 1) * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1) * (frenzy ? 1.2 : 1) * (last && W.fin ? W.fin : 1) * (COMBO_TUNE[p.char] || 1) * IS.mul * (mv.ranged ? p.irng || 1 : 1);
-  const range = base.range * mv.rng * (mv.ranged ? 1 : side.rng) * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1);
-  const arcv = base.arc * mv.arc * (mv.ranged ? 1 : side.arc), full = mv.arc >= 2 || meta;
+  const frenzy = g.time < p.frenzyUntil, IS = itemStrike(p), exT = execThreshold(p) + ac.exec;
+  let dmg = base.dmg * mv.dmg * W.dmg * (mv.charge ? power : 1) * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1) * (frenzy ? 1.2 : 1) * (last && W.fin ? W.fin : 1) * (fin ? ac.finMul : 1) * (COMBO_TUNE[p.char] || 1) * IS.mul * (mv.ranged ? p.irng || 1 : 1);
+  const range = base.range * mv.rng * (mv.ranged ? 1 : side.rng * ac.rng) * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1);
+  const arcv = base.arc * mv.arc * (mv.ranged ? 1 : side.arc * ac.arc), full = mv.arc >= 2 || meta;
   const cosT = full ? -1 : Math.max(-1, 1 - arcv * (heavy ? 1.1 : 1));
   const o = g.eyePos(p), dir0 = norm(g.aimDir(p)), h = flat(p);
-  const s0 = g.dmgSrc; g.dmgSrc = 'melee'; p.inMelee = true; g.pierceNow = !!base.pierce;
-  let hits = 0;
+  const s0 = g.dmgSrc; g.dmgSrc = 'melee'; p.inMelee = true; g.pierceNow = !!(base.pierce || ac.pen);
+  let hits = 0; const killed = [], bud = { left: dmg * ARRASE_PRESUPUESTO };   // bud = tope de daño EXTRA por golpe (arrasar sin romper el balance)
   try {
     if (mv.ranged) hits = shoot(g, p, mv, dmg, range, M, o, dir0);
     else {
@@ -147,38 +157,95 @@ function resolve(g, p, mv0, power, W, last) {
         targets.push([m, l]);
       }
       targets.sort((a, b) => a[1] - b[1]);
-      const maxT = heavy || full || mv.line || base.pierce || mv.fx ? 8 : 4;
-      for (const [m] of targets.slice(0, maxT)) {
-        if (m.dead) continue;
+      const baseT = heavy || full || mv.line || base.pierce || mv.fx ? 8 : 4, maxT = Math.max(baseT, ac.maxT), sel = targets.slice(0, maxT);
+      for (let ti = 0; ti < sel.length; ti++) {
+        const m = sel[ti][0]; if (m.dead) continue;
+        if (ti >= baseT && bud.left <= 0) break;
         if (!m.def.boss && m.hp <= m.maxhp * exT) {   // ejecución
           g.emit({ t: 'melee', pid: p.id, kind: 'exec', p: a3(m.pos), d: a3(dir0), hit: 1 });
-          p.exec = true; g.damageMonster(m, m.hp + 1, p, m.pos); p.exec = false; if (!p.dead) heal(p, 10); hits++; continue;
+          p.exec = true; g.damageMonster(m, m.hp + 1, p, m.pos); p.exec = false; if (!p.dead) heal(p, 10); hits++; cb.xc = true; continue;
         }
         const facing = m.fwd ? dot(norm(sub(p.pos, m.pos)), m.fwd) : 0;
-        const k = m.kind === 'ariete' && facing > 0.6 && !base.pierce ? 0.35 : 1;   // el ariete bloquea de frente (sin azar)
+        const k = m.kind === 'ariete' && facing > 0.6 && !(base.pierce || ac.pen) ? 0.35 : 1;   // el ariete bloquea de frente (sin azar)
         let dm = dmg * k;
+        if (ti >= baseT) { dm = Math.min(dm, bud.left / mv.hits); bud.left -= dm * mv.hits; }   // los enemigos de más (Golpes que atraviesan) salen del presupuesto
         for (let i = 0; i < mv.hits && !m.dead; i++) g.damageMonster(m, dm, p, m.pos);
         hits++;
         if (hasPath(p, 'depredador') && !p.dead) heal(p, dm * mv.hits * 0.06);
         if (!m.dead && (M.item || (p.evo || 0) >= 1) && M.special) applyMeleeSpecial(g, p, m, M.special, heavy, dm, strong);
         if (!m.dead && !m.def.boss) { const kn = (base.knock || 4) * (heavy ? 1 : 0.8) * (mv.fx === 'pull' ? -1 : 1); m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), kn); }
         if (mv.fx && mv.fx.includes('marca') && !m.dead) { m.markUntil = g.time + 6; m.markMul = 1.3; }
+        else if (ac.mark && !m.dead && !(g.time < (m.markUntil || 0) && (m.markMul || 0) >= 1.15)) { m.markUntil = g.time + 4; m.markMul = 1.15; }   // Marca de sentencia
       }
+      for (const [m] of sel) if (m.dead) killed.push(m);
       if ((M.item || (p.evo || 0) >= 1) && M.special) meleeAfter(g, p, M.special, heavy || last, dir0, o, dmg, strong);
       if (IS.onda) meleeAfter(g, p, 'onda', true, dir0, o, dmg, strong);
       if (mv.dash) p.ext = madd(p.ext, h, mv.dash * 2.2);
       if (mv.jump) { p.vel = madd(p.vel, p.up, mv.jump); p.grounded = false; }
       if (W.sismo && !mv.fx) ring(g, p, 4.5, dmg * 0.3, 10);
       applyFx(g, p, mv, dmg, o, dir0);
+      if (ac.res && killed.length) propagar(g, p, bud, dmg, killed);
       g.emit({ t: 'melee', pid: p.id, kind: mv.kind, p: a3(madd(o, dir0, 1.5)), d: a3(dir0), hit: hits, cmb: p.cmb, mw: M.id, sp: (M.item || (p.evo || 0) >= 1) ? M.special || undefined : undefined, ...(M.item ? { iw: M.iw, hd: (p.hand = (p.hand || 0) ^ 1) } : {}) });
     }
+    if (fin && ac.fin) finisherArea(g, p, ac.fin, bud, dmg, o, dir0);   // Aniquilación en Área: el remate barre
   } finally { g.dmgSrc = s0; p.inMelee = false; g.pierceNow = false; }
   return hits;
 }
 
+/* ───────── ARRASAR (árbol «Aniquilación en Área»): todo el daño extra sale de un presupuesto por golpe (bud) ───────── */
+/** Daño extra repartido: no pasa del presupuesto del golpe. Devuelve true si pegó. */
+function extra(g, p, bud, m, amt, kn, from) {
+  if (!m || m.dead) return false;
+  const a = Math.min(amt, bud.left); if (a < 0.5) return false;
+  bud.left -= a; g.damageMonster(m, a, p, m.pos);
+  if (!m.dead && !m.def.boss && kn) m.vel = madd(m.vel, norm(sub(m.pos, from)), kn);
+  return true;
+}
+const cercanos = (g, c, r, max, skip) => g.monsters.filter((m) => !m.dead && m !== skip && dist(m.pos, c) < r + m.r).sort((a, b) => dist(a.pos, c) - dist(b.pos, c)).slice(0, max);
+/** Resonancia: cada baja empuja a los vecinos y les pasa parte del daño; los que mueren por eso siguen la cadena (2 saltos, 14 golpes como máximo). */
+function propagar(g, p, bud, dmg, killed) {
+  let q = killed.slice(0, 6), n = 0, arcs = 0;
+  for (let depth = 0; depth < 2 && q.length && bud.left > 0; depth++) {
+    const nq = [];
+    for (const c of q) for (const m of cercanos(g, c.pos, 5, 4, c)) {
+      if (n >= 14 || bud.left <= 0) break;
+      n++; const was = m.dead; if (extra(g, p, bud, m, dmg * 0.4 * (depth ? 0.6 : 1), 7, c.pos)) { if (arcs++ < 8) g.emit({ t: 'arc', o: a3(c.pos), to: a3(m.pos) }); if (m.dead && !was) nq.push(m); }
+    }
+    q = nq;
+  }
+  if (n) g.emit({ t: 'arrasar', pid: p.id, k: 'resonancia', n, p: a3(p.pos) });
+}
+/** Remate de área propio de cada Huésped (nodo «area2»): cono, torbellino, sismo, vacío que arrastra o cadena de rayos. Devuelve cuántos golpeó. */
+function finisherArea(g, p, kind, bud, dmg, o, dir) {
+  let n = 0; const h = flat(p);
+  if (kind === 'cono') {
+    for (const m of g.monsters) { if (m.dead || n >= 14) continue; const to = sub(m.pos, o), l = len(to); if (l > 9 + m.r || (dot(norm(to), dir) < 0.5 && l > m.r + 1)) continue; if (extra(g, p, bud, m, dmg * 0.9, 16, p.pos)) n++; }
+    g.emit({ t: 'boom', p: a3(madd(p.pos, h, 4)), r: 5 });
+  } else if (kind === 'torbellino') {
+    for (const m of cercanos(g, p.pos, 5.5, 14)) if (extra(g, p, bud, m, dmg * 0.9, 8, p.pos)) n++;
+    g.emit({ t: 'boom', p: a3(p.pos), r: 5.5 });
+  } else if (kind === 'sismo') {
+    for (const m of cercanos(g, p.pos, 7, 14)) { if (extra(g, p, bud, m, dmg * 0.7, 9, p.pos)) n++; if (!m.dead) { m.slowUntil = g.time + 2; if (!m.def.boss) m.vel = mul(m.vel, 0.5); } }
+    g.addObject('spores', clone(p.pos), { owner: p.id, life: 2, r: 4 }); g.emit({ t: 'boom', p: a3(p.pos), r: 7 });
+  } else if (kind === 'vacio') {
+    const c = madd(p.pos, h, 3.5);   // el punto hacia el que se arrastra a todos
+    for (const m of cercanos(g, c, 11, 14)) { if (!m.def.boss) m.vel = madd(m.vel, norm(sub(c, m.pos)), 22); if (extra(g, p, bud, m, dmg * 0.6, 0, c)) n++; }
+    g.emit({ t: 'boom', p: a3(c), r: 4 });
+  } else if (kind === 'rayos') {
+    let cur = null, bd = 22; for (const m of g.monsters) { if (m.dead) continue; const to = sub(m.pos, o), l = len(to); if (l < bd && dot(norm(to), dir) > 0.3) { bd = l; cur = m; } }
+    const used = new Set(); let from = { pos: o };
+    for (let i = 0; i < 7 && cur; i++) {
+      used.add(cur.id); if (extra(g, p, bud, cur, dmg * 0.8, 0, from.pos)) n++; g.emit({ t: 'arc', o: a3(from.pos), to: a3(cur.pos) });
+      from = cur; let best = null, d2 = 8; for (const m of g.monsters) { if (m.dead || used.has(m.id)) continue; const d = dist(m.pos, cur.pos); if (d < d2) { d2 = d; best = m; } } cur = best;
+    }
+  }
+  if (n) g.emit({ t: 'arrasar', pid: p.id, k: kind, n, p: a3(p.pos) });
+  return n;
+}
+
 /** Flechas de luz (Seraf): son «melé-rango»: cuentan como golpes. */
 function shoot(g, p, mv, dmg, range, M, o, d) {
-  const right = cross(p.heading, p.up), n = mv.hits, fan = mv.fan || (n > 1 ? 0.05 : 0), pierce = !!(mv.pierce || (M.light && M.light.pierce) || M.type === 'lanza');
+  const right = cross(p.heading, p.up), n = mv.hits, fan = mv.fan || (n > 1 ? 0.05 : 0), pierce = !!(mv.pierce || (M.light && M.light.pierce) || M.type === 'lanza' || AC(p).pen);
   let hits = 0;
   for (let i = 0; i < n; i++) {
     const off = (i - (n - 1) / 2) * fan, dd = norm(add(d, mul(right, off)));
@@ -268,7 +335,7 @@ function eclipseTick(g, p, dt) {
 
 /* ───────── snapshot ───────── */
 export function comboSnap(p) {
-  if (p.mode !== 'combo') return { md: 0 };
+  if (p.mode !== 'combo') return { md: 0, ...progSnap(p) };
   const cb = p.cb, H = HABILIDADES[p.char];
-  return { md: 1, cn: cb.n || (cb.nEnd && cb.win > 0 ? cb.nEnd : 0), cw: r2(Math.max(0, cb.win)), cnm: cb.lastName, hc: r2(p.habCd), hx: r2(p.habMax || (H ? H.cd : 0)), hw: p.habPend ? r2(p.habPend.t) : 0, cc: r2(cb.chg / COMBO_RULES.chargeMax) };
+  return { md: 1, cn: cb.n || (cb.nEnd && cb.win > 0 ? cb.nEnd : 0), cw: r2(Math.max(0, cb.win)), cnm: cb.lastName, hc: r2(p.habCd), hx: r2(p.habMax || (H ? H.cd : 0)), hw: p.habPend ? r2(p.habPend.t) : 0, cc: r2(cb.chg / COMBO_RULES.chargeMax), ...progSnap(p) };
 }

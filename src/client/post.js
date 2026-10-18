@@ -114,10 +114,11 @@ const FRAG = `
   }`;
 
 export class GradePass extends Pass {
-  constructor(level = 'high') {
+  constructor(level = 'high', { layers = null } = {}) {
     super();
     const L = level === 'high' ? { ao: 8, layers: 3, ca: 1 } : level === 'medium' ? { ao: 4, layers: 2, ca: 1 } : { ao: 0, layers: 1, ca: 0 };
-    this.level = level;
+    if (layers != null) L.layers = Math.max(0, Math.min(3, layers | 0));   // «Niebla de aire» del menú Gráficos (0 = sin niebla volumétrica)
+    this.level = level; this.noFog = L.layers === 0;
     this.uniforms = {
       tDiffuse: { value: null }, tDepth: { value: null }, uHasDepth: { value: 1 }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uExposure: { value: 1.9 },
       uNear: { value: 0.1 }, uFar: { value: 2000 }, uProjInv: { value: new THREE.Matrix4() }, uProj: { value: new THREE.Matrix4() }, uCamMat: { value: new THREE.Matrix4() }, uCamPos: { value: new THREE.Vector3() },
@@ -126,7 +127,7 @@ export class GradePass extends Pass {
       uShadow: { value: new THREE.Vector3(1, 1, 1) }, uHigh: { value: new THREE.Vector3(1, 1, 1) }, uSat: { value: 1 }, uContrast: { value: 1 }, uLift: { value: 0 },
       uCA: { value: level === 'high' ? 0.0028 : 0.002 }, uGrain: { value: level === 'low' ? 0.018 : 0.024 }, uVig: { value: 0.42 }, uInfect: { value: 0 }, uAO: { value: L.ao ? 1 : 0 }, uFloor: { value: 0 }, uFogCap: { value: 0.72 }, uOutline: { value: 0 },
     };
-    this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader: FRAG, defines: { AO: L.ao, LAYERS: L.layers, CA: L.ca, OUTLINE: 1 }, depthTest: false, depthWrite: false });
+    this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader: FRAG, defines: { AO: L.ao, LAYERS: Math.max(1, L.layers), CA: L.ca, OUTLINE: 1 }, depthTest: false, depthWrite: false });
     this.quad = new FullScreenQuad(this.material);
     this.preset('def');
   }
@@ -135,6 +136,7 @@ export class GradePass extends Pass {
     u.uFogCol.value.setHex(g.fog).convertSRGBToLinear(); u.uFogD.value = g.fogD; u.uFogH.value = g.fogH; u.uFogMode.value = mapId === 'm2' ? 1 : 0;
     u.uShadow.value.set(...g.shadow); u.uHigh.value.set(...g.high); u.uSat.value = g.sat; u.uContrast.value = g.contrast; u.uLift.value = g.lift; u.uSunCol.value.setHex(g.sunCol).convertSRGBToLinear();
     if (this.level === 'low') u.uFogD.value *= 0.8;
+    if (this.noFog) u.uFogD.value = 0;
   }
   /** CLARIDAD (quality.js): piso de sombras, tope de niebla y exposición. */
   clarity({ floor = 0, fog = 0.72, exp = 1, outline = 0 } = {}) { this.uniforms.uOutline.value = outline; this.uniforms.uFloor.value = floor; this.uniforms.uFogCap.value = fog; this.uniforms.uExposure.value = 1.9 * exp; }
