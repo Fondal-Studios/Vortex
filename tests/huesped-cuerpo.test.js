@@ -9,13 +9,16 @@ import { startServer } from '../server/server.js';
 const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
 const HOSTS = ['axioma', 'vesper', 'micelio', 'umbra', 'seraf', 'singular'];
 const CASES = [['', 0], ['coraza,resonancia,simbiosis,apoteosis', 4], ['depredador,velocidad,artilleria,anomalia', 4]];
+// Colmena (invocadora) tiene caminos PROPIOS (src/sim/colmena-data.js): se miden los dos extremos de cada nivel
+const COLMENA_CASES = [['', 0], ['criador,nidos,cohabita,reina', 4], ['aguijon,nube,detonador,plaga', 4], ['criador,nube,detonador,plaga', 4], ['aguijon,nidos,cohabita,reina', 4]];
+HOSTS.push('colmena');
 let srv, browser, base;
 test.before(async () => { if (!hasChromium) return; srv = await startServer({ port: 0 }); browser = await launch(); base = `http://localhost:${srv.port}`; });
 test.after(async () => { if (browser) await browser.close(); if (srv) await srv.close(); });
 
 test('los cinco Huéspedes: sin errores y dentro del presupuesto de Baja (todos los niveles y caminos)', { skip: !hasChromium, timeout: 900000 }, async () => {
   const res = {}, errors = [];
-  for (const id of HOSTS) for (const [pth, evo] of CASES) {
+  for (const id of HOSTS) for (const [pth, evo] of (id === 'colmena' ? COLMENA_CASES : CASES)) {
     const ctx = await browser.newContext({ viewport: { width: 400, height: 400 } }), pg = await ctx.newPage();
     pg.on('pageerror', (e) => errors.push(`${id}: ${e.message}`)); pg.on('console', (m) => { if (m.type() === 'error' || (m.type() === 'warning' && /Huésped|armor/i.test(m.text()))) errors.push(`${id}: ${m.text()}`); });
     await pg.goto(`${base}/huesped-arte.html?frozen=1&w=400&h=400&q=low&char=${id}&evo=${evo}&pth=${pth}&t=1`, { waitUntil: 'domcontentloaded', timeout: 120000 });

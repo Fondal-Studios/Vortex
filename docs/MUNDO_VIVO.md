@@ -194,3 +194,7 @@ Los cambios de fase salen como evento `{t:'ar', m, ph}` y el cliente los muestra
 - `node --test tests/nieblas.test.js` (16 pruebas, ≈ 1 min): datos · cada arena · determinismo y conteo de azar · avisos ≥ 2 s · respiro · cada color · eventos · pulmones · snapshot.
 - `node --test --test-name-pattern="^m4" tests/nieblas-bots.test.js` (**de a una arena**, ≈ 1-4 min cada una): bots CON y SIN nieblas, sin trabarse y sin NaN.
 - `node --test tests/nieblas-render.test.js` (Chromium por software): presupuesto de render en Baja con las 9 zonas activas. Capturas: `node tools/shot-nieblas.mjs todas shots/nieblas low dia zona|dentro|luz`.
+
+
+## Botín y Forja biológica (2026-10-18)
+Las fuentes de este documento ahora también sueltan **botín** (`src/sim/drops.js`, rng propio `g.drRng`): élites con afijo, ofrendas de las arenas vivas, eventos de oleada superados, misiones cumplidas, capullos florecidos (cofres), el respiro entre oleadas y el jefe (que además suelta el plano raro de la firma del Huésped). El Herrero de Huesos suma la oferta 3 (forjar un objeto vivo al azar). Tablas, pity y contrato: **docs/INVENTARIO.md**.

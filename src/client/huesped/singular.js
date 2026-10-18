@@ -7,10 +7,10 @@
 import * as T from 'three';
 import { tools, V } from '../huesped-piezas.js';
 import { uBeat } from '../shaders.js';
-import { addEvolucionSingular } from './singular-evo.js';
+import { PAL, radial, disc, addEvolucionSingular } from './singular-evo.js';
 
 export const BELLY = 0;
-export const PAL = { ROC: 0x3c3250, ROC_D: 0x221a30, ROC_L: 0x62547c, CRY: 0x1d1034, CRY_V: 0x6a30c8, VIO: 0xa05cff, VIO_L: 0xd8b8ff, ORO: 0xffc23a, ORO_L: 0xffeaa6, NEG: 0x07040e };
+export { PAL };
 const { ROC, ROC_D, ROC_L, CRY, CRY_V, VIO, VIO_L, ORO, ORO_L, NEG } = PAL;
 const TAU = Math.PI * 2;
 
@@ -19,11 +19,6 @@ export function build(ak, ctx) {
   const HC = V(0, 1.6, 0.04), CC = V(0, 1.285, 0.172), HUB = V(0, 1.22, 0.02), cnew = (h) => new T.Color(h);
   const has = ctx.has, nMoons = Math.min(5, 3 + (has('depredador') ? 1 : 0) + (has('simbiosis') ? 1 : 0));
   { const mm = ak.material('mirror'); mm.envMapIntensity = 1.3; mm.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = min(outgoingLight, vec3(1.15));\n#include <opaque_fragment>'); }; mm.customProgramCacheKey = () => 'singular-vidrio'; } // vidrio negro: refleja el cielo sin quemar el bloom
-  /** Gradiente radial de un disco (centro dorado-blanco → borde violeta): color por vértice. */
-  const radial = (r0, r1, cA, cB) => { const a = cnew(cA), b = cnew(cB), o = cnew(0); return (x, y, z) => { const r = Math.hypot(x, z), k = Math.min(1, Math.max(0, (r - r0) / (r1 - r0))); return o.copy(a).lerp(b, Math.pow(k, 0.7)).getHex(); }; };
-  /** Anillo plano (disco) en el plano XZ. */
-  const disc = (r0, r1, seg = S(32, 16)) => new T.RingGeometry(r0, r1, seg, 1).rotateX(-Math.PI / 2);
-
   // ═══════════════════════════ CABEZA DE ECLIPSE: vidrio negro sin cara, una ranura de luz y la corona de rayos que gira detrás
   {
     add('mirror', X(G.sphere(0.118, S(18, 10), S(14, 8)), { p: [HC.x, HC.y, HC.z], s: [1, 1.1, 1.06] }), 'head', { color: 0x0b0716 });
@@ -32,11 +27,10 @@ export function build(ak, ctx) {
     const cor = ak.bone('corona', 'head', V(HC.x, HC.y, HC.z - 0.1)), N = low ? 14 : 22;
     for (let i = 0; i < N; i++) { // corona: rayos largos y cortos alternados, en un plano vertical detrás de la cabeza
       const a = (i / N) * TAU + 0.1, long = i % 2 === 0, len = long ? 0.36 + 0.07 * Math.sin(i * 1.7) : 0.2, r0 = 0.155;
-      add('ember', spikeAt(V(HC.x + Math.cos(a) * r0, HC.y + Math.sin(a) * r0, HC.z - 0.1), V(Math.cos(a), Math.sin(a), -0.15), len, long ? 0.0125 : 0.008, 0, Zv, { radial: 3, tubular: 2 }), 'corona', { color: long ? ORO : ORO_L });
+      add('ember', spikeAt(V(HC.x + Math.cos(a) * r0, HC.y + Math.sin(a) * r0, HC.z - 0.1), V(Math.cos(a), Math.sin(a), -0.45), len, long ? 0.0125 : 0.008, 0, Zv, { radial: 3, tubular: 2 }), 'corona', { color: long ? ORO : ORO_L });
     }
     add('light', X(G.torus(0.145, 0.0042, 3, S(36, 16)), { p: [HC.x, HC.y, HC.z - 0.1], r: [Math.PI / 2, 0, 0] }), 'corona', { color: ORO_L });
-    add('spirit', X(disc(0.15, 0.27, S(36, 18)), { p: [HC.x, HC.y, HC.z - 0.1], r: [Math.PI / 2, 0, 0] }), 'corona', { color: radial(0.15, 0.27, 0x9a6a18, 0x1a0c40) });  // fulgor de la corona
-    ak.halo('head', V(HC.x, HC.y, HC.z - 0.12), ORO, 0.5, 0.22);
+    ak.halo('head', V(HC.x, HC.y, HC.z - 0.12), VIO, 0.62, 0.3);   // fulgor violeta tras la corona
     upd.push((dt, tt) => { cor.rotation.z = tt * 0.22; });
     // collar: anillo de rocas flotando alrededor del cuello
     const neck = ak.bone('collar', 'neck01', V(0, 1.43, 0.01));
@@ -68,7 +62,7 @@ export function build(ak, ctx) {
     add('light', G.torus(0.066, 0.0034, 3, S(26, 12)).translate(CC.x, CC.y, CC.z), 'disco', { color: ORO_L });
     if (!low) add('ember', G.torus(0.12, 0.0026, 3, S(30, 14)).translate(CC.x, CC.y, CC.z), 'disco', { color: ORO });
     nuc.rotation.set(1.05, 0, 0.35);   // el disco se ve oblicuo desde el frente
-    ak.halo('nucleo', V(CC.x, CC.y, CC.z + 0.05), VIO, 0.62, 0.5);
+    ak.halo('nucleo', V(CC.x, CC.y, CC.z + 0.05), VIO, 0.36, 0.34);
     upd.push((dt, tt) => { disk.rotation.y = tt * 1.4; nuc.scale.setScalar(1 + 0.18 * uBeat.value); });
     // espaldar: losa de roca partida con grietas de oro (corteza continental)
     for (const [dx, dy, s, sd] of [[-0.07, 1.34, 0.1, 1], [0.08, 1.3, 0.11, 2], [0.0, 1.2, 0.12, 3], [-0.1, 1.15, 0.08, 4]]) add('stone', X(bonelump(s, [1.3, 1, 0.55], sd, 0.3), { p: [dx, dy, -0.1], r: [0.2 * sd, sd, 0] }), 'spine02', { color: sd % 2 ? ROC : ROC_L });

@@ -22,6 +22,7 @@ const LOOK = { // máscara, color de esencia (núcleo, ojos, luz), túnica y su 
   umbra: { mask: 'obsidiana', glow: 0xb98cff, layer: 'tunica-larga', cloth: 0x221636 },
   seraf: { mask: 'oro', glow: 0xffd45a, layer: 'toga-academica', cloth: 0x7a2a3a },
 };
+LOOK.danzante = { mask: 'hueso', glow: 0xff3fa0, layer: 'tunica-corta', cloth: 0x4a1a5e };   // Danzante (máscara de calavera, falda corta de listones)
 /** Aspecto regional: cada mapa marca al guardián con su folclore (acento, ornamento, partículas). */
 export const REGION = {
   m1: { name: 'Vacío de Islas', accent: 0x9fe8ff, motes: 0xcfe8ff, orn: 'astros' },    // constelaciones: estrellas orbitando la cabeza

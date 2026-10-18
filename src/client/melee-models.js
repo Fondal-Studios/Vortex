@@ -298,6 +298,15 @@ const W = {
     for (let i = 0; i < 3 + (t >= 2 ? 2 : 0); i++) { const a = i * 2.2, y = 0.3 + i * 0.28; B.oct('body', VO2, 0.03, [Math.sin(a) * 0.12, y, Math.cos(a) * 0.1], [0.6, 1.7, 0.6], [a, a, 0]); B.oct('glow', GH, 0.01, [Math.sin(a) * 0.12, y, Math.cos(a) * 0.1], [0.6, 1.7, 0.6], [a, a, 0]); }
     return { base: 0.1, top: 1.62, guardY: 0.1, hw: 0.07, fz: 0.014, mid: 0.9, rad: 0.15, vein: false };
   },
+  aguijon(B, c, t) {   // COLMENA: lanza-aguijón de quitina con guarda hexagonal de cera, filo de jalea y púas de panal
+    const CH = 0x3a0e1a, WX = 0xf2dfb4, GD = c.g, GD2 = c.h;
+    gripWrap(B, CH, 0xf02848, -0.14, 0.06, 0.026, 4); B.cyl('body', WX, 0.055, 0.055, 0.03, [0, 0.07, 0], ZERO, 6); B.sph('glow', GD2, 0.026, [0, 0.1, 0.0], ONE, 4);
+    const P = (u) => [Math.sin(u * 2.4) * 0.03, 0.12 + u * 1.15, u * u * 0.22];   // curvada hacia delante y afinándose
+    B.arc('body', CH, P, 10, 0.034, 0.004, 5); B.arc('glow', GD, (u) => { const p = P(u); return [p[0], p[1], p[2] + 0.02]; }, 10, 0.006, 0.002, 3);
+    B.sph('glow', GD2, 0.02, P(1), ONE, 4);
+    for (let i = 0; i < 3 + (t >= 2 ? 2 : 0); i++) { const u = 0.25 + i * 0.16, p = P(u), sd = i % 2 ? -1 : 1; B.cone('body', WX, 0.014, 0.1, [p[0] + sd * 0.04, p[1], p[2]], [0, 0, -sd * 1.0], 3); }
+    return { base: 0.1, top: 1.27, guardY: 0.08, hw: 0.06, fz: 0.02, mid: 0.7, rad: 0.12, vein: false };
+  },
   latigo(B, c, t) {
     const GD = c.g, GD2 = c.h, IV = 0xe9dcc2, DK = 0x3a2a1c;
     gripWrap(B, DK, 0xffd45a, -0.14, 0.06, 0.026, 4); B.sph('body', IV, 0.04, [0, 0.09, 0], [1, 0.9, 1]); B.sph('glow', GD2, 0.026, [0, 0.12, 0.02], ONE, 4);
@@ -350,6 +359,7 @@ const PAL = {
   colmillo: [0xff5a5a, 0xffc0c0], aguja_fantasma: [0xc8b8ff, 0xffffff], cuchillas: [0x3aa8ff, 0xbfe6ff], garras: [0xb04bff, 0xff3a8a], punos: [0x7be03a, 0xc6ff7a],
   hoja_dim: [0xb98cff, 0x40ffc0], latigo: [0xffd45a, 0xfff0b0],
 };
+PAL.aguijon = [0xf02848, 0xffb83a]; MELEE_MODEL_IDS.push('aguijon'); NATIVE_NAMES.aguijon = 'Aguijón';   // Colmena
 /** Color canon del brillo de cada arma (por si la interfaz quiere teñirse con él). */
 export const meleeGlow = (id) => (PAL[id] || [0xffffff])[0];
 

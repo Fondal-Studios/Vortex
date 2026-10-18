@@ -81,6 +81,13 @@ const COMBO = {
   umbra: { l: [{ R: SLASH }, { R: mirror(SLASH) }, { R: THRUST }], h: { R: scaleK(SWEEP, 1.3) } },
   seraf: { l: [{ R: SWEEP }, { R: mirror(SWEEP) }, { R: CRACK }], h: { R: scaleK(CRACK, 1.4), L: scaleK(mirror(SWEEP), 0.6) } },
 };
+// COLMENA: antebrazo de quitina burdeos con placa de cera y un AGUIJÓN largo; golpea con estocadas rápidas
+STYLE.colmena = {
+  dur: { light: 0.32, heavy: 0.66, air: 0.6 }, restExt: 0.1, wz: -0.3, len: 0.7, wpn: 'bone',
+  body: () => merge([cyl(0.04, 0.03, 0.0, -0.34, 0x4c1220), cyl(0.046, 0.046, -0.08, -0.2, 0xf2dfb4), box(0.012, 0.012, 0.26, 0.03, 0.036, -0.17, 0xf02848), box(0.07, 0.04, 0.09, 0, 0, -0.4, 0x741d30), sph(0.026, 0, 0.01, -0.47, 0xf2dfb4, 1.4, 0.8, 0.9)]),
+  weapon: () => merge([cone(0.028, 1, 0x3a0e1a, 0, 0.03, 0, 1, 0.8), cone(0.012, 1, 0xf02848, 0, 0.03, 0, 1, 0.8), cone(0.014, 1, 0xf2dfb4, 0.034, 0.02, 0, 1, 0.6, 0, 0.08), cone(0.014, 1, 0xf2dfb4, -0.034, 0.02, 0, 1, 0.6, 0, -0.08)]),
+};
+COMBO.colmena = { l: [{ R: THRUST }, { L: mirror(THRUST) }, { R: RAKE, L: RAKE }], h: { R: scaleK(THRUST, 1.4), L: scaleK(mirror(THRUST), 1.4) } };
 const AIR = { R: scaleK(SLAM, 1.2), L: scaleK(SLAM, 1.2) };
 const WINDUP = 0.3; // fracción de la animación en la que el brazo termina de cargar el golpe
 const sample = (k, u) => { // interpolación suavizada entre teclas

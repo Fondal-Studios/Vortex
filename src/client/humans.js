@@ -29,6 +29,8 @@ export const CHAR_INFO = {
   // Huéspedes (colores y presets de CHARACTERS en src/sim/data.js; el rol de la 3ª persona es el equivalente de los 4 roles base)
   axioma: { color: 0x3aa8ff, role: 'vanguardia', preset: 'jugador1' }, vesper: { color: 0xb04bff, role: 'explorador', preset: 'jugador4' }, micelio: { color: 0x7be03a, role: 'ingeniero', preset: 'jugador2' }, seraf: { color: 0xffd45a, role: 'soporte', preset: 'jugador3' },
 };
+CHAR_INFO.colmena = { color: 0xf0384e, role: 'ingeniero', preset: 'jugador3' }; CHAR_IDS.push('colmena');   // Colmena (invocadora de enjambre)
+CHAR_INFO.danzante = { color: 0xff3fa0, role: 'explorador', preset: 'jugador4' }; CHAR_IDS.push('danzante');   // Danzante (duelista acrobático)
 const ROLE_CHAR = { vanguardia: 'egida', soporte: 'lumen', ingeniero: 'forja', explorador: 'vigia' }; // sin `char`, el rol elige el estilo de manos
 
 // Nombre corto → clip horneado en assets/arcanum/clips.bin (revive = la caída al revés)

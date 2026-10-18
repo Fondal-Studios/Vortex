@@ -34,6 +34,8 @@ export const HOST_PAL = {
   axioma: { c: 0x3aa8ff, a: 0xffa24a, d: 0x0a1830 }, vesper: { c: 0xb04bff, a: 0xff3a8a, d: 0x1a0830 }, micelio: { c: 0x7be03a, a: 0xe8ff6a, d: 0x10260a },
   umbra: { c: 0xb98cff, a: 0x5cf0ff, d: 0x0a0414 }, seraf: { c: 0xffd45a, a: 0xff6ec4, d: 0x2a0a18 },
 };
+HOST_PAL.colmena = { c: 0xf02848, a: 0xffb83a, d: 0x1a0308 };   // Colmena: jalea roja y miel
+HOST_PAL.danzante = { c: 0xff3fa0, a: 0x2fe6d0, d: 0x2a0a3a };   // Danzante: fucsia de carnaval, turquesa y ciruela
 const palOf = (char) => HOST_PAL[char] || { c: CHARACTERS[char] ? CHARACTERS[char].color : 0x66ffee, a: 0xffffff, d: 0x10101c };
 export const BF = { CAPARAZON: 1, CAMUFLAJE: 2, SOBRECARGA: 4, FRENESI: 8, FLORACION: 16, METAMORFOSIS: 32, DESFASE: 64, PLANEO: 128, BARRERA: 256 };
 

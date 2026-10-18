@@ -575,7 +575,7 @@ function hudDirector(state, me) {
   }
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
-    const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)));
+    const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)) || (state.lt || []).some((o) => o[2] >= 2 && (!o[6] || o[6] === me.id) && near([o[3], o[4], o[5]], 4.6)));   // + botín épico/legendario cerca (USAR lo recoge)
     const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ul || 0) >= (C.ult.charge || 100) - 0.01 || (+me.ua || 0) > 0.05));
     touch.setContext({ ult: ultOn, use, evo: me.co != null && me.evn != null && me.co >= me.evn });
   }

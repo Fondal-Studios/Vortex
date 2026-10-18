@@ -83,3 +83,7 @@ Por jugador: `md` (1 = Combo) · `cn` (golpes de la cadena) · `cw` (s que queda
 
 ### Progresión permanente por tipo de jugador (árbol de combos / árbol de disparo)
 Shooter y Combo tienen cada uno su progresión propia por Huésped, con puntos que se ganan jugando ese modo y se gastan en la pantalla Huésped › **Progresión** (pestañas Shooter / Combo, debajo del panel de Maestría). Combo: 3 ramas excluyentes (Dominio de Cadena, Aniquilación en Área, Ejecución) que añaden golpes a la cadena, extienden ventanas, añaden cancelaciones y permiten arrasar hordas de 8–15 enemigos (golpes que atraviesan, remate de área propio de cada Huésped, resonancia). Shooter: Precisión, Perforación y Rebote, Cargadores. Detalle, costos, tope de daño, rango de estilo D→S, multi-kill, validación del servidor y pruebas: **docs/EVOLUCION.md → «Progresión permanente de los dos tipos de jugador»**.
+
+
+## Inventario, botín y Forja (2026-10-18)
+Cada Huésped puede llevar un arma de disparo, un arma melé, 4 piezas de armadura y una reliquia (con maduración, sets de 2 y 4 piezas y una **arma firma** legendaria propia: la de Axioma son las **Espadas Gemelas**). Lo que dropea son materiales orgánicos y planos; los objetos se construyen en la Forja. Botón «Inventario» en la pantalla de Huésped. Diseño, contrato y pruebas: **docs/INVENTARIO.md**.

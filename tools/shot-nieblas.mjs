@@ -27,12 +27,17 @@ for (const MAP of maps) {
     if (modo === 'luz') g.ng.zonas = [];
     else if (modo === 'zona') for (let i = 0; i < 6; i++) N.nieblaTemporal(g, ti[i], X(14 + (i % 2) * 7, (i - 2.5) * 7.5), 7, 600);
     else { N.nieblaTemporal(g, 'acida', { x: p.pos.x, y: p.pos.y + p.up.y * 1.2, z: p.pos.z }, 9, 600); }
-    window.__NG = N;
+    if (modo !== 'dentro') {   // cámara fija 9 m detrás y 5 m arriba del jugador, mirando hacia adelante (para ver las nieblas desde fuera)
+      const r = window.__api.renderer, orig = r.updateCamera.bind(r), c = { x: p.pos.x - h.x * 9 + p.up.x * 5, y: p.pos.y - h.y * 9 + p.up.y * 5, z: p.pos.z - h.z * 9 + p.up.z * 5, yaw: Math.atan2(h.x, -h.z), pitch: -0.16 };
+      r.updateCamera = (me, dt, look) => { orig(me, dt, look); r.camera.position.set(c.x, c.y, c.z); r.camera.rotation.order = 'YXZ'; r.camera.rotation.set(c.pitch, -c.yaw, 0); r.eye = r.camera.position.clone(); };
+    }
+    window.__NG = N; window.__avanza = (seg) => { for (let i = 0; i < seg * 60; i++) g.step(1 / 60); };   // avanza la simulación (el reloj real del navegador por software es lentísimo)
+    window.__avanza(4);
   }, MODO);
   const tipos = MODO === 'dentro' ? ['acida', 'cian', 'magenta', 'ambar', 'blanca', 'negra'] : [null];
   for (const t of tipos) {
     if (t) await pg.evaluate(async (t) => { const N = window.__NG, g = window.__api.session.game, p = g.players[0]; g.ng.zonas = g.ng.zonas.filter((z) => z.src === 'arena'); N.nieblaTemporal(g, t, { x: p.pos.x, y: p.pos.y + p.up.y * 1.2, z: p.pos.z }, 9, 600); }, t);
-    await pg.waitForTimeout(5500);
+    await pg.evaluate(() => window.__avanza(4)); await pg.waitForTimeout(4000);
     const info = await pg.evaluate(() => { const r = window.__api.renderer, i = r.gl.info.render; return { calls: i.calls, tris: i.triangles, nube: r.nfx ? r.nfx.cloud.geometry.instanceCount : 0 }; });
     await pg.screenshot({ path: `${OUT}/${MAP}-${MODO}-${CICLO}${t ? '-' + t : ''}.png`, timeout: 240000 });
     console.log(`${MAP} ${MODO} ${CICLO}${t ? ' ' + t : ''}: llamadas ${info.calls} triángulos ${info.tris} nubes ${info.nube}`);

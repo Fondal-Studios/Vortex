@@ -221,7 +221,7 @@ function efectosCriaturas(g, dt, zs) {
     if (z.tipo !== 'acida' && z.tipo !== 'cian') continue;
     const T = NIEBLAS[z.tipo], P = T.par, alc = z.tipo === 'cian' ? z.r * P.alcance : z.r;
     for (const m of g.monsters) {
-      if (m.dead || m.def.boss || dist(m.pos, z.pos) > alc) continue;
+      if (m.dead || m.passive || m.def.boss || dist(m.pos, z.pos) > alc) continue;   // (passive = blancos quietos del campo de pruebas y de las pruebas: la niebla no los mueve)
       if (z.tipo === 'acida') {
         m.slowUntil = Math.max(m.slowUntil || 0, g.time + 0.5);
         m.hp -= P.mDps * dt; m.hurt = Math.max(m.hurt || 0, 0.05);

@@ -44,7 +44,7 @@ export const HAND_PRESETS = {   // el color dominante es el color canon del pers
   micelio: { color: 0x7be03a, accent: 0xe8c25a, tattoo: 'constelacion', glove: 'cristal', skin: 0x4a3a22 },   // devorador: quitina parda con esporas y hongos
   seraf:   { color: 0xffd45a, accent: 0xfff0b0, tattoo: 'constelacion', glove: 'cristal', skin: 0xe9dcc2 },   // simbiosis: marfil con filamentos dorados
 };
-
+HAND_PRESETS.colmena = { color: 0xf0384e, accent: 0xffb83a, tattoo: 'venas', glove: 'tactico', skin: 0x3a1420 };   // invocadora: quitina burdeos con venas rojas y miel
 try { const pr = new URLSearchParams(location.search).get('preset'); if (pr && HAND_PRESETS[pr]) setHandStyle(HAND_PRESETS[pr]); } catch { /* sólo pruebas: ?preset=egida|lumen|forja|vigia|nova|umbra */ }
 
 const VERT = `

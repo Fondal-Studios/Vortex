@@ -21,6 +21,7 @@ const STAT_KEYS = ['dano', 'resistencia', 'movilidad', 'control', 'utilidad', 'd
 const FRAME = { axioma: [1.15, 2.7, 2.0], vesper: [0.95, 2.1, 3.0], micelio: [1.35, 3.5, 3.0], umbra: [1.3, 3.1, 2.6], seraf: [1.2, 3.1, 3.0] }; // [centro y, alto a encuadrar, ancho a encuadrar]
 const FRAME_H = { axioma: [1.02, 2.3, 1.7], vesper: [1.0, 2.25, 1.7], micelio: [1.25, 2.95, 2.2], umbra: [1.0, 2.3, 1.7], seraf: [1.0, 2.3, 2.0] }; // encuadre del cuerpo unificado: [centro y, alto, ancho]
 Object.assign(ROLE_ES, { invocador: 'Invocadora' }); FRAME.colmena = [1.15, 2.7, 2.4]; FRAME_H.colmena = [1.0, 2.4, 2.3];   // Colmena (invocadora de enjambre)
+Object.assign(ROLE_ES, { duelista: 'Duelista' }); FRAME.danzante = [1.3, 3.3, 2.8]; FRAME_H.danzante = [1.05, 2.6, 2.1];   // Danzante (duelista acrobático)
 const LEVEL = (d) => (d <= 3 ? 'Fácil' : d <= 6 ? 'Media' : d <= 8 ? 'Alta' : 'Experta');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const roleName = (c) => ROLE_ES[c.role] || (ROLES[c.role] && ROLES[c.role].name) || c.role;

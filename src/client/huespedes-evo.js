@@ -94,6 +94,7 @@ export function buildHostEvo(THREE, id, opts = {}) {
 }
 
 const MATERIAL = { axioma: 'hueso y brasas', vesper: 'cristal fantasma', micelio: 'raíz y corteza', umbra: 'espejo y sombra', seraf: 'luz dorada' };
+MATERIAL.danzante = 'hueso, cintas y cempasúchil'; HAND.danzante = [0, -0.4, 0.05]; HSCALE.danzante = 1;   // Danzante
 const PATH_TXT = {
   depredador: (m) => `Depredador: garras largas de ${m} en las manos y una hilera de espinas por el lomo.`,
   coraza: (m) => `Coraza: placas de ${m} superpuestas en hombros, pecho y espalda, con canto luminoso.`,
@@ -106,4 +107,5 @@ const PATH_TXT = {
 };
 /** Qué cambia a la vista en cada nivel (para la pantalla «Evolución»): las DOS opciones de cada nivel, con el material de cada Huésped. */
 export const EVO_VISUAL = {};
+MATERIAL.colmena = 'quitina, cera y miel'; HAND.colmena = HAND.seraf; HSCALE.colmena = 1;   // Colmena
 for (const id of Object.keys(MATERIAL)) { EVO_VISUAL[id] = ['']; for (let n = 1; n <= 4; n++) EVO_VISUAL[id][n] = EVO_PATHS[n].map((o) => (PATH_TXT[o.id] ? PATH_TXT[o.id](MATERIAL[id]) : o.name)).join('  ·  '); }

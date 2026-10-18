@@ -1,6 +1,7 @@
 // Objetos del director en el mundo: ancla, placas, núcleo, altar, pilares del Coloso, válvulas de la Madre, huevos, cúpula, torreta.
 // Todo se arma con geometría simple y materiales aditivos para que brille con el bloom, sin costo de draw calls importante.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { kit } from './organism.js';
 import { buildOjo } from './creatures/ojo.js';
 import { M4_BUILD, m4Animate, m4Event, m4Frame } from './env/map4-objs.js'; // mapa 4: capullos del Cultivo y puente vivo
@@ -150,6 +151,31 @@ function npcSimple(o) {
 function spectral(root, col) {
   root.traverse((n) => { if (n.material) { const ms = Array.isArray(n.material) ? n.material : [n.material]; const cl = ms.map((m) => { const c = m.clone(); c.transparent = true; c.opacity = 0.72; c.depthWrite = false; if (c.emissive) { c.emissive.setHex(col); c.emissiveIntensity = 0.3; } return c; }); n.material = Array.isArray(n.material) ? cl : cl[0]; n.userData.specMats = cl; } });
 }
+/* ───────── COLMENA (src/sim/enjambre.js): zánganos, nidos-torreta y la Reina. Geometría COMPARTIDA y fusionada (cuerpo = 1 llamada, alas = 1, nido = 2) ───────── */
+let ENJ_G = null;
+function enjG() {
+  if (ENJ_G) return ENJ_G;
+  const paint = (g, hex) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); const c = new THREE.Color(hex), n = g.attributes.position.count, a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; };
+  const at = (g, x, y, z, sx = 1, sy = 1, sz = 1) => { g.scale(sx, sy, sz); g.translate(x, y, z); return g; };
+  const sphere = (r, hex, x, y, z, sx, sy, sz) => paint(at(new THREE.SphereGeometry(r, 8, 6), x, y, z, sx, sy, sz), hex);
+  const zang = [sphere(1, 0x8a1f34, 0, 0, -0.14, 0.2, 0.18, 0.34), sphere(1, 0x3a0e1a, 0, 0.01, 0.16, 0.15, 0.14, 0.17), sphere(1, 0xf2dfb4, 0, 0.02, 0.36, 0.11, 0.1, 0.11), sphere(1, 0xff3a55, -0.06, 0.05, 0.42, 0.04, 0.04, 0.04), sphere(1, 0xff3a55, 0.06, 0.05, 0.42, 0.04, 0.04, 0.04), paint(at(new THREE.ConeGeometry(0.05, 0.3, 5).rotateX(-Math.PI / 2), 0, 0, -0.62), 0x2a0911)];
+  const wing = (sd) => paint(new THREE.PlaneGeometry(0.5, 0.24).rotateX(-Math.PI / 2).translate(sd * 0.3, 0.14, 0.08).rotateZ(sd * 0.35), 0xffb030);
+  const crown = [0, 1, 2].map((i) => paint(at(new THREE.CylinderGeometry(0.05, 0.05, 0.16 + (i === 1 ? 0.08 : 0), 6), (i - 1) * 0.08, 0.2 + (i === 1 ? 0.04 : 0), 0.34), 0xf2dfb4));
+  const nido = [paint(at(new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0, 0, 0, 0.9, 0.55, 0.9), 0x5a1424), paint(at(new THREE.CylinderGeometry(0.55, 0.62, 0.14, 6), 0, 0.5, 0), 0xf2dfb4), paint(at(new THREE.CylinderGeometry(0.3, 0.42, 0.5, 8, 1, true), 0, 0.66, 0), 0x3a0e1a)];
+  ENJ_G = { zang: mergeGeometries(zang), reina: mergeGeometries([...zang, ...crown]), wings: mergeGeometries([wing(1), wing(-1)]), nido: mergeGeometries(nido), core: new THREE.SphereGeometry(0.32, 10, 8), ring: new THREE.RingGeometry(0.96, 1, 6) };
+  return ENJ_G;
+}
+const enjUnit = (reina) => (o) => {
+  const G = enjG(), g = new THREE.Group(), pv = new THREE.Group(), s = reina ? 2.3 : 1;
+  const body = new THREE.Mesh(reina ? G.reina : G.zang, new THREE.MeshBasicMaterial({ vertexColors: true })), wings = new THREE.Mesh(G.wings, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  pv.add(body, wings); pv.scale.setScalar(s); g.add(pv); g.userData = { pv, wings, body }; return g;
+};
+BUILD.zangano = enjUnit(false); BUILD.reina = enjUnit(true);
+BUILD.nido = () => {
+  const G = enjG(), g = new THREE.Group(), shell = new THREE.Mesh(G.nido, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })), core = new THREE.Mesh(G.core, add(0xff3a55, 0.9)), ring = new THREE.Mesh(G.ring, add(0xffb030, 0.5));
+  core.position.y = 0.75; ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; ring.scale.setScalar(1.6); g.add(shell, core, ring); g.userData = { core, ring }; return g;
+};
+
 Object.assign(BUILD, M4_BUILD);
 const SIZE_HINT = { turret: 1 };
 
@@ -291,6 +317,12 @@ export class ObjectsView {
       case 'well': { u.ring.rotation.z = t * 5; u.ring2.rotation.z = -t * 4; u.ring.scale.setScalar(3 + Math.sin(t * 6) * 0.4); break; }
       case 'ojo': { u.h.tick(this.dt, { hp: o.hp, maxhp: o.mx || 1, t }); if (this.cam) it.g.lookAt(this.cam); break; }
       case 'mine': { const pu = 0.5 + 0.5 * Math.sin(t * 8); u.body.material.emissiveIntensity = 0.4 + pu; u.ring.material.opacity = 0.15 + 0.2 * pu; break; }
+      case 'zangano': case 'reina': {   // Colmena: zumban (las alas se aplastan rápido), se orientan hacia donde vuelan y flotan
+        const p = it.g.position; if (it.px !== undefined) { const dx = p.x - it.px, dz = p.z - it.pz; if (dx * dx + dz * dz > 1e-5) it.yaw = Math.atan2(dx, dz); } it.px = p.x; it.pz = p.z;
+        const d = ((it.yaw || 0) - u.pv.rotation.y + Math.PI * 3) % (Math.PI * 2) - Math.PI; u.pv.rotation.y += d * Math.min(1, 8 * this.dt); u.pv.position.y = 0.07 * Math.sin(t * 5 + o.id);
+        u.wings.scale.set(0.45 + 0.55 * Math.abs(Math.sin(t * 46 + o.id)), 1, 1); break;
+      }
+      case 'nido': { u.core.scale.setScalar(0.8 + 0.25 * pulse); u.core.material.opacity = 0.6 + 0.35 * pulse; u.ring.rotation.z = t * 0.6; break; }
       case 'turret': { u.head.rotation.y = t * 2; u.head.material.opacity = 0.7 + pulse * 0.3; break; }
       case 'npc': {
         if (u.h) u.h.update(this.dt, { speed: 0, moveDir: { x: 0, z: 0 }, pitch: 0, camera: null });

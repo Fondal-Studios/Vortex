@@ -12,6 +12,7 @@ import { CHARACTERS } from '../sim/data.js';
 
 const FADE_FAR = 1.6, FADE_NEAR = 0.7;           // distancia de cámara (u): translúcido por debajo de FAR, casi invisible en NEAR
 const SIZE = { axioma: 0.92, vesper: 0.9, micelio: 0.7, umbra: 0.78, seraf: 0.88 }; // tamaño relativo (el jugador mide ~1.8 u)
+SIZE.danzante = 0.9;   // Danzante
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
 export const isHost = (char) => !!(CHARACTERS[char] && CHARACTERS[char].host);

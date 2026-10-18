@@ -118,7 +118,7 @@ test('cian: cura y da escudo adentro; atrae a las criaturas hacia el centro', ()
   const lejos = (con) => {
     const { g: g2, p: p2 } = cancha('m5'); p2.hp = 1e6; const c = madd(p2.pos, p2.up, 1.2), X = v3(0, 0, -1); if (con) esperaActiva(g2, crear(g2, 'cian', c, 8));
     p2.pos = madd(c, X, 40);   // el jugador se aleja del centro: la criatura lo persigue y la niebla la tira para el otro lado
-    const m = g2.spawnMonster('astilla', madd(c, X, 13), { noElite: true }); m.passive = true; const d0 = dist(m.pos, c);   // (quieta: así se mide sólo el arrastre)
+    const m = g2.spawnMonster('astilla', madd(c, X, 13), { noElite: true }); m.speedMul = 0; const d0 = dist(m.pos, c);   // (sin velocidad propia: así se mide sólo el arrastre)
     run(g2, 1, null); return d0 - dist(m.pos, c);
   };
   const con = lejos(true), sin = lejos(false); assert.ok(con > sin + 1.5, `la niebla cian tira de las criaturas (${con.toFixed(2)} vs ${sin.toFixed(2)} m)`);

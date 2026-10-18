@@ -85,7 +85,7 @@ export function addEvolucionSingular(ak, ctx, o = {}) {
   // ═════════════ NIVEL 3
   if (has('simbiosis')) {
     const C = V(0, 0.98, 0.02), ad = ak.bone('acrecion', 'spine05', C);
-    add('spirit', X(disc(0.46, 1.02, S(56, 24)), { p: [C.x, C.y, C.z] }), 'acrecion', { color: radial(0.46, 1.02, 0xfff0b0, 0x5a28b8) });
+    add('spirit', X(disc(0.5, 0.98, S(56, 24)), { p: [C.x, C.y, C.z] }), 'acrecion', { color: radial(0.5, 0.98, 0x8a5a12, 0x1c0a48) });
     add('ember', G.torus(0.5, 0.004, 3, S(44, 22)).translate(C.x, C.y, C.z), 'acrecion', { color: ORO_L });
     add('ember', G.torus(0.78, 0.0036, 3, S(52, 26)).translate(C.x, C.y, C.z), 'acrecion', { color: VIO });
     for (let i = 0; i < (low ? 5 : 8); i++) { const a = i * 0.9 + 0.3, r = 0.55 + 0.4 * ((i * 3) % 4) / 4; add('light', G.sphere(0.016 + 0.01 * (i % 3), 6, 5).translate(C.x + Math.cos(a) * r, C.y, C.z + Math.sin(a) * r), 'acrecion', { color: i % 2 ? ORO_L : VIO_L }); }
@@ -119,9 +119,9 @@ export function addEvolucionSingular(ak, ctx, o = {}) {
   }
   if (has('anomalia')) { // el pecho se abre a un vacío negro: anillos de fotones, esquirlas en órbita y rayos violeta sobre el cuerpo
     const vb = ak.bone('vacio', 'spine01', V(CC.x, CC.y, CC.z + 0.06)), vo = ak.bone('vacioO', 'spine01', CC);
-    add('mirror', G.sphere(0.15, S(18, 10), S(14, 8)).translate(CC.x, CC.y, CC.z + 0.06), 'vacio', { color: NEG });
-    add('light', G.torus(0.2, 0.0055, 3, S(36, 18)).rotateX(Math.PI / 2).translate(CC.x, CC.y, CC.z + 0.06), 'vacio', { color: ORO_L });
-    add('ember', X(G.torus(0.27, 0.0042, 3, S(36, 18)), { p: [CC.x, CC.y, CC.z + 0.06], r: [1.0, 0, 0.5] }), 'vacio', { color: VIO });
+    add('mirror', G.sphere(0.1, S(16, 10), S(12, 8)).translate(CC.x, CC.y, CC.z + 0.05), 'vacio', { color: NEG });
+    add('light', G.torus(0.15, 0.006, 3, S(36, 18)).rotateX(Math.PI / 2).translate(CC.x, CC.y, CC.z + 0.05), 'vacio', { color: ORO_L });
+    add('ember', X(G.torus(0.23, 0.0048, 3, S(36, 18)), { p: [CC.x, CC.y, CC.z + 0.05], r: [1.0, 0, 0.5] }), 'vacio', { color: VIO });
     for (let i = 0; i < (low ? 6 : 9); i++) { const a = (i / (low ? 6 : 9)) * TAU, r = 0.36 + 0.05 * (i % 2); add('mirror', spikeAt(V(CC.x + Math.cos(a) * r, CC.y + Math.sin(a * 2) * 0.12, CC.z + 0.04 + Math.sin(a) * r * 0.7), V(Math.cos(a + 1.2), 0.2, Math.sin(a + 1.2)), 0.1, 0.014, 0.01, Y, { radial: 4 }), 'vacioO', { color: 0x120c22 }); }
     const hands = [V(0.43, 1.09, 0.17), V(-0.43, 1.09, 0.17), V(0.11, 0.9, 0.05), V(-0.11, 0.9, 0.05), V(0.17, 1.5, -0.02), V(-0.17, 1.5, -0.02)];
     for (let i = 0; i < (low ? 4 : hands.length); i++) add('ember', t.crackLine(V(CC.x, CC.y, CC.z - 0.02), hands[i].clone().add(V(0, 0, 0.1)), { n: 8, jag: 0.025, r: 0.0034, seed: 40 + i }), 'spine01', { color: i % 2 ? VIO : VIO_L });
