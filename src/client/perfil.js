@@ -3,7 +3,8 @@ import { EVO_COST, EVO_PATHS, MELEE_WEAPONS, CHARACTERS, WEAPON_ORGANS, CHAMP_OR
 import { TERRITORIOS, BENDICIONES, cleanBend, hermana } from '../sim/bendiciones.js';
 import { organError } from '../sim/organos.js';
 import { xpPartida, progreso, rangoDeXp, RANGO_MAX } from '../sim/maestria.js';
-import { ITEMS, SLOTS, SIGNATURES, LIMITE_INVENTARIO, cleanEquip, equipError, desguaceValor, faseDe, poder } from '../sim/items.js';
+import { MODOS_ARBOL, cleanNodos, nodosDe, gastado, errorNodo, costeReinicio, puntosCombo, puntosDisparo } from '../sim/progresion.js';
+import { ITEMS, SLOTS, SIGNATURES, LIMITE_INVENTARIO, MATERIAL_IDS, MAT_STOCK_MAX, PLANOS, PLANOS_INICIALES, RECETAS, qForja, cleanEquip, equipError, desguaceValor, faseDe, poder } from '../sim/items.js';
 const KEY = 'cristal.perfil.v1';
 let cache = null;
 /** terr = { m1: { bend: null|'id' } }: la clave existe = territorio liberado; bend = bendición elegida (null = liberado pero sin elegir). Se sanea al cargar. */
@@ -14,7 +15,7 @@ function limpiarTerr(t) {
 }
 /** guia = { off: saltada del todo, vistos: [ids de pasos ya mostrados] }. Se sanea al cargar. */
 function limpiarGuia(g) { const o = g && typeof g === 'object' ? g : {}; return { off: o.off === true, vistos: Array.isArray(o.vistos) ? o.vistos.filter((x) => typeof x === 'string').slice(0, 12) : [] }; }
-const fresh = () => ({ ver: 2, cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, inv: [], eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1 });
+const fresh = () => ({ ver: 2, cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1 });
 /* ───── inventario (docs/INVENTARIO.md): v2 del perfil. Los perfiles anteriores (sin `ver`) se abren igual: sólo les falta el inventario, que arranca vacío. ───── */
 const nn = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 /** inv = [{ u (id propio), id (plantilla), q (tirada 0..1), k (bajas), lk (bloqueado), fv (favorito), t }]. Se sanea al cargar: ids desconocidos, uid repetidos y exceso se descartan. */
@@ -35,25 +36,41 @@ function limpiarEq(e, inv) {
   }
   return out;
 }
+/** materiales = { hueso: [n0, n1, n2, n3], … } (cantidad por calidad, tope MAT_STOCK_MAX). */
+const matsVacios = () => Object.fromEntries(MATERIAL_IDS.map((m) => [m, [0, 0, 0, 0]]));
+function limpiarMats(m) { const o = matsVacios(); if (m && typeof m === 'object') for (const id of MATERIAL_IDS) if (Array.isArray(m[id])) for (let c = 0; c < 4; c++) o[id][c] = nn(m[id][c], MAT_STOCK_MAX); return o; }
+/** planos = ids de objetos cuyo plano se conoce (los Comunes se saben de entrada). */
+function limpiarPlanos(a) { const s = new Set(PLANOS_INICIALES); if (Array.isArray(a)) for (const id of a) if (PLANOS[id] && !PLANOS[id].inicial) s.add(id); return [...s]; }
+/** cultivo = { item, listo (ms), q, dur } o null: la pieza que se está cultivando en la Forja. */
+function limpiarCultivo(c) { return c && typeof c === 'object' && ITEMS[c.item] ? { item: c.item, listo: nn(c.listo, 4e12), q: Math.max(0, Math.min(1, Number(c.q) || 0.5)), dur: nn(c.dur, 3600) } : null; }
 const limpiarSigs = (s) => { const o = {}; if (s && typeof s === 'object') for (const h of Object.keys(SIGNATURES)) if (s[h]) o[h] = 1; return o; };
 function limpiarMae(m) { // maestría por Huésped: { xp, partidas, kills, oleada } (sólo personajes conocidos, números sanos)
   const out = {}; if (!m || typeof m !== 'object') return out; const n = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
   for (const id of Object.keys(CHARACTERS)) { const e = m[id]; if (e && typeof e === 'object') out[id] = { xp: n(e.xp, 99999), partidas: n(e.partidas, 99999), kills: n(e.kills, 999999), oleada: n(e.oleada, 99) }; }
   return out;
 }
+function limpiarArb(a) { // progresión permanente por Huésped: { combo: { pc, nodos }, disparo: { pc, nodos } } (puntos ganados y nodos elegidos; se sanea al cargar)
+  const out = {}; if (!a || typeof a !== 'object') return out;
+  for (const id of Object.keys(CHARACTERS)) {
+    const e = a[id]; if (!e || typeof e !== 'object' || !CHARACTERS[id].host) continue; const r = {};
+    for (const modo of MODOS_ARBOL) { const x = e[modo] && typeof e[modo] === 'object' ? e[modo] : {}; const nodos = cleanNodos(modo, id, x.nodos); r[modo] = { pc: Math.max(gastado(modo, id, nodos), Math.min(99999, Math.floor(Number(x.pc) || 0))), nodos }; }
+    out[id] = r;
+  }
+  return out;
+}
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
-  const inv = limpiarInv(o.inv);
-  cache = { ...fresh(), ...o, ver: 2, inv, eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae) };
+  const inv = limpiarInv(o.inventario || o.inv);
+  cache = { ...fresh(), ...o, ver: 2, inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb) };
   return cache;
 }
 export const perfil = () => cache || load();
 export function guardar() { try { localStorage.setItem(KEY, JSON.stringify(perfil())); } catch { /* sin almacenamiento */ } }
 /** Datos que recibe la simulación al empezar una partida con este Huésped. */
-export const paraPartida = (char) => { const p = perfil(); return { equip: equipoParaPartida(char), pity: { ...p.pity }, sigs: Object.keys(p.sigs), melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas(), maestria: rangoMaestria(char) }; };
+export const paraPartida = (char) => { const p = perfil(); return { equip: equipoParaPartida(char), pity: { ...p.pity }, sigs: Object.keys(p.sigs), melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas(), maestria: rangoMaestria(char), arbol: arbolParaPartida(char) }; };
 /** Al terminar (o pasar de oleada): guarda núcleos ganados y el nivel de evolución alcanzado. */
 export function cerrarPartida(char, jugador, info = {}) {
-  if (!jugador) return null; const p = perfil(); const mae = ganarMaestria(char, jugador, info);
+  if (!jugador) return null; const p = perfil(); const mae = ganarMaestria(char, jugador, info), arb = ganarArbol(char, jugador, info); if (mae && arb) mae.arbol = arb;
   try { cerrarBotin(char, jugador, info); } catch (err) { console.warn('Inventario: no se pudo cerrar el botín', err.message); }
   p.cores += Math.max(0, Math.floor(jugador.co || 0));
   p.evo[char] = Math.max(p.evo[char] || 0, jugador.evo || 0);
@@ -147,10 +164,45 @@ function ganarMaestria(char, jugador, info) {
   const despues = rangoDeXp(m.xp); return { xp: m.xp, ganada, rangoAntes: antes, rangoDespues: despues, subio: despues > antes, max: despues >= RANGO_MAX };
 }
 
+/* ───── progresión permanente: árbol de COMBOS (modo Combo) y de DISPARO (modo Shooter) por Huésped (src/sim/progresion.js, docs/EVOLUCION.md) ───── */
+const arbDe = (char, modo) => { const a = (perfil().arb[char] ||= {}); return (a[modo] ||= { pc: 0, nodos: [] }); };
+/** Estado de un árbol: { pc (ganados en total), gastado, libres, nodos (elegidos) }. modo = 'combo' | 'disparo'. */
+export function arbol(char, modo) {
+  if (!CHARACTERS[char] || !CHARACTERS[char].host || !MODOS_ARBOL.includes(modo)) return { pc: 0, gastado: 0, libres: 0, nodos: [] };
+  const e = (perfil().arb[char] || {})[modo] || { pc: 0, nodos: [] }, g = gastado(modo, char, e.nodos);
+  return { pc: e.pc, gastado: g, libres: Math.max(0, e.pc - g), nodos: e.nodos.slice() };
+}
+/** Lo que recibe la simulación (opts.arbol): { combo: [ids], disparo: [ids] }. */
+export const arbolParaPartida = (char) => ({ combo: arbol(char, 'combo').nodos, disparo: arbol(char, 'disparo').nodos });
+/** Gasta puntos en un nodo. Devuelve null si salió bien o el motivo (texto en español) si no se pudo. */
+export function comprarNodo(char, modo, id) {
+  if (!CHARACTERS[char] || !CHARACTERS[char].host || !MODOS_ARBOL.includes(modo)) return 'Ese Huésped no tiene árbol.';
+  const e = arbDe(char, modo), err = errorNodo(modo, char, e.nodos, id, e.pc); if (err) return err;
+  e.nodos = cleanNodos(modo, char, [...e.nodos, id]); guardar(); return null;
+}
+/** Reinicio opcional: devuelve los puntos gastados menos el costo (25 %). Devuelve { costo, devuelto } o null si no había nada elegido. */
+export function reiniciarArbol(char, modo) {
+  if (!CHARACTERS[char] || !CHARACTERS[char].host || !MODOS_ARBOL.includes(modo)) return null;
+  const e = arbDe(char, modo); if (!e.nodos.length) return null;
+  const g = gastado(modo, char, e.nodos), costo = costeReinicio(modo, char, e.nodos); e.pc = Math.max(0, e.pc - costo); e.nodos = []; guardar(); return { costo, devuelto: g - costo };
+}
+/** Suma los puntos de la partida al árbol del modo jugado (jugador = snapshot con pk; info = { wave }). Devuelve { combo, disparo } ganados o null. No guarda: lo hace cerrarPartida. */
+function ganarArbol(char, jugador, info) {
+  if (!CHARACTERS[char] || !CHARACTERS[char].host || !Array.isArray(jugador.pk)) return null;
+  const [h, f, m, k, sm, sk, mm, smm] = jugador.pk.map((x) => Math.max(0, Math.floor(Number(x) || 0))), wave = Math.max(0, (info && info.wave) | 0);
+  const jugoC = h + f + m + k > 0, jugoS = sk + sm > 0;   // ¿se jugó en modo Combo y/o Shooter?
+  const olC = jugoC && (!jugoS || h + k >= sk) ? wave : 0, olS = jugoS && !olC ? wave : 0;   // las oleadas cuentan una sola vez, para el modo más jugado
+  const cc = jugoC ? puntosCombo({ h, f, m, mm }, olC) : 0, ss = jugoS ? puntosDisparo({ k: sk, m: sm, mm: smm }, olS) : 0;
+  if (cc) arbDe(char, 'combo').pc = Math.min(99999, arbDe(char, 'combo').pc + cc);
+  if (ss) arbDe(char, 'disparo').pc = Math.min(99999, arbDe(char, 'disparo').pc + ss);
+  return { combo: cc, disparo: ss };
+}
+
 /* ───── inventario y equipo (docs/INVENTARIO.md) ───── */
-export const inventario = () => perfil().inv;
-export const instDe = (uid) => perfil().inv.find((x) => x.u === uid) || null;
-const nuevoUid = () => { const p = perfil(); let u; do { u = 'u' + (p.nu++).toString(36); } while (p.inv.some((x) => x.u === u)); return u; };
+export const inventario = () => perfil().inventario;
+export const instDe = (uid) => perfil().inventario.find((x) => x.u === uid) || null;
+const MATERIALES_TXT = Object.fromEntries(MATERIAL_IDS.map((m) => [m, ({ hueso: 'Hueso', quitina: 'Quitina', raiz: 'Raíz', cristal: 'Cristal', carne: 'Carne', espora: 'Espora', vacio: 'Vacío' })[m]]));
+const nuevoUid = () => { const p = perfil(); let u; do { u = 'u' + (p.nu++).toString(36); } while (p.inventario.some((x) => x.u === u)); return u; };
 /** Quién lleva puesta esta pieza: { char, slot } o null. */
 export function puestoEn(uid) { const eq = perfil().eq; for (const c of Object.keys(eq)) for (const s of Object.keys(eq[c])) if (eq[c][s] === uid) return { char: c, slot: s }; return null; }
 /** Equipo de un Huésped como instancias: { ranura: instancia }. */
@@ -158,30 +210,30 @@ export function equipoDe(char) { const out = {}, m = perfil().eq[char] || {}; fo
 /** Lista que entra a la simulación (opts.equip): [{ s, id, q, k }]. */
 export function equipoParaPartida(char) { return cleanEquip(char, Object.entries(equipoDe(char)).map(([s, it]) => ({ s, id: it.id, q: it.q, k: it.k }))); }
 /** Suma el valor de desguace al banco del perfil. */
-function pagarDesguace(inst) { const v = desguaceValor(inst), p = perfil(); p.cores += v.cores; for (const [k, n] of Object.entries(v.ess)) p.ess[k] = Math.min(999, (p.ess[k] || 0) + n); return v; }
+function pagarDesguace(inst) { const v = desguaceValor(inst), p = perfil(); p.cores += v.cores; for (const [k, n] of Object.entries(v.ess)) p.ess[k] = Math.min(999, (p.ess[k] || 0) + n); for (const [m, x] of Object.entries(v.mats || {})) sumarMat(m, x.cal, x.n); return v; }
 /** Agrega un objeto al inventario. Devuelve { ok, uid?, conv?: valor } (conv = se desguazó solo: firma repetida o inventario lleno sin lugar). */
 export function agregarItem(drop) {
   const p = perfil(); if (!drop || !ITEMS[drop.id]) return { ok: false };
   const inst = { u: '', id: drop.id, q: Math.round(Math.max(0, Math.min(1, Number(drop.q) || 0)) * 100) / 100, k: 0, lk: false, fv: false, t: Date.now() };
-  if (ITEMS[drop.id].host && p.inv.some((x) => x.id === drop.id)) return { ok: true, conv: pagarDesguace(inst), repetida: true };   // la firma ya está: se convierte en recursos
-  if (p.inv.length >= LIMITE_INVENTARIO) {
-    const libres = p.inv.filter((x) => !x.lk && !x.fv && !puestoEn(x.u)).sort((a, b) => ITEMS[a.id].r - ITEMS[b.id].r || poder(a) - poder(b));
+  if (ITEMS[drop.id].host && p.inventario.some((x) => x.id === drop.id)) return { ok: true, conv: pagarDesguace(inst), repetida: true };   // la firma ya está: se convierte en recursos
+  if (p.inventario.length >= LIMITE_INVENTARIO) {
+    const libres = p.inventario.filter((x) => !x.lk && !x.fv && !puestoEn(x.u)).sort((a, b) => ITEMS[a.id].r - ITEMS[b.id].r || poder(a) - poder(b));
     const peor = libres[0];
     if (!peor || ITEMS[peor.id].r > ITEMS[drop.id].r) return { ok: true, conv: pagarDesguace(inst), lleno: true };
-    const v = pagarDesguace(peor); p.inv = p.inv.filter((x) => x !== peor); inst.u = nuevoUid(); p.inv.push(inst); guardar();
+    const v = pagarDesguace(peor); p.inventario = p.inventario.filter((x) => x !== peor); inst.u = nuevoUid(); p.inventario.push(inst); guardar();
     return { ok: true, uid: inst.u, reemplazo: { id: peor.id, valor: v } };
   }
-  inst.u = nuevoUid(); p.inv.push(inst); guardar(); return { ok: true, uid: inst.u };
+  inst.u = nuevoUid(); p.inventario.push(inst); guardar(); return { ok: true, uid: inst.u };
 }
 /** Desguaza una pieza (no si está bloqueada, es favorita o está puesta). Devuelve { cores, ess } o null. */
 export function desguazar(uid) {
   const p = perfil(), it = instDe(uid); if (!it || it.lk || puestoEn(uid)) return null;
-  const v = pagarDesguace(it); p.inv = p.inv.filter((x) => x !== it); guardar(); return v;
+  const v = pagarDesguace(it); p.inventario = p.inventario.filter((x) => x !== it); guardar(); return v;
 }
 /** Desguaza de una vez todo lo que no está protegido y no pasa de la rareza `hasta` (0 = común, 1 = rara…). Devuelve { n, cores, ess }. */
 export function desguazarSobrantes(hasta = 0) {
   const tot = { n: 0, cores: 0, ess: {} };
-  for (const it of perfil().inv.slice()) { if (it.lk || it.fv || puestoEn(it.u) || ITEMS[it.id].r > hasta) continue; const v = desguazar(it.u); if (!v) continue; tot.n++; tot.cores += v.cores; for (const [k, n] of Object.entries(v.ess)) tot.ess[k] = (tot.ess[k] || 0) + n; }
+  for (const it of perfil().inventario.slice()) { if (it.lk || it.fv || puestoEn(it.u) || ITEMS[it.id].r > hasta) continue; const v = desguazar(it.u); if (!v) continue; tot.n++; tot.cores += v.cores; for (const [k, n] of Object.entries(v.ess)) tot.ess[k] = (tot.ess[k] || 0) + n; }
   return tot;
 }
 export function bloquear(uid, v) { const it = instDe(uid); if (!it) return false; it.lk = v === undefined ? !it.lk : !!v; guardar(); return it.lk; }
@@ -201,21 +253,87 @@ export const ultimoBotin = () => botin;
 /** Cierra el botín de la partida: guarda lo recogido, suma la maduración y el pity, y registra las armas firma cumplidas. */
 function cerrarBotin(char, jugador, info) {
   const p = perfil(); botin = { items: [], madura: [], firma: [], pity: null };
-  const bolsa = Array.isArray(info.bag) && info.bag.length ? info.bag : (Array.isArray(jugador.bag) ? jugador.bag.map((s) => { const [id, q] = String(s).split(':'); return { id, q: Number(q) }; }) : []);
+  const bolsa = Array.isArray(info.bag) && info.bag.length ? info.bag : (Array.isArray(jugador.bag) ? jugador.bag.map((s) => { const [id, q, n] = String(s).split('|'); return { id, q: Number(q), n: Number(n) || 1 }; }) : []);
   // maduración: las bajas de la partida suben las piezas que llevaba puestas
   const eq = p.eq[char] || {};
   if (jugador.ik && typeof jugador.ik === 'object') for (const s of SLOTS) { const n = nn(jugador.ik[s], 5000), it = instDe(eq[s]); if (!n || !it) continue; const a = faseDe(ITEMS[it.id], it.k); it.k = Math.min(99999, it.k + n); const b = faseDe(ITEMS[it.id], it.k); if (b > a) botin.madura.push({ id: it.id, fase: b }); }
-  for (const d of bolsa.slice(0, 80)) { const r = agregarItem(d); if (r.ok) botin.items.push({ id: d.id, q: d.q, ...r }); }
+  botin.mats = {}; botin.planos = [];
+  for (const d of bolsa.slice(0, 80)) {
+    const id = String(d.id);
+    if (id.startsWith('mat:')) { const m = id.slice(4); if (MATERIAL_IDS.includes(m)) { const cal = nn(d.q, 3), n = Math.max(1, nn(d.n || 1, 9)); sumarMat(m, cal, n); (botin.mats[m] ||= [0, 0, 0, 0])[cal] += n; } }
+    else if (id.startsWith('plano:')) { const it = id.slice(6); if (PLANOS[it]) { if (aprenderPlano(it)) botin.planos.push(it); else { sumarMat(ITEMS[it].mat, 1, 2); botin.planos.push(it + '!'); } } }
+    else { const r = agregarItem(d); if (r.ok) botin.items.push({ id: d.id, q: d.q, ...r }); }
+  }
   if (Array.isArray(jugador.pt)) p.pity = { l: nn(jugador.pt[0], 999), e: nn(jugador.pt[1], 999) };
   if (jugador.sg && SIGNATURES[char]) { if (!p.sigs[char]) botin.firma.push(SIGNATURES[char]); p.sigs[char] = 1; }
   botin.pity = { ...p.pity };
 }
 /** Texto en español del botín de la última partida (pantalla final). */
 export function botinTexto() {
-  const b = botin; if (!b || (!b.items.length && !b.madura.length)) return '';
-  const R = ['Común', 'Rara', 'Épica', 'Legendaria'], L = [`BOTÍN (${b.items.length})`];
+  const b = botin, nm = b ? Object.keys(b.mats || {}) : []; if (!b || (!b.items.length && !b.madura.length && !nm.length && !(b.planos || []).length)) return '';
+  const R = ['Común', 'Rara', 'Épica', 'Legendaria'], CAL = ['Burdo', 'Fino', 'Excelente', 'Perfecto'], L = [`BOTÍN (${b.items.length + nm.length + (b.planos || []).length})`];
+  for (const m of nm) L.push(`  Material: ${MATERIALES_TXT[m]} ${b.mats[m].map((n, c) => (n ? `${n}× ${CAL[c]}` : '')).filter(Boolean).join(', ')}`);
+  for (const pl of b.planos || []) L.push(pl.endsWith('!') ? `  Plano repetido (${ITEMS[pl.slice(0, -1)].name}): se convirtió en materiales` : `  PLANO NUEVO: ${ITEMS[pl].name} (construilo en la Forja)`);
   for (const d of b.items.slice(0, 12)) L.push(`  ${R[ITEMS[d.id].r]} · ${ITEMS[d.id].name}${d.repetida ? ' (ya la tenías: desguazada)' : d.lleno ? ' (inventario lleno: desguazada)' : d.reemplazo ? ' (reemplazó a un objeto sobrante)' : ''}`);
   if (b.items.length > 12) L.push(`  … y ${b.items.length - 12} más`);
   for (const m of b.madura) L.push(`  ¡${ITEMS[m.id].name} maduró! Ahora está ${['Latente', 'Despierta', 'Madura', 'Plena'][m.fase]}.`);
   return '\n\n' + L.join('\n');
 }
+
+/* ───── FORJA BIOLÓGICA (docs/INVENTARIO.md): materiales por calidad, planos, recetas, cultivo, fusión ───── */
+export const materiales = () => perfil().materiales;
+export const planos = () => perfil().planos;
+/** Cuántos materiales de ese tipo hay con calidad ≥ cal. */
+export const stockMin = (mat, cal = 0) => (perfil().materiales[mat] || []).slice(cal).reduce((a, b) => a + b, 0);
+export function sumarMat(mat, cal, n) { const p = perfil(), a = p.materiales[mat]; if (!a || cal < 0 || cal > 3) return 0; const antes = a[cal]; a[cal] = Math.min(MAT_STOCK_MAX, a[cal] + Math.max(0, n | 0)); return a[cal] - antes; }
+export const conoce = (id) => perfil().planos.includes(id);
+/** Aprende un plano. false si ya se conocía. */
+export function aprenderPlano(id) { const p = perfil(); if (!PLANOS[id] || p.planos.includes(id)) return false; p.planos.push(id); return true; }
+/** Consume n materiales de tipo `mat` con calidad ≥ cal, gastando primero los de menor calidad. Devuelve la calidad media gastada, o -1 si no alcanza. */
+function gastarMat(mat, n, cal, simular) {
+  const a = perfil().materiales[mat]; let falta = n, suma = 0; const usa = [0, 0, 0, 0];
+  for (let c = cal; c < 4 && falta > 0; c++) { const t = Math.min(falta, a[c]); usa[c] = t; falta -= t; suma += t * c; }
+  if (falta > 0) return -1;
+  if (!simular) for (let c = 0; c < 4; c++) a[c] -= usa[c];
+  return suma / n;
+}
+/** Estado de una receta para la interfaz: { ok, motivo, receta, faltan: [{mat, n, cal, tiene}] }. */
+export function estadoReceta(id) {
+  const R = RECETAS[id], p = perfil(); if (!R) return { ok: false, motivo: 'no existe' };
+  const faltan = R.mats.map((x) => ({ ...x, tiene: stockMin(x.mat, x.cal) }));
+  let motivo = '';
+  if (!conoce(id)) motivo = PLANOS[id].firma ? 'Falta el plano raro (lo suelta el jefe de su mapa)' : 'Todavía no conocés el plano';
+  else if (p.cultivo) motivo = 'La Forja está cultivando otra pieza';
+  else if (faltan.some((x) => x.tiene < x.n)) motivo = 'Faltan materiales';
+  else if (p.cores < R.cores) motivo = 'Faltan núcleos';
+  return { ok: !motivo, motivo, receta: R, faltan };
+}
+/** Pone una pieza a cultivar: gasta plano (no se gasta: queda aprendido), materiales y núcleos. El resultado tiene una calidad determinista acotada (qForja). */
+export function forjar(id, ahora = Date.now()) {
+  const st = estadoReceta(id); if (!st.ok) return { ok: false, motivo: st.motivo };
+  const p = perfil(), R = st.receta; let cal = 0, n = 0;
+  for (const x of R.mats) { const c = gastarMat(x.mat, x.n, x.cal, false); cal += c * x.n; n += x.n; }
+  p.cores -= R.cores; const q = qForja(id, p.nf++, cal / Math.max(1, n));
+  p.cultivo = { item: id, listo: ahora + R.tiempo * 1000, q, dur: R.tiempo }; guardar();
+  return { ok: true, q, tiempo: R.tiempo };
+}
+/** Segundos que faltan para recoger (0 = listo), o null si no se cultiva nada. */
+export const cultivoFalta = (ahora = Date.now()) => { const c = perfil().cultivo; return c ? Math.max(0, Math.ceil((c.listo - ahora) / 1000)) : null; };
+/** Gasta núcleos (1 cada 2 s que faltan) para terminar ya. */
+export function acelerar(ahora = Date.now()) { const p = perfil(), f = cultivoFalta(ahora); if (!p.cultivo || !f) return false; const costo = Math.ceil(f / 2); if (p.cores < costo) return false; p.cores -= costo; p.cultivo.listo = ahora; guardar(); return true; }
+/** Recoge la pieza terminada y la mete al inventario (si es una firma repetida o el inventario está lleno se convierte, como siempre). */
+export function recoger(ahora = Date.now()) {
+  const p = perfil(), c = p.cultivo; if (!c || c.listo > ahora) return null;
+  p.cultivo = null; const r = agregarItem({ id: c.item, q: c.q }); guardar(); return { item: c.item, q: c.q, ...r };
+}
+/** Fusión: la pieza `b` (misma ranura, distinta pieza, ni puesta ni bloqueada) se consume y la `a` hereda la mitad de sus bajas y sube su calidad hasta +0,1. */
+export function fusionar(a, b) {
+  const A = instDe(a), B = instDe(b); if (!A || !B || A === B) return { ok: false, motivo: 'piezas inválidas' };
+  if (ITEMS[A.id].slot !== ITEMS[B.id].slot) return { ok: false, motivo: 'tienen que ser de la misma ranura' };
+  if (B.lk || B.fv || puestoEn(b)) return { ok: false, motivo: 'la pieza a consumir está bloqueada, es favorita o está puesta' };
+  const p = perfil(), costo = 10 + 15 * ITEMS[A.id].r; if (p.cores < costo) return { ok: false, motivo: `faltan núcleos (${costo})` };
+  p.cores -= costo; A.k = Math.min(99999, A.k + Math.floor(B.k / 2) + 10 * (ITEMS[B.id].r + 1)); A.q = Math.round(Math.min(1, A.q + 0.02 * (ITEMS[B.id].r + 1) + 0.03) * 100) / 100;
+  p.inventario = p.inventario.filter((x) => x !== B); guardar(); return { ok: true, k: A.k, q: A.q };
+}
+/** Piezas de cada set que lleva el Huésped y el estado de sus bonos (para la pantalla de sets). */
+export function setsDe(char) { const l = equipoParaPartida(char); return l; }

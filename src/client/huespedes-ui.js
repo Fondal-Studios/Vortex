@@ -10,6 +10,7 @@ import { GLYPHS, HERO_LORE, HERO_STATS } from './heroes-ui.js';
 import { buildHostEvo, REGIONS } from './huespedes-evo.js';
 import * as Perfil from './perfil.js';
 import { recompensas, proximaRecompensa, maestriaMods, TITULOS, TIER_MARCA, RANGO_MAX } from '../sim/maestria.js';
+import { RAMAS, PC_COSTE, nodosDe, errorNodo, costeReinicio } from '../sim/progresion.js';
 import { tickMenuBeat } from './shaders.js';
 import { loadEnvHDRI } from './ph.js';
 
@@ -169,13 +170,34 @@ export function buildHuespedScreen(menu) {
       <details class="hs-mae-det"><summary>Todas las recompensas</summary><ol class="hs-mae-list">${items}</ol></details>
       <div class="hs-mae-st">Partidas ${pr.partidas} · Bajas ${pr.kills} · Mejor oleada ${pr.oleada}</div><p class="hs-legend">Ganás XP con este Huésped por jugar, por cada baja, por cada oleada y por ganar. Los bonos son chicos; la marca se ve en tu cuerpo.</p></div>`;
   }
+  /** Panel «Progresión» (src/sim/progresion.js + perfil): pestañas Shooter / Combo, 3 ramas excluyentes de 3 nodos, puntos libres y reinicio con costo. */
+  const PG_TAB = { disparo: 'Shooter', combo: 'Combo' };
+  function progresionHtml(id) {
+    const modo = hs.pgTab || 'combo', A = Perfil.arbol(id, modo), nodos = nodosDe(modo, id), ramaElegida = A.nodos.length ? nodos.find((n) => n.id === A.nodos[0]).rama : null;
+    const tabs = Object.keys(PG_TAB).map((m) => `<button type="button" class="hs-pg-tab${m === modo ? ' on' : ''}" data-pgtab="${m}" role="tab" aria-selected="${m === modo}">${PG_TAB[m]}${Perfil.arbol(id, m).libres ? ` <i>${Perfil.arbol(id, m).libres}</i>` : ''}</button>`).join('');
+    const ramas = Object.entries(RAMAS[modo]).map(([rk, R]) => {
+      const lock = ramaElegida && ramaElegida !== rk;
+      const ns = nodos.filter((n) => n.rama === rk).map((n) => {
+        const own = A.nodos.includes(n.id), err = own ? null : errorNodo(modo, id, A.nodos, n.id, A.pc), st = own ? 'own' : !err ? 'buy' : lock || n.nivel > A.nodos.length + 1 ? 'lock' : 'poor';
+        return `<li class="hs-pg-n ${st}"><button type="button" data-pgn="${n.id}" ${st === 'buy' ? '' : 'aria-disabled="true"'} title="${esc(err || '')}"><i aria-hidden="true">${own ? '✓' : n.nivel}</i><span><b>${esc(n.nombre)}</b><span>${esc(n.texto)}</span><small>${own ? 'Elegido' : st === 'buy' ? `Costo ${n.coste} puntos · tocá para elegir` : esc(err)}</small></span></button></li>`;
+      }).join('');
+      return `<div class="hs-pg-r${lock ? ' lock' : ''}${ramaElegida === rk ? ' on' : ''}"><h5>${esc(R.nombre)}</h5><p>${esc(R.texto)}</p><ol>${ns}</ol></div>`;
+    }).join('');
+    const reset = A.nodos.length ? `<button type="button" class="hs-pg-reset" data-pgreset="1">Reiniciar árbol (cuesta ${costeReinicio(modo, id, A.nodos)} puntos)</button>` : '';
+    const ayuda = modo === 'combo' ? 'Ganás puntos de combo con golpes encadenados, remates, bajas múltiples y oleadas jugando en modo Combo. Las ramas se excluyen: elegí una por Huésped.' : 'Ganás puntos de disparo con bajas, bajas múltiples y oleadas jugando en modo Shooter. Las ramas se excluyen: elegí una por Huésped.';
+    return `<h4>Progresión</h4><div class="hs-pg" data-modo="${modo}"><div class="hs-pg-tabs" role="tablist">${tabs}</div><div class="hs-pg-pts"><b>${A.libres}</b> puntos libres <span>(${A.gastado} gastados · ${A.pc} ganados)</span></div>${ramas}<div class="hs-pg-foot">${reset}<p class="hs-legend">${ayuda} Costos por nodo: ${PC_COSTE.join(' / ')}.</p></div></div>`;
+  }
   function renderInfo(id) {
     const C = CHARACTERS[id], S = statsOf(id), story = C.story || (HERO_LORE[id] || []).join(' ') || C.desc || '';
     const keys = C.host ? STAT_KEYS : ['dano', 'resistencia', 'movilidad', 'control', 'utilidad'].filter((k) => k in S);
     const bars = keys.map((k) => `<div class="hs-stat${k === 'dificultad' ? ' hs-sd' : ''}"><span class="hs-sl">${STAT_ES[k]}</span><span class="hs-bar"><b style="width:${S[k] * 10}%"></b>${C.host && k !== 'dificultad' ? `<u style="left:${avg[k] * 10}%" title="Promedio de los Huéspedes"></u>` : ''}</span><em>${S[k]}/10</em></div>`).join('');
     const abs = abilitiesOf(id).map(([tag, a, cd, kind]) => `<button class="hs-ab" type="button" data-kind="${kind}"><span class="hs-at">${tag}</span><span class="hs-ax"><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>${cd ? `<small>${esc(cd)}</small>` : ''}</span></button>`).join('');
-    $('#hsinfo').innerHTML = `<p class="hs-story">${esc(story)}</p>${C.host ? maestriaHtml(id) : ''}<h4>Estadísticas</h4><div class="hs-stats">${bars}</div>${C.host ? '<p class="hs-legend"><u></u> promedio de los 5 Huéspedes</p>' : '<p class="hs-legend">Veterano: vista y datos del héroe anterior.</p>'}<h4>Habilidades</h4><div class="hs-abs">${abs}</div>`;
+    $('#hsinfo').innerHTML = `<p class="hs-story">${esc(story)}</p>${C.host ? maestriaHtml(id) + progresionHtml(id) : ''}<h4>Estadísticas</h4><div class="hs-stats">${bars}</div>${C.host ? '<p class="hs-legend"><u></u> promedio de los 5 Huéspedes</p>' : '<p class="hs-legend">Veterano: vista y datos del héroe anterior.</p>'}<h4>Habilidades</h4><div class="hs-abs">${abs}</div>`;
     $('#hsinfo').scrollTop = 0;
+    const keep = () => { const y = $('#hsinfo').scrollTop; renderInfo(id); $('#hsinfo').scrollTop = y; };
+    root.querySelectorAll('[data-pgtab]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); hs.pgTab = b.dataset.pgtab; menu.sound.ui('tick'); keep(); }));
+    root.querySelectorAll('[data-pgn]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); if (b.getAttribute('aria-disabled')) { menu.sound.ui('back'); return; } const err = Perfil.comprarNodo(id, hs.pgTab || 'combo', b.dataset.pgn); menu.sound.ui(err ? 'back' : 'ok'); keep(); }));
+    root.querySelectorAll('[data-pgreset]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); Perfil.reiniciarArbol(id, hs.pgTab || 'combo'); menu.sound.ui('back'); keep(); }));
     root.querySelectorAll('.hs-ab').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); demo(b.dataset.kind); }));
   }
   function select(id, quiet) {

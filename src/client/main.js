@@ -25,7 +25,8 @@ import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.
 import { Renderer } from './render.js';
 import { Sound } from './audio.js';
 import { NetClient } from './net.js';
-import { LEVELS, initialClaridad, initialQuality, saveQuality, AutoQuality, isTouchDevice, isIOS } from './quality.js';
+import { LEVELS, initialClaridad, AutoQuality, isTouchDevice, isIOS, cfg } from './quality.js';
+import * as Graficos from './graficos-ui.js';   // menú «Gráficos»: presets, resolución, efectos, FPS (graficos.js es la parte pura)
 import { TouchControls } from './touch.js';
 import * as Story from './story.js';
 import { uTime } from './shaders.js';
@@ -43,7 +44,7 @@ let capT = 0; const timers = [];
 const later = (fn, ms) => { if (CAP) timers.push({ at: capT * 1000 + ms, fn }); else setTimeout(fn, ms); };
 
 /* ───────── calidad, dispositivo y controles ───────── */
-let level = initialQuality(params);
+let level = Graficos.preparar(params);   // nivel inicial: ?q= > lo guardado en el menú Gráficos > detección (teléfono ⇒ Baja, PC ⇒ Alta/Media)
 const canvas = $('c');
 const renderer = new Renderer(canvas, { level, pixelRatio: params.get('pr') ? +params.get('pr') : null });
 renderer.applyClaridad(initialClaridad(settings().claridad, params)); // ajuste «Claridad» (Normal/Alta; ?claridad= lo fuerza)
@@ -61,11 +62,17 @@ const myChar = () => Equipo.char;
 /* MODO DE JUEGO «Shooter» o «Combo»: ajuste `mode` (se guarda en el navegador) o ?modo=combo|shooter en el enlace. Sólo los Huéspedes juegan Combo. */
 { const um = params.get('modo'); if (um === 'combo' || um === 'shooter') setSetting('mode', um); }
 const gameMode = () => (settings().mode === 'combo' && CHARACTERS[myChar()] && CHARACTERS[myChar()].host ? 'combo' : 'shooter');
-function setQuality(l, { save = true } = {}) { if (!LEVELS[l] || l === level) return; level = l; $('qsel').value = $('qsel2').value = l; if (save) saveQuality(l); renderer.applyQuality(l); }
+const NIVEL_PRESET = { low: 'baja', medium: 'media', high: 'alta' };
+function setQuality(l, { save = true } = {}) {   // selector rápido de Opciones y bajada automática; el menú Gráficos es la vía completa
+  if (!LEVELS[l] || l === level) return;
+  if (save) { Graficos.elegirPreset(NIVEL_PRESET[l]); return; }
+  level = l; $('qsel').value = $('qsel2').value = l; Graficos.nivelCambiado(l, { guardar: false }); renderer.applyQuality(l);
+}
 $('qsel').addEventListener('change', (e) => setQuality(e.target.value)); $('qsel2').addEventListener('change', (e) => setQuality(e.target.value));
 $('ctrlsel').addEventListener('change', () => { try { localStorage.setItem('cristal.ctrl.v1', $('ctrlsel').value); } catch { /* ok */ } });
-const auto = new AutoQuality((l) => { setQuality(l, { save: false }); banner(`Rendimiento bajo: gráficos en «${LEVELS[l].label}»`, 2500); });
-if (params.get('autoq') === '0') auto.enabled = false;
+const auto = new AutoQuality((l) => { setQuality(l, { save: false }); banner(`Rendimiento bajo: gráficos en «${LEVELS[l].label}»`, 2500); }, () => (Graficos.G.fijadoPorUrl ? false : Graficos.bajarEscalaAuto()));
+if (params.get('autoq') === '0') { auto.enabled = false; Graficos.G.autoUrl = false; }
+Graficos.conectar({ renderer, auto, banner: (t, ms) => banner(t, ms), alNivel: (n) => { level = n; $('qsel').value = $('qsel2').value = n; } });
 
 /* ───────── entrada de teclado/ratón ───────── */
 const keys = new Set();
@@ -227,7 +234,7 @@ async function startCoop(create, code, mapId) {
   net.onError = (m) => { $('menuerr').textContent = m; };
   net.welcomed = (m) => { session.map = m.map; session.pid = m.pid; renderer.camInit = false; session.look = null; session.ended = false; $('end').classList.add('hidden'); };
   session = { mode: 'coop', net, pid: null, map: mapId, ended: false, look: null, touch: useTouch(), intro: null };
-  net.send(create ? { t: 'create', map: mapId, name: Story.NAME, char: Equipo.char, slots: Equipo.slots } : { t: 'join', room: code, name: Story.NAME, char: Equipo.char, slots: Equipo.slots });
+  net.send(create ? { t: 'create', map: mapId, name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char) } : { t: 'join', room: code, name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char) });
   await new Promise((r) => { const t = setInterval(() => { if (net.pid || net.closed) { clearInterval(t); r(); } }, 30); setTimeout(() => { clearInterval(t); r(); }, 2500); });
   if (!net.pid) { session = null; $('menuerr').textContent ||= 'no se pudo entrar a la sala'; return; }
   enter(net.map);
@@ -315,6 +322,7 @@ function hordeTopUp(g) {
 /* ───────── bucle principal ───────── */
 function frame(now) {
   if (!CAP) requestAnimationFrame(frame);
+  if (!CAP && now - last < 1000 / Graficos.fpsTope() - 4) return;   // límite de FPS del menú Gráficos (30 / 60): se salta el cuadro sin perder tiempo de simulación
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; // nunca negativo (carga lenta)
   if (CAP) { capT += dt; window.__capT = capT; for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= capT * 1000) { const f = timers[i].fn; timers.splice(i, 1); f(); } if (cine && cine.tick) cine.tick(dt); }
   { const q = $('camquick'); if (q) { q.classList.toggle('hidden', !session || !!session.intro || !!session.paused); q.classList.toggle('third', !!renderer.third); } }
@@ -438,6 +446,9 @@ function audioAndHud(state, me, dt) {
       case 'hatch': sound.boom(e.p); break;
       case 'organ': if (mine && evoHud) { const O = e.target === 'c' ? CHAMP_ORGANS[e.id] : WEAPON_ORGANS[e.id]; evoHud.organ(O ? O.name : ''); sound.pickup(); } break; // un órgano creció (organs-vis.js lo muestra)
       case 'combo': if (mine && e.fin && e.n >= 3) sound.objective(true); break;   // remate de un combo largo: pequeño acorde
+      case 'multi': if (mine && e.n >= 3) { banner(`¡${e.n} BAJAS DE UN GOLPE!`, 900); if (e.n >= 5) sound.boom(e.p); else sound.pickup(); } break;   // multi-kill (progresion.js)
+      case 'rango': if (mine) { banner(`ESTILO ${e.r}`, 700); sound.ui('trophy'); } break;   // subió el rango de estilo D/C/B/A/S
+      case 'arrasar': if (mine && e.n >= 4) sound.boom(e.p); break;   // un remate de área barrió a 4+ enemigos
       case 'hab': if (e.ph === 'cast') { sound.ability(mine ? null : e.p); if (mine && me && HABILIDADES[me.char]) banner(HABILIDADES[me.char].name.toUpperCase(), 700); } break;   // habilidad principal (telegrafía)
       case 'evolve': if (mine && evoHud) { evoHud.celebrate(e.tier); sound.objective(true); flash(); } break; // evolución: destello, onda y texto (hud-evolucion.js)
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con B', 2200); break;
@@ -614,7 +625,7 @@ function endGame(state, me) {
   showEnd(true, stats + (terrNuevo ? `\n\nTERRITORIO LIBERADO: ${terrNuevo.nombre}. Elegí su bendición en el menú › Territorios.` : ''));
 }
 /** Línea de maestría del fin de partida (XP ganada y, si subió, el rango nuevo). */
-function maestriaTxt() { const m = session && session.mae; return m ? `\nMaestría +${m.ganada} XP` + (m.subio ? ` · ¡RANGO ${m.rangoDespues}: ${TITULOS[m.rangoDespues]}!` : '') : ''; }
+function maestriaTxt() { const m = session && session.mae; if (!m) return ''; const a = m.arbol, pc = a ? a.combo + a.disparo : 0; return `\nMaestría +${m.ganada} XP` + (m.subio ? ` · ¡RANGO ${m.rangoDespues}: ${TITULOS[m.rangoDespues]}!` : '') + (pc ? `\nPuntos de ${a.combo ? 'combo' : 'disparo'} +${pc} (gastalos en Huésped › Progresión)` : ''); }
 function showEnd(won, stats, title) {
   $('endtitle').textContent = title || (won ? 'VÓRTICE ROTO' : 'ATRAPADO EN EL VÓRTICE');
   $('endstats').textContent = stats + (won && title ? '\n\nUn abajo bajo los pies. El tren pasó de largo.' : '');
@@ -665,6 +676,7 @@ function bindTouchSettings() {
   const syncCam = () => { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; };
   const setCam = (on) => { renderer.setThird(on); setSetting('third', !!on); syncCam(); };
   const cb = $('camtoggle'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); setCam(!renderer.third); }); syncCam();
+  const gx = $('gfxopen'); if (gx) gx.addEventListener('click', (e) => { e.stopPropagation(); Graficos.abrirEnPausa(sound); });   // Pausa › Gráficos
   const syncClar = () => { const b = $('claridad'); if (b) b.querySelector('b').textContent = `Claridad: ${settings().claridad === 'alta' ? 'Alta (más luz sobre vos y los enemigos)' : 'Normal'}`; };
   const cl = $('claridad'); if (cl) cl.addEventListener('click', (e) => { e.stopPropagation(); const v = settings().claridad === 'alta' ? 'normal' : 'alta'; setSetting('claridad', v); renderer.applyClaridad(v); syncClar(); }); syncClar();
   const syncSide = () => { const b = $('camside'); if (b) b.querySelector('b').textContent = `Hombro de la cámara: ${(settings().camSide || 1) > 0 ? 'derecho' : 'izquierdo'}`; };

@@ -50,7 +50,7 @@ export const ADD_KEYS = ['heal', 'kheal'];
 export const UTIL_KEYS = ['shield', 'ess', 'cores'];
 export const STAT_ES = { spd: 'Velocidad', gun: 'Daño de disparo', melee: 'Daño cuerpo a cuerpo', skill: 'Daño de habilidades', dmgIn: 'Daño recibido', ult: 'Carga de la definitiva', shield: 'Recarga del escudo', ess: 'Esencias', cores: 'Núcleos', cd: 'Recarga de habilidades', heal: 'Vida entre oleadas', kheal: 'Vida por baja' };
 /** Topes del total (con todo puesto y fase Plena): nada se sale de acá aunque se sumen 7 legendarias. */
-export const CAPS = { spd: [0.92, 1.12], gun: [0.8, 1.1], melee: [0.8, 1.1], skill: [0.8, 1.1], dmgIn: [0.78, 1.1], ult: [0.8, 1.35], shield: [0.8, 1.5], ess: [0.8, 1.4], cores: [0.8, 1.3], cd: [0.8, 1.2], heal: [0, 20], kheal: [0, 2] };
+export const CAPS = { spd: [0.92, 1.12], gun: [0.8, 1.06], melee: [0.8, 1.1], skill: [0.8, 1.1], dmgIn: [0.78, 1.1], ult: [0.8, 1.35], shield: [0.8, 1.5], ess: [0.8, 1.4], cores: [0.8, 1.3], cd: [0.8, 1.2], heal: [0, 20], kheal: [0, 2] };
 
 /* ───────── pasivos con condición ─────────  id → { name, txt(v) }. La lógica está en items-fx.js. `f` en el objeto = fase mínima. */
 export const PASIVOS = {
@@ -127,11 +127,11 @@ def('lanzaesporas', 'Madre de Esporas', 'gun', 2, 'espora', 'Un hongo del tamañ
 def('vena_voraz', 'Fusil Voraz', 'gun', 2, 'carne', 'Una arteria con gatillo: cada impacto le devuelve algo al que dispara.', { g: { base: 'cetro', dmg: 1.12, rate: 1.1, mag: 1.2, fx: { lifesteal: 0.05 } }, pa: [{ id: 'racha', v: 0.02 }], syn: [{ t: 'ess', k: 'carne', n: 8, fx: { kheal: 0.3 } }], vis: 'carne' });
 def('susurro_vacio', 'Susurro del Vacío', 'gun', 2, 'vacio', 'No suena. Lo que apunta, deja de estar un instante antes del disparo.', { g: { base: 'requiem', dmg: 1.14, rate: 1.08, mag: 1.15, fx: { critP: 0.12 } }, pa: [{ id: 'verdugo', v: 0.2, f: 2 }], syn: [{ t: 'estilo', k: 'disparo', fx: { gun: 1.05 } }], vis: 'vacio' });
 def('tormenta_geodas', 'Tormenta de Geodas', 'gun', 3, 'cristal', 'Nació en la Cámara Fractal cuando un espejo se rompió hacia adentro: dispara relámpagos que se acuerdan unos de otros.', {
-  g: { base: 'voltaico', dmg: 1.2, rate: 1.12, mag: 1.3, fx: { chain: 3 } }, st: { gun: 1.05, ult: 1.04 }, pa: [{ id: 'racha', v: 0.02 }, { id: 'fervor', v: 1, f: 1 }, { id: 'furia', v: 0.12, f: 3 }],
+  g: { base: 'voltaico', dmg: 1.2, rate: 1.12, mag: 1.3, fx: { chain: 3 } }, st: { gun: 1.03, ult: 1.04 }, pa: [{ id: 'racha', v: 0.02 }, { id: 'fervor', v: 1, f: 1 }, { id: 'furia', v: 0.12, f: 3 }],
   syn: [{ t: 'camino', k: 'artilleria', fx: { gun: 1.05 } }], vis: 'cristal' });
 def('arco_aureola', 'Arco de la Aureola Quebrada', 'gun', 3, 'cristal', 'La aureola de Seraf, partida y tensada. Sus flechas de luz atraviesan todo y devuelven un poco de cielo.', {
   host: 'seraf', g: { base: 'aguja', dmg: 1.22, rate: 1.1, mag: 1.3, fx: { lifesteal: 0.05, critP: 0.08 } }, st: { gun: 1.04, ult: 1.05 }, ranged: 1.14,
-  pa: [{ id: 'fervor', v: 1 }, { id: 'presa', v: 0.12, f: 1 }, { id: 'verdugo', v: 0.2, f: 3 }], syn: [{ t: 'estilo', k: 'combo', fx: { skill: 1.04 } }, { t: 'camino', k: 'apoteosis', fx: { gun: 1.05 } }],
+  pa: [{ id: 'fervor', v: 1 }, { id: 'presa', v: 0.06, f: 1 }, { id: 'verdugo', v: 0.2, f: 3 }], syn: [{ t: 'estilo', k: 'combo', fx: { skill: 1.04 } }, { t: 'camino', k: 'apoteosis', fx: { gun: 1.05 } }],
   sig: { map: 'm6', misiones: 1, texto: 'Vencé al Basilisco en el Osario sin Techo con Seraf habiendo cumplido al menos una misión opcional.' }, vis: 'arco_aureola' });
 
 /* ── armas cuerpo a cuerpo: `m` tiene la forma de MELEE_WEAPONS (type, special, light, heavy) + dual (multiplica el golpe ligero: dos hojas) + exec (umbral de ejecución) + model (src/client/melee-models.js) ── */
@@ -139,7 +139,7 @@ def('cuchilla_hueso', 'Cuchilla de Hueso', 'melee', 0, 'hueso', 'Una costilla af
 def('hacha_caparazon', 'Hacha de Caparazón', 'melee', 0, 'quitina', 'El escudo de un bicho que ya no lo necesita, con un mango de su propia pata.', { m: { type: 'hacha', special: 'sangrado', light: L(54, 3.5, 0.6, 0.5), heavy: L(150, 4.1, 0.55, 1.05, { knock: 8 }), model: 'hacha_quitina' }, st: { dmgIn: 0.99 }, vis: 'quitina' });
 def('maza_raiz', 'Maza de Raíz', 'melee', 1, 'raiz', 'Un nudo de raíces con un puño de tierra dentro. Cada golpe siembra.', { m: { type: 'martillo', special: 'espora', light: L(66, 3.7, 0.7, 0.66), heavy: L(182, 4.4, 0.8, 1.2, { knock: 18 }), model: 'maza_espora' }, pa: [{ id: 'regen', v: 1.2 }], vis: 'raiz' });
 def('pica_geoda', 'Pica de Geoda', 'melee', 1, 'cristal', 'Una aguja de cristal que mide dos Huéspedes. La punta canta cuando alcanza.', { m: { type: 'lanza', special: 'linea', light: L(47, 6.6, 0.22, 0.4, { pierce: true }), heavy: L(128, 8.1, 0.2, 0.95, { pierce: true }), model: 'lanza_sinaptica' }, st: { skill: 1.03 }, vis: 'cristal' });
-def('aguja_sembradora', 'Aguja Sembradora', 'melee', 1, 'espora', 'Un aguijón de moho con punta de esporas. Pincha, siembra y se va.', { m: { type: 'daga', special: 'veneno', light: L(32, 3.0, 0.6, 0.2), heavy: L(90, 3.4, 0.55, 0.55), model: 'daga_neurotoxica' }, pa: [{ id: 'presa', v: 0.1 }], vis: 'espora' });
+def('aguja_sembradora', 'Aguja Sembradora', 'melee', 1, 'espora', 'Un aguijón de moho con punta de esporas. Pincha, siembra y se va.', { m: { type: 'daga', special: 'veneno', light: L(32, 3.0, 0.6, 0.2), heavy: L(90, 3.4, 0.55, 0.55), model: 'daga_neurotoxica' }, pa: [{ id: 'presa', v: 0.06 }], vis: 'espora' });
 def('cercenadora', 'Cercenadora', 'melee', 2, 'carne', 'Una hoja de carne endurecida con dientes de sierra. Come lo que corta.', { m: { type: 'hacha', special: 'rapina', light: L(56, 3.6, 0.62, 0.46), heavy: L(158, 4.2, 0.58, 1.0), model: 'segur_vorax' }, pa: [{ id: 'drenaje', v: 0.06 }, { id: 'racha', v: 0.02, f: 1 }], syn: [{ t: 'estilo', k: 'melee', fx: { melee: 1.05 } }], vis: 'carne' });
 def('filo_vacio', 'Filo del Vacío', 'melee', 2, 'vacio', 'Una hoja que sólo existe de un lado. Atraviesa la defensa y la cara que la lleva.', { m: { type: 'espada', special: 'atraviesa', light: L(52, 4.0, 0.52, 0.38, { pierce: true }), heavy: L(140, 4.8, 0.46, 0.92, { pierce: true }), model: 'hoja_umbral' }, st: { spd: 1.02 }, pa: [{ id: 'sombra', v: 0.1 }, { id: 'eco_golpe', v: 0.5, f: 2 }], vis: 'vacio' });
 def('yunque_coloso', 'Yunque del Coloso', 'melee', 3, 'cristal', 'Un trozo del Coloso Prismático, todavía caliente. Cuando cae, el suelo se acuerda.', {
@@ -152,7 +152,7 @@ def('gemelas_axioma', 'Espadas Gemelas «Vigilia y Ceniza»', 'melee', 3, 'hueso
   sig: { map: 'm1', misiones: 1, texto: 'Vencé al Coloso en el Vacío de Islas con Axioma habiendo cumplido al menos una misión opcional.' }, vis: 'gemelas' });
 def('colmillos_luna', 'Colmillos de Luna Hueca', 'melee', 3, 'quitina', 'Dos garras de la Bestia Cazadora, arrancadas de una luna que nunca llegó a salir. Rasgan con las dos manos.', {
   host: 'vesper', m: { type: 'garras', special: 'sangrado', dual: 1.5, light: L(21, 3.0, 0.62, 0.17), heavy: L(80, 3.5, 0.55, 0.52), model: 'colmillo', combo: null },
-  st: { melee: 1.04, spd: 1.03 }, pa: [{ id: 'drenaje', v: 0.04 }, { id: 'presa', v: 0.12, f: 1 }, { id: 'racha', v: 0.02, f: 2 }, { id: 'verdugo', v: 0.22, f: 3 }],
+  st: { melee: 1.04, spd: 1.03 }, pa: [{ id: 'drenaje', v: 0.04 }, { id: 'presa', v: 0.06, f: 1 }, { id: 'racha', v: 0.02, f: 2 }, { id: 'verdugo', v: 0.22, f: 3 }],
   syn: [{ t: 'camino', k: 'depredador', fx: { melee: 1.05 } }, { t: 'estilo', k: 'melee', fx: { spd: 1.02 } }],
   sig: { map: 'm2', misiones: 1, texto: 'Vencé a la Madre de las Ánimas en la Cámara Fractal con Vesper habiendo cumplido al menos una misión opcional.' }, vis: 'garras' });
 def('baculo_raiz', 'Cetro de Raíz Madre', 'melee', 3, 'raiz', 'El báculo del Coloso Raíz: una rama que nunca se secó. Donde pega, brota.', {
@@ -183,7 +183,7 @@ def('brazales_hueso', 'Brazales de Hueso', 'arms', 0, 'hueso', 'Dos antebrazos d
 def('guanteletes_quitina', 'Guanteletes de Quitina', 'arms', 1, 'quitina', 'Garras de escarabajo en cada mano: golpeás con todo el caparazón.', { st: { melee: 1.05, gun: 1.02 } });
 def('zarpas_carne', 'Zarpas de Carne', 'arms', 1, 'carne', 'Brazos de carne viva con uñas negras. Se curan mientras desgarran.', { st: { melee: 1.04, kheal: 0.3 } });
 def('brazos_cristal', 'Antebrazos de Geoda', 'arms', 2, 'cristal', 'Geodas que brillan al disparar y vibran al golpear.', { st: { gun: 1.07, skill: 1.03 }, pa: [{ id: 'escudo_pleno', v: 0.05 }], syn: [{ t: 'estilo', k: 'disparo', fx: { gun: 1.04 } }] });
-def('manos_eco', 'Manos de Eco', 'arms', 3, 'vacio', 'Manos que llegan un poco antes que vos: cada quinto golpe se repite solo.', { st: { melee: 1.05, gun: 1.04 }, pa: [{ id: 'eco_golpe', v: 0.25 }, { id: 'presa', v: 0.1, f: 1 }, { id: 'racha', v: 0.02, f: 2 }, { id: 'drenaje', v: 0.05, f: 3 }], syn: [{ t: 'estilo', k: 'melee', fx: { melee: 1.04 } }] });
+def('manos_eco', 'Manos de Eco', 'arms', 3, 'vacio', 'Manos que llegan un poco antes que vos: cada quinto golpe se repite solo.', { st: { melee: 1.05, gun: 1.02 }, pa: [{ id: 'eco_golpe', v: 0.25 }, { id: 'presa', v: 0.05, f: 1 }, { id: 'racha', v: 0.02, f: 2 }, { id: 'drenaje', v: 0.05, f: 3 }], syn: [{ t: 'estilo', k: 'melee', fx: { melee: 1.04 } }] });
 
 def('grebas_hueso', 'Grebas de Hueso', 'legs', 0, 'hueso', 'Tibias atadas por fuera de las propias. Hacen ruido, pero corren.', { st: { spd: 1.02 } });
 def('patas_quitina', 'Patas de Quitina', 'legs', 1, 'quitina', 'Cuatro articulaciones de más: el paso se acorta y la zancada se alarga.', { st: { spd: 1.03, dmgIn: 0.99 } });
@@ -198,6 +198,44 @@ def('ojo_cerrado', 'Ojo Cerrado', 'relic', 1, 'cristal', 'Un ojo de cristal con 
 def('latido_ajeno', 'Latido Ajeno', 'relic', 2, 'carne', 'Un corazón chico en un frasco. Late cuando matás.', { st: { kheal: 0.7, heal: 5 }, pa: [{ id: 'savia', v: 1.5 }], syn: [{ t: 'ess', k: 'carne', n: 8, fx: { melee: 1.04 } }] });
 def('fragmento_umbral', 'Fragmento de Umbral', 'relic', 2, 'vacio', 'Un trozo de puerta que no abre a ningún lado.', { st: { cd: 0.95, skill: 1.05 }, pa: [{ id: 'sombra', v: 0.08 }] });
 def('capullo_eterno', 'Capullo Eterno', 'relic', 3, 'raiz', 'Un capullo que nunca termina de abrirse: guarda todo lo que vos no necesitás.', { st: { cores: 1.1, ess: 1.15, heal: 8 }, pa: [{ id: 'regen', v: 1.5 }, { id: 'savia', v: 2, f: 1 }, { id: 'ultimo_aliento', v: 0.14, f: 2 }, { id: 'fervor', v: 2, f: 3 }], syn: [{ t: 'organ', n: 3, fx: { cores: 1.05 } }] });
+
+/* ── piezas que completan los SETS ORGÁNICOS (docs/INVENTARIO.md → «Sets») ── */
+def('guantes_raiz', 'Guantes de Corteza', 'arms', 2, 'raiz', 'Dedos de madera joven que se cierran solos sobre lo que agarran.', { st: { melee: 1.05, heal: 3 }, pa: [{ id: 'regen', v: 1 }] });
+def('pecho_geoda', 'Pecho de Geoda', 'torso', 2, 'cristal', 'Una geoda abierta sobre el pecho: devuelve la luz con intereses.', { st: { dmgIn: 0.96, skill: 1.04 }, pa: [{ id: 'escudo_pleno', v: 0.04 }] });
+def('craneo_carne', 'Cráneo Vivo', 'head', 1, 'carne', 'Un cráneo recubierto de músculo tibio que mastica solo.', { st: { melee: 1.03, kheal: 0.3 } });
+def('patas_carne', 'Patas Voraces', 'legs', 1, 'carne', 'Tendones tensados de más: cada paso come un poco de suelo.', { st: { spd: 1.03, kheal: 0.2 } });
+def('sombrero_espora', 'Sombrero de Hongo', 'head', 2, 'espora', 'Un sombrero ancho que llueve esporas cuando algo cae cerca.', { st: { ess: 1.08, cores: 1.04 }, pa: [{ id: 'siembra', v: 4, f: 1 }] });
+def('manos_hongo', 'Manos de Micelio', 'arms', 1, 'espora', 'Hilos blancos que unen los dedos y envenenan lo que tocan.', { st: { melee: 1.04, gun: 1.02 } });
+def('pies_micelio', 'Pies de Micelio', 'legs', 1, 'espora', 'Una red de hilos bajo cada paso: sentís el suelo a lo lejos.', { st: { spd: 1.03, heal: 2 } });
+def('sudario_vacio', 'Sudario del Vacío', 'torso', 2, 'vacio', 'Tela que no termina de existir: el golpe la atraviesa un instante antes de llegar.', { st: { dmgIn: 0.96, spd: 1.02 }, pa: [{ id: 'sombra', v: 0.08 }] });
+
+/* ───────── SETS ORGÁNICOS: familias de 4 piezas de armadura + 1 arma. Bonos con 2 y 4 piezas (el arma cuenta como pieza). ───────── */
+export const SETS = {
+  osario:   { name: 'Set Osario', mat: 'hueso', items: ['casco_hueso', 'peto_hueso', 'brazales_hueso', 'grebas_hueso', 'cuchilla_hueso'], lore: 'Los huesos del osario se reconocen entre sí: juntos no se rompen.',
+    b2: { fx: { dmgIn: 0.97 } }, b4: { fx: { dmgIn: 0.96, melee: 1.04 }, pa: [{ id: 'espinas', v: 0.15 }] }, vis: 'Las vetas pasan de brasa tenue a un latido dorado y un halo de polvo de hueso rodea el cuerpo.' },
+  quitina:  { name: 'Set Quitina', mat: 'quitina', items: ['yelmo_quitina', 'coraza_quitina', 'guanteletes_quitina', 'patas_quitina', 'hacha_caparazon'], lore: 'Un caparazón entero, pieza a pieza: cada placa cubre el hueco de la otra.',
+    b2: { fx: { shield: 1.1 } }, b4: { fx: { dmgIn: 0.95, shield: 1.12 }, pa: [{ id: 'escudo_pleno', v: 0.05 }] }, vis: 'Las placas se cierran con un destello ámbar y las vetas recorren todo el caparazón.' },
+  raiz_madre: { name: 'Set Raíz Madre', mat: 'raiz', items: ['capucha_raiz', 'corazon_coloso', 'guantes_raiz', 'pies_raiz', 'maza_raiz'], lore: 'La Raíz Madre te reconoce como suyo y te cuida.',
+    b2: { fx: { heal: 4 } }, b4: { fx: { heal: 6, dmgIn: 0.97 }, pa: [{ id: 'regen', v: 1.5 }] }, vis: 'Brotes verdes florecen por todo el cuerpo y las raíces laten en sincronía.' },
+  cristal_hueco: { name: 'Set Cristal Hueco', mat: 'cristal', items: ['corona_cristal', 'pecho_geoda', 'brazos_cristal', 'zancos_cristal', 'pica_geoda'], lore: 'Cristal por dentro y por fuera: la luz da vueltas hasta que sale como poder.',
+    b2: { fx: { skill: 1.04 } }, b4: { fx: { skill: 1.05, cd: 0.95, ult: 1.05 }, pa: [{ id: 'fervor', v: 1 }] }, vis: 'Los cristales se encienden en cadena y un aura fría canta una sola nota.' },
+  carne_viva: { name: 'Set Carne Viva', mat: 'carne', items: ['craneo_carne', 'torso_carne', 'zarpas_carne', 'patas_carne', 'cercenadora'], lore: 'Un cuerpo entero hecho de otros: tiene hambre y se alimenta de lo que mata.',
+    b2: { fx: { kheal: 0.3 } }, b4: { fx: { kheal: 0.5, melee: 1.04 }, pa: [{ id: 'drenaje', v: 0.05 }] }, vis: 'La carne late de a pares, las venas se vuelven rojo vivo y el pecho se hincha con cada respiro.' },
+  espora:   { name: 'Set Espora', mat: 'espora', items: ['sombrero_espora', 'pulmon_espora', 'manos_hongo', 'pies_micelio', 'aguja_sembradora'], lore: 'Un micelio que te recorre entero y piensa por vos.',
+    b2: { fx: { ess: 1.1 } }, b4: { fx: { ess: 1.12, cores: 1.06 }, pa: [{ id: 'siembra', v: 5 }] }, vis: 'Nubes de esporas luminosas flotan alrededor y los sombreros brillan al compás.' },
+  vacio:    { name: 'Set Vacío', mat: 'vacio', items: ['mascara_vacio', 'sudario_vacio', 'manos_eco', 'pasos_vacio', 'filo_vacio'], lore: 'El Vacío te viste: dejás de estar del todo en un solo lugar.',
+    b2: { fx: { spd: 1.02 } }, b4: { fx: { spd: 1.03, cd: 0.95 }, pa: [{ id: 'sombra', v: 0.1 }] }, vis: 'Los bordes se deshacen en esquirlas violetas y una sombra te sigue medio paso atrás.' },
+};
+export const SET_IDS = Object.keys(SETS);
+for (const sid of SET_IDS) for (const id of SETS[sid].items) { if (!IT[id]) throw new Error('Set ' + sid + ': objeto inexistente ' + id); IT[id].set = sid; }
+/** Piezas de cada set que lleva puestas la lista de equipo: { set: n }. */
+export function setCounts(list) { const c = {}; for (const e of list) { const it = IT[e.id]; if (it && it.set) c[it.set] = (c[it.set] || 0) + 1; } return c; }
+/** Bonos de set activos: [{ set, n, tier: 2|4, b }]. */
+export function setActivos(list) {
+  const out = [], c = setCounts(list);
+  for (const [sid, n] of Object.entries(c)) { if (n >= 2) out.push({ set: sid, n, tier: 2, b: SETS[sid].b2 }); if (n >= 4) out.push({ set: sid, n, tier: 4, b: SETS[sid].b4 }); }
+  return out;
+}
 
 export const ITEMS = IT;
 export const ITEM_IDS = Object.keys(IT);
@@ -299,9 +337,37 @@ export function proximaFase(inst) {
 /** Qué da desguazar una instancia: núcleos y esencia del tipo del material. Lo madurado vale más. */
 export function desguaceValor(inst) {
   const it = IT[inst.id]; if (!it) return { cores: 0, ess: {} };
-  const R = RARITIES[it.r], f = faseDe(it, inst.k), cores = Math.round(R.desguace * (1 + 0.25 * f)), n = 1 + it.r + (f >= 2 ? 1 : 0);
-  return { cores, ess: { [MATERIALS[it.mat].ess]: n } };
+  const R = RARITIES[it.r], f = faseDe(it, inst.k), cores = Math.round(R.desguace * 0.5 * (1 + 0.25 * f)), n = 1 + it.r + (f >= 2 ? 1 : 0);
+  return { cores, ess: { [MATERIALS[it.mat].ess]: n }, mats: { [it.mat]: { cal: Math.max(0, it.r - 0), n: 1 + (it.r >= 2 ? 1 : 0) + (f >= 3 ? 1 : 0) } } };   // devuelve materiales de la calidad del objeto
 }
 /** Núcleos y esencias que cuesta FORJAR una firma en el Herrero (Huésped con el requisito cumplido). */
 export const FORJA_FIRMA = { cores: 120, ess: 6 };
 export const LIMITE_INVENTARIO = 60;
+
+/* ═════════════ FORJA BIOLÓGICA: materiales, planos y recetas (docs/INVENTARIO.md → «Forja») ═════════════
+   Lo que CAE en las partidas son sobre todo materiales (con calidad 0..3) y planos; los objetos finales se construyen en la Forja. */
+export const CALIDADES = ['Burdo', 'Fino', 'Excelente', 'Perfecto'];
+/** MATERIALES = los 7 materiales orgánicos + su nombre de calidad. Cada tipo se guarda por calidad: materiales[mat] = [n0, n1, n2, n3]. */
+export const MATERIALES = Object.fromEntries(MATERIAL_IDS.map((m) => [m, { ...MATERIALS[m], id: m, calidades: CALIDADES }]));
+export const MAT_STOCK_MAX = 99;
+/** Plano de cada objeto (id = el del objeto). Los de rareza Común se conocen de entrada; el resto se encuentra en partidas. Las armas firma sólo vienen del jefe de su mapa. */
+export const PLANOS = Object.fromEntries(ITEM_IDS.map((id) => [id, { id, item: id, nombre: 'Plano: ' + IT[id].name, r: IT[id].r, inicial: IT[id].r === 0, firma: !!IT[id].host }]));
+export const PLANOS_INICIALES = ITEM_IDS.filter((id) => PLANOS[id].inicial);
+const SEC = { hueso: 'quitina', quitina: 'hueso', raiz: 'espora', cristal: 'vacio', carne: 'hueso', espora: 'raiz', vacio: 'cristal' };   // material secundario de cada receta
+/** Receta: { item, plano, mats: [{ mat, n, cal }] (cal = calidad mínima), cores, ess?, tiempo (s de cultivo) }. */
+function receta(id) {
+  const it = IT[id], r = it.r, m = it.mat, s = SEC[m];
+  const T = [{ mats: [{ mat: m, n: 3, cal: 0 }], cores: 15, tiempo: 5 }, { mats: [{ mat: m, n: 4, cal: 1 }, { mat: s, n: 1, cal: 0 }], cores: 40, tiempo: 15 }, { mats: [{ mat: m, n: 5, cal: 2 }, { mat: s, n: 2, cal: 1 }], cores: 90, tiempo: 30 }, { mats: [{ mat: m, n: 6, cal: 3 }, { mat: s, n: 3, cal: 2 }], cores: 220, tiempo: 60 }][r];
+  const R = { item: id, plano: id, mats: T.mats.map((x) => ({ ...x })), cores: T.cores, tiempo: T.tiempo };
+  if (it.host) { R.mats.push({ mat: 'vacio', n: 2, cal: 3 }); R.cores = 320; R.tiempo = 90; R.especial = 'Pide materiales Perfectos del Vacío y el plano raro que suelta el jefe de su mapa.'; }
+  return R;
+}
+export const RECETAS = Object.fromEntries(ITEM_IDS.map((id) => [id, receta(id)]));
+/** Calidad de la tirada de un objeto forjado: determinista (misma receta + mismo contador de forja = mismo resultado) y acotada 0,15..1; materiales mejores la suben. */
+export function qForja(id, contador, calMedia = 0) {
+  let h = 2166136261; const str = `${id}|${contador | 0}`; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  const u = ((h >>> 0) % 1000) / 1000;
+  return Math.round(Math.max(0.15, Math.min(1, 0.15 + 0.6 * u + 0.08 * Math.max(0, Math.min(3, calMedia)))) * 100) / 100;
+}
+/** Texto del costo de una receta para la interfaz. */
+export const costoTexto = (R) => R.mats.map((x) => `${x.n}× ${MATERIALS[x.mat].name} (${CALIDADES[x.cal]}+)`).join(' · ') + ` · ${R.cores} núcleos`;

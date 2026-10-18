@@ -448,3 +448,11 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 #combohud small { display: block; font-size: clamp(11px, 1.8vw, 15px); color: #fff; opacity: .9; } #combohud u { display: block; height: 4px; margin: 4px auto 0; width: 120px; max-width: 40vw; border-radius: 2px; background: #ffffff33; text-decoration: none; overflow: hidden; } #combohud u s { display: block; height: 100%; width: 100%; background: #ff9a3c; transform-origin: left; text-decoration: none; }
 #combohud.pop b { animation: cbpop .18s ease-out; } @keyframes cbpop { from { transform: scale(1.5); } }
 .modo-combo #weapons { display: none !important; }
+
+/* rango de estilo (D → S) y bajas del multi-kill (src/sim/progresion.js): mínimo, a la derecha del contador de combo */
+#estilohud { position: absolute; left: calc(50% + 86px); bottom: 24%; text-align: center; pointer-events: none; font-weight: 900; opacity: 0; transition: opacity .25s; text-shadow: 0 0 10px #000, 0 0 3px #000; }
+#estilohud.on { opacity: 1; } #estilohud b { display: block; font-size: clamp(30px, 6vw, 54px); line-height: 1; color: #9fb4c7; } #estilohud small { display: block; font-size: clamp(11px, 1.8vw, 15px); color: #fff; letter-spacing: .08em; }
+#estilohud[data-r="C"] b { color: #7fd6a2; } #estilohud[data-r="B"] b { color: #5ab4ff; } #estilohud[data-r="A"] b { color: #ffd23f; } #estilohud[data-r="S"] b { color: #ff5a8a; text-shadow: 0 0 14px #ff5a8a, 0 0 4px #000; }
+#estilohud u { display: block; height: 4px; margin: 3px auto 2px; width: 54px; border-radius: 2px; background: #ffffff33; overflow: hidden; } #estilohud s { display: block; height: 100%; background: currentColor; color: #ffd23f; transform-origin: left; transform: scaleX(0); transition: transform .12s; text-decoration: none; }
+#estilohud.pop b { animation: cbpop .18s ease-out; }
+@media (max-width: 700px) { #estilohud { left: auto; right: 16px; bottom: 34%; } }

@@ -9,7 +9,7 @@
 <link rel="manifest" href="/public/manifest.webmanifest"><link rel="apple-touch-icon" href="/public/icon-180.png">
 <title>Cristal Vórtice</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css"><link rel="stylesheet" href="/public/territorios.css">
+<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css"><link rel="stylesheet" href="/public/territorios.css"><link rel="stylesheet" href="/public/graficos.css">
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
 </head>
 <body>
@@ -63,7 +63,8 @@
       <button class="item" data-go="loadout" data-art="equipo"><b>Equipo</b><small>Personajes · habilidades · armas</small></button>
       <button class="item" data-go="coop" data-art="coop"><b>Cooperativo</b><small>Hasta 4 Pasajeros</small></button>
       <button class="item" data-go="bestiary" data-art="bestiario"><b>Bestiario</b><small>15 organismos del Vórtice</small></button>
-      <button class="item" data-go="options" data-art="opciones"><b>Opciones</b><small>Gráficos · controles · sonido</small></button>
+      <button class="item" data-go="graficos" data-art="opciones"><b>Gráficos</b><small>Baja · Media · Alta · resolución · FPS</small></button>
+      <button class="item" data-go="options" data-art="opciones"><b>Opciones</b><small>Controles · sonido · subtítulos</small></button>
     </nav>
     <aside id="hero"><div id="herocard"><img id="heroimg" alt=""><div class="herotxt"><h2 id="herotitle"></h2><p id="herodesc"></p><div id="herochips"></div></div></div></aside>
   </section>
@@ -94,6 +95,8 @@
   <section id="huesped" class="screen" data-screen="huesped"></section>
   <!-- ═════ TERRITORIOS: mapa del limbo y bendiciones (src/client/territorios-ui.js) ═════ -->
   <section id="territorios" class="screen" data-screen="territorios"></section>
+  <!-- ═════ GRÁFICOS: presets, resolución y efectos (src/client/graficos-ui.js) ═════ -->
+  <section id="graficos" class="screen" data-screen="graficos"></section>
   <!-- ═════ EVOLUCIÓN: núcleos, nivel del Huésped y catálogo de armas (src/client/evolucion-ui.js) ═════ -->
   <section id="evolucion" class="screen" data-screen="evolucion"></section>
   <!-- ═════ EQUIPO: personajes y armas ═════ -->
@@ -136,7 +139,8 @@
   <section id="options" class="screen" data-screen="options">
     <h3 class="stitle">Opciones</h3>
     <div class="panel opts">
-      <label>Gráficos <select id="qsel"></select></label>
+      <label>Gráficos (rápido) <select id="qsel"></select></label>
+      <button id="gfxgo" class="btn" type="button" data-go="graficos">Abrir el menú de Gráficos (resolución, efectos, FPS)…</button>
       <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado, ratón y mando</option></select></label>
       <label>Modo de juego <select id="modesel"><option value="shooter">Shooter (el de siempre)</option><option value="combo">Combo (dos ataques + una habilidad)</option></select></label>
       <label>Ayuda de puntería <select id="aimsel"><option value="0">Apagada</option><option value="1">Baja</option><option value="2" selected>Media</option><option value="3">Alta</option></select></label>
@@ -185,7 +189,8 @@
   <button class="item" id="styletoggle"><b>Estilo de combate: Disparo 🎯</b></button>
   <button class="item" id="simpletoggle"><b>Modo simple (dispara solo): sí</b></button>
   <button class="item" id="advtoggle"><b>Habilidades: no</b></button>
-  <label class="item sel">Gráficos <select id="qsel2"></select></label>
+  <button class="item" id="gfxopen"><b>Gráficos… (calidad, resolución, FPS)</b></button>
+  <label class="item sel" hidden style="display:none"><select id="qsel2"></select></label>
   <label class="item sel">Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label>
   <button class="item" id="evoopen"><b>Evolución (órganos y esencias)</b></button>
   <button class="item" id="quit"><b>Salir al menú</b></button></div></div></div>

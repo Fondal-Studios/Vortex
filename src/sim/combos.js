@@ -109,7 +109,7 @@ function fire(g, p, name, power, moves, W) {
   const M = meleeSet(p), base = mv.w === 'h' ? M.heavy : M.light;
   const fr = g.time < p.frenzyUntil ? 0.75 : 1, over = p.ultId === 'sobrecarga' ? 0.6 : 1;
   cb.rec = Math.max(0.12, base.cd * mv.cdr * W.cd * fr * over * (hasPath(p, 'velocidad') ? 0.92 : 1)); cb.cd = cb.rec;
-  cb.cancel = Math.max(mv.cancel || COMBO_RULES.cancel, ac.cancel); cb.last = mv.id; cb.lastName = mv.name;
+  cb.cancel = ac.cancel ? Math.min(mv.cancel || COMBO_RULES.cancel, ac.cancel) : mv.cancel || COMBO_RULES.cancel;   // cancel = fracción de la recuperación que ya pasó para aceptar el golpe siguiente (menor = antes) cb.last = mv.id; cb.lastName = mv.name;
   if (cb.xc && ac.execCancel) cb.cd = 0;   // Sentencia: ejecutar cancela la recuperación
   if (last) { cb.buf = []; cb.win = cb.rec + 0.2; cb.nEnd = cb.n; cb.n = last ? 0 : cb.n; }
   else { cb.buf = buf; cb.win = cb.rec + COMBO_RULES.window * ac.win; }

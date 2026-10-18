@@ -106,6 +106,11 @@ function temporal(g, tipo, pos, u, r, vida, src, extra = {}) {
   }
   return nuevaZona(g, { tipo, nombre: NIEBLAS[tipo].nombre, pos, u, r, vida, src, ...extra });
 }
+/** Para pruebas, modo desarrollo y campo de pruebas: crea una niebla temporal del tipo pedido en `pos` (centro de la esfera). Devuelve la zona. */
+export function nieblaTemporal(g, tipo, pos, r = 8, vida = 20) {
+  if (!NIEBLAS[tipo]) return null;
+  return temporal(g, tipo, { x: pos.x, y: pos.y, z: pos.z }, normalEn(g, pos), r, vida, 'dev');
+}
 /** Un evento de oleada pide su niebla (se llama en la fase de aviso del evento). */
 export function nieblaEvento(g, evId) {
   const N = g.ng, def = NIEBLA_EVENTO[evId]; if (!N || !def || CTL.sinEventos) return;

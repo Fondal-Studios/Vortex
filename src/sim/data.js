@@ -1,7 +1,7 @@
 // Datos de diseño: armas, bestiario, oleadas. Todo número de balance vive acá.
 export const G = 28; // magnitud de gravedad
 
-export const LIMITS = { monsters: 90, projectiles: 300, pickups: 40, events: 240 };
+export const LIMITS = { monsters: 90, projectiles: 300, pickups: 40, events: 240, units: 10, unitsTotal: 24, nests: 2 };   // units = zánganos de Colmena por jugador, unitsTotal = en toda la partida, nests = nidos-torreta por jugador (src/sim/enjambre.js)
 
 export const WEAPONS = [
   { id: 'haz',    name: 'Haz',    kind: 'hitscan', dmg: 22, rate: 0.26, pellets: 1, spread: 0.004, range: 320, max: Infinity, start: Infinity, per: 0 },

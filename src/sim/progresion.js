@@ -47,7 +47,7 @@ const NOMBRES_C = {
   seraf:   { cadena: ['Pulso de luz', 'Flecha gemela', 'Lluvia estelar'],            area: ['Luz que atraviesa', 'Cadena de rayos', 'Resplandor en cadena'], ejecucion: ['Marca de luz', 'Flecha cobradora', 'Juicio de luz'] },
 };
 const TEXTO_C = {
-  cadena1: 'Ventana de encadenado ×1,6, la siguiente pulsación se guarda más tiempo y se acepta antes (cancelación al 85 %).',
+  cadena1: 'Ventana de encadenado ×1,6, la siguiente pulsación se guarda más tiempo y se acepta antes: ya al 50 % de la recuperación (antes, al 70 %).',
   cadena2: (c) => `NUEVO GOLPE en la cadena: «${EXTRA_C2[c].name}» (${EXTRA_C2[c].seq.map((b) => b.toUpperCase()).join(' → ')}).`,
   cadena3: (c) => `Cadena +1, cualquier ataque cancela la recuperación a tiempo y se abre el golpe final «${CAPITULO[c].name}» (${CAPITULO[c].seq.map((b) => b.toUpperCase()).join(' → ')}).`,
   area1: 'Tus golpes ATRAVIESAN: alcance +15 %, ángulo +25 %, hasta 14 enemigos por golpe (antes 4) e ignoran la guardia de los arietes. Las flechas de Seraf atraviesan.',
@@ -149,7 +149,7 @@ export function puntosDisparo(st = {}, wave = 0) {
 export function efectosCombo(char, ids) {
   const ac = { ...NEUTRO_C, extra: [] }, own = cleanNodos('combo', char, ids);
   for (const id of own) {
-    if (id === 'cadena1') { ac.win = 1.6; ac.buf = 1.5; ac.cancel = Math.max(ac.cancel, 0.85); }
+    if (id === 'cadena1') { ac.win = 1.6; ac.buf = 1.5; ac.cancel = 0.5; }
     else if (id === 'cadena2') ac.extra.push(EXTRA_C2[char]);
     else if (id === 'cadena3') { ac.chain = 1; ac.freeCancel = true; ac.extra.push(CAPITULO[char]); }
     else if (id === 'area1') { ac.pen = true; ac.maxT = 14; ac.rng = 1.15; ac.arc = 1.25; }

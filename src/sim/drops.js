@@ -7,7 +7,7 @@
 // Las armas FIRMA (una por Huésped) no entran en las tablas: sólo caen al derrotar al jefe de su mapa con ese Huésped habiendo cumplido misiones (SIGNATURES).
 import { makeRng, madd, dist, len, norm, mul, clone, v3 } from './math.js';
 import { collide } from './physics.js';
-import { ITEMS, ITEM_IDS, SLOTS, SIGNATURES, MATERIAL_IDS, MATERIALS, FORJA_FIRMA } from './items.js';
+import { ITEMS, ITEM_IDS, SLOTS, SIGNATURES, MATERIAL_IDS, MATERIALS, PLANOS } from './items.js';
 
 export const PITY = { epica: 10, legendaria: 30, suave: 10, paso: 0.012 };
 /** Pesos base [común, rara, épica, legendaria] y probabilidad de que la fuente suelte algo. */
@@ -85,6 +85,30 @@ export function tirar(g, p, fuente, ctx = {}) {
   return { id, q, r: ITEMS[id].r, src: fuente };
 }
 
+/** Qué sale de cada fuente: proporción de [material, plano, objeto terminado]. Los objetos terminados son RAROS (cofres de jefe y ofrendas). */
+export const BOTIN_TIPO = { elite: [0.8, 0.17, 0.03], jefe: [0, 0, 0.35], ofrenda: [0.45, 0.3, 0.25], evento: [0.65, 0.3, 0.05], mision: [0.6, 0.35, 0.05], cofre: [0.5, 0.3, 0.2], respiro: [0.9, 0.1, 0], herrero: [0, 0, 1] };
+const nombreMat = (m) => MATERIALS[m].name;
+/** Una tirada de BOTÍN: material (id `mat:<material>`, q = calidad 0..3, n = cantidad), plano (id `plano:<objeto>`) u objeto terminado. Mantiene el pity. */
+export function tirarBotin(g, p, fuente, ctx = {}) {
+  const tipo = BOTIN_TIPO[fuente] || [1, 0, 0], x = g.drRng.next(), r = rarezaDe(g, p, fuente);
+  let k = x < tipo[0] ? 'mat' : x < tipo[0] + tipo[1] ? 'plano' : 'obj';
+  if (p) { const py = p.pity || (p.pity = { l: 0, e: 0 }); py.l = r === 3 ? 0 : Math.min(999, py.l + 1); py.e = r >= 2 ? 0 : Math.min(999, py.e + 1); }
+  g.stats.drops++;
+  if (k === 'mat') {
+    const mats = MAT_MAPA[g.mapId] || [], pool = MATERIAL_IDS.map((m) => (ctx.mat === m ? 5 : mats.includes(m) ? 2 : 1)), tot = pool.reduce((a, b) => a + b, 0);
+    let y = g.drRng.next() * tot, i = 0; for (; i < pool.length - 1; i++) { y -= pool[i]; if (y <= 0) break; }
+    const mat = MATERIAL_IDS[i], n = 1 + (r >= 2 ? 1 : 0) + Math.floor(g.drRng.next() * (2 + (fuente === 'respiro' ? 1 : 0)));
+    return { id: 'mat:' + mat, q: r, n, r, k: 'mat', src: fuente };
+  }
+  const id = objetoDe(g, p, r, ctx);
+  if (k === 'plano') {
+    const q = Math.round(g.drRng.next() * 100) / 100;
+    return { id: 'plano:' + id, q, n: 1, r: ITEMS[id].r, k: 'plano', src: fuente };
+  }
+  return { id, q: Math.round(g.drRng.next() * 100) / 100, n: 1, r: ITEMS[id].r, k: 'obj', src: fuente };
+}
+void nombreMat; void PLANOS;
+
 /* ───────── el objeto en el mundo ───────── */
 const a3 = (v) => [Math.round(v.x * 100) / 100, Math.round(v.y * 100) / 100, Math.round(v.z * 100) / 100];
 /** Suelta un objeto en el mundo para `forPid` (0 = cualquiera lo puede recoger). */
@@ -92,18 +116,18 @@ export function soltar(g, inst, pos, forPid) {
   if (g.loot.length >= 24) g.loot.shift();
   const kick = g.drRng.unit(), up = v3(0, 1, 0);
   const o = { id: g.lootId++, inst, pos: madd(clone(pos), up, 0.8), vel: v3(kick.x * 3, 5, kick.z * 3), up, life: 150, for: forPid || 0, dead: false, t: 0 };
-  g.loot.push(o); g.emit({ t: 'drop', lid: o.id, id: inst.id, r: inst.r, src: inst.src, pid: o.for, p: a3(pos) });
+  g.loot.push(o); g.emit({ t: 'drop', lid: o.id, id: inst.id, r: inst.r, n: inst.n || 1, k: inst.k || 'obj', src: inst.src, pid: o.for, p: a3(pos) });
   return o;
 }
 /** Entrega directa a la mochila de la partida (jefe, forja, final): sin recoger. */
 export function entregar(g, p, inst, pos) {
-  p.bag.push({ id: inst.id, q: inst.q, r: inst.r, src: inst.src });
-  g.emit({ t: 'drop', lid: 0, id: inst.id, r: inst.r, src: inst.src, pid: p.id, p: a3(pos || p.pos), directo: true });
-  g.emit({ t: 'loot', pid: p.id, id: inst.id, q: inst.q, r: inst.r, src: inst.src, p: a3(p.pos) });
+  p.bag.push({ id: inst.id, q: inst.q, n: inst.n || 1, r: inst.r, src: inst.src });
+  g.emit({ t: 'drop', lid: 0, id: inst.id, r: inst.r, n: inst.n || 1, k: inst.k || 'obj', src: inst.src, pid: p.id, p: a3(pos || p.pos), directo: true });
+  g.emit({ t: 'loot', pid: p.id, id: inst.id, q: inst.q, n: inst.n || 1, r: inst.r, k: inst.k || 'obj', src: inst.src, p: a3(p.pos) });
 }
 function recoger(g, p, o) {
-  o.dead = true; p.bag.push({ id: o.inst.id, q: o.inst.q, r: o.inst.r, src: o.inst.src });
-  g.emit({ t: 'loot', pid: p.id, id: o.inst.id, q: o.inst.q, r: o.inst.r, src: o.inst.src, p: a3(o.pos) });
+  o.dead = true; p.bag.push({ id: o.inst.id, q: o.inst.q, n: o.inst.n || 1, r: o.inst.r, src: o.inst.src });
+  g.emit({ t: 'loot', pid: p.id, id: o.inst.id, q: o.inst.q, n: o.inst.n || 1, r: o.inst.r, k: o.inst.k || 'obj', src: o.inst.src, p: a3(o.pos) });
 }
 
 /** Cada tick: física del botín y recogida (comunes y raras al pasar; épicas y legendarias con USAR). */
@@ -131,7 +155,7 @@ export function flushLoot(g) {
   for (const o of g.loot) { if (o.dead) continue; const ref = g.players.find((q) => !o.for || q.id === o.for) || g.players[0]; if (ref) recoger(g, ref, o); }
   g.loot = [];
 }
-export const lootSnap = (g) => g.loot.map((o) => [o.id, o.inst.id, o.inst.r, ...a3(o.pos), o.for]);
+export const lootSnap = (g) => g.loot.map((o) => [o.id, o.inst.id, o.inst.r, ...a3(o.pos), o.for, o.inst.n || 1]);
 
 /* ───────── fuentes ───────── */
 const vivos = (g) => g.players.filter((p) => !p.dead);
@@ -143,29 +167,29 @@ function dueno(g, by, pos) {
 /** Una criatura murió: las élites con afijo y las geodas (cofres) pueden soltar objetos. */
 export function dropsKill(g, by, m) {
   if (g.practice) return;
-  if (m.kind === 'geoda') { const p = dueno(g, by, m.pos); if (p && g.drRng.next() < 0.35) soltar(g, tirar(g, p, 'cofre'), m.pos, 0); return; }
+  if (m.kind === 'geoda') { const p = dueno(g, by, m.pos); if (p && g.drRng.next() < 0.35) soltar(g, tirarBotin(g, p, 'cofre'), m.pos, 0); return; }
   if (!m.elite || m.def.boss) return;
   const p = dueno(g, by, m.pos); if (!p) return;
   if (g.drRng.next() >= FUENTES.elite.prob(g.wave)) return;
-  soltar(g, tirar(g, p, 'elite', { mat: MAT_AFIJO[m.affix] }), m.pos, p.id);
+  soltar(g, tirarBotin(g, p, 'elite', { mat: MAT_AFIJO[m.affix] }), m.pos, p.id);
 }
 /** Cada jugador vivo recibe su propio botín de una fuente grupal (misión, evento, respiro, ofrenda). */
 export function dropsGrupo(g, fuente, pos) {
   if (g.practice) return;
-  for (const p of vivos(g)) soltar(g, tirar(g, p, fuente), pos ? madd(clone(pos), v3(g.drRng.next() * 2 - 1, 0, g.drRng.next() * 2 - 1), 1.5) : madd(clone(p.pos), p.heading, 2.5), p.id);
+  for (const p of vivos(g)) soltar(g, tirarBotin(g, p, fuente), pos ? madd(clone(pos), v3(g.drRng.next() * 2 - 1, 0, g.drRng.next() * 2 - 1), 1.5) : madd(clone(p.pos), p.heading, 2.5), p.id);
 }
 /** Ofrenda de una arena viva (boca llena): un botín compartido en el lugar de la boca. */
 export function dropsOfrenda(g, pos) {
   if (g.practice || g.time - (g.lastOfrenda ?? -99) < 25) return;   // como mucho una ofrenda cada 25 s
   g.lastOfrenda = g.time;
   const ref = vivos(g).sort((a, b) => dist(a.pos, pos) - dist(b.pos, pos))[0]; if (!ref) return;
-  soltar(g, tirar(g, ref, 'ofrenda'), pos, 0);
+  soltar(g, tirarBotin(g, ref, 'ofrenda'), pos, 0);
 }
 /** Cofre de un capullo florecido: botín compartido. */
 export function dropsCofre(g, pos) {
   if (g.practice) return;
   const ref = vivos(g).sort((a, b) => dist(a.pos, pos) - dist(b.pos, pos))[0]; if (!ref) return;
-  soltar(g, tirar(g, ref, 'cofre'), pos, 0);
+  soltar(g, tirarBotin(g, ref, 'cofre'), pos, 0);
 }
 export function dropsMision(g) { g.stats.misDone = (g.stats.misDone || 0) + 1; dropsGrupo(g, 'mision'); }
 export const dropsEvento = (g) => dropsGrupo(g, 'evento');
@@ -176,33 +200,30 @@ export function firmaCumplida(g, p) {
   const sid = p.char && SIGNATURES[p.char]; if (!sid || g.practice) return false;
   const c = ITEMS[sid].sig; return !!c && g.mapId === c.map && (g.stats.misDone || 0) >= c.misiones;
 }
-/** Cayó el jefe: cada jugador recibe 2 objetos directo en la mochila; y su arma firma si cumplió la condición. */
+/** Cayó el jefe: cada jugador recibe directo en la mochila 3 materiales de calidad alta, un plano y, con suerte, un objeto terminado (cofre del jefe);
+ *  si cumplió la condición de su arma firma, también el PLANO RARO de esa arma (se construye en la Forja con materiales especiales). */
 export function dropsJefe(g, pos) {
   if (g.practice) return;
   for (const p of g.players) {
     if (p.dead && p.lost) continue;
-    for (let i = 0; i < (FUENTES.jefe.n || 1); i++) entregar(g, p, tirar(g, p, 'jefe'), pos);
+    for (let i = 0; i < 3; i++) { const b = tirarBotin(g, p, 'elite', { mat: undefined }); const r = Math.max(2, b.r); entregar(g, p, b.k === 'mat' ? { ...b, q: r, r } : { id: 'mat:' + MATERIAL_IDS[Math.floor(g.drRng.next() * MATERIAL_IDS.length)], q: 2 + Math.floor(g.drRng.next() * 2), n: 2, r: 2, k: 'mat', src: 'jefe' }, pos); }
+    const pl = tirar(g, p, 'jefe'); entregar(g, p, { id: 'plano:' + pl.id, q: pl.q, n: 1, r: pl.r, k: 'plano', src: 'jefe' }, pos);
+    if (g.drRng.next() < BOTIN_TIPO.jefe[2]) { const o = tirar(g, p, 'jefe'); entregar(g, p, { ...o, n: 1, k: 'obj', src: 'jefe' }, pos); }
     if (firmaCumplida(g, p)) {
       const sid = SIGNATURES[p.char]; p.sigMet = true;
-      entregar(g, p, { id: sid, q: Math.round(g.drRng.next() * 100) / 100, r: 3, src: 'firma' }, pos);
+      entregar(g, p, { id: 'plano:' + sid, q: 1, n: 1, r: 3, k: 'plano', src: 'firma' }, pos);
       g.emit({ t: 'firma', pid: p.id, id: sid, char: p.char });
     }
   }
 }
 
-/** Herrero: forja un objeto vivo (firma = el arma del Huésped, sólo con el plano desbloqueado). Devuelve true si se forjó. Lo llama npcs.js. */
-export function forjar(g, p, firma = false) {
+/** Herrero (dentro de la partida): forja un objeto vivo al azar con núcleos y esencias. La construcción dirigida está en la Forja (menú). */
+export function forjar(g, p) {
   if (g.practice || p.dead) return false;
   const maxKey = ['carne', 'cristal', 'ojo', 'vacio'].reduce((a, k) => ((p.ess[k] || 0) > (p.ess[a] || 0) ? k : a), 'carne');
-  if (firma) {
-    const sid = p.char && SIGNATURES[p.char]; if (!sid || !p.sigPlan || p.sigForged) return false;
-    const mk = MATERIALS[ITEMS[sid].mat].ess; if (p.cores < FORJA_FIRMA.cores || (p.ess[mk] || 0) < FORJA_FIRMA.ess) return false;
-    p.cores -= FORJA_FIRMA.cores; p.ess[mk] -= FORJA_FIRMA.ess; p.sigForged = true;
-    entregar(g, p, { id: sid, q: Math.round(g.drRng.next() * 100) / 100, r: 3, src: 'forja' }); return true;
-  }
   if (p.cores < 45 || (p.ess[maxKey] || 0) < 4) return false;
   p.cores -= 45; p.ess[maxKey] -= 4;
   const mat = MATERIAL_IDS.find((m) => MATERIALS[m].ess === maxKey && g.drRng.next() < 0.5) || undefined;
-  entregar(g, p, tirar(g, p, 'herrero', { mat })); return true;
+  entregar(g, p, { ...tirar(g, p, 'herrero', { mat }), n: 1, k: 'obj' }); return true;
 }
 void SLOTS;

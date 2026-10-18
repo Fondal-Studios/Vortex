@@ -1,0 +1,49 @@
+/* Pantalla «Gráficos» (src/client/graficos-ui.js). Mismo lenguaje que territorios.css / huespedes.css: fondo con halo de color, tarjetas de vidrio, botones grandes (≥ 44 px) para el dedo.
+   Se usa en dos lugares: la pantalla #graficos del menú y la superposición #graf-over de la Pausa. */
+#graficos, #graf-over { --c: #7fd0ff; }
+#graficos { overflow-y: auto !important; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+  background: radial-gradient(70% 80% at 30% 40%, color-mix(in srgb, var(--c) 22%, transparent), transparent 72%), radial-gradient(40% 50% at 92% 8%, color-mix(in srgb, #ff3df2 14%, transparent), transparent 70%); }
+#graf-over { z-index: 30; background: #07030ff2; overflow: hidden; display: flex; flex-direction: column;
+  background: radial-gradient(70% 80% at 30% 40%, color-mix(in srgb, var(--c) 22%, #07030f), #07030f 72%); }
+#graf-over .gr-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: calc(env(safe-area-inset-top, 0px) + 64px) calc(env(safe-area-inset-right, 0px) + 5vw) calc(env(safe-area-inset-bottom, 0px) + 20px) calc(env(safe-area-inset-left, 0px) + 5vw); }
+.gr-host { width: 100%; max-width: 980px; margin: 0 auto; }
+.gr-wrap { display: flex; flex-direction: column; gap: 6px; }
+.gr-nav:focus-visible { outline: 2px solid #fff; outline-offset: 2px; } .gr-nav.focus { box-shadow: 0 0 0 2px #fff, 0 0 18px var(--c); }
+.gr-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.gr-head h2 { margin: 0; font-weight: 300; letter-spacing: .16em; text-transform: uppercase; font-size: clamp(22px, 3vw, 36px); line-height: 1.1; text-shadow: 0 0 24px var(--c); }
+.gr-sum { margin: 4px 0 0; font-size: 13px; color: #cfd7f7; letter-spacing: .03em; }
+.gr-fpsnow { flex: 0 0 auto; min-width: 84px; text-align: center; padding: 6px 12px; border-radius: 99px; border: 1px solid #ffffff44; background: #ffffff12; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+.gr-fpsnow[data-c=ok], #fpsmeter[data-c=ok] { color: #7dffa8; border-color: #7dffa88c; } .gr-fpsnow[data-c=medio], #fpsmeter[data-c=medio] { color: #ffd45a; border-color: #ffd45a8c; } .gr-fpsnow[data-c=mal], #fpsmeter[data-c=mal] { color: #ff6a7a; border-color: #ff6a7a8c; }
+.gr-h { margin: 18px 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--c); } .gr-h small { letter-spacing: .04em; text-transform: none; font-weight: 500; color: #aeb8e0; }
+.gr-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.gr-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; min-height: 150px; padding: 12px 12px 30px; border-radius: 16px; border: 1px solid #ffffff22; background: #ffffff0c; color: #e8ecff; font-family: inherit; cursor: pointer; transition: background .15s, border-color .15s, transform .1s; }
+.gr-card:hover { background: #ffffff1c; } .gr-card:active { transform: scale(.98); }
+.gr-card .gr-ic { font-size: 24px; line-height: 1; } .gr-card b { font-size: 17px; letter-spacing: .06em; } .gr-card em { font-style: normal; font-size: 11px; letter-spacing: .06em; color: var(--c); }
+.gr-card .gr-d { font-size: 12.5px; line-height: 1.4; color: #cfd6f6; }
+.gr-card .gr-tag { position: absolute; left: 12px; bottom: 9px; font-style: normal; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; border: 1px solid #ffffff44; color: #cfd6f6; background: #00000040; }
+.gr-card .gr-tag[hidden] { display: none; } .gr-card .gr-tag[data-k=sel] { border-color: var(--c); color: var(--c); }
+.gr-card.sel { border-color: var(--c); background: #ffffff1c; box-shadow: 0 0 0 1px var(--c), 0 0 22px color-mix(in srgb, var(--c) 45%, transparent); }
+.gr-rec { margin: 4px 0 0; font-size: 12.5px; color: #aeb8e0; } .gr-rec b { color: #fff; }
+.gr-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 16px; padding: 10px 12px; border-radius: 14px; border: 1px solid #ffffff1c; background: #07030fb8; margin-top: 6px; }
+.gr-row.mod { border-color: color-mix(in srgb, var(--c) 60%, transparent); }
+.gr-info { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; } .gr-info b { font-size: 14.5px; letter-spacing: .03em; }
+.gr-info small { flex-basis: 100%; font-size: 12px; line-height: 1.4; color: #aeb8e0; }
+.gr-cost { font-size: 10.5px; letter-spacing: .06em; color: #8d93b5; white-space: nowrap; } .gr-cost[data-c="3"] { color: #ff9a7a; } .gr-cost[data-c="2"] { color: #ffd45a; } .gr-cost[data-c="1"] { color: #b6ff8a; }
+.gr-rebuild { font-style: normal; font-size: 10.5px; color: #c9b8ff; white-space: nowrap; }
+.gr-seg { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.gr-opt, .gr-step, .gr-btn { min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #ffffff44; background: #ffffff12; color: #e8ecff; font-family: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; transition: background .15s, transform .1s; }
+.gr-opt:hover, .gr-step:hover, .gr-btn:hover { background: #ffffff30; } .gr-opt:active, .gr-step:active, .gr-btn:active { transform: scale(.96); }
+.gr-opt.on { background: var(--c); border-color: var(--c); color: #07030f; box-shadow: 0 0 16px color-mix(in srgb, var(--c) 55%, transparent); }
+.gr-btn[disabled] { opacity: .4; cursor: default; }
+.gr-slider { display: flex; align-items: center; gap: 8px; min-width: min(380px, 100%); } .gr-range { flex: 1; min-width: 0; height: 44px; accent-color: var(--c); touch-action: pan-y; }
+.gr-step { padding: 0; font-size: 22px; line-height: 1; } .gr-out { min-width: 54px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gr-marcas { display: flex; justify-content: space-between; padding: 0 70px 0 calc(100% - min(380px, 100%) + 52px); margin-top: -2px; font-size: 10.5px; color: #8d93b5; }
+.gr-nota { margin-top: 16px; padding: 12px 14px; border-radius: 14px; border: 1px dashed #ffffff44; font-size: 12.5px; line-height: 1.5; color: #cfd6f6; } .gr-nota b { color: var(--c); letter-spacing: .08em; text-transform: uppercase; font-size: 11px; } .gr-nota ul { margin: 6px 0 4px; padding-left: 18px; } .gr-nota p { margin: 4px 0 0; color: #aeb8e0; }
+.gr-acc { display: flex; justify-content: center; margin-top: 14px; } .gr-acc .gr-btn { min-width: 240px; }
+/* medidor de FPS flotante (opcional) */
+#fpsmeter { position: fixed; z-index: 40; top: calc(env(safe-area-inset-top, 0px) + 6px); right: calc(env(safe-area-inset-right, 0px) + 8px); padding: 3px 9px; border-radius: 99px; border: 1px solid #ffffff44; background: #07030fb0; font: 700 12px/1.3 system-ui, sans-serif; font-variant-numeric: tabular-nums; pointer-events: none; }
+@media (max-width: 760px) {
+  .gr-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); } .gr-card { min-height: 0; }
+  .gr-row { grid-template-columns: minmax(0, 1fr); } .gr-seg { justify-content: flex-start; } .gr-slider { min-width: 0; } .gr-marcas { padding: 0 60px 0 50px; }
+}
+@media (max-height: 460px) and (orientation: landscape) { .gr-card { padding-bottom: 28px; } .gr-card .gr-d { font-size: 11.5px; } .gr-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

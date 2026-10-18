@@ -7,10 +7,10 @@ import { Game } from '../src/sim/game.js';
 import { HOST_IDS, WEAPONS, WAVE_PLANS, MELEE_WEAPONS, MELEE_TYPES } from '../src/sim/data.js';
 import { MELEE_MODEL_IDS } from '../src/client/melee-models.js';
 import {
-  ITEMS, ITEM_IDS, SLOTS, ARMOR_SLOTS, RARITIES, MATERIALS, MATERIAL_IDS, PASIVOS, SIGNATURES, ITEM_COMBO_SETS, ITEM_COMBO_WEAPON, CAPS, BN_KEYS, ADD_KEYS, UTIL_KEYS,
+  ITEMS, ITEM_IDS, SLOTS, ARMOR_SLOTS, RARITIES, MATERIALS, MATERIAL_IDS, PLANOS, SETS, SET_IDS, setActivos, setCounts, RECETAS, MATERIALES, CALIDADES, qForja, PLANOS_INICIALES, PASIVOS, SIGNATURES, ITEM_COMBO_SETS, ITEM_COMBO_WEAPON, CAPS, BN_KEYS, ADD_KEYS, UTIL_KEYS,
   FASE_KILLS, FASE_MUL, faseDe, progresoFase, itemStats, pasivosActivos, cleanEquip, equipError, foldStatic, desguaceValor, lineasStats, lineasPasivos, lineasSinergias, proximaFase, poder, rollMul, LIMITE_INVENTARIO,
 } from '../src/sim/items.js';
-import { tirar, rarezaDe, pesosRareza, FUENTES, PITY, initPity, dropsJefe, firmaCumplida, soltar, updateLoot, forjar, lootSnap, MAT_MAPA } from '../src/sim/drops.js';
+import { tirar, tirarBotin, BOTIN_TIPO, rarezaDe, pesosRareza, FUENTES, PITY, initPity, dropsJefe, firmaCumplida, soltar, updateLoot, forjar, lootSnap, MAT_MAPA } from '../src/sim/drops.js';
 import { comboUnlocked } from '../src/sim/combos.js';
 import { meleeSet } from '../src/sim/huespedes.js';
 import { wstat } from '../src/sim/loadout.js';
@@ -135,25 +135,26 @@ test('dropeo: las tiradas generales NUNCA sueltan armas firma y el material de l
   for (const mat of MAT_MAPA.m4) assert.ok(m4[mat] > m1[mat] * 1.15, `en el Jardín caen más ${mat}: ${m4[mat]} vs ${m1[mat]}`);
   for (const mat of MAT_MAPA.m1) assert.ok(m1[mat] > m4[mat] * 1.15, `en el Vacío de Islas caen más ${mat}: ${m1[mat]} vs ${m4[mat]}`);
 });
-test('dropeo: el arma firma sólo cae para SU Huésped, en el mapa de su condición, tras el jefe y con las misiones cumplidas', () => {
+test('dropeo: el PLANO RARO del arma firma sólo cae para SU Huésped, en el mapa de su condición, tras el jefe y con las misiones cumplidas', () => {
   for (const h of HOST_IDS) {
     const sig = ITEMS[SIGNATURES[h]], c = sig.sig;
-    const jefe = (mapId, hostId, misDone, extra = {}) => { const g = new Game({ mapId, seed: 2 }), p = g.addPlayer('t', null, { char: hostId, ...extra }); g.stats.misDone = misDone; dropsJefe(g, p.pos); return { g, p, ids: p.bag.map((b) => b.id), ev: g.events.filter((e) => e.t === 'firma') }; };
-    const ok = jefe(c.map, h, c.misiones); assert.ok(ok.ids.includes(sig.id), `${h}: debe caer ${sig.id}`); assert.equal(ok.ev.length, 1); assert.ok(ok.p.sigMet); assert.equal(ok.g.snapshot().players[0].sg, 1);
-    assert.equal(ok.ids.length, 3, 'dos objetos del jefe + la firma');
-    assert.ok(!jefe(c.map, h, c.misiones - 1).ids.includes(sig.id), `${h}: sin la misión no cae`);
-    const otroMapa = Object.keys(WAVE_PLANS).find((m) => m !== c.map); assert.ok(!jefe(otroMapa, h, 9).ids.includes(sig.id), `${h}: en otro mapa no cae`);
-    for (const o of HOST_IDS.filter((x) => x !== h)) assert.ok(!jefe(c.map, o, 9).ids.includes(sig.id), `${o} no recibe la firma de ${h}`);
+    const jefe = (mapId, hostId, misDone) => { const g = new Game({ mapId, seed: 2 }), p = g.addPlayer('t', null, { char: hostId }); g.stats.misDone = misDone; dropsJefe(g, p.pos); return { g, p, ids: p.bag.map((b) => b.id), ev: g.events.filter((e) => e.t === 'firma') }; };
+    const ok = jefe(c.map, h, c.misiones); assert.ok(ok.ids.includes('plano:' + sig.id), `${h}: debe caer el plano de ${sig.id}`); assert.ok(!ok.ids.includes(sig.id), 'el objeto terminado NO cae: se construye en la Forja'); assert.equal(ok.ev.length, 1); assert.ok(ok.p.sigMet); assert.equal(ok.g.snapshot().players[0].sg, 1);
+    assert.ok(ok.p.bag.filter((b) => b.id.startsWith('mat:')).length >= 3 && ok.p.bag.some((b) => b.id.startsWith('plano:') && b.src === 'jefe'), 'el jefe da materiales y un plano');
+    assert.ok(!jefe(c.map, h, c.misiones - 1).ids.includes('plano:' + sig.id), `${h}: sin la misión no cae`);
+    const otroMapa = Object.keys(WAVE_PLANS).find((m) => m !== c.map); assert.ok(!jefe(otroMapa, h, 9).ids.includes('plano:' + sig.id), `${h}: en otro mapa no cae`);
+    for (const o of HOST_IDS.filter((x) => x !== h)) assert.ok(!jefe(c.map, o, 9).ids.includes('plano:' + sig.id), `${o} no recibe el plano de ${h}`);
     const prac = new Game({ mapId: c.map, seed: 2, practice: true }), pp = prac.addPlayer('t', null, { char: h }); prac.stats.misDone = 9; dropsJefe(prac, pp.pos); assert.equal(pp.bag.length, 0, 'el campo de pruebas no suelta nada');
   }
   const { g, p } = mkGame(); assert.equal(firmaCumplida(g, p), false);
+  // los planos de las demás armas firma nunca caen por las tablas generales
+  const { g: g2, p: p2 } = mkGame({ seed: 8 }); for (let i = 0; i < 3000; i++) { const b = tirarBotin(g2, p2, ['elite', 'mision', 'cofre', 'ofrenda'][i % 4]); if (b.k === 'plano') assert.ok(!PLANOS[b.id.slice(6)].firma, b.id); }
 });
-test('dropeo: el jefe real suelta sus objetos al caer, las misiones sueltan botín y la firma llega a la mochila', () => {
+test('dropeo: el jefe real suelta materiales y planos al caer (y el plano raro de la firma), las misiones sueltan botín personal', () => {
   const g = new Game({ mapId: 'm1', seed: 4, magazines: true }); const p = g.addPlayer('t', null, { char: 'axioma' }); p.hp = 1e6; g.stats.misDone = 1;
   const boss = g.spawnMonster('coloso', { x: p.pos.x + p.heading.x * 12, y: p.pos.y + 1, z: p.pos.z + p.heading.z * 12 }, { noElite: true });
   g.damageMonster(boss, 1e9, p, boss.pos);
-  assert.ok(boss.dead); assert.ok(p.bag.some((b) => b.id === 'gemelas_axioma'), 'la firma cae al vencer al jefe'); assert.ok(g.events.some((e) => e.t === 'drop' && e.directo) && g.events.some((e) => e.t === 'loot'));
-  // misión cumplida → botín en el mundo para cada jugador vivo
+  assert.ok(boss.dead); assert.ok(p.bag.some((b) => b.id === 'plano:gemelas_axioma'), 'el plano de la firma cae al vencer al jefe'); assert.ok(g.events.some((e) => e.t === 'drop' && e.directo) && g.events.some((e) => e.t === 'loot'));
   const h = new Game({ mapId: 'm1', seed: 4 }); const q = h.addPlayer('t', null, { char: 'axioma' }); h.phase = 'wave'; h.wave = 2;
   h.mision = { k: 'melee', n: 1, p: 0, st: 'active', rc: 10, re: 1, ek: 'carne', w: 2 };
   const m = h.spawnMonster('astilla', { x: q.pos.x + 2, y: q.pos.y + 0.5, z: q.pos.z }, { noElite: true }); q.inMelee = true; h.killMonster(m, q); q.inMelee = false;
@@ -169,22 +170,17 @@ test('botín en el mundo: comunes y raras se recogen al pasar; épicas y legenda
   run(g, 0.2, (i) => { for (const o of g.loot) ponerEn(o); g.setInput(p.id, { interact: i > 2 }); });
   assert.ok(p.bag.some((b) => b.id === 'corona_cristal'), 'USAR recoge lo épico'); assert.ok(!p.bag.some((b) => b.id === 'peto_hueso')); assert.ok(g.events.some((e) => e.t === 'loot' && e.pid === p.id));
   g.state = 'won'; g.step(T60); assert.equal(g.loot.length, 0, 'al terminar el botín del piso se entrega'); assert.ok(q.bag.some((b) => b.id === 'peto_hueso'));
-  assert.deepEqual(g.snapshot().players[0].bag.sort(), p.bag.map((b) => `${b.id}:${b.q}`).sort(), 'la mochila viaja en el snapshot final');
+  assert.deepEqual(g.snapshot().players[0].bag.sort(), p.bag.map((b) => `${b.id}|${b.q}|${b.n || 1}`).sort(), 'la mochila viaja en el snapshot final');
   // un botín que cae al vacío vuelve a su dueño
   const h = mkGame({ seed: 5 }); const o = soltar(h.g, { id: 'fusil_hueso', q: 0.1, r: 0, src: 'cofre' }, h.p.pos, 0); o.pos = { x: 9e4, y: 9e4, z: 9e4 }; o.t = 1; run(h.g, 0.05); assert.ok(h.g.loot.length === 0 || h.g.map.outOfBounds(h.g.loot[0].pos) === false);
 });
-test('herrero: forja un objeto vivo con núcleos y esencias; la firma sólo con el plano desbloqueado y una vez', () => {
-  const { g, p } = mkGame({ seed: 12 }, { sigs: ['axioma'] }); g.phase = 'intermission';
-  assert.equal(forjar(g, p, false), false, 'sin recursos no forja'); p.cores = 500; p.ess.carne = 20; p.ess.cristal = 20; p.ess.ojo = 20; p.ess.vacio = 20;
-  assert.equal(forjar(g, p, false), true); assert.equal(p.cores, 455); assert.equal(p.bag.length, 1); assert.ok(ITEMS[p.bag[0].id].r >= 1);
-  assert.equal(forjar(g, p, true), true); assert.ok(p.bag.some((b) => b.id === 'gemelas_axioma')); assert.equal(forjar(g, p, true), false, 'una sola vez por partida');
-  const o = mkGame({ seed: 12 }); o.p.cores = 999; for (const k of ['carne', 'cristal', 'ojo', 'vacio']) o.p.ess[k] = 50; assert.equal(forjar(o.g, o.p, true), false, 'sin plano no hay firma');
-  // por el NPC real del herrero
-  const n = mkGame({ seed: 13 }, { sigs: ['axioma'] }); n.g.phase = 'intermission'; n.p.cores = 500; n.p.ess.carne = 30; n.p.ess.vacio = 30;
-  n.g.addObject('npc', n.p.pos, { kind: 'herrero', r: 1.2, life: 99 });
-  n.g.setInput(n.p.id, { npc: { offer: 2 } }); n.g.step(T60); assert.equal(n.p.bag.length, 1); n.g.setInput(n.p.id, { npc: null }); n.g.step(T60);
-  n.g.setInput(n.p.id, { npc: { offer: 3 } }); n.g.step(T60); assert.ok(n.p.bag.some((b) => b.id === 'gemelas_axioma'));
-  const ca = mkGame({ seed: 13 }); ca.g.phase = 'intermission'; ca.p.cores = 500; ca.g.addObject('npc', ca.p.pos, { kind: 'cambista', r: 1.2, life: 99 }); ca.g.setInput(ca.p.id, { npc: { offer: 2 } }); ca.g.step(T60); assert.equal(ca.p.cores, 500, 'las ofertas 2 y 3 son sólo del herrero');
+test('herrero (en partida): forja un objeto vivo al azar con núcleos y esencias; no se puede en el campo de pruebas ni sin recursos', () => {
+  const { g, p } = mkGame({ seed: 12 }); g.phase = 'intermission';
+  assert.equal(forjar(g, p), false, 'sin recursos no forja'); p.cores = 500; p.ess.carne = 20; p.ess.cristal = 20; p.ess.ojo = 20; p.ess.vacio = 20;
+  assert.equal(forjar(g, p), true); assert.equal(p.cores, 455); assert.equal(p.bag.length, 1); assert.ok(ITEMS[p.bag[0].id] && ITEMS[p.bag[0].id].r >= 1 && !ITEMS[p.bag[0].id].host);
+  const n = mkGame({ seed: 13 }); n.g.phase = 'intermission'; n.p.cores = 500; n.p.ess.carne = 30; n.p.ess.vacio = 30; n.g.addObject('npc', n.p.pos, { kind: 'herrero', r: 1.2, life: 99 });
+  n.g.setInput(n.p.id, { npc: { offer: 2 } }); n.g.step(T60); assert.equal(n.p.bag.length, 1);
+  const ca = mkGame({ seed: 13 }); ca.g.phase = 'intermission'; ca.p.cores = 500; ca.g.addObject('npc', ca.p.pos, { kind: 'cambista', r: 1.2, life: 99 }); ca.g.setInput(ca.p.id, { npc: { offer: 2 } }); ca.g.step(T60); assert.equal(ca.p.cores, 500, 'la oferta 2 es sólo del herrero');
 });
 test('dropeo en una partida completa de bot: cae botín de varias fuentes y el jugador junta objetos', { timeout: 240000 }, () => {
   const g = new Game({ mapId: 'm4', seed: 17, magazines: true, calm: 1 }); const p = g.addPlayer('t', null, { char: 'micelio', style: 'melee' }); p.hp = 1e6;
@@ -196,7 +192,7 @@ test('dropeo en una partida completa de bot: cae botín de varias fuentes y el j
     g.step(T60); for (const e of g.drainEvents()) if (e.t === 'drop') fuentes.add(e.src);
   }
   assert.ok(p.bag.length >= 4, `juntó ${p.bag.length} objetos en ${Math.round(t)} s`); assert.ok(fuentes.has('respiro') || fuentes.has('mision'), [...fuentes].join());
-  assert.ok(p.bag.every((b) => ITEMS[b.id] && b.q >= 0 && b.q <= 1));
+  assert.ok(p.bag.every((b) => (b.id.startsWith('mat:') ? MATERIAL_IDS.includes(b.id.slice(4)) && b.q >= 0 && b.q <= 3 : b.id.startsWith('plano:') ? PLANOS[b.id.slice(6)] : ITEMS[b.id]) && b.n >= 1), 'materiales, planos u objetos válidos'); assert.ok(p.bag.some((b) => b.id.startsWith('mat:')), 'lo que más cae son materiales');
 });
 
 /* ───────────────────────── equipo en la simulación ───────────────────────── */
@@ -320,14 +316,14 @@ const KEY = 'cristal.perfil.v1';
 const abrir = async (obj) => { mem.clear(); if (obj !== undefined) mem.set(KEY, typeof obj === 'string' ? obj : JSON.stringify(obj)); return import('../src/client/perfil.js?' + Math.random()); };
 test('perfil: un perfil viejo (sin inventario) se abre igual, conserva todo y pasa a la versión 2', async () => {
   const P = await abrir({ cores: 77, evo: { axioma: 2 }, path: { axioma: ['coraza', 'resonancia'] }, melee: { axioma: 'filo_oseo' }, owned: ['filo_oseo'], ess: { carne: 5, cristal: 1, ojo: 0, vacio: 2 }, terr: { m1: { bend: 'luz_mala' } }, mae: { axioma: { xp: 300 } } });
-  const p = P.perfil(); assert.equal(p.ver, 2); assert.deepEqual(p.inv, []); assert.deepEqual(p.eq, {}); assert.deepEqual(p.pity, { l: 0, e: 0 }); assert.equal(p.cores, 77); assert.equal(p.evo.axioma, 2); assert.equal(P.bendicionElegida('m1'), 'luz_mala'); assert.equal(P.rangoMaestria('axioma'), 3);
+  const p = P.perfil(); assert.equal(p.ver, 2); assert.deepEqual(p.inventario, []); assert.deepEqual(p.eq, {}); assert.deepEqual(p.pity, { l: 0, e: 0 }); assert.equal(p.cores, 77); assert.equal(p.evo.axioma, 2); assert.equal(P.bendicionElegida('m1'), 'luz_mala'); assert.equal(P.rangoMaestria('axioma'), 3);
   const pp = P.paraPartida('axioma'); assert.deepEqual(pp.equip, []); assert.equal(pp.melee, 'filo_oseo'); assert.deepEqual(pp.sigs, []);
-  const rotos = await abrir('{{ no es json'); assert.deepEqual(rotos.perfil().inv, []);
+  const rotos = await abrir('{{ no es json'); assert.deepEqual(rotos.perfil().inventarioentario, []);
 });
 test('perfil: el inventario se sanea al cargar (ids falsos, uids repetidos, equipo de otro Huésped, firma en el Huésped equivocado)', async () => {
   const P = await abrir({ ver: 2, inv: [{ u: 'a1', id: 'gemelas_axioma', q: 0.5, k: 10 }, { u: 'a1', id: 'peto_hueso' }, { u: 'b2', id: 'no_existe' }, { u: 'c3', id: 'peto_hueso', q: 7, k: -3, lk: true }, { u: '!!', id: 'peto_hueso' }, { id: 'peto_hueso' }, 'x', null],
     eq: { axioma: { melee: 'a1', torso: 'c3', head: 'c3', gun: 'zz' }, vesper: { melee: 'a1', torso: 'c3' }, fantasma: { melee: 'a1' } }, pity: { l: 5000, e: -1 }, sigs: { axioma: 1, nadie: 1 } });
-  const p = P.perfil(); assert.deepEqual(p.inv.map((i) => i.u), ['a1', 'c3']); assert.equal(p.inv[1].q, 1); assert.equal(p.inv[1].k, 0); assert.equal(p.inv[1].lk, true);
+  const p = P.perfil(); assert.deepEqual(p.inventario.map((i) => i.u), ['a1', 'c3']); assert.equal(p.inventario[1].q, 1); assert.equal(p.inventario[1].k, 0); assert.equal(p.inventario[1].lk, true);
   assert.deepEqual(p.eq, { axioma: { melee: 'a1', torso: 'c3' } }, 'una pieza no puede estar en dos Huéspedes ni en una ranura que no es'); assert.deepEqual(p.pity, { l: 999, e: 0 }); assert.deepEqual(p.sigs, { axioma: 1 });
   assert.deepEqual(P.paraPartida('axioma').equip.map((e) => e.id), ['gemelas_axioma', 'peto_hueso']); assert.deepEqual(P.paraPartida('vesper').equip, []);
 });
@@ -343,7 +339,7 @@ test('perfil: agregar, equipar, bloquear, favorito y desguazar siguen sus reglas
   const e = P.agregarItem({ id: 'casco_hueso', q: 0.5 }), f = P.agregarItem({ id: 'rafaga_no_existe', q: 1 }); assert.equal(f.ok, false);
   const tot = P.desguazarSobrantes(0); assert.equal(tot.n, 1, 'sólo el casco: el fusil es favorito y la firma es legendaria'); assert.equal(P.instDe(e.uid), null); assert.ok(P.instDe(a.uid) && P.instDe(b.uid));
   const rep = P.agregarItem({ id: 'gemelas_axioma', q: 0.2 }); assert.ok(rep.repetida && rep.conv.cores > 0 && P.inventario().filter((i) => i.id === 'gemelas_axioma').length === 1, 'la firma repetida se convierte en recursos');
-  const raw = JSON.parse(mem.get(KEY)); assert.equal(raw.inv.length, 2); assert.equal(raw.ver, 2);
+  const raw = JSON.parse(mem.get(KEY)); assert.equal(raw.inventario.length, 2); assert.equal(raw.ver, 2);
 });
 test('perfil: con el inventario lleno, lo nuevo reemplaza al peor objeto sobrante (o se desguaza solo si es peor); lo bloqueado y lo puesto no se tocan', async () => {
   const P = await abrir(); const lleno = []; for (let i = 0; i < LIMITE_INVENTARIO; i++) { const r = P.agregarItem({ id: i % 2 ? 'peto_hueso' : 'casco_hueso', q: i / 100 }); lleno.push(r.uid); } assert.equal(P.inventario().length, LIMITE_INVENTARIO);

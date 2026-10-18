@@ -52,6 +52,7 @@ export function createHuespedHud(rootEl) {
   const el = doc.createElement('div'); el.className = 'hq'; el.id = 'huesped'; rootEl.appendChild(el);
   const am = doc.createElement('div'); am.className = 'hq-ammo'; am.innerHTML = '<b></b><small></small><i><u></u></i>'; rootEl.appendChild(am);
   const ch = doc.createElement('div'); ch.id = 'combohud'; ch.innerHTML = '<b></b><small></small><u><s></s></u>'; rootEl.appendChild(ch);   // contador de combo (modo Combo)
+  const eh = doc.createElement('div'); eh.id = 'estilohud'; eh.innerHTML = '<b></b><u><s></s></u><small></small>'; rootEl.appendChild(eh);   // rango de estilo D/C/B/A/S + bajas de un golpe (progresion.js)
   let built = '', cache = {}, me0 = null;
   const rows = {};
   const build = (C, touch, combo) => {
@@ -107,6 +108,11 @@ export function createHuespedHud(rootEl) {
       if (cache.ch !== sig) { cache.ch = sig; ch.classList.toggle('on', on); if (on) { ch.querySelector('b').innerHTML = `×${n}<i>COMBO</i>`; ch.querySelector('small').textContent = me.cnm || ''; ch.classList.remove('pop'); void ch.offsetWidth; ch.classList.add('pop'); } }
       ch.querySelector('s').style.transform = `scaleX(${Math.min(1, w / 0.9)})`;
       if (!combo) ch.classList.remove('on');
+    }
+    { // rango de estilo (D → S) y bajas del multi-kill en curso: mínimo, arriba a la derecha del combo
+      const rk = combo ? me.rk | 0 : 0, mk = me.mk | 0, rp = combo ? +me.rp || 0 : 0, on = combo && (rk > 0 || rp > 0.05 || mk >= 2), sig = `${on}|${rk}|${mk}`;
+      if (cache.eh !== sig) { cache.eh = sig; eh.classList.toggle('on', on); eh.dataset.r = String('DCBAS'[rk] || 'D'); eh.querySelector('b').textContent = 'DCBAS'[rk] || 'D'; eh.querySelector('small').textContent = mk >= 2 ? `${mk} BAJAS` : ''; eh.classList.remove('pop'); void eh.offsetWidth; eh.classList.add('pop'); }
+      eh.querySelector('s').style.transform = `scaleX(${Math.min(1, rp)})`;
     }
     { // combo de melee
       const sig = `c${cmb}`; if (cache.cmb !== sig) { cache.cmb = sig; for (const host of [rows.pips, rows.tcm]) host.querySelectorAll('.pip').forEach((p, i) => p.classList.toggle('on', i < cmb)); }

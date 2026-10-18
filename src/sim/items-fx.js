@@ -8,7 +8,7 @@
 import { PLAYER, WEAPONS } from './data.js';
 import { v3, dist, clone, madd, norm, sub } from './math.js';
 import { applyMaestria } from './maestria.js';
-import { ITEMS, SLOTS, cleanEquip, itemStats, faseDe, pasivosActivos, foldStatic, capBn, rollMul, ADD_KEYS, ITEM_COMBO_SETS, ITEM_COMBO_WEAPON } from './items.js';
+import { ITEMS, SLOTS, cleanEquip, itemStats, faseDe, pasivosActivos, foldStatic, capBn, rollMul, ADD_KEYS, ITEM_COMBO_SETS, ITEM_COMBO_WEAPON, setActivos } from './items.js';
 import { cleanSlots } from './loadout.js';
 
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -36,9 +36,12 @@ export function recompute(p, g = null) {
   const fold = foldStatic(list);
   // sinergias activas (dependen de esencias, órganos, estilo y camino)
   const syn = activeSyn(p, list);
+  const sets = setActivos(list); p.sets = sets.map((s) => `${s.set}${s.tier}`);
+  for (const s of sets) for (const [k, v] of Object.entries(s.b.fx)) fold[k] = ADD_KEYS.includes(k) ? (fold[k] || 0) + v : (fold[k] ?? 1) * v;   // bonos de 2 y 4 piezas
   for (const s of syn) for (const [k, v] of Object.entries(s.fx)) fold[k] = ADD_KEYS.includes(k) ? (fold[k] || 0) + v : (fold[k] ?? 1) * v;
   capBn(fold); p.ifold = fold;
   for (const [k, v] of Object.entries(fold)) p.bn[k] = ADD_KEYS.includes(k) ? (p.bn[k] || 0) + v : (p.bn[k] ?? 1) * v;
+  for (const s of sets) for (const pa of s.b.pa || []) p.ipa.push({ id: pa.id, v: pa.v, s: 'set' });
   for (const e of list) {
     const it = ITEMS[e.id], fase = faseDe(it, e.k), wm = rollMul(e.q) * (1 + 0.02 * fase);
     for (const pa of pasivosActivos(e)) p.ipa.push({ id: pa.id, v: pa.v, s: e.s });
@@ -169,10 +172,10 @@ export function itemTick(g, p, dt) {
 /** Campos del jugador para el cliente: `eq` (cadena «id.fase,…» → aspecto), `ik` (bajas de la partida por ranura → maduración), `pt` (pity), `bag` (botín, sólo al terminar). */
 export function itemsSnap(g, p) {
   const o = {};
-  if (p.eqList && p.eqList.length) { o.eq = p.eqSnap; o.ik = p.ik; if (p.iw) o.iw = p.iw.id; if (p.ig) o.ig = p.ig.id; }
+  if (p.eqList && p.eqList.length) { o.eq = p.eqSnap; if (p.sets && p.sets.length) o.st4 = p.sets; o.ik = p.ik; if (p.iw) o.iw = p.iw.id; if (p.ig) o.ig = p.ig.id; }
   if (p.pity) o.pt = [p.pity.l, p.pity.e];
   if (p.sigMet) o.sg = 1;
-  if (g.state !== 'playing' && p.bag && p.bag.length) o.bag = p.bag.map((b) => `${b.id}:${b.q}`);
+  if (g.state !== 'playing' && p.bag && p.bag.length) o.bag = p.bag.map((b) => `${b.id}|${b.q}|${b.n || 1}`);
   return o;
 }
 void v3; void norm; void sub; void madd; void SLOTS;
