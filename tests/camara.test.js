@@ -48,10 +48,11 @@ test('navegador: todos los tipos de tarjeta (mejora, mutación, órgano de arma,
     await pg.waitForTimeout(800);
     const sets = [
       (p) => [{ w: p.slots[1], k: 'organ', t: 'w', id: 'glandula_osea' }, { w: p.slots[0], k: 'organ', t: 'c', id: 'placas' }, { w: p.slots[2], k: 'dmg' }],
+      (p) => [{ w: p.slots[1], k: 'forma', forma: 'alba' }, { w: p.slots[1], k: 'forma', forma: 'ocaso' }, { w: p.slots[2], k: 'dmg' }],
       (p) => [{ w: p.slots[1], k: 'mod', mod: 'cadena' }, { w: p.slots[2], k: 'rate' }, { w: p.slots[3], k: 'mag' }],
     ];
     for (const mk of sets) {
-      await pg.evaluate((src) => { const g = window.__api.session.game, p = g.players[0]; p.ess = { carne: 50, cristal: 50, ojo: 50, vacio: 50 }; p.cards = eval('(' + src + ')')(p); g.phase = 'intermission'; g.phaseT = 30; }, mk.toString());
+      await pg.evaluate((src) => { const g = window.__api.session.game, p = g.players[0]; p.ess = { carne: 50, cristal: 50, ojo: 50, vacio: 50 }; p.cards = eval('(' + src + ')')(p).map((c) => ({ ...c, mod: c.forma || c.mod })); g.phase = 'intermission'; g.phaseT = 30; }, mk.toString());
       await pg.waitForTimeout(1200); assert.equal(await pg.locator('#cardlist .ucard').count(), 3); assert.equal(await pg.evaluate(() => (window.__hudErr ? String(window.__hudErr) : null)), null);
       await pg.locator('#cardlist .ucard').first().dispatchEvent('pointerdown'); await pg.waitForTimeout(1500);
     }
