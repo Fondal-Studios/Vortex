@@ -2,7 +2,7 @@ import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS, GAME_MODES, HABILIDADES } from '../sim/data.js';
 import { comboAssist } from './combo-assist.js';
-import { Equipo } from './equipo.js';
+import { Equipo, asegurarHuesped } from './equipo.js';
 import { settings, setSetting, sensFromSlider, sliderFromSens } from './settings.js';
 import { WEAPON_COLORS } from './shotfx.js';
 import { createCombatHud } from './hud-combat.js';
@@ -16,6 +16,7 @@ import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
 import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE, EVENTOS, ARENAS_VIVAS } from '../sim/data.js';
 import * as Perfil from './perfil.js';
+import * as Tienda from './tienda.js';   // Tienda del Cambista (docs/TIENDA.md): aquí sólo el botiquín inicial
 import * as Territorios from '../sim/bendiciones.js';
 import { TITULOS } from '../sim/maestria.js';
 import { createCaida } from './caida.js';
@@ -223,9 +224,10 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 
 /* ───────── sesión y campaña ───────── */
 function startSolo(mapId, opts = {}) {
+  asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
   const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice });
-  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode() }); // evolución y arma fusionada del perfil (perfil.js)
+  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode(), kit: opts.practice ? 0 : Tienda.usarBotiquin() }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
   session = { practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
@@ -234,6 +236,7 @@ function startSolo(mapId, opts = {}) {
 }
 
 async function startCoop(create, code, mapId) {
+  asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
   const net = new NetClient();
   try { await net.connect(); } catch (e) { $('menuerr').textContent = e.message; return; }
   net.onError = (m) => { $('menuerr').textContent = m; };

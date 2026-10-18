@@ -81,6 +81,7 @@ export class Game {
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style] && opts.style !== 'combo') p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo, p.char); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     if (opts.mode === 'combo') p.mode = 'combo';
     initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
+    p.kit = Math.max(0, Math.min(2, opts.kit | 0));   // botiquines iniciales de la Tienda (docs/TIENDA.md): una segunda oportunidad cada uno
     initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
     this.players.push(p);
     return p;
@@ -430,6 +431,7 @@ export class Game {
     const sh = Math.min(p.shield, dmg); p.shield -= sh; dmg -= sh;
     p.hp -= dmg;
     this.emit({ t: 'hurt', pid: p.id, dmg: r2(dmg + sh) }); misionHurt(this);
+    if (p.hp <= 0 && p.kit > 0) { p.kit--; p.hp = PLAYER.hp * 0.5; p.shield = PLAYER.shield; p.invulUntil = this.time + 2; this.emit({ t: 'kit', pid: p.id }); return; }   // Botiquín inicial
     if (p.hp <= 0) { p.hp = 0; p.dead = true; p.respawnAt = this.time; p.bleed = PLAYER.bleed; p.lost = false; p.reviveT = 0; this.emit({ t: 'down', pid: p.id }); }
   }
 

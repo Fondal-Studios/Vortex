@@ -70,6 +70,8 @@ function load() {
   return cache;
 }
 export const perfil = () => cache || load();
+/** Vuelve a leer el guardado (las pruebas lo usan después de cambiar el almacenamiento). */
+export const recargar = () => { cache = null; return load(); };
 export function guardar() { try { localStorage.setItem(KEY, JSON.stringify(perfil())); } catch { /* sin almacenamiento */ } }
 /** Datos que recibe la simulación al empezar una partida con este Huésped. */
 export const paraPartida = (char) => { const p = perfil(); return { equip: equipoParaPartida(char), pity: { ...p.pity }, sigs: Object.keys(p.sigs), melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas(), maestria: rangoMaestria(char), arbol: arbolParaPartida(char) }; };
