@@ -1,18 +1,25 @@
 // Perfil del jugador (se guarda en el navegador): núcleos ahorrados, evolución de cada Huésped y arma cuerpo a cuerpo equipada.
-import { EVO_COST, MELEE_WEAPONS, CHARACTERS, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
+import { EVO_COST, EVO_PATHS, MELEE_WEAPONS, CHARACTERS, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
+import { TERRITORIOS, BENDICIONES, cleanBend, hermana } from '../sim/bendiciones.js';
 import { organError } from '../sim/organos.js';
 const KEY = 'cristal.perfil.v1';
 let cache = null;
-const fresh = () => ({ cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {} });
+/** terr = { m1: { bend: null|'id' } }: la clave existe = territorio liberado; bend = bendición elegida (null = liberado pero sin elegir). Se sanea al cargar. */
+function limpiarTerr(t) {
+  const out = {}; if (!t || typeof t !== 'object') return out;
+  for (const id of Object.keys(TERRITORIOS)) { const e = t[id]; if (!e || typeof e !== 'object') continue; out[id] = { bend: BENDICIONES[e.bend] && BENDICIONES[e.bend].terr === id ? e.bend : null }; }
+  return out;
+}
+const fresh = () => ({ cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {} });
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
-  cache = { ...fresh(), ...o, evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) } };
+  cache = { ...fresh(), ...o, evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr) };
   return cache;
 }
 export const perfil = () => cache || load();
 export function guardar() { try { localStorage.setItem(KEY, JSON.stringify(perfil())); } catch { /* sin almacenamiento */ } }
 /** Datos que recibe la simulación al empezar una partida con este Huésped. */
-export const paraPartida = (char) => { const p = perfil(); return { melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess }; };
+export const paraPartida = (char) => { const p = perfil(); return { melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas() }; };
 /** Al terminar (o pasar de oleada): guarda núcleos ganados y el nivel de evolución alcanzado. */
 export function cerrarPartida(char, jugador) {
   if (!jugador) return; const p = perfil();
@@ -54,4 +61,36 @@ export function comprarOrgano(target, char, wid, id) {
   const p = perfil(), cost = costoOrgano(target, id); for (const [k, n] of Object.entries(cost)) p.ess[k] -= n;
   if (target === 'w') (p.worg[wid] ||= []).push(id); else (p.corg[char] ||= []).push(id);
   guardar(); return true;
+}
+
+/* ───── territorios y bendiciones (docs/MUNDO_VIVO.md): se liberan ganando el mapa; cada uno da UNA bendición entre 2 excluyentes ───── */
+export const liberado = (terr) => !!perfil().terr[terr];
+/** 'bloqueado' (falta liberar el territorio previo) · 'disponible' · 'liberado'. */
+export function estadoTerritorio(terr) {
+  const t = TERRITORIOS[terr]; if (!t) return 'bloqueado';
+  if (liberado(terr)) return 'liberado';
+  return t.requiere.every(liberado) ? 'disponible' : 'bloqueado';
+}
+/** Bendición elegida de un territorio (id) o null. */
+export const bendicionElegida = (terr) => (perfil().terr[terr] || {}).bend || null;
+/** Bendiciones activas (una por territorio como máximo), listas para `opts.bend` de addPlayer. */
+export const bendicionesActivas = () => cleanBend(Object.keys(TERRITORIOS).map(bendicionElegida).filter(Boolean));
+/** Hay territorio liberado cuya bendición todavía no se eligió. */
+export const bendicionPendiente = () => Object.keys(TERRITORIOS).filter((t) => liberado(t) && !bendicionElegida(t));
+/** Se llama al ganar un mapa. Sólo libera si estaba disponible (no se salta la cadena). Devuelve true si es una liberación nueva. */
+export function liberarTerritorio(terr) {
+  if (estadoTerritorio(terr) !== 'disponible') return false;
+  perfil().terr[terr] = { bend: null }; guardar(); return true;
+}
+/** Elige la bendición `id` de un territorio liberado. Es permanente: la hermana queda cerrada y no se puede cambiar. */
+export function elegirBendicion(terr, id) {
+  const b = BENDICIONES[id]; if (!b || b.terr !== terr || !liberado(terr) || bendicionElegida(terr)) return false;
+  perfil().terr[terr].bend = id; guardar(); return true;
+}
+/** Estado de una bendición: 'elegida' · 'cerrada' (su hermana fue elegida) · 'elegible' · 'bloqueada' (territorio sin liberar). */
+export function estadoBendicion(id) {
+  const b = BENDICIONES[id]; if (!b) return 'bloqueada';
+  const el = bendicionElegida(b.terr);
+  if (el === id) return 'elegida'; if (el && el === hermana(id)) return 'cerrada';
+  return liberado(b.terr) ? 'elegible' : 'bloqueada';
 }

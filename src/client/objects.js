@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { kit } from './organism.js';
 import { buildOjo } from './creatures/ojo.js';
 import { M4_BUILD, m4Animate, m4Event, m4Frame } from './env/map4-objs.js'; // mapa 4: capullos del Cultivo y puente vivo
+import { NPC_INFO } from '../sim/npcs.js';
+import { NPC_COLORS, hexCss } from './mundo-vivo.js';
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const Y = new THREE.Vector3(0, 1, 0);
@@ -118,6 +120,36 @@ const BUILD = {
     return g;
   },
 };
+
+/** Etiqueta flotante (sprite con texto) para NPC; la textura se comparte por texto+color. */
+const LABELS = new Map();
+export function labelSprite(text, color = '#ffffff') {
+  const key = text + color; let mat = LABELS.get(key);
+  if (!mat) {
+    const c = document.createElement('canvas'); c.width = 384; c.height = 64; const x = c.getContext('2d'); x.font = '700 28px "Trebuchet MS", system-ui'; x.textAlign = 'center'; x.lineWidth = 6; x.strokeStyle = '#000c'; x.strokeText(text, 192, 42); x.fillStyle = color; x.fillText(text, 192, 42);
+    mat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false }); LABELS.set(key, mat);
+  }
+  const sp = new THREE.Sprite(mat); sp.scale.set(3.6, 0.6, 1); sp.renderOrder = 10; return sp;
+}
+/** NPC liviano (espectral): túnica, cabeza y un objeto propio de su oficio. Un solo material translúcido por parte. */
+function npcSimple(o) {
+  const kind = o.nk, col = NPC_COLORS[kind] || 0xffffff, g = new THREE.Group(), pivot = new THREE.Group(); g.add(pivot);
+  const body = new THREE.MeshStandardMaterial({ color: 0x2a2440, emissive: col, emissiveIntensity: 0.35, roughness: 0.6, transparent: true, opacity: 0.78 });
+  const robe = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.7, 1.5, 10, 1, true), body); robe.position.y = 0.85; pivot.add(robe);
+  const chest = new THREE.Mesh(GEO.sph, body); chest.scale.set(0.42, 0.34, 0.3); chest.position.y = 1.55; pivot.add(chest);
+  const head = new THREE.Mesh(GEO.sph, add(col, 0.85)); head.scale.setScalar(0.24); head.position.y = 1.98; pivot.add(head);
+  if (kind === 'cambista') { const coin = new THREE.Mesh(GEO.ring, add(col, 0.9)); coin.scale.setScalar(0.35); coin.position.set(0.6, 1.5, 0.2); pivot.add(coin); g.userData.prop = coin; }
+  else if (kind === 'sanadora') { const a = new THREE.Mesh(GEO.box, add(col, 0.9)); a.scale.set(0.5, 0.12, 0.12); const b = a.clone(); b.rotation.z = Math.PI / 2; const c = new THREE.Group(); c.add(a, b); c.position.set(0, 2.6, 0); pivot.add(c); g.userData.prop = c; }
+  else { const h = new THREE.Mesh(GEO.box, add(col, 0.9)); h.scale.set(0.4, 0.22, 0.22); h.position.set(0.65, 1.2, 0.2); pivot.add(h); g.userData.prop = h; }
+  const aura = new THREE.Mesh(GEO.ring, add(col, 0.6)); aura.rotation.x = Math.PI / 2; aura.scale.setScalar(1.1); aura.position.y = 0.06; g.add(aura);
+  const halo = new THREE.Mesh(GEO.sph, add(col, 0.1)); halo.scale.set(1.1, 1.8, 1.1); halo.position.y = 1.2; g.add(halo);
+  g.userData.pivot = pivot; g.userData.aura = aura; g.userData.simple = true;
+  return g;
+}
+/** Vuelve translúcido y teñido (espectral) a un humano de la fábrica, una vez armado. */
+function spectral(root, col) {
+  root.traverse((n) => { if (n.material) { const ms = Array.isArray(n.material) ? n.material : [n.material]; const cl = ms.map((m) => { const c = m.clone(); c.transparent = true; c.opacity = 0.72; c.depthWrite = false; if (c.emissive) { c.emissive.setHex(col); c.emissiveIntensity = 0.3; } return c; }); n.material = Array.isArray(n.material) ? cl : cl[0]; n.userData.specMats = cl; } });
+}
 Object.assign(BUILD, M4_BUILD);
 const SIZE_HINT = { turret: 1 };
 
@@ -127,6 +159,24 @@ export class ObjectsView {
     this.items = new Map(); this.beams = []; this.t = 0;
     for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(GEO.cyl, add(0xff6a6a, 0.55)); m.visible = false; this.root.add(m); this.beams.push(m); }
     this.tracers = [];
+    this.humans = null; // { kit, hm }: lo pone render.js cuando el kit de personas está cargado (los NPC pasan de figura liviana a humano espectral)
+  }
+  /** NPC del respiro: humano espectral si el kit de personas ya cargó (calidad media/alta); si no, figura liviana. Siempre con etiqueta de nombre. */
+  buildNpc(d) {
+    const info = NPC_INFO[d.nk] || { name: 'Alma' }, col = NPC_COLORS[d.nk] || 0xffffff;
+    let g = null;
+    if (this.humans && this.humans.hm && this.humans.kit) {
+      try {
+        const h = this.humans.hm.createHuman(this.humans.kit, { seed: 'npc-' + d.nk, name: info.name, color: col, weapon: null, noWeapon: true, noGear: true });
+        g = new THREE.Group(); const pivot = new THREE.Group(); pivot.add(h.object); g.add(pivot);
+        const aura = new THREE.Mesh(GEO.ring, add(col, 0.6)); aura.rotation.x = Math.PI / 2; aura.scale.setScalar(1.1); aura.position.y = 0.06; g.add(aura);
+        g.userData = { h, pivot, aura, human: true }; try { h.play('idle'); } catch { /* sin clip */ }
+        if (h.ready && h.ready.then) h.ready.then(() => spectral(h.object, col)).catch(() => {}); else spectral(h.object, col);
+      } catch (err) { console.warn('NPC humano no disponible:', err.message); g = null; }
+    }
+    if (!g) g = npcSimple(d);
+    const lb = labelSprite(info.name, hexCss(col)); lb.position.y = 2.7; g.add(lb); g.userData.label = lb;
+    return g;
   }
   /** Rayo entre dos puntos (cilindro fino) que se apaga solo. */
   beam(a, b, color, life = 0.35, width = 0.12) {
@@ -151,8 +201,8 @@ export class ObjectsView {
       seen.add(o.id);
       let it = this.items.get(o.id);
       if (!it) {
-        const mk = BUILD[o.t]; if (!mk) continue;
-        it = { g: mk({ r: o.r || 2 }), t: o.t, c0: 0 }; this.root.add(it.g); this.items.set(o.id, it);
+        const mk = o.t === 'npc' ? (d) => this.buildNpc(d) : BUILD[o.t]; if (!mk) continue;
+        it = { g: mk({ r: o.r || 2, nk: o.nk }), t: o.t, c0: 0 }; this.root.add(it.g); this.items.set(o.id, it);
       }
       const g = it.g, u = g.userData, pos = V(o.p);
       g.position.copy(pos);
@@ -242,6 +292,13 @@ export class ObjectsView {
       case 'ojo': { u.h.tick(this.dt, { hp: o.hp, maxhp: o.mx || 1, t }); if (this.cam) it.g.lookAt(this.cam); break; }
       case 'mine': { const pu = 0.5 + 0.5 * Math.sin(t * 8); u.body.material.emissiveIntensity = 0.4 + pu; u.ring.material.opacity = 0.15 + 0.2 * pu; break; }
       case 'turret': { u.head.rotation.y = t * 2; u.head.material.opacity = 0.7 + pulse * 0.3; break; }
+      case 'npc': {
+        if (u.h) u.h.update(this.dt, { speed: 0, moveDir: { x: 0, z: 0 }, pitch: 0, camera: null });
+        if (this.cam && u.pivot) { const p = it.g.position; u.pivot.rotation.y = Math.atan2(this.cam.x - p.x, this.cam.z - p.z); }
+        if (u.aura) { u.aura.rotation.z = t * 0.8; u.aura.material.opacity = 0.35 + 0.25 * pulse; }
+        if (u.prop) { u.prop.rotation.y = t * 2; }
+        break;
+      }
       case 'capullo': case 'puente': m4Animate(it, o, u, t, this.dt); break;
       default: break;
     }

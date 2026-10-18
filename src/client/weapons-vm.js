@@ -34,7 +34,7 @@ export class Viewmodels {
   /** Reconstruye las armas con otro nivel de calidad ('low' | 'medium' | 'high'). */
   setQuality(name) {
     this.q = qualityOf(name); const cur = this.cur;
-    for (const it of this.items) if (it) { this.root.remove(it.rig); it.W.dispose(); it.shape.material.dispose(); it.glow.material.dispose(); it.beam.material.dispose(); it.beam.geometry.dispose(); }
+    for (const it of this.items) if (it) { this.root.remove(it.rig); it.W.dispose(); if (it.lin) it.lin.material.dispose(); it.shape.material.dispose(); it.glow.material.dispose(); it.beam.material.dispose(); it.beam.geometry.dispose(); }
     this.items = []; this.fx.dispose(); this.fx = new VMFx(this.root, this.halo, this.q); if (cur >= 0) this._ensure(cur).rig.visible = true;
   }
   _ensure(i) {
@@ -72,6 +72,16 @@ export class Viewmodels {
     const it = this.items[i], o = this.org && this.org[i]; if (!it || !o || !o.dirty) return; o.dirty = false;
     if (o.obj) { it.W.group.remove(o.obj.group); o.obj.dispose(); o.obj = null; }
     if (o.ids.length) { o.obj = buildWeaponOrgans(THREE, o.ids, { quality: cfg().humans === 'low' ? 'low' : 'medium' }); o.obj.group.position.set(0, 0, 0); it.W.group.add(o.obj.group); }
+  }
+  /** Linaje del arma en mano (lineageStyle de mundo-vivo.js): halo de color en la boca + brasas que suben (Alba) o caen (Ocaso). null = sin linaje. */
+  setLineage(st) { this.lin = st || null; }
+  _lineage(it, dt) {
+    const st = this.lin;
+    if (!st) { if (it.lin) it.lin.visible = false; return; }
+    if (!it.lin) { it.lin = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.halo, color: st.color, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0 })); it.lin.renderOrder = 8; it.lin.position.set(it.W.muzzle[0], it.W.muzzle[1], it.W.muzzle[2] * 0.5); it.rig.add(it.lin); }
+    const s = it.lin; s.visible = true; if (s.material.userData.c !== st.color) { s.material.userData.c = st.color; s.material.color.setHex(st.color); }
+    const k = 0.5 + 0.5 * Math.sin(this.t * 3); s.material.opacity = st.glow * (0.6 + 0.4 * k); s.scale.setScalar(0.5 + 0.12 * k);
+    it.linT = (it.linT || 0) - dt; if (it.linT <= 0 && !(this.q && this.q.low)) { it.linT = st.rate; const m = it.W.muzzle; it.ctx.puff([m[0] + (Math.random() - 0.5) * 0.1, m[1], m[2] * 0.6], [0, st.ember * 0.35, 0], st.color, { size: 0.05, grow: 0.08, life: 0.7, alpha: 0.5, rise: 0 }); }
   }
   setAmmo(n, max) { this.ammo = { n, max }; const it = this.items[this.cur]; if (it) it.W.setAmmo(n, max); }
   setWeapon(i) {
@@ -121,7 +131,7 @@ export class Viewmodels {
       v.rot[2] + kr - sx * 0.035 + Math.sin(ph) * 0.016 * b + lowTilt * 0.6, 'YXZ');
     it.rig.scale.set(v.scale, v.scale, v.scale * (v.zs || 1)); it.rig.updateMatrix();
     const u = this.upg[this.cur]; HU.uUpg.value = u ? Math.min(1, ((u.dmg | 0) + (u.rate | 0) + (u.mag | 0) + (u.mod ? 1 : 0)) / 15) : 0; // el tatuaje crece con las mejoras del arma
-    W.update(dt, this.t, firing, it.ctx);
+    W.update(dt, this.t, firing, it.ctx); this._lineage(it, dt);
     // fogonazo: destello con forma propia + halo
     it.f = Math.max(0, it.f - dt * W.flash.decay * 0.8);
     const f = it.f, jit = it.auto ? 0.75 + Math.random() * 0.5 : 1; if (it.auto && f > 0.5) it.shape.material.rotation = Math.random() * 6.28;

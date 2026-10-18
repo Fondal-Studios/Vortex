@@ -42,7 +42,7 @@ export function loadOrgans(p, { worg, corg, ess } = {}) {
   if (Array.isArray(corg)) for (const id of corg) if (!organError(p, 'c', 0, id)) put(p, 'c', 0, id);
 }
 /** Esencia absorbida al matar. */
-export function absorb(p, m) { const k = ESSENCE_OF[m.kind]; if (k) p.ess[k] += m.def.boss ? ESS_YIELD.boss : m.elite ? ESS_YIELD.elite : ESS_YIELD.normal; }
+export function absorb(p, m) { const k = ESSENCE_OF[m.kind]; if (k) p.ess[k] += (m.def.boss ? ESS_YIELD.boss : m.elite ? ESS_YIELD.elite : ESS_YIELD.normal) * (p.bn ? p.bn.ess : 1); }
 
 /** Efectos de los órganos de un arma sobre el disparo. */
 export function shapeOrgans(w, p, wid) {

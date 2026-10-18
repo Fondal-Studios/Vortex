@@ -8,10 +8,13 @@ import { createCombatHud } from './hud-combat.js';
 import { createHuespedHud } from './hud-huesped.js';
 import { createEvoHud, EVO_KEY } from './hud-evolucion.js';
 import { createEvoChoice } from './evo-choice.js';
+import { createNpcPanel, npcNear, dealText } from './mundo-vivo.js';
+import { NPC_INFO } from '../sim/npcs.js';
 import { createRadar } from './radar.js';
 import { createEvoMenu } from './evo-menu.js';
 import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE } from '../sim/data.js';
 import * as Perfil from './perfil.js';
+import * as Territorios from '../sim/bendiciones.js';
 import { createCaida } from './caida.js';
 import { MAPS } from '../sim/maps.js';
 import { blocked } from '../sim/physics.js';
@@ -68,6 +71,10 @@ let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), 
 addEventListener('keydown', (e) => {
   if (typeof ui !== 'undefined' && !session && ui.handleKey(e)) return;
   keys.add(e.code);
+  if (npcPanel && npcPanel.open) { // panel de un NPC: 1 / 2 eligen la oferta, Esc o E lo cierran (no se cambia de arma ni de tarjeta)
+    if (e.code === 'Digit1' || e.code === 'Digit2') { npcPanel.choose(+e.code.slice(5) - 1); return; }
+    if (e.code === 'Escape' || e.code === 'KeyE') { npcPanel.close(); return; }
+  }
   if (e.code >= 'Digit1' && e.code <= 'Digit5') { const n = +e.code.slice(5) - 1; if (cardsOpen && n < 3) pickReq = n; else wantWeapon = n; }
   if (e.code === 'Space') e.preventDefault();
   if ((e.code === 'Enter' || e.code === 'Escape') && session && session.intro) skipIntro();
@@ -102,6 +109,15 @@ addEventListener('touchstart', () => { sound.init(); sound.resume(); }, { passiv
 /* ───────── ayuda de puntería (todas las entradas: ratón, táctil y mando) ───────── */
 const AIM_KEY = 'cristal.aim.v1'; let aimLevel = isTouchDevice() ? 2 : 1; try { const v = parseInt(localStorage.getItem(AIM_KEY), 10); if (v >= 0 && v <= 3) aimLevel = v; } catch { /* ok */ }
 const aimSel = $('aimsel'); if (aimSel) { aimSel.value = String(aimLevel); aimSel.addEventListener('change', () => { aimLevel = +aimSel.value; try { localStorage.setItem(AIM_KEY, String(aimLevel)); } catch { /* ok */ } }); }
+let npcPanel = null, npcCtx = { npc: null }, npcPrevUse = false;
+/** Limbo vivo: el botón USAR / tecla E abre el panel del NPC cercano; el pedido `npc` viaja en UN solo input (la sim repite el trato si se mantiene). */
+function npcInput(i) {
+  if (!npcPanel) { try { npcPanel = createNpcPanel(document.body, { onToggle: () => touch.reset() }); } catch (err) { console.warn('Panel de NPC no disponible', err.message); npcPanel = { open: false, take() { return null; }, show() {}, close() {}, choose() {}, result() {}, setHint() {} }; } }
+  const pressed = !!i.interact && !npcPrevUse; npcPrevUse = !!i.interact;
+  if (pressed && npcCtx.npc && !npcPanel.open) npcPanel.show(npcCtx.npc.nk);
+  const rq = npcPanel.take(); if (rq) i.npc = rq;
+  return i;
+}
 let evoChoice = null, evoPrevWant = false;
 /** Al apretar EVOLUCIONAR (botón, tecla o aviso) se abre la elección de camino; la sim recibe 1 o 2 recién cuando elegís. */
 function evoWant(on) {
@@ -118,7 +134,7 @@ const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = local
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return ti; } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(), style: settings().style,
@@ -136,7 +152,7 @@ function readInput() {
     if (g.pause && !padLatch.pause && session && !session.touch) { document.exitPointerLock && document.exitPointerLock(); }
     padLatch.pause = g.pause; renderer.firing = renderer.firing || g.fire;
   }
-  return i;
+  return npcInput(i);
 }
 const padLatch = { next: false, prev: false, pause: false, jump: false }; let padDt = 0.016;
 
@@ -395,6 +411,8 @@ function audioAndHud(state, me, dt) {
       case 'objective': objectiveEvent(e); break;
       case 'ping': sound.ping(); break;
       case 'pass': sound.pickup(); break;
+      case 'npc': if (NPC_INFO[e.kind]) banner(`${NPC_INFO[e.kind].name} aparece cerca`, 2200); break;
+      case 'npcdeal': if (mine && npcPanel) { npcPanel.result(e); if (e.ok) sound.pickup(); else banner(dealText(e), 2200); } break;
       case 'ray': sound.ray(); banner('¡RAYO DEL VACÍO! Parate en un pilar marcado', 2400); break;
       case 'reflect': sound.boom(e.to); banner('¡REFLEJADO! El Coloso está aturdido', 2200); flash(); break;
       case 'shield': banner('El Coloso recupera su escudo', 1600); break;
@@ -499,6 +517,10 @@ function hudDirector(state, me) {
   if (session) session.lastMe = me;
   try { if (!window.__radar) window.__radar = createRadar(document.body); window.__radar.update(session && !session.intro ? state : null, me, renderer.camera); } catch (err) { /* el radar nunca debe romper el HUD */ }
   evoHud.update(me, !!(session && session.touch), !(session && session.intro));
+  { // Limbo vivo: NPC cercano (cartel «E · hablar»; en táctil el botón USAR ya aparece solo porque hay un objeto a menos de 7)
+    npcCtx.npc = session && !session.intro ? npcNear(state, me) : null;
+    if (npcPanel) { if (npcPanel.open && (!npcCtx.npc || npcCtx.npc.nk !== npcPanel.kind)) npcPanel.close(); npcPanel.setHint(npcCtx.npc ? NPC_INFO[npcCtx.npc.nk] : null, !!(session && session.touch)); }
+  }
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
     const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)));
@@ -548,6 +570,7 @@ function flash() { const f = $('flash'); f.classList.add('on'); const my = ++fla
 function bankProfile(me) { if (!session || session.mode !== 'solo' || session.banked || !me) return; session.banked = true; try { Perfil.cerrarPartida(Equipo.char, me); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
 function endGame(state, me) {
   bankProfile(me);
+  let terrNuevo = null; if (state.state === 'won' && session.mode === 'solo' && !session.practice) { try { if (Perfil.liberarTerritorio(session.map)) terrNuevo = Territorios.TERRITORIOS[session.map]; } catch (err) { console.warn('Territorios: no se pudo guardar', err.message); } } // ganar el mapa libera el territorio (perfil.js)
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);
   const won = state.state === 'won'; window.__ended = state.state;
   const stats = `Oleada ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n');
@@ -558,7 +581,7 @@ function endGame(state, me) {
   }
   if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', 'De vuelta al andén', 'Completá la historia', sound); showEnd(true, stats, 'VOLVISTE AL MUNDO DE LOS VIVOS'); }); return; }
   if (!won) { subs.play(Story.DEFEAT, () => showEnd(false, stats)); return; }
-  showEnd(true, stats);
+  showEnd(true, stats + (terrNuevo ? `\n\nTERRITORIO LIBERADO: ${terrNuevo.nombre}. Elegí su bendición en el menú › Territorios.` : ''));
 }
 function showEnd(won, stats, title) {
   $('endtitle').textContent = title || (won ? 'VÓRTICE ROTO' : 'ATRAPADO EN EL VÓRTICE');

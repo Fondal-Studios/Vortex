@@ -26,6 +26,8 @@ import { createHostFx } from './hostfx.js';
 import { createHostBody, isHost } from './host-body.js';
 import { blocked } from '../sim/physics.js';
 import { settings } from './settings.js';
+import { affixInfo, hexCss, lineageOf, lineageStyle } from './mundo-vivo.js';
+import { labelSprite } from './objects.js';
 const WEAPONS_MAX = WEAPONS.map((w) => w.max);
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
@@ -204,6 +206,7 @@ export class Renderer {
     this.syncProjectiles(state, dt);
     this.syncPickups(state);
     this.syncPlayers(state, myId, dt);
+    if ((state.objs || []).some((o) => o.t === 'npc')) { if (!this.humansKit) this.ensureHumans(); if (this.humansKit && this.hm && !this.objects.humans) this.objects.humans = { kit: this.humansKit, hm: this.hm }; } // NPC del respiro: humano espectral cuando el kit ya cargó
     this.objects.sync(state, dt, state.map, this.camera.position);
     this.handleEvents(state, me);
     if (this.hostfx) this.hostfx.update(dt, state, me);
@@ -266,6 +269,7 @@ export class Renderer {
     this.eye = eye; this.aim = aim;
     if (this.sun.castShadow) { this.sunDir = this.sunDir || this.sun.position.clone().normalize(); this.sun.target.position.copy(V(me.pos)); this.sun.position.copy(this.sun.target.position).addScaledVector(this.sunDir, 90); this.sun.target.updateMatrixWorld(); }
     this.vm.setWeapon(me.w);
+    { const ln = lineageOf(me); this.vm.setLineage(ln ? lineageStyle(ln.id) : null); } // Linaje Alba/Ocaso: tinte y brasas en el arma de mano
     const lk = look && look.delta ? look.delta : [0, 0];
     const pm = this.prevMe, spd = pm ? Math.hypot(me.pos[0] - pm[0], me.pos[1] - pm[1], me.pos[2] - pm[2]) / Math.max(dt, 1e-3) : 0; this.prevMe = me.pos; this.vmSpd = (this.vmSpd || 0) + (Math.min(spd, 20) - (this.vmSpd || 0)) * Math.min(1, 8 * dt);
     const am = me.ammo ? me.ammo[me.w] : -1, wmax = WEAPONS_MAX[me.w];
@@ -297,6 +301,13 @@ export class Renderer {
     u.fill.material.color.setHex(m.ef & 4 ? 0xff9a3a : m.ef & 2 ? 0xa6ff4a : frac > 0.6 ? 0x66ff88 : frac > 0.3 ? 0xffd23f : 0xff4a5a);
     u.edge.material.opacity = m.el ? 0.8 : 0; u.edge.material.color.setHex(0xff3a5a);
   }
+  /** Afijo de élite (AFFIXES): UN sprite de halo del color del afijo + UNA etiqueta con el nombre (textura compartida por texto). Sólo élites, así que cuesta poco. */
+  setAffix(e, af) {
+    if (e.affSp) { e.object.remove(e.affSp); e.object.remove(e.affHalo); e.affSp = e.affHalo = null; }
+    e.af = af || null; const a = affixInfo(af); if (!a) return;
+    const halo = new THREE.Sprite(this.halo_(a.color)); halo.scale.setScalar(5);  halo.name = 'afijo'; e.object.add(halo);
+    const lb = labelSprite(a.label, hexCss(a.color)); lb.position.y = 1.9; lb.name = 'afijo-nombre'; e.object.add(lb); e.affSp = lb; e.affHalo = halo;
+  }
   syncMonsters(state, dt) {
     const seen = new Set();
     // solo las N criaturas más cercanas tienen modelo completo; el resto, proxy barato (clave para iPhone)
@@ -316,6 +327,8 @@ export class Renderer {
       }
       const o = e.object, scale = m.r * (m.k === 'coloso' || m.k === 'madre' || m.k === 'argos' ? 1.4 : 1) * (m.el ? 1.22 : 1) * Math.min(1, 0.2 + (this.t - e.born) * 3);
       if (m.el && !e.elite) { e.elite = true; const sp = new THREE.Sprite(this.halo_(0xff3a5a)); sp.scale.setScalar(3.4); sp.material.opacity = 0.55; sp.name = 'elite'; e.object.add(sp); }
+      if ((m.af || null) !== (e.af || null)) this.setAffix(e, m.af); // élite con afijo: halo de color + nombre
+      if (e.affSp) { const k = 1 / Math.max(0.2, scale); e.affSp.scale.set(3.6 * k, 0.6 * k, 1); e.affHalo.scale.setScalar(4.6 + 0.5 * Math.sin(this.t * 5 + m.id)); }
       o.position.lerp(V(m.p), 0.6);
       { // IMPACTO: al recibir daño la criatura se aplasta y rebota (resorte amortiguado ~0,35 s): el golpe se SIENTE en el cuerpo
         if (m.h && !e.hPrev) { e.kick = Math.min(1.6, (e.kick || 0) + 1); e.kickT = 0; } e.hPrev = !!m.h;

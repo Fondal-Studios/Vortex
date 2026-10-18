@@ -9,7 +9,7 @@
 <link rel="manifest" href="/public/manifest.webmanifest"><link rel="apple-touch-icon" href="/public/icon-180.png">
 <title>Cristal Vórtice</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css">
+<link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css"><link rel="stylesheet" href="/public/territorios.css">
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
 </head>
 <body>
@@ -57,6 +57,7 @@
       <button class="item" data-go="story" data-art="historia"><b>Historia</b><small>Un tren, un andén, una luz</small></button>
       <button class="item" data-go="arenas" data-art="arenas"><b>Arenas</b><small>Directo a la acción</small></button>
       <button class="item" data-go="huesped" data-art="equipo"><b>Huésped</b><small>Elegí tu organismo</small></button>
+      <button class="item" data-go="territorios" data-art="arenas"><b>Territorios</b><small>El mapa del limbo · bendiciones</small></button>
       <button class="item" data-go="evolucion" data-art="equipo"><b>Evolución</b><small>Núcleos · armas fusionadas · mutaciones</small></button>
       <button class="item" data-go="loadout" data-art="equipo"><b>Equipo</b><small>Personajes · habilidades · armas</small></button>
       <button class="item" data-go="coop" data-art="coop"><b>Cooperativo</b><small>Hasta 4 Pasajeros</small></button>
@@ -88,6 +89,8 @@
   </section>
   <!-- ═════ HUÉSPED: selección previa a la partida (src/client/huespedes-ui.js) ═════ -->
   <section id="huesped" class="screen" data-screen="huesped"></section>
+  <!-- ═════ TERRITORIOS: mapa del limbo y bendiciones (src/client/territorios-ui.js) ═════ -->
+  <section id="territorios" class="screen" data-screen="territorios"></section>
   <!-- ═════ EVOLUCIÓN: núcleos, nivel del Huésped y catálogo de armas (src/client/evolucion-ui.js) ═════ -->
   <section id="evolucion" class="screen" data-screen="evolucion"></section>
   <!-- ═════ EQUIPO: personajes y armas ═════ -->

@@ -392,3 +392,17 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 #radar .rd-arrow i { display: block; font-style: normal; font-size: 24px; line-height: 32px; }
 #radar .rd-arrow span { display: block; color: #fff; text-shadow: 0 0 4px #000; margin-top: -4px; }
 #radar .rd-arrow.in i { font-size: 18px; }
+
+/* Limbo vivo: panel de NPC y cartel de interacción (src/client/mundo-vivo.js) */
+#npcpanel { position: fixed; inset: 0; z-index: 38; display: flex; align-items: center; justify-content: center; background: rgba(4,2,12,.55); padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+#npcpanel.hidden, #npchint.hidden { display: none; }
+#npcpanel .np-in { width: min(520px, 100%); display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid rgba(255,212,90,.5); border-radius: 12px; background: rgba(14,8,28,.94); color: #f0e8ff; font-family: system-ui, sans-serif; }
+#npcpanel h3 { margin: 0; text-align: center; color: #ffd45a; letter-spacing: .08em; font-size: clamp(15px, 3vh, 22px); }
+#npcpanel .np-says { margin: 0; text-align: center; font-style: italic; opacity: .85; font-size: clamp(11px, 2.2vh, 15px); }
+#npcpanel .np-offer { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; text-align: left; padding: 10px; border-radius: 8px; border: 1px solid rgba(180,150,255,.5); background: rgba(60,30,100,.55); color: inherit; font-size: clamp(11px, 2.2vh, 15px); min-height: 44px; }
+#npcpanel .np-offer em { color: #ffd45a; font-style: normal; font-weight: 700; }
+#npcpanel .np-offer kbd { background: #000a; border-radius: 4px; padding: 1px 6px; }
+#npcpanel .np-msg { margin: 0; min-height: 1.2em; text-align: center; font-size: clamp(11px, 2.2vh, 15px); }
+#npcpanel .np-msg.ok { color: #7dffb0; } #npcpanel .np-msg.no { color: #ff8a9a; }
+#npcpanel .np-close { align-self: center; padding: 8px 18px; border-radius: 8px; border: 1px solid #8884; background: #0006; color: #ddd; min-height: 44px; }
+#npchint { position: fixed; left: 50%; bottom: 22%; transform: translateX(-50%); z-index: 20; padding: 6px 12px; border-radius: 16px; background: rgba(14,8,28,.8); border: 1px solid rgba(255,212,90,.6); color: #ffe9a0; font: 600 14px system-ui, sans-serif; pointer-events: none; }
