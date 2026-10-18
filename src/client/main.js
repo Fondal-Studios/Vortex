@@ -118,6 +118,7 @@ function npcInput(i) {
   const pressed = !!i.interact && !npcPrevUse; npcPrevUse = !!i.interact;
   if (pressed && npcCtx.npc && !npcPanel.open) npcPanel.show(npcCtx.npc.nk);
   const rq = npcPanel.take(); if (rq) i.npc = rq;
+  i.soft = !!settings().reducirGravedad;   // «Reducir efectos de gravedad»: la inversión llega como un empujón, sin giro de cámara
   return i;
 }
 let evoChoice = null, evoPrevWant = false;
@@ -426,6 +427,11 @@ function audioAndHud(state, me, dt) {
       case 'evolve': if (mine && evoHud) { evoHud.celebrate(e.tier); sound.objective(true); flash(); } break; // evolución: destello, onda y texto (hud-evolucion.js)
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con B', 2200); break;
       case 'surge': banner('El Vórtice se enfurece…', 1800); break;
+      case 'ev': { const D = EVENTOS[e.id]; if (!D) break; // evento de oleada (src/sim/eventos.js): aviso ~4 s antes, activo, fin
+        if (e.ph === 'aviso') { sound.wave(); banner(`¡Se acerca: ${D.name}!`, 3600); }
+        else if (e.ph === 'activo') { banner(`${D.icon} ${D.name.toUpperCase()}`, 2200); if (e.id !== 'marea_gravedad') flash(); }
+        else if (e.ph === 'fin') { banner(e.ok ? `${D.name} superada · ¡premio!` : `${D.name} terminó`, 2000); if (e.ok) sound.objective(true); }
+        break; }
       case 'feed': if (!session.feedT || performance.now() - session.feedT > 160) { session.feedT = performance.now(); sound.pickup(); } break; // mapa 4: un impacto alimentó un capullo (el aro de puntos del capullo muestra cuánto)
       case 'gnaw': if (!session.gnawT || performance.now() - session.gnawT > 9000) { session.gnawT = performance.now(); banner('¡Las criaturas están royendo un capullo! Defendelo', 2200); sound.hurt(); } break;
       case 'bloom': sound.objective(true); banner(`¡CAPULLO FLORECIDO! (${e.k + 1}/${e.n}) Crece un tramo del puente`, 3000); break;
@@ -444,7 +450,7 @@ function audioAndHud(state, me, dt) {
   try { caida.update(dt, state, session.intro ? null : me); } catch (err) { caida.update = () => {}; console.warn('caida', err.message); }
   canvas.classList.toggle('flip', !!(me && me.flip));
   canvas.classList.toggle('tide', !!(state.fx && (state.fx.zero || state.fx.warn)));
-  if (state.fx && state.fx.warn && !session.tideWarned) { session.tideWarned = true; banner('LA MAREA SE APROXIMA… sin gravedad', 2500); }
+  if (state.fx && state.fx.warn && !session.tideWarned && !state.ev) { session.tideWarned = true; banner('LA MAREA SE APROXIMA… sin gravedad', 2500); }
   if (state.fx && !state.fx.warn) session.tideWarned = false;
   $('wave').textContent = state.phase === 'intermission' ? (state.wave ? 'RESPIRO' : 'PREPARATE') : `OLEADA ${state.wave} / ${state.waveTotal}`;
   $('left').textContent = state.phase === 'intermission' ? `siguiente en ${Math.ceil(state.intermission)}s` : `${state.left} criaturas`;

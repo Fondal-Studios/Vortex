@@ -24,6 +24,7 @@ import heraldo from './creatures/heraldo.js';
 import { cfg, LEVELS, setCurrent } from './quality.js';
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
 import { createHostFx } from './hostfx.js';
+import { EventosFx } from './eventos-fx.js';
 import { createHostBody, isHost } from './host-body.js';
 import { blocked } from '../sim/physics.js';
 import { settings } from './settings.js';
@@ -76,6 +77,7 @@ export class Renderer {
     this.scene.add(this.hemi, this.sun, this.rim);
     this.vm = new Viewmodels(this.camera, this.halo);
     try { this.hostfx = createHostFx(this); } catch (err) { console.warn('Efectos de Huéspedes no disponibles', err.message); this.hostfx = null; } // habilidades y melee de los 5 Huéspedes (hostfx.js)
+    try { this.evfx = new EventosFx(this); } catch (err) { console.warn('Efectos de eventos no disponibles', err.message); this.evfx = null; } // eventos de oleada (eventos-fx.js)
     this.dying = [];
     this.setupPost();
     this.resize();
@@ -211,6 +213,7 @@ export class Renderer {
     this.objects.sync(state, dt, state.map, this.camera.position);
     this.handleEvents(state, me);
     if (this.hostfx) this.hostfx.update(dt, state, me);
+    if (this.evfx) { try { this.evfx.update(dt, state, me); } catch (err) { console.warn('evfx', err.message); this.evfx = null; } }
     this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)

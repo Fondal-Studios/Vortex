@@ -103,7 +103,7 @@ export class EventosFx {
     g.visible = true; g.position.set(x - ux * 0.8, y - uy * 0.8, zz - uz * 0.8); orient(g, [ux, uy, uz]); g.scale.setScalar(r);
     const activa = ev.ph === 'activo';
     U.fill.material.opacity = (activa ? 0.12 + 0.2 * pur : 0.06) + 0.04 * Math.sin(this.t * 3);
-    U.ring.material.opacity = activa ? 0.35 + 0.55 * pur : 0.5; U.pil.scale.set(0.8, 60, 0.8); U.pil.position.z = 30; U.pil.material.opacity = (activa ? 0.05 + 0.12 * pur : 0.2);
+    U.ring.material.opacity = activa ? 0.35 + 0.55 * pur : 0.5; U.pil.scale.set(0.8, 8, 0.8); U.pil.position.z = 4; U.pil.material.opacity = (activa ? 0.05 + 0.12 * pur : 0.2);
   }
   /* ───── halos de las criaturas en la Niebla ───── */
   brillo(ev, state) {
