@@ -124,14 +124,30 @@ export function buildEvolucionScreen(menu) {
     cam.position.set(0, cy + hh * 0.04, d); cam.lookAt(0, cy, 0); cam.updateProjectionMatrix();
   }
   function bbox(obj) { const T = ev.THREE, b = new T.Box3().setFromObject(obj), s = new T.Vector3(); b.getSize(s); return { cy: (b.max.y + b.min.y) / 2, h: s.y, w: Math.max(s.x, s.z), top: b.max.y, bot: b.min.y }; }
+  /** Kit humano + módulo del cuerpo unificado (se cargan una sola vez, a demanda). */
+  function hostKit() {
+    return ev.hkP || (ev.hkP = (async () => { const hm = await import('./humans.js'), mod = await import('./huesped-cuerpo.js'); return { hm, mod, kit: await hm.loadHumanKit({ quality: ev.quality, movil: ev.quality === 'low' }) }; })());
+  }
   function setHost(force) {
     if (!ev.THREE) return;
     const shownEvo = ev.peek ? Math.min(4, evoOf(ev.char) + 1) : evoOf(ev.char), eq = perfil().melee[ev.char] || '', org = perfil().corg[ev.char] || [], pth = perfil().path[ev.char] || [], key = `${ev.char}|${shownEvo}|${pth.join()}|${eq}|${org.join()}`;
     if (!force && key === ev.hostKey && ev.host) return;
     if (ev.host) { ev.sceneA.remove(ev.host.group); ev.host.dispose(); ev.host = null; }
-    ev.hostKey = key; ev.host = buildHostEvo(ev.THREE, ev.char, { evo: shownEvo, path: pth, melee: eq, organs: org, quality: ev.quality });
-    ev.sceneA.add(ev.host.group); ev.host.update(0.016, 0.3); tint();
-    const b = bbox(ev.host.group.children[0]); ev.frameA = [b.cy, Math.max(1.6, b.h * 1.12), Math.max(1.2, b.w * 1.02)]; ev.size = [0, 0];
+    ev.hostKey = key; const tok = ev.hostTok = (ev.hostTok || 0) + 1, id = ev.char;
+    // el MISMO cuerpo que en la partida y en la selección (huesped-cuerpo.js): humano de ARCANUM con idle real + armadura/mutación del camino elegido; rotación con el dedo
+    hostKit().then(async (hk) => {
+      if (tok !== ev.hostTok) return;
+      const pl = { char: id, name: CHARACTERS[id].name, evo: shownEvo, pth, cg: org, mw: eq }, b = hk.mod.createHostBody(ev.THREE, hk.kit, pl, { quality: ev.quality, camera: ev.camA });
+      ev.sceneA.add(b.object); await b.ready;
+      if (tok !== ev.hostTok) { ev.sceneA.remove(b.object); b.dispose(); return; }
+      ev.host = { group: b.object, body: b, update: (dt) => b.update(dt, pl, { speed: 0, pitch: 0 }), pose: (k) => { if (k === 'melee' || k === 'skill') b.event({ t: k }); }, dispose: () => b.dispose() };
+      tint(); const f = hk.mod.FRAME[id] || [1.0, 2.3, 1.7]; ev.frameA = [f[0], f[1], f[2]]; ev.size = [0, 0];
+    }).catch((err) => { // respaldo: figura de bloques (huespedes-limbo.js)
+      console.warn('Evolución: cuerpo unificado no disponible —', err.message);
+      if (tok !== ev.hostTok || ev.host) return;
+      ev.host = buildHostEvo(ev.THREE, id, { evo: shownEvo, path: pth, melee: eq, organs: org, quality: ev.quality }); ev.sceneA.add(ev.host.group); ev.host.update(0.016, 0.3); tint();
+      const b = bbox(ev.host.group.children[0]); ev.frameA = [b.cy, Math.max(1.6, b.h * 1.12), Math.max(1.2, b.w * 1.02)]; ev.size = [0, 0];
+    });
   }
   function setPrev(force) {
     if (!ev.THREE) return;

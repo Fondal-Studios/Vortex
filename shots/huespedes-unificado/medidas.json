@@ -1,0 +1,110 @@
+[
+ {
+  "name": "m1-axioma-e0-low",
+  "ok": true,
+  "calls": 39,
+  "tris": 40649,
+  "host": {
+   "calls": 13,
+   "tris": 15214,
+   "meshes": [
+    [
+     "kit-cuerpo",
+     3668
+    ],
+    [
+     "kit-metal",
+     3820
+    ],
+    [
+     "kit-gold",
+     1678
+    ],
+    [
+     "kit-bone",
+     2574
+    ],
+    [
+     "kit-dark",
+     84
+    ],
+    [
+     "kit-light",
+     336
+    ],
+    [
+     "kit-ember",
+     2490
+    ],
+    [
+     "kit-crystal",
+     8
+    ],
+    [
+     "kit-leather",
+     372
+    ],
+    [
+     "kit-spirit",
+     64
+    ]
+   ]
+  }
+ },
+ {
+  "name": "m1-axioma-e4-low",
+  "ok": true,
+  "calls": 46,
+  "tris": 45063,
+  "host": {
+   "calls": 14,
+   "tris": 19024,
+   "meshes": [
+    [
+     "kit-cuerpo",
+     3668
+    ],
+    [
+     "kit-metal",
+     4168
+    ],
+    [
+     "kit-gold",
+     2448
+    ],
+    [
+     "kit-bone",
+     2742
+    ],
+    [
+     "kit-dark",
+     132
+    ],
+    [
+     "kit-light",
+     1628
+    ],
+    [
+     "kit-ember",
+     2634
+    ],
+    [
+     "kit-crystal",
+     8
+    ],
+    [
+     "kit-leather",
+     372
+    ],
+    [
+     "kit-spirit",
+     448
+    ],
+    [
+     "kit-flesh",
+     656
+    ]
+   ]
+  }
+ }
+]

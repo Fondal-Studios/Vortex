@@ -7,7 +7,7 @@
 Presupuesto total del juego: ≤ 40 MB.
 
 ## Poly Haven (CC0) — `public/assets/ph/` (descarga: `node tools/polyhaven-fetch.mjs`; lista y URLs en `public/assets/ph/manifest.json`, cargador `src/client/ph.js`)
-Texturas 1K: `marble_01`, `marble_tiles`, `white_sandstone_bricks`, `medieval_wall_01`, `metal_plate`, `rough_linen`.
+Texturas 1K: `marble_01`, `marble_tiles`, `white_sandstone_bricks`, `medieval_wall_01`, `metal_plate`, `rough_linen`, y (kit de armadura de los Huéspedes, 2026-10-18) `rusty_metal_02`, `brown_leather`, `bark_brown_02`, `rock_boulder_cracked`.
 Cielos HDRI 1K: `small_cathedral_02` (m2, m4, m6, menú), `moonless_golf` (m3, m5), `qwantani_dusk_2_puresky` (m1).
 
 ## ARCANUM (texturas horneadas, CC0) — `public/assets/arcanum/` (≈ 1,1 MB)
@@ -24,7 +24,7 @@ Canales: `_col` color (sRGB), `_nrm` normal, `_arm` = oclusión (R) · rugosidad
 
 ## Poly Haven en detalle (agente de render/Huéspedes)
 Licencia **CC0 1.0** (uso libre, también comercial, sin atribución obligatoria). Script reproducible: `node tools/polyhaven-fetch.mjs`
-(usa `curl`, reintenta 4 veces, no vuelve a bajar lo que ya está; `--forzar` baja todo). Peso actual: **15,1 MB** (presupuesto propio ≤ 25 MB).
+(usa `curl`, reintenta 4 veces, no vuelve a bajar lo que ya está; `--forzar` baja todo). Peso actual: **22,3 MB** (presupuesto propio ≤ 25 MB; las 4 texturas nuevas suman 7,2 MB).
 
 | id | tipo | uso | página |
 |---|---|---|---|
@@ -33,7 +33,11 @@ Licencia **CC0 1.0** (uso libre, también comercial, sin atribución obligatoria
 | `white_sandstone_bricks` | textura 1K | sillares claros | https://polyhaven.com/a/white_sandstone_bricks |
 | `medieval_wall_01` | textura 1K | piedra gastada | https://polyhaven.com/a/medieval_wall_01 |
 | `metal_plate` | textura 1K | base del **oro** envejecido (filigrana, gorguera, aureola, corona) | https://polyhaven.com/a/metal_plate |
-| `rough_linen` | textura 1K | lino: túnicas, velos | https://polyhaven.com/a/rough_linen |
+| `rough_linen` | textura 1K | lino: túnicas, velos, capas de los Huéspedes | https://polyhaven.com/a/rough_linen |
+| `rusty_metal_02` | textura 1K | **acero ennegrecido** de la armadura de los Huéspedes (kit `huesped-armor.js`; encima se dibujan líneas de panel y remaches sobre su normal) | https://polyhaven.com/a/rusty_metal_02 |
+| `brown_leather` | textura 1K | cuero: cinturones, arneses, faldones | https://polyhaven.com/a/brown_leather |
+| `bark_brown_02` | textura 1K | corteza (Micelio, raíces) | https://polyhaven.com/a/bark_brown_02 |
+| `rock_boulder_cracked` | textura 1K | roca agrietada → **hueso fósil** (púas, cuernos, costillar) | https://polyhaven.com/a/rock_boulder_cracked |
 | `small_cathedral_02` | HDRI 1K | luz/reflejos de templo (m2, m4, m6, selección de Huésped) | https://polyhaven.com/a/small_cathedral_02 |
 | `moonless_golf` | HDRI 1K | noche fría (m3, m5) | https://polyhaven.com/a/moonless_golf |
 | `qwantani_dusk_2_puresky` | HDRI 1K | atardecer (m1) | https://polyhaven.com/a/qwantani_dusk_2_puresky |

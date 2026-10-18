@@ -7,7 +7,7 @@ import * as THREE from 'three';
 
 export const PH_BASE = new URL('../../public/assets/ph/', import.meta.url).href; // relativo al módulo: sirve igual en el servidor local y en el sitio estático
 export const PH = {
-  textures: ['marble_01', 'marble_tiles', 'white_sandstone_bricks', 'medieval_wall_01', 'metal_plate', 'rough_linen'],
+  textures: ['marble_01', 'marble_tiles', 'white_sandstone_bricks', 'medieval_wall_01', 'metal_plate', 'rough_linen', 'rusty_metal_02', 'brown_leather', 'bark_brown_02', 'rock_boulder_cracked'],
   hdris: ['small_cathedral_02', 'moonless_golf', 'qwantani_dusk_2_puresky'],
 };
 /** Cielo de iluminación de cada mapa: templo dorado (interior), atardecer (islas), noche (laberinto). */

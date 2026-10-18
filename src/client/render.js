@@ -385,10 +385,10 @@ export class Renderer {
   }
 
   /** Carga perezosa del kit de personas (Arcanum NPC Factory). En calidad Baja no se usa: avatares livianos. */
-  async ensureHumans() {
-    if (this.humansKit || this.humansLoading || (cfg().humans === 'low' && !HUMAN_HOSTS)) return; // en Baja sólo para el Huésped con cuerpo humano (host-human.js)
+  async ensureHumans(force = false) {
+    if (this.humansKit || this.humansLoading || (cfg().humans === 'low' && !HUMAN_HOSTS && !force)) return; // en Baja sólo para el Huésped con cuerpo humano (host-human.js)
     this.humansLoading = true;
-    try { this.hm = await import('./humans.js'); this.humansKit = await this.hm.loadHumanKit({ quality: cfg().humans }); } catch (err) { console.warn('personas 3D no disponibles:', err.message); }
+    try { this.hm = await import('./humans.js'); this.humansKit = await this.hm.loadHumanKit({ quality: cfg().humans }); } catch (err) { console.warn('personas 3D no disponibles:', err.message); this.humansFailed = true; }
   }
   simpleAvatar(col) {
     const g = new THREE.Group(), m = crystalMaterial(col, { glow: 0.2 });
@@ -398,15 +398,23 @@ export class Renderer {
   syncPlayers(state, myId, dt = 0.016) {
     const seen = new Set();
     if (state.players.length > 1) this.ensureHumans();
+    if (state.players.some((q) => isHost(q.char))) this.ensureHumans(true); // los Huéspedes usan siempre el cuerpo unificado (huesped-cuerpo.js), también en Baja
     for (const p of state.players) {
       const self = p.id === myId; if (self && !this.third) continue;
       seen.add(p.id);
       let e = this.ents.ply.get(p.id);
       const ch = CHARACTERS[p.char], col = ch ? ch.color : PLAYER_COLORS[(p.id - 1) % 4];
       if (!e) { e = { object: new THREE.Group(), human: null, simple: null, prev: p.pos, spd: 0, col, shotT: 0 }; e.simple = this.simpleAvatar(col); e.object.add(e.simple); this.entRoot.add(e.object); this.ents.ply.set(p.id, e); }
-      if (!e.body && !e.noBody && !e.human && isHost(p.char)) { try { e.body = createHostBody(THREE, p, { quality: this.level === 'low' ? 'low' : 'medium' }); e.object.add(e.body.object); if (e.simple) { e.object.remove(e.simple); e.simple = null; } } catch (err) { console.warn('cuerpo de Huésped:', err.message); e.noBody = true; } } // cuerpo con modelo de Huésped (host-body.js)
-      if (e.body && !e.body.human && HUMAN_HOSTS && this.humansKit && this.hm && !e.noHuman) { try { if (!this.hostHumanMod) { this.hostHumanMod = 'cargando'; import('./host-human.js').then((m) => { this.hostHumanMod = m; }).catch(() => { this.hostHumanMod = null; e.noHuman = true; }); } else if (this.hostHumanMod.createHostHuman) { const hb = this.hostHumanMod.createHostHuman(THREE, this.hm, this.humansKit, p, { quality: this.level, camera: this.camera, weapon: p.w, getMap: () => this.mapId }); e.object.remove(e.body.object); e.body.dispose(); e.body = hb; e.object.add(hb.object); } } catch (err) { console.warn('Huésped humano:', err.message); e.noHuman = true; } } // cuerpo humano real intervenido (host-human.js) en Media/Alta
-      if (!e.body && !e.human && this.humansKit && this.hm && cfg().humans !== 'low') { try { e.human = this.hm.createHuman(this.humansKit, ch ? { char: p.char, name: p.name } : { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
+      if (!e.body && !e.noBody && !e.human && isHost(p.char) && (this.humansKit || this.humansFailed)) { // cuerpo UNIFICADO del Huésped (huesped-cuerpo.js): humano de ARCANUM + kit de armadura anclado a los huesos
+        try {
+          if (this.humansFailed) { e.body = createHostBody(THREE, p, { quality: this.level === 'low' ? 'low' : 'medium' }); e.object.add(e.body.object); e.fallback = true; } // sin el kit humano: cuerpo de bloques
+          else if (!this.cuerpoMod) { this.cuerpoMod = 'cargando'; import('./huesped-cuerpo.js').then((m) => { this.cuerpoMod = m; }).catch((err) => { console.warn('cuerpo de Huésped:', err.message); this.cuerpoMod = null; }); }
+          else if (this.cuerpoMod.createHostBody) { e.body = this.cuerpoMod.createHostBody(THREE, this.humansKit, p, { quality: this.humansKit.quality, camera: this.camera, map: this.mapId }); e.object.add(e.body.object); }
+          else if (this.cuerpoMod === null) { e.body = createHostBody(THREE, p, { quality: this.level === 'low' ? 'low' : 'medium' }); e.object.add(e.body.object); e.fallback = true; } // sin el módulo: cuerpo de bloques
+        } catch (err) { console.warn('cuerpo de Huésped:', err.message); e.noBody = true; }
+      }
+      if (e.body && e.simple && (e.fallback || e.body.isReady)) { e.object.remove(e.simple); e.simple = null; } // el avatar simple sólo se muestra mientras carga el cuerpo
+      if (!e.body && !e.human && !isHost(p.char) && this.humansKit && this.hm && cfg().humans !== 'low') { try { e.human = this.hm.createHuman(this.humansKit, ch ? { char: p.char, name: p.name } : { preset: self ? 'pasajero' : 'jugador' + (((p.id - 1) % 4) + 1), color: col, name: p.name, role: p.role }); e.object.add(e.human.object); e.object.remove(e.simple); e.simple = null; } catch (err) { console.warn(err.message); } }
       const dv = [p.pos[0] - e.prev[0], p.pos[1] - e.prev[1], p.pos[2] - e.prev[2]], spd = Math.hypot(...dv) / Math.max(dt, 1e-3); e.prev = p.pos;
       const hv = V(p.h), rv = new THREE.Vector3().crossVectors(hv, V(p.up)), dvv = V(dv), dl = dvv.length() || 1; e.moveDir = { x: dvv.dot(rv) / dl, z: dvv.dot(hv) / dl }; e.spd += (Math.min(spd, 20) - e.spd) * Math.min(1, 6 * dt);
       const base = V(p.pos).addScaledVector(V(p.up), e.human || e.body ? -0.9 : 0);
@@ -425,7 +433,7 @@ export class Renderer {
       if (!self) {
       const txt = p.dead ? `REANIMAR ${Math.round(p.rv / 3 * 100)}%` : `${p.name} ${p.id}`, colr = p.dead ? '#ff7a9a' : '#' + col.toString(16).padStart(6, '0');
       if (e.labelTxt !== txt) { e.labelTxt = txt; e.label.material = this.label(txt, colr); }
-      e.label.position.set(0, e.human ? 2.25 : e.body ? 2.9 : 1.8, 0); }
+      e.label.position.set(0, e.human ? 2.25 : e.body ? (e.body.labelY || 2.9) : 1.8, 0); }
     }
     for (const [id, e] of this.ents.ply) if (!seen.has(id)) { this.entRoot.remove(e.object); if (e.human) e.human.dispose(); if (e.body) e.body.dispose(); this.ents.ply.delete(id); }
   }

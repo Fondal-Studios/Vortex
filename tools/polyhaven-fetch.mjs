@@ -14,6 +14,10 @@ export const PH_TEXTURES = {
   medieval_wall_01: 'piedra gastada (muros, plataformas)',
   metal_plate: 'metal trabajado (base del ORO envejecido con tinte y metalness 1)',
   rough_linen: 'tela de lino (ropas, velos)',
+  rusty_metal_02: 'metal oxidado y ennegrecido (armaduras de los Huéspedes)',
+  brown_leather: 'cuero gastado (correas, faldones, guanteletes)',
+  bark_brown_02: 'corteza (Micelio, raíces)',
+  rock_boulder_cracked: 'roca agrietada (hueso fósil, coraza pétrea)',
 };
 export const PH_HDRIS = {
   small_cathedral_02: 'interior de catedral (reflejos dorados, luz de templo)',

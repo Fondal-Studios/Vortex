@@ -108,6 +108,78 @@
      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg"
     }
    }
+  },
+  "rusty_metal_02": {
+   "use": "metal oxidado y ennegrecido (armaduras de los Huéspedes)",
+   "page": "https://polyhaven.com/a/rusty_metal_02",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/rusty_metal_02/rusty_metal_02_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_metal_02/rusty_metal_02_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/rusty_metal_02/rusty_metal_02_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_metal_02/rusty_metal_02_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/rusty_metal_02/rusty_metal_02_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_metal_02/rusty_metal_02_rough_1k.jpg"
+    }
+   }
+  },
+  "brown_leather": {
+   "use": "cuero gastado (correas, faldones, guanteletes)",
+   "page": "https://polyhaven.com/a/brown_leather",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/brown_leather/brown_leather_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_albedo_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/brown_leather/brown_leather_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/brown_leather/brown_leather_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_rough_1k.jpg"
+    }
+   }
+  },
+  "bark_brown_02": {
+   "use": "corteza (Micelio, raíces)",
+   "page": "https://polyhaven.com/a/bark_brown_02",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/bark_brown_02/bark_brown_02_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/bark_brown_02/bark_brown_02_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/bark_brown_02/bark_brown_02_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_rough_1k.jpg"
+    }
+   }
+  },
+  "rock_boulder_cracked": {
+   "use": "roca agrietada (hueso fósil, coraza pétrea)",
+   "page": "https://polyhaven.com/a/rock_boulder_cracked",
+   "files": {
+    "diff": {
+     "file": "public/assets/ph/rock_boulder_cracked/rock_boulder_cracked_diff_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_cracked/rock_boulder_cracked_diff_1k.jpg"
+    },
+    "nor_gl": {
+     "file": "public/assets/ph/rock_boulder_cracked/rock_boulder_cracked_nor_gl_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_cracked/rock_boulder_cracked_nor_gl_1k.jpg"
+    },
+    "rough": {
+     "file": "public/assets/ph/rock_boulder_cracked/rock_boulder_cracked_rough_1k.jpg",
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_cracked/rock_boulder_cracked_rough_1k.jpg"
+    }
+   }
   }
  },
  "hdris": {
