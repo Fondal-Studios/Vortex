@@ -9,12 +9,12 @@ import { addEvolution } from '../huesped-evo-piezas.js';
 import { uBeat } from '../shaders.js';
 
 export const BELLY = 0;
-const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xcfb4ff, OBS = 0x1c1232, OBS_D = 0x0c0818, VOID = 0x000000, MIR = 0xa8b0d0, MIRV = 0x9a86d0, SHROUD = 0x120a22;
+const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xcfb4ff, OBS = 0x1c1232, OBS_D = 0x1e1438, VOID = 0x000000, MIR = 0xa8b0d0, MIRV = 0x9a86d0, SHROUD = 0x2a1c48;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, cuff, S, low, basisQ } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), HC = V(0, 1.6, 0.06), upd = [], R = t.rng(51), TAU = Math.PI * 2;
   const cnew = (h) => new T.Color(h);
-  { const dm = ak.material('dark'); dm.roughness = 1; dm.metalness = 0; dm.envMapIntensity = 0.25; } // sudario mate: sólo un brillo en los bordes
+  { const dm = ak.material('dark'); dm.roughness = 0.6; dm.metalness = 1; dm.envMapIntensity = 0.7; } // sudario mate: sólo un brillo en los bordes
 
 
   // ═══════════════════════════ CAPUCHA VACÍA + MÁSCARA DE ESPEJO ROTA
@@ -140,18 +140,18 @@ export function build(ak, ctx) {
     const rob = G.lathe([[0.33, -0.06], [0.33, 0.06], [0.31, 0.25], [0.27, 0.48], [0.235, 0.7], [0.205, 0.88], [0.185, 1.0]], S(24, 12), 0, TAU, 0);
     G.warp(rob, (x, y, z) => { if (y < 0.3) { const a = Math.atan2(z, x), k = (0.3 - y) / 0.36, j = Math.max(0, Math.sin(a * 7 + 0.5) * Math.sin(a * 3 + 1.2)); return [x, y + k * (j * 0.14 - 0.01), z]; } return [x, y, z]; });
     add('dark', X(rob, { p: [0, 0, 0.02], s: [1, 1, 0.92] }), 'spine05', { color: SHROUD });
-    { const cm = ak.material('cloth'); cm.map = null; cm.roughnessMap = null; cm.roughness = 1; cm.metalness = 0; cm.envMapIntensity = 0.3; cm.color.set(0xffffff); cm.needsUpdate = true; } // tela lisa: el color sale del vértice (sin el tono marrón del lino)
+    { const cm = ak.material('cloth'); cm.map = null; cm.roughnessMap = null; cm.roughness = 0.62; cm.metalness = 1; cm.envMapIntensity = 0.8; cm.color.set(0xffffff); cm.needsUpdate = true; } // tela lisa: el color sale del vértice (sin el tono marrón del lino)
     const flare = (cl, k, cx, cz, pw = 1.4) => { for (let i = 0; i < cl.rows; i++) for (let j = 0; j < cl.cols; j++) { const b = cl.bind[i * cl.cols + j], f = i / (cl.rows - 1); const dx = cl.top[j].p.x - cx, dz = cl.top[j].p.z - cz, l = Math.hypot(dx, dz) || 1; b.x += (dx / l) * k * Math.pow(f, pw); b.z += (dz / l) * k * Math.pow(f, pw); } return cl; }; // abre el vuelo de la tela hacia afuera
     // faldón de telas: anillo de 18 jirones de largo distinto
     const cols = [], lens = [], N = low ? 16 : 22;
     for (let j = 0; j < N; j++) { const a = (j / (N - 1)) * (TAU - 0.5) + Math.PI + 0.25; cols.push({ bone: j % 2 ? 'spine05' : 'spine04', p: V(Math.sin(a) * 0.22, 0.99, 0.03 + Math.cos(a) * 0.19) }); lens.push(0.78 + (R() - 0.35) * 0.42 + (j % 3 === 0 ? 0.12 : 0)); }
-    flare(ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(10, 6), color: 0x1e1236, hem: 0x05030a, gravity: 5, stiff: 0.02, drag: 0.985, wave: 0.04, ember: 1.1 }), 0.2, 0, 0.03);
+    flare(ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(10, 6), color: 0x32225a, hem: 0x08050f, gravity: 5, stiff: 0.02, drag: 0.985, wave: 0.04, ember: 1.1 }), 0.2, 0, 0.03);
     // capa trasera, ancha, con los largos rotos
     const c2 = [], l2 = []; const M = low ? 8 : 11; for (let j = 0; j < M; j++) { const x = -0.25 + j * (0.5 / (M - 1)); c2.push({ bone: 'spine01', p: V(x, 1.42 - Math.abs(x) * 0.1, -0.1) }); l2.push(1.25 + 0.3 * Math.cos((j / (M - 1) - 0.5) * 2.2) + (R() - 0.5) * 0.45); }
-    flare(ak.cloth({ top: c2, dir: V(0, -1, -0.3), lens: l2, rows: S(12, 8), color: 0x170e2c, hem: 0x05030a, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 1.0 }), 0.22, 0, 0.1);
+    flare(ak.cloth({ top: c2, dir: V(0, -1, -0.3), lens: l2, rows: S(12, 8), color: 0x281a46, hem: 0x08050f, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 1.0 }), 0.22, 0, 0.1);
     // faldón delantero (jirón central)
     const c3 = [], l3 = []; for (let j = 0; j < 4; j++) { c3.push({ bone: 'spine05', p: V(-0.075 + j * 0.05, 0.95, 0.2) }); l3.push(0.7 + (R() - 0.5) * 0.2); }
-    flare(ak.cloth({ top: c3, dir: V(0, -1, 0.1), lens: l3, rows: S(8, 5), color: 0x241640, hem: 0x05030a, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.9 }), 0.1, 0, 0.0);
+    flare(ak.cloth({ top: c3, dir: V(0, -1, 0.1), lens: l3, rows: S(8, 5), color: 0x32225a, hem: 0x08050f, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.9 }), 0.1, 0, 0.0);
     ak.collider('spine02', V(0, 1.0, 0.045), V(0, 1.36, 0.045), 0.18); ak.collider('spine05', V(0, 0.86, 0.045), V(0, 0.98, 0.045), 0.21); ak.collider('spine05', V(0, 0.3, 0.03), V(0, 0.8, 0.03), 0.3);
     ak.both(() => { ak.collider('upperleg01', P('upperleg01'), P('lowerleg01'), 0.13); });
     // volutas: jirones de espíritu (cadenas con física) que se deshacen en luz; cada eslabón se desvanece hacia la punta

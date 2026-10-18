@@ -6,8 +6,8 @@ import * as T from 'three';
 import { tools, V } from '../huesped-piezas.js';
 import { addEvolution } from '../huesped-evo-piezas.js';
 
-export const BELLY = 0;
-const BONE = 0xe8dcc4, BONE_D = 0xb3a386, BONE_L = 0xfff6e4, DARK = 0x2a2040, DARK2 = 0x453866, METAL = 0x9a8ac8, METAL_D = 0x6e5e9c, LEATH = 0x5a3a50, VIO = 0xb04bff, VIO_D = 0x4e1e9c, MAG = 0xff5ad8, EYE = 0xb8ff6a;
+export const BELLY = 1; // vientre luminoso entre las costillas
+const BONE = 0xe8dcc4, BONE_D = 0xb3a386, BONE_L = 0xfff6e4, DARK = 0x2a2040, DARK2 = 0x453866, METAL = 0xc4b4ec, METAL_D = 0x9686c8, LEATH = 0x5a3a50, VIO = 0xb04bff, VIO_D = 0x4e1e9c, MAG = 0xff5ad8, EYE = 0xb8ff6a;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, dome, cuff, bonelump, S, low } = t, P = (n) => ak.P(n), add = ak.add;
@@ -89,13 +89,15 @@ export function build(ak, ctx) {
     for (let i = 0; i < 2; i++) add('bone', G.torus(0.042 + i * 0.01, 0.0045, 4, S(14, 8)).rotateX(Math.PI / 2 + (i - 0.5) * 0.8).translate(0, 1.285, 0.198), 'spine01', { color: BONE_L });
     ak.halo('spine01', V(0, 1.285, 0.24), MAG, 0.44, 0.55);
     // costillar abierto: 5 costillas gruesas que abrazan el vientre (la piel luminosa se ve entre ellas) + espinazo
-    for (let i = 0; i < 5; i++) {
-      const y = 1.172 - i * 0.04, rr = 0.136 - i * 0.003, pts = [];
+    for (let i = 0; i < 4; i++) {
+      const y = 1.19 - i * 0.038, rr = 0.136 - i * 0.003, pts = [];
       for (let k = 0; k <= 6; k++) { const a = -0.3 + (k / 6) * 2.2; pts.push(V(Math.sin(a) * rr * 1.0, y - Math.sin(a) * 0.026, 0.035 + Math.cos(a) * rr * 1.05)); }
       for (const sg of [1, -1]) add('bone', G.tube(pts.map((p) => V(p.x * sg, p.y, p.z)), 0.0105 - i * 0.0006, 0.006, { radial: S(5, 4), tubular: S(14, 7), closeStart: true }), i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? BONE : BONE_D });
       add('bone', G.cone(0.011, 0.04, 4).rotateX(Math.PI / 2).translate(0, y, 0.035 + rr * 1.05 + 0.004), i < 1 ? 'spine02' : 'spine03', { color: BONE_L });
     }
-    add('light', seam([V(0, 1.2, 0.16), V(0.004, 1.12, 0.165), V(0, 1.0, 0.152)], 0.0032), 'spine03', { color: VIO });
+    // corsé de lames: 3 anillos facetados de metal con filete y tiras de cuero sobre el vientre bajo
+    for (let i = 0; i < 4; i++) { const y = 1.082 - i * 0.034, c = G.lathe([[0.146 - i * 0.004, y - 0.022], [0.152 - i * 0.004, y - 0.004], [0.15 - i * 0.004, y + 0.014], [0.144 - i * 0.004, y + 0.022]], S(14, 9), 0, Math.PI * 2, 40); X(c, { p: [0, 0, 0.03], s: [1, 1, 0.88] }); add('metal', c, i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? METAL_D : METAL }); add('ember', G.torus(0.151 - i * 0.004, 0.0026, 3, S(18, 9)).scale(1, 1, 0.88).translate(0, y + 0.02, 0.03), i < 1 ? 'spine02' : 'spine03', { color: MAG }); }
+    add('light', seam([V(0, 1.21, 0.165), V(0.004, 1.15, 0.17), V(0, 1.1, 0.16)], 0.0032), 'spine03', { color: VIO });
     // columna a la espalda: vértebras con púas
     for (let i = 0; i < (low ? 6 : 9); i++) { const y = 1.4 - i * (low ? 0.062 : 0.042); add('bone', X(bonelump(0.026 - i * 0.0007, [1.1, 0.8, 1], i + 3, 0.2), { p: [0, y, -0.094 - Math.sin(i * 0.4) * 0.004] }), y > 1.2 ? 'spine01' : y > 1.07 ? 'spine02' : 'spine03', { color: BONE_D }); }
     // arnés de cuero cruzado con hebilla de hueso
@@ -103,7 +105,7 @@ export function build(ak, ctx) {
     add('bone', t.box(0.04, 0.034, 0.014, 0.005, 1).translate(0.0, 1.235, 0.205), 'spine02', { color: BONE });
     // caderas: placas escalonadas de cuero y hueso a los lados del vientre
     ak.both(() => {
-      for (let i = 0; i < 3; i++) PL(i < 1 ? 'spine02' : 'spine03', [[-0.034, 0.03], [0.034, 0.03], [0.042, -0.01], [0.0, -0.036], [-0.042, -0.01]], { mat: i === 1 ? 'crystal' : 'metal', depth: 0.014, bevel: 0.005, wrap: { rx: 0.15 - i * 0.004, rz: 0.115 }, color: i === 1 ? VIO_D : METAL_D, trim: 'ember', trimInset: 0.2, trimR: 0.0024, place: (g) => X(g, { p: [0.1 - i * 0.004, 1.15 - i * 0.052, 0.02 - i * 0.002], r: [0, 0.65, 0] }) });
+      for (let i = 0; i < 3; i++) PL(i < 1 ? 'spine02' : 'spine03', [[-0.034, 0.03], [0.034, 0.03], [0.042, -0.01], [0.0, -0.036], [-0.042, -0.01]], { mat: i === 1 ? 'crystal' : 'dark', depth: 0.014, bevel: 0.005, wrap: { rx: 0.15 - i * 0.004, rz: 0.115 }, color: i === 1 ? VIO_D : 0x6a5a98, trim: 'ember', trimInset: 0.2, trimR: 0.0024, place: (g) => X(g, { p: [0.1 - i * 0.004, 1.15 - i * 0.052, 0.02 - i * 0.002], r: [0, 0.65, 0] }) });
       add('leather', G.tube([V(0.155, 1.205, 0.07), V(0.19, 1.11, 0.095), V(0.195, 1.02, 0.075), V(0.185, 0.97, 0.04)], 0.0105, 0.0105, { radial: low ? 3 : 4, tubular: 8 }), 'spine03', { color: LEATH });
     });
     // cinturón con hebilla de garra
@@ -157,7 +159,7 @@ export function build(ak, ctx) {
     add('dark', limb(cuff(0.09, 0.066, ul * 0.8, 0.012, S(10, 7), 28), H, K, 0.46), 'upperleg01', { color: DARK });
     PL('upperleg01', [[-0.055, 0.12], [0.055, 0.12], [0.07, 0.0], [0.04, -0.13], [0, -0.16], [-0.04, -0.13], [-0.07, 0.0]], { mat: 'crystal', depth: 0.014, bevel: 0.005, wrap: { rx: 0.108, rz: 0.098 }, color: VIO_D, trim: 'ember', trimInset: 0.2, place: (g) => limb(g, H, K, 0.28, { r: [0, -Math.PI / 2 + 0.2, 0] }) });
     // escamas de pelaje escalonadas que bajan por el muslo (puntas hacia abajo) con filete de luz
-    for (let i = 0; i < (low ? 3 : 4); i++) PL('upperleg01', [[-0.05 + i * 0.004, 0.035], [0.05 - i * 0.004, 0.035], [0.042 - i * 0.004, -0.02], [0, -0.075], [-0.042 + i * 0.004, -0.02]], { depth: 0.014, bevel: 0.005, wrap: { rx: 0.1 - i * 0.004, rz: 0.094 - i * 0.003 }, color: i % 2 ? METAL : METAL_D, trim: i % 2 ? undefined : 'ember', trimInset: 0.16, trimR: 0.0024, place: (g) => limb(g, H, K, 0.5 + i * 0.1) });
+    for (let i = 0; i < (low ? 3 : 4); i++) PL('upperleg01', [[-0.05 + i * 0.004, 0.035], [0.05 - i * 0.004, 0.035], [0.042 - i * 0.004, -0.02], [0, -0.075], [-0.042 + i * 0.004, -0.02]], { mat: 'dark', depth: 0.014, bevel: 0.005, wrap: { rx: 0.1 - i * 0.004, rz: 0.094 - i * 0.003 }, color: i % 2 ? 0x8a78bc : 0x6a5a98, trim: i % 2 ? undefined : 'ember', trimInset: 0.16, trimR: 0.0024, place: (g) => limb(g, H, K, 0.5 + i * 0.1) });
     add('light', limb(G.tube([V(0.0, 0.14, 0.092), V(0.003, 0.0, 0.098), V(-0.003, -0.13, 0.094)], 0.003, 0.003, { radial: 4, tubular: 8 }), H, K, 0.4), 'upperleg01', { color: VIO });
     // rodilla: casquete de hueso con púa
     add('metal', X(dome(0.058, 0.05, { lip: 0.3, seg: S(9, 6), crease: 30 }), { p: [K.x, K.y + 0.005, K.z + 0.07], r: [Math.PI / 2, 0, 0] }), 'lowerleg01', { color: METAL });
@@ -168,8 +170,8 @@ export function build(ak, ctx) {
     PL('lowerleg01', [[0, 0.17], [0.03, 0.13], [0.034, -0.1], [0.012, -0.17], [-0.012, -0.17], [-0.034, -0.1], [-0.03, 0.13]], { mat: 'crystal', depth: 0.024, bevel: 0.01, wrap: { rx: 0.064, rz: 0.076 }, color: VIO_D, trim: 'ember', trimInset: 0.22, trimR: 0.0028, place: (g) => limb(g, K, A, 0.42, { off: [0, 0, 0.0] }) });
     // corvejón: placa lateral de perfil que sobresale hacia atrás (la «rodilla invertida» de una pata de felino) con espolón, y la pantorrilla larga que baja en diagonal
     const hock = V(K.x + 0.01, 0.3, -0.15);
-    const calf = G.plate([[-0.06, 0.54], [-0.11, 0.42], [-0.16, 0.31], [-0.135, 0.22], [-0.08, 0.14], [-0.03, 0.17], [-0.015, 0.3], [-0.02, 0.46]], 0.075, 0.016, { crease: 45 });
-    X(calf, { r: [0, -Math.PI / 2, 0] }); X(calf, { p: [K.x + 0.01, 0, 0] }); add('metal', calf, 'lowerleg01', { color: METAL_D });
+    const calf = G.plate([[-0.06, 0.54], [-0.11, 0.42], [-0.16, 0.31], [-0.135, 0.22], [-0.08, 0.14], [-0.03, 0.17], [-0.015, 0.3], [-0.02, 0.46]], 0.05, 0.012, { crease: 45 });
+    X(calf, { r: [0, -Math.PI / 2, 0] }); X(calf, { p: [K.x + 0.03, 0, 0] }); add('dark', calf, 'lowerleg01', { color: 0x6a5a98 });
     add('light', seam([V(K.x + 0.01, 0.5, -0.075), V(K.x + 0.01, 0.4, -0.125), V(K.x + 0.01, 0.3, -0.16), V(K.x + 0.01, 0.2, -0.13)], 0.003), 'lowerleg01', { color: VIO });
     add('bone', X(bonelump(0.04, [0.9, 1.3, 1.0], 7, 0.2), { p: [hock.x + 0.03, hock.y + 0.01, hock.z + 0.0] }), 'lowerleg01', { color: BONE_D });
     add('bone', spikeAt(V(hock.x + 0.02, hock.y + 0.03, hock.z - 0.01), V(0.1, 0.55, -1), 0.24, 0.028, 0.06, Y, { radial: S(6, 4), ridges: 3, ridgeAmp: 0.16 }), 'lowerleg01', { color: BONE });

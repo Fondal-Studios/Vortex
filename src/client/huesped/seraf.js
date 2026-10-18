@@ -17,7 +17,7 @@ export function build(ak, ctx) {
   { // materiales: oro pulido (poco relieve), porcelana menos blanca (para que el bloom no la queme), tela clara
     const mg = ak.material('gold'), mm = ak.material('marble'), mc = ak.material('cloth');
     mg.color.setRGB(1.5, 1.12, 0.42); mg.roughness = 0.55; mg.normalScale.set(0.22, 0.22); mg.userData.uvk = 0.45;
-    mm.color.setRGB(0.82, 0.78, 0.74); mm.userData.uvk = 0.5; mm.normalScale.set(0.15, 0.15); mc.color.setRGB(1.45, 1.38, 1.2);
+    mm.color.setRGB(0.52, 0.47, 0.4); mm.userData.uvk = 0.5; mm.normalScale.set(0.15, 0.15); mc.color.setRGB(0.95, 0.88, 0.76);
   }
 
   // ───────────────────────── utilidades de diseño
@@ -68,7 +68,7 @@ export function build(ak, ctx) {
     add('gold', shell, 'head');
     // rostro: máscara ovalada con nariz fina, párpados bajos, mejillas y boca serena
     const face = G.wrapE(G.plate([[0, 0.078], [0.046, 0.068], [0.077, 0.034], [0.082, -0.016], [0.058, -0.07], [0.022, -0.108], [0, -0.116], [-0.022, -0.108], [-0.058, -0.07], [-0.082, -0.016], [-0.077, 0.034], [-0.046, 0.068]], 0.014, 0.005), 0.118, 0.143); X(face, { p: [HC.x, HC.y - 0.012, HC.z] });
-    add('marble', face, 'head', { color: IVORY });
+    add('marble', face, 'head', { color: 0xf0cf86 });
     add('gold', X(G.wrapE(t.outline([[0, 0.078], [0.046, 0.068], [0.077, 0.034], [0.082, -0.016], [0.058, -0.07], [0.022, -0.108], [0, -0.116], [-0.022, -0.108], [-0.058, -0.07], [-0.082, -0.016], [-0.077, 0.034], [-0.046, 0.068]], { inset: 0.02, z: 0.0075, r: 0.0036 }), 0.118, 0.143), { p: [HC.x, HC.y - 0.012, HC.z] }), 'head');
     add('gold', X(G.wrapE(G.plate([[0.0, 0.03], [0.012, 0.0], [0.014, -0.05], [0.0, -0.074], [-0.014, -0.05], [-0.012, 0.0]], 0.026, 0.008), 0.05, 0.151), { p: [HC.x, HC.y, HC.z] }), 'head'); // puente y nariz
     add('dark', X(G.wrapE(G.plate([[-0.02, 0.0], [0.02, 0.0], [0.014, -0.006], [-0.014, -0.006]], 0.012, 0.002), 0.03, 0.152), { p: [HC.x, HC.y - 0.056, HC.z] }), 'head', { color: 0x1a1008 });
@@ -189,15 +189,15 @@ export function build(ak, ctx) {
   // ═══════════════════════════ FALDA, TABARDO, VELO Y CINTAS (tela Verlet y muelles)
   {
     const cols = [], lens = [], N = low ? 14 : 20; for (let j = 0; j < N; j++) { const a = -1.15 + (j / (N - 1)) * (Math.PI * 2 - 2.3) + Math.PI, x = Math.sin(a) * 0.205, z = 0.05 + Math.cos(a) * 0.16; cols.push({ bone: j % 2 ? 'spine05' : 'spine04', p: V(x, 0.935, z) }); lens.push(0.86 + (R() - 0.5) * 0.1 + 0.05 * Math.cos(a * 1.5)); }
-    ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(9, 6), color: CREAM, hem: 0xe8b860, gravity: 6, stiff: 0.02, drag: 0.985, wave: 0.02, ember: 0.85 });
+    ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(9, 6), color: CREAM, hem: 0xe8b860, gravity: 6, stiff: 0.02, drag: 0.985, wave: 0.02, ember: 0.5 });
     const c2 = [], l2 = []; for (let j = 0; j < 5; j++) { c2.push({ bone: 'spine05', p: V(-0.09 + j * 0.045, 0.925, 0.195) }); l2.push(0.74 - Math.abs(j - 2) * 0.05); }
-    ak.cloth({ top: c2, dir: V(0, -1, 0.05), lens: l2, rows: S(8, 5), color: 0xf8f0e0, hem: 0xffcf66, gravity: 6, stiff: 0.03, drag: 0.98, ember: 1 });
+    ak.cloth({ top: c2, dir: V(0, -1, 0.05), lens: l2, rows: S(8, 5), color: 0xf8f0e0, hem: 0xffcf66, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.5 });
     const c3 = [], l3 = []; for (let j = 0; j < 7; j++) { const x = -0.18 + j * 0.06; c3.push({ bone: j === 0 ? 'clavicle_R' : j === 6 ? 'clavicle_L' : 'spine01', p: V(x, 1.4 - Math.abs(x) * 0.2, -0.13) }); l3.push(1.18 - Math.abs(j - 3) * 0.06 + (R() - 0.5) * 0.1); }
-    ak.cloth({ top: c3, dir: V(0, -1, -0.08), lens: l3, rows: S(10, 7), color: 0xfff6e2, hem: 0xe8b860, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 0.9 });
+    ak.cloth({ top: c3, dir: V(0, -1, -0.08), lens: l3, rows: S(10, 7), color: 0xfff6e2, hem: 0xe8b860, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 0.5 });
     ak.collider('spine02', V(0, 1.0, 0.045), V(0, 1.36, 0.045), 0.17); ak.collider('spine05', V(0, 0.86, 0.045), V(0, 0.98, 0.045), 0.2);
     ak.both(() => { ak.collider('upperleg01', P('upperleg01'), P('lowerleg01'), 0.125); ak.collider('lowerleg01', P('lowerleg01'), P('foot'), 0.095);
       const E0 = P('lowerarm01'), W0 = P('wrist'), top = [0.22, 0.5, 0.78].map((u, j) => ({ bone: 'lowerarm01', p: E0.clone().lerp(W0, u).add(V(0.055, -0.01, -0.05)) }));
-      ak.cloth({ top, dir: V(0.25, -1, -0.15), lens: [0.5, 0.62, 0.5], rows: S(8, 5), color: 0xfff6e2, hem: 0xffcf66, gravity: 4, stiff: 0.03, drag: 0.982, ember: 1 }); });
+      ak.cloth({ top, dir: V(0.25, -1, -0.15), lens: [0.5, 0.62, 0.5], rows: S(8, 5), color: 0xfff6e2, hem: 0xffcf66, gravity: 4, stiff: 0.03, drag: 0.982, ember: 0.5 }); });
     // cintas de la cintura: cadenas de muelles con eslabones de tela
     for (const [sx, nm] of [[0.2, 'cintaL'], [-0.2, 'cintaR']]) {
       const pts = Array.from({ length: 8 }, (_, i) => V(sx * (1 + i * 0.03), 0.93 - i * 0.12, -0.05 - i * 0.03)), ch = ak.chain(nm, 'spine05', pts, { stiff: 0.03, damp: 0.95, gravity: 5, sway: 2 });
@@ -220,7 +220,7 @@ export function build(ak, ctx) {
     for (const u of burnt ? [0.3, 0.66] : [0.3, 0.64, 0.97]) { const p = arm(u); add('gold', G.sphere(0.026 - u * 0.006, S(8, 5), S(6, 4)).translate(p.x, p.y, p.z), wb.name); }
     if (!burnt) { const p = arm(1), d = cv.getTangent(1); add('gold', spikeAt(p, V(d.x, d.y + 0.25, d.z - 0.1), 0.13, 0.016, 0.02, V(0, 0, 1), { radial: 4 }), wb.name); }
     else { const p = arm(uMax), d = cv.getTangent(uMax); add('ember', spikeAt(p, d, 0.05, 0.016, 0, V(0, 0, 1), { radial: 4 }), wb.name, { color: AMBER }); for (let k = 0; k < 3; k++) add('marble', spikeAt(p, V(d.x + (rr() - 0.5), d.y + (rr() - 0.4) * 0.8, d.z + (rr() - 0.5) * 0.8), 0.06 + rr() * 0.07, 0.01, 0, V(0, 0, 1), { radial: 3 }), wb.name, { color: IVORY_D }); }
-    const cG0 = C(burnt ? ASH : 0xe09a1c), cG1 = C(GOLD_W);
+    const cG0 = C(burnt ? ASH : 0xe09a1c), cG1 = C(0xffe58a);
     // fila A: plumas de vuelo (largas, con cadenas de muelles)
     for (let i = 0; i < nA; i++) {
       const u = (0.1 + 0.9 * (i / (nA - 1))) * uMax, p = arm(u), d = dirAt(u / uMax * (burnt ? 0.8 : 1)), lenA = (0.52 + 0.56 * Math.pow(u / uMax, 0.8)) * (u / uMax > 0.93 ? 0.85 : 1) * apK * SC * 1.05;
