@@ -9,11 +9,13 @@ import { addEvolution } from '../huesped-evo-piezas.js';
 import { uBeat } from '../shaders.js';
 
 export const BELLY = 0;
-const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xe4d6ff, OBS = 0x2a1a4a, OBS_D = 0x160c28, VOID = 0x07040e, MIR = 0xe6ecff, MIRV = 0xcdbcff, SHROUD = 0x241640;
+const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xcfb4ff, OBS = 0x1c1232, OBS_D = 0x0c0818, VOID = 0x000000, MIR = 0xa8b0d0, MIRV = 0x9a86d0, SHROUD = 0x120a22;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, cuff, S, low, basisQ } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), HC = V(0, 1.6, 0.06), upd = [], R = t.rng(51), TAU = Math.PI * 2;
   const cnew = (h) => new T.Color(h);
+  { const dm = ak.material('dark'); dm.roughness = 1; dm.metalness = 0; dm.envMapIntensity = 0.25; } // sudario mate: sólo un brillo en los bordes
+
 
   // ═══════════════════════════ CAPUCHA VACÍA + MÁSCARA DE ESPEJO ROTA
   {
@@ -22,13 +24,13 @@ export function build(ak, ctx) {
     // cola de la capucha: cae a la espalda como un pico de tela
     add('dark', G.tube([V(0, 0.2, -0.1), V(0, 0.1, -0.2), V(0, -0.06, -0.26), V(0, -0.24, -0.25), V(0, -0.4, -0.2)], 0.1, 0.012, { radial: S(8, 6), tubular: S(10, 6), sx: 1.35, sz: 0.5, ease: 0.7 }).translate(HC.x, HC.y, HC.z), 'head', { color: OBS_D });
     // cara de vacío (negro absoluto) con aro de obsidiana y filo de luz alrededor de la abertura
-    add('dark', X(G.sphere(0.112, S(14, 9), S(10, 7)), { p: [HC.x, HC.y - 0.005, HC.z + 0.095], s: [1, 1.18, 0.74] }), 'head', { color: VOID });
+    add('light', X(G.sphere(0.112, S(14, 9), S(10, 7)), { p: [HC.x, HC.y - 0.005, HC.z + 0.095], s: [1, 1.18, 0.74] }), 'head', { color: 0x000000 });
     add('mirror', X(G.torus(0.118, 0.012, S(6, 4), S(26, 14)), { p: [HC.x, HC.y, HC.z + 0.118], r: [Math.PI / 2, 0, 0], s: [1, 1, 1.2] }), 'head', { color: OBS });
     add('ember', X(G.torus(0.108, 0.0034, 3, S(30, 16)), { p: [HC.x, HC.y, HC.z + 0.128], r: [Math.PI / 2, 0, 0], s: [1, 1, 1.2] }), 'head', { color: VIO });
     // los dos puntos de luz (ojos): núcleo blanco + lente violeta, con un halo
     for (const s of [-1, 1]) {
-      add('light', X(G.sphere(0.0135, 8, 6), { p: [HC.x + s * 0.04, HC.y + 0.022, HC.z + 0.158], s: [1.5, 0.95, 0.7] }), 'head', { color: 0xffffff });
-      add('light', X(G.sphere(0.022, 8, 6), { p: [HC.x + s * 0.04, HC.y + 0.022, HC.z + 0.152], s: [1.9, 1, 0.5] }), 'head', { color: VIO });
+      add('light', X(G.sphere(0.017, 8, 6), { p: [HC.x + s * 0.042, HC.y + 0.03, HC.z + 0.162], s: [1.5, 0.95, 0.7] }), 'head', { color: 0xffffff });
+      add('light', X(G.sphere(0.03, 8, 6), { p: [HC.x + s * 0.042, HC.y + 0.03, HC.z + 0.152], s: [1.9, 0.9, 0.5] }), 'head', { color: VIO });
       add('ember', seam([V(HC.x + s * 0.075, HC.y + 0.034, HC.z + 0.14), V(HC.x + s * 0.11, HC.y + 0.05, HC.z + 0.11)], 0.0026), 'head', { color: VIO });
     }
     ak.halo('head', V(HC.x, HC.y + 0.022, HC.z + 0.2), VIO, 0.34, 0.55);
@@ -44,7 +46,7 @@ export function build(ak, ctx) {
     add('light', seam([face(0.07, 0.012, 0.01), face(0.03, 0.0, 0.01), face(-0.004, -0.03, 0.01), face(0.02, -0.052, 0.01), face(0.0, -0.1, 0.01), face(-0.03, -0.12, 0.01)], 0.0022), 'head', { color: LILA });
     add('ember', seam([face(0.07, -0.07, 0.012), face(0.1, -0.1, 0.014), face(0.09, -0.14, 0.012)], 0.002), 'head', { color: VIO });
     // trozos flotando delante de la cara (espejo que se va soltando)
-    for (const [x, y, z, s, r] of [[0.13, -0.04, 0.2, 0.034, 0.7], [-0.12, -0.12, 0.19, 0.026, -0.5], [0.06, -0.17, 0.2, 0.022, 0.3]]) add('mirror', X(G.plate([[0, s], [s * 0.7, -s * 0.2], [0, -s], [-s * 0.6, s * 0.1]], 0.007, 0.002), { p: [HC.x + x, HC.y + y, HC.z + z], r: [0.3, r, r * 0.6] }), 'head', { color: MIR });
+    for (const [x, y, z, s, r] of [[0.14, -0.05, 0.19, 0.03, 0.7], [-0.08, -0.17, 0.19, 0.022, -0.5]]) add('mirror', X(G.plate([[0, s], [s * 0.7, -s * 0.2], [0, -s], [-s * 0.6, s * 0.1]], 0.007, 0.002), { p: [HC.x + x, HC.y + y, HC.z + z], r: [0.3, r, r * 0.6] }), 'head', { color: MIR });
     // corona de esquirlas de espejo (orbitan despacio alrededor de la cabeza) y un cuello alto de espinas de obsidiana
     const crown = ak.bone('corona', 'head', V(HC.x, HC.y + 0.06, HC.z - 0.02));
     for (let i = 0; i < (low ? 5 : 7); i++) { const a = (i / (low ? 5 : 7)) * TAU, sz = 0.03 + R() * 0.02; add('mirror', X(G.shard(sz * 3, sz * 0.7, 4), { p: [HC.x + Math.cos(a) * 0.23, HC.y + 0.14 + 0.05 * Math.sin(a * 2), HC.z - 0.02 + Math.sin(a) * 0.23], r: [0.3 * Math.cos(a), a, 0.7] }), 'corona', { color: i % 2 ? MIR : MIRV }); }
@@ -98,6 +100,8 @@ export function build(ak, ctx) {
     // antebrazo: brazalete de obsidiana con filigrana y manga acampanada de sombra que cubre la muñeca
     t.armorPlate('lowerarm01', [[-0.03, 0.085], [0.03, 0.085], [0.022, -0.085], [-0.022, -0.085]], { mat: 'mirror', depth: 0.014, bevel: 0.005, wrap: { rx: 0.062, rz: 0.066 }, color: 0x382458, trim: 'ember', trimColor: VIO, trimInset: 0.2, place: (g) => limb(g, E0, W0, 0.4) });
     add('dark', limb(cuff(0.058, 0.115, 0.27, 0.012, S(12, 8), 24), E0, W0, 0.7), 'lowerarm01', { color: SHROUD });
+    add('dark', limb(cuff(0.082, 0.062, S0.distanceTo(E0) * 0.96, 0.01, S(10, 7), 20), S0, E0, 0.5), 'upperarm01', { color: OBS_D });
+    add('dark', limb(cuff(0.066, 0.056, E0.distanceTo(W0) * 0.62, 0.01, S(10, 7), 20), E0, W0, 0.28), 'lowerarm01', { color: OBS_D });
     add('ember', limb(G.torus(0.116, 0.0034, 3, S(18, 10)), E0, W0, 0.7 + 0.135 / E0.distanceTo(W0)), 'lowerarm01', { color: VIO });
     // garras de espejo
     for (const [f, len, r] of [['finger2', 0.1, 0.0085], ['finger3', 0.125, 0.009], ['finger4', 0.11, 0.0085], ['finger5', 0.08, 0.0075]]) {
@@ -109,22 +113,22 @@ export function build(ak, ctx) {
 
   // ═══════════════════════════ HOJA DIMENSIONAL (mano derecha): atraviesa dos planos de luz y reaparece desplazada
   ak.one('R', () => {
-    const W0 = P('wrist'), D = V(-0.16, 0.1, 1).normalize(), tip = (u) => W0.clone().addScaledVector(D, u), seg = (g, u, off, col, mat = 'mirror') => add(mat, limb(g, W0, tip(1), u, { off }), 'wrist', { color: col });
+    const W0 = P('wrist'), D = V(0.5, -0.02, 1).normalize(), tip = (u) => W0.clone().addScaledVector(D, u), seg = (g, u, off, col, mat = 'mirror') => add(mat, limb(g, W0, tip(1), u, { off }), 'wrist', { color: col });
     seg(t.box(0.03, 0.04, 0.16, 0.01, 1), 0.04, [0, 0, 0], OBS); // empuñadura
     seg(t.box(0.05, 0.05, 0.05, 0.01, 1), 0.075, [0, 0, 0], VIO, 'light');
     // tramos de hoja: la hoja es la misma pero cada tramo está corrido de lado (cruzó un plano)
     const parts = [[0.1, 0.5, 0.0, 0.085], [0.58, 0.95, 0.07, 0.085], [1.02, 1.42, 0.15, 0.08]];
     for (const [u0, u1, dx, w] of parts) {
       const len = u1 - u0, ang = 0.0, base = limb(G.blade(len, w, 0.014, { n: low ? 3 : 6, tipLean: u1 > 1.3 ? 0.12 : 0 }), tip(0), tip(1), 0, { off: [dx, 0, 0] }); void ang;
-      base.translate(D.x * u0, D.y * u0, D.z * u0); add('mirror', base, 'wrist', { color: u0 > 1 ? MIR : OBS });
-      const edge = limb(G.blade(len, 0.012, 0.016), tip(0), tip(1), 0, { off: [dx, 0, 0.001] }); edge.translate(D.x * u0, D.y * u0, D.z * u0); add('light', edge, 'wrist', { color: u0 > 1 ? 0xffffff : VIO });
+      base.translate(D.x * u0, D.y * u0, D.z * u0); add('mirror', base, 'wrist', { color: u0 > 1 ? MIRV : OBS });
+      const edge = limb(G.blade(len, 0.012, 0.016), tip(0), tip(1), 0, { off: [dx, 0, 0.001] }); edge.translate(D.x * u0, D.y * u0, D.z * u0); add('light', edge, 'wrist', { color: u0 > 1 ? LILA : VIO });
     }
     // planos: marco de luz + membrana translúcida perpendicular a la hoja
-    for (const [u, sz, dx] of [[0.54, 0.3, 0.035], [0.985, 0.36, 0.11]]) {
+    for (const [u, sz, dx] of [[0.54, 0.2, 0.035], [0.985, 0.26, 0.11]]) {
       const hs = sz / 2, fr = [G.box(sz, 0.012, 0.012, 0.003, 1).translate(0, 0, hs), G.box(sz, 0.012, 0.012, 0.003, 1).translate(0, 0, -hs), G.box(0.012, 0.012, sz, 0.003, 1).translate(hs, 0, 0), G.box(0.012, 0.012, sz, 0.003, 1).translate(-hs, 0, 0)];
       const lf = G.merge(fr), pane = new T.BoxGeometry(sz * 0.98, 0.002, sz * 0.98);
       add('light', limb(lf, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.35, 0] }), 'wrist', { color: LILA });
-      add('spirit', limb(pane, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.35, 0] }), 'wrist', { color: VIO_D });
+      add('spirit', limb(pane, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.35, 0] }), 'wrist', { color: cnew(VIO_D).multiplyScalar(0.55) });
     }
     // imagen residual de la hoja (espíritu): la hoja que «ya pasó»
     add('spirit', limb(G.blade(1.3, 0.16, 0.004, { n: 4 }), tip(0), tip(1), 0.1, { off: [-0.05, 0, 0] }), 'wrist', { color: (x, y, z) => cnew(VIO_D).multiplyScalar(Math.max(0.15, 1 - ((x - W0.x) * D.x + (y - W0.y) * D.y + (z - W0.z) * D.z) / 1.4)) });
@@ -133,33 +137,39 @@ export function build(ak, ctx) {
   // ═══════════════════════════ SUDARIO: manto rígido que tapa las piernas + telas con física + jirones de humo/luz
   {
     // manto interior (rígido, sale de la cintura y llega casi al suelo con el borde mordido)
-    const rob = G.lathe([[0.2, 1.0], [0.235, 0.82], [0.275, 0.6], [0.32, 0.4], [0.36, 0.22], [0.37, 0.14]], S(24, 12), 0, TAU, 0);
-    G.warp(rob, (x, y, z) => { if (y < 0.5) { const a = Math.atan2(z, x), k = (0.5 - y) / 0.4, j = Math.max(0, Math.sin(a * 7 + 0.5) * Math.sin(a * 3 + 1.2)); return [x * (1 + 0.06 * k), y - k * (0.04 + j * 0.2), z * (1 + 0.06 * k)]; } return [x, y, z]; });
+    const rob = G.lathe([[0.33, -0.06], [0.33, 0.06], [0.31, 0.25], [0.27, 0.48], [0.235, 0.7], [0.205, 0.88], [0.185, 1.0]], S(24, 12), 0, TAU, 0);
+    G.warp(rob, (x, y, z) => { if (y < 0.3) { const a = Math.atan2(z, x), k = (0.3 - y) / 0.36, j = Math.max(0, Math.sin(a * 7 + 0.5) * Math.sin(a * 3 + 1.2)); return [x, y + k * (j * 0.14 - 0.01), z]; } return [x, y, z]; });
     add('dark', X(rob, { p: [0, 0, 0.02], s: [1, 1, 0.92] }), 'spine05', { color: SHROUD });
+    { const cm = ak.material('cloth'); cm.map = null; cm.roughnessMap = null; cm.roughness = 1; cm.metalness = 0; cm.envMapIntensity = 0.3; cm.color.set(0xffffff); cm.needsUpdate = true; } // tela lisa: el color sale del vértice (sin el tono marrón del lino)
+    const flare = (cl, k, cx, cz, pw = 1.4) => { for (let i = 0; i < cl.rows; i++) for (let j = 0; j < cl.cols; j++) { const b = cl.bind[i * cl.cols + j], f = i / (cl.rows - 1); const dx = cl.top[j].p.x - cx, dz = cl.top[j].p.z - cz, l = Math.hypot(dx, dz) || 1; b.x += (dx / l) * k * Math.pow(f, pw); b.z += (dz / l) * k * Math.pow(f, pw); } return cl; }; // abre el vuelo de la tela hacia afuera
     // faldón de telas: anillo de 18 jirones de largo distinto
     const cols = [], lens = [], N = low ? 16 : 22;
-    for (let j = 0; j < N; j++) { const a = (j / (N - 1)) * (TAU - 0.5) + Math.PI + 0.25; cols.push({ bone: j % 2 ? 'spine05' : 'spine04', p: V(Math.sin(a) * 0.23, 0.99, 0.03 + Math.cos(a) * 0.19) }); lens.push(0.78 + (R() - 0.35) * 0.42 + (j % 3 === 0 ? 0.12 : 0)); }
-    ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(10, 6), color: 0x3a2860, hem: 0x08040e, gravity: 5, stiff: 0.02, drag: 0.985, wave: 0.04, ember: 1.1 });
+    for (let j = 0; j < N; j++) { const a = (j / (N - 1)) * (TAU - 0.5) + Math.PI + 0.25; cols.push({ bone: j % 2 ? 'spine05' : 'spine04', p: V(Math.sin(a) * 0.22, 0.99, 0.03 + Math.cos(a) * 0.19) }); lens.push(0.78 + (R() - 0.35) * 0.42 + (j % 3 === 0 ? 0.12 : 0)); }
+    flare(ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(10, 6), color: 0x1e1236, hem: 0x05030a, gravity: 5, stiff: 0.02, drag: 0.985, wave: 0.04, ember: 1.1 }), 0.2, 0, 0.03);
     // capa trasera, ancha, con los largos rotos
     const c2 = [], l2 = []; const M = low ? 8 : 11; for (let j = 0; j < M; j++) { const x = -0.25 + j * (0.5 / (M - 1)); c2.push({ bone: 'spine01', p: V(x, 1.42 - Math.abs(x) * 0.1, -0.1) }); l2.push(1.25 + 0.3 * Math.cos((j / (M - 1) - 0.5) * 2.2) + (R() - 0.5) * 0.45); }
-    ak.cloth({ top: c2, dir: V(0, -1, -0.15), lens: l2, rows: S(12, 8), color: 0x2e1d52, hem: 0x08040e, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 1.0 });
+    flare(ak.cloth({ top: c2, dir: V(0, -1, -0.3), lens: l2, rows: S(12, 8), color: 0x170e2c, hem: 0x05030a, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 1.0 }), 0.22, 0, 0.1);
     // faldón delantero (jirón central)
     const c3 = [], l3 = []; for (let j = 0; j < 4; j++) { c3.push({ bone: 'spine05', p: V(-0.075 + j * 0.05, 0.95, 0.2) }); l3.push(0.7 + (R() - 0.5) * 0.2); }
-    ak.cloth({ top: c3, dir: V(0, -1, 0.1), lens: l3, rows: S(8, 5), color: 0x3a2860, hem: 0x0a0514, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.9 });
+    flare(ak.cloth({ top: c3, dir: V(0, -1, 0.1), lens: l3, rows: S(8, 5), color: 0x241640, hem: 0x05030a, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.9 }), 0.1, 0, 0.0);
     ak.collider('spine02', V(0, 1.0, 0.045), V(0, 1.36, 0.045), 0.18); ak.collider('spine05', V(0, 0.86, 0.045), V(0, 0.98, 0.045), 0.21); ak.collider('spine05', V(0, 0.3, 0.03), V(0, 0.8, 0.03), 0.3);
     ak.both(() => { ak.collider('upperleg01', P('upperleg01'), P('lowerleg01'), 0.13); });
     // volutas: jirones de espíritu (cadenas con física) que se deshacen en luz; cada eslabón se desvanece hacia la punta
     const wisp = (name, parent, p0, dir, len, n, w, o = {}) => {
       const d = dir.clone().normalize(), pts = []; for (let i = 0; i <= n; i++) { const u = i / n; pts.push(p0.clone().addScaledVector(d, len * u).add(V(0, -(o.drop ?? 0) * u * u, 0))); }
       ak.chain(name, parent, pts, { stiff: o.stiff ?? 0.06, damp: 0.93, gravity: o.g ?? 1.5, sway: o.sway ?? 0.9 });
-      for (let i = 0; i < n; i++) { const a = pts[i], b = pts[i + 1], f = Math.pow(1 - i / n, 1.3), col = cnew(o.col ?? VIO).multiplyScalar(0.25 + 0.75 * f), ww = w * (0.55 + 0.6 * Math.sin(Math.PI * (i + 0.7) / (n + 0.4)));
-        add('spirit', X(G.blade(a.distanceTo(b) * 1.15, ww, 0.003, { n: 2 }), { q: basisQ(b.clone().sub(a), o.toward ?? V(1, 0, 0)), p: [a.x, a.y, a.z] }), `${name}${i}`, { color: col }); }
+      for (let i = 0; i < n; i++) { // cinta: trapecio entre dos puntos de la cadena, más angosto y más tenue hacia la punta
+        const a = pts[i], b = pts[i + 1], dd = b.clone().sub(a), nn = V().crossVectors(dd, o.toward ?? V(1, 0, 0)).cross(dd).normalize(), nz = V().crossVectors(dd, nn).normalize(), w0 = w * (1 - i / n * 0.75) * (i ? 1 : 0.5), w1 = w * (1 - (i + 1) / n * 0.75);
+        const q = [a.clone().addScaledVector(nn, -w0), a.clone().addScaledVector(nn, w0), b.clone().addScaledVector(nn, -w1), b.clone().addScaledVector(nn, w1)], g = new T.BufferGeometry(); void nz;
+        g.setAttribute('position', new T.Float32BufferAttribute(q.flatMap((v) => [v.x, v.y, v.z]), 3)); g.setIndex([0, 1, 2, 2, 1, 3, 2, 1, 0, 3, 1, 2]); g.computeVertexNormals();
+        const c0 = cnew(o.col ?? VIO).multiplyScalar(0.18 + 0.7 * Math.pow(1 - i / n, 1.4)), c1 = cnew(o.col ?? VIO).multiplyScalar(0.18 + 0.7 * Math.pow(1 - (i + 1) / n, 1.4));
+        add('spirit', g, `${name}${i}`, { color: (x, y, z) => (V(x, y, z).sub(a).dot(dd) / dd.lengthSq() > 0.5 ? c1 : c0) }); }
     };
     const nw = low ? 6 : 10;
     for (let i = 0; i < nw; i++) { const a = (i / nw) * TAU + 0.3; wisp(`jir${i}`, 'spine05', V(Math.sin(a) * 0.3, 0.3, 0.02 + Math.cos(a) * 0.26), V(Math.sin(a) * 0.25, -1, Math.cos(a) * 0.25), 0.55 + (i % 3) * 0.12, 5, 0.1, { toward: V(Math.cos(a), 0, -Math.sin(a)), g: 1.2, sway: 1.0, drop: 0.1 }); }
     for (const [sx, nm] of [[1, 'mL'], [-1, 'mR']]) { // humo de las mangas y de los hombros
       const w0 = P('wrist_L_h'); wisp(`${nm}0`, 'wrist_' + (sx > 0 ? 'L' : 'R'), V(sx * w0.x, w0.y - 0.04, w0.z), V(sx * 0.2, -0.4, -1), 0.5, 5, 0.08, { toward: V(0, 1, 0), g: 1.0, sway: 1.2, stiff: 0.08 });
-      wisp(`${nm}1`, 'spine01', V(sx * 0.2, 1.42, -0.06), V(sx * 0.3, 1, -0.6), 0.5, 5, 0.09, { toward: V(0, 0, 1), g: -1.6, sway: 1.4, stiff: 0.05 });
+      wisp(`${nm}1`, 'spine01', V(sx * 0.2, 1.42, -0.06), V(sx * 0.3, 0.1, -1), 0.55, 5, 0.07, { toward: V(0, 1, 0), g: 0.2, sway: 1.4, stiff: 0.04 });
     }
     ak.embers(VIO, low ? 18 : 34, { radius: 0.5, height: 2.1, size: 5 });
     if (!low) ak.embers(VIO_D, 14, { radius: 0.35, height: 1.5, size: 16 }); // humo de luz (partículas grandes y tenues)
@@ -190,7 +200,7 @@ export function build(ak, ctx) {
       add('ember', X(G.torus(R0 + 0.001, 0.0032, 3, S(36, 18)), { p: [c.x, c.y + h * 0.5, c.z] }), name, { color: VIO }); add('ember', X(G.torus(R0 + 0.001, 0.0032, 3, S(36, 18)), { p: [c.x, c.y - h * 0.5, c.z] }), name, { color: VIO });
       for (let i = 0; i < nG; i++) {
         const a = (i / nG) * TAU, gs = [], nb = 2 + ((rr() * 2) | 0), gw = (R0 * TAU / nG) * 0.55;
-        for (let k = 0; k < nb; k++) { const horiz = rr() > 0.5, w = horiz ? gw * (0.4 + rr() * 0.6) : 0.008, hh = horiz ? 0.008 : h * (0.35 + rr() * 0.5); gs.push(new T.BoxGeometry(w, hh, 0.008).translate((rr() - 0.5) * gw * 0.7, (rr() - 0.5) * h * 0.4, 0)); }
+        for (let k = 0; k < nb; k++) { const horiz = rr() > 0.5, w = horiz ? gw * (0.4 + rr() * 0.6) : 0.008, hh = horiz ? 0.008 : h * (0.35 + rr() * 0.5); gs.push(new T.PlaneGeometry(w, hh).translate((rr() - 0.5) * gw * 0.7, (rr() - 0.5) * h * 0.4, 0.003)); }
         const g = G.merge(gs); X(g, { p: [Math.sin(a) * (R0 + 0.006), 0, Math.cos(a) * (R0 + 0.006)], r: [0, a, 0] }); X(g, { p: [c.x, c.y, c.z] });
         add('light', g, name, { color: i % 4 === 0 ? 0xffffff : LILA });
       }

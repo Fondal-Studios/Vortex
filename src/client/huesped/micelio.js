@@ -16,7 +16,7 @@ export function build(ak, ctx) {
   const C = (h) => new T.Color(h);
   // colores por vértice: corteza veteada (mezcla de dos tonos con ruido) y musgo (verde oscuro → lima)
   const barkC = (a, b, k = 12, sd = 0) => { const ca = C(a), cb = C(b); return (x, y, z) => ca.clone().lerp(cb, clamp01(fbm(Math.abs(x) * k + sd, y * k, z * k, 3) * 1.7 - 0.2)); };
-  const mossC = (k = 16, sd = 0) => { const a = C(MOSS_D), b = C(MOSS2); return (x, y, z) => a.clone().lerp(b, clamp01(fbm(Math.abs(x) * k + sd, y * k, z * k, 2) * 1.8 - 0.15)); };
+  const mossC = (k = 16, sd = 0) => { const a = C(MOSS_D), b = C(MOSS); return (x, y, z) => a.clone().lerp(b, clamp01(fbm(Math.abs(x) * k + sd, y * k, z * k, 2) * 1.8 - 0.15)); };
   const BD = barkC(0x3c2e24, 0x7a6048, 10, 1), BM = barkC(0x64503c, 0xa88c68, 12, 2), BL = barkC(0x9a8260, 0xd6c096, 14, 3), BRK = 0x7a634c;
   const lump = (r, sd = 0) => (low ? G.sphere(r, 5, 4).scale(1, 0.75, 1) : G.rock(r, { detail: 1, amp: 0.3, freq: 2.6, s: [1, 0.75, 1], seed: sd }));
   /** Penacho de musgo luminoso: n bultos verdes alrededor de c (esparcidos en `sp`, mirando hacia `n`). */
@@ -25,19 +25,20 @@ export function build(ak, ctx) {
   const shelf = (bone, c, Rr, rot, o = {}) => {
     const th = o.th ?? Rr * 0.12, zs = o.zs ?? 1, xs = o.xs ?? 1, seg = S(o.seg ?? 16, 8);
     const prof = [[0, -th * 0.35], [Rr * 0.2, -th * 0.35], [Rr * 0.94, -th * 0.5], [Rr, 0], [Rr * 0.95, th * 0.4], [Rr * 0.64, th * 0.45], [Rr * 0.62, th * 0.85], [Rr * 0.3, th * 0.78], [Rr * 0.28, th * 1.1], [0, th * 1.1]];
-    const place = (g) => X(X(g, { s: [xs, 1, zs] }), { p: [c.x, c.y, c.z], r: rot });
-    const cap = place(G.lathe(prof, seg, 0, TAU, 0)), ca = o.ca || [0x7a3018, 0xc8782c, 0xdcc89a, 0xc86ab0];
+    const arc = o.half ? Math.PI : TAU, place = (g) => X(X(g, { s: [xs, 1, zs] }), { p: [c.x, c.y, c.z], r: rot });
+    const cap = place(G.lathe(prof, seg, 0, arc, 0)), ca = o.ca || [0x7a3018, 0xc8782c, 0xcfb47c, 0xa84a86];
     add('bone', cap, bone, { color: (x, y, z) => { const d = Math.hypot((Math.abs(x) - c.x) / xs, (z - c.z) / zs) / Rr; return C(d < 0.3 ? ca[0] : d < 0.64 ? ca[1] : d < 0.93 ? ca[2] : ca[3]).multiplyScalar(0.62 + 0.22 * fbm(x * 30, y * 30, z * 30, 2)); } });
-    const und = place(G.lathe([[0, -th * 0.5], [Rr * 0.93, -th * 0.56]], seg, 0, TAU, 0));
+    if (o.half) add('bark', place(new T.BoxGeometry(0.014, th * 1.5, 2 * Rr * 0.985)).translate(0, th * 0.3, 0), bone, { color: 0x4a3a2c }); // cierra el borde plano contra el cuerpo
+    const und = place(G.lathe([[0, -th * 0.5], [Rr * 0.93, -th * 0.56]], seg, 0, arc, 0));
     add('light', und, bone, { color: (x, y, z) => { const d = Math.hypot((Math.abs(x) - c.x) / xs, (z - c.z) / zs) / Rr; return C(MOSS).lerp(C(o.glow ?? VIOLET), clamp01(d * 1.15 - 0.2)).multiplyScalar(0.7); } });
-    if (!low || o.rim) add('light', place(G.torus(Rr * 0.97, Math.max(0.004, th * 0.12), 3, seg)).translate(0, -th * 0.02, 0), bone, { color: o.glow ?? MOSS });
+    if (!low || o.rim) add('light', place(o.half ? new T.TorusGeometry(Rr * 0.97, Math.max(0.004, th * 0.12), 3, seg, Math.PI).rotateX(Math.PI / 2).rotateY(Math.PI / 2) : G.torus(Rr * 0.97, Math.max(0.004, th * 0.12), 3, seg)).translate(0, -th * 0.02, 0), bone, { color: C(o.glow ?? MOSS).multiplyScalar(0.8) });
   };
   /** Hongo de cristal luminoso (tallo de corteza + sombrero translúcido). */
   const shroom = (bone, base, dir, h, Rr, cols, o = {}) => {
     const d = dir.clone().normalize(), tip = base.clone().addScaledVector(d, h);
     add('bone', G.tube([base, base.clone().addScaledVector(d, h * 0.5).add(V(0.004, 0, 0.003)), tip], Rr * 0.18, Rr * 0.12, { radial: S(5, 4), tubular: 4 }), bone, { color: 0xe8d8b4 });
     const cp = dome(Rr, Rr * 0.7, { lip: 0.5, seg: S(10, 6), flat: 0.2 }); X(cp, { q: basisQ(d, V(0, 0, 1)), p: [tip.x - d.x * Rr * 0.05, tip.y - d.y * Rr * 0.05, tip.z - d.z * Rr * 0.05] });
-    add('crystal', cp, bone, { color: (x, y, z) => C(cols[0]).lerp(C(cols[1]), clamp01(((x - tip.x) * d.x + (y - tip.y) * d.y + (z - tip.z) * d.z) / (Rr * 0.8) + 0.4)) });
+    add('crystal', cp, bone, { color: (x, y, z) => C(cols[0]).lerp(C(cols[1]), clamp01(((x - tip.x) * d.x + (y - tip.y) * d.y + (z - tip.z) * d.z) / (Rr * 0.8) + 0.4)).multiplyScalar(0.36) });
   };
   /** Cuerno de ciervo: viga principal curva + puntas (tines) que salen de ella, con brote luminoso en cada punta. */
   const antler = (bone, o0, sc = 1) => {
@@ -48,7 +49,7 @@ export function build(ak, ctx) {
     for (const [u, dir, len] of (low ? tines.slice(0, 4) : tines)) {
       const b = pick(u), d = dir.clone().normalize(), l = len * sc, pts = [b, b.clone().addScaledVector(d, l * 0.45).add(V(0, 0.02 * sc, 0.02 * sc)), b.clone().addScaledVector(d, l)];
       add('bone', G.tube(pts, 0.017 * sc, 0.004 * sc, { radial: S(5, 4), tubular: S(8, 5), ridges: 3, ridgeAmp: 0.2 }), bone, { color: BL });
-      add('light', G.sphere(0.012 * sc, 5, 4).translate(pts[2].x, pts[2].y, pts[2].z), bone, { color: u > 0.5 ? MOSS2 : CYAN });
+      add('light', G.sphere(0.012 * sc, 5, 4).translate(pts[2].x, pts[2].y, pts[2].z), bone, { color: u > 0.5 ? 0x5ab02a : 0x2a9a90 });
     }
     add('light', G.sphere(0.016 * sc, 5, 4).translate(beam[5].x, beam[5].y, beam[5].z), bone, { color: MOSS2 });
     return { pick, beam };
@@ -73,8 +74,7 @@ export function build(ak, ctx) {
     });
     for (let i = -2; i <= 2; i++) { const dx = i * 0.0165; add('bone', spikeAt(V(HC.x + dx, HC.y - 0.118, HC.z + 0.137 - Math.abs(i) * 0.008), V(dx * 2, -1, 0.35), 0.05 + (i === 0 ? 0.015 : 0) - Math.abs(i) * 0.006, 0.0075, 0.006, Zv, { radial: 4, tubular: 3 }), 'head', { color: 0xe6d6b0 }); } // colmillos-raíz
     add('dark', t.box(0.09, 0.03, 0.016, 0.004, 1).translate(HC.x, HC.y - 0.112, HC.z + 0.13), 'head', { color: 0x030602 });
-    tuft('head', V(0, HC.y + 0.12, HC.z + 0.02), low ? 9 : 16, 0.016, 0.03, 0.075, Y, 3); // musgo sobre el cráneo
-    tuft('head', V(0, HC.y + 0.067, HC.z + 0.13), low ? 3 : 6, 0.012, 0.02, 0.05, Zv, 5);
+    tuft('head', V(0, HC.y + 0.125, HC.z + 0.0), low ? 5 : 10, 0.02, 0.034, 0.07, Y, 3); // musgo sobre el cráneo
     ak.both(() => { // cornamenta: dos astas enormes con puntas, hongos de cristal y un estante de hongo en la viga
       const A = antler('head', V(HC.x + 0.04, HC.y + 0.1, HC.z - 0.01), 1.12);
       const q = A.pick(0.55); shelf('head', V(q.x + 0.045, q.y + 0.035, q.z), 0.085, [0, 0, -0.3], { th: 0.014, seg: 10, rim: true, ca: [0x6a2a6a, 0xb04bff, 0xffa0e8, 0xffffff], glow: CYAN });
@@ -88,7 +88,7 @@ export function build(ak, ctx) {
 
   // ═══════════════════════════ TORSO: barril de corteza, pectorales con filete de musgo, hueco-corazón que late, costillar de raíces
   {
-    const chest = G.lathe([[0.19, 1.2], [0.212, 1.26], [0.222, 1.32], [0.208, 1.385], [0.15, 1.43], [0.1, 1.45]], S(14, 9), 0, TAU, 30); X(chest, { p: [0, 0, zc - 0.005], s: [1, 1, 0.78] });
+    const chest = G.lathe([[0.21, 1.2], [0.24, 1.26], [0.252, 1.32], [0.235, 1.385], [0.16, 1.43], [0.1, 1.45]], S(14, 9), 0, TAU, 30); X(chest, { p: [0, 0, zc - 0.005], s: [1, 1, 0.78] });
     add('bark', chest, 'spine01', { color: BD });
     ak.both(() => {
       t.armorPlate('spine01', [[0.02, 0.13], [0.09, 0.15], [0.17, 0.11], [0.2, 0.02], [0.17, -0.07], [0.1, -0.115], [0.02, -0.08]], { mat: 'bark', depth: 0.05, bevel: 0.016, wrap: { rx: 0.205, rz: 0.152 }, color: BM, trim: 'ember', trimColor: MOSS, trimInset: 0.14, trimR: 0.0034, place: (g) => X(g, { p: [0, 1.31, zc], r: [0.08, 0, 0] }) });
@@ -117,8 +117,8 @@ export function build(ak, ctx) {
     // espalda: joroba de corteza, columna de hongos-estantería que sube por el espinazo y esporas de cristal
     add('bark', bonelump(0.2, [1.45, 0.95, 0.78], 3, 0.24).translate(0, 1.3, -0.1), 'spine01', { color: BD });
     add('bark', bonelump(0.15, [1.3, 0.9, 0.8], 4, 0.26).translate(0, 1.13, -0.085), 'spine02', { color: BM });
-    const sp = [[1.42, 0.11, -0.2, 1], [1.32, 0.13, -0.26, -1], [1.22, 0.11, -0.2, 1], [1.12, 0.09, -0.17, -1]];
-    sp.forEach(([y, Rr, z, sg], i) => { if (low && i === 3) return; shelf(i < 2 ? 'spine01' : 'spine02', V(sg * 0.13, y, -0.1 + z * 0.3), Rr, [-0.9, 0, -sg * 0.45], { th: Rr * 0.12, seg: 14, rim: true, glow: i % 2 ? CYAN : VIOLET }); });
+    const sp = [[1.47, 0.14, 0.45], [1.37, 0.18, -0.5], [1.26, 0.15, 0.3], [1.16, 0.12, -0.3]];
+    sp.forEach(([y, Rr, hd], i) => { if (low && i === 3) return; shelf(i < 2 ? 'spine01' : 'spine02', V(Math.sin(hd) * 0.09, y, -0.18), Rr, [0, Math.PI / 2 + hd, 0.75 - i * 0.07], { half: true, th: Rr * 0.14, seg: 14, rim: true, glow: i % 2 ? CYAN : VIOLET, zs: 1.1 }); });
     shroom('spine01', V(0, 1.42, -0.22), V(0, 1, -0.4), 0.1, 0.05, [MAG, 0xffd8f4]); shroom('spine01', V(0.1, 1.38, -0.2), V(0.5, 1, -0.5), 0.07, 0.035, [CYAN, 0xd8fff8]);
     tuft('spine01', V(0, 1.45, -0.13), low ? 6 : 12, 0.015, 0.03, 0.12, Y, 21);
   }
@@ -127,13 +127,13 @@ export function build(ak, ctx) {
   ak.both(() => {
     const S0 = P('upperarm01'), E0 = P('lowerarm01'), W0 = P('wrist'), F3 = P('finger3-1');
     // hombrera: peñasco de corteza con 4 hongos-estantería escalonados (cada uno más bajo y más ancho hacia afuera) y musgo luminoso encima
-    add('bark', bonelump(0.15, [1.35, 0.95, 1.2], 12, 0.26).translate(S0.x + 0.07, S0.y + 0.05, S0.z), 'upperarm01', { color: BD });
-    for (let i = 0; i < 4; i++) { if (low && i === 3) continue; shelf('upperarm01', V(S0.x + 0.06 + i * 0.05, S0.y + 0.13 - i * 0.075, S0.z + 0.005), 0.25 - i * 0.03, [0.04, 0.1 * i, -0.62 - i * 0.05], { th: 0.036 - i * 0.004, seg: 18, rim: true, zs: 1.1, glow: [VIOLET, CYAN, MOSS, MAG][i], ca: i % 2 ? [0x4a2a1c, 0xb06a28, 0xd6c090, 0x7ac050] : [0x7a3018, 0xc8782c, 0xdcc89a, 0xc86ab0] }); }
+    add('bark', bonelump(0.19, [1.35, 0.95, 1.2], 12, 0.26).translate(S0.x + 0.08, S0.y + 0.04, S0.z), 'upperarm01', { color: BD });
+    for (let i = 0; i < 4; i++) { if (low && i === 3) continue; shelf('upperarm01', V(0.14 + i * 0.06, 1.53 - i * 0.1, S0.z + [0.0, -0.03, 0.03, 0.0][i]), 0.4 - i * 0.05, [0, [0.15, -0.25, 0.3, -0.1][i], -0.1 - i * 0.04], { half: true, th: 0.05 - i * 0.005, seg: 20, rim: true, zs: 1.15, glow: [VIOLET, CYAN, MOSS, MAG][i], ca: i % 2 ? [0x4a2a1c, 0xa8622a, 0xb8a06c, 0x6aa840] : [0x6a2814, 0xb8682a, 0xc4aa72, 0xa84a86] }); }
     tuft('upperarm01', V(S0.x + 0.1, S0.y + 0.2, S0.z), low ? 5 : 11, 0.016, 0.03, 0.1, Y, 31);
     shroom('upperarm01', V(S0.x + 0.12, S0.y + 0.2, S0.z - 0.05), V(0.2, 1, -0.3), 0.09, 0.045, [VIOLET, 0xffc8ff]);
     if (!low) shroom('upperarm01', V(S0.x + 0.02, S0.y + 0.2, S0.z + 0.06), V(-0.1, 1, 0.4), 0.06, 0.03, [CYAN, 0xd8fff8]);
     // brazo enorme: tronco de corteza (bíceps) + brazal de placas + raíces enroscadas en espiral + codo con púa
-    add('bark', limb(bonelump(0.125, [1.05, 1.9, 1.05], 5, 0.24), S0, E0, 0.5), 'upperarm01', { color: BM });
+    add('bark', limb(bonelump(0.15, [1.05, 1.9, 1.05], 5, 0.24), S0, E0, 0.5), 'upperarm01', { color: BM });
     for (let i = 0; i < 3; i++) add('bark', limb(cuff(0.12 - i * 0.008, 0.108 - i * 0.008, 0.045, 0.014, S(10, 7), 30), S0, E0, 0.3 + i * 0.2), 'upperarm01', { color: i === 1 ? BL : BD });
     add('light', ringAt(S0, E0, 0.42, 0.118, 0.01, 0.005), 'upperarm01', { color: MOSS });
     add('bark', limb(bonelump(0.13, [1.1, 1.0, 1.0], 6, 0.26), S0, E0, 1.0), 'upperarm01', { color: BD }); // codo
@@ -161,12 +161,12 @@ export function build(ak, ctx) {
   // ═══════════════════════════ PIERNAS: troncos de corteza, rodillas con hongo, pies de raíz
   ak.both(() => {
     const H = P('upperleg01'), K = P('lowerleg01'), A = P('foot'), TO = P('toe3-1'), ul = H.distanceTo(K), ll = K.distanceTo(A);
-    add('bark', limb(bonelump(0.14, [1.0, 2.2, 1.0], 15, 0.22), H, K, 0.45), 'upperleg01', { color: BM });
+    add('bark', limb(bonelump(0.165, [1.0, 2.2, 1.0], 15, 0.22), H, K, 0.45), 'upperleg01', { color: BM });
     t.armorPlate('upperleg01', [[-0.06, 0.15], [0.06, 0.15], [0.08, 0.0], [0.05, -0.15], [0, -0.18], [-0.05, -0.15], [-0.08, 0.0]], { mat: 'bark', depth: 0.036, bevel: 0.012, wrap: { rx: 0.14, rz: 0.13 }, color: BL, trim: 'ember', trimColor: MOSS, trimInset: 0.15, place: (g) => limb(g, H, K, 0.4, { r: [0, -Math.PI / 2 + 0.15, 0] }) });
     for (let i = 0; i < 3; i++) add('bark', limb(cuff(0.125 - i * 0.012, 0.115 - i * 0.012, 0.05, 0.014, S(10, 7), 30), H, K, 0.12 + i * 0.1), 'upperleg01', { color: i % 2 ? BM : BD });
     add('bark', limb(bonelump(0.12, [1.1, 1.0, 1.1], 16, 0.26), H, K, 1.0), 'upperleg01', { color: BD });
     shelf('lowerleg01', V(K.x + 0.1, K.y + 0.04, K.z + 0.04), 0.14, [0.1, 0.4, -0.7], { th: 0.022, seg: 12, rim: true, glow: CYAN }); // hongo en la rodilla
-    add('bark', limb(bonelump(0.115, [1.0, 2.1, 1.0], 17, 0.22), K, A, 0.5), 'lowerleg01', { color: BD });
+    add('bark', limb(bonelump(0.13, [1.0, 2.1, 1.0], 17, 0.22), K, A, 0.5), 'lowerleg01', { color: BD });
     t.armorPlate('lowerleg01', [[0, 0.1], [0.06, 0.06], [0.07, -0.02], [0.03, -0.09], [-0.03, -0.09], [-0.07, -0.02], [-0.06, 0.06]], { mat: 'bark', depth: 0.04, bevel: 0.014, wrap: { rx: 0.115, rz: 0.12 }, color: BM, trim: 'ember', trimColor: MOSS, trimInset: 0.2, place: (g) => limb(g, K, A, 0.4) });
     add('bark', limb(cuff(0.105, 0.09, ll * 0.18, 0.016, S(10, 7), 30), K, A, 0.88), 'lowerleg01', { color: BL });
     add('light', ringAt(K, A, 0.74, 0.108, 0.012, 0.005), 'lowerleg01', { color: MOSS });
@@ -181,16 +181,16 @@ export function build(ak, ctx) {
   // ═══════════════════════════ CAPA DE MUSGO, FALDÓN Y RAÍCES QUE ARRASTRA (física)
   {
     const cols = [], lens = [], R2 = t.rng(11);
-    for (let j = 0; j < 8; j++) { const x = -0.26 + j * (0.52 / 7); cols.push({ bone: j === 0 ? 'clavicle_R' : j === 7 ? 'clavicle_L' : 'spine01', p: V(x, 1.43 - Math.abs(x) * 0.1, -0.24 - 0.05 * (1 - Math.abs(x) / 0.26)) }); lens.push(0.9 + 0.3 * Math.cos((j / 7 - 0.5) * 2.4) + (R2() - 0.5) * 0.3); }
-    ak.cloth({ top: cols, dir: V(0, -1, -0.12), lens, rows: S(10, 6), color: 0x3e6a24, hem: 0x14240c, gravity: 7, stiff: 0.012, drag: 0.982, wave: 0.035, ember: 1 });
+    for (let j = 0; j < 8; j++) { const x = -0.2 + j * (0.4 / 7); cols.push({ bone: j === 0 ? 'clavicle_R' : j === 7 ? 'clavicle_L' : 'spine01', p: V(x, 1.43 - Math.abs(x) * 0.1, -0.24 - 0.05 * (1 - Math.abs(x) / 0.26)) }); lens.push(0.7 + 0.25 * Math.cos((j / 7 - 0.5) * 2.4) + (R2() - 0.5) * 0.3); }
+    ak.cloth({ top: cols, dir: V(0, -1, -0.12), lens, rows: S(10, 6), color: 0xb0ff68, hem: 0x2a4a14, gravity: 7, stiff: 0.012, drag: 0.982, wave: 0.035, ember: 1 });
     const c2 = [], l2 = []; for (let j = 0; j < 5; j++) { c2.push({ bone: 'spine05', p: V(-0.1 + j * 0.05, 0.93, 0.2) }); l2.push(0.42 + (R2() - 0.5) * 0.2); }
-    ak.cloth({ top: c2, dir: V(0, -1, 0.1), lens: l2, rows: S(6, 4), color: 0x2e4c1c, hem: 0x14240c, gravity: 7, stiff: 0.03, drag: 0.98, ember: 0.7 });
+    ak.cloth({ top: c2, dir: V(0, -1, 0.1), lens: l2, rows: S(6, 4), color: 0x90d850, hem: 0x2a4a14, gravity: 7, stiff: 0.03, drag: 0.98, ember: 0.7 });
     // raíces que arrastra por el suelo (5 cadenas con muelles: cuelgan de la cintura hacia atrás)
     for (let k = 0; k < (low ? 4 : 5); k++) {
       const x = (k - (low ? 1.5 : 2)) * 0.075, sgn = Math.sign(x) || 1, pts = [0, 1, 2, 3, 4, 5].map((i) => V(x * (1 + i * 0.35) + Math.sin(k * 2 + i) * 0.025, [0.95, 0.78, 0.55, 0.34, 0.17, 0.07][i], [-0.12, -0.19, -0.27, -0.38, -0.55, -0.78][i]));
       const ch = ak.chain('arrastre' + k, 'spine05', pts, { stiff: 0.07, damp: 0.93, gravity: 3.2, sway: 1.1 });
-      for (let i = 0; i < 5; i++) add('bark', G.tube([pts[i], pts[i + 1]], 0.034 - i * 0.005, 0.028 - i * 0.005, { radial: S(5, 4), tubular: 3, ridges: 3, ridgeAmp: 0.18 }), ch.bones[i].name, { color: i % 2 ? BM : BD });
-      add('light', G.sphere(0.02, 5, 4).translate(pts[5].x, pts[5].y, pts[5].z), ch.bones[5].name, { color: k % 2 ? MOSS2 : CYAN });
+      for (let i = 0; i < 5; i++) add('bark', G.tube([pts[i], pts[i + 1]], 0.05 - i * 0.007, 0.043 - i * 0.007, { radial: S(6, 5), tubular: 3, ridges: 3, ridgeAmp: 0.2 }), ch.bones[i].name, { color: i % 2 ? BL : BM });
+      add('light', G.sphere(0.026, 5, 4).translate(pts[5].x, pts[5].y, pts[5].z), ch.bones[5].name, { color: k % 2 ? MOSS2 : CYAN });
       void sgn;
     }
     ak.collider('spine02', V(0, 1.0, 0.045), V(0, 1.36, 0.045), 0.2); ak.collider('spine05', V(0, 0.86, 0.045), V(0, 0.98, 0.045), 0.2);
