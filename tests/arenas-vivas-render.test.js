@@ -44,7 +44,8 @@ test('presupuesto de render por arena (Baja): órganos y avisos ≤ 16 llamadas 
         for (const c of r.scene.children) if (!c.isLight && !c.isCamera && c.visible) { c.visible = false; hidden.push(c); }
         for (const c of r.camera.children) if (c.visible && !c.isLight) { c.visible = false; hidden.push(c); }
         const medir = (cb) => { const t0 = r.t, iv = setInterval(() => { if (r.t - t0 > 0.12) { clearInterval(iv); const i = r.gl.info; cb({ calls: i.render.calls, tris: i.render.triangles }); } }, 25); };
-        medir((sin) => { r.avfx.root.visible = true; for (const c of hidden) if (c === r.avfx.root) c.visible = true; r.avfx.root.visible = true; medir((con) => { hidden.forEach((h) => { h.visible = true; }); res({ sin, con, avisos: window.__api.session.game.ar.tl.length, visibles: r.avfx.root.children.filter((c) => c.visible).length }); }); });
+        const upd = r.avfx.update; r.avfx.update = () => {};   // sin: nada de las arenas vivas (su update vuelve a encender la raíz cada cuadro, por eso se anula)
+        medir((sin) => { r.avfx.update = upd; r.avfx.root.visible = true; medir((con) => { hidden.forEach((h) => { h.visible = true; }); res({ sin, con, avisos: window.__api.session.game.ar.tl.length, visibles: r.avfx.root.children.filter((c) => c.visible).length }); }); });
       }));
       peor = { calls: Math.max(peor.calls, m.con.calls - m.sin.calls), tris: Math.max(peor.tris, m.con.tris - m.sin.tris), avisos: Math.max(peor.avisos, m.avisos), visibles: m.visibles };
     }

@@ -227,14 +227,20 @@ test('amenazas: el barrido de sonido (m3) es una línea; cubrirse o salirse de e
   const quieto = hit(0), esquiva = hit(9);
   assert.ok(quieto.hurt, 'en la línea duele'); assert.ok(!esquiva.hurt, 'a 9 m de costado no duele'); assert.ok(quieto.len > 20, 'el haz es largo');
 });
-test('amenazas: la manecilla (m5) gira, avisa 1,8 s y las coberturas la frenan', () => {
-  const { g, p } = mk('m5'); forzar(g, { wave: 3, t: 60 }); const o = g.ar.L.org.find((q) => q.id === 'manecilla'); p.shield = 0; p.hp = 100;
-  const kiosco = { x: 13, z: -25 }; p.pos = v3(kiosco.x + 1, 0.9, kiosco.z - 4); p.vel = v3();   // detrás del quiosco (cobertura alta)
-  let T = null; for (let n = 0; !T && n < 60 * 40; n++) { p.pos = v3(kiosco.x + 0.5, 0.9, kiosco.z - 3); run(g, DT); T = g.ar.tl[0]; }
-  assert.ok(T && T.tipo === 'giro' && T.at - T.born >= 1.8 - 1e-6);
-  assert.ok(T.r < dist(o.pos, p.pos) - 0.5, `el haz se corta en la cobertura (${T.r.toFixed(1)} < ${dist(o.pos, p.pos).toFixed(1)})`);
-  g.events.length = 0; run(g, T.at - g.time + 0.3, () => { p.pos = v3(kiosco.x + 0.5, 0.9, kiosco.z - 3); }); assert.equal(ev(g, 'hurt').length, 0, 'cubierto: no duele');
-  const dir0 = { ...T.dir0 }; run(g, 0.9); const d1 = g.ar.tl[0] ? g.ar.tl[0].dir : null; assert.ok(d1 && dist(d1, dir0) > 0.3, 'la línea gira'); assert.equal(ev(g, 'arfire').length >= 1, true);
+test('amenazas: la manecilla (m5) gira, avisa 1,8 s, barre la plaza abierta y las coberturas la frenan', () => {
+  // en la plaza abierta: el haz es largo y quien se queda en su camino recibe el golpe
+  { const { g, p } = mk('m5'); forzar(g, { wave: 3, t: 60 }); p.shield = 0; p.hp = 100; const donde = v3(10, 0.9, -4);
+    let T = null; for (let n = 0; !T && n < 60 * 40; n++) { p.pos = donde; run(g, DT); T = g.ar.tl.find((q) => q.tipo === 'giro'); }
+    assert.ok(T && T.at - T.born >= 1.8 - 1e-6 && T.r > 20, 'largo en campo abierto: ' + (T && T.r)); g.events.length = 0;
+    run(g, T.at - g.time + 0.3, () => { p.pos = donde; }); assert.ok(ev(g, 'hurt').length > 0, 'en el camino del haz duele'); }
+  // detrás del quiosco (cobertura alta) en línea recta con la fuente: el haz se corta y no duele
+  { const { g, p } = mk('m5'); forzar(g, { wave: 3, t: 60 }); const o = g.ar.L.org.find((q) => q.id === 'manecilla'); p.shield = 0; p.hp = 100;
+    const K = v3(13, 0, -25), d = norm(sub(K, v3(o.pos.x, 0, o.pos.z))), detras = v3(K.x + d.x * 3.5, 0.9, K.z + d.z * 3.5);
+    let T = null; for (let n = 0; !T && n < 60 * 40; n++) { p.pos = detras; run(g, DT); T = g.ar.tl.find((q) => q.tipo === 'giro'); }
+    const dd = dist(v3(o.pos.x, 0, o.pos.z), v3(detras.x, 0, detras.z));
+    assert.ok(T.r > 15 && T.r < dd - 0.5, `el haz se corta en la cobertura (${T.r.toFixed(1)} entre 15 y ${dd.toFixed(1)})`);
+    g.events.length = 0; run(g, T.at - g.time + 0.3, () => { p.pos = detras; }); assert.equal(ev(g, 'hurt').length, 0, 'cubierto: no duele');
+    const dir0 = { ...T.dir0 }; run(g, 0.9); const d1 = g.ar.tl[0] ? g.ar.tl[0].dir : null; assert.ok(d1 && dist(d1, dir0) > 0.3, 'la línea gira'); assert.ok(ev(g, 'arfire').length >= 1); }
 });
 test('amenazas: sin amenaza en dormido ni en ofrenda; en despierto ataca a menor cadencia que en furioso', () => {
   const cuenta = (fase) => {

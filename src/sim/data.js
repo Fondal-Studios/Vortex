@@ -578,7 +578,7 @@ export const ARENAS_VIVAS = {
     frases: { despierto: 'El Reloj Hambriento despierta', furioso: 'El Reloj Hambriento da la hora: ¡cuidado con la manecilla!', ofrenda: 'El Reloj marca una hora tranquila: usá los adoquines', roto: 'El Péndulo se detiene: el Reloj se adormece', renace: 'El Péndulo vuelve a oscilar' },
     org: [
       { k: 'corazon', id: 'pendulo', nombre: 'Péndulo del Reloj', x: 13, z: -14, h: 4.6, hr: 2.2, hp: 700, atk: { tipo: 'pulso', r: 8, tel: 1.8, dmg: 15, cd: 12, rango: 24 }, info: 'Da la campanada (anillo dorado de 1,8 s). Dañarlo lo detiene hasta la próxima oleada.' },
-      { k: 'raiz', id: 'manecilla', nombre: 'Manecilla de la Fuente', x: 0, z: -4, h: 5.6, hr: 1.5, cover: true, hp: 380, atk: { tipo: 'giro', largo: 26, w: 2.6, tel: 1.8, dmg: 14, cd: 11, rango: 34, omega: 0.9, dur: 2 }, info: 'Gira como la manecilla de un reloj: la línea azul avisa 1,8 s y después barre. Las coberturas la frenan.' },
+      { k: 'raiz', id: 'manecilla', nombre: 'Manecilla de la Fuente', x: 0, z: -4, h: 5.6, hr: 1.5, cover: true, hp: 380, atk: { tipo: 'giro', largo: 26, w: 2.6, tel: 1.8, dmg: 14, cd: 11, rango: 34, omega: 0.9, dur: 2, skip: 4.2 }, info: 'Gira como la manecilla de un reloj: la línea azul avisa 1,8 s y después barre. Las coberturas la frenan.' },
       { k: 'vena', id: 'adoquin', nombre: 'Adoquines de Luz', a: [0, 44], b: [0, 19], w: 2.4, bene: 'veloz', info: 'El camino de la Calle a la Plaza: correr por encima te da velocidad.' },
     ],
   },

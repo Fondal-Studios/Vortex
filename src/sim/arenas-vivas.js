@@ -177,9 +177,10 @@ const distSeg = (p, a, b) => {
   const ab = sub(b, a), l2 = dot(ab, ab), t = l2 > 1e-9 ? Math.max(0, Math.min(1, dot(sub(p, a), ab) / l2)) : 0;
   return dist(p, madd(a, ab, t));
 };
-/** Largo libre de una línea desde `o` hacia `dir`: se corta en el primer muro o cobertura (las coberturas son el contrajuego). */
-function largoLibre(g, o, dir, max) {
-  for (let t = 1.5; t < max; t += 1.5) if (blocked(g.map, madd(o, dir, t))) return Math.max(0, t - 1.5);
+/** Largo libre de una línea desde `o` hacia `dir`: se corta en el primer muro o cobertura (las coberturas son el contrajuego).
+ *  `skip`: metros iniciales que se ignoran (el órgano nace sobre su propia cobertura, p. ej. la Manecilla sobre la fuente). */
+function largoLibre(g, o, dir, max, skip = 0) {
+  for (let t = Math.max(1.5, skip); t < max; t += 1.5) if (blocked(g.map, madd(o, dir, t))) return Math.max(0, t - 1.5);
   return max;
 }
 function iniciarAtaque(g, A, o, S, amen) {
@@ -192,7 +193,7 @@ function iniciarAtaque(g, A, o, S, amen) {
   else if (a.tipo === 'pulso') { T.c = o.pos; T.r = a.r; }
   else {
     T.c = madd(o.pos, o.u, 0.1); const to = project(sub(tgt.pos, T.c), o.u);
-    T.dir = norm(to, v3(1, 0, 0)); T.dir0 = T.dir; T.r = largoLibre(g, madd(T.c, o.u, 0.9), T.dir, a.largo);
+    T.dir = norm(to, v3(1, 0, 0)); T.dir0 = T.dir; T.r = largoLibre(g, madd(T.c, o.u, 0.9), T.dir, a.largo, a.skip);
   }
   A.tl.push(T);
   S.cd = (a.cd / amen) * (0.85 + 0.3 * g.arRng.next());
@@ -210,7 +211,7 @@ function resolver(g, A, T) {
     for (const m of g.monsters) if (!m.dead && !m.def.boss && dist(m.pos, ctr) < T.r + m.r) g.damageMonster(m, T.dmg * 3, credito(g, m), m.pos);
     g.emit({ t: 'boom', p: a3(T.c), r: T.r });
   } else if (T.tipo === 'barrido') {
-    T.r = largoLibre(g, madd(T.c, T.u, 0.9), T.dir, o.atk.largo); danioEnLinea(g, A, T);
+    T.r = largoLibre(g, madd(T.c, T.u, 0.9), T.dir, o.atk.largo, o.atk.skip); danioEnLinea(g, A, T);
   }
   g.emit({ t: 'arfire', m: A.L.id, i: T.i, k: TIPO[T.tipo], p: a3(T.c) });
 }
@@ -258,7 +259,7 @@ export function tickArenas(g, dt) {
     if (T.tipo === 'giro' && g.time >= T.at) {
       if (g.time >= T.at + T.dur) { g.emit({ t: 'arfire', m: A.L.id, i: T.i, k: 3, p: a3(T.c), fin: 1 }); continue; }
       if (!T.sw) { T.sw = 1; g.emit({ t: 'arfire', m: A.L.id, i: T.i, k: 3, p: a3(T.c) }); }
-      T.dir = rotAround(T.dir0, T.u, T.omega * (g.time - T.at)); T.r = largoLibre(g, madd(T.c, T.u, 0.9), T.dir, o.atk.largo);
+      T.dir = rotAround(T.dir0, T.u, T.omega * (g.time - T.at)); T.r = largoLibre(g, madd(T.c, T.u, 0.9), T.dir, o.atk.largo, o.atk.skip);
       danioEnLinea(g, A, T); keep.push(T); continue;
     }
     if (T.tipo !== 'giro' && g.time >= T.at) { resolver(g, A, T); continue; }

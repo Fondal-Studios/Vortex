@@ -69,7 +69,7 @@ export function createPresence(_T, { glow = 0x4ab4ff, quality = 'low', camera = 
   // CLARIDAD: charco de luz bajo los pies + resplandor detrás de la silueta (2 llamadas, sin importar el nivel). El cuerpo oscuro siempre se lee contra algo más claro.
   const poolU = { uC: { value: new T.Color(glow) }, uA: { value: 0.5 } };
   const pool = new T.Mesh(new T.CircleGeometry(2, 28).rotateX(-Math.PI / 2), new T.ShaderMaterial({ ...add, uniforms: poolU, vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: POOL_FS }));
-  pool.position.y = 0.05; pool.frustumCulled = false; pool.renderOrder = -2; pool.name = 'presencia-charco'; object.add(pool);
+  pool.position.y = 0.1; pool.frustumCulled = false; pool.renderOrder = -2; pool.name = 'presencia-charco'; object.add(pool);
   const halo = new T.Sprite(new T.SpriteMaterial({ map: haloTex(), color: glow, ...add })); halo.renderOrder = -1; halo.name = 'presencia-halo'; halo.frustumCulled = false; object.add(halo);
   const _w = new T.Vector3(), _c = new T.Vector3();
   const own = []; // geometrías y materiales a liberar al reconstruir
