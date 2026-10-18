@@ -1,5 +1,5 @@
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
-import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS, STYLES } from './data.js';
+import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS, STYLES, AFFIX_IDS, LINEAGE } from './data.js';
 import { MAPS } from './maps.js';
 import { collide, blocked } from './physics.js';
 import { AI } from './ai.js';
@@ -7,6 +7,7 @@ import { useAbility, roleFor, reviveRate, speedMul } from './roles.js';
 import { makeObjective, updateObjective } from './objectives.js';
 import { initColoso, initMadre, initArgos, bossDeath } from './bossmech.js';
 import { useMove, useSpecial } from './characters.js';
+import { spawnNpc, clearNpc, npcStep } from './npcs.js';
 import { orgSnap, loadOrgans, shapeOrgans, hasC } from './organos.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
@@ -75,7 +76,7 @@ export class Game {
     const i = p.input;
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; if (typeof inp.style === 'string' && STYLES[inp.style]) p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style]) p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult;
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
@@ -173,7 +174,7 @@ export class Game {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
       for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
-      this.emit({ t: 'clear', wave: this.wave });
+      this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this);
       for (const p of this.players) addCores(this, p, CORES.wave + this.wave * 2);
       for (const p of this.alivePlayers()) {
         p.hp = Math.min(PLAYER.hp, p.hp + 40); // respiro entre oleadas
@@ -184,6 +185,7 @@ export class Game {
   }
 
   startWave(n, plan) {
+    clearNpc(this);
     this.wave = n; this.phase = 'wave'; this.spawnT = 1;
     for (const p of this.players) if (p.cards.length) { applyCard(p, p.cards[0], this); p.cards = []; } // quien no eligió, recibe la primera
     for (const p of this.players) { if (p.dead) this.revive(p); if (p.role === 'ingeniero' && !p.dead) { for (const w of [2, 1, 3]) this.dropPickup('ammo', madd(madd(p.pos, p.up, 1.5), p.heading, 2 + w), w); } }
@@ -264,6 +266,8 @@ export class Game {
       hp, maxhp: hp, r: def.r, speedMul: (1 + WAVE_SCALE.speed * (w - 1)) * (elite ? 1.12 : 1), elite, t: 0, cd: this.rng.range(0.5, 2), cd2: this.rng.range(1, 3),
       state: 'idle', stateT: 0, dead: false, hurt: 0, kids: 0, parent: 0, far: 0, ...extra,
     };
+    if (extra.affix && !def.boss) m.elite = true;
+    if (m.elite && !def.boss) { m.affix = extra.affix || AFFIX_IDS[Math.floor(this.rng.next() * AFFIX_IDS.length)]; if (m.affix === 'veloz') m.speedMul *= 1.35; }
     this.monsters.push(m);
     if (def.boss) { this.boss = m; if (kind === 'coloso') initColoso(this, m); else if (kind === 'argos') initArgos(this, m); else initMadre(this, m); }
     this.stats.spawned++;
@@ -367,7 +371,7 @@ export class Game {
     p.interactEdge = inp.interact && !p.interactPrev; p.interactPrev = inp.interact;
     if (inp.ability && !p.abilityPrev) useAbility(this, p); p.abilityPrev = inp.ability;
     if (inp.ping && !p.pingPrev) this.doPing(p); p.pingPrev = inp.ping;
-    updateHost(this, p, dt);
+    updateHost(this, p, dt); npcStep(this, p);
     if (this.magazines) this.updateReload(p, dt);
     if (inp.fire && p.cd <= 0 && !p.carry) this.firePlayer(p);
     // recoger
@@ -424,7 +428,8 @@ export class Game {
     if (w0.per > 0 && p.ammo[p.weapon] < w0.per) { // sin munición → Haz
       p.weapon = 0; return;
     }
-    p.cd = Math.max(p.cd, -this.dt) + w0.rate / st.rate; // arrastra el sobrante: la cadencia no se redondea al tick
+    p.cd = Math.max(p.cd, -this.dt) + w0.rate / st.rate;
+    if (st.forma === 'alba') { p.albaN = (p.albaN || 0) + 1; if (p.albaN % 5 === 0 && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + 4); } // arrastra el sobrante: la cadencia no se redondea al tick
     if (w0.per > 0) p.ammo[p.weapon] -= w0.per;
     if (this.magazines) p.clip[p.weapon]--;
     const origin = this.eyePos(p);
@@ -537,13 +542,16 @@ export class Game {
     if (m.kind === 'madre') mul_ = m.open ? 1 : 0.15;
     if (m.kind === 'espejo') { m.cloak = false; m.reveal = 2.2; }
     if (m.stun) mul_ *= 1.5;
+    if (m.affix === 'blindado') mul_ *= 0.6;
+    if (m.affix === 'espectral' && this.time < (m.ghostUntil || 0)) mul_ *= 0.05;
     if (m.kind === 'coloso' || m.kind === 'argos') { if (m.shield) mul_ *= BOSS_MECH.shield; if (m.stagger > 0) mul_ *= BOSS_MECH.stagger; }
     if (this.time < (m.markUntil || 0)) mul_ *= m.markMul || 1.3;
     if (by && by.input) { mul_ *= hostOut(this, by, m); if (this.time < (m.dotUntil || 0) && m.dotKind === 'poison' && anyMut(by, 'neurotoxina')) mul_ *= 1.2; }
     if (by && this.time < this.teamBuffUntil) mul_ *= 1.25;
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
-    if (by && by.input) hostHit(this, by, m, dmg * mul_);
+    if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
+    if (m.affix === 'llorón' && !m.dead && this.time >= (m.weepAt || 0) && (m.kids || 0) < 3) { m.weepAt = this.time + 3; const k = this.spawnMonster('astilla', madd(m.pos, norm(this.rng.unit()), 3), { parent: m.id, noElite: true }); if (k) m.kids = (m.kids || 0) + 1; }
     this.emit({ t: 'hit', id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1, cr: this.critNow || undefined });
     if (m.hp <= 0) this.killMonster(m, by);
   }
@@ -557,6 +565,7 @@ export class Game {
     if (m.parent) { const par = this.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); }
     this.emit({ t: 'kill', id: m.id, k: m.kind, p: a3(m.pos) });
     if (m.kind === 'racimo') this.explode(m.pos, 5.5, 22, 40, null);
+    if (m.affix === 'explosivo') this.explode(m.pos, 6, 28, 30, null);
     if (m.def.boss) { // al caer el corazón del vórtice todo lo demás se hace añicos
       this.queue = []; this.omens = []; bossDeath(this);
       for (const o of this.monsters) if (!o.dead && o !== m) { o.dead = true; this.emit({ t: 'kill', id: o.id, k: o.kind, p: a3(o.pos) }); }
@@ -587,6 +596,7 @@ export class Game {
 
   updateMonster(m, dt) {
     if (m.dead) return;
+    if (m.affix === 'espectral') { if (this.time > (m.ghostNext || 0)) { m.ghostUntil = this.time + 1.2; m.ghostNext = this.time + 4; } }
     const ts = this.map.timeScaleAt(m.pos);
     const slowed = this.time < (m.slowUntil || 0) && !m.def.boss;
     const dtm = dt * ts * (slowed ? 0.5 : 1) * (this.time < (m.chronoUntil || 0) && !m.def.boss ? 0.25 : 1) * (m.def.boss ? BOSS_PACE : MONSTER_PACE);
@@ -776,15 +786,15 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
-        s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || !!m.shield, st: !!m.stun || (m.stagger || 0) > 0,
+        s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, af: m.affix || undefined, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || !!m.shield, st: !!m.stun || (m.stagger || 0) > 0,
       })),
       projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),
-      objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, ow: o.owner || 0, l: r2(o.life || 0) })),
+      objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, nk: o.kind || undefined, ow: o.owner || 0, l: r2(o.life || 0) })),
       obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state } : null,
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
       dir: { stress: r2(this.director.stress), frag: this.fragments, buff: r2(Math.max(0, this.teamBuffUntil - this.time)) },

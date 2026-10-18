@@ -116,6 +116,24 @@ export const STYLES = {
 export const STYLE_IDS = Object.keys(STYLES);
 /** Sin estilo elegido (pruebas, bots viejos): todo ×1. */
 export const STYLE_NEUTRAL = { name: 'Neutro', mul: { melee: 1, gun: 1, skill: 1 }, cd: 1, taken: 1, ult: 1 };
+/* Afijos de élite (desde la oleada 3): cada élite lleva UNO, visible (halo + nombre). */
+export const AFFIXES = {
+  blindado:   { name: 'Blindado',   color: 0xb0c4de, desc: 'Recibe 40 % menos de daño.' },
+  veloz:      { name: 'Veloz',      color: 0xffe066, desc: 'Se mueve un 35 % más rápido.' },
+  vampirico:  { name: 'Vampírico',  color: 0xff5a6e, desc: 'Cura vida al morder.' },
+  explosivo:  { name: 'Explosivo',  color: 0xff9a3c, desc: 'Estalla al morir.' },
+  espectral:  { name: 'Espectral',  color: 0xb07bff, desc: 'Cada 4 s se vuelve intangible 1,2 s.' },
+  llorón:     { name: 'Llorón',     color: 0x7ae8ff, desc: 'Invoca ánimas al recibir daño.' },
+};
+export const AFFIX_IDS = Object.keys(AFFIXES);
+/* Linajes de armas: un arma a nivel 3 de mejora, con mutación y un órgano, asciende a UNA de dos formas finales (excluyentes). */
+export const LINEAGE = {
+  req: { lvl: 3 },
+  forms: {
+    alba:   { name: 'del Alba',  desc: 'Luz: +25 % de daño y cada impacto crítico o 5.º disparo cura 4 de vida.', color: 0xffe9a0 },
+    ocaso:  { name: 'del Ocaso', desc: 'Sombra: +40 % de cadencia y los impactos marcan a la criatura (+15 % de daño de todo).', color: 0x8a5bff },
+  },
+};
 export const CORES = { perCost: 1.2, eliteMul: 2, wave: 6, objective: 30, boss: 100 };
 
 

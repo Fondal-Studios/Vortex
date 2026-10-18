@@ -67,7 +67,7 @@ function pulseGravity(game, m, range, secs) {
 
 function bite(game, m, p, dmg, rate) {
   if (m.cd <= 0 && dist(p.pos, m.pos) < m.r + 0.9 + 0.6) {
-    game.hurtPlayer(p, dmg * dmgMul(game)); m.cd = rate;
+    game.hurtPlayer(p, dmg * dmgMul(game)); m.cd = rate; if (m.affix === 'vampirico') m.hp = Math.min(m.maxhp, m.hp + dmg * 0.8);
     game.emit({ t: 'bite', id: m.id });
   }
 }

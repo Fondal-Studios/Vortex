@@ -309,6 +309,7 @@ export function hostOut(g, p, m) {
   if (p.ultId === 'sobrecarga') k *= 1.1;
   if (hasPath(p, 'apoteosis')) k *= 1.1;
   if (hasPath(p, 'artilleria') && !p.inMelee) k *= 1.15;
+  if (p.blessWave && p.blessWave === g.wave) k *= 1.1;
   if (hasC(p, 'ojo_extra')) k *= 1.12;
   return k;
 }

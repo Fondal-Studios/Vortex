@@ -1,6 +1,6 @@
 // Equipo del jugador: armas elegidas (5 ranuras), mejoras por oleada (tarjetas) y estadísticas efectivas de cada arma.
 import { organMuls, organError, buyOrgan } from './organos.js';
-import { WEAPON_ORGANS, CHAMP_ORGANS } from './data.js';
+import { WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE } from './data.js';
 import { WEAPON_MUTS, WEAPONS, UPGRADE_KINDS, WEAPON_MODS } from './data.js';
 
 export const DEFAULT_SLOTS = [0, 1, 2, 3, 4];
@@ -11,13 +11,13 @@ export function cleanSlots(slots) {
   for (const w of DEFAULT_SLOTS) if (out.length < 5 && !out.includes(w)) out.push(w);
   return out;
 }
-export const emptyUpg = () => ({ dmg: 0, rate: 0, mag: 0, mod: null, mut: null });
+export const emptyUpg = () => ({ dmg: 0, rate: 0, mag: 0, mod: null, mut: null, forma: null });
 export const upgOf = (p, wid) => (p.upg[wid] ||= emptyUpg());
 /** Estadísticas efectivas de un arma para un jugador. */
 export function wstat(p, wid) {
   const u = p.upg[wid] || emptyUpg();
   const O = organMuls(p, wid);
-  return { dmg: (1 + 0.22 * u.dmg) * O.dmg, rate: (1 + 0.14 * u.rate) * O.rate, mag: (1 + 0.3 * u.mag) * (p.path && p.path.includes('artilleria') ? 1.3 : 1), mod: u.mod, mut: u.mut };
+  return { dmg: (1 + 0.22 * u.dmg) * O.dmg * (u.forma === 'alba' ? 1.25 : 1), rate: (1 + 0.14 * u.rate) * O.rate * (u.forma === 'ocaso' ? 1.4 : 1), mag: (1 + 0.3 * u.mag) * (p.path && p.path.includes('artilleria') ? 1.3 : 1), mod: u.mod, mut: u.mut, forma: u.forma };
 }
 export const ammoMax = (p, wid) => { const w = WEAPONS[wid]; return w.max === Infinity ? Infinity : Math.ceil(w.max * wstat(p, wid).mag); };
 export const modsFor = (wid) => Object.keys(WEAPON_MODS).filter((m) => !((m === 'precision' || m === 'toxica') && WEAPONS[wid].kind !== 'hitscan') && !(m === 'precision' && WEAPONS[wid].pellets > 3) && !(m === 'perfora' && (WEAPONS[wid].pierce)) && !(m === 'cadena' && WEAPONS[wid].chain) && !(m === 'explosiva' && WEAPONS[wid].splash));
@@ -29,6 +29,9 @@ export function makeCards(g, p) {
   // evolución de 2.º nivel: con una mutación elegida y algo de práctica, el arma ofrece dos ramas excluyentes
   const elig = wl.filter((w) => { const u = p.upg[w]; return u && u.mod && !u.mut && u.dmg + u.rate >= 2 && WEAPON_MUTS[u.mod]; });
   if (elig.length && g.rng.next() < 0.6) { const w = g.rng.pick(elig), br = WEAPON_MUTS[p.upg[w].mod]; for (const b of br) cards.push({ w, k: 'mut', mod: p.upg[w].mod, mut: b.id }); }
+  // LINAJE: un arma a nivel 3 con mutación y un órgano ofrece DOS formas finales excluyentes
+  const lin = wl.filter((w) => { const u = p.upg[w]; return u && !u.forma && u.dmg + u.rate + u.mag >= LINEAGE.req.lvl && u.mod && ((p.worg && p.worg[w]) || []).length >= 1; });
+  if (lin.length && g.rng.next() < 0.7) { const w = g.rng.pick(lin); for (const f of Object.keys(LINEAGE.forms)) cards.push({ w, k: 'forma', forma: f }); }
   // ÓRGANOS como tarjetas: si hay esencias para alguno, se ofrece UNO (elegirlo descarta las otras tarjetas: selección excluyente)
   if (p.ess && g.rng.next() < 0.7) {
     const can = (x) => Object.entries(x.cost).every(([k, n]) => (p.ess[k] || 0) >= n);
@@ -49,13 +52,14 @@ export function makeCards(g, p) {
 }
 export function applyCard(p, c, g = null) {
   if (c.k === 'organ') { if (g) buyOrgan(g, p, c.t, c.w, c.id); return; }
+  if (c.k === 'forma') { upgOf(p, c.w).forma = c.forma; if (g) g.emit({ t: 'forma', pid: p.id, w: c.w, forma: c.forma }); return; }
   const u = upgOf(p, c.w);
   if (c.k === 'mut') u.mut = c.mut; else if (c.k === 'mod') u.mod = c.mod; else u[c.k] = Math.min(UPGRADE_KINDS[c.k].max, u[c.k] + 1);
   if (c.k === 'mag') { const w = WEAPONS[c.w]; if (w.max !== Infinity) p.ammo[c.w] = Math.min(ammoMax(p, c.w), p.ammo[c.w] + Math.ceil(w.max * 0.3)); }
 }
 /** Texto corto de una tarjeta (menú) */
 export function cardText(c) {
-  const w = WEAPONS[c.w]; if (c.k === 'organ') return c.t === 'c' ? `Órgano: ${CHAMP_ORGANS[c.id].name}` : `${w.name}: ${WEAPON_ORGANS[c.id].name}`; if (c.k === 'mut') return `${w.name}: ${WEAPON_MUTS[c.mod].find((b) => b.id === c.mut).name}`; return c.k === 'mod' ? `${w.name}: ${WEAPON_MODS[c.mod].name}` : `${w.name}: ${UPGRADE_KINDS[c.k].name}`;
+  const w = WEAPONS[c.w]; if (c.k === 'forma') return `${w.name} ${LINEAGE.forms[c.forma].name}`; if (c.k === 'organ') return c.t === 'c' ? `Órgano: ${CHAMP_ORGANS[c.id].name}` : `${w.name}: ${WEAPON_ORGANS[c.id].name}`; if (c.k === 'mut') return `${w.name}: ${WEAPON_MUTS[c.mod].find((b) => b.id === c.mut).name}`; return c.k === 'mod' ? `${w.name}: ${WEAPON_MODS[c.mod].name}` : `${w.name}: ${UPGRADE_KINDS[c.k].name}`;
 }
 
 /** Aplica a un disparo las mutaciones del arma (nivel 1 y rama de nivel 2). Modifica y devuelve `w`. */
