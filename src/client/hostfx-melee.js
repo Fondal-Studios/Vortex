@@ -88,7 +88,23 @@ STYLE.colmena = {
   weapon: () => merge([cone(0.028, 1, 0x3a0e1a, 0, 0.03, 0, 1, 0.8), cone(0.012, 1, 0xf02848, 0, 0.03, 0, 1, 0.8), cone(0.014, 1, 0xf2dfb4, 0.034, 0.02, 0, 1, 0.6, 0, 0.08), cone(0.014, 1, 0xf2dfb4, -0.034, 0.02, 0, 1, 0.6, 0, -0.08)]),
 };
 COMBO.colmena = { l: [{ R: THRUST }, { L: mirror(THRUST) }, { R: RAKE, L: RAKE }], h: { R: scaleK(THRUST, 1.4), L: scaleK(mirror(THRUST), 1.4) } };
+// DANZANTE: antebrazo de hueso con espiral de cinta fucsia y un ESTOQUE de listones (hoja fina, guarda de flor); floreos rápidos que alternan manos
+STYLE.danzante = {
+  dur: { light: 0.3, heavy: 0.6, air: 0.55 }, restExt: 0.15, wz: -0.2, len: 0.95, wpn: 'bone',
+  body: () => merge([cyl(0.036, 0.028, 0.0, -0.34, 0xeadfc6), cyl(0.04, 0.04, -0.06, -0.12, 0xff3fa0), cyl(0.04, 0.04, -0.16, -0.22, 0x2fe6d0), cyl(0.04, 0.04, -0.26, -0.32, 0xff3fa0), box(0.012, 0.012, 0.26, 0.03, 0.034, -0.17, 0xffb020), box(0.07, 0.03, 0.09, 0, 0, -0.4, 0x4a1a5e), cone(0.05, 0.12, 0xff3fa0, 0.06, -0.02, -0.34, 1.4, 0.2, 0, -0.3), cone(0.05, 0.1, 0x2fe6d0, -0.06, -0.02, -0.34, 1.4, 0.2, 0, 0.3)]),
+  weapon: () => merge([cone(0.012, 1, 0xfff2f8, 0, 0.0, 0, 1, 1), cone(0.02, 0.22, 0xffb020, 0.0, 0.02, 0, 3, 0.6), sph(0.03, 0, 0.0, 0.0, 0xff3fa0, 1.5, 1.5, 0.5, 0)]),
+};
+COMBO.danzante = { l: [{ R: scaleK(THRUST, 0.9) }, { L: scaleK(mirror(SWEEP), 0.8) }, { R: scaleK(SWEEP, 1.1), L: scaleK(mirror(THRUST), 0.9) }], h: { R: scaleK(THRUST, 1.4), L: scaleK(mirror(SWEEP), 1.0) } };
+// SINGULAR: antebrazo de roca estelar con anillo de oro y cristal violeta; el golpe ARRASTRA (ganchos hacia adentro y mazazos)
+STYLE.singular = {
+  dur: { light: 0.44, heavy: 0.9, air: 0.74 }, restExt: 0.2, wz: -0.3, len: 0.5, wpn: 'bone',
+  body: () => merge([cyl(0.04, 0.032, 0.0, -0.34, 0x2a2236), cyl(0.052, 0.052, -0.08, -0.14, 0x62547c), cyl(0.05, 0.05, -0.22, -0.28, 0x3c3250), box(0.012, 0.012, 0.28, 0.03, 0.036, -0.17, 0xffc23a), box(0.07, 0.04, 0.09, 0, 0, -0.4, 0x3c3250), sph(0.045, 0, 0, -0.46, 0x62547c, 1.2, 0.9, 1.1)]),
+  weapon: () => merge([cone(0.03, 1, 0x6a30c8, 0.0, 0.035, 0, 1, 0.9), cone(0.016, 1, 0xffc23a, 0.036, 0.02, 0, 1, 0.7, 0, 0.1), cone(0.016, 1, 0xffc23a, -0.036, 0.02, 0, 1, 0.7, 0, -0.1)]),
+};
+COMBO.singular = { l: [{ R: scaleK(HOOK, 1.1) }, { L: mirror(HOOK) }, { R: SLAM, L: SLAM }], h: { R: scaleK(HOOK, 1.4), L: scaleK(mirror(HOOK), 1.4) } };
 const AIR = { R: scaleK(SLAM, 1.2), L: scaleK(SLAM, 1.2) };
+/** Golpes de 1.ª persona por nombre (los pide combo-fx.js según el golpe del modo Combo: ANIM_GOLPE[huésped][golpe].fp). */
+const FP = { SLASH: { R: SLASH }, SLASH_L: { L: mirror(SLASH) }, THRUST: { R: THRUST }, RAKE: { R: RAKE, L: RAKE }, SLAM: { R: SLAM, L: SLAM }, HOOK: { R: HOOK }, HOOK_L: { L: mirror(HOOK) }, CRACK: { R: CRACK }, SWEEP: { R: SWEEP, L: scaleK(mirror(SWEEP), 0.8) } };
 const WINDUP = 0.3; // fracción de la animación en la que el brazo termina de cargar el golpe
 const sample = (k, u) => { // interpolación suavizada entre teclas
   if (!k) return null; let i = 0; while (i < k.length - 2 && u > k[i + 1][0]) i++;
@@ -229,7 +245,7 @@ export function createHostMelee(renderer, D) {
     if (kind === 'spin') kind = 'heavy'; if (kind === 'lunge') kind = 'light';   // giro y estocada reutilizan las animaciones de golpe pesado y ligero
     const S = built, now = T; const isHeavy = kind === 'heavy' || kind === 'exec' || kind === 'air';
     if (!isHeavy) { comboIdx = comboT < 1.0 ? (comboIdx + 1) % 3 : 0; } else comboIdx = 0; comboT = 0; if (kind === 'exec') kind = 'heavy';
-    const kfs = kfsFor(kind, comboIdx), dur = S.dur[kind === 'light' ? 'light' : kind === 'air' ? 'air' : 'heavy'] * (o.fast ? 0.8 : 1);
+    const kfs = (o.fp && FP[o.fp]) || kfsFor(kind, comboIdx), dur = S.dur[kind === 'light' ? 'light' : kind === 'air' ? 'air' : 'heavy'] * (o.fast ? 0.8 : 1);
     swing = { kind: o.kind || kind, shape: kind, idx: comboIdx, kfs, u: o.u0 || 0, dur, hit: o.hit || 0, exec: !!o.exec, impacted: false, predicted: !!o.predicted, t0: now, d: o.d || null, p: o.p || null };
     if (o.u0 && o.u0 > HIT_AT) swing.impacted = true;
     lastPredict = o.predicted ? { kind: swing.kind, t: now } : lastPredict; idleT = 0; cdUntil = now + dur * 0.62;
@@ -270,7 +286,9 @@ export function createHostMelee(renderer, D) {
       case 'vesper': D.sparks(P, 0xffffff, 8 * k, 16, 0.4, { dir: n, cone: 1.6, c2: a }); for (let i = 0; i < (heavy ? 4 : 3); i++) { _a.copy(P).addScaledVector(up, 0.5 - i * 0.28).addScaledVector(_c.copy(n).cross(up).normalize(), -0.5); _b.copy(_a).addScaledVector(_c, 1.0).addScaledVector(up, -0.5); fx.line(_a, _b, i === 1 ? 0xffffff : a, 0.09, 0.22, { a0: 1, a1: 0, shrink: 0.6 }); } break;
       case 'micelio': D.ring(P.clone().addScaledVector(up, -0.4), up, 0.4, 3.2 * k, 0.4, c, { th: 0.14 }); D.spray(P, 0x6a5a2a, 6 * k, 5, 0.9, 1.2, { smoke: true, shape: SHAPE.smoke, grow: 1.4, c2: 0x241c0c }); D.spray(P, a, 8 * k, 8, 0.8, 0.6, { shape: SHAPE.bubble, up: 2, c2: c }); D.sparks(P, a, 5 * k, 9, 0.4, { dir: n, cone: 1.4 }); break;
       case 'umbra': fx.line(_a.copy(P).addScaledVector(n.clone().cross(up).normalize(), -1.4), _b.copy(P).addScaledVector(n.clone().cross(up).normalize(), 1.4), 0xffffff, 0.14, 0.25, { a0: 1, a1: 0, shrink: 0.9 }); fx.line(_a, _b, a, 0.55, 0.3, { a0: 0.6, a1: 0, shrink: 0.9 }); D.ring(P, null, 0.3, 2.6 * k, 0.4, a, { th: 0.1 }); D.sparks(P, a, 8 * k, 14, 0.4, { dir: n, cone: 1.4, c2: c }); break;
+      case 'singular': D.ring(P, n, 0.3, 2.8 * k, 0.4, c, { th: 0.12 }); D.ring(P, up, 0.3, 1.6 * k, 0.45, a, { th: 0.07 }); D.sparks(P, a, 6 * k, 12, 0.5, { dir: n, cone: 1.9, c2: c }); break;
       case 'seraf': D.ring(P, n, 0.3, 3 * k, 0.35, a, { th: 0.12 }); D.sparks(P, 0xffffff, 8 * k, 18, 0.4, { dir: n, cone: 1.3, c2: c }); D.spray(P, c, 6 * k, 6, 0.6, 0.6, { shape: SHAPE.star, c2: a, spin: 4 }); break;
+      case 'danzante': D.sparks(P, 0xffffff, 7 * k, 16, 0.4, { dir: n, cone: 1.6, c2: a }); D.sparks(P, 0xffb020, 6 * k, 12, 0.5, { dir: n, cone: 1.9, c2: 0xff3fa0 }); D.ring(P, n, 0.3, 2.6 * k, 0.35, a, { th: 0.1 }); break;
       default: D.sparks(P, 0xffffff, 10 * k, 18, 0.4, { dir: n, cone: 1.5, c2: c }); D.spray(P, 0xe9eef2, 4 * k, 8, 0.6, 0.7, { shape: SHAPE.shard, grav: 9, spin: 8, c2: c, grow: -0.4 });
     }
     if (iw) itemImpact(P, n, up, heavy, iw);
@@ -299,10 +317,11 @@ export function createHostMelee(renderer, D) {
       if (!built || host !== hostId) build(hostId);
       const sw = swing, conf = sw && sw.predicted && !sw.confirmed && lastPredict && T - lastPredict.t < 0.7 && (lastPredict.kind === e.kind || (e.kind !== 'light' && lastPredict.kind !== 'light') || e.kind === 'exec');
       if (conf) { sw.confirmed = true; sw.hit = e.hit || 0; sw.exec = e.kind === 'exec'; sw.d = e.d || null; sw.kind = e.kind; if (sw.u >= HIT_AT && !sw.impacted) impact(sw); if (snd) { /* el sonido de barrido ya sonó al predecir */ } }
-      else start(e.kind, { hit: e.hit, exec: e.kind === 'exec', d: e.d, p: e.p, u0: e.kind === 'light' ? 0.2 : 0.22, fast: true });
+      else start(e.kind, { hit: e.hit, exec: e.kind === 'exec', d: e.d, p: e.p, u0: e.kind === 'light' ? 0.2 : 0.22, fast: true, fp: renderer.comboFx ? renderer.comboFx.fpFor(e.pid) : null });
       if (swing) swing.iw = e.iw || '';   // estela y golpe propios del arma de objeto
       trailMat.uniforms.uC.value.set(e.iw ? fxOf(e.iw).c : pal.c).lerp(WHITE, 0.35);
     } else { // otro jugador (o 3.ª persona): tajo en el mundo
+      if (renderer.comboFx && renderer.comboFx.owns(e, me, state)) return;   // modo Combo: estela, impacto y sonido los pone combo-fx.js (un solo dibujo por golpe)
       if (snd) snd.melee(hostId, e.kind === 'exec' ? 'light' : e.kind, e.p || null, 0, e.kind !== 'light');
       host = host || hostId; worldSwing(I, { ...e, char: hostId }, pal);
       if (e.hit > 0 || e.kind === 'exec') { const dir = e.d ? V(e.d).normalize() : I.aim, range = (CHARACTERS[hostId].melee.light.range || 3.6) * 0.7; const P = I.eye.clone().addScaledVector(dir, range); later(0.12, () => { worldImpact(hostId, P, dir.clone().negate(), pal, e.kind !== 'light', e.kind === 'exec', I.up, e.iw); if (snd) snd.melee(hostId, e.kind === 'exec' ? 'exec' : 'hit', P.toArray(), e.hit || 1, e.kind !== 'light'); }); }
@@ -343,7 +362,7 @@ export function createHostMelee(renderer, D) {
   function clear() { swing = null; charge = null; engage = 0; idleT = 9; freeze = 0; fl.t = mk.t = 0; flashSpr.visible = markSpr.visible = false; rig.visible = false; trailMesh.visible = false; const vm = renderer.vm; if (vm && vm.root) { vm.root.position.y -= vmOff; vmOff = 0; if (gunHidden) vm.root.visible = !renderer.third; } gunHidden = false; pend.length = 0; hist.R.length = hist.L.length = 0; if (whip) whip.mesh.visible = false; }
   function stats() { let m = 0; if (rig.visible) rig.traverse((o) => { if ((o.isMesh || o.isSprite) && o.visible && o.parent && o.parent.visible !== false) m++; }); return { meshes: m, swing: swing ? swing.kind : null, charge: !!charge, engage: +engage.toFixed(2) }; }
   return {
-    onEvent, update, key, clear, stats, dispose() { clear(); dispose1(); cam.remove(rig); for (const d of disposables) d.dispose(); },
+    onEvent, update, key, clear, stats, worldImpact, dispose() { clear(); dispose1(); cam.remove(rig); for (const d of disposables) d.dispose(); },
     /** Para el banco de pruebas: dispara un golpe local sin pasar por la sim. */
     play(kind, o = {}) { const hid = o.char || host || 'axioma'; if (!built || host !== hid) build(hid); if (!o.keepCombo) comboT = o.idx != null ? 0 : 9; if (o.idx != null) comboIdx = (o.idx + 2) % 3; start(kind, { hit: o.hit || 0, exec: kind === 'exec', d: o.d, predicted: false, u0: o.u0 || 0, silent: !!o.silent }); },
     get swing() { return swing; }, get engage() { return engage; },

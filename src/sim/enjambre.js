@@ -156,7 +156,7 @@ export function enjambreSkill(g, p, id) {
 /** Llamado del enjambre (habilidad principal del modo Combo): brotan zánganos y todo el enjambre entra en frenesí. */
 export function llamado(g, p) { spawnUnits(g, p, 3 + ((p.evo || 0) >= 2 ? 1 : 0), { life: ENJ.life }); p.swarmUntil = g.time + ENJ.frenzyT; }
 /** Estados para el snapshot: cantidad de zánganos vivos (`un`) y si el enjambre está en frenesí (`fz`). */
-export function enjambreSnap(g, p) { if (!isColmena(p)) return {}; return { un: p.nUnits || 0, uc: unitCap(p), fz: frenzy(g, p) ? 1 : 0 }; }
+export function enjambreSnap(g, p) { if (!isColmena(p)) return {}; return { un: unitsOf(g, p).length, uc: unitCap(p), fz: frenzy(g, p) ? 1 : 0 }; }
 void clone;
 
 /** Nube de aguijones (fx 'nube' del Combo): daña y ralentiza en un óvalo delante del jugador. Devuelve cuántas criaturas pegó (máx. 10). */

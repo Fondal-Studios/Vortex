@@ -298,6 +298,16 @@ const W = {
     for (let i = 0; i < 3 + (t >= 2 ? 2 : 0); i++) { const a = i * 2.2, y = 0.3 + i * 0.28; B.oct('body', VO2, 0.03, [Math.sin(a) * 0.12, y, Math.cos(a) * 0.1], [0.6, 1.7, 0.6], [a, a, 0]); B.oct('glow', GH, 0.01, [Math.sin(a) * 0.12, y, Math.cos(a) * 0.1], [0.6, 1.7, 0.6], [a, a, 0]); }
     return { base: 0.1, top: 1.62, guardY: 0.1, hw: 0.07, fz: 0.014, mid: 0.9, rad: 0.15, vein: false };
   },
+  orbita(B, c, t) {   // SINGULAR: cetro orbital: asta de cristal oscuro con un planeta de roca anillado y lunas
+    const RK = 0x3c3250, RK2 = 0x62547c, CR = 0x1d1034, GD = c.g, GD2 = c.h;
+    gripWrap(B, CR, 0xffc23a, -0.16, 0.08, 0.024, 4);
+    B.cyl('body', CR, 0.016, 0.02, 1.0, [0, 0.58, 0]);
+    for (const y of [0.22, 0.5, 0.82]) B.tor('glow', GD, 0.026, 0.005, [0, y, 0], [Math.PI / 2, 0, 0], 6);
+    B.ico('body', RK2, 0.1, [0, 1.17, 0], [1, 0.95, 1]); B.oct('glow', GD2, 0.034, [0.03, 1.25, 0.03], [0.8, 1.4, 0.8]);
+    B.tor('glow', GD, 0.17, 0.007, [0, 1.17, 0], [Math.PI / 2 - 0.5, 0, 0.25], 10);
+    for (let i = 0; i < 2 + (t >= 2 ? 1 : 0); i++) { const a = i * 2.1 + 0.5; B.ico('body', RK, 0.03, [Math.cos(a) * 0.24, 1.2 + 0.02 * i, Math.sin(a) * 0.24], ONE); B.sph('glow', GD2, 0.011, [Math.cos(a) * 0.24, 1.25 + 0.02 * i, Math.sin(a) * 0.24], ONE, 3); }
+    return { base: 0.1, top: 1.3, guardY: 0.08, hw: 0.17, fz: 0.1, mid: 0.9, rad: 0.2, vein: false };
+  },
   aguijon(B, c, t) {   // COLMENA: lanza-aguijón de quitina con guarda hexagonal de cera, filo de jalea y púas de panal
     const CH = 0x3a0e1a, WX = 0xf2dfb4, GD = c.g, GD2 = c.h;
     gripWrap(B, CH, 0xf02848, -0.14, 0.06, 0.026, 4); B.cyl('body', WX, 0.055, 0.055, 0.03, [0, 0.07, 0], ZERO, 6); B.sph('glow', GD2, 0.026, [0, 0.1, 0.0], ONE, 4);
@@ -306,6 +316,17 @@ const W = {
     B.sph('glow', GD2, 0.02, P(1), ONE, 4);
     for (let i = 0; i < 3 + (t >= 2 ? 2 : 0); i++) { const u = 0.25 + i * 0.16, p = P(u), sd = i % 2 ? -1 : 1; B.cone('body', WX, 0.014, 0.1, [p[0] + sd * 0.04, p[1], p[2]], [0, 0, -sd * 1.0], 3); }
     return { base: 0.1, top: 1.27, guardY: 0.08, hw: 0.06, fz: 0.02, mid: 0.7, rad: 0.12, vein: false };
+  },
+  listones(B, c, t) {   // DANZANTE: estoque fino de hueso con guarda en flor de cempasúchil y listones atados que flotan
+    const GD = c.g, GD2 = c.h, BN = 0xeadfc6, PL = 0x4a1a5e;
+    gripWrap(B, PL, 0xff3fa0, -0.14, 0.06, 0.026, 4); B.sph('body', BN, 0.036, [0, 0.085, 0], [1, 0.9, 1]);
+    B.cyl('body', BN, 0.075, 0.075, 0.012, [0, 0.13, 0], ZERO, 8); B.tor('glow', GD2, 0.08, 0.009, [0, 0.136, 0], [Math.PI / 2, 0, 0], 8);
+    for (let i = 0; i < 6; i++) { const a = i * 1.047; B.cone('glow', i % 2 ? GD : GD2, 0.02, 0.06, [Math.cos(a) * 0.075, 0.13, Math.sin(a) * 0.075], [Math.sin(a) * 1.2, 0, -Math.cos(a) * 1.2], 4); }
+    const P = (u) => [0, 0.14 + u * 1.38, Math.sin(u * Math.PI) * 0.022];   // hoja fina, apenas curvada
+    B.arc('body', 0xf4f0ff, P, 10, 0.02, 0.004, 4); B.arc('glow', GD, (u) => { const p = P(u); return [p[0], p[1], p[2] + 0.014]; }, 10, 0.005, 0.002, 3);
+    B.sph('glow', GD2, 0.022, P(1), ONE, 4); B.sph('mem', GD, 0.06, P(1), ONE, 5);
+    for (let i = 0; i < 3 + (t >= 2 ? 2 : 0); i++) { const a = i * 2.1; B.arc('glow', i % 2 ? GD : GD2, (u) => [Math.cos(a) * (0.08 + u * 0.14), 0.13 + u * 0.6 + Math.sin(u * 6 + a) * 0.04, Math.sin(a) * (0.08 + u * 0.14)], 8, 0.011, 0.003, 3); }
+    return { base: 0.1, top: 1.52, guardY: 0.13, hw: 0.08, fz: 0.02, mid: 0.8, rad: 0.15, vein: false };
   },
   latigo(B, c, t) {
     const GD = c.g, GD2 = c.h, IV = 0xe9dcc2, DK = 0x3a2a1c;
@@ -359,7 +380,9 @@ const PAL = {
   colmillo: [0xff5a5a, 0xffc0c0], aguja_fantasma: [0xc8b8ff, 0xffffff], cuchillas: [0x3aa8ff, 0xbfe6ff], garras: [0xb04bff, 0xff3a8a], punos: [0x7be03a, 0xc6ff7a],
   hoja_dim: [0xb98cff, 0x40ffc0], latigo: [0xffd45a, 0xfff0b0],
 };
+PAL.listones = [0xff3fa0, 0x2fe6d0]; MELEE_MODEL_IDS.push('listones'); NATIVE_NAMES.listones = 'Estoque de listones';   // Danzante
 PAL.aguijon = [0xf02848, 0xffb83a]; MELEE_MODEL_IDS.push('aguijon'); NATIVE_NAMES.aguijon = 'Aguijón';   // Colmena
+PAL.orbita = [0xffc23a, 0xd8b8ff]; MELEE_MODEL_IDS.push('orbita'); NATIVE_NAMES.orbita = 'Cetro orbital';   // Singular
 /** Color canon del brillo de cada arma (por si la interfaz quiere teñirse con él). */
 export const meleeGlow = (id) => (PAL[id] || [0xffffff])[0];
 

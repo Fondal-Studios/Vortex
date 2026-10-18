@@ -42,7 +42,7 @@ const CSS = `
 .hq-ammo.touch{bottom:calc(66px + env(safe-area-inset-bottom,0px))}.hq-ammo.touch b{font-size:16px}
 @media (max-height:460px){.hq .hs{min-height:22px;padding:3px 8px}}
 `;
-const BF = [[1, 'Caparazón'], [2, 'Camuflaje'], [4, 'Sobrecarga'], [8, 'Frenesí'], [16, 'Floración'], [32, 'Metamorfosis'], [64, 'Desfase'], [128, 'Planeo'], [256, 'Barrera']];
+const BF = [[1, 'Caparazón'], [2, 'Camuflaje'], [4, 'Sobrecarga'], [8, 'Frenesí'], [16, 'Floración'], [32, 'Metamorfosis'], [64, 'Desfase'], [128, 'Planeo'], [256, 'Barrera'], [512, 'Enjambre furioso']];
 const RING = { mov: '#5cf2ff', esp: '#ff9a3c', s3: '#b9a4ff', ult: '#ffd23f', melee: '#ff6a6a' };
 const hex = (n) => '#' + (n >>> 0).toString(16).padStart(6, '0');
 
@@ -104,8 +104,8 @@ export function createHuespedHud(rootEl) {
       const b = doc.querySelector('.tc-ult'); if (b) { if (active) b.dataset.cd = String(Math.ceil(ua)); else delete b.dataset.cd; }
     }
     { // contador de combo grande (modo Combo): ×N, nombre del último golpe y barra de la ventana
-      const n = combo ? (me.cn | 0) : 0, w = combo ? +me.cw || 0 : 0, on = n > 0 && w > 0, sig = `${on}|${n}|${me.cnm}`;
-      if (cache.ch !== sig) { cache.ch = sig; ch.classList.toggle('on', on); if (on) { ch.querySelector('b').innerHTML = `×${n}<i>COMBO</i>`; ch.querySelector('small').textContent = me.cnm || ''; ch.classList.remove('pop'); void ch.offsetWidth; ch.classList.add('pop'); } }
+      const n = combo ? (me.cn | 0) : 0, w = combo ? +me.cw || 0 : 0, on = n > 0 && w > 0, cp = me.char === 'danzante' ? ((me.bf | 0) >> 16) & 7 : 0, sig = `${on}|${n}|${me.cnm}|${cp}`;   // cp = compás de la Danzante (bits 16-18 de bf)
+      if (cache.ch !== sig) { cache.ch = sig; ch.classList.toggle('on', on); if (on) { ch.querySelector('b').innerHTML = `×${n}<i>COMBO</i>`; ch.querySelector('small').textContent = (me.cnm || '') + (cp ? `  ·  COMPÁS ${'♪'.repeat(cp)}` : ''); ch.classList.remove('pop'); void ch.offsetWidth; ch.classList.add('pop'); } }
       ch.querySelector('s').style.transform = `scaleX(${Math.min(1, w / 0.9)})`;
       if (!combo) ch.classList.remove('on');
     }
@@ -126,7 +126,8 @@ export function createHuespedHud(rootEl) {
         setBtn('.tc-reload', rl > 0 ? rl : (me.cm > 0 ? me.cl / me.cm : 1), '#7dff9a', 0, me.cl === 0 && rl === 0, rl > 0, 'Recargar'); }
     }
     { // estados activos
-      const sig = `b${bf}`; if (cache.bf !== sig) { cache.bf = sig; rows.hb.innerHTML = BF.filter(([m]) => bf & m).map(([, n]) => `<u>${n}</u>`).join(''); }
+      const un = me.char === 'colmena' ? `${me.un | 0}/${me.uc | 0}` : '', sig = `b${bf}|${un}`;   // Colmena: cuántos zánganos tiene vivos / su límite
+      if (cache.bf !== sig) { cache.bf = sig; rows.hb.innerHTML = (un ? `<u>Zánganos ${un}</u>` : '') + BF.filter(([m]) => bf & m).map(([, n]) => `<u>${n}</u>`).join(''); }
     }
   }
   return { update, el };

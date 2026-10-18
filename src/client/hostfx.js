@@ -34,6 +34,7 @@ export const HOST_PAL = {
   axioma: { c: 0x3aa8ff, a: 0xffa24a, d: 0x0a1830 }, vesper: { c: 0xb04bff, a: 0xff3a8a, d: 0x1a0830 }, micelio: { c: 0x7be03a, a: 0xe8ff6a, d: 0x10260a },
   umbra: { c: 0xb98cff, a: 0x5cf0ff, d: 0x0a0414 }, seraf: { c: 0xffd45a, a: 0xff6ec4, d: 0x2a0a18 },
 };
+HOST_PAL.singular = { c: 0xb26bff, a: 0xffc23a, d: 0x0c0418 };   // Singular: ultravioleta, oro de estrella y vacío
 HOST_PAL.colmena = { c: 0xf02848, a: 0xffb83a, d: 0x1a0308 };   // Colmena: jalea roja y miel
 HOST_PAL.danzante = { c: 0xff3fa0, a: 0x2fe6d0, d: 0x2a0a3a };   // Danzante: fucsia de carnaval, turquesa y ciruela
 const palOf = (char) => HOST_PAL[char] || { c: CHARACTERS[char] ? CHARACTERS[char].color : 0x66ffee, a: 0xffffff, d: 0x10101c };
@@ -363,6 +364,34 @@ export function createHostFx(renderer, opts = {}) {
     ring(I.ground, I.up, 0.5, 8, 0.6, col, { th: 0.1 }); column(I.ground, I.up, 9, acc, 0.6, 0.9); if (I.self) kickVig(7, 1.0); shake(I, 0.4);
   };
   /* ── SERAF: dorado / rosa. Alas, vida, simbiosis. ── */
+  /* ── COLMENA: rojo jalea / miel. Zumbido de alas, panal y enjambre (src/sim/enjambre.js). ── */
+  SK.zumbido = (I) => { // salto zumbante: estela de polen y aro en el suelo
+    const { col, acc, up, h } = I;
+    ring(I.ground, up, 0.4, 3.6, 0.4, col, { th: 0.1 }); fx.flash(I.pos, 0xffe0b0, 2.6, 0.16, { burst: true });
+    spray(I.pos, acc, 14, 10, 0.8, 0.7, { dir: _a.copy(h).negate().clone(), cone: 0.9, c2: col, spin: 4 }); trail(I.pid, 0.6, col, acc, 1.0, 0.2, 0.35);
+    if (I.self) { streaks(h, acc, 4, 8); shake(I, 0.12); }
+  };
+  SK.cria = (I) => { // brotan zánganos: cúpula hexagonal de panal delante del jugador
+    const { col, acc, up, h } = I, o = I.pos.clone().addScaledVector(h, 2.2).addScaledVector(up, 1.4);
+    shell(sphereP, o, null, 0.4, 2.2, 0.5, col, { c2: acc, op: 0.7, pow: 1.6, base: 0.05, hex: 1, fade: 1.0 });
+    ring(I.ground, up, 0.4, 3.2, 0.45, acc, { th: 0.1 }); fx.flash(o, 0xffd890, 3, 0.18, { burst: true });
+    spray(o, acc, 14, 6, 0.9, 0.6, { shape: SHAPE.shard, c2: col, spin: 6, grow: -0.3 });
+    if (I.self) shake(I, 0.1);
+  };
+  SK.nido = (I) => { // un nido-torreta brota del suelo
+    const { col, acc, up, h } = I, p = I.ground.clone().addScaledVector(h, 7);
+    ring(p, up, 0.3, 2.8, 0.5, col, { th: 0.12 }); ring(p, up, 0.2, 1.6, 0.35, acc, { th: 0.08, op: 0.7 });
+    fx.flash(p.clone().addScaledVector(up, 0.8), 0xffd890, 3.2, 0.2, { burst: true }); spray(p, acc, 12, 8, 0.8, 0.7, { dir: up, cone: 0.6, c2: col });
+    if (I.self) shake(I, 0.15);
+  };
+  SK.marabunta = (I) => { // definitiva: marea de panal y alas que se expande alrededor
+    const { col, acc, up } = I, R = 9;
+    shell(sphereP, I.pos, null, 0.6, R, 0.7, col, { c2: acc, op: 0.55, pow: 2.0, base: 0.04, hex: 1, st: 6, fade: 1.0 });
+    ring(I.ground, up, 0.5, R, 0.6, acc, { th: 0.1 }); later(0.2, () => ring(I.ground, up, 0.5, R * 0.65, 0.45, col, { th: 0.09, op: 0.7 }));
+    fx.flash(I.pos, 0xffe0b0, 5, 0.3, { burst: true }); sparks(I.pos, acc, 24, 24, 0.6, { c2: col });
+    for (let i = 0; i < N(24); i++) later(0.015 * i, () => { _a.set(srnd(), srnd(0.4), srnd()).normalize(); fx.add.spawn(I.pos.x, I.pos.y + 1, I.pos.z, _a.x * 9, _a.y * 9, _a.z * 9, C(acc), C(col), 0.8, 0.6, 0, 0, -0.5, SHAPE.shard); });
+    if (I.self) { kickVig(6, 0.7); shake(I, 0.3); }
+  };
   SK.planeo = (I, e) => { // impulso alado
     const { col, acc, up, h } = I; forceState(I.pid, BF.PLANEO, 2.2);
     ring(I.ground, up, 0.4, 4, 0.45, col, { th: 0.12 }); fx.flash(I.pos, 0xfff4c0, 3, 0.18, { burst: true });
@@ -392,6 +421,44 @@ export function createHostFx(renderer, opts = {}) {
     for (let i = 0; i < 14; i++) later(i * 0.03, () => { const a = i * 0.9; fx.add.spawn(I.pos.x + Math.cos(a) * 1.2 * I.right.x, I.pos.y - 0.8, I.pos.z + Math.sin(a) * 1.2, 0, 4 + rnd(2), 0, C(0xffffff), C(i % 2 ? col : acc), 0.8, 1.0, 0, 0.5, -0.4, SHAPE.shard, srnd(5), 1); });
     kickVig(6, 1.0); shake(I, 0.5);
   };
+
+  /* ── DANZANTE: fucsia / turquesa / cempasúchil. Cintas, paradas y réplicas (lógica: src/sim/danzante.js). ── */
+  const CARNAVAL = [0xff3fa0, 0x2fe6d0, 0xffb020];
+  SK.pirueta = (I) => { // deslizamiento: un giro de cintas que deja tres posimágenes de colores
+    const { pid, col, acc, h, up } = I;
+    ring(I.ground, up, 0.3, 3.2, 0.4, col, { th: 0.1 }); ring(I.ground, up, 0.2, 2.2, 0.35, acc, { th: 0.08, op: 0.7 }); fx.flash(I.pos, 0xffffff, 2.4, 0.14, { burst: true });
+    for (let i = 0; i < 3; i++) afterimage(I.pos, h, up, CARNAVAL[i], 0xffffff, 0.05 * (i + 1), 0.45 - 0.1 * i, 0.4);
+    spray(I.ground, col, 10, 10, 0.6, 0.7, { shape: SHAPE.star, c2: acc, spin: 4, up: 2 }); trail(pid, 0.45, col, acc, 1.1, 0.4, 0.4); trail(pid, 0.4, 0xffb020, col, 0.7, 0.9, 0.3);
+    if (I.self) { addLoop(0.4, () => streaks(h, col, 2, 7)); shake(I, 0.15); }
+  };
+  SK.parada = (I) => { // la guardia perfecta: un destello fino alrededor del cuerpo (la «ventana»)
+    const { col, acc, up } = I;
+    shell(sphereP, I.pos, null, 0.7, 1.5, 0.35, acc, { c2: 0xffffff, op: 0.55, pow: 2.6, base: 0.03, hex: 1, fade: 1.2 }); ring(I.ground, up, 0.4, 2.0, 0.3, col, { th: 0.07, op: 0.8 });
+    fx.flash(I.pos, 0xffffff, 1.6, 0.1, { burst: true }); if (I.self) kickVig(1, 0.3);
+  };
+  SK.cintas = (I) => { // lazo de cintas: abanico de listones desde las muñecas
+    const { col, acc, aim, up, right } = I, o = I.eye.clone().addScaledVector(aim, 0.9).addScaledVector(up, -0.25);
+    fx.flash(o, 0xffffff, 2.6, 0.14, { burst: true });
+    for (let i = 0; i < 7; i++) later(0.02 * i, () => { _a.copy(aim).addScaledVector(right, (i - 3) * 0.16).addScaledVector(up, 0.06 * Math.sin(i * 1.7)).normalize(); _b.copy(o).addScaledVector(_a, 12); bolt(o, _b, CARNAVAL[i % 3], 0.16, 0.4, 0.9, 6); sparks(_b, CARNAVAL[(i + 1) % 3], 4, 9, 0.4, { c2: 0xffffff }); });
+    ring(I.ground.clone().addScaledVector(I.h, 2), up, 0.3, 3.4, 0.35, col, { th: 0.1 }); if (I.self) { kickVig(6, 0.4); shake(I, 0.2); }
+  };
+  SK.danza = (I) => { // ULT: Danza Macabra. Columna de luz, remolino de cintas y confeti de tres colores mientras dure
+    const { pid, col, acc, up } = I;
+    ring(I.ground, up, 0.4, 8, 0.6, col, { th: 0.1 }); ring(I.ground, up, 0.3, 5, 0.5, acc, { th: 0.12 }); fx.flash(I.pos, 0xffffff, 6, 0.3, { burst: true });
+    column(I.ground, up, 9, col, 0.7, 1.0); column(I.ground, up, 7, acc, 0.6, 0.6); column(I.ground, up, 5, 0xffb020, 0.5, 0.4);
+    spray(I.pos, col, 16, 12, 0.9, 0.8, { shape: SHAPE.star, c2: acc, spin: 5, up: 3 });
+    let n = 0; addLoop(10, (dt, u, t) => { const k = known.get(pid); if (!k) return false; n += dt; if (n < 0.14) return; n = 0; const a = t * 5; _a.copy(k.pos).addScaledVector(k.upV, -0.5).addScaledVector(k.right, Math.cos(a) * 3.4).addScaledVector(k.h, Math.sin(a) * 3.4); _b.copy(k.pos).addScaledVector(k.upV, 0.9 + 0.5 * Math.sin(a * 0.7)).addScaledVector(k.right, Math.cos(a + 2.1) * 3.4).addScaledVector(k.h, Math.sin(a + 2.1) * 3.4); fx.line(_a, _b, CARNAVAL[(t * 7 | 0) % 3], 0.35, 0.5, { a0: 0.9, a1: 0, shrink: 0.7 }); });
+    if (I.self) { kickVig(6, 1.0); shake(I, 0.4); }
+  };
+  /** Parada o esquiva PERFECTA (evento {t:'parry', pid, k:'parada'|'esquiva', p, r, n}): onda de choque del tamaño del área, estallido de confeti y un destello de campana. */
+  function parryFx(e, me) {
+    const I = info(e.pid, e, me), R = e.r || 5.6, up = I.up, big = e.k === 'parada' ? 1 : 0.8;
+    ring(I.ground, up, 0.5, R, 0.45, 0xffffff, { th: 0.1, op: 0.95 }); ring(I.ground, up, 0.3, R * 0.7, 0.4, I.col, { th: 0.12 }); ring(I.ground, up, 0.2, R * 0.45, 0.35, I.acc, { th: 0.14, op: 0.8 });
+    shell(sphereP, I.pos, null, 0.8, 2.2 * big, 0.3, 0xffffff, { c2: I.acc, op: 0.8, pow: 1.8, base: 0.05, hex: 1, fade: 1.0 }); fx.flash(I.pos, 0xffffff, 5 * big, 0.25, { burst: true });
+    for (let i = 0; i < 14; i++) spray(I.pos, CARNAVAL[i % 3], 1, 14, 0.9, 0.7, { shape: i % 2 ? SHAPE.star : SHAPE.shard, c2: 0xffffff, spin: 6, up: 2, dir: _a.set(srnd(), 0.3 + rnd(0.7), srnd()).normalize().clone(), cone: 1.4 });
+    for (let i = 0; i < 6; i++) { _a.copy(I.pos).addScaledVector(up, 0.3 + rnd(0.8)).addScaledVector(I.right, srnd(R * 0.5)).addScaledVector(I.h, srnd(R * 0.5)); bolt(I.pos, _a, CARNAVAL[i % 3], 0.18, 0.35, 0.6, 4); }
+    if (I.self) { kickVig(1, 0.7); shake(I, 0.35); } if (sound) sound.host('parada', I.self ? null : (e.p || null));
+  }
 
   /* ═══════════════════════ ESTADOS PERSISTENTES (campo bf) ═══════════════════════ */
   const forced = new Map(); // pid → { bit: hasta } (cuando el snapshot aún no trae `bf`)
@@ -510,6 +577,7 @@ export function createHostFx(renderer, opts = {}) {
     if (me) meId = me.id; if (state) lastState = state;
     if (e.t === 'hurt') { const S = states.get(e.pid); if (S) S.pulse = 1; return false; }
     if (e.t === 'melee') { melee.onEvent(e, me, state); return true; }
+    if (e.t === 'parry') { parryFx(e, me); return true; }   // Danzante: parada / esquiva perfecta
     if (e.t === 'ultend') { const I = info(e.pid, e, me); endUlt(I, e.id); return false; }
     if (e.t !== 'skill' || !SK[e.id]) return false;
     const I = info(e.pid, e, me); SK[e.id](I, e, state);
@@ -567,5 +635,5 @@ export function createHostFx(renderer, opts = {}) {
     window.addEventListener('keydown', (ev) => { if (ev.code === 'KeyV' && !ev.repeat && !typing(ev.target) && !renderer.third) meleeKey(true); });
     window.addEventListener('keyup', (ev) => { if (ev.code === 'KeyV' && !typing(ev.target)) meleeKey(false); });
   }
-  return { onEvent, update, clear, dispose, stats, melee, meleeKey, setSound(s) { sound = s; }, handles: (e) => (e.t === 'skill' && !!SK[e.id]) || e.t === 'melee', skills: Object.keys(SK), HOST_IDS, forceState };
+  return { onEvent, update, clear, dispose, stats, melee, meleeKey, setSound(s) { sound = s; }, handles: (e) => (e.t === 'skill' && !!SK[e.id]) || e.t === 'melee' || e.t === 'parry', skills: Object.keys(SK), HOST_IDS, forceState };
 }

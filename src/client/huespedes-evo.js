@@ -14,7 +14,7 @@ import { buildHost, HOST_COLORS } from './huespedes-view.js';
 import { attachToViewmodel } from './melee-models.js';
 import { attachChampOrgans } from './organs-vis.js';
 import { applyMutations, pathIds, REGIONS } from './huespedes-mut.js';
-import { EVO_TIERS, EVO_PATHS, MELEE_WEAPONS } from '../sim/data.js';
+import { EVO_TIERS, EVO_PATHS, evoPathsFor, MELEE_WEAPONS } from '../sim/data.js';
 
 /** Dónde agarra el arma cada Huésped (marco del antebrazo derecho) y cuánto se escala. */
 const HAND = { axioma: [0, -0.38, 0.05], vesper: [0, -0.56, 0.1], micelio: [0, -0.8, 0.16], umbra: [0, -0.4, 0.05], seraf: [0, -0.37, 0.03] };
@@ -94,6 +94,7 @@ export function buildHostEvo(THREE, id, opts = {}) {
 }
 
 const MATERIAL = { axioma: 'hueso y brasas', vesper: 'cristal fantasma', micelio: 'raíz y corteza', umbra: 'espejo y sombra', seraf: 'luz dorada' };
+MATERIAL.singular = 'roca estelar y cristal oscuro'; HAND.singular = [0, -0.4, 0.05]; HSCALE.singular = 1.05;   // Singular
 MATERIAL.danzante = 'hueso, cintas y cempasúchil'; HAND.danzante = [0, -0.4, 0.05]; HSCALE.danzante = 1;   // Danzante
 const PATH_TXT = {
   depredador: (m) => `Depredador: garras largas de ${m} en las manos y una hilera de espinas por el lomo.`,
@@ -109,3 +110,5 @@ const PATH_TXT = {
 export const EVO_VISUAL = {};
 MATERIAL.colmena = 'quitina, cera y miel'; HAND.colmena = HAND.seraf; HSCALE.colmena = 1;   // Colmena
 for (const id of Object.keys(MATERIAL)) { EVO_VISUAL[id] = ['']; for (let n = 1; n <= 4; n++) EVO_VISUAL[id][n] = EVO_PATHS[n].map((o) => (PATH_TXT[o.id] ? PATH_TXT[o.id](MATERIAL[id]) : o.name)).join('  ·  '); }
+EVO_VISUAL.colmena = [''];   // Colmena tiene caminos PROPIOS: se describen con sus nombres, no con los comunes
+for (let n = 1; n <= 4; n++) EVO_VISUAL.colmena[n] = evoPathsFor('colmena')[n].map((o) => o.name + ': ' + o.desc).join('  ·  ');

@@ -45,6 +45,8 @@ export const HAND_PRESETS = {   // el color dominante es el color canon del pers
   seraf:   { color: 0xffd45a, accent: 0xfff0b0, tattoo: 'constelacion', glove: 'cristal', skin: 0xe9dcc2 },   // simbiosis: marfil con filamentos dorados
 };
 HAND_PRESETS.colmena = { color: 0xf0384e, accent: 0xffb83a, tattoo: 'venas', glove: 'tactico', skin: 0x3a1420 };   // invocadora: quitina burdeos con venas rojas y miel
+HAND_PRESETS.danzante = { color: 0xff3fa0, accent: 0x2fe6d0, tattoo: 'constelacion', glove: 'cristal', skin: 0xe8dcc0 };   // duelista: manos de hueso de azúcar con constelaciones de carnaval
+HAND_PRESETS.singular = { color: 0xb26bff, accent: 0xffc23a, tattoo: 'constelacion', glove: 'cristal', skin: 0x3a2f4a };   // astro muerto: roca estelar oscura con constelaciones doradas
 try { const pr = new URLSearchParams(location.search).get('preset'); if (pr && HAND_PRESETS[pr]) setHandStyle(HAND_PRESETS[pr]); } catch { /* sólo pruebas: ?preset=egida|lumen|forja|vigia|nova|umbra */ }
 
 const VERT = `

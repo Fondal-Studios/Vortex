@@ -1,6 +1,6 @@
 // Pantalla «ELEGÍ TU CAMINO»: al evolucionar se muestran los DOS caminos del próximo nivel (excluyentes) con qué hacen y cómo cambia
 // tu cuerpo. Tocar uno envía input.evo = 1 | 2 a la simulación. En solitario la partida se pausa mientras elegís.
-import { evoPathsFor, EVO_TIERS, CHARACTERS } from '../sim/data.js';
+import { evoPathsFor, EVO_TIERS, CHARACTERS, EVO_FLAVOR } from '../sim/data.js';
 
 const VIS_TXT = { garras: 'te crecen garras y espolones', placas: 'placas quitinosas te cubren el cuerpo', tendones: 'tendones luminosos recorren tus piernas', nucleo: 'un núcleo late en tu pecho', fusion: 'tu arma se funde con tu brazo', canones: 'te brotan conductos en la espalda', alas: 'alas de membrana se abren detrás tuyo', grietas: 'grietas de vacío se abren en tu piel' };
 const VIS_ICO = { garras: '🦴', placas: '🛡', tendones: '⚡', nucleo: '💠', fusion: '🗡', canones: '🎯', alas: '🪽', grietas: '🌀' };
@@ -19,8 +19,8 @@ export function createEvoChoice(host, { onOpen, onClose } = {}) {
     /** Abrir con el estado del jugador del snapshot (me). Devuelve false si no hay nada que elegir. */
     show(me) {
       if (!me || !(me.evn > 0) || (me.co | 0) < me.evn) return false;
-      const EP = evoPathsFor(me.char), tier = (me.evo | 0) + 1, opts = EP[tier]; if (!opts) return false;
-      const C = CHARACTERS[me.char] || {}, prev = (me.pth || []).map((id, i) => (EP[i + 1] || []).find((o) => o.id === id)).filter(Boolean);
+      const EP = evoPathsFor(me.char), FL = EVO_FLAVOR[me.char] || {}, fl = (o) => (FL[o.id] ? { ...o, ...FL[o.id] } : o), tier = (me.evo | 0) + 1, opts = EP[tier] && EP[tier].map(fl); if (!opts) return false;   // EVO_FLAVOR: nombre y texto propios de ese Huésped (mismos ids y bonos)
+      const C = CHARACTERS[me.char] || {}, prev = (me.pth || []).map((id, i) => (EP[i + 1] || []).find((o) => o.id === id)).filter(Boolean).map(fl);
       el.innerHTML = `<div class="ec-in"><h3>EVOLUCIÓN · NIVEL ${tier}: ${EVO_TIERS[tier].name.toUpperCase()}</h3>
         <p class="ec-sub">${C.name || ''} va a mutar. <b>Elegí UN camino: el otro se cierra para siempre.</b> Cuesta ${me.evn} núcleos (tenés ${me.co | 0}).</p>
         <div class="ec-opts">${opts.map((o, i) => `<button class="ec-opt" data-i="${i + 1}"><span class="ec-ico">${VIS_ICO[o.vis] || '✺'}</span><b>${o.name}</b><span class="ec-d">${o.desc}</span><span class="ec-v">Tu cuerpo: ${VIS_TXT[o.vis] || 'cambia'}</span></button>`).join('')}</div>

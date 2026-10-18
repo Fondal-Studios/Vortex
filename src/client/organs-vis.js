@@ -79,6 +79,7 @@ const MOUNT = {
   umbra: { s: 3.4, back: [0, 0.15, -0.2], front: [0, 0.22, 0.2], side: [0.28, 0.3, 0], low: [0, 0.02, -0.18], head: [0, 0.02, 0.17], hs: 1 },
   seraf: { s: 3, back: [0, 0.2, -0.19], front: [0, 0.3, 0.17], side: [0.17, 0.35, 0], low: [0, 0.05, -0.17], head: [0, 0.16, 0.15], hs: 0.9 },
 };
+MOUNT.singular = { s: 3.4, back: [0, 0.2, -0.22], front: [0, 0.3, 0.2], side: [0.22, 0.38, 0], low: [0, 0.05, -0.2], head: [0, 0.14, 0.17], hs: 1 };   // Singular
 MOUNT.danzante = { s: 3.2, back: [0, 0.2, -0.2], front: [0, 0.3, 0.2], side: [0.2, 0.38, 0], low: [0, 0.05, -0.18], head: [0, 0.14, 0.17], hs: 1 };   // Danzante
 const CHAMP_SPOT = { placas: ['back', 0], adrenal: ['low', 0], medula: ['back', 1], tentaculo: ['side', -1], espiraculo: ['back', 2], saco_g: ['side', 1], corazon_cristal: ['front', 0], ojo_extra: ['head', 0] };
 /** Órganos del campeón (ids de CHAMP_ORGANS) colgados del torso y de la cabeza de su modelo. joints = host.joints. */

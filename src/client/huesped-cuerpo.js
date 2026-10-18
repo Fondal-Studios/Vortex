@@ -47,7 +47,7 @@ export const GROW = 0.045;
 const PATH_SHAPE = { depredador: [0.03, 0.05], coraza: [0.1, 0.0], velocidad: [-0.04, 0.03], resonancia: [0.0, 0.02], simbiosis: [0.07, 0.03], artilleria: [0.05, 0.0], apoteosis: [0.0, 0.06], anomalia: [0.03, 0.04] };
 // COLMENA (invocadora de enjambre, caminos propios): diseño, aspecto, encuadre, forma y aura de cada camino; `pathOf` respeta los caminos propios de un Huésped (EVO_PATHS sólo vale para los demás)
 DESIGN.colmena = COLMENA; FRAME.colmena = [1.0, 2.5, 2.3];
-LOOK.colmena = { preset: 'jugador3', scale: 1.0, glow: 0xffb83a, ember: 0xe8203c };   // borde de miel ámbar y venas rojas de jalea sobre quitina burdeos (Danzante es fucsia/cempasúchil, Seraf oro: Colmena es el ÚNICO rojo)
+LOOK.colmena = { preset: 'jugador3', scale: 1.0, glow: 0xff3a3a, ember: 0xffb83a };   // borde y charco de luz ROJOS (jalea real) con venas de miel ámbar sobre quitina burdeos: contrasta con las alas ámbar y con los pisos fríos (Danzante es fucsia, Seraf oro: Colmena es el ÚNICO rojo)
 Object.assign(PATH_SHAPE, { criador: [0.0, 0.02], aguijon: [0.0, 0.03], nidos: [0.04, 0.02], nube: [0.02, 0.0], cohabita: [0.05, 0.03], detonador: [0.03, 0.0], reina: [0.03, 0.07], plaga: [0.06, 0.04] });
 Object.assign(PATH_STYLE, { criador: { color: 0xffc24a, kind: 4, n: 16 }, aguijon: { color: 0xff3b55, kind: 2, n: 18 }, nidos: { color: 0xffa21c, kind: 8, n: 16 }, nube: { color: 0xffd070, kind: 1, n: 22 }, cohabita: { color: 0xff7a90, kind: 3, n: 14 }, detonador: { color: 0xff6a1a, kind: 0, n: 18 }, reina: { color: 0xffe08a, kind: 6, n: 18 }, plaga: { color: 0xd8402f, kind: 7, n: 20 } });
 function pathOf(char, evo, pth) { const EP = evoPathsFor(char); if (EP === EVO_PATHS) return pathFor(evo, pth); const out = []; for (let i = 1; i <= evo; i++) { const id = pth && pth[i - 1]; out.push((EP[i] || []).some((o) => o.id === id) ? id : EP[i][0].id); } return out; }
@@ -140,14 +140,19 @@ export function createHostBody(THREE, kit, p, opts = {}) {
       time += dt; if (ctx.map && ctx.map !== map) map = ctx.map;
       if (!ready || disposed) { human.update(dt, { speed: 0 }); return; }
       const k2 = keyOf(pl, map); if (k2 !== key) { key = k2; assemble(pl); }
+      // Modo Combo: los golpes los anima combo-anim.js (pose procedural + avance + hit-stop); el clip único «punch»/«cast» sólo se usa fuera del Combo
+      const an = ctx.anim || null; if (an) act = null;
       if (act) { act.t -= dt; if (act.t <= 0) act = null; }
-      const spd = ctx.speed || 0, c = pl.dead ? 'death' : act ? act.k : 'idle';
+      const stop = an && ctx.freeze > 0, vis = an && an.w > 0 ? an.vis : 0, spd = Math.max(ctx.speed || 0, Math.min(14, vis)), c = pl.dead ? 'death' : act ? act.k : 'idle';
       if (c !== clip) { clip = c; human.play(c, { fade: 0.16, restart: c === 'punch' || c === 'cast' }); }
-      human.update(dt, { speed: spd, moveDir: ctx.moveDir, pitch: ctx.pitch || 0, camera });
+      if (an && !an.measured && human.bones && human.bones.upperarm01_R_h) { an.measured = true; an.measure(human.bones); }
+      const post = an && an.w > 0.01 ? (b, g) => an.apply(b, g) : null;
+      human.update(stop ? 0 : dt, { speed: spd, moveDir: vis > 1 ? { x: 0, z: 1 } : ctx.moveDir, pitch: ctx.pitch || 0, camera, post });
       presence.update(dt, time, { speed: spd, moveDir: ctx.moveDir, viewH: ctx.viewH });
       const evoN = shownEvo, lev = ((has2('apoteosis') || has2('reina')) ? 0.2 + 0.05 * Math.sin(time * 1.6) : has2('anomalia') ? 0.07 + 0.03 * Math.sin(time * 1.2) : 0); // la forma final levita
-      holder.position.y = (L.hover ? L.hover + 0.035 * Math.sin(time * 1.4) + 0.02 * Math.sin(time * 2.3) : 0) + lev * (L.scale);
-      lean += ((has2('velocidad') ? Math.min(1, spd / 7) * 0.16 : has2('depredador') ? 0.05 + Math.min(1, spd / 7) * 0.07 : 0) - lean) * Math.min(1, 6 * dt); holder.rotation.x = lean; // postura: la Velocidad se inclina al correr, el Depredador va encorvado
+      const ao = an && an.w > 0 ? an.off : null, jit = stop ? Math.sin(time * 140) * 0.012 * (ctx.freezeK || 1) : 0;   // el hit-stop vibra apenas: el golpe «traba»
+      holder.position.set((ao ? ao.lat || 0 : 0) + jit, (L.hover ? L.hover + 0.035 * Math.sin(time * 1.4) + 0.02 * Math.sin(time * 2.3) : 0) + lev * (L.scale) + (ao ? ao.up : 0), ao ? ao.fwd : 0);
+      lean += ((has2('velocidad') ? Math.min(1, spd / 7) * 0.16 : has2('depredador') ? 0.05 + Math.min(1, spd / 7) * 0.07 : 0) - lean) * Math.min(1, 6 * dt); holder.rotation.set(lean, (ao ? ao.yaw : 0) + (ctx.face || 0), 0, 'YXZ'); // postura: la Velocidad se inclina al correr, el Depredador va encorvado
       const br = 1 + 0.006 * evoN * Math.sin(time * 1.9), pp = presence.pop; holder.scale.set(L.scale * shape.x * pp * (2 - br), L.scale * shape.y * pp * br, L.scale * shape.z * pp * (2 - br)); holder.visible = !presence.hide;
       object.updateWorldMatrix(true, true);
       ak.update(dt, time, { object, speed: spd, glow: presence.boost });

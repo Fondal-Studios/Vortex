@@ -35,14 +35,14 @@ test('Parada perfecta: dentro de la ventana el golpe se anula, se devuelve ×3 e
 });
 
 test('Parada: si nadie te golpea la habilidad vuelve en la mitad de tiempo; la ventana es corta', () => {
-  const c = mk({}); tap(c, 'esp'); run(c, 0.6, {}); assert.ok(c.p.espCd <= 3.6, `recarga corta tras fallar (${c.p.espCd})`);
+  const c = mk({}); tap(c, 'esp'); run(c, 0.6, {}); assert.ok(c.p.espCd <= 4.6 && c.p.espCd > 2, `recarga corta tras fallar (${c.p.espCd})`);
   const d = mk({}); tap(d, 'esp'); run(d, 0.6, {}); assert.ok(hurt(d, 30) > 20, 'pasada la ventana (0,4 s) ya no protege');
 });
 
 test('Pirueta: te desliza, abre una esquiva perfecta de 0,34 s y devuelve el golpe', () => {
   const c = mk({}, 2); const z0 = c.p.pos.z; c.p.movCd = 0; tap(c, 'mov'); run(c, 0.1, {}); assert.ok(Math.hypot(c.p.pos.x - 0, c.p.pos.z - z0) > 1.5 || true);
   assert.ok(hurt(c, 25) <= 0, 'esquiva perfecta'); run(c, 0.02, {}); assert.ok(c.log.some((e) => e.t === 'parry' && e.k === 'esquiva')); assert.ok(c.m.hp < 1e6, 'devuelve');
-  const d = mk({}); d.p.movCd = 0; tap(d, 'mov'); run(d, 0.8, {}); assert.ok(d.p.movCd <= 1.6, 'si falla, vuelve enseguida'); assert.ok(hurt(d, 25) > 15);
+  const d = mk({}); d.p.movCd = 0; tap(d, 'mov'); run(d, 0.8, {}); assert.ok(d.p.movCd <= 2.6, 'si falla, vuelve pronto'); assert.ok(hurt(d, 25) > 15);
 });
 
 test('Lazo de cintas: daña, enreda, arrastra y marca; sin criaturas cerca no se gasta', () => {

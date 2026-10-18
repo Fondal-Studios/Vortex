@@ -30,7 +30,7 @@ function dominantFor(entry, names) {
 
 // ------------------------------------------------------------------ ACTUACIÓN (capa procedural sobre los clips)
 // Huesos que mueve la capa procedural. Los que no están acá los maneja solo el mezclador.
-const PROC_BONES = ['root', 'spine05_h', 'spine04_h', 'spine03_h', 'spine02_h', 'spine01_h', 'neck01_h', 'neck02_h', 'head_h', 'shoulder01_L_h', 'shoulder01_R_h', 'jaw_h',
+const PROC_BONES = ['root', 'spine05_h', 'upperleg01_L_h', 'upperleg01_R_h', 'lowerleg01_L_h', 'lowerleg01_R_h', 'spine04_h', 'spine03_h', 'spine02_h', 'spine01_h', 'neck01_h', 'neck02_h', 'head_h', 'shoulder01_L_h', 'shoulder01_R_h', 'jaw_h',
   'clavicle_L_h', 'clavicle_R_h', 'upperarm01_L_h', 'upperarm01_R_h', 'lowerarm01_L_h', 'lowerarm01_R_h', 'wrist_L_h', 'wrist_R_h',
   ...['L', 'R'].flatMap((s) => [1, 2, 3, 4, 5].flatMap((f) => [1, 2, 3].map((j) => `finger${f}-${j}_${s}_h`))),
   'eye_L_h', 'eye_R_h', 'orbicularis03_L_h', 'orbicularis04_L_h', 'orbicularis03_R_h', 'orbicularis04_R_h', 'oculi01_L_h', 'oculi01_R_h'];

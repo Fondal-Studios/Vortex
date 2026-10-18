@@ -28,6 +28,8 @@ const NATIVE_DESC = {
   punos: 'Los puños de quitina de Micelio: lentos, enormes y con golpes que sacuden el suelo.', hoja_dim: 'La hoja dimensional de Umbra: atraviesa defensas y llega más lejos.',
   latigo: 'El látigo orgánico de Seraf: se estira para golpear a distancia.',
 };
+NATIVE_DESC.orbita = 'El cetro orbital de Singular: un planeta anillado con lunas. Sus golpes ARRASTRAN a las criaturas hacia vos.';
+NATIVE_DESC.listones = 'El estoque de listones de la Danzante: fino, rápido y atado con cintas. Cada golpe a tiempo suma compás.';
 const CORE = '◆';
 const ESS_KEYS = ['carne', 'cristal', 'ojo', 'vacio'];
 const ess$ = (n) => '#' + ESSENCES[n].color.toString(16).padStart(6, '0');

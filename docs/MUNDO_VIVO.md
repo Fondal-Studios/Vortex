@@ -67,11 +67,11 @@ Desde la oleada 3 las élites llevan un **afijo** visible (halo de color + nombr
 | Evento | Qué pasa | Cómo se ve (telegrafía) | Contrapartida / premio |
 |---|---|---|---|
 | **Marea de Gravedad** (10 s) | Única ocasión en que la gravedad se invierte: cuenta atrás de 3 s y luego inversión de máx. 3,5 s. Los Familiares y jefes sólo pueden invertir durante ella. En m2 es la **ingravidez** de siempre (6 s). | Tinte violeta, cuenta atrás grande en la barra, giro de cámara de 0,8 s con viñeta | Podés moverte y disparar; aterrizaje blando; núcleos + botiquín |
-| **Niebla de Almas** (20 s) | Visibilidad corta | Pantalla lechosa; las criaturas brillan (halos que se ven a través de la niebla) | +50 % núcleos por baja |
+| **Niebla de Almas** (20 s) | Visibilidad corta **y 3 bancos de niebla blanca** (sistema de nieblas: quien se queda adentro no es visto por las criaturas a más de 9 m) | Pantalla lechosa; las criaturas brillan (halos que se ven a través de la niebla) | +50 % núcleos por baja |
 | **Lluvia de Astillas** (16 s) | Esquirlas caen cerca de vos | Círculo naranja que se llena 1,5 s antes del impacto | También hieren a las criaturas; núcleos |
 | **Tormenta de Ecos** (18 s) | Rayos caen donde estabas | Círculo celeste y columna de luz 2 s antes | El rayo destroza criaturas: llevalas al círculo; núcleos |
 | **Eclipse** (24 s) | Más élites con afijo (+45 % de probabilidad) | Tinte oscuro rojizo | Núcleos ×1,8 por baja + bono final |
-| **Marea de Sangre** (14 s) | Horda de 12 a 30 Ánimas/Fuegos Fatuos ×1,25 de velocidad, en tandas rápidas | Pulso rojo en los bordes | Frágiles; al sobrevivir: vida completa y núcleos |
+| **Marea de Sangre** (14 s) | Horda de 12 a 30 Ánimas/Fuegos Fatuos ×1,25 de velocidad, en tandas rápidas, **y un banco de niebla ámbar** (+30 % de daño hecho y recibido por quien esté adentro) | Pulso rojo en los bordes; el banco se ve desde el aviso | Frágiles; al sobrevivir: vida completa y núcleos |
 | **Bendición de la Aurora** (22 s) | Zona dorada (radio 7,5): cura 6 vida/s, +10 escudo/s y +30 % de daño dentro. Las criaturas la «apagan» (pureza) | Pilar de luz dorada desde el aviso | Si la zona sobrevive: escudo completo y núcleos proporcionales a la pureza; si se apaga, sin premio |
 | **Silencio** (12 s) | Nadie usa habilidades (rol, desplazamiento, especial, 3.ª, definitiva) | Pantalla en grises | Melé ×1,5 y +30 % núcleos por baja |
 

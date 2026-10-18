@@ -16,15 +16,15 @@ const TAU = Math.PI * 2;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, cuff, bonelump, S, low } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), upd = [], R = t.rng(8);
-  const HC = V(0, 1.6, 0.04), CC = V(0, 1.285, 0.172), HUB = V(0, 1.22, 0.02), cnew = (h) => new T.Color(h);
+  const HC = V(0, 1.575, 0.035), CC = V(0, 1.285, 0.172), HUB = V(0, 1.22, 0.02), cnew = (h) => new T.Color(h);
   const has = ctx.has, nMoons = Math.min(5, 3 + (has('depredador') ? 1 : 0) + (has('simbiosis') ? 1 : 0));
   { const mm = ak.material('mirror'); mm.envMapIntensity = 1.3; mm.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = min(outgoingLight, vec3(1.15));\n#include <opaque_fragment>'); }; mm.customProgramCacheKey = () => 'singular-vidrio'; } // vidrio negro: refleja el cielo sin quemar el bloom
   // ═══════════════════════════ CABEZA DE ECLIPSE: vidrio negro sin cara, una ranura de luz y la corona de rayos que gira detrás
   {
-    add('mirror', X(G.sphere(0.118, S(18, 10), S(14, 8)), { p: [HC.x, HC.y, HC.z], s: [1, 1.1, 1.06] }), 'head', { color: 0x0b0716 });
-    add('light', X(G.sphere(0.05, 8, 6), { p: [HC.x, HC.y + 0.012, HC.z + 0.12], s: [1.9, 0.09, 0.3] }), 'head', { color: ORO_L });                    // la ranura: un ojo apagado que aún brilla
-    add('ember', X(G.torus(0.122, 0.0032, 3, S(30, 14)), { p: [HC.x, HC.y + 0.004, HC.z], r: [0.12, 0, 0.18], s: [1, 1, 1.06] }), 'head', { color: ORO });  // línea de horizonte alrededor del cráneo
-    const cor = ak.bone('corona', 'head', V(HC.x, HC.y, HC.z - 0.1)), N = low ? 14 : 22;
+    add('mirror', X(G.sphere(0.125, S(18, 10), S(14, 8)), { p: [HC.x, HC.y, HC.z], s: [1, 1.16, 1.12] }), 'head', { color: 0x0b0716 });
+    add('light', X(G.sphere(0.05, 8, 6), { p: [HC.x, HC.y + 0.02, HC.z + 0.13], s: [1.9, 0.09, 0.3] }), 'head', { color: ORO_L });                    // la ranura: un ojo apagado que aún brilla
+    add('ember', X(G.torus(0.13, 0.0032, 3, S(30, 14)), { p: [HC.x, HC.y + 0.01, HC.z], r: [0.12, 0, 0.18], s: [1, 1, 1.1] }), 'head', { color: ORO });  // línea de horizonte alrededor del cráneo
+    const cor = ak.bone('corona', 'head', V(HC.x, HC.y, HC.z - 0.1)), N = low ? 14 : 18;
     for (let i = 0; i < N; i++) { // corona: rayos largos y cortos alternados, en un plano vertical detrás de la cabeza
       const a = (i / N) * TAU + 0.1, long = i % 2 === 0, len = long ? 0.36 + 0.07 * Math.sin(i * 1.7) : 0.2, r0 = 0.155;
       add('ember', spikeAt(V(HC.x + Math.cos(a) * r0, HC.y + Math.sin(a) * r0, HC.z - 0.1), V(Math.cos(a), Math.sin(a), -0.45), len, long ? 0.0125 : 0.008, 0, Zv, { radial: 3, tubular: 2 }), 'corona', { color: long ? ORO : ORO_L });

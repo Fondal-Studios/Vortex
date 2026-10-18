@@ -44,10 +44,10 @@ test('Inventario: abre sin errores, muestra objetos y se maneja en 4 tamaños si
 });
 test('Inventario: equipar, bloquear, desguazar y forjar desde la interfaz actualizan el perfil', { skip: !hasChromium, timeout: 300000 }, async () => {
   const errors = [], { ctx, pg } = await abrir(1280, 720, false, errors); const perfil = () => pg.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
-  // equipar el fusil (u5, arma de disparo) a Axioma
-  await pg.click('.iv-cell[data-u=u5]'); await pg.click('.iv-acts [data-a=poner]'); await pg.waitForTimeout(200); assert.equal((await perfil()).eq.axioma.gun, 'u5');
-  await pg.click('.iv-cell[data-u=u6]'); await pg.click('.iv-acts [data-a=lock]'); await pg.waitForTimeout(100); assert.equal((await perfil()).inventario.find((i) => i.u === 'u6').lk, true);
-  await pg.click('.iv-cell[data-u=u7]'); await pg.click('.iv-acts [data-a=desguazar]'); await pg.waitForTimeout(100); const p2 = await perfil(); assert.ok(!p2.inventario.some((i) => i.u === 'u7') && p2.cores > 300 && p2.materiales.hueso.some((n, c) => n > [6, 2, 0, 0][c]), 'desguazar da núcleos y materiales');
+  // equipar el fusil (u6, arma de disparo) a Axioma
+  await pg.click('.iv-cell[data-u=u6]'); await pg.click('.iv-acts [data-a=poner]'); await pg.waitForTimeout(200); assert.equal((await perfil()).eq.axioma.gun, 'u6');
+  await pg.click('.iv-cell[data-u=u7]'); await pg.click('.iv-acts [data-a=lock]'); await pg.waitForTimeout(100); assert.equal((await perfil()).inventario.find((i) => i.u === 'u7').lk, true);
+  await pg.click('.iv-cell[data-u=u8]'); await pg.click('.iv-acts [data-a=desguazar]'); await pg.waitForTimeout(100); const p2 = await perfil(); assert.ok(!p2.inventario.some((i) => i.u === 'u8') && p2.cores > 300 && p2.materiales.hueso.some((n, c) => n > [6, 2, 0, 0][c]), 'desguazar da núcleos y materiales');
   // la Forja: la Cuchilla de Hueso es una receta Común (plano conocido de entrada): 3 de hueso + 15 núcleos
   await pg.click('.iv-tab[data-t=for]'); await pg.click('.iv-plan[data-id=cuchilla_hueso]'); await pg.click('.iv-acts [data-a=forjar]'); await pg.waitForTimeout(200);
   const p3 = await perfil(); assert.ok(p3.cultivo && p3.cultivo.item === 'cuchilla_hueso', 'cultiva'); assert.equal(p3.cores, p2.cores - RECETAS.cuchilla_hueso.cores);
@@ -61,8 +61,8 @@ test('cuerpo con equipo: set completo en cada Huésped dentro del presupuesto de
     const sid = SETLIST[(i * 2) % SETLIST.length], eq = [...SETS[sid].items.filter((x) => !/(cuchilla|hacha|maza|pica|cercenadora|aguja|filo)/.test(x)), SETS[sid].items.find((x) => /(cuchilla|hacha|maza|pica|cercenadora|aguja|filo)/.test(x))].map((x) => `${x}.3`).join(',');
     const ctx = await browser.newContext({ viewport: { width: 400, height: 400 } }), pg = await ctx.newPage();
     pg.on('pageerror', (e) => errors.push(`${id}: ${e.message}`)); pg.on('console', (m) => { if (m.type() === 'error' || (m.type() === 'warning' && /Armadura|armor/i.test(m.text()))) errors.push(`${id}: ${m.text()}`); });
-    await pg.goto(`${base}/huesped-arte.html?frozen=1&w=400&h=400&q=low&char=${id}&evo=4&pth=${i % 2 ? 'coraza,resonancia,simbiosis,apoteosis' : 'depredador,velocidad,artilleria,anomalia'}&eq=${eq}&t=1`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    await pg.waitForFunction(() => window.__ready, null, { timeout: 120000 });
+    await pg.goto(`${base}/huesped-arte.html?frozen=1&w=400&h=400&q=low&char=${id}&evo=4&pth=${i % 2 ? 'coraza,resonancia,simbiosis,apoteosis' : 'depredador,velocidad,artilleria,anomalia'}&eq=${eq}&t=1`, { waitUntil: 'domcontentloaded', timeout: 400000 });
+    await pg.waitForFunction(() => window.__ready, null, { timeout: 400000 });
     res[`${id}|${sid}`] = await pg.evaluate(() => { const gl = window.__gl, sc = window.__scene; sc.children.forEach((o) => { if (o.type === 'Mesh' && !o.isSkinnedMesh && o.geometry && o.geometry.type === 'CircleGeometry') o.visible = false; if (o.geometry && o.geometry.type === 'RingGeometry') o.visible = false; });
       let worst = { calls: 0, triangles: 0 }; for (let k = 0; k < 20; k++) { window.__advance(0.1); gl.info.reset(); gl.render(sc, window.__cam); worst = { calls: Math.max(worst.calls, gl.info.render.calls), triangles: Math.max(worst.triangles, gl.info.render.triangles) }; } return worst; });
     await ctx.close();

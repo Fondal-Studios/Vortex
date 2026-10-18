@@ -4,7 +4,7 @@
 //   ratio = (Lmax+0.05)/(Lmin+0.05) (WCAG) y ΔE de Lab entre colores medios. Legible si ratio ≥ 1.5, o ΔE ≥ 30 (el color también separa figura y fondo).
 // Criterio (CRITERIO): LEGIBLE en TODOS los mapas, para el Huésped y los enemigos, en Baja y Alta. El mismo script mide además la luma media y la saturación
 // media de la imagen (para vigilar que el relleno no lave los neones: la saturación no puede bajar más de 10 %).
-// Uso: node tools/legibilidad.mjs [carpeta] [calidades=low,high] [mapas=m1..m6] [claridad=normal|alta] [medir]   (medir = sólo re-analiza las PNG ya guardadas)
+// Uso: [HUESPED=<id> EVO=<0..4>] node tools/legibilidad.mjs [carpeta] [calidades=low,high] [mapas=m1..m6] [claridad=normal|alta] [medir]   (medir = sólo re-analiza las PNG ya guardadas)
 //      CICLO=dia|ocaso|eclipse (variable de entorno) congela el ciclo de luz de las arenas (src/client/luz-arenas.js) para medir también el ocaso y el eclipse.
 import fs from 'node:fs';
 import { launch } from './browser.js';
@@ -60,11 +60,12 @@ for (const q of QS) for (const map of MAPS) {
   if (MEDIR || EXISTE(map, q)) { const rd = (n) => fs.readFileSync(`${OUT}/${map}-${q}-${n}.png`).toString('base64'); A = rd('juego'); B = rd('sinhuesped'); C = rd('sinenemigos'); }
   else {
   pg = await (await b.newContext({ viewport: { width: 960, height: 720 } })).newPage();
+  if (process.env.HUESPED || process.env.EVO) await pg.addInitScript(([h, e]) => { window.__HUESPED = h; window.__EVO = e; }, [process.env.HUESPED || '', process.env.EVO || 0]);   // HUESPED=danzante EVO=4 node tools/legibilidad.mjs …
   pg.on('pageerror', (e) => errors.push(`${map}: ${e.message}`)); pg.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(`${map}: ${m.text()}`); });
   await pg.goto(`http://localhost:${srv.port}/?auto=${map}&god=1&seed=3&q=${q}&autoq=0&nolock=1&skipintro=1&cam=third&claridad=${CL}${process.env.CICLO ? '&ciclo=' + process.env.CICLO : ''}`, { timeout: 180000 });
   await pg.waitForFunction(() => window.__api && window.__api.session && window.__api.session.game, null, { timeout: 90000 });
   await pg.addStyleTag({ content: 'body > *:not(canvas#c){visibility:hidden !important} #c{visibility:visible !important}' });
-  await pg.evaluate(() => { const g = window.__api.session.game, p = g.players[0]; g.phaseT = 1e9; g.queue = []; for (const m of g.monsters) m.dead = true; p.char = 'axioma'; p.evo = 0; window.__api.setSetting('simple', false); p.input.fire = false;
+  await pg.evaluate(() => { const g = window.__api.session.game, p = g.players[0]; g.phaseT = 1e9; g.queue = []; for (const m of g.monsters) m.dead = true; p.char = window.__HUESPED || 'axioma'; p.evo = +(window.__EVO || 0); window.__api.setSetting('simple', false); p.input.fire = false;
     const h = p.heading, u = p.up, r = { x: h.y * u.z - h.z * u.y, y: h.z * u.x - h.x * u.z, z: h.x * u.y - h.y * u.x };
     const at = (f, s) => ({ x: p.pos.x + h.x * f + r.x * s, y: p.pos.y + h.y * f + r.y * s, z: p.pos.z + h.z * f + r.z * s });
     window.__mons = [['astilla', 5, -2.0], ['prisma', 7, 2.2], ['ariete', 10, 0.2]].map(([k, f, s]) => { const m = g.spawnMonster(k, at(f, s), { noElite: true, passive: true }); m.hp = m.maxhp = 1e9; m.speedMul = 0; m.home = { ...m.pos }; return m; });

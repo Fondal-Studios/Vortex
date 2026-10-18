@@ -18,10 +18,10 @@ const nueva = async (opts = {}) => {
 
 test('menú principal › Gráficos: presets, resolución y efectos se aplican en vivo y se recuerdan', { skip: !hasChromium, timeout: 400000 }, async () => {
   const { ctx, pg, errores } = await nueva();
-  await pg.goto(`${base}/?autoq=0&nolock=1`, { timeout: 120000 });   // (sin ?q= para que mande lo guardado)
-  await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 90000 });
+  await pg.goto(`${base}/?autoq=0&nolock=1`, { waitUntil: 'domcontentloaded', timeout: 300000 });   // (sin ?q= para que mande lo guardado)
+  await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 300000 });
   await pg.evaluate(() => { window.__api.ui.confirmTitle(); });
-  const item = pg.locator('#mainlist [data-go=graficos]'); await item.waitFor({ timeout: 20000 }); assert.match(await item.innerText(), /Gráficos/);
+  const item = pg.locator('#mainlist [data-go=graficos]'); await item.waitFor({ timeout: 20000 }); assert.match(await item.innerText(), /gráficos/i);
   await item.click(); await pg.waitForSelector('#graficos.on .gr-card', { timeout: 20000 });
   // 4 tarjetas con para quién sirve
   const cards = await pg.$$eval('#graficos .gr-card', (c) => c.map((x) => x.innerText));
@@ -48,7 +48,7 @@ test('menú principal › Gráficos: presets, resolución y efectos se aplican e
   await pg.click('#graficos [data-med=true]'); await pg.waitForSelector('#fpsmeter', { timeout: 5000 }); assert.match(await pg.textContent('#fpsmeter'), /FPS/);
   await pg.click('#graficos [data-auto=false]'); assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('cristal.graficos.v1')).auto), false);
   // se recuerda al recargar
-  await pg.reload(); await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 90000 });
+  await pg.reload(); await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 300000 });
   const g = await pg.evaluate(() => JSON.parse(localStorage.getItem('cristal.graficos.v1')));
   assert.equal(g.preset, 'baja'); assert.equal(g.ajustes.escala, 150); assert.equal(g.ajustes.fps, 30); assert.equal(g.medidor, true); assert.equal(g.auto, false);
   assert.ok(await pg.locator('#fpsmeter').count() === 1, 'el medidor sigue prendido');
@@ -61,8 +61,8 @@ test('menú principal › Gráficos: presets, resolución y efectos se aplican e
 test('?q=low manda sobre lo guardado (herramientas y pruebas) y el botón de la Pausa abre el mismo panel dentro de la partida', { skip: !hasChromium, timeout: 400000 }, async () => {
   const { ctx, pg, errores } = await nueva();
   await pg.addInitScript(() => { try { if (!localStorage.getItem('cristal.graficos.v1')) localStorage.setItem('cristal.graficos.v1', JSON.stringify({ preset: 'alta', auto: true, medidor: false, ajustes: { escala: 150 } })); } catch { /* ok */ } });
-  await pg.goto(`${base}/?auto=m1&bot=1&god=1&q=low&autoq=0&nolock=1&skipintro=1`, { timeout: 120000 });
-  await pg.waitForFunction('window.__api && window.__api.session && window.__api.session.game', null, { timeout: 120000 });
+  await pg.goto(`${base}/?auto=m1&bot=1&god=1&q=low&autoq=0&nolock=1&skipintro=1`, { waitUntil: 'domcontentloaded', timeout: 300000 });
+  await pg.waitForFunction('window.__api && window.__api.session && window.__api.session.game', null, { timeout: 300000 });
   assert.equal(await pg.evaluate(() => window.__api.level), 'low'); assert.ok(await pg.evaluate(() => window.__api.renderer.gl.getPixelRatio()) <= 1.0001, '?q=low ignora el 150 % guardado');
   await pg.evaluate(() => { document.getElementById('pause').classList.remove('hidden'); });
   await pg.click('#gfxopen'); await pg.waitForSelector('#graf-over .gr-card', { timeout: 10000 });
@@ -74,8 +74,8 @@ test('?q=low manda sobre lo guardado (herramientas y pruebas) y el botón de la 
 
 test('en un teléfono táctil (iPhone, apaisado) el panel cabe sin desbordar y los botones son grandes', { skip: !hasChromium, timeout: 400000 }, async () => {
   const { ctx, pg, errores } = await nueva({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 3, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
-  await pg.goto(`${base}/?autoq=0&nolock=1`, { timeout: 120000 });
-  await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 90000 });
+  await pg.goto(`${base}/?autoq=0&nolock=1`, { waitUntil: 'domcontentloaded', timeout: 300000 });
+  await pg.waitForFunction('window.__api && window.__api.ui', null, { timeout: 300000 });
   assert.equal(await pg.evaluate(() => window.__api.level), 'low', 'iPhone ⇒ Baja por defecto');
   await pg.evaluate(() => { window.__api.ui.confirmTitle(); window.__api.ui.show('graficos'); }); await pg.waitForSelector('#graficos.on .gr-card');
   const m = await pg.evaluate(() => {

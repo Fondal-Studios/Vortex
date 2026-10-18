@@ -29,6 +29,7 @@ export const CHAR_INFO = {
   // Huéspedes (colores y presets de CHARACTERS en src/sim/data.js; el rol de la 3ª persona es el equivalente de los 4 roles base)
   axioma: { color: 0x3aa8ff, role: 'vanguardia', preset: 'jugador1' }, vesper: { color: 0xb04bff, role: 'explorador', preset: 'jugador4' }, micelio: { color: 0x7be03a, role: 'ingeniero', preset: 'jugador2' }, seraf: { color: 0xffd45a, role: 'soporte', preset: 'jugador3' },
 };
+CHAR_INFO.singular = { color: 0xb26bff, role: 'ingeniero', preset: 'jugador3' }; CHAR_IDS.push('singular');   // Singular (astro muerto: gravedad y área)
 CHAR_INFO.colmena = { color: 0xf0384e, role: 'ingeniero', preset: 'jugador3' }; CHAR_IDS.push('colmena');   // Colmena (invocadora de enjambre)
 CHAR_INFO.danzante = { color: 0xff3fa0, role: 'explorador', preset: 'jugador4' }; CHAR_IDS.push('danzante');   // Danzante (duelista acrobático)
 const ROLE_CHAR = { vanguardia: 'egida', soporte: 'lumen', ingeniero: 'forja', explorador: 'vigia' }; // sin `char`, el rol elige el estilo de manos
@@ -236,9 +237,11 @@ export function createHuman(kit, spec = {}) {
   /** gesture('ping', { target: Vector3 en el mundo, time: 1.6 }) señala con el brazo derecho · gesture('wave') saluda · gesture(null) cancela. */
   function gesture(name, { target = null, time = 1.8 } = {}) { gest = name ? { name, t: 0, dur: time, target: target ? target.clone() : null } : null; return api; }
   const ik = { w: 0, g: 0 };
+  let postOv = null;   // update(dt, { post(bones, group, dt) }): se ejecuta después del mezclador, antes del IK de la mano libre
 
   // ---------------------------------------------------------------- IK de la mano izquierda (guardamano) y gestos del brazo derecho
   function overlay(bones, group, dt) {
+    if (postOv) { postOv(bones, group, dt); group.updateMatrixWorld(true); }   // pose extra del llamador (golpes del modo Combo: combo-anim.js); el IK de la mano libre y los gestos van después
     const lay = actor.layerClips, aiming = lay?.upper === 'aimIdle', hold = wCur && wCur.holder.parent && wCur.holder.visible;
     ik.w += ((aiming && hold && !gest ? 1 : 0) - ik.w) * Math.min(1, dt * 9);
     if (hold) place(wCur, swap ? swapScale() : 1);
@@ -329,6 +332,7 @@ export function createHuman(kit, spec = {}) {
      */
     update(dt, opts = {}) {
       time += dt; tstate.value += dt;
+      postOv = opts.post || null;
       const p = pending; pending = null;
       const armed = weaponIndex != null && !!wCur && !NO_WEAPON.has(current) && !gest;
       if (wCur) wCur.holder.visible = armed && !(swap && swap.phase === 0 && swap.t > 0.12);

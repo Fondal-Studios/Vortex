@@ -459,7 +459,9 @@ function audioAndHud(state, me, dt) {
       case 'combo': if (mine && e.fin && e.n >= 3) sound.objective(true); break;   // remate de un combo largo: pequeño acorde
       case 'multi': if (mine && e.n >= 3) { banner(`¡${e.n} BAJAS DE UN GOLPE!`, 900); if (e.n >= 5) sound.boom(e.p); else sound.pickup(); } break;   // multi-kill (progresion.js)
       case 'rango': if (mine) { banner(`ESTILO ${e.r}`, 700); sound.ui('trophy'); } break;   // subió el rango de estilo D/C/B/A/S
-      case 'arrasar': if (mine && e.n >= 4) sound.boom(e.p); break;   // un remate de área barrió a 4+ enemigos
+      case 'arrasar': if (mine && e.n >= 4) sound.boom(e.p); break;
+      case 'pozo': case 'reflujo': sound.gravity(e.p); break;   // Singular: se abre un pozo / reflujo de marea
+      case 'pozoend': case 'orbburst': sound.boom(e.p); break;   // Singular: implosión del pozo / estallido de satélites   // un remate de área barrió a 4+ enemigos
       case 'hab': if (e.ph === 'cast') { sound.ability(mine ? null : e.p); if (mine && me && HABILIDADES[me.char]) banner(HABILIDADES[me.char].name.toUpperCase(), 700); } break;   // habilidad principal (telegrafía)
       case 'evolve': if (mine && evoHud) { evoHud.celebrate(e.tier); sound.objective(true); flash(); } break; // evolución: destello, onda y texto (hud-evolucion.js)
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con B', 2200); break;

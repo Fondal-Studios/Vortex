@@ -66,9 +66,9 @@ export function dzTick(g, p, dt) {
   const t = g.time;
   if (p.pryOpen && t >= (p.pryUntil || 0)) {   // la ventana se cerró: si nadie golpeó, la habilidad vuelve en la mitad de tiempo
     p.pryOpen = false;
-    if (!p.pryHit) { if (p.pryKind === 'hab') p.habCd = Math.min(p.habCd, (p.habMax || 9) * 0.5); else if (p.pryKind !== 'combo') p.espCd = Math.min(p.espCd, 3.5); }
+    if (!p.pryHit) { if (p.pryKind === 'hab') p.habCd = Math.min(p.habCd, (p.habMax || 9) * 0.5); else if (p.pryKind !== 'combo') p.espCd = Math.min(p.espCd, 4.5); }
   }
-  if (p.dgOpen && t >= (p.dgUntil || 0)) { p.dgOpen = false; if (!p.dgHit) p.movCd = Math.min(p.movCd, 1.5); }
+  if (p.dgOpen && t >= (p.dgUntil || 0)) { p.dgOpen = false; if (!p.dgHit) p.movCd = Math.min(p.movCd, 2.5); }
   if (p.mode !== 'combo' || !p.cb || p.cb.win <= 0) p.compas = 0;
   if (p.ultId === 'danza') {   // remolino de cintas: daño continuo a lo cercano
     const s0 = g.dmgSrc; g.dmgSrc = 'skill';

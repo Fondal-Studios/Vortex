@@ -20,6 +20,7 @@ const STAT_ES = { dano: 'Daño', resistencia: 'Resistencia', movilidad: 'Movilid
 const STAT_KEYS = ['dano', 'resistencia', 'movilidad', 'control', 'utilidad', 'dificultad'];
 const FRAME = { axioma: [1.15, 2.7, 2.0], vesper: [0.95, 2.1, 3.0], micelio: [1.35, 3.5, 3.0], umbra: [1.3, 3.1, 2.6], seraf: [1.2, 3.1, 3.0] }; // [centro y, alto a encuadrar, ancho a encuadrar]
 const FRAME_H = { axioma: [1.02, 2.3, 1.7], vesper: [1.0, 2.25, 1.7], micelio: [1.25, 2.95, 2.2], umbra: [1.0, 2.3, 1.7], seraf: [1.0, 2.3, 2.0] }; // encuadre del cuerpo unificado: [centro y, alto, ancho]
+Object.assign(ROLE_ES, { gravedad: 'Gravedad y área' }); FRAME.singular = [1.3, 3.4, 3.0]; FRAME_H.singular = [1.15, 2.8, 2.6];   // Singular (astro muerto)
 Object.assign(ROLE_ES, { invocador: 'Invocadora' }); FRAME.colmena = [1.15, 2.7, 2.4]; FRAME_H.colmena = [1.0, 2.4, 2.3];   // Colmena (invocadora de enjambre)
 Object.assign(ROLE_ES, { duelista: 'Duelista' }); FRAME.danzante = [1.3, 3.3, 2.8]; FRAME_H.danzante = [1.05, 2.6, 2.1];   // Danzante (duelista acrobático)
 const LEVEL = (d) => (d <= 3 ? 'Fácil' : d <= 6 ? 'Media' : d <= 8 ? 'Alta' : 'Experta');
@@ -41,7 +42,7 @@ function abilitiesOf(id) {
   const cd = (a) => (a.cd ? `Recarga ${a.cd} s` : '');
   if (c.host) {
     L.push(['Hab. 1', c.mov, cd(c.mov), 'skill'], ['Hab. 2', c.esp, cd(c.esp), 'skill'], ['Hab. 3', c.s3, cd(c.s3), 'skill']);
-    L.push(['Definitiva', c.ult, `Se carga con el combate`, 'skill'], ['Pasiva', c.passive, '', 'idle']);
+    L.push(['Definitiva', c.ult, `Se carga con el combate`, 'skill'], ['Pasiva', c.passive, '', 'idle']); if (c.extra) L.push(['Mecánica', c.extra, '', 'idle']);   // mecánica propia (p. ej. los satélites de Singular)
     const HB = HABILIDADES[id]; if (HB) L.push(['Modo Combo', { name: HB.name, desc: `${HB.rol}. ${HB.desc}` }, `Recarga ${HB.cd} s`, 'skill']);
     const m = c.melee; L.push(['Melee', { name: 'Golpe ligero y pesado', desc: `Tocar = ligero (${m.light.dmg} de daño). Mantener = pesado (${m.heavy.dmg} de daño, alcance ${m.heavy.range} m).` }, '', 'melee']);
   } else { L.push(['Hab. 1', c.mov, cd(c.mov), 'skill'], ['Hab. 2', c.esp, cd(c.esp), 'skill']); const r = ROLES[c.role]; if (r) L.push(['Rol', { name: r.ability, desc: r.desc }, `Recarga ${r.cd} s`, 'skill']); }

@@ -106,6 +106,7 @@ export function makeBuilder(T, S) {
 
 const BUILDERS = LIMBO;
 export const HOST_COLORS = { axioma: 0x3aa8ff, vesper: 0xb04bff, micelio: 0x7be03a, umbra: 0xb98cff, seraf: 0xffd45a };
+HOST_COLORS.singular = 0xb26bff; BUILDERS.singular = BUILDERS.umbra;   // Singular: la figura de respaldo (sólo si falla el cuerpo unificado)
 HOST_COLORS.colmena = 0xf0384e; BUILDERS.colmena = BUILDERS.seraf;   // Colmena: la figura de respaldo (sólo si falla el cuerpo unificado) usa la de alas
 HOST_COLORS.danzante = 0xff3fa0; BUILDERS.danzante = BUILDERS.seraf;   // Danzante: la figura de respaldo (sólo si falla el cuerpo unificado)
 export const HOST_MODEL_IDS = Object.keys(BUILDERS);

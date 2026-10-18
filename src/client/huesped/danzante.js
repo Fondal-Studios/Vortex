@@ -10,13 +10,15 @@ import { addEvolution } from '../huesped-evo-piezas.js';
 export const BELLY = 1; // vientre de luz de cempasúchil entre las costillas
 const BONE = 0xeadfc6, BONE_D = 0xb9a98a, FUC = 0xff3fa0, FUC_D = 0xa8125f, TUR = 0x2fe6d0, TUR_D = 0x0b8a86, MAR = 0xffb020, MAR_D = 0xd9780a, PLUM = 0x2f1040, PLUM_L = 0x5a2272, INK = 0x0b0614;
 const CYC = [FUC, TUR, MAR];   // el ciclo de colores de las cintas
+const LK = 0.86;   // las cintas y plumas brillan por sí solas: se bajan un poco para que el bloom no las vuelva pastel
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, dome, cuff, bonelump, S, low } = t, P = (n) => ak.P(n), add = ak.add;
   const HC = V(0, 1.6, 0.06), Y = V(0, 1, 0), Zv = V(0, 0, 1), upd = [], R = t.rng(77), evo = ctx.evo | 0;
   const C = (h) => new T.Color(h);
-  {  // la ciruela y el hueso no deben quemarse con el bloom
-    const mc = ak.material('cloth'); mc.color.setRGB(0.9, 0.8, 0.95);
+  {  // materiales: la tela algo apagada, y el oro vivo (si no, los aros de la evolución salen marrones)
+    const mc = ak.material('cloth'), mg = ak.material('gold'); mc.color.setRGB(0.9, 0.8, 0.95);
+    mg.color.setRGB(1.8, 1.2, 0.45); mg.roughness = 0.5; mg.metalness = 0.8; mg.normalScale.set(0.22, 0.22); mg.userData.uvk = 0.45;
   }
 
   // ───────────────────────── utilidades de diseño
@@ -32,7 +34,7 @@ export function build(ak, ctx) {
   /** Tira plana de doble cara (cuatro triángulos). */
   const strip = (wa, wb, L) => { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute([-wa / 2, 0, 0, wa / 2, 0, 0, -wb / 2, L, 0, wb / 2, L, 0], 3)); g.setIndex([0, 1, 2, 2, 1, 3, 0, 2, 1, 2, 3, 1]); g.computeVertexNormals(); return g; };
   /** Degradado base→punta a lo largo de `dir` (largo L). */
-  const grad = (base, dir, L, c0, c1, k = 1) => { const a = C(c0), b = C(c1), c = new T.Color(); return (x, y, z) => { const u = Math.min(1, Math.max(0, ((x - base.x) * dir.x + (y - base.y) * dir.y + (z - base.z) * dir.z) / L)); return c.copy(a).lerp(b, Math.pow(u, k)); }; };
+  const grad = (base, dir, L, c0, c1, k = 1) => { const a = C(c0), b = C(c1), c = new T.Color(); return (x, y, z) => { const u = Math.min(1, Math.max(0, ((x - base.x) * dir.x + (y - base.y) * dir.y + (z - base.z) * dir.z) / L)); return c.copy(a).lerp(b, Math.pow(u, k)).multiplyScalar(LK); }; };
   /** Pluma con ojo de pavo real en la punta. */
   function plume(bone, base, dir, len, w, c0, c1, o = {}) {
     const d = dir.clone().normalize(), g = leaf(len, w, 0.004, low ? 3 : 5);
@@ -58,7 +60,7 @@ export function build(ak, ctx) {
       const g = strip(wa, wb, L);
       X(g, { q: t.basisQ(dd, o.toward || Zv), p: [a.x, a.y, a.z] });
       const k0 = i / n, k1 = (i + 1) / n, ca = C(c0), cb = C(c1);
-      add(o.mat || 'light', g, ch.bones[i].name, { color: (x, y, z) => { const u = Math.min(1, Math.max(0, ((x - a.x) * dd.x + (y - a.y) * dd.y + (z - a.z) * dd.z) / (L * L))); return new T.Color().copy(ca).lerp(cb, k0 + (k1 - k0) * u); } });
+      add(o.mat || 'light', g, ch.bones[i].name, { color: (x, y, z) => { const u = Math.min(1, Math.max(0, ((x - a.x) * dd.x + (y - a.y) * dd.y + (z - a.z) * dd.z) / (L * L))); return new T.Color().copy(ca).lerp(cb, k0 + (k1 - k0) * u).multiplyScalar(LK); } });
     }
     return ch;
   }
@@ -259,18 +261,25 @@ export function build(ak, ctx) {
     upd.push((dt, tt) => { orb.rotation.y = tt * 0.7; });
   }
   if (evo >= 4) {
-    const hub = V(0, 1.34, -0.3), wh = ak.bone('ruedaMascaras', 'spine01', hub), nm = low ? 5 : 9;
-    add('light', X(G.torus(0.34, 0.006, 3, S(30, 14)), { p: [hub.x, hub.y, hub.z], r: [Math.PI / 2, 0, 0] }), 'ruedaMascaras', { color: FUC });
-    add('light', X(G.torus(0.3, 0.0035, 3, S(30, 14)), { p: [hub.x, hub.y, hub.z], r: [Math.PI / 2, 0, 0] }), 'ruedaMascaras', { color: TUR });
+    const hub = V(0, 1.4, -0.62), wh = ak.bone('ruedaMascaras', 'spine01', hub), nm = low ? 6 : 10, WR = 0.7;
+    add('light', X(G.torus(WR, 0.008, 3, S(34, 16)), { p: [hub.x, hub.y, hub.z], r: [Math.PI / 2, 0, 0] }), 'ruedaMascaras', { color: FUC });
+    add('light', X(G.torus(WR - 0.05, 0.0045, 3, S(34, 16)), { p: [hub.x, hub.y, hub.z], r: [Math.PI / 2, 0, 0] }), 'ruedaMascaras', { color: TUR });
     for (let i = 0; i < nm; i++) {   // calaveritas de azúcar con ojos de luz que giran con la rueda
-      const a = (i / nm) * Math.PI * 2, c = V(hub.x + Math.cos(a) * 0.34, hub.y + Math.sin(a) * 0.34, hub.z);
-      add('bone', X(G.sphere(0.046, S(8, 6), S(6, 5)), { p: [c.x, c.y, c.z], s: [0.85, 1, 0.5] }), 'ruedaMascaras', { color: BONE });
-      for (const s of [-1, 1]) add('light', X(G.sphere(0.011, 4, 3), { p: [c.x + s * 0.017, c.y + 0.008, c.z - 0.02] }), 'ruedaMascaras', { color: CYC[i % 3] });
-      add('light', X(leaf(0.16, 0.05, 0.004, 3), { q: t.basisQ(V(Math.cos(a), Math.sin(a), 0), Zv), p: [c.x + Math.cos(a) * 0.04, c.y + Math.sin(a) * 0.04, c.z] }), 'ruedaMascaras', { color: CYC[(i + 1) % 3] });
+      const a = (i / nm) * Math.PI * 2, c = V(hub.x + Math.cos(a) * WR, hub.y + Math.sin(a) * WR, hub.z);
+      add('bone', X(G.sphere(0.066, S(8, 6), S(6, 5)), { p: [c.x, c.y, c.z], s: [0.85, 1, 0.5] }), 'ruedaMascaras', { color: BONE });
+      for (const s of [-1, 1]) add('light', X(G.sphere(0.015, 4, 3), { p: [c.x + s * 0.024, c.y + 0.01, c.z - 0.03] }), 'ruedaMascaras', { color: CYC[i % 3] });
+      add('light', X(leaf(0.26, 0.07, 0.004, 3), { q: t.basisQ(V(Math.cos(a), Math.sin(a), 0), Zv), p: [c.x + Math.cos(a) * 0.06, c.y + Math.sin(a) * 0.06, c.z] }), 'ruedaMascaras', { color: CYC[(i + 1) % 3] });
     }
-    ak.halo('ruedaMascaras', hub, FUC, 1.1, 0.22);
+    ak.halo('ruedaMascaras', hub, FUC, 1.6, 0.2);
     upd.push((dt, tt) => { wh.rotation.z = tt * 0.45; });
   }
-  const ev = addEvolution(ak, ctx, { t, skipApoteosis: false, pal: { bone: BONE_D, boneL: BONE, steel: PLUM_L, steelD: PLUM } });
+  if (ctx.has('apoteosis')) {   // Apoteosis (propia): aureola de flores de cempasúchil sobre la cabeza, con un anillo de luz que gira
+    const au = ak.bone('aureola', 'head', V(0, HC.y + 0.5, HC.z)), na = low ? 7 : 10;
+    add('light', X(G.torus(0.26, 0.007, 3, S(30, 14)), { p: [0, HC.y + 0.5, HC.z] }), 'aureola', { color: MAR });
+    for (let i = 0; i < na; i++) { const a = (i / na) * Math.PI * 2; flower('aureola', V(Math.sin(a) * 0.26, HC.y + 0.5, HC.z + Math.cos(a) * 0.26), 1.0, V(Math.sin(a) * 0.3, 1, Math.cos(a) * 0.3).normalize(), CYC[i % 3]); }
+    ak.halo('aureola', V(0, HC.y + 0.5, HC.z), MAR, 0.9, 0.3);
+    upd.push((dt, tt) => { au.rotation.y = tt * 0.9; });
+  }
+  const ev = addEvolution(ak, ctx, { t, skipApoteosis: true, pal: { bone: BONE_D, boneL: BONE, steel: 0xd9bdea, steelD: 0x9a6cb8 } });
   return { update: (dt, tt, c) => { upd.forEach((f) => f(dt, tt, c)); ev.update(dt, tt, c); } };
 }

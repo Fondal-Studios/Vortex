@@ -11,9 +11,9 @@ import * as T from 'three';
 import { tools, V, basisQ } from '../huesped-piezas.js';
 
 export const BELLY = 0;   // sin vientre brillante: la jalea vive en la celda-corazón y en las costuras
-const CH_D = 0x2a0911, CH = 0x4c1220, CH_L = 0x741d30, CH_HI = 0x9c3446;               // quitina burdeos (de oscuro a lustre)
-const WAX = 0xf2dfb4, WAX_D = 0xc9a874, WAX_S = 0x9a7440;                               // cera de panal
-const HONEY = 0xffa81c, HONEY_L = 0xffd668, HONEY_D = 0xc4650a;                         // miel ámbar
+const CH_D = 0x1c060c, CH = 0x340c16, CH_L = 0x501522, CH_HI = 0x6e2232;               // quitina burdeos (de oscuro a lustre)
+const WAX = 0xc4ae82, WAX_D = 0x9a7a4c, WAX_S = 0x6a4c28;                               // cera de panal
+const HONEY = 0xe48a10, HONEY_L = 0xe6a838, HONEY_D = 0xa8500a;                         // miel ámbar
 const CORAL = 0xf02848, CORAL_L = 0xff7080;                                             // jalea real (rojo sangre-miel: nadie más es rojo)
 const TAU = Math.PI * 2, clamp01 = (x) => Math.max(0, Math.min(1, x));
 
@@ -29,8 +29,8 @@ export function build(ak, ctx) {
   const cell = (bone, p, dir, r, h, o = {}) => {
     const q = basisQ(dir, o.toward || Zv), d = dir.clone().normalize();
     add('marble', X(hexG(r, h), { q, p: [p.x, p.y, p.z] }), bone, { color: o.wax ?? WAX });
-    if (o.honey !== false) { const c2 = p.clone().addScaledVector(d, h * 0.5); add('crystal', X(hexG(r * 0.72, h * 1.0), { q, p: [c2.x, c2.y, c2.z] }), bone, { color: o.honeyC ?? HONEY }); }
-    if (o.both && !low) { const c4 = p.clone().addScaledVector(d, -h * 0.5); add('crystal', X(hexG(r * 0.72, h * 1.0), { q, p: [c4.x, c4.y, c4.z] }), bone, { color: o.honeyC ?? HONEY }); }
+    if (o.honey !== false) { const c2 = p.clone().addScaledVector(d, h * 0.5); add('crystal', X(hexG(r * 0.72, h * 1.0), { q, p: [c2.x, c2.y, c2.z] }), bone, { color: C(o.honeyC ?? HONEY).multiplyScalar(0.7) }); }
+    if (o.both && !low) { const c4 = p.clone().addScaledVector(d, -h * 0.5); add('crystal', X(hexG(r * 0.72, h * 1.0), { q, p: [c4.x, c4.y, c4.z] }), bone, { color: C(o.honeyC ?? HONEY).multiplyScalar(0.7) }); }
     if (o.core && !low) { const c3 = p.clone().addScaledVector(d, h * 0.78); add('light', X(G.sphere(r * 0.28, 6, 4), { p: [c3.x, c3.y, c3.z], s: [1, 1, 0.6] }), bone, { color: o.core }); }
   };
   /** Posiciones (plano XY) de una flor hexagonal de anillos 0..n, con celdas "pointy-top" de radio rad. */
@@ -43,12 +43,13 @@ export function build(ak, ctx) {
     add('marble', G.wrapE(G.plate(t.platePts([[0.0, 0.078], [0.03, 0.058], [0.04, -0.01], [0.027, -0.1], [0, -0.128]]), 0.02, 0.006), 0.07, 0.142).translate(HC.x, HC.y, HC.z), 'head', { color: WAX });   // quilla de la cara
     add('light', G.wrapE(G.plate([[0.0, 0.1], [0.012, 0.075], [0.0, 0.05], [-0.012, 0.075]], 0.012, 0.003), 0.05, 0.146).translate(HC.x, HC.y + 0.0, HC.z + 0.004), 'head', { color: CORAL });   // gema de la frente
     add('dark', t.box(0.07, 0.024, 0.016, 0.004, 1).translate(HC.x, HC.y - 0.108, HC.z + 0.128), 'head', { color: 0x120308 });   // boca
+    add('dark', G.wrapE(G.plate(t.platePts([[0.0, 0.0], [0.06, 0.016], [0.1, 0.07], [0.07, 0.125], [0.0, 0.145]]), 0.016, 0.005), 0.108, 0.141).translate(HC.x, HC.y + 0.02, HC.z), 'head', { color: CHL });   // placa de la frente
     ak.both(() => {
       // ojo compuesto: gema facetada ámbar → coral, con un destello de luz
       const eye = flat(new T.IcosahedronGeometry(0.056, low ? 0 : 1)); X(eye, { p: [0.078, HC.y + 0.015, HC.z + 0.118], s: [0.9, 1.25, 0.8] });
       add('crystal', eye, 'head', { color: (x, y, z) => C(HONEY_D).lerp(C(CORAL), clamp01(0.5 + (y - HC.y) * 7 + (x - 0.078) * 6)).lerp(C(HONEY_L), clamp01(0.4 - Math.hypot(x - 0.085, y - HC.y - 0.025, z - HC.z - 0.15) * 12)) });
-      add('light', X(G.sphere(0.012, 6, 4), { p: [0.088, HC.y + 0.04, HC.z + 0.158] }), 'head', { color: 0xfff0c8 });
-      ak.halo('head', V(0.078, HC.y + 0.015, HC.z + 0.17), CORAL, 0.1, 0.4);
+      add('light', X(G.sphere(0.01, 6, 4), { p: [0.09, HC.y + 0.042, HC.z + 0.16] }), 'head', { color: CORAL_L });
+      ak.halo('head', V(0.078, HC.y + 0.015, HC.z + 0.17), CORAL, 0.1, 0.22);
       // ceja de quitina que se prolonga hacia atrás, mejilla y mandíbulas cruzadas
       add('dark', X(G.wrapE(G.plate([[0.0, 0.018], [0.07, 0.034], [0.128, 0.0], [0.07, -0.014], [0.0, -0.006]], 0.02, 0.006), 0.113, 0.146), { p: [HC.x, HC.y + 0.045, HC.z] }), 'head', { color: CHL });
       add('dark', X(G.wrapE(G.plate([[0.004, 0.02], [0.05, 0.012], [0.09, -0.04], [0.07, -0.098], [0.03, -0.108], [0.004, -0.06]], 0.016, 0.005), 0.108, 0.14), { p: [HC.x, HC.y - 0.015, HC.z], r: [0, 0.36, 0] }), 'head', { color: CHM });
@@ -71,7 +72,7 @@ export function build(ak, ctx) {
       cell('nimbo', p, V(0, 0.12, -1), rad * 0.93, 0.016 + 0.006 * (3 - c.ring), { honey: full && c.ring > 0, both: true, honeyC: [HONEY, HONEY_L, 0xff7a2a][c.ring % 3], wax: c.ring === 2 ? WAX_D : WAX, toward: Y });
     }
     add('light', G.torus(0.34, 0.0036, 3, S(34, 14)).rotateX(Math.PI / 2 - 0.12).translate(0, HC.y + 0.04, HC.z - 0.18), 'nimbo', { color: CORAL });   // aro fino de luz
-    ak.halo('head', V(0, HC.y + 0.04, HC.z - 0.2), HONEY, 0.8, 0.2);
+    ak.halo('head', V(0, HC.y + 0.04, HC.z - 0.2), HONEY, 0.8, 0.08);
     upd.push((dt, tt) => { nb.rotation.set(0, 0, tt * 0.22); });
   }
 
@@ -82,13 +83,18 @@ export function build(ak, ctx) {
     for (let i = 0; i < 3; i++) add('marble', G.band(0.157 - i * 0.012, 0.05, 0.018, { seg: S(18, 10), sz: 0.82 }).translate(0, 1.355 - i * 0.075, 0.022), i < 1 ? 'spine01' : 'spine02', { color: i % 2 ? WAX_D : WAX });
     for (let i = 0; i < 3; i++) add('light', G.torus(0.158 - i * 0.012, 0.0028, 3, S(18, 10)).scale(1, 1, 0.82).translate(0, 1.327 - i * 0.075, 0.022), i < 1 ? 'spine01' : 'spine02', { color: CORAL });
     // celda-corazón: marco hexagonal de cera, miel dentro y una larva de luz (tres segmentos) que late
-    cell('spine01', V(0, 1.285, 0.172), V(0, 0.08, 1), 0.07, 0.034, { honeyC: HONEY, toward: Y });
-    for (let i = 0; i < 3; i++) add('light', G.sphere(0.021 - i * 0.003, S(8, 5), S(6, 4)).translate(0, 1.305 - i * 0.034, 0.205 - i * 0.002), 'spine01', { color: i === 0 ? CORAL_L : CORAL });
+    cell('spine01', V(0, 1.285, 0.186), V(0, 0.08, 1), 0.07, 0.034, { honeyC: HONEY, toward: Y });
+    for (let i = 0; i < 3; i++) add('light', G.sphere(0.021 - i * 0.003, S(8, 5), S(6, 4)).translate(0, 1.305 - i * 0.034, 0.222 - i * 0.002), 'spine01', { color: i === 0 ? CORAL_L : CORAL });
     ak.halo('spine01', V(0, 1.285, 0.24), CORAL, 0.4, 0.45);
     // cintura de avispa: anillo fino de quitina con hebilla de panal y dos celdas en las caderas
     add('dark', G.band(0.108, 0.05, 0.016, { seg: S(16, 9), sz: 0.82 }).translate(0, 0.99, 0.015), 'spine04', { color: CH_L });
     add('light', G.torus(0.109, 0.003, 3, S(16, 9)).scale(1, 1, 0.82).translate(0, 1.016, 0.015), 'spine04', { color: HONEY_L });
     cell('spine04', V(0, 0.988, 0.108), V(0, 0, 1), 0.04, 0.026, { honeyC: CORAL, toward: Y });
+    ak.both(() => {   // pectorales de quitina con filete de jalea y costillas laterales
+      t.armorPlate('spine01', [[0.014, 0.118], [0.075, 0.135], [0.145, 0.098], [0.158, 0.02], [0.13, -0.062], [0.07, -0.098], [0.014, -0.07]], { mat: 'dark', depth: 0.028, bevel: 0.009, wrap: { rx: 0.17, rz: 0.125 }, place: (g) => X(g, { p: [0, 1.292, 0.022], r: [0.07, 0, 0] }), color: CHL, trim: 'ember', trimColor: CORAL, trimInset: 0.16, trimR: 0.003 });
+      for (let k = 0; k < (low ? 2 : 3); k++) add('dark', G.tube([V(0.06, 1.22 - k * 0.05, 0.15), V(0.15, 1.22 - k * 0.05, 0.1), V(0.175, 1.22 - k * 0.05, 0.0), V(0.15, 1.215 - k * 0.05, -0.09)], 0.011, 0.008, { radial: S(5, 4), tubular: S(10, 6) }), 'spine02', { color: k % 2 ? CHM : CHL });
+    });
+    for (let k = 0; k < (low ? 3 : 5); k++) add('dark', spikeAt(V(0, 1.38 - k * 0.09, -0.105 - k * 0.008), V(0, 0.55, -1), 0.13 - k * 0.018, 0.022 - k * 0.002, 0.03, Y, { radial: S(5, 4), ridges: 3, ridgeAmp: 0.15 }), k < 2 ? 'spine01' : 'spine02', { color: k % 2 ? CHM : CH });   // cresta dorsal
     ak.both(() => {
       cell('spine05', V(0.14, 0.9, 0.05), V(0.9, 0.1, 0.3), 0.052, 0.03, { honeyC: HONEY, toward: Y });
       // clavícula y hombrera: cúmulo de tres celdas hexagonales de cera apuntando hacia afuera/arriba + cuerno-aguijón de quitina
@@ -100,10 +106,10 @@ export function build(ak, ctx) {
       add('light', spikeAt(V(S0.x + 0.115, S0.y + 0.2, S0.z - 0.11), V(0.45, 1, -0.75), 0.13, 0.0075, 0.03, Zv, { radial: 3, tubular: 3 }), 'spine01', { color: CORAL });
       // brazo: manga de quitina con anillos de cera, púa en el codo; antebrazo-guantelete con placa de cera y garras en la mano
       const E0 = P('lowerarm01'), W0 = P('wrist'), F3 = P('finger3-1'), F3e = P('finger3-3');
-      add('dark', limb(G.tube([V(0, 0.15, 0), V(0, -0.15, 0)], 0.064, 0.054, { radial: S(7, 5), tubular: 2 }), S0, E0, 0.5), 'upperarm01', { color: CHM });
+      add('dark', limb(G.tube([V(0, 0.15, 0), V(0, -0.15, 0)], 0.078, 0.066, { radial: S(7, 5), tubular: 2 }), S0, E0, 0.5), 'upperarm01', { color: CHM });
       for (const u of low ? [0.3] : [0.2, 0.5, 0.8]) add('marble', limb(G.band(0.058, 0.02, 0.01, { seg: S(10, 7) }), S0, E0, u), 'upperarm01', { color: WAX_D });
       add('dark', spikeAt(E0.clone().add(V(0.05, 0.0, -0.04)), V(0.9, 0.3, -0.8), 0.17, 0.02, 0.03, Y, { radial: S(5, 4), ridges: 3 }), 'lowerarm01', { color: CHL });
-      add('dark', limb(cuff(0.07, 0.054, 0.2, 0.012, S(10, 7), 30), E0, W0, 0.5), 'lowerarm01', { color: CHM });
+      add('dark', limb(cuff(0.082, 0.064, 0.2, 0.012, S(10, 7), 30), E0, W0, 0.5), 'lowerarm01', { color: CHM });
       t.armorPlate('lowerarm01', [[-0.04, 0.1], [0.04, 0.1], [0.032, -0.09], [0, -0.115], [-0.032, -0.09]], { mat: 'marble', depth: 0.02, bevel: 0.007, wrap: { rx: 0.066, rz: 0.07 }, color: WAX, trim: 'ember', trimColor: CORAL, trimInset: 0.18, place: (g) => limb(g, E0, W0, 0.5, { r: [0, -0.5, 0] }) });
       cell('wrist', W0.clone().add(V(0.012, 0.012, -0.036)), V(0.3, 0.4, -1), 0.036, 0.022, { honeyC: CORAL });
       for (const [f, len] of (low ? [['finger3', 0.1]] : [['finger2', 0.075], ['finger3', 0.1], ['finger4', 0.085]])) { const a = P(`${f}-2`), b = P(`${f}-3`), d = b.clone().sub(a).normalize(); add('marble', spikeAt(b.clone().addScaledVector(d, 0.01), d.clone().add(V(0, -0.1, 0.25)), len, 0.0085, -0.015, V(0, 0.4, 0.2), { radial: S(4, 3) }), `${f}-3`, { color: WAX }); }
@@ -141,7 +147,7 @@ export function build(ak, ctx) {
   };
   const mkWing = (nm, L, Wf, Wb, theta, psi, hub, o = {}) => ak.both((side) => {
     const w = wingGeo(L, Wf, Wb, theta, psi, hub), bn = ak.bone(nm + side, 'spine01', hub);
-    add('crystal', w.place(G.plate(w.poly, 0.004, 0.0014)), bn.name, { color: (x, y, z) => { const d = Math.hypot(x - hub.x, y - hub.y, z - hub.z) / L; return C(0xe8960c).lerp(C(0xa84a04), clamp01(d * 1.2 - 0.2)).lerp(C(0xc42030), clamp01((d - 0.72) * 2.8)).multiplyScalar(0.8); } });
+    add('crystal', w.place(G.plate(w.poly, 0.004, 0.0014)), bn.name, { color: (x, y, z) => { const d = Math.hypot(x - hub.x, y - hub.y, z - hub.z) / L; return C(0xe8960c).lerp(C(0xa84a04), clamp01(d * 1.2 - 0.2)).lerp(C(0xc42030), clamp01((d - 0.72) * 2.8)).multiplyScalar(0.5); } });
     const nv = low ? 3 : 5;   // venas radiales desde la raíz al borde de fuga
     for (let k = 0; k <= nv; k++) { const s = 0.3 + 0.66 * (k / nv), tail = w.bot[Math.min(w.bot.length - 1, Math.round(s * (w.bot.length - 1)))]; add('dark', w.place(G.tube([V(0, 0, 0.004), V(tail[0] * 0.5, tail[1] * 0.35, 0.006), V(tail[0], tail[1] * 0.97, 0.004)], 0.0045 - k * 0.0003, 0.0022, { radial: 3, tubular: 5, closeStart: false })), bn.name, { color: CH_D }); }
     add('dark', w.place(G.tube(w.top.map((q) => V(q[0], q[1] * 0.96, 0.005)), 0.0085, 0.003, { radial: S(5, 4), tubular: S(10, 8), closeStart: true })), bn.name, { color: CH });   // vena costal gruesa
@@ -174,10 +180,11 @@ export function build(ak, ctx) {
   // ═══════════════════════════ PIERNAS: grebas de quitina con rodillera de panal, espolón trasero y pies con tres garras
   ak.both(() => {
     const H = P('upperleg01'), K = P('lowerleg01'), A = P('foot'), TO = P('toe3-1');
-    add('dark', limb(G.tube([V(0, 0.2, 0), V(0, -0.2, 0)], 0.1, 0.07, { radial: S(7, 5), tubular: 2 }), H, K, 0.5), 'upperleg01', { color: CHM });
+    add('dark', limb(G.tube([V(0, 0.2, 0), V(0, -0.2, 0)], 0.128, 0.088, { radial: S(7, 5), tubular: 2 }), H, K, 0.5), 'upperleg01', { color: CHM });
     for (const u of low ? [0.25, 0.7] : [0.2, 0.45, 0.7]) add('marble', limb(G.band(0.08 - u * 0.02, 0.022, 0.01, { seg: S(10, 7) }), H, K, u), 'upperleg01', { color: WAX_D });
+    t.armorPlate('upperleg01', [[-0.05, 0.13], [0.05, 0.13], [0.065, 0.0], [0.04, -0.13], [0, -0.16], [-0.04, -0.13], [-0.065, 0.0]], { mat: 'dark', depth: 0.026, bevel: 0.009, wrap: { rx: 0.108, rz: 0.104 }, color: CHL, trim: 'ember', trimColor: CORAL, trimInset: 0.16, place: (g) => limb(g, H, K, 0.4, { r: [0, -Math.PI / 2 + 0.15, 0] }) });
     cell('lowerleg01', K.clone().add(V(0.0, 0.04, 0.085)), V(0, 0.15, 1), 0.058, 0.032, { honeyC: HONEY, toward: Y });   // rodillera de panal
-    add('dark', limb(G.tube([V(0, 0.2, 0), V(0, -0.2, 0)], 0.072, 0.045, { radial: S(7, 5), tubular: 2, ridges: 3, ridgeAmp: 0.12 }), K, A, 0.5), 'lowerleg01', { color: CHD });
+    add('dark', limb(G.tube([V(0, 0.2, 0), V(0, -0.2, 0)], 0.092, 0.058, { radial: S(7, 5), tubular: 2, ridges: 3, ridgeAmp: 0.12 }), K, A, 0.5), 'lowerleg01', { color: CHM });
     t.armorPlate('lowerleg01', [[0, 0.1], [0.045, 0.06], [0.05, -0.04], [0.02, -0.12], [-0.02, -0.12], [-0.05, -0.04], [-0.045, 0.06]], { mat: 'marble', depth: 0.022, bevel: 0.008, wrap: { rx: 0.062, rz: 0.066 }, color: WAX, trim: 'ember', trimColor: CORAL, trimInset: 0.2, place: (g) => limb(g, K, A, 0.42) });
     add('dark', spikeAt(K.clone().add(V(-0.01, -0.12, -0.05)), V(0, -0.4, -1), 0.15, 0.02, 0.02, Y, { radial: S(5, 4), ridges: 3 }), 'lowerleg01', { color: CHL });   // espolón
     add('light', ringAt_(K, A, 0.78, 0.062), 'lowerleg01', { color: CORAL });
@@ -232,9 +239,13 @@ export function build(ak, ctx) {
     gl.forEach(([p, r], i) => { if (low && i > 1) return; add('crystal', G.sphere(r, S(9, 6), S(7, 5)).translate(p.x, p.y, p.z), i < 2 ? 'spine02' : 'spine05', { color: i % 2 ? 0xff5a22 : CORAL }); add('marble', G.band(r * 0.78, 0.014, 0.008, { seg: S(10, 7) }).rotateX(Math.PI / 2).translate(p.x, p.y, p.z - r * 0.8), i < 2 ? 'spine02' : 'spine05', { color: WAX_D }); });
     for (let k = 0; k < (low ? 1 : 3); k++) add('ember', t.crackLine(V(-0.12 + k * 0.1, 1.38, -0.2), V(-0.08 + k * 0.08, 1.14, -0.17), { n: 6, jag: 0.012, r: 0.003, seed: 9 + k }), 'spine01', { color: k % 2 ? HONEY_L : CORAL });
   }
-  if (has('reina')) {   // corona de panal: columnas hexagonales en abanico sobre la frente
-    const cr = [[-0.2, 0.2], [-0.12, 0.3], [0, 0.4], [0.12, 0.3], [0.2, 0.2], [-0.06, 0.22], [0.06, 0.22]];
-    cr.forEach(([x, hgt], i) => { if (low && i > 4) return; const base = V(x * 0.55, HC.y + 0.13, HC.z + 0.0 - Math.abs(x) * 0.2), d = V(x * 1.4, 1, -0.1 - Math.abs(x)).normalize(); cell('head', base.clone().addScaledVector(d, hgt * 0.5), d, 0.034 - Math.abs(x) * 0.05, hgt, { honeyC: i % 2 ? HONEY_L : CORAL, wax: i === 2 ? WAX : WAX_D, honey: i % 2 === 0 || i === 2, toward: Zv }); });
+  if (has('reina')) {   // corona de panal: abanico de columnas hexagonales de cera y miel que irradian sobre la frente + manto largo
+    const n = low ? 5 : 7;
+    for (let i = 0; i < n; i++) {
+      const a = (i / (n - 1) - 0.5) * 2.3, ca = Math.cos(a), sa = Math.sin(a), hgt = 0.1 + 0.07 * ca * ca, rr = 0.12;
+      const base = V(sa * rr, HC.y + 0.06 + ca * rr * 0.8, HC.z + 0.03 - Math.abs(a) * 0.025), d = V(sa * 0.95, ca, 0.3).normalize();
+      cell('head', base.clone().addScaledVector(d, hgt * 0.5), d, 0.03 + 0.013 * ca, hgt, { honeyC: i % 2 ? HONEY_L : CORAL, wax: i === (n >> 1) ? WAX : WAX_D, toward: Zv });
+    }
     add('light', G.torus(0.118, 0.004, 3, S(18, 9)).scale(1, 1, 1.2).translate(HC.x, HC.y + 0.1, HC.z), 'head', { color: HONEY_L });
     const cols = [], lens = [];   // manto largo de la Reina, de hombro a hombro
     for (let j = 0; j < 8; j++) { const x = -0.22 + (j / 7) * 0.44; cols.push({ bone: j < 1 ? 'clavicle_R' : j > 6 ? 'clavicle_L' : 'spine01', p: V(x, 1.42 - Math.abs(x) * 0.15, -0.16) }); lens.push(0.95 + 0.25 * Math.cos((j / 7 - 0.5) * 2.4)); }

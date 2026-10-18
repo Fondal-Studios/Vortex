@@ -24,6 +24,7 @@ import heraldo from './creatures/heraldo.js';
 import { cfg, LEVELS, setCurrent, setClaridad, setClaridadMapa, claridad, initialClaridad } from './quality.js';
 import { CHARACTERS, WEAPONS } from '../sim/data.js';
 import { createHostFx } from './hostfx.js';
+import { createSingularFx } from './singular-fx.js';   // pozos de gravedad y satélites de Singular (singular-fx.js)
 import { EventosFx } from './eventos-fx.js';
 import { LuzArenas } from './luz-arenas.js';   // luz propia de cada arena + ciclo día/ocaso/eclipse + luces de los órganos (luz-arenas.js)
 import { NieblasFx } from './nieblas-fx.js';   // nieblas de colores con función (nieblas-fx.js)
@@ -84,6 +85,7 @@ export class Renderer {
     setClaridad(initialClaridad()); this.clar = claridad();
     this.vm = new Viewmodels(this.camera, this.halo);
     try { this.hostfx = createHostFx(this); } catch (err) { console.warn('Efectos de Huéspedes no disponibles', err.message); this.hostfx = null; } // habilidades y melee de los 5 Huéspedes (hostfx.js)
+    try { this.singularfx = createSingularFx(this); } catch (err) { console.warn('Efectos de Singular no disponibles', err.message); this.singularfx = null; }
     try { this.evfx = new EventosFx(this); } catch (err) { console.warn('Efectos de eventos no disponibles', err.message); this.evfx = null; } // eventos de oleada (eventos-fx.js)
     try { this.avfx = new ArenasVivasFx(this); } catch (err) { console.warn('Arenas vivas no disponibles', err.message); this.avfx = null; } // arenas vivas (arenas-vivas-fx.js)
     try { this.nfx = new NieblasFx(this); this.nfx.configure(cfg()); } catch (err) { console.warn('Nieblas de colores no disponibles', err.message); this.nfx = null; } // nieblas de colores (nieblas-fx.js)
@@ -236,6 +238,7 @@ export class Renderer {
     this.objects.sync(state, dt, state.map, this.camera.position);
     this.handleEvents(state, me);
     if (this.hostfx) this.hostfx.update(dt, state, me);
+    if (this.singularfx) { try { this.singularfx.update(dt, state, me); } catch (err) { console.warn('singularfx', err.message); this.singularfx = null; } }
     if (this.evfx) { try { this.evfx.update(dt, state, me); } catch (err) { console.warn('evfx', err.message); this.evfx = null; } }
     if (this.avfx) { try { this.avfx.update(dt, state); } catch (err) { console.warn('avfx', err.message); this.avfx = null; } }
     if (this.luz) { try { this.luz.update(dt, state); } catch (err) { console.warn('luz', err.message); this.luz = null; } }
@@ -505,6 +508,7 @@ export class Renderer {
     const bossP = (state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre' || m.k === 'argos') || {}).p;
     const C = this.fx.combat; C.frame(this, state, me); // efectos de combate: estelas, estados sobre criaturas, objetos
     const OWN = new Set(['pulsar', 'arc', 'beam', 'tshot', 'well', 'minePlace', 'skill']); // eventos que ahora dibuja combatfx.js (el dibujo viejo de objects.js se omite)
+    if (this.singularfx && state.events.length) for (const e of state.events) this.singularfx.onEvent(e, me, state);   // pozos / satélites de Singular: avisa sin consumir el evento
     let evs = state.events; if (this.hostfx && evs.length) { evs = []; for (const e of state.events) if (!this.hostfx.onEvent(e, me, state)) evs.push(e); } // hostfx.js resuelve las habilidades / melee de los Huéspedes
     for (const e of evs) {
       if (!OWN.has(e.t)) this.objects.onEvent(e, this.fx, bossP);

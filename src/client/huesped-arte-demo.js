@@ -36,7 +36,7 @@ scene.add(body.object); await body.ready; await env;
 body.object.rotation.y = THREE.MathUtils.degToRad(Number(qs.get('yaw')) || 0);
 const CAMS = { // [x, y, z, mirax, miray, miraz, fov] relativos a la escala
   full: [0, 1.1, 5.4, 0, 0.9, 0, 30], q34: [2.6, 1.45, 3.9, 0, 0.9, 0, 30], close: [0, 1.25, 3.3, 0, 1.05, 0, 30], head: [0.5, 1.65, 1.55, 0, 1.58, 0, 30], torso: [0.6, 1.3, 2.3, 0, 1.2, 0, 30],
-  back: [0.9, 1.3, -4.4, 0, 1.0, 0, 30], side: [4.4, 1.2, 0.3, 0, 1.0, 0, 30], legs: [1.5, 0.5, 2.4, 0, 0.5, 0, 30], hands: [1.3, 1.2, 1.7, 0.4, 1.1, 0.1, 30], backq: [-2.6, 1.5, -4.0, 0, 1.0, 0, 30], lejos: [3.2, 2.3, 8.2, 0, 1.05, 0, 30], lejosback: [-3.2, 2.3, -8.2, 0, 1.05, 0, 30],
+  back: [0.9, 1.3, -4.4, 0, 1.0, 0, 30], side: [4.4, 1.2, 0.3, 0, 1.0, 0, 30], legs: [1.5, 0.5, 2.4, 0, 0.5, 0, 30], hands: [1.3, 1.2, 1.7, 0.4, 1.1, 0.1, 30], backq: [-2.6, 1.5, -4.0, 0, 1.0, 0, 30], lejos: [3.2, 2.3, 8.2, 0, 1.05, 0, 30], lejosback: [-3.2, 2.3, -8.2, 0, 1.05, 0, 30], lejosf: [0, 1.7, 9.0, 0, 1.2, 0, 30], lejoss: [9.0, 1.7, 0.3, 0, 1.2, 0, 30], lejosb: [0, 1.7, -9.0, 0, 1.2, 0, 30],
 };
 function frame() { const c = CAMS[camMode] || CAMS.full, s = body.object.scale.x * (CHARS_SCALE[char] || 1); cam.position.set(c[0] * s, c[1], c[2] * s); cam.lookAt(c[3], c[4] * s ** 0.5, c[5]); cam.fov = c[6]; cam.updateProjectionMatrix(); }
 const CHARS_SCALE = { micelio: 1.5 };
