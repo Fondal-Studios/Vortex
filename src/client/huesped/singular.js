@@ -10,13 +10,13 @@ import { uBeat } from '../shaders.js';
 import { addEvolucionSingular } from './singular-evo.js';
 
 export const BELLY = 0;
-export const PAL = { ROC: 0x4a4058, ROC_D: 0x2a2236, ROC_L: 0x76688c, CRY: 0x1d1034, CRY_V: 0x6a30c8, VIO: 0xa05cff, VIO_L: 0xd8b8ff, ORO: 0xffc23a, ORO_L: 0xffeaa6, NEG: 0x07040e };
+export const PAL = { ROC: 0x3c3250, ROC_D: 0x221a30, ROC_L: 0x62547c, CRY: 0x1d1034, CRY_V: 0x6a30c8, VIO: 0xa05cff, VIO_L: 0xd8b8ff, ORO: 0xffc23a, ORO_L: 0xffeaa6, NEG: 0x07040e };
 const { ROC, ROC_D, ROC_L, CRY, CRY_V, VIO, VIO_L, ORO, ORO_L, NEG } = PAL;
 const TAU = Math.PI * 2;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, cuff, bonelump, S, low } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), upd = [], R = t.rng(8);
-  const HC = V(0, 1.6, 0.04), CC = V(0, 1.285, 0.13), HUB = V(0, 1.22, 0.02), cnew = (h) => new T.Color(h);
+  const HC = V(0, 1.6, 0.04), CC = V(0, 1.285, 0.172), HUB = V(0, 1.22, 0.02), cnew = (h) => new T.Color(h);
   const has = ctx.has, nMoons = Math.min(5, 3 + (has('depredador') ? 1 : 0) + (has('simbiosis') ? 1 : 0));
   { const mm = ak.material('mirror'); mm.envMapIntensity = 1.3; mm.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = min(outgoingLight, vec3(1.15));\n#include <opaque_fragment>'); }; mm.customProgramCacheKey = () => 'singular-vidrio'; } // vidrio negro: refleja el cielo sin quemar el bloom
   /** Gradiente radial de un disco (centro dorado-blanco → borde violeta): color por vértice. */
@@ -35,8 +35,8 @@ export function build(ak, ctx) {
       add('ember', spikeAt(V(HC.x + Math.cos(a) * r0, HC.y + Math.sin(a) * r0, HC.z - 0.1), V(Math.cos(a), Math.sin(a), -0.15), len, long ? 0.0125 : 0.008, 0, Zv, { radial: 3, tubular: 2 }), 'corona', { color: long ? ORO : ORO_L });
     }
     add('light', X(G.torus(0.145, 0.0042, 3, S(36, 16)), { p: [HC.x, HC.y, HC.z - 0.1], r: [Math.PI / 2, 0, 0] }), 'corona', { color: ORO_L });
-    add('spirit', X(disc(0.15, 0.34, S(36, 18)), { p: [HC.x, HC.y, HC.z - 0.1], r: [Math.PI / 2, 0, 0] }), 'corona', { color: radial(0.15, 0.34, 0xd09a30, 0x3a1a70) });  // fulgor de la corona
-    ak.halo('head', V(HC.x, HC.y, HC.z - 0.12), ORO, 0.62, 0.3);
+    add('spirit', X(disc(0.15, 0.27, S(36, 18)), { p: [HC.x, HC.y, HC.z - 0.1], r: [Math.PI / 2, 0, 0] }), 'corona', { color: radial(0.15, 0.27, 0x9a6a18, 0x1a0c40) });  // fulgor de la corona
+    ak.halo('head', V(HC.x, HC.y, HC.z - 0.12), ORO, 0.5, 0.22);
     upd.push((dt, tt) => { cor.rotation.z = tt * 0.22; });
     // collar: anillo de rocas flotando alrededor del cuello
     const neck = ak.bone('collar', 'neck01', V(0, 1.43, 0.01));
@@ -46,6 +46,12 @@ export function build(ak, ctx) {
 
   // ═══════════════════════════ PECHO: pétalos de corteza alrededor de la ESTRELLA MUERTA (esfera negra + disco de acreción) y grietas de oro
   {
+    const shell = G.lathe([[0.15, 1.2], [0.168, 1.26], [0.172, 1.32], [0.16, 1.38], [0.135, 1.42], [0.09, 1.445]], S(18, 10), 0, TAU, 34);
+    add('stone', X(shell, { p: [0, 0, 0.012], s: [1.04, 1, 0.84] }), 'spine01', { color: ROC_D });
+    for (let i = 0; i < 3; i++) { // abdomen en estratos: bandas de roca con un hueco de luz entre cada una
+      add('stone', G.band(0.14 + 0.006 * i, 0.062, 0.03, { seg: S(18, 10), sz: 0.82, simple: low }).translate(0, 1.15 - i * 0.075, 0.02), i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? ROC : ROC_L });
+      add('ember', G.torus(0.158 + 0.006 * i, 0.0034, 3, S(24, 12)).scale(1, 1, 0.82).translate(0, 1.115 - i * 0.075, 0.02), i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? VIO : ORO });
+    }
     const np = low ? 7 : 9;
     for (let i = 0; i < np; i++) { // pétalos de roca: placas abiertas hacia afuera como una flor de corteza
       const a = (i / np) * TAU + 0.2, len = 0.13 + 0.035 * ((i * 5) % 3);
@@ -72,22 +78,21 @@ export function build(ak, ctx) {
 
   // ═══════════════════════════ ESFERA ARMILAR: tres anillos de oro en cardán (giran distinto, con muelle) y lunas de roca que orbitan
   {
-    const gA = ak.bone('gA', 'spine02', HUB), gB = ak.bone('gB', 'gA', HUB), gC = ak.bone('gC', 'gB', HUB), RA = 0.78, RB = 0.64, RC = 0.52;
+    const gA = ak.bone('gA', 'spine02', HUB), gB = ak.bone('gB', 'gA', HUB), gC = ak.bone('gC', 'gB', HUB), RA = 0.66, RB = 0.55, RC = 0.45;
     const ring = (bone, Rr, axis, col, tube, beads) => {
-      const g = G.torus(Rr, tube, 4, S(44, 22)); if (axis === 'z') g.rotateX(Math.PI / 2); if (axis === 'x') g.rotateZ(Math.PI / 2); g.translate(HUB.x, HUB.y, HUB.z);
-      add('gold', g, bone);
-      add('ember', X(G.torus(Rr, tube * 0.45, 3, S(44, 22)), { p: [HUB.x, HUB.y, HUB.z] }).rotateX(axis === 'z' ? Math.PI / 2 : 0).rotateZ(axis === 'x' ? Math.PI / 2 : 0), bone, { color: col });
+      const g = G.torus(Rr, tube, 3, S(44, 22)); if (axis === 'z') g.rotateX(Math.PI / 2); if (axis === 'x') g.rotateZ(Math.PI / 2); g.translate(HUB.x, HUB.y, HUB.z);
+      add('ember', g, bone, { color: col });
       for (let i = 0; i < beads; i++) { // planetas pequeños sobre el anillo
         const a = (i / beads) * TAU + (axis === 'y' ? 0.3 : axis === 'z' ? 1.1 : 2), p = axis === 'y' ? [Math.cos(a) * Rr, 0, Math.sin(a) * Rr] : axis === 'z' ? [Math.cos(a) * Rr, Math.sin(a) * Rr, 0] : [0, Math.cos(a) * Rr, Math.sin(a) * Rr];
         add('light', G.sphere(0.018 + 0.006 * (i % 2), 6, 5).translate(HUB.x + p[0], HUB.y + p[1], HUB.z + p[2]), bone, { color: i % 2 ? VIO_L : ORO_L });
       }
-      if (!low) for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU, p = axis === 'y' ? [Math.cos(a) * Rr, 0, Math.sin(a) * Rr] : axis === 'z' ? [Math.cos(a) * Rr, Math.sin(a) * Rr, 0] : [0, Math.cos(a) * Rr, Math.sin(a) * Rr]; add('gold', t.box(0.008, 0.026, 0.008, 0.002, 1).translate(HUB.x + p[0], HUB.y + p[1], HUB.z + p[2]), bone); }   // graduaciones
+      if (!low) for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU, p = axis === 'y' ? [Math.cos(a) * Rr, 0, Math.sin(a) * Rr] : axis === 'z' ? [Math.cos(a) * Rr, Math.sin(a) * Rr, 0] : [0, Math.cos(a) * Rr, Math.sin(a) * Rr]; add('ember', t.box(0.008, 0.026, 0.008, 0.002, 1).translate(HUB.x + p[0], HUB.y + p[1], HUB.z + p[2]), bone, { color: ORO_L }); }   // graduaciones
     };
     ring('gA', RA, 'y', ORO, 0.011, 3); ring('gB', RB, 'z', VIO, 0.009, 3); ring('gC', RC, 'x', ORO_L, 0.008, 2);
     // lunas: roca con una veta de cristal violeta; cada una orbita en su propio plano
     const moons = [], mP = ak.bone('moP', 'spine02', HUB);
     for (let i = 0; i < nMoons; i++) {
-      const ob = ak.bone(`mo${i}`, 'moP', HUB), rad = 0.98 + 0.07 * (i % 2), a = 0, y = (i - 2) * 0.05, sz = 0.05 + 0.012 * (i % 3), p = V(HUB.x + Math.cos(a) * rad, HUB.y + y, HUB.z + Math.sin(a) * rad);
+      const ob = ak.bone(`mo${i}`, 'moP', HUB), rad = 0.86 + 0.07 * (i % 2), a = 0, y = (i - 2) * 0.05, sz = 0.05 + 0.012 * (i % 3), p = V(HUB.x + Math.cos(a) * rad, HUB.y + y, HUB.z + Math.sin(a) * rad);
       const mb = ak.bone(`mo${i}m`, `mo${i}`, p);
       add('stone', X(bonelump(sz, [1, 0.9, 1.1], 20 + i, 0.34), { p: [p.x, p.y, p.z] }), `mo${i}m`, { color: i % 2 ? ROC_L : ROC });
       add('crystal', X(new T.OctahedronGeometry(sz * 0.5, 0), { p: [p.x + sz * 0.5, p.y + sz * 0.35, p.z + sz * 0.5], s: [0.8, 1.3, 0.8] }), `mo${i}m`, { color: CRY_V });
@@ -112,8 +117,7 @@ export function build(ak, ctx) {
     const mo = ak.bone('lunaH', 'upperarm01', P0), sat = ak.bone('lunaS', 'lunaH', P0), satm = ak.bone('lunaSm', 'lunaS', P0.clone().add(V(0.25, 0.02, 0)));
     add('stone', X(bonelump(0.135, [1.05, 0.85, 1.05], 5, 0.3), { p: [P0.x, P0.y, P0.z] }), 'upperarm01', { color: ROC_L });
     for (const [dx, dz, s] of [[0.04, 0.09, 0.035], [-0.05, 0.05, 0.026], [0.08, -0.03, 0.03]]) add('mirror', X(G.cyl(s, s * 0.8, 0.012, S(10, 6)), { p: [P0.x + dx, P0.y + 0.1, P0.z + dz], r: [-0.2, 0, 0.1] }), 'upperarm01', { color: 0x0e0a18 });   // cráteres de vidrio negro
-    add('gold', X(G.torus(0.2, 0.0065, 4, S(30, 16)), { p: [P0.x, P0.y, P0.z], r: [0.25, 0, -0.35] }), 'upperarm01');
-    add('ember', X(G.torus(0.2, 0.0028, 3, S(30, 16)), { p: [P0.x, P0.y, P0.z], r: [0.25, 0, -0.35] }), 'upperarm01', { color: ORO });
+        add('ember', X(G.torus(0.2, 0.0028, 3, S(30, 16)), { p: [P0.x, P0.y, P0.z], r: [0.25, 0, -0.35] }), 'upperarm01', { color: ORO });
     add('stone', X(bonelump(0.032, [1, 1, 1], 9, 0.3), { p: [P0.x + 0.25, P0.y + 0.02, P0.z] }), 'lunaSm', { color: ROC });
     add('crystal', X(new T.OctahedronGeometry(0.02, 0), { p: [P0.x + 0.25, P0.y + 0.05, P0.z] }), 'lunaSm', { color: CRY_V });
     mo.rotation.set(0, 0, 0); void mo;
@@ -136,7 +140,7 @@ export function build(ak, ctx) {
     for (let i = 0; i < 2; i++) add('stone', limb(cuff(0.088 - i * 0.008, 0.082 - i * 0.008, 0.07, 0.014, S(10, 7), 30), S0, E0, 0.3 + i * 0.3), 'upperarm01', { color: i ? ROC : ROC_L });
     add('ember', t.ringAt(S0, E0, 0.5, 0.092, 0.012, 0.004), 'upperarm01', { color: ORO });
     for (let i = 0; i < 3; i++) add('stone', limb(cuff(0.066 + i * 0.006, 0.06 + i * 0.006, 0.06, 0.012, S(10, 7), 30), E0, W0, 0.22 + i * 0.26), 'lowerarm01', { color: i === 1 ? ROC_L : ROC });
-    for (const u of [0.38, 0.64]) add('gold', t.ringAt(E0, W0, u, 0.07, 0.01, 0.005), 'lowerarm01');
+    for (const u of [0.38, 0.64]) add('ember', t.ringAt(E0, W0, u, 0.07, 0.01, 0.005), 'lowerarm01', { color: ORO });
     add('ember', seam([E0.clone().add(V(0.02, -0.03, 0.06)), E0.clone().lerp(W0, 0.5).add(V(0.02, 0, 0.065)), W0.clone().add(V(0.0, 0.03, 0.06))], 0.0026), 'lowerarm01', { color: VIO });
     for (const [dx, dy, dz, L, r] of [[0.03, 0.04, -0.07, 0.17, 0.02], [0.07, 0.0, -0.06, 0.12, 0.016], [-0.01, -0.03, -0.075, 0.1, 0.014]]) add('crystal', spikeAt(E0.clone().add(V(dx, dy, dz)), V(0.3 + dx * 2, 0.15, -1), L, r, 0.01, Y, { radial: 4 }), 'lowerarm01', { color: dx > 0.02 ? CRY_V : CRY });   // esquirlas en el codo
     for (const [f, len, r] of [['finger2', 0.085, 0.008], ['finger3', 0.1, 0.009], ['finger4', 0.09, 0.008], ['finger5', 0.065, 0.007]]) {
@@ -157,15 +161,14 @@ export function build(ak, ctx) {
 
   // ═══════════════════════════ CETRO ORBITAL (mano derecha): báculo de cristal oscuro con un planeta anillado y lunas (si el jugador fusionó un arma melee, ella ocupa la mano)
   if (!ctx.melee) ak.one('R', () => {
-    const W0 = P('wrist'), D = V(0.16, 1, 0.42).normalize(), tip = (u) => W0.clone().addScaledVector(D, u), seg = (g, u, off = [0, 0, 0], r = [0, 0, 0]) => limb(g, W0, tip(1), u, { off, r });
-    add('crystal', seg(G.cyl(0.016, 0.014, 1.5, S(8, 5)), 0.35), 'wrist', { color: CRY });
-    for (const u of [-0.15, 0.1, 0.55, 0.78]) add('gold', seg(G.torus(0.024, 0.0055, 3, S(12, 7)), u), 'wrist');
-    add('ember', seg(G.cyl(0.0045, 0.0045, 1.2, 3), 0.4, [0.015, 0, 0]), 'wrist', { color: VIO });
-    const pc = tip(1.17), pb = ak.bone('cetroP', 'wrist', pc), mA = ak.bone('cetroM', 'cetroP', pc);
-    add('stone', X(bonelump(0.085, [1, 0.95, 1], 31, 0.3), { p: [pc.x, pc.y, pc.z] }), 'wrist', { color: ROC_L });
+    const W0 = P('wrist'), D = V(0.06, 1, 0.16).normalize(), tip = (u) => W0.clone().addScaledVector(D, u), seg = (g, u, off = [0, 0, 0], r = [0, 0, 0]) => limb(g, W0, tip(1), u, { off, r });
+    add('crystal', seg(G.cyl(0.016, 0.014, 1.3, S(8, 5)), 0.32), 'wrist', { color: CRY });
+    for (const u of [-0.15, 0.1, 0.5, 0.78]) add('ember', seg(G.torus(0.024, 0.0055, 3, S(12, 7)), u), 'wrist', { color: ORO });
+    add('ember', seg(G.cyl(0.0045, 0.0045, 1.0, 3), 0.36, [0.015, 0, 0]), 'wrist', { color: VIO });
+    const pc = tip(1.0), pb = ak.bone('cetroP', 'wrist', pc), mA = ak.bone('cetroM', 'cetroP', pc);
+    add('stone', X(bonelump(0.1, [1, 0.95, 1], 31, 0.3), { p: [pc.x, pc.y, pc.z] }), 'wrist', { color: ROC_L });
     add('crystal', X(new T.OctahedronGeometry(0.035, 0), { p: [pc.x + 0.03, pc.y + 0.065, pc.z + 0.03], s: [0.8, 1.4, 0.8] }), 'wrist', { color: CRY_V });
-    add('gold', X(G.torus(0.15, 0.0075, 4, S(30, 16)), { p: [pc.x, pc.y, pc.z], r: [0.5, 0, 0.25] }), 'wrist');
-    add('ember', X(G.torus(0.15, 0.003, 3, S(30, 16)), { p: [pc.x, pc.y, pc.z], r: [0.5, 0, 0.25] }), 'wrist', { color: ORO });
+    add('ember', X(G.torus(0.17, 0.006, 3, S(30, 16)), { p: [pc.x, pc.y, pc.z], r: [0.5, 0, 0.25] }), 'wrist', { color: ORO });
     for (let i = 0; i < 2; i++) { const a = i * Math.PI, mp = V(pc.x + Math.cos(a) * 0.22, pc.y + 0.02, pc.z + Math.sin(a) * 0.22); add('stone', X(bonelump(0.024, [1, 1, 1], 40 + i, 0.3), { p: [mp.x, mp.y, mp.z] }), 'cetroM', { color: ROC }); add('light', G.sphere(0.01, 5, 4).translate(mp.x, mp.y + 0.03, mp.z), 'cetroM', { color: VIO_L }); }
     for (let i = 0; i < 3; i++) add('crystal', spikeAt(tip(-0.2).add(V(0, 0, 0)), V(Math.cos(i * 2.1) * 0.5, -1, Math.sin(i * 2.1) * 0.5), 0.1, 0.012, 0, Y, { radial: 4 }), 'wrist', { color: CRY });   // contera de esquirlas
     upd.push((dt, tt) => { pb.rotation.y = tt * 0.0; mA.rotation.y = tt * 1.3; });
