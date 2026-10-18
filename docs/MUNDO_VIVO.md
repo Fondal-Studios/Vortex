@@ -44,3 +44,10 @@ Desde la oleada 3 las élites llevan un **afijo** visible (halo de color + nombr
 ## Evolución del personaje (4 niveles excluyentes, núcleos) y de las armas
 - **Personaje:** núcleos → nivel 1–4 con bifurcación (docs/EVOLUCION.md) + órganos del campeón (esencias).
 - **Armas — Linajes:** un arma que llegó a nivel 3 de mejora, con mutación y un órgano, puede **ascender** a una de dos **formas finales excluyentes** («Del Alba» o «Del Ocaso»: dos mecánicas distintas según el tipo de arma) con nombre propio y aspecto cambiado.
+
+## Metas claras: qué hay que hacer en cada momento
+- **Línea de meta (HUD, arriba):** `#goal` dice siempre lo que toca: «Oleada 3/8 · Eliminá 12 criaturas», «… Cargá el Ancla (40 %)», «Elegí una mejora de arma», «Derrotá a <jefe>». Textos puros en `src/client/meta-texto.js` (`metaActual`); dibujo en `src/client/meta-ui.js`. No agrega botones; en táctil sólo muestra una línea.
+- **Meta del mapa:** ganar el mapa libera el territorio y da una bendición permanente (src/sim/bendiciones.js). Se ve en las tarjetas de Arenas, en la línea «Ruta» de Historia/Arenas, y como segunda línea de la meta (antes de empezar y en el jefe).
+- **Mini-misión opcional por oleada** (`src/sim/metas.js`, snapshot `mis`): ciclo fijo oleada 1 = «Golpe a golpe» (matar N con melé), 2 = «Intocable» (sin recibir daño), 3 = «Caza mayor» (eliminar al élite; el sim garantiza que haya uno), y así. Paga núcleos (y esencias) a quien esté vivo; sin misión en el jefe ni en el campo de pruebas. Evento `mision` (done/failed) para el aviso.
+- **Flecha al objetivo:** `snapshot.obj.tg` = punto del objetivo activo (ancla, placa sin pisar, núcleo→altar, capullo); `meta-ui.js` dibuja una flecha dorada (al borde si está fuera de pantalla).
+- **Guía de primera partida:** 4 pasos contextuales (meta, mejora, objetivos, jefe/territorio), uno a la vez, 10 s cada uno; se saltan con «Saltar guía» (táctil) o la tecla J, y se guardan en `perfil.guia` (`guiaPendiente/guiaVisto/guiaSaltar`). `?guia=0` la apaga. Pruebas: `node --test tests/metas.test.js`.

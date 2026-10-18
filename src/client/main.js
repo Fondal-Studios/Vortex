@@ -13,7 +13,7 @@ import { NPC_INFO } from '../sim/npcs.js';
 import { createRadar } from './radar.js';
 import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
-import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE } from '../sim/data.js';
+import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE, EVENTOS } from '../sim/data.js';
 import * as Perfil from './perfil.js';
 import * as Territorios from '../sim/bendiciones.js';
 import { TITULOS } from '../sim/maestria.js';
@@ -641,6 +641,7 @@ function bindTouchSettings() {
   bind('tacc', () => (S.accel ? '1' : '0'), (v) => setSetting('accel', v === '1'));
   bind('tag', () => Math.round(S.accelGain * 10), (v) => setSetting('accelGain', v / 10));
   bind('tinv', () => (S.invertY ? '1' : '0'), (v) => setSetting('invertY', v === '1'));
+  bind('tgrav', () => (S.reducirGravedad ? '1' : '0'), (v) => setSetting('reducirGravedad', v === '1'));
   bind('tgs', () => Math.round(S.gyroSens * 10), (v) => setSetting('gyroSens', v / 10));
   bind('tadsm', () => S.adsMode, (v) => setSetting('adsMode', v));
   bind('tfing', () => String(S.fingers), (v) => touch.setFingers(+v));

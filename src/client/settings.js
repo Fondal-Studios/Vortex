@@ -8,6 +8,7 @@ export const DEFAULTS = Object.freeze({
   accel: false,       // aceleración de cámara (opcional; por defecto velocidad FIJA)
   accelGain: 0.8,     // cuánto acelera un deslizamiento rápido (0..2)
   invertY: false,
+  reducirGravedad: false, // «Reducir efectos de gravedad»: la inversión de la Marea de Gravedad es un empujón hacia arriba, sin giro de cámara (viaja en el input como `soft`)
   gyro: false, gyroSens: 1,
   aim: null,          // ayuda de puntería 0..3 (null = según dispositivo)
   fingers: 2,         // 2, 3 o 4 dedos

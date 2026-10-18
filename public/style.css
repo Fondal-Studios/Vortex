@@ -432,3 +432,4 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 @media (max-height: 460px) { #guia { top: 30%; font-size: 11px; padding: 5px 10px; } }
 .ruta { margin: 0 0 8px; padding: 0 4px; font-size: clamp(11px, 1.9vh, 14px); color: #ffe27a; opacity: .92; }
 .card .meta { color: #ffe27a; font-style: normal; font-size: .92em; }
+@media (pointer: coarse) { #top { top: 5px; } #goal .g-main { line-height: 1.1; padding: 1px 10px; } #mision { margin-top: 2px; line-height: 1.15; padding: 0 8px; } }   /* línea de meta + misión caben sobre #objective (top 44px) */

@@ -44,12 +44,12 @@ export function addEvolution(ak, ctx, o = {}) {
       }
       add('gold', X(G.torus(0.2, 0.009, 4, S(18, 9)), { p: [C0.x - 0.02, C0.y - 0.02, C0.z], r: [0, 0, -0.42] }), 'upperarm01');
       add('metal', X(G.wrapE(G.plate([[-0.1, 0.1], [0.1, 0.1], [0.13, 0.0], [0.07, -0.14], [-0.07, -0.14], [-0.13, 0.0]], 0.026, 0.01), 0.12, 0.12), { p: [K.x, K.y, K.z + 0.0], r: [0, 0, 0] }), 'lowerleg01', { color: pal.steel }); // rodillera
-      add('gold', X(G.wrapE(G.plate([[-0.07, 0.07], [0.07, 0.07], [0.075, 0.062], [-0.075, 0.062]], 0.026, 0.003), 0.092, 0.09), { p: [K.x, K.y, K.z] }), 'lowerleg01');
+      if (!low) add('gold', X(G.wrapE(G.plate([[-0.07, 0.07], [0.07, 0.07], [0.075, 0.062], [-0.075, 0.062]], 0.026, 0.003), 0.092, 0.09), { p: [K.x, K.y, K.z] }), 'lowerleg01');
       add('metal', limb(G.wrapE(G.plate([[-0.06, 0.1], [0.06, 0.1], [0.07, -0.1], [0, -0.14], [-0.07, -0.1]], 0.016, 0.005), 0.07, 0.072), E0, W0, 0.5, { r: [0, Math.PI / 2, 0], off: [-0.045, 0, 0] }), 'lowerarm01', { color: pal.steel }); // escudete de antebrazo
       for (let i = 0; i < (low ? 1 : 3); i++) add('bone', X(G.wrapE(G.plate([[-0.045, 0.03], [0.045, 0.03], [0.038, -0.03], [0, -0.05], [-0.038, -0.03]], 0.016, 0.005), 0.15, 0.1), { p: [0, 1.38 - i * 0.05, 0.035], r: [0.1, 0, 0] }), 'spine01', { color: i % 2 ? pal.bone : pal.boneL }); // escamas de pecho
     });
     add('metal', X(G.wrapE(G.plate([[-0.24, 0.18], [0.24, 0.18], [0.27, 0.0], [0.18, -0.3], [-0.18, -0.3], [-0.27, 0.0]], 0.026, 0.009), 0.2, 0.15), { p: [0, 1.25, 0.04], r: [0, Math.PI, 0] }), 'spine01', { color: pal.steelD }); // espaldar
-    add('gold', seam([V(-0.14, 1.36, -0.128), V(0, 1.38, -0.15), V(0.14, 1.36, -0.128)], 0.0045), 'spine01');
+    if (!low) add('gold', seam([V(-0.14, 1.36, -0.128), V(0, 1.38, -0.15), V(0.14, 1.36, -0.128)], 0.0045), 'spine01');
   }
 
   // ═════════════ NIVEL 2
@@ -76,10 +76,10 @@ export function addEvolution(ak, ctx, o = {}) {
   }
   if (has('resonancia')) {
     const hub = V(0, 1.278, 0.06);
-    const rings = [0.42, 0.56, 0.7].map((R, i) => {
+    const rings = (low ? [0.48, 0.7] : [0.42, 0.56, 0.7]).map((R, i) => {
       const b = ak.bone('res' + i, 'spine01', hub), c = new T.Color(glow).lerp(white, 0.25);
-      add('gold', X(G.torus(R, 0.012, 4, S(34, 18)), { p: [hub.x, hub.y, hub.z] }), 'res' + i);
-      add('light', X(G.torus(R * 0.985, 0.006, 3, S(34, 18)), { p: [hub.x, hub.y, hub.z] }), 'res' + i, { color: c });
+      add('gold', X(G.torus(R, 0.012, low ? 3 : 4, S(34, 16)), { p: [hub.x, hub.y, hub.z] }), 'res' + i);
+      add('light', X(G.torus(R * 0.985, 0.006, 3, S(34, 16)), { p: [hub.x, hub.y, hub.z] }), 'res' + i, { color: c });
       for (let k = 0; k < (low ? 4 : 6); k++) { const a = (k / (low ? 4 : 6)) * Math.PI * 2 + i; add('light', X(t.box(0.03, 0.03, 0.07, 0.004, 1), { p: [hub.x + Math.cos(a) * R, hub.y, hub.z + Math.sin(a) * R], r: [0, -a, 0] }), 'res' + i, { color: c }); }
       return b;
     });
@@ -130,13 +130,13 @@ export function addEvolution(ak, ctx, o = {}) {
     const wings = [-1, 1].map((s) => {
       const hub = V(s * 0.07, 1.34, -0.12), b = ak.bone(s < 0 ? 'wingR' : 'wingL', 'spine01', hub), arm = (u) => V(s * (0.04 + 0.95 * u), 0.03 + 0.62 * Math.sin(u * Math.PI * 0.62), -0.04 - 0.14 * u);
       for (let layer = 0; layer < (low ? 1 : 2); layer++) {
-        const n = layer ? 8 : (low ? 6 : 10);
+        const n = layer ? 8 : (low ? 5 : 10);
         for (let i = 0; i < n; i++) {
           const u = 0.1 + 0.9 * (i / (n - 1)), a = arm(u), alpha = -1.15 + u * 1.55, len = (layer ? 0.62 : 0.98) * (0.7 + 0.6 * Math.sin(Math.min(1, u * 1.1 + 0.15) * Math.PI * 0.8)) * (u > 0.9 ? 0.8 : 1);
           const dir = V(s * Math.cos(alpha), Math.sin(alpha), -0.22 - layer * 0.08).normalize(), at = V(hub.x + a.x, hub.y + a.y, hub.z + a.z - layer * 0.012);
           const g = t.blade(len, 0.15 - layer * 0.035, 0.005, { tipLean: s * 0.18, curve: -0.05 }); X(g, { q: t.basisQ(dir, V(0, 0, 1)), p: [at.x, at.y, at.z] });
           add('spirit', g, b.name, { color: (x, y, z) => { const u = Math.min(1, Math.hypot(x - at.x, y - at.y, z - at.z) / len); return c1.clone().multiplyScalar(0.42).lerp(c0.clone().multiplyScalar(0.9), Math.pow(u, 0.8)); } });
-          if (!layer) { const g2 = t.blade(len * 0.96, 0.008, 0.008); X(g2, { q: t.basisQ(dir, V(0, 0, 1)), p: [at.x, at.y, at.z] }); add('light', g2, b.name, { color: c0 }); }
+          if (!layer && !low) { const g2 = t.blade(len * 0.96, 0.008, 0.008); X(g2, { q: t.basisQ(dir, V(0, 0, 1)), p: [at.x, at.y, at.z] }); add('light', g2, b.name, { color: c0 }); }
         }
       }
       add('light', G.tube([0, 0.25, 0.5, 0.75, 1].map((u) => { const a = arm(u); return V(hub.x + a.x, hub.y + a.y, hub.z + a.z); }), 0.009, 0.005, { radial: 4, tubular: 10 }), b.name, { color: c0 });

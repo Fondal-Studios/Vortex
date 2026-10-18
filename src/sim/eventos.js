@@ -35,7 +35,7 @@ export function volteaJugador(g, p, secs = EVENTO.flipMax) {
   secs = Math.min(secs, EVENTO.flipMax);
   p.flipLock = g.time + secs + EVENTO.flipBloqueo;
   if (p.input && p.input.soft) { // sin giro de cámara: un salto hacia arriba y listo
-    g.push(p, mul(p.up, 15)); g.evStats.suaves++;
+    p.vel = madd(p.vel, p.up, 10); p.grounded = false; g.evStats.suaves++;
     g.emit({ t: 'gravity', soft: true, pid: p.id, p: a3(p.pos) });
     return true;
   }

@@ -19,7 +19,7 @@ export function addEvolutionBig(ak, ctx, t, pal, o = {}) {
       const S0 = P('upperarm01'), c = S0.clone().add(V(0.06, 0.08, 0));
       add('metal', X(t.dome(0.19, 0.14, { lip: 0.12, seg: S(16, 8) }), { p: [c.x, c.y, c.z], r: [0, 0, -0.55] }), 'upperarm01', { color: pal.steel });
       add('gold', X(G.torus(0.2, 0.009, 3, S(18, 9)), { p: [c.x + 0.012, c.y - 0.014, c.z], r: [Math.PI / 2, 0, -0.55] }), 'upperarm01');
-      for (let i = 0; i < 3; i++) add('metal', spikeAt(V(c.x + 0.07 + i * 0.015, c.y + 0.11 - i * 0.02, c.z + (i - 1) * 0.075), V(0.7, 0.8, (i - 1) * 0.5), 0.2 - i * 0.02, 0.026, 0, Y, { radial: S(5, 4) }), 'upperarm01', { color: pal.steelD });
+      for (let i = 0; i < (low ? 2 : 3); i++) add('metal', spikeAt(V(c.x + 0.07 + i * 0.015, c.y + 0.11 - i * 0.02, c.z + (i - 1) * 0.075), V(0.7, 0.8, (i - 1) * 0.5), 0.2 - i * 0.02, 0.026, 0, Y, { radial: S(5, 4) }), 'upperarm01', { color: pal.steelD });
     });
   }
   if (has('velocidad')) {
@@ -37,9 +37,9 @@ export function addEvolutionBig(ak, ctx, t, pal, o = {}) {
   if (has('simbiosis')) {
     const FLESH = 0xb04a58, FLESH2 = 0xd8707a;
     for (let k = 0; k < (low ? 2 : 3); k++) { // tentáculos largos que salen de la espalda
-      const sgn = k === 1 ? 0 : k ? 1 : -1, base = V(sgn * 0.1, 1.22, -0.1), pts = [0, 1, 2, 3, 4, 5, 6].map((i) => base.clone().add(V(sgn * i * 0.055, 0.05 * i - 0.012 * i * i, -0.09 * i - 0.01 * i * i)));
+      const sgn = k === 1 ? 0 : k ? 1 : -1, base = V(sgn * 0.1, 1.22, -0.1), pts = [0, 1, 2, 3, 4, 5, 6].slice(0, low ? 6 : 7).map((i) => base.clone().add(V(sgn * i * 0.055, 0.05 * i - 0.012 * i * i, -0.09 * i - 0.01 * i * i)));
       const ch = ak.chain('tentG' + k, 'spine02', pts, { stiff: 0.06, damp: 0.93, gravity: 2.5, sway: 2.2 });
-      for (let i = 0; i < 6; i++) add('flesh', G.tube([pts[i], pts[i + 1]], 0.034 - i * 0.0045, 0.029 - i * 0.0045, { radial: S(5, 4), tubular: 2 }), ch.bones[i].name, { color: i % 2 ? FLESH : FLESH2 });
+      for (let i = 0; i < pts.length - 1; i++) add('flesh', G.tube([pts[i], pts[i + 1]], 0.034 - i * 0.0045, 0.029 - i * 0.0045, { radial: S(5, 4), tubular: 2 }), ch.bones[i].name, { color: i % 2 ? FLESH : FLESH2 });
     }
   }
   if (has('anomalia')) { // anillo de grieta vertical detrás de la espalda

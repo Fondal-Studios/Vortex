@@ -74,13 +74,13 @@ export function createPresence(_T, { glow = 0x4ab4ff, quality = 'low' } = {}) {
     kill(ground); kill(pillar); ground = pillar = null; const cos = cosmeticosActivos(rank);
     if (evo < 1 && !cos.includes('sello')) return;
     const last = path[evo - 1], c1 = pathColor(last, glow), tier = TIER_MARCA(rank), cm = tier ? MARCA_COLOR[tier] : glow;
-    const g = new T.CircleGeometry(2, 48); g.rotateX(-Math.PI / 2);
+    const g = new T.CircleGeometry(2, 32); g.rotateX(-Math.PI / 2);
     const u = { uT: uni.uT, uK: { value: 1 }, uEvo: { value: evo }, uRank: { value: cos.includes('sello') ? rank : 0 }, uC0: { value: new T.Color(glow) }, uC1: { value: new T.Color(c1) }, uCm: { value: new T.Color(cm) } };
     ground = new T.Mesh(g, new T.ShaderMaterial({ ...add, side: T.DoubleSide, uniforms: u, vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: GROUND_FS }));
     ground.position.y = 0.04; ground.frustumCulled = false; ground.name = 'presencia-suelo'; ground.userData.u = u; object.add(ground);
     if (evo >= 4 || cos.includes('pilar')) { // pilar de luz: forma final y/o rango 9
-      const H = 5, col = cos.includes('pilar') ? new T.Color(0xffffff).lerp(new T.Color(cm), 0.4) : new T.Color(c1), cg = new T.CylinderGeometry(0.55, 0.9, H, 20, 1, true); cg.translate(0, H / 2, 0);
-      pillar = new T.Mesh(cg, new T.ShaderMaterial({ ...add, side: T.DoubleSide, uniforms: { uT: uni.uT, uK: { value: 0.8 }, uH: { value: H }, uC: { value: col } }, vertexShader: PILLAR_VS, fragmentShader: PILLAR_FS }));
+      const H = 5, col = cos.includes('pilar') ? new T.Color(0xffffff).lerp(new T.Color(cm), 0.4) : new T.Color(c1), cg = new T.CylinderGeometry(0.5, 0.8, H, 14, 1, true); cg.translate(0, H / 2, 0);
+      pillar = new T.Mesh(cg, new T.ShaderMaterial({ ...add, side: T.DoubleSide, uniforms: { uT: uni.uT, uK: { value: 0.55 }, uH: { value: H }, uC: { value: col } }, vertexShader: PILLAR_VS, fragmentShader: PILLAR_FS }));
       pillar.frustumCulled = false; pillar.name = 'presencia-pilar'; object.add(pillar);
     }
   }
