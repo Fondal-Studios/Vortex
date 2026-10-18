@@ -21,7 +21,7 @@ import * as UMBRA from './huesped/umbra.js';
 import * as SERAF from './huesped/seraf.js';
 
 /** Encuadre de cada Huésped para las pantallas de selección y evolución: [centro y, alto, ancho] (m, sin escala de pantalla). */
-export const FRAME = { axioma: [0.98, 2.5, 1.9], vesper: [0.98, 2.4, 1.8], micelio: [1.2, 3.1, 2.3], umbra: [1.0, 2.4, 1.8], seraf: [1.0, 2.45, 2.3] };
+export const FRAME = { axioma: [0.98, 2.5, 1.9], vesper: [0.98, 2.4, 1.8], micelio: [1.2, 3.5, 2.7], umbra: [1.0, 2.4, 1.8], seraf: [1.0, 2.45, 2.3] };
 export const isHost = (char) => !!(CHARACTERS[char] && CHARACTERS[char].host);
 const DESIGN = { axioma: AXIOMA, vesper: VESPER, micelio: MICELIO, umbra: UMBRA, seraf: SERAF };
 /** Humano base (preset de la fábrica), escala del Huésped y colores clave. */

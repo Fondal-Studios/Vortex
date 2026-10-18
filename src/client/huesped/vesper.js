@@ -27,7 +27,7 @@ export function build(ak, ctx) {
     // hocico largo (puente + dorso) y nariz
     const snout = G.tube([V(0, 0.005, 0.07), V(0, -0.008, 0.18), V(0, -0.026, 0.3), V(0, -0.034, 0.38)], 0.072, 0.034, { radial: S(9, 6), tubular: S(8, 4), sx: 1, sz: 0.9, ease: 0.9 }); X(snout, { p: [HC.x, HC.y, HC.z] });
     add('bone', snout, 'head', { color: BONE });
-    add('bone', X(G.tube([V(0, 0.058, 0.09), V(0, 0.045, 0.2), V(0, 0.015, 0.3)], 0.014, 0.011, { radial: 4, tubular: 6 }), { p: [HC.x, HC.y, HC.z] }), 'head', { color: BONE_L });
+    add('bone', X(G.tube([V(0, 0.058, 0.09), V(0, 0.045, 0.2), V(0, 0.015, 0.3)], 0.014, 0.011, { radial: low ? 3 : 4, tubular: low ? 4 : 6 }), { p: [HC.x, HC.y, HC.z] }), 'head', { color: BONE_L });
     add('dark', X(G.rock(0.03, { detail: low ? 1 : 2, amp: 0.2, s: [1.1, 0.7, 0.8], seed: 4 }), { p: [HC.x, HC.y - 0.025, HC.z + 0.385] }), 'head', { color: 0x0a0612 });
     add('light', X(G.sphere(0.008, 5, 4), { p: [HC.x, HC.y - 0.012, HC.z + 0.405], s: [1.6, 0.5, 0.5] }), 'head', { color: MAG });
     // costuras de luz sobre el hocico y la frente
@@ -102,7 +102,7 @@ export function build(ak, ctx) {
     for (let i = 0; i < 4; i++) {
       const y = 1.19 - i * 0.038, rr = 0.136 - i * 0.003, pts = [];
       for (let k = 0; k <= 6; k++) { const a = -0.3 + (k / 6) * 2.2; pts.push(V(Math.sin(a) * rr * 1.0, y - Math.sin(a) * 0.026, 0.035 + Math.cos(a) * rr * 1.05)); }
-      for (const sg of [1, -1]) add('bone', G.tube(pts.map((p) => V(p.x * sg, p.y, p.z)), 0.0105 - i * 0.0006, 0.006, { radial: S(5, 4), tubular: S(14, 7), closeStart: true }), i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? BONE : BONE_D });
+      for (const sg of [1, -1]) add('bone', G.tube(pts.map((p) => V(p.x * sg, p.y, p.z)), 0.0105 - i * 0.0006, 0.006, { radial: S(5, 3), tubular: S(14, 5), closeStart: true }), i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? BONE : BONE_D });
       add('bone', G.cone(0.011, 0.04, 4).rotateX(Math.PI / 2).translate(0, y, 0.035 + rr * 1.05 + 0.004), i < 1 ? 'spine02' : 'spine03', { color: BONE_L });
     }
     // corsé de lames: 3 anillos facetados de metal con filete y tiras de cuero sobre el vientre bajo
@@ -111,7 +111,7 @@ export function build(ak, ctx) {
     // columna a la espalda: vértebras con púas
     for (let i = 0; i < (low ? 6 : 9); i++) { const y = 1.4 - i * (low ? 0.062 : 0.042); add('bone', X(low ? new T.BoxGeometry(0.05, 0.036, 0.04) : bonelump(0.026 - i * 0.0007, [1.1, 0.8, 1], i + 3, 0.2), { p: [0, y, -0.094 - Math.sin(i * 0.4) * 0.004] }), y > 1.2 ? 'spine01' : y > 1.07 ? 'spine02' : 'spine03', { color: BONE_D }); }
     // arnés de cuero cruzado con hebilla de hueso
-    for (const sg of (low ? [1] : [-1, 1])) add('leather', G.tube([V(sg * 0.13, 1.4, 0.06), V(sg * 0.08, 1.33, 0.18), V(-sg * 0.02, 1.18, 0.2), V(-sg * 0.13, 1.0, 0.19)], 0.014, 0.014, { radial: 4, tubular: 12, sx: 1, sz: 0.5 }), 'spine02', { color: LEATH });
+    for (const sg of (low ? [1] : [-1, 1])) add('leather', G.tube([V(sg * 0.13, 1.4, 0.06), V(sg * 0.08, 1.33, 0.18), V(-sg * 0.02, 1.18, 0.2), V(-sg * 0.13, 1.0, 0.19)], 0.014, 0.014, { radial: 4, tubular: low ? 8 : 12, sx: 1, sz: 0.5 }), 'spine02', { color: LEATH });
     add('bone', t.box(0.04, 0.034, 0.014, 0.005, 1).translate(0.0, 1.235, 0.205), 'spine02', { color: BONE });
     // caderas: placas escalonadas de cuero y hueso a los lados del vientre
     ak.both(() => {
@@ -146,7 +146,7 @@ export function build(ak, ctx) {
     PL('lowerarm01', [[-0.03, 0.1], [0.03, 0.1], [0.022, -0.1], [-0.022, -0.1]], { mat: 'crystal', depth: 0.014, bevel: 0.005, wrap: { rx: 0.064, rz: 0.068 }, color: VIO_D, trim: 'ember', trimInset: 0.18, place: (g) => limb(g, E0, W0, 0.5) });
     add('bone', limb(cuff(0.058, 0.052, 0.035, 0.012, S(8, 6), 25), E0, W0, 0.08), 'lowerarm01', { color: BONE_D });
     add('bone', limb(cuff(0.05, 0.044, 0.03, 0.012, S(8, 6), 25), E0, W0, 0.92), 'lowerarm01', { color: BONE_D });
-    add('light', limb(G.tube([V(-0.07, -0.09, 0.02), V(-0.082, 0.0, 0.0), V(-0.07, 0.09, -0.02)], 0.003, 0.003, { radial: 4, tubular: 6 }), E0, W0, 0.5), 'lowerarm01', { color: VIO });
+    add('light', limb(G.tube([V(-0.07, -0.09, 0.02), V(-0.082, 0.0, 0.0), V(-0.07, 0.09, -0.02)], 0.003, 0.003, { radial: low ? 3 : 4, tubular: low ? 4 : 6 }), E0, W0, 0.5), 'lowerarm01', { color: VIO });
     const bl = 0.46, bt = 0.58, ox = -0.085;
     add('dark', limb(t.box(0.03, 0.1, 0.05, 0.008, 1), E0, W0, bt, { off: [ox, 0, 0] }), 'lowerarm01', { color: 0x54467e });
     add('bone', limb(cuff(0.03, 0.03, 0.03, 0.01, S(8, 5), 25), E0, W0, bt + 0.07, { off: [ox, 0, 0], r: [0, 0, Math.PI / 2] }), 'lowerarm01', { color: BONE_D });
@@ -175,7 +175,7 @@ export function build(ak, ctx) {
     add('light', sm([V(H.x + 0.02, 0.9, -0.09), V(H.x + 0.02, 0.78, -0.155), V(H.x + 0.02, 0.62, -0.145), V(H.x + 0.02, 0.54, -0.1)], 0.003), 'upperleg01', { color: VIO });
     // escamas de pelaje escalonadas que bajan por el muslo (puntas hacia abajo) con filete de luz
     for (let i = 0; i < (low ? 3 : 4); i++) PL('upperleg01', [[-0.05 + i * 0.004, 0.035], [0.05 - i * 0.004, 0.035], [0.042 - i * 0.004, -0.02], [0, -0.075], [-0.042 + i * 0.004, -0.02]], { mat: 'dark', depth: 0.014, bevel: 0.005, wrap: { rx: 0.1 - i * 0.004, rz: 0.094 - i * 0.003 }, color: i % 2 ? 0x6a5a9c : 0x483a70, trim: (i % 2 || (low && i > 0)) ? undefined : 'ember', trimInset: 0.16, trimR: 0.0024, place: (g) => limb(g, H, K, 0.5 + i * 0.1) });
-    add('light', limb(G.tube([V(0.0, 0.14, 0.092), V(0.003, 0.0, 0.098), V(-0.003, -0.13, 0.094)], 0.003, 0.003, { radial: 4, tubular: 8 }), H, K, 0.4), 'upperleg01', { color: VIO });
+    add('light', limb(G.tube([V(0.0, 0.14, 0.092), V(0.003, 0.0, 0.098), V(-0.003, -0.13, 0.094)], 0.003, 0.003, { radial: low ? 3 : 4, tubular: low ? 4 : 8 }), H, K, 0.4), 'upperleg01', { color: VIO });
     // rodilla: casquete de hueso con púa
     add('metal', X(dome(0.058, 0.05, { lip: 0.3, seg: S(9, 6), crease: 30 }), { p: [K.x, K.y + 0.005, K.z + 0.07], r: [Math.PI / 2, 0, 0] }), 'lowerleg01', { color: METAL });
     add('bone', G.torus(0.06, 0.0045, 4, S(14, 8)).rotateX(Math.PI / 2).translate(K.x, K.y + 0.005, K.z + 0.075), 'lowerleg01', { color: BONE_D });
