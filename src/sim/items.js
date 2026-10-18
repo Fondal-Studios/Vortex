@@ -46,6 +46,8 @@ export const FASE_MUL = [1, 1.06, 1.12, 1.2];
 /* ───────── bonos numéricos (mismas claves que p.bn de las bendiciones: src/sim/bendiciones.js → BN_NEUTRO) ───────── */
 export const BN_KEYS = ['spd', 'gun', 'melee', 'skill', 'dmgIn', 'ult', 'shield', 'ess', 'cores', 'cd'];
 export const ADD_KEYS = ['heal', 'kheal'];
+/** Bonos de economía y escudo: pueden ser el doble de grandes que los de combate (no cuentan para la suma de poder de combate). */
+export const UTIL_KEYS = ['shield', 'ess', 'cores'];
 export const STAT_ES = { spd: 'Velocidad', gun: 'Daño de disparo', melee: 'Daño cuerpo a cuerpo', skill: 'Daño de habilidades', dmgIn: 'Daño recibido', ult: 'Carga de la definitiva', shield: 'Recarga del escudo', ess: 'Esencias', cores: 'Núcleos', cd: 'Recarga de habilidades', heal: 'Vida entre oleadas', kheal: 'Vida por baja' };
 /** Topes del total (con todo puesto y fase Plena): nada se sale de acá aunque se sumen 7 legendarias. */
 export const CAPS = { spd: [0.92, 1.12], gun: [0.8, 1.1], melee: [0.8, 1.1], skill: [0.8, 1.1], dmgIn: [0.78, 1.1], ult: [0.8, 1.35], shield: [0.8, 1.5], ess: [0.8, 1.4], cores: [0.8, 1.3], cd: [0.8, 1.2], heal: [0, 20], kheal: [0, 2] };

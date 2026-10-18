@@ -18,6 +18,7 @@ import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hos
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
 import { Director } from './director.js';
 import { initArenas, tickArenas, arSnap, arTargets, arExplosion, arKill, arVel, arDanio, danarOrgano } from './arenas-vivas.js'; // arenas vivas (src/sim/arenas-vivas.js)
+import { initNieblas, tickNieblas, ngSnap, ngVel, ngDanio, ngRecibe, ngOculta, ngMonstruoRecibe, ngDeforma } from './nieblas.js';   // nieblas de colores con función (src/sim/nieblas.js)
 import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, limitarCaida } from './eventos.js';
 import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
 import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
@@ -55,6 +56,7 @@ export class Game {
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
     this.cult = this.map.cultivo ? initCult(this) : null; // acertijo del mapa 4 (src/sim/cultivo.js)
     initArenas(this);                                     // arenas vivas: cada mapa es un organismo (src/sim/arenas-vivas.js; rng propio g.arRng)
+    initNieblas(this);                                    // nieblas de colores con función (src/sim/nieblas.js; rng propio g.ngRng)
     initDrops(this, seed);                                // botín: g.drRng derivado de la semilla (nunca usa g.rng)
     initEventos(this);                                    // eventos de oleada (src/sim/eventos.js): la gravedad invertida vive dentro de uno de ellos
   }
@@ -99,7 +101,7 @@ export class Game {
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
+  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -130,9 +132,9 @@ export class Game {
   /* ─────────── paso principal ─────────── */
   step(dt) {
     this.tick++; this.time += dt; this.dt = dt;
-    if (this.state !== 'playing') return;
+    if (this.state !== 'playing') { if (this.loot.length) flushLoot(this); return; }
     this.director.update(this, dt);
-    this.updateWaves(dt); this.updateOmens(); tickArenas(this, dt);
+    this.updateWaves(dt); this.updateOmens(); tickArenas(this, dt); tickNieblas(this, dt);
     for (const p of this.players) this.updatePlayer(p, dt);
     updateObjective(this, dt); this.updateObjects(dt); if (this.cult) tickCultivo(this, dt);
     if (this.pings.length) this.pings = this.pings.filter((q) => q.until > this.time);
@@ -343,8 +345,9 @@ export class Game {
     p.pitch = clamp(p.pitch + inp.dpitch, -1.5, 1.5);
     inp.dyaw = 0; inp.dpitch = 0;
     const right = cross(p.heading, up);
-    const speed = PLAYER.speed * (inp.dash && !inp.crouch ? PLAYER.dash : 1) * speedMul(p) * arVel(this, p) * (inp.crouch ? 0.55 : 1) * (inp.ads ? 0.8 : 1);
+    const speed = PLAYER.speed * (inp.dash && !inp.crouch ? PLAYER.dash : 1) * speedMul(p) * arVel(this, p) * ngVel(this, p) * (inp.crouch ? 0.55 : 1) * (inp.ads ? 0.8 : 1);
     let wish = add(mul(p.heading, inp.mz), mul(right, inp.mx));
+    wish = ngDeforma(this, p, wish);   // niebla magenta: tuerce un poco el rumbo (no con «Reducir efectos»)
     if (zero) {
       wish = add(mul(this.aimDir(p), inp.mz), mul(right, inp.mx));
       if (inp.jump) wish = madd(wish, up, 1);
@@ -419,6 +422,7 @@ export class Game {
     if (p.dead || dmg <= 0 || this.time < p.invulUntil) return;
     for (const o of this.objects) if (o.type === 'dome' && dist(p.pos, o.pos) < o.r) { dmg *= 0.6; break; }
     if (p.role === 'vanguardia') dmg *= 0.92;
+    dmg *= ngRecibe(this, p);   // niebla ámbar: +30 % de daño recibido
     dmg = hostDamageIn(this, p, dmg); hostDamaged(this, p);
     this.director.hurt(dmg);
     p.lastHurt = this.time;
@@ -577,6 +581,8 @@ export class Game {
     if (by && this.time < this.teamBuffUntil) mul_ *= 1.25;
     if (by && by.input && this.evZona && dist(by.pos, this.evZona.pos) < this.evZona.r) mul_ *= 1.3;   // Bendición de la Aurora
     if (by && by.input) mul_ *= arDanio(this, by);   // Iris de Espejo / Costillar (arenas vivas)
+    if (by && by.input) mul_ *= ngDanio(this, by);   // nieblas ámbar y magenta: daño que hace el jugador de adentro
+    mul_ *= ngMonstruoRecibe(this, m);               // niebla ámbar: la criatura de adentro también recibe +30 %
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
@@ -635,7 +641,7 @@ export class Game {
       if (m.hp <= 0) { this.killMonster(m, this.players.find((q) => q.id === m.dotBy) || null); return; }
     }
     m.t += dtm; m.hurt = Math.max(0, m.hurt - dt);
-    const targets = this.alivePlayers().filter((q) => this.time >= (q.cloakUntil || 0) || dist(q.pos, m.pos) < 6);   // camuflaje: te pierden salvo muy cerca
+    const targets = this.alivePlayers().filter((q) => (this.time >= (q.cloakUntil || 0) || dist(q.pos, m.pos) < 6) && !ngOculta(this, q, m));   // camuflaje: te pierden salvo muy cerca
     if (m.passive && targets.length) { const d = sub(targets[0].pos, m.pos), up = m.up || v3(0, 1, 0); m.fwd = norm(project(d, up), m.fwd); }
     else if (targets.length) AI[m.def.ai](this, m, dtm, targets);
     if (m.dead) return;
@@ -829,7 +835,7 @@ export class Game {
       obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
       mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
-      ev: evSnap(this), ar: arSnap(this),
+      ev: evSnap(this), ar: arSnap(this), ng: ngSnap(this),
       dir: { stress: r2(this.director.stress), frag: this.fragments, buff: r2(Math.max(0, this.teamBuffUntil - this.time)) },
       events: this.drainEvents(),
     };

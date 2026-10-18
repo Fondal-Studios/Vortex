@@ -5,6 +5,7 @@ import { blocked } from './physics.js';
 import { initOrgans, champTick, absorb, hasC } from './organos.js';
 import { arMelee } from './arenas-vivas.js';   // arenas vivas (circular a propósito: sólo se usa dentro de funciones)
 import { initCombo, comboStep, comboSnap } from './combos.js';
+import { progStep } from './progresion.js';   // progresión permanente: multi-kills y rango de estilo (docs/EVOLUCION.md)
 import { itemOut, itemDamageIn, itemHit, itemKill, itemTick, itemMeleeSet, execThreshold, itemStrike } from './items-fx.js';   // objetos equipados (docs/INVENTARIO.md)   // modo Combo (circular a propósito: sólo se usan dentro de funciones)
 
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -52,6 +53,7 @@ export function updateHost(g, p, dt) {
     p.slam -= dt;
     if (p.grounded) { slamLand(g, p); p.slam = 0; } else if (p.slam <= 0) p.slam = 0;
   }
+  if (C && C.host) progStep(g, p, dt);   // cuenta bajas / multi-kills / rango de estilo (src/sim/progresion.js)
   if (p.mode === 'combo') comboStep(g, p, dt); else meleeStep(g, p, dt);   // Combo: A1/A2 (src/sim/combos.js); Shooter: melee V de siempre
 }
 

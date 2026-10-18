@@ -6,6 +6,7 @@ import { v3, mul, madd, dot, cross, len, dist, norm, makeRng } from './math.js';
 import { EVENTO, EVENTOS, EVENTOS_MAPA, PLAYER } from './data.js';
 import { addCores } from './huespedes.js';
 import { dropsEvento } from './drops.js';
+import { nieblaEvento } from './nieblas.js';   // «Niebla de Almas» y «Marea de Sangre» usan el sistema de nieblas de colores (src/sim/nieblas.js)
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
@@ -185,6 +186,7 @@ const H = {
     fin(g, e) { if (g.map.tideWin !== undefined) { g.map.tideWin = null; if (!e.suave) for (const p of g.alivePlayers()) ablandar(g, p); } },
   },
   niebla_almas: {
+    aviso(g) { nieblaEvento(g, 'niebla_almas'); },   // 3 bancos de niebla blanca (ocultan a quien se queda adentro de las criaturas lejanas)
     inicio(g) { g.evCoreMul = 1.5; },
   },
   lluvia_astillas: {
@@ -209,6 +211,7 @@ const H = {
     fin(g, e, ok) { if (ok) premiar(g, e, 0.5); },
   },
   marea_sangre: {
+    aviso(g) { nieblaEvento(g, 'marea_sangre'); },   // un banco de niebla ámbar: frenesí (+30 % de daño para todos los de adentro)
     inicio(g, e) {
       const tipos = ['astilla', 'racimo'].filter((k) => (g.curTypes || []).includes(k)), pool = tipos.length ? tipos : ['astilla'];
       const n = Math.max(12, Math.min(30, 10 + 3 * g.wave)), horda = [];

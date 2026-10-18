@@ -302,6 +302,7 @@ export function createArmorKit(human, kit, opts = {}) {
   /** Añade una pieza (geometría en el espacio del modelo) a un material y a un hueso. opts.color = hex | [r,g,b] | fn(x,y,z,nx,ny,nz) → hex. En `both` se espeja sola. */
   function add(matKey, geo, boneName, o = {}) {
     if (finished) throw new Error('armor-kit: ya terminado');
+    if (replaced) { const fz = resolve(boneName); if (replaced.has(slotOfBone(fz))) { replacedTris += (geo.index ? geo.index.count : geo.attributes.position.count) / 3; return geo; } }   // el equipo (items-vis.js) sustituye lo de esta zona
     let g = geo.index ? geo.toNonIndexed() : geo.clone();
     for (const k of Object.keys(g.attributes)) if (!['position', 'normal'].includes(k)) g.deleteAttribute(k);
     if (side === 'R') mirrorX(g);
@@ -320,6 +321,12 @@ export function createArmorKit(human, kit, opts = {}) {
     g.setAttribute('skinIndex', new T.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new T.BufferAttribute(sw, 4));
     dbg.push([matKey, boneName, n / 3]); bucket(matKey).geoms.push(g); return g;
   }
+  /** SUSTITUCIÓN POR EQUIPO (docs/INVENTARIO.md): mientras esté activa, las piezas que el diseño base agregaría a huesos de estas zonas ('head' | 'torso' | 'arms' | 'legs') NO se dibujan:
+   *  la armadura equipada ocupa su lugar y el presupuesto de triángulos no crece. `keepAll()` la desactiva (las piezas del equipo se agregan después). */
+  let replaced = null, replacedTris = 0;
+  const slotOfBone = (fn) => (/^(head|neck|jaw)/.test(fn) ? 'head' : /^(spine|clavicle|pelvis|breast)/.test(fn) ? 'torso' : /^(upperarm|lowerarm|wrist|hand|shoulder|finger|metacarpal|thumb)/.test(fn) ? 'arms' : /^(upperleg|lowerleg|foot|ball|toe)/.test(fn) ? 'legs' : '');
+  const replaceSlots = (set) => { replaced = set && set.size ? new Set(set) : null; replacedTris = 0; };
+  const keepAll = () => { replaced = null; };
   /** Ejecuta fn() una vez para el lado izquierdo (+x) y otra para el derecho (espejado): dentro, `add` y `P` usan el lado actual. */
   function both(fn) { for (const s of ['L', 'R']) { side = s; fn(s); } side = null; }
   /** Sólo un lado (L o R) sin espejo automático del otro. */
@@ -508,7 +515,7 @@ export function createArmorKit(human, kit, opts = {}) {
     for (const m of meshes) m.removeFromParent(); for (const g of attached) g.removeFromParent(); for (const m of extraRoots) m.removeFromParent();
     for (const d of disposables) d.dispose && d.dispose(); for (const b of extraBones) b.removeFromParent(); if (ak.skeleton) ak.skeleton.dispose();
   }
-  const ak = { dbg, T, Q, low, quality, W: Wv, P, add, both, one, bone, chain, cloth, collider, frame, onSeg, mount, halo, embers, finish, update, onUpdate, stats, dispose, material, mats, extraRoots, bones, body, skel0, bindMatrix, parent, ready: false, accent,
+  const ak = { replaceSlots, keepAll, get replacedTris() { return replacedTris; }, dbg, T, Q, low, quality, W: Wv, P, add, both, one, bone, chain, cloth, collider, frame, onSeg, mount, halo, embers, finish, update, onUpdate, stats, dispose, material, mats, extraRoots, bones, body, skel0, bindMatrix, parent, ready: false, accent,
     /** Segmentos «a nivel de calidad»: s(8) → 8 (alta), 5 (baja). */
     s: (n, min = 3) => Math.max(min, Math.round(n * Q)),
     setObject: (o) => { objectRef = o; } };
