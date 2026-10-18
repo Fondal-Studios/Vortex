@@ -123,6 +123,7 @@ export function build(ak, ctx) {
     const sp = [[1.47, 0.14, 0.45], [1.37, 0.18, -0.5], [1.26, 0.15, 0.3], [1.16, 0.12, -0.3]];
     sp.forEach(([y, Rr, hd], i) => { if (low && i === 3) return; shelf(i < 2 ? 'spine01' : 'spine02', V(Math.sin(hd) * 0.07, y, -0.13), Rr, [0, Math.PI / 2 + hd, 0.75 - i * 0.07], { half: true, th: Rr * 0.14, seg: 14, rim: true, glow: i % 2 ? CYAN : VIOLET, zs: 1.1 }); });
     shroom('spine01', V(0, 1.42, -0.22), V(0, 1, -0.4), 0.1, 0.05, [MAG, 0xffd8f4]); shroom('spine01', V(0.1, 1.38, -0.2), V(0.5, 1, -0.5), 0.07, 0.035, [CYAN, 0xd8fff8]);
+    for (let k = 0; k < (low ? 2 : 4); k++) add('light', t.crackLine(V(-0.14 + k * 0.09, 1.42, -0.3), V(-0.1 + k * 0.07, 1.1, -0.22), { n: 9, jag: 0.016, r: 0.0036, seed: 60 + k }), 'spine01', { color: k % 2 ? CYAN : MOSS });
     tuft('spine01', V(0, 1.45, -0.13), low ? 6 : 12, 0.015, 0.03, 0.12, Y, 21);
   }
 
@@ -174,6 +175,9 @@ export function build(ak, ctx) {
     add('bark', limb(cuff(0.105, 0.09, ll * 0.18, 0.016, S(10, 7), 30), K, A, 0.88), 'lowerleg01', { color: BL });
     add('light', ringAt(K, A, 0.74, 0.108, 0.012, 0.005), 'lowerleg01', { color: MOSS });
     tuft('lowerleg01', K.clone().lerp(A, 0.25).add(V(0.0, 0, 0.1)), low ? 3 : 6, 0.014, 0.024, 0.06, Zv, 51);
+    // grietas de musgo (y alguna de luz violeta/cian) que recorren la corteza del muslo y la pantorrilla
+    for (let k = 0; k < (low ? 1 : 3); k++) add('light', t.crackLine(H.clone().lerp(K, 0.1 + k * 0.05).add(V(-0.02 + k * 0.03, 0, 0.15)), H.clone().lerp(K, 0.85).add(V(0.05 - k * 0.06, 0, 0.14)), { n: 8, jag: 0.014, r: 0.0036, seed: 20 + k }), 'upperleg01', { color: k === 2 ? VIOLET : MOSS });
+    add('light', t.crackLine(K.clone().lerp(A, 0.15).add(V(0.05, 0, 0.11)), K.clone().lerp(A, 0.7).add(V(-0.04, 0, 0.12)), { n: 6, jag: 0.012, r: 0.0034, seed: 31 }), 'lowerleg01', { color: CYAN });
     // pie: masa de raíz con 4 dedos-raíz que se agarran al suelo
     add('bark', bonelump(0.095, [1.25, 0.75, 2.5], 18, 0.2).translate(A.x, 0.07, 0.07), 'foot', { color: BD });
     for (let k = -1; k <= 1; k++) add('bark', G.tube([V(TO.x + k * 0.03, 0.06, 0.15), V(TO.x + k * 0.075, 0.04, 0.26), V(TO.x + k * 0.12, 0.012, 0.35)], 0.036, 0.008, { radial: S(5, 4), tubular: S(7, 5), ridges: 3, ridgeAmp: 0.2 }), 'toe3-1', { color: k % 2 ? BM : BD });

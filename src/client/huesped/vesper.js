@@ -101,7 +101,7 @@ export function build(ak, ctx) {
       add('bone', G.cone(0.011, 0.04, 4).rotateX(Math.PI / 2).translate(0, y, 0.035 + rr * 1.05 + 0.004), i < 1 ? 'spine02' : 'spine03', { color: BONE_L });
     }
     // corsé de lames: 3 anillos facetados de metal con filete y tiras de cuero sobre el vientre bajo
-    for (let i = 0; i < 4; i++) { const y = 1.082 - i * 0.034, c = G.lathe([[0.146 - i * 0.004, y - 0.022], [0.152 - i * 0.004, y - 0.004], [0.15 - i * 0.004, y + 0.014], [0.144 - i * 0.004, y + 0.022]], S(14, 9), 0, Math.PI * 2, 40); X(c, { p: [0, 0, 0.03], s: [1, 1, 0.88] }); add('metal', c, i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? METAL_D : METAL }); if (!low || i % 2 === 0) add('ember', G.torus(0.151 - i * 0.004, 0.0026, 3, S(18, 9)).scale(1, 1, 0.88).translate(0, y + 0.02, 0.03), i < 1 ? 'spine02' : 'spine03', { color: MAG }); }
+    for (let i = 0; i < 4; i++) { const y = 1.082 - i * 0.034, c = G.lathe([[0.146 - i * 0.004, y - 0.022], [0.152 - i * 0.004, y - 0.004], [0.15 - i * 0.004, y + 0.014], [0.144 - i * 0.004, y + 0.022]], S(14, 9), 0, Math.PI * 2, 40); X(c, { p: [0, 0, 0.02], s: [1, 1, 1.02] }); add('metal', c, i < 1 ? 'spine02' : 'spine03', { color: i % 2 ? METAL_D : METAL }); if (!low || i % 2 === 0) add('ember', G.torus(0.151 - i * 0.004, 0.0026, 3, S(18, 9)).scale(1, 1, 1.02).translate(0, y + 0.02, 0.02), i < 1 ? 'spine02' : 'spine03', { color: MAG }); }
     add('light', sm([V(0, 1.21, 0.165), V(0.004, 1.15, 0.17), V(0, 1.1, 0.16)], 0.0032), 'spine03', { color: VIO });
     // columna a la espalda: vértebras con púas
     for (let i = 0; i < (low ? 6 : 9); i++) { const y = 1.4 - i * (low ? 0.062 : 0.042); add('bone', X(low ? new T.BoxGeometry(0.05, 0.036, 0.04) : bonelump(0.026 - i * 0.0007, [1.1, 0.8, 1], i + 3, 0.2), { p: [0, y, -0.094 - Math.sin(i * 0.4) * 0.004] }), y > 1.2 ? 'spine01' : y > 1.07 ? 'spine02' : 'spine03', { color: BONE_D }); }
@@ -114,10 +114,10 @@ export function build(ak, ctx) {
       add('leather', G.tube([V(0.155, 1.205, 0.07), V(0.19, 1.11, 0.095), V(0.195, 1.02, 0.075), V(0.185, 0.97, 0.04)], 0.0105, 0.0105, { radial: low ? 3 : 4, tubular: 8 }), 'spine03', { color: LEATH });
     });
     // cinturón con hebilla de garra
-    add('leather', G.band(0.172, 0.055, 0.02, { seg: S(20, 10), sz: 0.78, simple: low }).translate(0, 0.945, zc + 0.01), 'spine05', { color: LEATH });
-    add('bone', G.torus(0.176, 0.0045, 4, S(20, 10)).scale(1, 1, 0.78).translate(0, 0.975, zc + 0.01), 'spine05', { color: BONE_D });
-    add('bone', spikeAt(V(0, 0.99, 0.185), V(0, -1, 0.45), 0.11, 0.022, 0.015, Zv, { radial: S(6, 4) }), 'spine05', { color: BONE_L });
-    add('light', G.sphere(0.014, 6, 5).translate(0, 0.95, 0.196), 'spine05', { color: MAG });
+    add('leather', G.band(0.165, 0.07, 0.02, { seg: S(20, 10), sz: 0.9, simple: low }).translate(0, 0.955, 0.02), 'spine05', { color: LEATH });
+    add('bone', G.torus(0.169, 0.0045, 4, S(20, 10)).scale(1, 1, 0.9).translate(0, 0.99, 0.02), 'spine05', { color: BONE_D });
+    add('bone', spikeAt(V(0, 0.99, 0.172), V(0, -1, 0.45), 0.11, 0.022, 0.015, Zv, { radial: S(6, 4) }), 'spine05', { color: BONE_L });
+    add('light', G.sphere(0.014, 6, 5).translate(0, 0.95, 0.182), 'spine05', { color: MAG });
   }
 
   // ═══════════════════════════ HOMBROS, BRAZOS, GARRAS

@@ -14,7 +14,7 @@ const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xcfb4ff, OBS = 0x1c1232, OBS_D =
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, cuff, S, low, basisQ } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), HC = V(0, 1.6, 0.06), upd = [], R = t.rng(51), TAU = Math.PI * 2;
   const cnew = (h) => new T.Color(h);
-  { const mm = ak.material('mirror'); mm.envMapIntensity = 1.4; mm.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = min(outgoingLight, vec3(1.3));\n#include <opaque_fragment>'); }; mm.customProgramCacheKey = () => 'umbra-espejo'; } // el espejo refleja el cielo pero sin quemar el bloom
+  { const mm = ak.material('mirror'); mm.envMapIntensity = 1.2; mm.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = min(outgoingLight, vec3(1.1));\n#include <opaque_fragment>'); }; mm.customProgramCacheKey = () => 'umbra-espejo'; } // el espejo refleja el cielo pero sin quemar el bloom
   { const dm = ak.material('dark'); dm.roughness = 0.6; dm.metalness = 1; dm.envMapIntensity = 0.7; } // sudario mate: sólo un brillo en los bordes
 
 
@@ -157,7 +157,7 @@ export function build(ak, ctx) {
     for (let j = 0; j < N; j++) { const a = (j / (N - 1)) * (TAU - 0.5) + Math.PI + 0.25; cols.push({ bone: j % 2 ? 'spine05' : 'spine04', p: V(Math.sin(a) * 0.22, 0.99, 0.03 + Math.cos(a) * 0.19) }); lens.push(0.78 + (R() - 0.35) * 0.42 + (j % 3 === 0 ? 0.12 : 0)); }
     paint(flare(ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(10, 6), color: 0x32225a, hem: 0x08050f, gravity: 5, stiff: 0.02, drag: 0.985, wave: 0.04, ember: 1.1 }), 0.2, 0, 0.03), [0.42, 0.62], 2);
     // capa trasera, ancha, con los largos rotos
-    const c2 = [], l2 = []; const M = low ? 8 : 11; for (let j = 0; j < M; j++) { const x = -0.25 + j * (0.5 / (M - 1)); c2.push({ bone: 'spine01', p: V(x, 1.42 - Math.abs(x) * 0.1, -0.1) }); l2.push(1.25 + 0.3 * Math.cos((j / (M - 1) - 0.5) * 2.2) + (R() - 0.5) * 0.45); }
+    const c2 = [], l2 = []; const M = low ? 8 : 11; for (let j = 0; j < M; j++) { const x = -0.25 + j * (0.5 / (M - 1)); c2.push({ bone: 'spine01', p: V(x, 1.42 - Math.abs(x) * 0.1, -0.1) }); l2.push(1.15 + 0.3 * Math.cos((j / (M - 1) - 0.5) * 2.2) + (R() - 0.5) * 0.7); }
     paint(flare(ak.cloth({ top: c2, dir: V(0, -1, -0.3), lens: l2, rows: S(12, 8), color: 0x281a46, hem: 0x08050f, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 1.0 }), 0.22, 0, 0.1), [0.3, 0.5, 0.7], 3);
     // faldón delantero (jirón central)
     const c3 = [], l3 = []; for (let j = 0; j < 4; j++) { c3.push({ bone: 'spine05', p: V(-0.075 + j * 0.05, 0.95, 0.2) }); l3.push(0.7 + (R() - 0.5) * 0.2); }
@@ -228,8 +228,25 @@ export function build(ak, ctx) {
     upd.push((dt, tt) => { r2.sb.rotation.set(Math.PI / 2, tt * 0.25, 0, 'XYZ'); });
   }
 
+  // ═══════════════════════════ ESPEJO ROTO a la espalda: disco de esquirlas con grietas de luz, dentro del anillo grande
+  {
+    const hub = V(0, 1.2, -0.28), mb = ak.bone('espejo', 'spine02', hub), rr = t.rng(77), n = low ? 7 : 9, R1 = 0.21;
+    for (let i = 0; i < n; i++) {
+      if (i === 4) continue; // falta una esquirla
+      const a0 = (i / n) * TAU, a1 = ((i + 1) / n) * TAU - 0.04, am = (a0 + a1) / 2, r0 = 0.045 + rr() * 0.02, r1 = R1 * (0.8 + rr() * 0.25), c = Math.cos, sn = Math.sin;
+      const pts = [[c(a0) * r0, sn(a0) * r0], [c(a0 + 0.02) * r1, sn(a0 + 0.02) * r1], [c(am) * r1 * (1.05 + rr() * 0.1), sn(am) * r1 * (1.05 + rr() * 0.1)], [c(a1) * r1, sn(a1) * r1], [c(a1) * r0, sn(a1) * r0]];
+      const g = G.plate(pts, 0.012, 0.003, { crease: 40 }); X(g, { r: [(rr() - 0.5) * 0.3, (rr() - 0.5) * 0.3, 0] }); X(g, { p: [hub.x, hub.y, hub.z + (rr() - 0.5) * 0.04] });
+      add('mirror', g, 'espejo', { color: i % 4 === 0 ? MIRV : i % 4 === 2 ? 0x56508a : 0x2a2050 });
+      add('ember', seam([V(hub.x + c(a0) * r0, hub.y + sn(a0) * r0, hub.z - 0.012), V(hub.x + c(a0) * (r0 + r1) * 0.5, hub.y + sn(a0) * (r0 + r1) * 0.5, hub.z - 0.012), V(hub.x + c(a0) * r1 * 1.03, hub.y + sn(a0) * r1 * 1.03, hub.z - 0.012)], 0.0028), 'espejo', { color: VIO });
+    }
+    add('light', X(G.sphere(0.03, 8, 6), { p: [hub.x, hub.y, hub.z - 0.01], s: [1, 1, 0.5] }), 'espejo', { color: 0xffffff });
+    add('ember', G.torus(R1 * 1.3, 0.0035, 3, S(30, 16)).rotateX(Math.PI / 2).translate(hub.x, hub.y, hub.z), 'espejo', { color: VIO });
+    ak.halo('espejo', V(hub.x, hub.y, hub.z - 0.05), VIO, 0.5, 0.35);
+    upd.push((dt, tt) => { mb.rotation.set(0.06 * Math.sin(tt * 0.6), 0.1 * Math.sin(tt * 0.45), tt * 0.08); mb.scale.setScalar(1 + 0.05 * uBeat.value); });
+  }
+
   // ═══════════════════════════ FLOTAR (animación propia sobre el esqueleto, sin pisar los clips)
-  const fst = new Map(), dq = new T.Quaternion(), eu = new T.Euler(), bn = (n) => ak.bones[n] || ak.bones[n + '_h'];
+  const fst = new Map(), dq = new T.Quaternion(), eu = new T.Euler(), bn = (n) => ak.bones[n + '_h'] || ak.bones[n];
   const addRot = (n, x, y, z) => { const b = bn(n); if (!b) return; let st = fst.get(n); if (!st) { st = { last: null, d: new T.Quaternion() }; fst.set(n, st); }
     if (st.last && b.quaternion.equals(st.last)) b.quaternion.multiply(dq.copy(st.d).invert()); st.d.setFromEuler(eu.set(x, y, z)); b.quaternion.multiply(st.d); st.last = b.quaternion.clone(); };
   let spd = 0; const hide = ['foot_L', 'foot_R'].map(bn).filter(Boolean);
