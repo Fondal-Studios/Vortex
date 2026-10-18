@@ -7,7 +7,7 @@ import { tools, V } from '../huesped-piezas.js';
 import { addEvolution } from '../huesped-evo-piezas.js';
 
 export const BELLY = 1; // vientre luminoso entre las costillas
-const BONE = 0xe8dcc4, BONE_D = 0xb3a386, BONE_L = 0xfff6e4, DARK = 0x2a2040, DARK2 = 0x453866, METAL = 0xc4b4ec, METAL_D = 0x9686c8, LEATH = 0x5a3a50, VIO = 0xb04bff, VIO_D = 0x4e1e9c, MAG = 0xff5ad8, EYE = 0xb8ff6a;
+const BONE = 0xcfc2a2, BONE_D = 0x9a8b70, BONE_L = 0xe9dfc8, DARK = 0x2a2040, DARK2 = 0x453866, METAL = 0xc4b4ec, METAL_D = 0x9686c8, LEATH = 0x5a3a50, VIO = 0xb04bff, VIO_D = 0x4e1e9c, MAG = 0xff5ad8, EYE = 0xb8ff6a;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, dome, cuff, bonelump, S, low } = t, P = (n) => ak.P(n), add = ak.add;
@@ -138,7 +138,8 @@ export function build(ak, ctx) {
     add('bone', limb(cuff(0.05, 0.044, 0.03, 0.012, S(8, 6), 25), E0, W0, 0.92), 'lowerarm01', { color: BONE_D });
     add('light', limb(G.tube([V(-0.07, -0.09, 0.02), V(-0.082, 0.0, 0.0), V(-0.07, 0.09, -0.02)], 0.003, 0.003, { radial: 4, tubular: 6 }), E0, W0, 0.5), 'lowerarm01', { color: VIO });
     const bl = 0.46, bt = 0.58, ox = -0.085;
-    add('bone', limb(t.box(0.034, 0.12, 0.06, 0.008, 1), E0, W0, bt, { off: [ox, 0, 0] }), 'lowerarm01', { color: BONE_D });
+    add('dark', limb(t.box(0.03, 0.1, 0.05, 0.008, 1), E0, W0, bt, { off: [ox, 0, 0] }), 'lowerarm01', { color: 0x6a5a98 });
+    add('bone', limb(cuff(0.03, 0.03, 0.03, 0.01, S(8, 5), 25), E0, W0, bt + 0.07, { off: [ox, 0, 0], r: [0, 0, Math.PI / 2] }), 'lowerarm01', { color: BONE_D });
     add('crystal', limb(t.blade(bl, 0.07, 0.008, { tipLean: 0.18, curve: 0.11 }), E0, W0, bt + 0.08, { off: [ox, 0, 0], r: [0, Math.PI / 2, 0] }), 'lowerarm01', { color: (x, y, z) => new T.Color(VIO_D).lerp(new T.Color(MAG), Math.min(1, Math.max(0, ((x - E0.x) * D.x + (y - E0.y) * D.y + (z - E0.z) * D.z) / (fl + bl) - 0.55) * 1.6)) });
     add('light', limb(t.blade(bl * 0.95, 0.008, 0.01, { curve: 0.11 }), E0, W0, bt + 0.08, { off: [ox, 0.01, 0.005], r: [0, Math.PI / 2, 0] }), 'lowerarm01', { color: VIO });
     // mano: dorso oscuro, nudillos de hueso y garras largas con punta de luz
@@ -158,6 +159,10 @@ export function build(ak, ctx) {
     const H = P('upperleg01'), K = P('lowerleg01'), A = P('foot'), TO = P('toe3-1'), ll = K.distanceTo(A), ul = H.distanceTo(K);
     add('dark', limb(cuff(0.09, 0.066, ul * 0.8, 0.012, S(10, 7), 28), H, K, 0.46), 'upperleg01', { color: DARK });
     PL('upperleg01', [[-0.055, 0.12], [0.055, 0.12], [0.07, 0.0], [0.04, -0.13], [0, -0.16], [-0.04, -0.13], [-0.07, 0.0]], { mat: 'crystal', depth: 0.014, bevel: 0.005, wrap: { rx: 0.108, rz: 0.098 }, color: VIO_D, trim: 'ember', trimInset: 0.2, place: (g) => limb(g, H, K, 0.28, { r: [0, -Math.PI / 2 + 0.2, 0] }) });
+    // anca: placa de perfil que abulta hacia atrás detrás del muslo (con el corvejón forma el zigzag de la pata trasera de un felino)
+    const hp = G.plate([[-0.04, 0.93], [-0.1, 0.86], [-0.15, 0.75], [-0.14, 0.63], [-0.09, 0.53], [-0.03, 0.55], [-0.02, 0.72], [-0.02, 0.88]], 0.06, 0.014, { crease: 45 });
+    X(hp, { r: [0, -Math.PI / 2, 0] }); X(hp, { p: [H.x + 0.02, 0, 0] }); add('dark', hp, 'upperleg01', { color: 0x7a68ac });
+    add('light', seam([V(H.x + 0.02, 0.9, -0.09), V(H.x + 0.02, 0.78, -0.155), V(H.x + 0.02, 0.62, -0.145), V(H.x + 0.02, 0.54, -0.1)], 0.003), 'upperleg01', { color: VIO });
     // escamas de pelaje escalonadas que bajan por el muslo (puntas hacia abajo) con filete de luz
     for (let i = 0; i < (low ? 3 : 4); i++) PL('upperleg01', [[-0.05 + i * 0.004, 0.035], [0.05 - i * 0.004, 0.035], [0.042 - i * 0.004, -0.02], [0, -0.075], [-0.042 + i * 0.004, -0.02]], { mat: 'dark', depth: 0.014, bevel: 0.005, wrap: { rx: 0.1 - i * 0.004, rz: 0.094 - i * 0.003 }, color: i % 2 ? 0x8a78bc : 0x6a5a98, trim: i % 2 ? undefined : 'ember', trimInset: 0.16, trimR: 0.0024, place: (g) => limb(g, H, K, 0.5 + i * 0.1) });
     add('light', limb(G.tube([V(0.0, 0.14, 0.092), V(0.003, 0.0, 0.098), V(-0.003, -0.13, 0.094)], 0.003, 0.003, { radial: 4, tubular: 8 }), H, K, 0.4), 'upperleg01', { color: VIO });
@@ -192,7 +197,7 @@ export function build(ak, ctx) {
     // melena: velos largos con borde de mechones (13 columnas largas y cortas), nace en la nuca y los hombros
     const cols = [], lens = [], R2 = t.rng(5);
     for (let j = 0; j < 13; j++) { const x = -0.17 + j * (0.34 / 12), e = Math.abs(x) / 0.17; cols.push({ bone: j === 0 ? 'clavicle_R' : j === 12 ? 'clavicle_L' : 'spine01', p: V(x, 1.43 - e * 0.07, -0.1 - 0.03 * (1 - e)) }); lens.push((j % 2 ? 0.5 : 0.82) * (0.8 + 0.3 * (1 - e)) + (R2() - 0.5) * 0.14); }
-    ak.cloth({ top: cols, dir: V(0, -1, -0.2), lens, rows: S(10, 6), material: 'spirit', color: 0xd890ff, hem: 0x1a0830, gravity: 7, stiff: 0.016, drag: 0.982, wave: 0.03 });
+    ak.cloth({ top: cols, dir: V(0, -1, -0.2), lens, rows: S(10, 6), material: 'spirit', color: 0xd890ff, hem: 0x1a0830, gravity: 9, stiff: 0.006, drag: 0.985, wave: 0.05 });
     const c2 = [], l2 = []; for (let j = 0; j < 5; j++) { c2.push({ bone: 'spine05', p: V(-0.1 + j * 0.05, 0.93, -0.098) }); l2.push(0.46 + (R2() - 0.5) * 0.2); }
     ak.cloth({ top: c2, dir: V(0, -1, -0.05), lens: l2, rows: S(7, 4), color: 0x9a58f0, hem: 0x4a1c90, gravity: 7, stiff: 0.02, drag: 0.98, wave: 0.015, ember: 0.8 });
     for (const sx of [-1, 1]) { const c3 = [], l3 = []; for (let j = 0; j < 3; j++) { c3.push({ bone: 'spine05', p: V(sx * (0.12 + j * 0.03), 0.91, 0.04 - j * 0.01) }); l3.push(0.34 - j * 0.05 + (R2() - 0.5) * 0.08); } ak.cloth({ top: c3, dir: V(sx * 0.15, -1, 0.0), lens: l3, rows: S(6, 4), color: 0x9a58f0, hem: 0x4a1c90, gravity: 7, stiff: 0.03, drag: 0.98, ember: 0.8 }); }

@@ -14,6 +14,7 @@ const VIO = 0xb98cff, VIO_D = 0x7a4cff, LILA = 0xcfb4ff, OBS = 0x1c1232, OBS_D =
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, cuff, S, low, basisQ } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), HC = V(0, 1.6, 0.06), upd = [], R = t.rng(51), TAU = Math.PI * 2;
   const cnew = (h) => new T.Color(h);
+  ak.material('mirror').envMapIntensity = low ? 1.3 : 1.2;
   { const dm = ak.material('dark'); dm.roughness = 0.6; dm.metalness = 1; dm.envMapIntensity = 0.7; } // sudario mate: sólo un brillo en los bordes
 
 
@@ -121,7 +122,7 @@ export function build(ak, ctx) {
     for (const [u0, u1, dx, w] of parts) {
       const len = u1 - u0, ang = 0.0, base = limb(G.blade(len, w, 0.014, { n: low ? 3 : 6, tipLean: u1 > 1.3 ? 0.12 : 0 }), tip(0), tip(1), 0, { off: [dx, 0, 0] }); void ang;
       base.translate(D.x * u0, D.y * u0, D.z * u0); add('mirror', base, 'wrist', { color: u0 > 1 ? MIRV : OBS });
-      const edge = limb(G.blade(len, 0.012, 0.016), tip(0), tip(1), 0, { off: [dx, 0, 0.001] }); edge.translate(D.x * u0, D.y * u0, D.z * u0); add('light', edge, 'wrist', { color: u0 > 1 ? LILA : VIO });
+      const edge = limb(G.blade(len, 0.012, 0.016), tip(0), tip(1), 0, { off: [dx, 0, 0.001] }); edge.translate(D.x * u0, D.y * u0, D.z * u0); add('light', edge, 'wrist', { color: VIO });
     }
     // planos: marco de luz + membrana translúcida perpendicular a la hoja
     for (const [u, sz, dx] of [[0.54, 0.2, 0.035], [0.985, 0.26, 0.11]]) {
@@ -131,17 +132,20 @@ export function build(ak, ctx) {
       add('spirit', limb(pane, tip(0), tip(1), u, { off: [dx, 0, 0], r: [0, 0.35, 0] }), 'wrist', { color: cnew(VIO_D).multiplyScalar(0.55) });
     }
     // imagen residual de la hoja (espíritu): la hoja que «ya pasó»
-    add('spirit', limb(G.blade(1.3, 0.16, 0.004, { n: 4 }), tip(0), tip(1), 0.1, { off: [-0.05, 0, 0] }), 'wrist', { color: (x, y, z) => cnew(VIO_D).multiplyScalar(Math.max(0.15, 1 - ((x - W0.x) * D.x + (y - W0.y) * D.y + (z - W0.z) * D.z) / 1.4)) });
+    add('spirit', limb(G.blade(1.3, 0.1, 0.004, { n: 4 }), tip(0), tip(1), 0.1, { off: [-0.06, 0, 0] }), 'wrist', { color: (x, y, z) => cnew(VIO_D).multiplyScalar(0.5 * Math.max(0.1, 1 - ((x - W0.x) * D.x + (y - W0.y) * D.y + (z - W0.z) * D.z) / 1.4)) });
   });
 
   // ═══════════════════════════ SUDARIO: manto rígido que tapa las piernas + telas con física + jirones de humo/luz
   {
     // manto interior (rígido, sale de la cintura y llega casi al suelo con el borde mordido)
-    const rob = G.lathe([[0.33, -0.06], [0.33, 0.06], [0.31, 0.25], [0.27, 0.48], [0.235, 0.7], [0.205, 0.88], [0.185, 1.0]], S(24, 12), 0, TAU, 0);
-    G.warp(rob, (x, y, z) => { if (y < 0.3) { const a = Math.atan2(z, x), k = (0.3 - y) / 0.36, j = Math.max(0, Math.sin(a * 7 + 0.5) * Math.sin(a * 3 + 1.2)); return [x, y + k * (j * 0.14 - 0.01), z]; } return [x, y, z]; });
+    const rob = G.lathe([[0.33, -0.14], [0.33, 0.06], [0.31, 0.25], [0.27, 0.48], [0.235, 0.7], [0.205, 0.88], [0.185, 1.0]], S(24, 12), 0, TAU, 0);
+    G.warp(rob, (x, y, z) => { if (y < 0.3) { const a = Math.atan2(z, x), k = (0.3 - y) / 0.36, j = Math.max(0, Math.sin(a * 7 + 0.5) * Math.sin(a * 3 + 1.2)); return [x, y + k * (j * 0.1 - 0.01), z]; } return [x, y, z]; });
+    G.warp(rob, (x, y, z) => { const a = Math.atan2(z, x), f = 1 + 0.045 * Math.sin(a * 11 + y * 2.2) * Math.min(1, (1.0 - y) * 2); return [x * f, y, z * f]; }); // pliegues verticales
     add('dark', X(rob, { p: [0, 0, 0.02], s: [1, 1, 0.92] }), 'spine05', { color: SHROUD });
     { const cm = ak.material('cloth'); cm.map = null; cm.roughnessMap = null; cm.roughness = 0.62; cm.metalness = 1; cm.envMapIntensity = 0.8; cm.color.set(0xffffff); cm.needsUpdate = true; } // tela lisa: el color sale del vértice (sin el tono marrón del lino)
     const flare = (cl, k, cx, cz, pw = 1.4) => { for (let i = 0; i < cl.rows; i++) for (let j = 0; j < cl.cols; j++) { const b = cl.bind[i * cl.cols + j], f = i / (cl.rows - 1); const dx = cl.top[j].p.x - cx, dz = cl.top[j].p.z - cz, l = Math.hypot(dx, dz) || 1; b.x += (dx / l) * k * Math.pow(f, pw); b.z += (dz / l) * k * Math.pow(f, pw); } return cl; }; // abre el vuelo de la tela hacia afuera
+    // filigrana en el sudario: ramas de luz que bajan por la espalda
+    for (let k = -2; k <= 2; k++) { const pts = []; for (let i = 0; i <= 6; i++) { const y = 0.95 - i * 0.14, x = k * (0.03 + i * 0.018) + Math.sin(i * 1.3 + k) * 0.012, rr = (0.2 + i * 0.016) * 1.1; pts.push(V(x, y, 0.02 - Math.sqrt(Math.max(0.001, rr * rr - x * x)) * 0.93)); } add('ember', seam(pts, 0.0024), 'spine05', { color: VIO }); }
     // faldón de telas: anillo de 18 jirones de largo distinto
     const cols = [], lens = [], N = low ? 16 : 22;
     for (let j = 0; j < N; j++) { const a = (j / (N - 1)) * (TAU - 0.5) + Math.PI + 0.25; cols.push({ bone: j % 2 ? 'spine05' : 'spine04', p: V(Math.sin(a) * 0.22, 0.99, 0.03 + Math.cos(a) * 0.19) }); lens.push(0.78 + (R() - 0.35) * 0.42 + (j % 3 === 0 ? 0.12 : 0)); }

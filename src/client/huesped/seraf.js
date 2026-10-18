@@ -8,7 +8,7 @@ import { addEvolution } from '../huesped-evo-piezas.js';
 import { uBeat } from '../shaders.js';
 
 export const BELLY = 1; // vientre de luz dorada entre las bandas del corsé
-const IVORY = 0xeae0cf, IVORY_D = 0xcdbfa8, GOLD_L = 0xffd45a, GOLD_W = 0xfff3c8, AMBER = 0xff9a2a, ASH = 0x4c3e38, ASH_D = 0x1f1917, CREAM = 0xf0e6d2;
+const IVORY = 0xeae0cf, IVORY_D = 0xcdbfa8, GOLD_L = 0xffd45a, GOLD_W = 0xfff3c8, AMBER = 0xff9a2a, ASH = 0x4a3a32, ASH_D = 0x241b17, CREAM = 0xf0e6d2;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, dome, cuff, S, low } = t, P = (n) => ak.P(n), add = ak.add;
@@ -16,8 +16,8 @@ export function build(ak, ctx) {
   const C = (h) => new T.Color(h);
   { // materiales: oro pulido (poco relieve), porcelana menos blanca (para que el bloom no la queme), tela clara
     const mg = ak.material('gold'), mm = ak.material('marble'), mc = ak.material('cloth');
-    mg.color.setRGB(1.5, 1.12, 0.42); mg.roughness = 0.55; mg.normalScale.set(0.22, 0.22); mg.userData.uvk = 0.45;
-    mm.color.setRGB(0.52, 0.47, 0.4); mm.userData.uvk = 0.5; mm.normalScale.set(0.15, 0.15); mc.color.setRGB(0.95, 0.88, 0.76);
+    mg.color.setRGB(1.8, 1.22, 0.42); mg.roughness = 0.5; mg.metalness = 0.82; mg.normalScale.set(0.22, 0.22); mg.userData.uvk = 0.45;
+    mm.color.setRGB(0.52, 0.47, 0.4); mm.userData.uvk = 0.5; mm.normalScale.set(0.15, 0.15); mc.color.setRGB(0.82, 0.74, 0.6);
   }
 
   // ───────────────────────── utilidades de diseño
@@ -33,11 +33,11 @@ export function build(ak, ctx) {
   };
 
   /** Pluma: geometría por tramos (un tramo por hueso de la cadena) con vena central; base en el origen, eje +Y. Devuelve [geometrías]. */
-  function featherGeo({ len, w, segs = 1, rps = 3, curve = 0.0, lean = 0, trunc = 1, jag = 0, slant = 0, solid = false, rnd = R }) {
+  function featherGeo({ len, w, segs = 1, rps = 3, curve = 0.0, lean = 0, trunc = 1, jag = 0, slant = 0, taper = 0, solid = false, rnd = R }) {
     const Ld = len * trunc, n = segs * rps, rows = [];
     const prof = (u) => { const a = Math.min(1, 0.4 + u * 3.2), e = u > 0.7 ? Math.sqrt(Math.max(0, 1 - Math.pow((u - 0.7) / 0.3, 2))) : 1; return a * e * (1 - 0.16 * u); };
     for (let i = 0; i <= n; i++) {
-      const tt = i / n, u = tt * trunc, hw = (w / 2) * (trunc < 1 && i === n ? prof(u - 0.001) : prof(u)), y = tt * Ld, z = curve * tt * tt * Ld, tl = lean * tt * tt * w, jl = jag && tt > 0.5 ? 1 - jag * rnd() : 1, jr = jag && tt > 0.5 ? 1 - jag * rnd() : 1;
+      const tt = i / n, u = tt * trunc, hw = (w / 2) * (trunc < 1 && i === n ? prof(u - 0.001) : prof(u)) * (1 - taper * tt * tt), y = tt * Ld, z = curve * tt * tt * Ld, tl = lean * tt * tt * w, jl = jag && tt > 0.5 ? 1 - jag * rnd() : 1, jr = jag && tt > 0.5 ? 1 - jag * rnd() : 1;
       const cut = Math.pow(Math.max(0, (tt - 0.55) / 0.45), 1.4) * Ld * Math.abs(slant); rows.push({ y, yl: y - (slant < 0 ? cut : 0), yr: y - (slant > 0 ? cut : 0), ym: y - cut * 0.5, z, l: -hw * jl + tl, r: hw * jr + tl, m: tl, th: 0.006 * (1 - tt * 0.7), droop: hw * 0.16 });
     }
     const out = [];
@@ -49,16 +49,17 @@ export function build(ak, ctx) {
       if (solid) { const g2 = g.clone(); const ix = g2.index.array; for (let i = 0; i < ix.length; i += 3) { const a = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = a; } g.computeVertexNormals(); g2.computeVertexNormals(); g = G.merge([g, g2]); } else g.computeVertexNormals();
       out.push(g);
     }
-    return { geos: out, Ld, local: (tt) => V(lean * tt * tt * w, tt * Ld, curve * tt * tt * Ld) };
+    const lr = rows[n]; return { geos: out, Ld, tip: [V(lr.l, lr.yl, lr.z - lr.droop), V(lr.m, lr.ym, lr.z + lr.th), V(lr.r, lr.yr, lr.z - lr.droop)], local: (tt) => V(lean * tt * tt * w, tt * Ld, curve * tt * tt * Ld) };
   }
   const grad = (base, dir, Ld, w, c0, c1, k = 1, edge = 0.4) => { const c = new T.Color(); return (x, y, z) => { const dx = x - base.x, dy = y - base.y, dz = z - base.z, tt = Math.min(1, Math.max(0, (dx * dir.x + dy * dir.y + dz * dir.z) / Ld)), l = Math.min(1, Math.hypot(dx - dir.x * tt * Ld, dy - dir.y * tt * Ld, dz - dir.z * tt * Ld) / (w * 0.5)); return c.copy(c0).lerp(c1, Math.pow(tt, 0.8)).multiplyScalar(k * (1 - edge * l * l)); }; };
   /** Coloca una pluma. o: {mat, bone, base, dir, len, w, name (si es de cadena con física), color, rach (vena de luz), ...opciones de featherGeo} */
   function feather(o) {
-    const segs = o.name ? (low ? 2 : 3) : 1, rps = o.name ? (low ? 2 : 3) : (low ? 3 : 4), f = featherGeo({ len: o.len, w: o.w, segs, rps, curve: o.curve ?? 0.06, lean: o.lean ?? 0, trunc: o.trunc ?? 1, jag: o.jag ?? 0, slant: o.slant ?? 0, solid: !!o.solid });
+    const segs = o.name ? (low ? 2 : 3) : 1, rps = o.name ? (low ? 2 : 3) : (low ? 3 : 4), f = featherGeo({ len: o.len, w: o.w, segs, rps, curve: o.curve ?? 0.06, lean: o.lean ?? 0, trunc: o.trunc ?? 1, jag: o.jag ?? 0, slant: o.slant ?? 0, taper: o.taper ?? 0, solid: !!o.solid });
     const qq = t.basisQ(o.dir, V(0, 0, 1)), at = (g) => X(g, { q: qq, p: [o.base.x, o.base.y, o.base.z] }); let bones = null, pts = null;
     if (o.name) { pts = []; for (let j = 0; j <= segs; j++) pts.push(f.local(j / segs).applyQuaternion(qq).add(o.base)); const ch = ak.chain(o.name, o.parent, pts, { stiff: o.stiff ?? 0.07, damp: 0.93, gravity: o.grav ?? 3, sway: o.sway ?? 1.3 }); bones = ch.bones.map((b) => b.name); }
     const colf = o.color || (() => 0xffffff);
     f.geos.forEach((g, j) => { at(g); add(o.mat, g, bones ? bones[j] : o.bone, { color: colf }); if (o.rach) { const tb = G.tube([pts ? pts[j] : f.local(j / segs).applyQuaternion(qq).add(o.base), pts ? pts[j + 1] : f.local((j + 1) / segs).applyQuaternion(qq).add(o.base)], o.rach.r ?? 0.0042, (o.rach.r ?? 0.0042) * 0.7, { radial: 3, tubular: 1, closeStart: false }); add('light', tb, bones ? bones[j] : o.bone, { color: o.rach.c }); } });
+    if (o.cutGlow) { const tp = f.tip.map((q) => q.clone().applyQuaternion(qq).add(o.base)); add('ember', G.tube(tp, 0.0032, 0.0032, { radial: 3, tubular: 4, closeStart: false }), bones ? bones[bones.length - 1] : o.bone, { color: AMBER }); }
     return f;
   }
 
@@ -192,16 +193,16 @@ export function build(ak, ctx) {
     ak.cloth({ top: cols, dir: V(0, -1, 0), lens, rows: S(9, 6), color: CREAM, hem: 0xe8b860, gravity: 6, stiff: 0.02, drag: 0.985, wave: 0.02, ember: 0.5 });
     const c2 = [], l2 = []; for (let j = 0; j < 5; j++) { c2.push({ bone: 'spine05', p: V(-0.09 + j * 0.045, 0.925, 0.195) }); l2.push(0.74 - Math.abs(j - 2) * 0.05); }
     ak.cloth({ top: c2, dir: V(0, -1, 0.05), lens: l2, rows: S(8, 5), color: 0xf8f0e0, hem: 0xffcf66, gravity: 6, stiff: 0.03, drag: 0.98, ember: 0.5 });
-    const c3 = [], l3 = []; for (let j = 0; j < 7; j++) { const x = -0.18 + j * 0.06; c3.push({ bone: j === 0 ? 'clavicle_R' : j === 6 ? 'clavicle_L' : 'spine01', p: V(x, 1.4 - Math.abs(x) * 0.2, -0.13) }); l3.push(1.18 - Math.abs(j - 3) * 0.06 + (R() - 0.5) * 0.1); }
-    ak.cloth({ top: c3, dir: V(0, -1, -0.08), lens: l3, rows: S(10, 7), color: 0xfff6e2, hem: 0xe8b860, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 0.5 });
+    const c3 = [], l3 = []; for (let j = 0; j < 7; j++) { const x = -0.15 + j * 0.05; c3.push({ bone: j === 0 ? 'clavicle_R' : j === 6 ? 'clavicle_L' : 'spine01', p: V(x, 1.4 - Math.abs(x) * 0.2, -0.13) }); l3.push(1.3 - Math.abs(j - 3) * 0.2 + (R() - 0.5) * 0.06); }
+    ak.cloth({ top: c3, dir: V(0, -1, -0.08), lens: l3, rows: S(10, 7), color: 0xe9d4a0, hem: 0xe8a840, gravity: 6, stiff: 0.012, drag: 0.982, wave: 0.03, ember: 0.5 });
     ak.collider('spine02', V(0, 1.0, 0.045), V(0, 1.36, 0.045), 0.17); ak.collider('spine05', V(0, 0.86, 0.045), V(0, 0.98, 0.045), 0.2);
     ak.both(() => { ak.collider('upperleg01', P('upperleg01'), P('lowerleg01'), 0.125); ak.collider('lowerleg01', P('lowerleg01'), P('foot'), 0.095);
       const E0 = P('lowerarm01'), W0 = P('wrist'), top = [0.22, 0.5, 0.78].map((u, j) => ({ bone: 'lowerarm01', p: E0.clone().lerp(W0, u).add(V(0.055, -0.01, -0.05)) }));
-      ak.cloth({ top, dir: V(0.25, -1, -0.15), lens: [0.5, 0.62, 0.5], rows: S(8, 5), color: 0xfff6e2, hem: 0xffcf66, gravity: 4, stiff: 0.03, drag: 0.982, ember: 0.5 }); });
+      if (!low) ak.cloth({ top, dir: V(0.25, -1, -0.15), lens: [0.36, 0.46, 0.36], rows: S(8, 5), color: 0xfff6e2, hem: 0xffcf66, gravity: 4, stiff: 0.03, drag: 0.982, ember: 0.5 }); });
     // cintas de la cintura: cadenas de muelles con eslabones de tela
     for (const [sx, nm] of [[0.2, 'cintaL'], [-0.2, 'cintaR']]) {
       const pts = Array.from({ length: 8 }, (_, i) => V(sx * (1 + i * 0.03), 0.93 - i * 0.12, -0.05 - i * 0.03)), ch = ak.chain(nm, 'spine05', pts, { stiff: 0.03, damp: 0.95, gravity: 5, sway: 2 });
-      for (let i = 0; i < 7; i++) add('cloth', G.tube([pts[i], pts[i + 1]], 0.034 - i * 0.002, 0.034 - i * 0.002, { radial: 4, tubular: 1, sx: 1, sz: 0.06, closeStart: false }), ch.bones[i].name, { color: i % 2 ? 0xe8b860 : CREAM });
+      for (let i = 0; i < 7; i++) add('cloth', G.tube([pts[i], pts[i + 1]], 0.034 - i * 0.002, 0.034 - i * 0.002, { radial: 4, tubular: 1, sx: 1, sz: 0.06, closeStart: false }), ch.bones[i].name, { color: new T.Color(CREAM).lerp(new T.Color(0xe8a840), i / 6) });
     }
   }
 
@@ -227,21 +228,20 @@ export function build(ak, ctx) {
       if (burnt && rr() < 0.26) { // pluma perdida: sólo queda el cañón pelado y chamuscado
         const L = 0.18 + rr() * 0.22; add('gold', G.tube([p, p.clone().addScaledVector(d, L * 0.5), p.clone().addScaledVector(d, L)], 0.006, 0.0025, { radial: 3, tubular: 3 }), wb.name); add('ember', G.sphere(0.006, 4, 3).translate(p.x + d.x * L, p.y + d.y * L, p.z + d.z * L), wb.name, { color: AMBER }); continue; }
       const len = burnt ? lenA * (0.5 + rr() * 0.4) : lenA, w = (0.125 + 0.02 * u) * (burnt ? 0.9 : 1), trunc = burnt ? 0.55 + rr() * 0.4 : 1, Ld = len * trunc, nmF = `pl${nm}_${i}_`;
-      const f = feather({ mat: burnt ? 'dark' : 'spirit', parent: wb.name, name: nmF, base: p, dir: d, len, w, trunc, jag: burnt ? 0.5 : 0, slant: burnt ? (rr() - 0.5) * 0.5 : 0, solid: burnt, curve: 0.07, lean: s * 0.05 + (rr() - 0.5) * 0.06, stiff: burnt ? 0.035 : 0.07, grav: burnt ? 5 : 2.5, sway: burnt ? 0.8 : 1.4,
+      const f = feather({ mat: burnt ? 'cloth' : 'spirit', parent: wb.name, name: nmF, base: p, dir: d, len, w, trunc, jag: burnt ? 0.6 : 0, slant: burnt ? (rr() < 0.5 ? -1 : 1) * (0.25 + rr() * 0.3) : 0, taper: burnt ? 0.5 : 0, cutGlow: burnt, solid: burnt, curve: 0.07, lean: s * 0.05 + (rr() - 0.5) * 0.06, stiff: burnt ? 0.035 : 0.07, grav: burnt ? 5 : 2.5, sway: burnt ? 0.8 : 1.4,
         color: burnt ? grad(p, d, Ld, w, C(ASH_D), C(ASH), 1, 0.2) : grad(p, d, Ld, w, cG0, cG1, 0.78, 0.45), rach: burnt ? null : { c: GOLD_W, r: 0.0042 } });
-      if (burnt) { const e = f.local(1).applyQuaternion(t.basisQ(d, V(0, 0, 1))).add(p); if (i % 2 === 0 || !low) add('ember', G.cone(0.012, 0.03, 4).translate(e.x, e.y, e.z), `${nmF}${low ? 2 : 3}`, { color: AMBER }); }
     }
     // fila B: plumas de relleno, de luz más tenue, estáticas
     const nB = burnt ? 5 : low ? 9 : 14; for (let i = 0; i < nB; i++) {
       const u = (0.14 + 0.82 * ((i + 0.5) / nB)) * uMax, p = arm(u).add(V(0, -0.012, -0.018)), d = dirAt(u / uMax * (burnt ? 0.8 : 1), -0.08), len = (0.3 + 0.4 * Math.pow(u / uMax, 0.7)) * (burnt ? 0.6 + rr() * 0.3 : 1) * apK, w = 0.12;
-      feather({ mat: burnt ? 'dark' : 'spirit', bone: wb.name, base: p, dir: d, len, w, curve: 0.05, solid: burnt, trunc: burnt ? 0.7 + rr() * 0.3 : 1, jag: burnt ? 0.5 : 0, color: burnt ? grad(p, d, len, w, C(ASH_D), C(ASH), 0.9, 0.2) : grad(p, d, len, w, C(0xc47a10), C(0xffe08a), 0.62, 0.5) });
+      feather({ mat: burnt ? 'cloth' : 'spirit', bone: wb.name, base: p, dir: d, len, w, curve: 0.05, solid: burnt, trunc: burnt ? 0.7 + rr() * 0.3 : 1, jag: burnt ? 0.5 : 0, color: burnt ? grad(p, d, len, w, C(ASH_D), C(ASH), 0.9, 0.2) : grad(p, d, len, w, C(0xc47a10), C(0xffe08a), 0.62, 0.5) });
     }
     // fila C: cubiertas de porcelana y fila D de oro (sólidas), cerca del hueso
     const nC = burnt ? 6 : low ? 8 : 12; for (let i = 0; i < nC; i++) {
       const u = (0.08 + 0.88 * (i / (nC - 1))) * uMax, p = arm(u).add(V(0, -0.02, -0.03)), d = dirAt(u / uMax * (burnt ? 0.8 : 1), 0.06), len = 0.2 - 0.05 * (u / uMax) + 0.03 * Math.sin(u * 5), w = 0.085;
       const col = burnt ? (i % 2 ? ASH : ASH_D) : IVORY;
-      feather({ mat: burnt ? 'dark' : 'marble', bone: wb.name, base: p, dir: d, len: len * (burnt ? 0.8 : 1), w, curve: 0.08, solid: true, trunc: burnt ? 0.75 + rr() * 0.25 : 1, jag: burnt ? 0.4 : 0, color: col });
-      if (!burnt && (i % 2 === 0 || !low)) feather({ mat: 'gold', bone: wb.name, base: arm(u).add(V(0, 0.0, -0.036)), dir: dirAt(u, 0.0), len: len * 0.55, w: 0.062, curve: 0.1, solid: true, color: 0xffffff });
+      feather({ mat: burnt ? 'cloth' : 'marble', bone: wb.name, base: p, dir: d, len: len * (burnt ? 0.8 : 1), w, curve: 0.08, solid: true, trunc: burnt ? 0.75 + rr() * 0.25 : 1, jag: burnt ? 0.4 : 0, color: col });
+      if (!burnt && (i % 2 === 0 || !low)) feather({ mat: 'gold', bone: wb.name, base: arm(u).add(V(0, 0.0, -0.036)), dir: dirAt(u, 0.0), len: len * 0.55, w: 0.062, curve: 0.1, solid: true, color: [1.9, 1.35, 0.55] });
     }
     if (burnt) for (let k = 0; k < 7; k++) { const p = arm(0.15 + rr() * 0.6).add(V(0, -0.05 - rr() * 0.12, -0.05)); add('ember', G.sphere(0.007 + rr() * 0.005, 4, 3).translate(p.x, p.y, p.z), wb.name, { color: k % 2 ? AMBER : 0xffd060 }); }
     wingBones.push(wb); return wb;
