@@ -4,6 +4,7 @@ import { TERRITORIOS, BENDICIONES, cleanBend, hermana } from '../sim/bendiciones
 import { organError } from '../sim/organos.js';
 import { xpPartida, progreso, rangoDeXp, RANGO_MAX } from '../sim/maestria.js';
 import { MODOS_ARBOL, cleanNodos, nodosDe, gastado, errorNodo, costeReinicio, puntosCombo, puntosDisparo } from '../sim/progresion.js';
+import { migrarHuespedes } from '../sim/tienda.js';
 import { ITEMS, SLOTS, SIGNATURES, LIMITE_INVENTARIO, MATERIAL_IDS, MAT_STOCK_MAX, PLANOS, PLANOS_INICIALES, RECETAS, qForja, cleanEquip, equipError, desguaceValor, faseDe, poder } from '../sim/items.js';
 const KEY = 'cristal.perfil.v1';
 let cache = null;
@@ -15,7 +16,7 @@ function limpiarTerr(t) {
 }
 /** guia = { off: saltada del todo, vistos: [ids de pasos ya mostrados] }. Se sanea al cargar. */
 function limpiarGuia(g) { const o = g && typeof g === 'object' ? g : {}; return { off: o.off === true, vistos: Array.isArray(o.vistos) ? o.vistos.filter((x) => typeof x === 'string').slice(0, 12) : [] }; }
-const fresh = () => ({ ver: 2, cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1 });
+const fresh = () => ({ ver: 2, cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1, huespedes: [], tienda: { clave: '', comp: [], rot: 0 }, consum: { botiquin: 0 }, menu: { iv: 0, tv: '' } });
 /* ───── inventario (docs/INVENTARIO.md): v2 del perfil. Los perfiles anteriores (sin `ver`) se abren igual: sólo les falta el inventario, que arranca vacío. ───── */
 const nn = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 /** inv = [{ u (id propio), id (plantilla), q (tirada 0..1), k (bajas), lk (bloqueado), fv (favorito), t }]. Se sanea al cargar: ids desconocidos, uid repetidos y exceso se descartan. */
@@ -58,10 +59,14 @@ function limpiarArb(a) { // progresión permanente por Huésped: { combo: { pc, 
   }
   return out;
 }
+/** Huésped elegido en el navegador (para no quitarle a nadie el que ya estaba usando antes de la Tienda). */
+function huespedElegido() { try { return localStorage.getItem('cristal.huesped.v1') || (JSON.parse(localStorage.getItem('cristal.equipo.v1') || 'null') || {}).char || null; } catch { return null; } }
+/** tienda = { clave (oferta vigente), comp (renglones ya comprados de esa oferta), rot (partidas terminadas: cambia el stock) }. */
+function limpiarTienda(t) { const o = t && typeof t === 'object' ? t : {}; return { clave: typeof o.clave === 'string' ? o.clave.slice(0, 24) : '', comp: Array.isArray(o.comp) ? o.comp.filter((x) => /^[mpo][0-9]$/.test(x)).slice(0, 12) : [], rot: nn(o.rot, 1e6) }; }
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
   const inv = limpiarInv(o.inventario || o.inv);
-  cache = { ...fresh(), ...o, ver: 2, inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb) };
+  cache = { ...fresh(), ...o, ver: 2, inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb), huespedes: migrarHuespedes(o, huespedElegido()), tienda: limpiarTienda(o.tienda), consum: { botiquin: nn(o.consum && o.consum.botiquin, 5) }, menu: { iv: nn(o.menu && o.menu.iv, 1e9), tv: typeof (o.menu && o.menu.tv) === 'string' ? o.menu.tv.slice(0, 24) : '' } };
   return cache;
 }
 export const perfil = () => cache || load();
@@ -73,6 +78,7 @@ export function cerrarPartida(char, jugador, info = {}) {
   if (!jugador) return null; const p = perfil(); const mae = ganarMaestria(char, jugador, info), arb = ganarArbol(char, jugador, info); if (mae && arb) mae.arbol = arb;
   try { cerrarBotin(char, jugador, info); } catch (err) { console.warn('Inventario: no se pudo cerrar el botín', err.message); }
   p.cores += Math.max(0, Math.floor(jugador.co || 0));
+  p.tienda.rot = Math.min(1e6, p.tienda.rot + 1);   // cada partida terminada cambia el stock del Cambista (src/sim/tienda.js)
   p.evo[char] = Math.max(p.evo[char] || 0, jugador.evo || 0);
   if (Array.isArray(jugador.pth) && jugador.pth.length >= (p.path[char] || []).length) p.path[char] = jugador.pth.slice();
   // evolución orgánica: lo que sobra de esencias vuelve al banco; los órganos quedan crecidos para la próxima partida

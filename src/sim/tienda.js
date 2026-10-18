@@ -107,9 +107,9 @@ export function oferta(dia, rot = 0) {
     materiales.push({ k: 'm' + i, mat, cal, n: cant, base, desc, precio: conDescuento(base, desc) });
   }
   for (let i = 0; i < 2; i++) {
-    let id, tries = 0; const rar = [1, 2, 3][elegir(r, [60, 32, 8])];
+    let id; const rar = [1, 2, 3][elegir(r, [60, 32, 8])];
     const pool = PLANOS_VENDIBLES.filter((x) => ITEMS[x].r === rar && !planos.some((p) => p.id === x));
-    id = pool[Math.floor(r() * pool.length)]; if (!id) { id = PLANOS_VENDIBLES.find((x) => !planos.some((p) => p.id === x)); } tries++;
+    id = pool[Math.floor(r() * pool.length)]; if (!id) { id = PLANOS_VENDIBLES.find((x) => !planos.some((p) => p.id === x)); }
     const desc = DESCUENTOS[Math.floor(r() * DESCUENTOS.length)], base = precioPlano(id);
     planos.push({ k: 'p' + i, id, desc, base, precio: conDescuento(base, desc) });
   }
