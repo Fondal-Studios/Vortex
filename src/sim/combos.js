@@ -10,6 +10,7 @@ import { PLAYER, COMBO_SETS, COMBO_WEAPON, COMBO_RULES, COMBO_CHARGE, COMBO_TUNE
 import { blocked } from './physics.js';
 import { hasC } from './organos.js';
 import { cdef, isHost, meleeSet, hasPath, evoMeleeMul, cdMul, applyMeleeSpecial, meleeAfter } from './huespedes.js';
+import { itemComboSet, itemComboShape, itemStrike, execThreshold } from './items-fx.js';   // objetos equipados (docs/INVENTARIO.md)
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
@@ -32,10 +33,10 @@ export function setMode(p, mode) {
 }
 
 /* ───────── set de golpes ───────── */
-const shapeOf = (p) => COMBO_WEAPON[meleeSet(p).type] || COMBO_WEAPON.innata;
+const shapeOf = (p) => { const t = meleeSet(p).type; return COMBO_WEAPON[t] || itemComboShape(t) || COMBO_WEAPON.innata; };
 /** Golpes disponibles ahora: desbloqueados por nivel/camino y que caben en el largo de cadena que permite el arma fusionada. */
 export function comboUnlocked(p) {
-  const set = COMBO_SETS[p.char] || [], W = shapeOf(p);
+  const set = itemComboSet(p) || COMBO_SETS[p.char] || [], W = shapeOf(p);
   return set.filter((m) => (p.evo || 0) >= m.evo && (!m.path || hasPath(p, m.path)) && m.seq.length <= W.chain);
 }
 const sameTail = (buf, seq) => seq.length <= buf.length && seq.every((x, i) => buf[buf.length - seq.length + i] === x);
@@ -114,8 +115,8 @@ function resolve(g, p, mv0, power, W, last) {
   const heavy = mv.w === 'h', base = heavy ? M.heavy : M.light;
   const side = mv.seq[mv.seq.length - 1] === 'a2' ? W.a2 : W.a1;
   const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis', strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
-  const frenzy = g.time < p.frenzyUntil;
-  let dmg = base.dmg * mv.dmg * W.dmg * (mv.charge ? power : 1) * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1) * (frenzy ? 1.2 : 1) * (last && W.fin ? W.fin : 1) * (COMBO_TUNE[p.char] || 1);
+  const frenzy = g.time < p.frenzyUntil, IS = itemStrike(p), exT = execThreshold(p);
+  let dmg = base.dmg * mv.dmg * W.dmg * (mv.charge ? power : 1) * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1) * (frenzy ? 1.2 : 1) * (last && W.fin ? W.fin : 1) * (COMBO_TUNE[p.char] || 1) * IS.mul * (mv.ranged ? p.irng || 1 : 1);
   const range = base.range * mv.rng * (mv.ranged ? 1 : side.rng) * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1);
   const arcv = base.arc * mv.arc * (mv.ranged ? 1 : side.arc), full = mv.arc >= 2 || meta;
   const cosT = full ? -1 : Math.max(-1, 1 - arcv * (heavy ? 1.1 : 1));
@@ -149,7 +150,7 @@ function resolve(g, p, mv0, power, W, last) {
       const maxT = heavy || full || mv.line || base.pierce || mv.fx ? 8 : 4;
       for (const [m] of targets.slice(0, maxT)) {
         if (m.dead) continue;
-        if (!m.def.boss && m.hp <= m.maxhp * 0.18) {   // ejecución
+        if (!m.def.boss && m.hp <= m.maxhp * exT) {   // ejecución
           g.emit({ t: 'melee', pid: p.id, kind: 'exec', p: a3(m.pos), d: a3(dir0), hit: 1 });
           p.exec = true; g.damageMonster(m, m.hp + 1, p, m.pos); p.exec = false; if (!p.dead) heal(p, 10); hits++; continue;
         }
@@ -159,16 +160,17 @@ function resolve(g, p, mv0, power, W, last) {
         for (let i = 0; i < mv.hits && !m.dead; i++) g.damageMonster(m, dm, p, m.pos);
         hits++;
         if (hasPath(p, 'depredador') && !p.dead) heal(p, dm * mv.hits * 0.06);
-        if (!m.dead && (p.evo || 0) >= 1 && M.special) applyMeleeSpecial(g, p, m, M.special, heavy, dm, strong);
+        if (!m.dead && (M.item || (p.evo || 0) >= 1) && M.special) applyMeleeSpecial(g, p, m, M.special, heavy, dm, strong);
         if (!m.dead && !m.def.boss) { const kn = (base.knock || 4) * (heavy ? 1 : 0.8) * (mv.fx === 'pull' ? -1 : 1); m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), kn); }
         if (mv.fx && mv.fx.includes('marca') && !m.dead) { m.markUntil = g.time + 6; m.markMul = 1.3; }
       }
-      if ((p.evo || 0) >= 1 && M.special) meleeAfter(g, p, M.special, heavy || last, dir0, o, dmg, strong);
+      if ((M.item || (p.evo || 0) >= 1) && M.special) meleeAfter(g, p, M.special, heavy || last, dir0, o, dmg, strong);
+      if (IS.onda) meleeAfter(g, p, 'onda', true, dir0, o, dmg, strong);
       if (mv.dash) p.ext = madd(p.ext, h, mv.dash * 2.2);
       if (mv.jump) { p.vel = madd(p.vel, p.up, mv.jump); p.grounded = false; }
       if (W.sismo && !mv.fx) ring(g, p, 4.5, dmg * 0.3, 10);
       applyFx(g, p, mv, dmg, o, dir0);
-      g.emit({ t: 'melee', pid: p.id, kind: mv.kind, p: a3(madd(o, dir0, 1.5)), d: a3(dir0), hit: hits, cmb: p.cmb, mw: M.id, sp: (p.evo || 0) >= 1 ? M.special || undefined : undefined });
+      g.emit({ t: 'melee', pid: p.id, kind: mv.kind, p: a3(madd(o, dir0, 1.5)), d: a3(dir0), hit: hits, cmb: p.cmb, mw: M.id, sp: (M.item || (p.evo || 0) >= 1) ? M.special || undefined : undefined, ...(M.item ? { iw: M.iw, hd: (p.hand = (p.hand || 0) ^ 1) } : {}) });
     }
   } finally { g.dmgSrc = s0; p.inMelee = false; g.pierceNow = false; }
   return hits;

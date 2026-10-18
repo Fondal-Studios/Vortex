@@ -10,6 +10,7 @@
 //   ofrenda   → el respiro entre oleadas: sin amenazas, ayuda al máximo (las bocas están llenas, la nube sana).
 // DOS CARAS por estructura: ayuda (boca / vena / pulmón sano) y amenaza (golpe / pulso / barrido / giro / pulmón tóxico), con aviso
 // de al menos ARENA.telMin segundos y contrajuego claro (moverse, cubrirse detrás de una cobertura o romper el órgano).
+import { dropsOfrenda } from './drops.js';   // ofrenda llena → objeto (docs/INVENTARIO.md)
 import { v3, add, sub, mul, madd, dot, len, dist, norm, project, rotAround, makeRng } from './math.js';
 import { ARENA, ARENAS_VIVAS, PLAYER } from './data.js';
 import { blocked } from './physics.js';
@@ -164,7 +165,7 @@ export function arKill(g, m) {
     if (dist(m.pos, o.pos) > o.r * 2.2) return;
     S.fed += m.elite ? 2 : 1;
     const need = fedMax(g, o);
-    if (S.fed >= need) { S.fed -= need; S.zone = Math.max(S.zone, ARENA.zonaDur); A.stats.ofrendas++; g.emit({ t: 'arofrenda', m: A.L.id, i, p: a3(o.pos) }); }
+    if (S.fed >= need) { S.fed -= need; S.zone = Math.max(S.zone, ARENA.zonaDur); A.stats.ofrendas++; g.emit({ t: 'arofrenda', m: A.L.id, i, p: a3(o.pos) }); dropsOfrenda(g, o.pos); }
   });
 }
 /** Multiplicador de velocidad del jugador por las estructuras (carriles de luz, bruma lenta). 1 = nada. */

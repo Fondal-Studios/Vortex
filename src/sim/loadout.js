@@ -16,8 +16,8 @@ export const upgOf = (p, wid) => (p.upg[wid] ||= emptyUpg());
 /** Estadísticas efectivas de un arma para un jugador. */
 export function wstat(p, wid) {
   const u = p.upg[wid] || emptyUpg();
-  const O = organMuls(p, wid);
-  return { dmg: (1 + 0.22 * u.dmg) * O.dmg * (u.forma === 'alba' ? 1.25 : 1), rate: (1 + 0.14 * u.rate) * O.rate * (u.forma === 'ocaso' ? 1.4 : 1), mag: (1 + 0.3 * u.mag) * (p.path && p.path.includes('artilleria') ? 1.3 : 1), mod: u.mod, mut: u.mut, forma: u.forma };
+  const O = organMuls(p, wid), IG = p.ig && p.ig.wid === wid ? p.ig : null;   // IG = arma de disparo de un objeto (docs/INVENTARIO.md)
+  return { dmg: (1 + 0.22 * u.dmg) * O.dmg * (u.forma === 'alba' ? 1.25 : 1) * (IG ? IG.dmg : 1), rate: (1 + 0.14 * u.rate) * O.rate * (u.forma === 'ocaso' ? 1.4 : 1) * (IG ? IG.rate : 1), mag: (1 + 0.3 * u.mag) * (p.path && p.path.includes('artilleria') ? 1.3 : 1) * (IG ? IG.mag : 1), mod: u.mod, mut: u.mut, forma: u.forma };
 }
 export const ammoMax = (p, wid) => { const w = WEAPONS[wid]; return w.max === Infinity ? Infinity : Math.ceil(w.max * wstat(p, wid).mag); };
 export const modsFor = (wid) => Object.keys(WEAPON_MODS).filter((m) => !((m === 'precision' || m === 'toxica') && WEAPONS[wid].kind !== 'hitscan') && !(m === 'precision' && WEAPONS[wid].pellets > 3) && !(m === 'perfora' && (WEAPONS[wid].pierce)) && !(m === 'cadena' && WEAPONS[wid].chain) && !(m === 'explosiva' && WEAPONS[wid].splash));

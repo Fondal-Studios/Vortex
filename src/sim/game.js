@@ -12,6 +12,8 @@ import { orgSnap, loadOrgans, shapeOrgans, hasC } from './organos.js';
 import { applyBend } from './bendiciones.js';
 import { applyMaestria } from './maestria.js';
 import { setMode } from './combos.js';
+import { initDrops, initPity, updateLoot, flushLoot, lootSnap, dropsKill, dropsJefe, dropsRespiro } from './drops.js';   // dropeo de objetos (docs/INVENTARIO.md): rng propio g.drRng
+import { applyEquip, itemsSnap, shapeItemGun, ensureGunSlot } from './items-fx.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
 import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
 import { Director } from './director.js';
@@ -53,6 +55,7 @@ export class Game {
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
     this.cult = this.map.cultivo ? initCult(this) : null; // acertijo del mapa 4 (src/sim/cultivo.js)
     initArenas(this);                                     // arenas vivas: cada mapa es un organismo (src/sim/arenas-vivas.js; rng propio g.arRng)
+    initDrops(this, seed);                                // botín: g.drRng derivado de la semilla (nunca usa g.rng)
     initEventos(this);                                    // eventos de oleada (src/sim/eventos.js): la gravedad invertida vive dentro de uno de ellos
   }
 
@@ -75,6 +78,7 @@ export class Game {
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style] && opts.style !== 'combo') p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     if (opts.mode === 'combo') p.mode = 'combo';
     initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyMaestria(p, opts.maestria); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
+    initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
     this.players.push(p);
     return p;
   }
@@ -86,7 +90,7 @@ export class Game {
     if (inp.mode === 'combo' || inp.mode === 'shooter') setMode(p, inp.mode);   // modo de juego (src/sim/combos.js)
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style] && inp.style !== 'combo' && p.mode !== 'combo') p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult; i.soft = !!inp.soft;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1 || inp.npc.offer === 2 || inp.npc.offer === 3)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style] && inp.style !== 'combo' && p.mode !== 'combo') p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult; i.soft = !!inp.soft;
     i.a1 = !!inp.a1; i.a2 = !!inp.a2; i.hab = !!inp.hab;   // Combo: ataque 1, ataque 2, habilidad principal
     if (p.mode === 'combo') { i.fire = false; i.melee = false; i.mov = false; i.esp = false; i.s3 = false; i.reload = false; }   // en Combo los botones de Shooter no hacen nada
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
@@ -95,7 +99,7 @@ export class Game {
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria); } } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); }
+  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -134,11 +138,12 @@ export class Game {
     if (this.pings.length) this.pings = this.pings.filter((q) => q.until > this.time);
     for (const m of this.monsters) this.updateMonster(m, dt);
     this.updateProjectiles(dt);
-    this.updatePickups(dt);
+    this.updatePickups(dt); updateLoot(this, dt);
     this.separate();
     if (this.monsters.some((m) => m.dead)) this.monsters = this.monsters.filter((m) => !m.dead);
     this.stats.maxAlive = Math.max(this.stats.maxAlive, this.monsters.length);
     if (this.players.length && this.players.every((p) => p.dead)) { this.state = 'lost'; this.emit({ t: 'lost' }); }
+    if (this.state !== 'playing') flushLoot(this);   // lo que quedó en el piso se entrega a su dueño
   }
 
   /* ─────────── oleadas ─────────── */
@@ -188,7 +193,7 @@ export class Game {
       misionFin(this); finOleada(this);
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
       for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
-      this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this);
+      this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this); dropsRespiro(this);
       for (const p of this.players) addCores(this, p, CORES.wave + this.wave * 2);
       for (const p of this.alivePlayers()) {
         p.hp = Math.min(PLAYER.hp, p.hp + 40 + (p.bn ? p.bn.heal : 0)); // respiro entre oleadas (+ bendición Raíz)
@@ -456,7 +461,7 @@ export class Game {
     const origin = this.eyePos(p);
     const base = this.aimDir(p);
     const w = { ...w0, dmg: w0.dmg * st.dmg, mod: st.mod, pierce: w0.pierce || st.mod === 'perfora', chain: w0.chain || (st.mod === 'cadena' ? 2 : 0) };
-    shapeWeapon(w, st); shapeOrgans(w, p, p.weapon);
+    shapeWeapon(w, st); shapeOrgans(w, p, p.weapon); shapeItemGun(w, p, p.weapon);
     if (w.kind === 'pulse') { // onda radial sin apuntar
       for (const m of this.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < w.radius + m.r) { this.damageMonster(m, w.dmg * (1 - 0.4 * d / (w.radius + m.r)), p, m.pos); m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), w.knock); } }
       for (const ob of [...this.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, p.pos) < w.radius + ob.r) this.damageObject(ob, w.dmg, p, ob.pos);
@@ -591,10 +596,11 @@ export class Game {
     if (m.kind === 'racimo') this.explode(m.pos, 5.5, 22, 40, null);
     if (m.affix === 'explosivo') this.explode(m.pos, 6, 28, 30, null);
     if (m.def.boss) { // al caer el corazón del vórtice todo lo demás se hace añicos
-      this.queue = []; this.omens = []; bossDeath(this);
+      this.queue = []; this.omens = []; bossDeath(this); dropsJefe(this, m.pos);
       for (const o of this.monsters) if (!o.dead && o !== m) { o.dead = true; this.emit({ t: 'kill', id: o.id, k: o.kind, p: a3(o.pos) }); }
       return;
     }
+    dropsKill(this, by, m);   // élites y geodas pueden soltar objetos (drops.js)
     const lowHp = this.players.some((p) => !p.dead && p.hp < 55);
     if (this.rng.next() < (lowHp ? 0.3 : 0.18)) {
       if (lowHp && this.rng.next() < 0.6) this.dropPickup('hp', m.pos);
@@ -810,7 +816,7 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
@@ -818,6 +824,7 @@ export class Game {
       })),
       projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),
+      ...(this.loot.length ? { lt: lootSnap(this) } : {}),
       objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, nk: o.kind || undefined, ow: o.owner || 0, l: r2(o.life || 0) })),
       obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
       mis: misionSnap(this),

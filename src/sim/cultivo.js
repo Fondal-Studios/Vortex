@@ -11,6 +11,7 @@
 //  · Pistas opcionales: tras 45 s sin que ningún capullo coma, un marcador señala el capullo más cercano; a los 90 s otra pista
 //    explica la regla; a los 135 s se marca dónde nacerá el puente (cada pista, 45 s después de la anterior).
 // Estado en `g.cult` (por partida): { open, blooms, secOn[], secG[], spots[], puentes[] }.
+import { dropsCofre } from './drops.js';   // capullo florecido → cofre (docs/INVENTARIO.md)
 import { v3, dist, clone, clamp } from './math.js';
 
 export const CULT = { gainDiv: 900, maxHit: 50, decay: 0.02, decayAfter: 4, gnaw: 0.05, gnawR: 5.5, growSecs: 5, hint: 45, hintMax: 3 };
@@ -54,6 +55,7 @@ function bloom(g, ob, by) {
   if (g.objective && g.objective.type === 'cultivo') g.objective.ids = g.objective.ids.filter((id) => id !== ob.id);
   if (by) by.score += 150;
   g.emit({ t: 'bloom', id: ob.id, k, n: c.spots.length, p: [ob.pos.x, ob.pos.y, ob.pos.z] });
+  dropsCofre(g, ob.pos);   // el capullo florecido es un cofre (drops.js)
 }
 
 /** Cada cuadro: marchitar/roer capullos, hacer crecer el puente. Vive fuera del objetivo: el puente sigue creciendo y es permanente. */

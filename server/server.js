@@ -7,10 +7,13 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { Game } from '../src/sim/game.js';
 import { MAPS } from '../src/sim/maps.js';
+import { cleanEquip } from '../src/sim/items.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml' };
 export const SIM_DT = 1 / 60, SNAP_EVERY = 3; // 60 Hz de simulación, 20 Hz de snapshots
+/** Equipo que manda un cliente: se limpia con las mismas reglas de la simulación (ids conocidos, ranura y Huésped correctos, ≤ 12 entradas). El servidor NO sabe qué tiene cada jugador en su inventario: acota, no verifica la propiedad (docs/INVENTARIO.md). */
+export const equipDe = (char, list) => (Array.isArray(list) ? cleanEquip(char, list.slice(0, 12)) : []);
 
 function resolveFile(url) {
   let p = decodeURIComponent(url.split('?')[0]);
@@ -41,8 +44,8 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
     return room;
   }
   function join(ws, room, name, m = {}) {
-    const p = room.game.addPlayer(name, null, { char: m.char, style: typeof m.style === 'string' ? m.style : undefined, melee: typeof m.melee === 'string' ? m.melee : undefined, evo: Number.isInteger(m.evo) ? m.evo : undefined, bend: Array.isArray(m.bend) ? m.bend.slice(0, 6) : undefined, slots: Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined });
-    ws.pname = name; ws.char = p ? p.char : m.char; ws.slots = p ? p.slots : undefined;
+    const p = room.game.addPlayer(name, null, { char: m.char, style: typeof m.style === 'string' ? m.style : undefined, melee: typeof m.melee === 'string' ? m.melee : undefined, evo: Number.isInteger(m.evo) ? m.evo : undefined, bend: Array.isArray(m.bend) ? m.bend.slice(0, 6) : undefined, equip: equipDe(m.char, m.equip), pity: m.pity && typeof m.pity === 'object' ? { l: Math.min(999, Math.floor(+m.pity.l || 0)), e: Math.min(999, Math.floor(+m.pity.e || 0)) } : undefined, sigs: Array.isArray(m.sigs) ? m.sigs.slice(0, 5).filter((x) => typeof x === 'string') : undefined, slots: Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined });
+    ws.pname = name; ws.char = p ? p.char : m.char; ws.slots = p ? p.slots : undefined; ws.equip = p ? p.eqList : [];
     if (!p) return send(ws, { t: 'error', msg: 'sala llena' });
     room.clients.set(ws, p.id);
     ws.room = room;
@@ -66,11 +69,11 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
         if (pid && m.i && typeof m.i === 'object') ws.room.game.setInput(pid, m.i);
       } else if (m.t === 'loadout' && ws.room) {
         const pid = ws.room.clients.get(ws);
-        if (pid && ws.room.game.phase === 'intermission') { ws.room.game.setLoadout(pid, m.char, Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined); const p = ws.room.game.players.find((q) => q.id === pid); if (p) { ws.char = p.char; ws.slots = p.slots; } }
+        if (pid && ws.room.game.phase === 'intermission') { ws.room.game.setLoadout(pid, m.char, Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined, { equip: equipDe(m.char, m.equip) }); const p = ws.room.game.players.find((q) => q.id === pid); if (p) { ws.char = p.char; ws.slots = p.slots; } }
       } else if (m.t === 'restart' && ws.room && ws.room.game.state !== 'playing') {
         const room = ws.room;
         room.game = new Game({ mapId: room.mapId, seed: (Math.random() * 1e9) | 0, calm: 8, magazines: true });
-        for (const [c] of room.clients) { const p = room.game.addPlayer(c.pname, null, { char: c.char, slots: c.slots }); room.clients.set(c, p.id); send(c, { t: 'welcome', pid: p.id, room: room.code, map: room.mapId, dt: SIM_DT }); }
+        for (const [c] of room.clients) { const p = room.game.addPlayer(c.pname, null, { char: c.char, slots: c.slots, equip: c.equip }); room.clients.set(c, p.id); send(c, { t: 'welcome', pid: p.id, room: room.code, map: room.mapId, dt: SIM_DT }); }
       }
     });
     ws.on('close', () => {

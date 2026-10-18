@@ -4,7 +4,8 @@ import { CHARACTERS, PLAYER, MELEE_WEAPONS, MELEE_AFFINITY, EVO_COST, EVO_PATHS,
 import { blocked } from './physics.js';
 import { initOrgans, champTick, absorb, hasC } from './organos.js';
 import { arMelee } from './arenas-vivas.js';   // arenas vivas (circular a propósito: sólo se usa dentro de funciones)
-import { initCombo, comboStep, comboSnap } from './combos.js';   // modo Combo (circular a propósito: sólo se usan dentro de funciones)
+import { initCombo, comboStep, comboSnap } from './combos.js';
+import { itemOut, itemDamageIn, itemHit, itemKill, itemTick, itemMeleeSet, execThreshold, itemStrike } from './items-fx.js';   // objetos equipados (docs/INVENTARIO.md)   // modo Combo (circular a propósito: sólo se usan dentro de funciones)
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
@@ -41,7 +42,7 @@ export function updateHost(g, p, dt) {
     if (p.ultT <= 0) { g.emit({ t: 'ultend', pid: p.id, id: p.ultId }); p.ultId = ''; p.ultT = 0; }
   }
   p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1) * (hasPath(p, 'velocidad') ? 1.12 : 1) * (p.bn ? p.bn.spd : 1) * (g.time < (p.frenzyUntil || 0) ? 1.3 : 1);
-  champTick(g, p, dt);
+  champTick(g, p, dt); itemTick(g, p, dt);
   if (C && C.host) {
     if (inp.s3 && !p.s3Prev && !g.evSilencio) useS3(g, p); p.s3Prev = inp.s3;
     if (inp.ult && !p.ultPrev && !g.evSilencio) useUlt(g, p); p.ultPrev = inp.ult;
@@ -70,6 +71,7 @@ function meleeStep(g, p, dt) {
 
 /** Arma cuerpo a cuerpo efectiva: la equipada (si existe) o la innata del Huésped. */
 export function meleeSet(p) {
+  const IW = p.iw && itemMeleeSet(p); if (IW) return IW;   // un arma cuerpo a cuerpo de objeto pisa a la fusionada
   const C = cdef(p), W = MELEE_WEAPONS[p.melee];
   if (W) return { light: W.light, heavy: W.heavy, type: W.type, special: W.special, id: p.melee, aff: !!(C && (MELEE_AFFINITY[p.char] || []).includes(W.type)) };
   return { ...((C && C.melee) || DEFAULT_MELEE), type: 'innata', special: null, id: '', aff: true };
@@ -95,7 +97,8 @@ function strike(g, p, M, heavy) {
   const def = heavy ? M.heavy : M.light;
   const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis';
   let dmg = def.dmg * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1), range = def.range * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1), arc = def.arc;
-  const fused = (p.evo || 0) >= 1 && M.special, strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
+  const fused = M.special && ((p.evo || 0) >= 1 || M.item), strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
+  const IS = itemStrike(p), exT = execThreshold(p); dmg *= IS.mul * (M.dual && !heavy ? M.dual : 1);   // objetos: Eco, segunda hoja, umbral de ejecución
   let kind = heavy ? 'heavy' : 'light';
   const prevCmb = p.cmb, speed = len(sub(p.vel, mul(p.up, dot(p.vel, p.up))));
   if (!heavy) { p.cmb = p.cmb >= 3 ? 1 : p.cmb + 1; p.cmbT = COMBO_WINDOW; p.lastCmbN = p.cmb; p.lastLightT = g.time; if (p.cmb === 3) { dmg *= 1.5; } } else { p.cmb = 0; }
@@ -126,7 +129,7 @@ function strike(g, p, M, heavy) {
     let k = 1;
     if (m.kind === 'ariete' && facing > 0.6 && !g.pierceNow) { k = 0.35; g.emit({ t: 'block', id: m.id, p: a3(m.pos) }); }
     if (m.kind === 'espejo' && !m.dodged && g.rng.next() < 0.3) { m.dodged = true; m.pos = madd(m.pos, cross(m.up || p.up, dir0), 3); g.emit({ t: 'dodge', id: m.id, p: a3(m.pos) }); continue; }
-    if (!m.def.boss && m.hp <= m.maxhp * 0.18 && !m.def.boss) { // ejecución contextual
+    if (!m.def.boss && m.hp <= m.maxhp * exT) { // ejecución contextual
       g.emit({ t: 'melee', pid: p.id, kind: 'exec', p: a3(m.pos), d: a3(dir0), hit: 1 });
       p.exec = true; g.damageMonster(m, m.hp + 1, p, m.pos); p.exec = false;
       if (!p.dead) { p.hp = Math.min(PLAYER.hp, p.hp + 10); }
@@ -145,8 +148,9 @@ function strike(g, p, M, heavy) {
   for (const ob of [...g.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, o) < range + ob.r && dot(norm(sub(ob.pos, o)), dir0) > cosT) { g.damageObject(ob, dmg, p, ob.pos); hits++; }
   hits += arMelee(g, o, range, dir0, cosT, dmg, p);   // órganos de la arena viva
   if (fused) meleeAfter(g, p, M.special, heavy, dir0, o, dmg, strong);
+  if (IS.onda) meleeAfter(g, p, 'onda', true, dir0, o, dmg, strong);
   p.inMelee = false;
-  g.emit({ t: 'melee', pid: p.id, kind, p: a3(madd(o, dir0, 1.5)), d: a3(dir0), hit: hits, cmb: p.cmb, mw: M.id, sp: fused ? M.special : undefined });
+  g.emit({ t: 'melee', pid: p.id, kind, p: a3(madd(o, dir0, 1.5)), d: a3(dir0), hit: hits, cmb: p.cmb, mw: M.id, sp: fused ? M.special : undefined, ...(M.item ? { iw: M.iw, hd: (p.hand = (p.hand || 0) ^ 1) } : {}) });
 }
 
 export function applyMeleeSpecial(g, p, m, sp, heavy, dealt, strong) {
@@ -292,6 +296,7 @@ export function hostDamageIn(g, p, dmg) {
   if (hasPath(p, 'coraza')) dmg *= 0.82;
   if (hasC(p, 'placas')) dmg *= 0.88;
   if (p.bn) dmg *= p.bn.dmgIn;
+  dmg = itemDamageIn(g, p, dmg);   // Sombra y Espinas de los objetos
   if (g.time < p.guardUntil) { const ab = dmg * 0.7; dmg -= ab; for (const m of g.monsters) if (!m.dead && dist(m.pos, p.pos) < 5 + m.r) g.damageMonster(m, ab * (g.time < (p.baluarteUntil || 0) ? 1 : 0.6), p, m.pos); }
   if (g.time < p.desfaseUntil && C.passive && C.passive.id === 'desfase') dmg *= 0.65;
   if (C.passive && C.passive.id === 'callo') dmg *= 1 - Math.min(0.4, p.callo * 0.04);
@@ -304,7 +309,7 @@ export function hostDamaged(g, p) { const C = cdef(p); if (C && C.passive && C.p
 /** Multiplicador de daño que hace un jugador a una criatura. */
 export function hostOut(g, p, m) {
   const st = STYLES[p.style] || STYLE_NEUTRAL, src = g.dmgSrc || (p.inMelee ? 'melee' : 'gun');
-  let k = (st.mul[src] || 1) * (p.bn && (src === 'melee' || src === 'gun' || src === 'skill') ? p.bn[src] : 1);
+  let k = (st.mul[src] || 1) * (p.bn && (src === 'melee' || src === 'gun' || src === 'skill') ? p.bn[src] : 1) * itemOut(g, p, m, src);
   const C = cdef(p); if (!C) return k;
   const id = C.passive && C.passive.id;
   if (id === 'desprevenido') { const f = m.fwd ? dot(norm(sub(p.pos, m.pos)), m.fwd) : 1; if (f < 0.3 || m.cloak) k *= 1.5; }
@@ -320,12 +325,13 @@ export function hostOut(g, p, m) {
 }
 /** Tras un impacto (daño real aplicado): carga de definitiva, vampirismo de Metamorfosis y ruptura del camuflaje. */
 export function hostHit(g, p, m, dealt) {
+  itemHit(g, p, m, dealt);
   if (p.ultId === '') p.ul = Math.min(100, p.ul + dealt * ULT_PER_DMG * (p.bn ? p.bn.ult : 1) * (STYLES[p.style] || STYLE_NEUTRAL).ult * (hasPath(p, 'resonancia') ? 1.4 : 1) * (hasC(p, 'saco_g') ? 1.15 : 1));
   if (p.ultId === 'metamorfosis' && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + dealt * 0.04);
   if (p.cloakUntil) { p.cloakUntil = 0; p.cloakBonus = false; }   // atacar rompe el camuflaje (el primer golpe ya cobró el bonus)
 }
 export function hostKill(g, p, m) {
-  absorb(p, m);
+  absorb(p, m); itemKill(g, p, m);
   if (p.bn && p.bn.kheal && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + p.bn.kheal); // bendición Descanso Ajeno
   if (hasPath(p, 'anomalia') && !m.def.boss && g.rng.next() < 0.25) g.explode(m.pos, 5, 0, 70, p, false);
   addCores(g, p, m.def.cost * CORES.perCost * (m.elite ? CORES.eliteMul : 1) * (g.evCoreMul || 1) + (m.def.boss ? CORES.boss : 0));

@@ -2,6 +2,7 @@
 // La misión nace al empezar cada oleada (no en la del jefe), se cuenta en la simulación y paga núcleos (y a veces esencias) al cumplirse.
 import { ESSENCE_OF } from './data.js';
 import { dist } from './math.js';
+import { dropsMision } from './drops.js';   // misión cumplida → objeto (docs/INVENTARIO.md)
 
 /** Textos y recompensas. `n(oleada)` = cuánto hay que lograr; `cores(oleada)` = núcleos de premio; `ess` = [tipo, cantidad] extra. */
 export const MISIONES = {
@@ -35,6 +36,7 @@ function pagar(g, m) {
     if (k && p.ess) p.ess[k] += mi.k === 'elite' ? 3 : mi.re;
   }
   g.emit({ t: 'mision', ph: 'done', k: mi.k, rc: mi.rc });
+  dropsMision(g);
 }
 
 /** Una criatura murió (`by` = jugador que la mató, o null). */

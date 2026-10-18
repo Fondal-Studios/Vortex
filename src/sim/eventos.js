@@ -5,6 +5,7 @@
 import { v3, mul, madd, dot, cross, len, dist, norm, makeRng } from './math.js';
 import { EVENTO, EVENTOS, EVENTOS_MAPA, PLAYER } from './data.js';
 import { addCores } from './huespedes.js';
+import { dropsEvento } from './drops.js';
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
@@ -123,7 +124,7 @@ function terminar(g, ok) {
   const e = g.ev; if (!e) return;
   const bueno = ok && e.ok;
   if (H[e.id].fin) H[e.id].fin(g, e, bueno);
-  if (bueno) premiar(g, e);
+  if (bueno) { premiar(g, e); dropsEvento(g); }   // el evento superado suelta un objeto por jugador (drops.js)
   g.emit({ t: 'ev', id: e.id, ph: 'fin', ok: !!bueno, wave: g.wave });
   limpiarBanderas(g);
   g.evLastWave = e.wave; g.evLastId = e.id; g.ev = null;

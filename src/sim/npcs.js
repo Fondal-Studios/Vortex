@@ -5,6 +5,7 @@ import { ESS_KEYS } from './organos.js';
 import { makeCards } from './loadout.js';
 import { WEAPON_ORGANS, CHAMP_ORGANS } from './data.js';
 import { organError } from './organos.js';
+import { forjar } from './drops.js';
 
 export const NPC_KINDS = ['cambista', 'sanadora', 'herrero'];
 export const NPC_INFO = {
@@ -13,7 +14,9 @@ export const NPC_INFO = {
   sanadora: { name: 'La Sanadora', says: 'Descansá, vivo. A los muertos nos gusta ver latir algo.', offers: [
     { text: 'Curación total de vida y escudo', cost: '3 carne' }, { text: 'Bendición: +10 % de daño durante la próxima oleada', cost: '5 cristal' }] },
   herrero: { name: 'El Herrero de Huesos', says: 'Lo que no sirve se funde y se vuelve a forjar.', offers: [
-    { text: 'Volver a sortear tus tarjetas (1 vez por respiro)', cost: '10 núcleos' }, { text: 'Forjar tarjetas de órgano con tus esencias', cost: '20 núcleos' }] },
+    { text: 'Volver a sortear tus tarjetas (1 vez por respiro)', cost: '10 núcleos' }, { text: 'Forjar tarjetas de órgano con tus esencias', cost: '20 núcleos' }],
+    /* ofertas extra (docs/INVENTARIO.md): 2 = objeto vivo al azar · 3 = tu arma firma (sólo si ya cumpliste su condición una vez) */
+    forja: [{ text: 'Forjar un objeto vivo (arma, armadura o reliquia)', cost: '45 núcleos + 4 esencias' }, { text: 'Forjar tu arma firma', cost: '120 núcleos + 6 esencias', firma: true }] },
 };
 const maxKey = (p, f) => ESS_KEYS.reduce((a, k) => (f(p.ess[k], p.ess[a]) ? k : a), ESS_KEYS[0]);
 
@@ -33,9 +36,10 @@ export function npcStep(g, p) {
   const rq = p.input && p.input.npc; if (!rq || rq === p.npcDone) { if (!rq) p.npcDone = null; return; }
   p.npcDone = rq;
   const n = g.objects.find((o) => o.type === 'npc' && dist(o.pos, p.pos) < 7); if (!n || p.dead) return;
-  const ok = act(g, p, n, rq.offer === 1 ? 1 : 0); g.emit({ t: 'npcdeal', pid: p.id, kind: n.kind, offer: rq.offer, ok });
+  const ok = act(g, p, n, rq.offer === 1 ? 1 : rq.offer === 2 ? 2 : rq.offer === 3 ? 3 : 0); g.emit({ t: 'npcdeal', pid: p.id, kind: n.kind, offer: rq.offer, ok });
 }
 function act(g, p, n, i) {
+  if (i >= 2 && n.kind !== 'herrero') return false;
   switch (n.kind) {
     case 'cambista':
       if (i === 0) { if (p.cores < 30) return false; p.cores -= 30; p.ess[maxKey(p, (a, b) => a < b)] += 4; return true; }
@@ -45,6 +49,7 @@ function act(g, p, n, i) {
       if (p.ess.cristal < 5) return false; p.ess.cristal -= 5; p.blessWave = g.wave + 1; return true;
     case 'herrero':
       if (g.phase !== 'intermission') return false;
+      if (i === 2 || i === 3) return forjar(g, p, i === 3);
       if (i === 0) { if (p.cores < 10 || n.rerolled) return false; p.cores -= 10; n.rerolled = true; p.cards = makeCards(g, p); return true; }
       { if (p.cores < 20) return false; const pool = [];
         for (const w of p.slots) for (const id of Object.keys(WEAPON_ORGANS)) if (!organError(p, 'w', w, id)) pool.push({ w, k: 'organ', t: 'w', id });
