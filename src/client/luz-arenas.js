@@ -56,15 +56,18 @@ export function cicloDe({ infect = 0, t = 0, eclipse = 0, forzado = null } = {})
 export function pesos(c) { return { oca: sm(Math.min(1, c / 0.5)) * (1 - sm(Math.max(0, (c - 0.5) / 0.5))), ecl: sm(Math.max(0, (c - 0.5) / 0.5)) }; }
 /** Luz resultante sobre la «base» del mapa: { sol:[r,g,b], solI, rim, rimI, rel, relI, niebla:[…]|null, sat, az, el, key }. `base` = { sol, rim, rel (colores [r,g,b]) }. */
 export function mezclaLuz(mapId, base, c) {
-  const D = LUZ[mapId]; const w = pesos(c);
+  const D = LUZ[mapId];
   if (!D) return { sol: base.sol, solI: 1, rim: base.rim, rimI: 1, rel: base.rel, relI: 1, niebla: null, sat: 1, az: 0, el: 0, key: 1 };
-  const o = D.ocaso, e = D.eclipse;
-  const tinte = (b, co, ce) => mezclaRgb(mezclaRgb(b, hexRgb(co), 0.7 * w.oca), hexRgb(ce), 0.8 * w.ecl);   // 70 % del ocaso, 80 % del eclipse: el tono del mapa nunca se pierde del todo
+  const o = D.ocaso, e = D.eclipse, t1 = sm(Math.min(1, c / 0.5)), t2 = sm(Math.max(0, (c - 0.5) / 0.5)), pos = c <= 0.5;
+  // día (A0) → ocaso (A1) → eclipse (A2): dos tramos suaves; el color llega al 70 % del ocaso y al 80 % del eclipse (el tono propio del mapa nunca se pierde del todo)
+  const num = (v0, v1, v2) => (pos ? v0 + (v1 - v0) * t1 : v1 + (v2 - v1) * t2);
+  const col = (b, co, ce) => { const A1 = mezclaRgb(b, hexRgb(co), 0.7), A2 = mezclaRgb(b, hexRgb(ce), 0.8); return pos ? mezclaRgb(b, A1, t1) : mezclaRgb(A1, A2, t2); };
+  const fog0 = hexRgb(GRADE[mapId] ? GRADE[mapId].fog : GRADE.def.fog);
   const out = {
-    sol: tinte(base.sol, o.sol, e.sol), rim: tinte(base.rim, o.rim, e.rim), rel: tinte(base.rel, o.rel, e.rel),
-    solI: 1 + (o.solI - 1) * w.oca + (e.solI - o.solI) * w.ecl, rimI: 1 + (o.rimI - 1) * w.oca + (e.rimI - o.rimI) * w.ecl, relI: 1 + (o.relI - 1) * w.oca + (e.relI - o.relI) * w.ecl,
-    sat: 1 + (o.sat - 1) * w.oca + (e.sat - o.sat) * w.ecl, az: o.az * w.oca + (e.az - o.az) * w.ecl, el: o.el * w.oca + (e.el - o.el) * w.ecl,
-    niebla: (w.oca + w.ecl) > 0.001 ? mezclaRgb(hexRgb(GRADE[mapId] ? GRADE[mapId].fog : GRADE.def.fog), hexRgb(w.ecl > w.oca ? e.niebla : o.niebla), Math.min(1, 0.85 * Math.max(w.oca, w.ecl))) : null,
+    sol: col(base.sol, o.sol, e.sol), rim: col(base.rim, o.rim, e.rim), rel: col(base.rel, o.rel, e.rel),
+    solI: num(1, o.solI, e.solI), rimI: num(1, o.rimI, e.rimI), relI: num(1, o.relI, e.relI), sat: num(1, o.sat, e.sat),
+    az: num(0, o.az, e.az) || 0, el: num(0, o.el, e.el) || 0,
+    niebla: c > 0.001 ? (pos ? mezclaRgb(fog0, mezclaRgb(fog0, hexRgb(o.niebla), 0.85), t1) : mezclaRgb(mezclaRgb(fog0, hexRgb(o.niebla), 0.85), mezclaRgb(fog0, hexRgb(e.niebla), 0.85), t2)) : null,
   };
   out.key = 1 + 0.6 * (1 - out.solI) / (1 - 0.72);   // relleno del Huésped: sube hasta ×1,6 cuando el sol baja a ×0,72 (lo que se oscurece lo compensa su propia luz)
   return out;

@@ -65,7 +65,7 @@ export function buildHuespedScreen(menu) {
           <div class="hs-tags"><span class="hs-tag" id="hsrole"></span><span class="hs-tag hs-diff" id="hsdiff"></span><span class="hs-tag hs-chosen" id="hschosen" hidden>✓ Tu Huésped</span></div>
         </header>
         <div class="hs-stage" id="hsstage"><canvas id="hscanvas" aria-label="Modelo 3D del Huésped: arrastrá para girarlo"></canvas><iframe id="hsframe" title="Vista del veterano" tabindex="-1" hidden></iframe><div class="hs-fallback" id="hsfb" hidden></div><div class="hs-region" id="hsregion" aria-live="off"></div></div>
-        <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsmode" aria-label="Modo de juego: Shooter o Combo">Modo: Shooter</button><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
+        <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsmode" aria-label="Modo de juego: Shooter o Combo">Modo: Shooter</button><button class="hs-btn hs-nav" type="button" id="hsinv" aria-label="Abrir el inventario con este Huésped">Inventario</button><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
       </section>
       <aside class="hs-info" id="hsinfo" aria-label="Información del Huésped"></aside>
     </div>`;
@@ -238,6 +238,7 @@ export function buildHuespedScreen(menu) {
   root.querySelectorAll('.hs-chip').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); select(b.dataset.id); }));
   $('#hsvettoggle').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('tick'); toggleVets(); });
   $('#hsdemo').addEventListener('click', (e) => { e.stopPropagation(); demo('both'); });
+  $('#hsinv').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('ok'); menu.ivHost = hs.sel; menu.show('inventario'); });   // inventario con las piezas puestas en el modelo (docs/INVENTARIO.md)
   $('#hspick').addEventListener('click', (e) => {
     e.stopPropagation(); Equipo.char = hs.sel; saveEquipo(); menu.sound.ui('ok');
     root.querySelectorAll('.hs-chip').forEach((b) => b.classList.toggle('chosen', b.dataset.id === Equipo.char)); $('#hschosen').hidden = false; menu.refreshHuesped && menu.refreshHuesped(); menu.back();

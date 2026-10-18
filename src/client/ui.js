@@ -7,6 +7,7 @@ import { buildHeroScreen, renderHeroScreen } from './heroes-ui.js';
 import { buildHuespedScreen, showHuesped } from './huespedes-ui.js';
 import { buildEvolucionScreen, showEvolucion } from './evolucion-ui.js';
 import { buildTerritoriosScreen, showTerritorios } from './territorios-ui.js';
+import { buildInventarioScreen, showInventario } from './inventario-ui.js';
 import { buildGraficosScreen, showGraficos } from './graficos-ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -17,18 +18,19 @@ const HERO = {
   bestiary: ['Bestiario', 'Quince organismos mitad carne, mitad cristal. Girá cada criatura en 3D y leé sus patrones, avisos y debilidades.', ['12 criaturas', '3 jefes']],
   huesped: ['Huésped', 'Elegí tu Huésped: uno de los 5 organismos biomecánicos (o un Veterano). Mirá su modelo en 3D, sus estadísticas y sus habilidades antes de entrar a la partida.', ['5 Huéspedes', 'Veteranos', 'Demostración']],
   territorios: ['Territorios', 'Los seis lugares robados del mundo, cada uno con su folclore. Liberalos venciendo a su jefe y elegí UNA bendición por territorio: la otra queda cerrada para siempre.', ['6 territorios', '12 bendiciones', 'Una por lugar']],
+  inventario: ['Inventario', 'Lo que dropea en las partidas son MATERIALES orgánicos y PLANOS: en la Forja los convertís en armas de disparo, armas cuerpo a cuerpo, armadura y reliquias que maduran con tus bajas. Juntá sets de 2 y 4 piezas y probá todo sobre tu Huésped en 3D.', ['Materiales', 'Planos', 'Forja', 'Sets']],
   evolucion: ['Evolución', 'Gastá los núcleos que ganás en combate: evolucioná a tu Huésped (4 niveles, cada uno lo cambia a la vista) y fusioná con él una espada, hacha, martillo, lanza o daga que despierta su poder especial.', ['4 niveles', '15 armas', 'Fusión']],
   loadout: ['Equipo', 'Elegí entre 6 personajes, cada uno con un desplazamiento y un disparo especial propios, y armá tu arsenal con 14 armas. Tras cada oleada mejorás las armas que elegiste.', ['6 personajes', '15 armas', 'Mejoras']],
   modo: ['Modo de juego', 'Shooter es el de siempre: disparás, apuntás y usás tres habilidades. Combo hace del cuerpo a cuerpo lo principal: DOS botones de ataque que se encadenan en combos (cada Huésped tiene los suyos y los desbloquea al evolucionar) y UNA habilidad muy importante propia. Se cambia cuando quieras, también en Opciones y en la Pausa.', ['Shooter', 'Combo', 'Los 5 Huéspedes']],
   graficos: ['Gráficos', 'Elegí Baja, Media o Alta (iPhone → Baja o Media), ajustá la resolución, prendé o apagá sombras, brillo y partículas, limitá los FPS y mirá cuánto pesa cada cosa. Se aplica en vivo y se recuerda.', ['Baja · Media · Alta', 'Resolución', 'FPS']],
   options: ['Opciones', 'Controles, sensibilidad, volumen y subtítulos. Los gráficos tienen su propio menú.', ['PC', 'iPhone', 'Mando']],
 };
-const ART = { modo: './public/art/opciones.jpg', story: './public/art/historia.jpg', arenas: './public/art/arena-m1.jpg', coop: './public/art/coop.jpg', loadout: './public/art/opciones.jpg', huesped: './public/art/opciones.jpg', territorios: './public/art/opciones.jpg', graficos: './public/art/opciones.jpg', evolucion: './public/art/opciones.jpg', bestiary: './public/art/bestiario.jpg', options: './public/art/opciones.jpg' };
+const ART = { modo: './public/art/opciones.jpg', story: './public/art/historia.jpg', arenas: './public/art/arena-m1.jpg', coop: './public/art/coop.jpg', loadout: './public/art/opciones.jpg', huesped: './public/art/opciones.jpg', territorios: './public/art/opciones.jpg', graficos: './public/art/opciones.jpg', evolucion: './public/art/opciones.jpg', inventario: './public/art/opciones.jpg', bestiary: './public/art/bestiario.jpg', options: './public/art/opciones.jpg' };
 
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); this.addBackButtons(); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildGraficosScreen(this); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); this.addBackButtons(); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
   }
   /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
   addBackButtons() {
@@ -41,7 +43,7 @@ export class MenuUI {
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { title: '#pressstart', main: '#mainlist .item', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', options: '#options .panel label, #options .gfxgo, #options #gfxgo' }[name];
+    const q = { title: '#pressstart', main: '#mainlist .item', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', options: '#options .panel label, #options .gfxgo, #options #gfxgo' }[name];
     return [...this.root.querySelectorAll(q)];
   }
   show(name, push = true) {
@@ -49,13 +51,14 @@ export class MenuUI {
     this.screen = name;
     this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name));
     this.idx = name === 'bestiary' ? 0 : 0; this.focus(this.idx, true);
-    $('prompts').style.opacity = name === 'title' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'graficos' ? 0 : 1;
+    $('prompts').style.opacity = name === 'title' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
     if (name === 'bestiary') this.selectBeast(0);
     if (name === 'loadout') this.renderLoadout();
     if (name === 'huesped') showHuesped(this);
     if (name === 'territorios') showTerritorios(this);
     if (name === 'graficos') showGraficos(this);
     if (name === 'evolucion') showEvolucion(this);
+    if (name === 'inventario') { const h = this.ivHost; this.ivHost = null; showInventario(this, h); }
     if (name === 'main') this.refreshHuesped();
   }
   /** Rótulo del menú principal: qué Huésped está elegido. */

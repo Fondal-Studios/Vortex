@@ -5,6 +5,7 @@
 // Criterio (CRITERIO): LEGIBLE en TODOS los mapas, para el Huésped y los enemigos, en Baja y Alta. El mismo script mide además la luma media y la saturación
 // media de la imagen (para vigilar que el relleno no lave los neones: la saturación no puede bajar más de 10 %).
 // Uso: node tools/legibilidad.mjs [carpeta] [calidades=low,high] [mapas=m1..m6] [claridad=normal|alta] [medir]   (medir = sólo re-analiza las PNG ya guardadas)
+//      CICLO=dia|ocaso|eclipse (variable de entorno) congela el ciclo de luz de las arenas (src/client/luz-arenas.js) para medir también el ocaso y el eclipse.
 import fs from 'node:fs';
 import { launch } from './browser.js';
 import { startServer } from '../server/server.js';
@@ -60,7 +61,7 @@ for (const q of QS) for (const map of MAPS) {
   else {
   pg = await (await b.newContext({ viewport: { width: 960, height: 720 } })).newPage();
   pg.on('pageerror', (e) => errors.push(`${map}: ${e.message}`)); pg.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) errors.push(`${map}: ${m.text()}`); });
-  await pg.goto(`http://localhost:${srv.port}/?auto=${map}&god=1&seed=3&q=${q}&autoq=0&nolock=1&skipintro=1&cam=third&claridad=${CL}`, { timeout: 180000 });
+  await pg.goto(`http://localhost:${srv.port}/?auto=${map}&god=1&seed=3&q=${q}&autoq=0&nolock=1&skipintro=1&cam=third&claridad=${CL}${process.env.CICLO ? '&ciclo=' + process.env.CICLO : ''}`, { timeout: 180000 });
   await pg.waitForFunction(() => window.__api && window.__api.session && window.__api.session.game, null, { timeout: 90000 });
   await pg.addStyleTag({ content: 'body > *:not(canvas#c){visibility:hidden !important} #c{visibility:visible !important}' });
   await pg.evaluate(() => { const g = window.__api.session.game, p = g.players[0]; g.phaseT = 1e9; g.queue = []; for (const m of g.monsters) m.dead = true; p.char = 'axioma'; p.evo = 0; window.__api.setSetting('simple', false); p.input.fire = false;
