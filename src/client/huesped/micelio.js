@@ -8,6 +8,7 @@ const BARK = 0xb09a80, BARK_D = 0x6a5a48, MOSS = 0x7be03a, MOSS2 = 0xc8ff4a;
 
 export function build(ak, ctx) {
   const t = tools(ak), { G, X, spikeAt, seam, limb, ringAt, bonelump, dome, S, low } = t, P = (n) => ak.P(n), add = ak.add, Y = V(0, 1, 0), Zv = V(0, 0, 1), HC = V(0, 1.6, 0.06), R = t.rng(41);
+  ak.both(() => { console.warn('BONES ' + ['upperarm01','lowerarm01','wrist','finger3-1','finger3-3','upperleg01','lowerleg01','foot','toe3-1','clavicle','neck01','spine01','spine02','spine03','spine05'].map((n)=>n+':'+ak.P(n).toArray().map((v)=>v.toFixed(2))).join(' ')); });
   // cabeza: tronco hueco con máscara de corteza + cornamenta de ramas con brotes luminosos
   add('bark', X(G.lathe([[0.1, -0.075], [0.112, -0.02], [0.112, 0.04], [0.09, 0.1], [0.05, 0.135], [0, 0.145]], S(10, 8), 0, Math.PI * 2, 35), { p: [HC.x, HC.y, HC.z], s: [1.05, 1.05, 1.22] }), 'head', { color: BARK });
   add('dark', t.box(0.1, 0.05, 0.02, 0.01, 1).translate(HC.x, HC.y - 0.005, HC.z + 0.135), 'head', { color: 0x0a0a06 });
