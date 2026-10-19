@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { Game } from '../src/sim/game.js';
 import { COMBO_SETS, HOST_IDS } from '../src/sim/data.js';
-import { ANIM_GOLPE, ANIM_HAB, ARQUETIPOS, SLOTS, StrikePose, animDe, animHab, golpesSinAnim } from '../src/client/combo-anim.js';
+import { ANIM_MELEE, MELEE_KINDS, animMelee, ANIM_GOLPE, ANIM_HAB, ARQUETIPOS, SLOTS, StrikePose, animDe, animHab, golpesSinAnim } from '../src/client/combo-anim.js';
 import { createComboFx } from '../src/client/combo-fx.js';
 
 const T60 = 1 / 60, ORIGINALES = ['axioma', 'vesper', 'micelio', 'umbra', 'seraf'];
@@ -101,4 +101,27 @@ test('«Reducir efectos»: completos → hit-stop + sacudida + FOV; reducidos �
   assert.ok(res[1].shake > 0 && !res[1].lento && res[1].freeze <= res[0].freeze, 'reducidos: sin cámara lenta y menos hit-stop');
   assert.equal(res[2].shake, 0, 'sin movimiento: cero sacudida'); assert.equal(res[2].freeze, 0, 'sin movimiento: cero hit-stop'); assert.ok(!res[2].lento && res[2].fov === 0);
   assert.ok(res[2].sparks > 0, 'los destellos siguen (sólo se quita el movimiento)');
+});
+
+/* ───── melé del modo SHOOTER (botón MELEE): eventos `melee` sin `combo` ───── */
+test('melé de Shooter: todo kind de melee (light/heavy/air/exec/lunge/spin) de los 8 Huéspedes tiene animación; los ligeros alternan lado', () => {
+  for (const id of HOST_IDS) for (const k of MELEE_KINDS) for (const cmb of [1, 2, 3]) {
+    const d = animMelee(id, k, { cmb }); assert.ok(ARQUETIPOS.includes(d.a), `${id}/${k}/${cmb}: arquetipo «${d.a}»`); assert.ok(d.peso > 0 && d.hs >= 0);
+  }
+  for (const id of ORIGINALES) { assert.ok(ANIM_MELEE[id], id); const [a, b, c] = [1, 2, 3].map((n) => animMelee(id, 'light', { cmb: n })); assert.notEqual(!!a.m, !!b.m, `${id}: los ligeros alternan izquierda/derecha`); assert.ok(c.peso > a.peso, `${id}: el 3.º es remate`); assert.equal(animMelee(id, 'exec').fin, true); }
+  assert.ok(animMelee('colmena', 'spin').a === 'giro' && animMelee('colmena', 'lunge').a === 'estocada', 'Huésped sin tabla: respaldo genérico');
+  // los kinds que la simulación emite realmente están todos cubiertos
+  assert.deepEqual([...MELEE_KINDS].sort(), ['air', 'exec', 'heavy', 'light', 'lunge', 'spin']);
+});
+test('melé de Shooter: combo-fx anima el `melee` (hit-stop, contacto) y la simulación queda idéntica con y sin efectos', () => {
+  const mk = () => { const g = new Game({ mapId: 'm1', seed: 5, magazines: true }); g.phaseT = 1e9; const p = g.addPlayer('t', null, { char: 'vesper', mode: 'shooter', evo: 2 }); p.godmode = true;
+    for (let i = 0; i < 3; i++) { const m = g.spawnMonster('astilla', { x: p.pos.x + p.heading.x * (2.2 + i * 0.4), y: p.pos.y + 0.5, z: p.pos.z + p.heading.z * (2.2 + i * 0.4) }, { noElite: true }); m.passive = true; m.hp = m.maxhp = 1e6; m.cd = 1e9; } return { g, p }; };
+  const run = (conFx) => { const { g, p } = mk(), { r } = renderFalso(), cfx = conFx ? createComboFx(r) : null, kinds = new Set(); let frz = 0, cont = 0; const tr = [];
+    for (let i = 0; i < 900; i++) { g.setInput(p.id, { mode: 'shooter', melee: i % 50 < (i % 150 > 100 ? 40 : 4) }); g.step(T60); const s = g.snapshot();
+      for (const e of s.events) if (e.t === 'melee') kinds.add(e.kind);
+      if (cfx) { const me = s.players[0]; r.t += T60; cfx.ingest(s, me); const cx = cfx.frameFor(me.id, T60, me, s); cfx.update(T60, s, me); if (cx && cx.freeze > 0) frz++; if (cx && cx.anim.w > 0) cont++; }
+      if (i % 30 === 0) tr.push(JSON.stringify([s.players[0].pos, s.players[0].cmb, s.monsters.map((m) => m.hp)])); }
+    return { tr: tr.join('|'), frz, cont, kinds: [...kinds] }; };
+  const a = run(true), b = run(false);
+  assert.equal(a.tr, b.tr); assert.ok(a.kinds.includes('light') && a.kinds.includes('heavy'), 'hubo ligeros y pesados: ' + a.kinds); assert.ok(a.frz > 0 && a.cont > 20, 'el cuerpo animó los golpes de Shooter');
 });

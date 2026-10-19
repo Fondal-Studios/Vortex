@@ -156,6 +156,41 @@ export const ANIM_HAB = {
   axioma: { cast: 'guardia', go: 'sello' }, vesper: { cast: 'agacho', go: 'salto' }, micelio: { cast: 'suelo', go: 'estallar' },
   umbra: { cast: 'alzar', go: 'estallar' }, seraf: { cast: 'alzar', go: 'estallar' },
 };
+/** MELÉ DEL MODO SHOOTER (botón MELEE / melé automático): eventos `melee` con kind light | heavy | air | exec | lunge | spin y `cmb` (1..3 = lugar en la cadena de ligeros).
+ *  ANIM_MELEE[huésped] = { light: [golpe 1, golpe 2, golpe 3 (remate)], heavy, air, exec, lunge, spin } → descriptores como los de ANIM_GOLPE. Los ligeros ALTERNAN lado
+ *  (tajo derecho → contratajo izquierdo → remate más grande) para que se vea una cadena. Huésped sin entrada: `MELEE_BASE` (mismo esquema, genérico). */
+export const MELEE_KINDS = ['light', 'heavy', 'air', 'exec', 'lunge', 'spin'];
+const MELEE_BASE = {
+  light: [D('tajo', { av: 1.0, trk: 0.8, fp: 'SLASH' }), D('tajo', { m: true, av: 1.1, peso: 1.1, trk: 0.85, fp: 'SLASH_L' }), D('estocada', { esc: 1.1, av: 1.4, peso: 1.6, hs: 4, trk: 1.1, fp: 'THRUST' })],
+  heavy: D('martillo', { esc: 1.05, av: 0.9, peso: 1.8, hs: 5, trk: 1.0, fp: 'SLAM' }), air: D('caida', { av: 0.4, peso: 1.8, hs: 5, trk: 0.8, fp: 'SLAM' }),
+  exec: D('martillo', { esc: 1.2, av: 1.0, peso: 2.6, hs: 6, trk: 1.4, fp: 'SLAM' }), lunge: D('estocada', { av: 2.4, peso: 1.5, hs: 4, trk: 1.0, fp: 'THRUST' }), spin: D('giro', { av: 0.4, peso: 1.5, hs: 4, trk: 1.2, fp: 'SWEEP' }),
+};
+export const ANIM_MELEE = {
+  axioma: { light: [D('tajo', { av: 1.1, trk: 0.8, fp: 'SLASH' }), D('tajo', { m: true, av: 1.2, peso: 1.15, trk: 0.85, fp: 'SLASH_L' }), D('estocada', { esc: 1.2, av: 1.6, peso: 1.7, hs: 5, trk: 1.3, fp: 'THRUST' })],
+    heavy: D('martillo', { av: 0.9, peso: 2.0, hs: 5, trk: 1.0, fp: 'SLAM' }), air: D('caida', { av: 0.4, peso: 1.9, hs: 5, trk: 0.9, fp: 'SLAM' }), exec: D('martillo', { esc: 1.2, av: 1.2, peso: 2.6, hs: 6, trk: 1.4, fp: 'SLAM' }),
+    lunge: D('embestida', { av: 2.4, peso: 1.6, hs: 4, fp: 'THRUST' }), spin: D('giro', { av: 0.6, peso: 1.4, hs: 4, trk: 1.3, fp: 'SWEEP' }) },
+  vesper: { light: [D('zarpa', { esc: 0.9, av: 0.9, peso: 0.8, hs: 2, trk: 0.5, fp: 'RAKE' }), D('zarpa', { m: true, esc: 0.85, av: 1.1, peso: 0.9, hs: 2, trk: 0.5, fp: 'RAKE' }), D('zarpa', { esc: 1.0, av: 1.6, peso: 1.4, hs: 4, trk: 0.8, fp: 'RAKE' })],
+    heavy: D('salto', { av: 2.2, peso: 1.6, hs: 4, trk: 0.6, fp: 'SLAM' }), air: D('caida', { av: 0.4, peso: 1.8, hs: 5, trk: 0.8, fp: 'SLAM' }), exec: D('salto', { esc: 1.1, av: 3, peso: 2.6, hs: 6, trk: 0.9, fp: 'SLAM' }),
+    lunge: D('embestida', { av: 2.6, peso: 1.6, hs: 4, trk: 0.6, fp: 'RAKE' }), spin: D('giro', { esc: 0.9, av: 0.5, peso: 1.3, hs: 3, trk: 0.7, fp: 'SWEEP' }) },
+  micelio: { light: [D('punio', { esc: 1.15, av: 0.7, peso: 1.2, hs: 3, fp: 'HOOK' }), D('punio', { m: true, esc: 1.15, av: 0.8, peso: 1.3, hs: 4, fp: 'HOOK_L' }), D('martillo', { esc: 1.15, av: 0.7, peso: 1.9, hs: 5, fp: 'SLAM' })],
+    heavy: D('martillo', { esc: 1.2, av: 0.7, peso: 2.0, hs: 5, fp: 'SLAM' }), air: D('caida', { esc: 1.25, av: 0.4, peso: 2.2, hs: 6, fp: 'SLAM' }), exec: D('caida', { esc: 1.3, av: 0.5, peso: 2.8, hs: 6, fp: 'SLAM' }),
+    lunge: D('embestida', { esc: 1.1, av: 1.8, peso: 1.7, hs: 4, fp: 'HOOK' }), spin: D('giro', { esc: 1.2, av: 0.3, peso: 1.5, hs: 4, fp: 'SLAM' }) },
+  umbra: { light: [D('corte', { av: 0.7, trk: 1.1, fp: 'SLASH' }), D('corte', { m: true, av: 1.0, peso: 1.1, trk: 1.2, fp: 'SLASH_L' }), D('estocada', { av: 1.1, peso: 1.6, hs: 4, trk: 1.7, fp: 'THRUST' })],
+    heavy: D('corte', { esc: 1.2, av: 1.0, peso: 1.7, hs: 4, trk: 1.8, fp: 'SWEEP' }), air: D('caida', { av: 0.4, peso: 1.8, hs: 5, trk: 1.0, fp: 'SLAM' }), exec: D('corte', { esc: 1.3, av: 1.2, peso: 2.6, hs: 6, trk: 2.2, fp: 'SWEEP' }),
+    lunge: D('corte', { esc: 1.1, av: 2.2, peso: 1.5, hs: 4, trk: 1.8, fp: 'THRUST' }), spin: D('giro', { av: 0.4, peso: 1.5, hs: 4, trk: 1.6, fp: 'SWEEP' }) },
+  seraf: { light: [D('corte', { esc: 1.05, av: 0.6, peso: 0.9, hs: 2, trk: 1.2, fp: 'SWEEP' }), D('corte', { m: true, esc: 1.05, av: 0.7, peso: 1.0, hs: 2, trk: 1.2, fp: 'SWEEP' }), D('apertura', { esc: 1.0, av: 0.2, peso: 1.6, hs: 4, fp: 'CRACK' })],
+    heavy: D('apertura', { esc: 1.15, av: 0.3, peso: 1.8, hs: 5, trk: 1.4, fp: 'CRACK' }), air: D('caida', { av: 0.4, peso: 1.8, hs: 5, trk: 0.8, fp: 'SLAM' }), exec: D('apertura', { esc: 1.3, av: 0.3, peso: 2.6, hs: 6, trk: 1.6, fp: 'CRACK' }),
+    lunge: D('estocada', { av: 2.0, peso: 1.5, hs: 4, trk: 1.2, fp: 'THRUST' }), spin: D('giro', { esc: 1.0, av: 0.3, peso: 1.4, hs: 4, trk: 1.3, fp: 'SWEEP' }) },
+};
+/** Descriptor del melé de Shooter: por Huésped y kind (Huéspedes nuevos → MELEE_BASE). `cmb` = lugar en la cadena de ligeros (1..3); el 3.º es el remate (más peso). */
+export function animMelee(char, kind, { cmb = 1 } = {}) {
+  const T = ANIM_MELEE[char] || MELEE_BASE, k = MELEE_KINDS.includes(kind) ? kind : 'light';
+  let d = k === 'light' ? T.light[clamp3(cmb) - 1] || MELEE_BASE.light[0] : T[k] || MELEE_BASE[k];
+  d = { ...d, id: 'melee_' + k + (k === 'light' ? clamp3(cmb) : ''), char, propio: !!ANIM_MELEE[char], melee: true };
+  if (k === 'exec') { d.fin = true; d.peso = Math.max(d.peso, 2.2); }
+  return d;
+}
+const clamp3 = (n) => Math.max(1, Math.min(3, n | 0 || 1));
 /** Golpe «Caída» (en el aire, mirando abajo): un solo descriptor para todos. */
 export const ANIM_PLUNGE = D('caida', { av: 0.4, peso: 1.8, hs: 5, trk: 0.8, fp: 'SLAM' });
 // SINGULAR: ganchos que ARRASTRAN hacia adentro, giros que tiran de todo y mazazos de plomada

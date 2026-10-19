@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import { CHARACTERS } from '../sim/data.js';
 import { HOST_PAL } from './hostfx.js';
 import { cfg } from './quality.js';
-import { StrikePose, animDe, animHab } from './combo-anim.js';
+import { StrikePose, animDe, animHab, animMelee } from './combo-anim.js';
 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -76,9 +76,13 @@ export function createComboFx(renderer) {
     lastState = lastState || state;
     const beams = new Map(), blinks = new Map(), melee = new Map();
     for (const e of evs) { if (e.t === 'beam' && e.pid != null) beams.set(e.pid, e.to); else if (e.t === 'blink' && e.pid != null) blinks.set(e.pid, e.p); else if (e.t === 'melee' && e.pid != null) melee.set(e.pid, e); }
-    for (const e of evs) {
-      if (e.t !== 'combo' && e.t !== 'hab') continue;
-      const p = playerOf(state, e.pid); if (!p || p.md !== 1 || p.dead) continue;
+    // melé del modo SHOOTER: sin evento `combo`; el `melee` (kind + cmb) elige la pose. Si hubo ejecución y golpe normal en el mismo cuadro, manda el normal (la ejecución sólo pesa más).
+    const sh = new Map();
+    for (const e of evs) if (e.t === 'melee' && e.pid != null && !e.land) { const q = sh.get(e.pid); if (!q || (q.kind === 'exec' && e.kind !== 'exec')) sh.set(e.pid, { ...e, execAlso: !!(q && q.kind === 'exec') }); else if (e.kind === 'exec') q.execAlso = true; }
+    const todo = []; for (const e of evs) if (e.t === 'combo' || e.t === 'hab') todo.push(e);
+    for (const [pid, e] of sh) { const p = playerOf(state, pid); if (p && p.md !== 1) todo.push({ ...e, t: 'melee1' }); }
+    for (const e of todo) {
+      const p = playerOf(state, e.pid); if (!p || p.dead || (e.t !== 'melee1' && p.md !== 1) || !CHARACTERS[p.char] || !CHARACTERS[p.char].host) continue;
       const R = runOf(e.pid, p.char), h = V(p.h), up = V(p.up), self = e.pid === meId;
       if (e.t === 'hab') {
         const d = animHab(p.char, e.ph === 'cast' ? 'cast' : 'go'); if (e.ph === 'cast') R.pose.trigger(d); else { R.pose.release(); R.pose.trigger(d); }
@@ -86,18 +90,20 @@ export function createComboFx(renderer) {
       }
       // golpe
       if (R.cur && R.pose.arq && !R.pose.hit && !R.cur.hab) contact(R, state, true);   // el golpe anterior se cancela antes de su contacto: que igual se sienta
-      const fin = !!e.fin && (e.n | 0) >= 2, d = animDe(p.char, e.id, { fin, n: e.n | 0 }), ranged = !!(melee.size === 0 && beams.has(e.pid)) || d.a === 'arco' || d.a === 'carga' || d.a === 'apertura';
+      const m1 = e.t === 'melee1', fin = m1 ? (e.kind === 'exec' || e.execAlso || (e.kind === 'light' && e.cmb === 3)) : !!e.fin && (e.n | 0) >= 2;
+      const d = m1 ? { ...animMelee(p.char, e.kind, { cmb: e.cmb }), ...(fin ? { fin: true, peso: Math.max(1.9, animMelee(p.char, e.kind, { cmb: e.cmb }).peso * 1.2), hs: 5 } : {}) } : animDe(p.char, e.id, { fin, n: e.n | 0 });
+      const ranged = !m1 && !!(melee.size === 0 && beams.has(e.pid)) || d.a === 'arco' || d.a === 'carga' || d.a === 'apertura';
       const tg = targetOf(p, h, ranged ? 16 : 9), dist = tg ? tg.dist : 99, av = Math.max(0.1, d.av || 0);
       const reach = av <= 0.01 || d.av <= 0 ? 1 : (tg ? clamp((dist - 1.15) / av, 0, 1) : (e.hit ? 0.5 : 0.7));
       R.pose.trigger(d, { reach: ranged ? 0 : reach });
       R.cur = { d, e, p, tg, P: null, beam: beams.get(e.pid) || null, up, h, self, hits: e.hit | 0, ranged, fin };
-      R.n = e.n | 0; R.aliveUntil = renderer.t + 1.2;
+      R.n = m1 ? (e.cmb || 1) : e.n | 0; R.aliveUntil = renderer.t + 1.2;
       // giro visual hacia el objetivo (hasta ±0,7 rad, vuelve solo)
       if (tg) { _a.set(tg.m.p[0], tg.m.p[1], tg.m.p[2]).sub(V(p.pos)); const fw = _a.dot(h), sd = _a.dot(_b.crossVectors(up, h)); R.face = clamp(Math.atan2(sd, fw), -0.7, 0.7); } else R.face = 0; R.faceT = 0.5;
       // 1.ª persona propia: el viewmodel de hostfx-melee sólo reacciona a `melee`; las flechas de Seraf y la «Caída» no lo emiten, así que se le pide el golpe
-      if (self && !renderer.third && !melee.has(e.pid) && renderer.hostfx && renderer.hostfx.melee) renderer.hostfx.melee.play(d.peso >= 1.4 ? 'heavy' : 'light', { char: p.char, hit: e.hit | 0, keepCombo: true, u0: 0.15, fp: d.fp });
+      if (self && !renderer.third && !melee.has(e.pid) && !m1 && renderer.hostfx && renderer.hostfx.melee) renderer.hostfx.melee.play(d.peso >= 1.4 ? 'heavy' : 'light', { char: p.char, hit: e.hit | 0, keepCombo: true, u0: 0.15, fp: d.fp });
       // sonido del barrido (el del contacto va aparte)
-      if (sound && !(self && !renderer.third)) sound.melee(p.char, d.peso >= 1.4 ? 'heavy' : 'light', e.p || null, 0, d.peso >= 1.4);
+      if (sound && !(self && !renderer.third)) sound.melee(p.char, m1 && e.kind === 'exec' ? 'light' : d.peso >= 1.4 ? 'heavy' : 'light', e.p || null, 0, d.peso >= 1.4);
       // marcador del golpe en 3.ª persona: el teletransporte se ve como un arrastre (Umbra) en vez de un salto
       const bl = blinks.get(e.pid); if (bl && R.lastPos) blinkSlide(R, p, bl);
     }
@@ -154,7 +160,7 @@ export function createComboFx(renderer) {
 
   /** Cuadro de un jugador: avanza la pose y arma el contexto del cuerpo. Devuelve null si ese jugador no está en Combo. */
   function frameFor(pid, dt, p, state) {
-    if (!p || p.md !== 1) { runs.delete(pid); return null; }
+    if (!p || !CHARACTERS[p.char] || !CHARACTERS[p.char].host) { runs.delete(pid); return null; }
     const R = runOf(pid, p.char); R.stepped = frame; touched.add(pid);
     if (R.freeze > 0) { R.freeze = Math.max(0, R.freeze - dt); if (R.freeze > 0) return { anim: R.pose, freeze: R.freeze, freezeK: R.freezeK, face: R.face * clamp(R.faceT * 2, 0, 1) }; }
     const hit = R.pose.step(dt); if (hit && R.cur) contact(R, state || lastState);
@@ -169,7 +175,7 @@ export function createComboFx(renderer) {
     if (me) meId = me.id; lastState = state;
     for (const [pid, R] of runs) {
       if (R.stepped !== frame) { // sin cuerpo en pantalla (1.ª persona propia): el contacto sólo mueve el reloj y las sensaciones de cámara
-        const p = playerOf(state, pid); if (!p || p.md !== 1) { runs.delete(pid); continue; }
+        const p = playerOf(state, pid); if (!p || !CHARACTERS[p.char] || !CHARACTERS[p.char].host) { runs.delete(pid); continue; }
         if (R.freeze > 0) R.freeze = Math.max(0, R.freeze - dt); else { const hit = R.pose.step(dt); if (hit && R.cur) { if (pid === meId && !renderer.third) R.cur.done = true; else contact(R, state); } }
       }
     }
@@ -206,7 +212,7 @@ export function createComboFx(renderer) {
   return {
     ingest, frameFor, update, setSound(s) { sound = s; },
     /** hostfx-melee: ¿el `melee` de este jugador lo dibuja combo-fx? (Combo + (3.ª persona propia o de otro jugador)). */
-    owns(e, me, state) { const p = state && state.players.find((q) => q.id === e.pid); return !!(p && p.md === 1 && !(me && e.pid === me.id && !renderer.third)); },
+    owns(e, me, state) { const p = state && state.players.find((q) => q.id === e.pid); return !!(p && !e.land && CHARACTERS[p.char] && CHARACTERS[p.char].host && !(me && e.pid === me.id && !renderer.third)); },
     /** Golpe de 1.ª persona (nombre de keyframes de hostfx-melee) para el `combo` de este cuadro. */
     fpFor(pid) { const R = runs.get(pid); return R && R.cur && R.cur.d ? R.cur.d.fp || null : null; },
     lead(pid) { const R = runs.get(pid); return R && R.pose.w > 0 ? R.pose.off.fwd * 0.5 : 0; },

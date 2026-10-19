@@ -533,3 +533,12 @@ body:not(.touch-ui) #botin-prompt { bottom: 30%; }
 
 /* editor de botones: compacto en pantallas bajas, para que no tape los botones de la botonera nueva */
 @media (max-height: 460px) { .tc-edit { gap: 4px 10px; padding: 5px 10px; } .tc-edit span { display: none; } .tc-edit input[type=range] { width: 64px; } .tc-edit button { min-height: 34px; padding: 0 12px; } }
+/* Melé (táctil): el combo se lee de un vistazo — contador grande, nombre COMPLETO del golpe, barra de la ventana y rango debajo */
+body.touch-ui #combohud, body.touch-ui.cam3 #combohud { right: calc(env(safe-area-inset-right, 0px) + 14px); top: calc(env(safe-area-inset-top, 0px) + 50px); max-width: min(210px, 30vw); padding: 4px 10px 6px; border-radius: 12px; background: #0c0822b8; border: 2px solid #ffd23f; box-shadow: 0 0 16px #ffd23f66; text-align: right; }
+body.touch-ui #combohud b { font-size: 36px; line-height: 1; text-shadow: 0 0 12px #ffd23f, 0 0 3px #000; } body.touch-ui #combohud b i { font-size: 13px; letter-spacing: .12em; }
+body.touch-ui #combohud small { font-size: 13px; font-weight: 800; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.15; color: #fff; }
+body.touch-ui #combohud u { width: 100%; max-width: none; height: 6px; margin: 4px 0 0; }
+body.touch-ui #estilohud, body.touch-ui.cam3 #estilohud { right: calc(env(safe-area-inset-right, 0px) + 14px); top: calc(env(safe-area-inset-top, 0px) + 112px); width: auto; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 10px; background: #0c0822b8; text-align: left; }
+body.touch-ui #estilohud b { font-size: 26px; display: inline; } body.touch-ui #estilohud small { font-size: 11px; font-weight: 800; } body.touch-ui #estilohud u { display: none; }
+body.touch-ui #combohud b { font-size: 30px; white-space: nowrap; } body.touch-ui #combohud b i { margin-left: 3px; }
+body.touch-ui #estilohud, body.touch-ui.cam3 #estilohud { top: calc(env(safe-area-inset-top, 0px) + 130px); }
