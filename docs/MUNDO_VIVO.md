@@ -204,3 +204,6 @@ Cada arena tiene SU fauna: bichos psicodélicos (3 por arena + 2 raras) que duer
 
 ## Flora interactiva y vegetación psicodélica (dueño, 2026-10-20)
 Las arenas también tienen **plantas vivas** (22 especies: 3 por arena + 4 raras) que curan, muerden, atrapan, envenenan, reflejan disparos o arden, con aviso ≥ 1 s, estados (brote → madura → marchita → rebrota), cadenas elementales (fuego se propaga, hielo congela y rompe, niebla ácida marchita, niebla cian hace florecer), riego de los órganos vivos y de los eventos de oleada (Lluvia, Eclipse, Aurora), interacción con la fauna y **cosecha con USAR** (materiales vegetales → sets y consumibles de jardín, Herbario con hitos). Módulo `src/sim/flora.js` (rng propio `g.flRng`, snapshot `fl`, eventos `flora`). Todo el diseño, las tablas y el contrato (incluido el de la Base) están en `docs/FLORA.md`.
+
+## La Base — el hub del limbo (2026-10-20)
+Entre partidas hay un mapa-hub caminable, **«El Santuario»**, sin oleadas ni enemigos: la Guía, el Cambista, el Herrero y la Sanadora (los mismos humanos espectrales de este documento, pero fijos en sus puestos) y estaciones que abren las pantallas de siempre. Ver **docs/BASE.md** (plano, estaciones, jardín, presupuesto de dibujo y lo no probado).

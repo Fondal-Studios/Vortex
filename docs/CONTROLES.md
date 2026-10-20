@@ -125,3 +125,6 @@ Inicio = botón grande **Continuar / Jugar** (retoma lo último que jugaste: His
 - **Ayuda breve**: cada puerta y tarjeta muestra una línea de qué hace (y la repite como `title` al pasar el mouse).
 - **Puntitos rojos**: botín nuevo, puntos de progresión sin gastar, Huésped comprable, stock nuevo en la Tienda, bendición para elegir, territorio recién abierto. Se calculan del perfil (`src/client/menu-nav.js → avisos`), no se guardan aparte (salvo «inventario visto» y «stock visto» en `perfil.menu`).
 - Los ids de siempre se conservan (`#huesped`, `#inventario`, `#evolucion`, `#loadout`, `#graficos`, `#options`, `#modeitem`…): sólo cambió dónde se llega a ellos. Código: `src/client/menu-hubs.js` (dibujo), `menu-nav.js` (mapa, avisos, ruta), `ui.js` (navegación), `public/menu.css`.
+
+## En la Base (2026-10-20)
+En el mapa-hub «El Santuario» (docs/BASE.md) los controles de movimiento y cámara son los de siempre; **USAR / E** interactúa con la estación o el personaje que tengas cerca (el cartel de abajo lo dice). **No hay armas**: disparo, habilidades y modo Melé quedan apagados (la simulación los ignora) y en táctil sólo se ven palanca, salto, USAR y pausa. Los mini-menús de las estaciones se eligen con 1 / 2 / 3 (o tocando) y se cierran con Esc / E. Desde cualquier pantalla abierta en la Base, **Volver** o Esc te devuelve al mapa.

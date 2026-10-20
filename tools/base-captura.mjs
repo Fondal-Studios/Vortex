@@ -29,10 +29,9 @@ const medidas = [];
 for (const [nombre, v] of Object.entries(VISTAS)) {
   if (only.length && !only.includes(nombre)) continue;
   await pg.evaluate((v) => { const g = window.__session.game, p = g.players[0], a = v.rumbo * Math.PI / 180; p.pos.x = v.x; p.pos.z = v.z; p.pos.y = 0.9; p.vel = { x: 0, y: 0, z: 0 }; p.heading = { x: Math.sin(a), y: 0, z: -Math.cos(a) }; p.pitch = 0.05; window.__renderer.camInit = false; }, v);
-  // (la capa del Huésped es una tela con física: al «teletransportar» a la cámara de la vista se estira como un palo; se rehace el cuerpo para fotografiarlo normal)
-  await pg.evaluate(() => { const r = window.__renderer, id = window.__session.pid, e = r.ents.ply.get(id); if (e) { r.entRoot.remove(e.object); r.ents.ply.delete(id); } });
-  await pg.waitForFunction(() => { const e = [...window.__renderer.ents.ply.values()][0]; return e && e.body && e.body.isReady; }, null, { timeout: 120000, polling: 500 }).catch(() => {});
-  await pg.waitForTimeout(1500);
+  // (la capa del Huésped es una tela con física: al «teletransportar» a la cámara de la vista se estira como un palo hasta que se asienta; se avanzan cuadros hasta que lo hace)
+  await pg.evaluate(() => { for (let i = 0; i < 36; i++) window.__step(100); });
+  await pg.waitForTimeout(800);
   const m = await pg.evaluate(() => {
     const r = window.__renderer, info = r.gl.info, uno = () => new Promise((ok) => requestAnimationFrame(() => { info.reset(); window.__step(16); ok({ calls: info.render.calls, tris: info.render.triangles }); }));
     return (async () => {

@@ -65,25 +65,33 @@ Los capullos de los Huéspedes y las cubas se actualizan solos cada ~0,4 s desde
 
 ## Presupuesto de dibujo (Baja)
 
-Medido con `renderer.info` en Chromium por software (`node tools/base-captura.mjs shots/base low`, una vista tras otra; el cuadro incluye el post-proceso). Objetivo: **escenario ≤ 60 llamadas y ≤ 40 000 triángulos; el Huésped aparte ≤ 45 / 20 000**.
+Medido con `renderer.info` en Chromium por software (`node tools/base-captura.mjs shots/base low`, una vista tras otra; cada cuadro incluye el post-proceso). Objetivo: **escenario ≤ 60 llamadas y ≤ 40 000 triángulos; el Huésped aparte ≤ 45 / 20 000**. El desglose oculta por turnos los NPC y el Huésped.
 
-| Baja (15 vistas) | llamadas | triángulos |
-|---|---|---|
-| Sólo el mapa (suelo, muros, props, cubas, carteles, cielo…) | 27 | 20 181 |
-| Escenario + los 4 NPC humanos | 47 | 35 555 |
-| Cuadro entero (+ Huésped en 3.ª persona + efectos) | 93 | 57 819 |
-| Huésped (cuadro − escenario) | ≈ 46 | ≈ 22 300 |
+| Baja, máximo de 15 vistas | llamadas | triángulos | presupuesto |
+|---|---|---|---|
+| Sólo el mapa (suelo, muros, props, cubas, carteles, cielo…) | 27 | 22 641 | |
+| 4 NPC (figuras fusionadas «livianas») | 12 | 1 264 | |
+| **Escenario = mapa + NPC** | **39** | **23 905** | ≤ 60 / ≤ 40 000 ✔ |
+| **Huésped** (3.ª persona, armadura, aura) | **20** | **15 374** | ≤ 45 / ≤ 20 000 ✔ |
+| Cuadro entero (todo junto) | 59 | 39 279 | |
 
-Cumple el escenario (47/35,6 k). El Huésped queda **apenas por encima** de su presupuesto (46 vs 45 llamadas, 22,3 k vs 20 k): es el cuerpo unificado de `huesped-cuerpo.js`, no la Base, y se mide igual en cualquier arena.
-**Media/Alta** suman detalle (más costillas y luces puntuales, halos, más motas, bloom contenido) y el tope pasa de ~27 a ~40 llamadas de mapa (28 k triángulos); en Alta los humanos (NPC y Huésped) son de alta resolución, así que el cuadro completo supera 390 k triángulos: ahí no hay presupuesto propuesto.
-`tests/base-render.test.js` vuelve a medir y falla si el escenario de Baja pasa de 60 / 40 000.
+`tests/base-render.test.js` vuelve a medir (mapa + NPC, con el cuerpo del Huésped oculto) y falla si Baja pasa de 60 / 40 000 (mide 39 / 23 905).
+**Por qué NPC livianos en Baja**: los humanos de Arcanum cuestan ~11 llamadas y ~5 000 triángulos cada uno (con los 4 a la vista, el escenario pasaba de 89 llamadas y 69 000 triángulos). En Baja `env/base.js` registra `objects.npcLite` (una figura fusionada de túnica + cabeza + prop de su oficio, 3 llamadas con su aro de luz) y `objects.js › buildNpc` la usa; en **Media/Alta** los NPC son los humanos espectrales de siempre.
+**Media/Alta** suman detalle: más costillas-arco, más luces de relleno (2 luces puntuales cálidas, 4+ rayos de luz), halos, más motas y burbujas, y el bloom se contiene (`strength ≤ 0,22`, umbral 1,05) porque la misma luz lavaba la imagen y el Huésped dejaba de leerse. Medido en Alta (sin presupuesto propuesto): sólo el mapa 40 llamadas / 28 184 triángulos; los humanos de alta resolución pesan mucho (los 4 NPC juntos ≈ 107 llamadas y 282 000 triángulos; el Huésped ≈ 27 llamadas y 90 000), así que el cuadro entero llega a 174 llamadas y 400 000 triángulos. Es un costo de los humanos de Arcanum en Alta, igual en cualquier arena con NPC; si hiciera falta, la salida es usar los NPC livianos también en Media.
 
-Mecanismo: dos mallas fusionadas (sólido con luz + brillo sin luz), instanciado (`InstancedMesh`) para cubas, capullos, macetas, gemas y vidrios, **un atlas** con los 9 carteles y los puntitos, y un shader de suelo sin luz. Luz del Renderer (hemisférica + sol + contraluz) + la luz de relleno del Huésped; en Media/Alta se baja la luz y se contiene el bloom porque la misma luz lavaba la imagen.
+Mecanismo: dos mallas fusionadas (sólido con luz + brillo sin luz), `InstancedMesh` para cubas, capullos, macetas, gemas y vidrios, **un atlas** con los 9 carteles y los puntitos, un shader de suelo sin luz y luz del Renderer (hemisférica + sol + contraluz) más la luz de relleno del Huésped.
 
 ## Legibilidad (`tools/legibilidad.mjs`)
 
 `node tools/legibilidad.mjs shots/leg-base low,high base normal`. Criterio: ratio WCAG ≥ 1,5 **o** ΔE ≥ 30 entre la silueta del Huésped y su fondo.
-Baja: **ratio 4,08, ΔE 52 → OK** (cuerpo oscuro sobre piso claro violeta/azul; luma media de la imagen 167, saturación 0,32). Alta: ver el resultado en «Probado / no probado».
+Medido en 960×720 con el Huésped de siempre (Axioma, evolución 0, Claridad Normal):
+
+| Calidad | ratio (cuerpo) | ratio (borde) | ΔE | luma de la imagen | saturación |
+|---|---|---|---|---|---|
+| Baja | **4,08** | 2,73 | **52** | 167 | 0,32 |
+| Alta | **4,77** | 2,91 | **58** | 156 | 0,34 |
+
+Legible en las dos (cuerpo oscuro sobre piso violeta/azul claro). Los enemigos que la herramienta siembra para medir (no hay en la Base) también pasan.
 
 ## Probado / no probado
 
@@ -98,3 +106,11 @@ Capturas reales con Chromium por software en 1280×720 y 844×390, Baja y Alta (
 - **Polígono**: reusa el Campo de pruebas existente (sale de la Base: al terminar, Menú › Jugar › La Base). Los maniquíes de la Base son decorado; el medidor de daño no está.
 - Los capullos muestran una silueta de alma por Huésped (no su modelo 3D completo): el Huésped elegido es tu propio personaje, visible en 3.ª persona.
 - Se puede salir de la Base sin guardar nada: no tiene partida (`bankProfile` la ignora), sólo el perfil de siempre.
+
+## Notas para quien siga
+
+- **Capturas**: `shots/base/*.jpg` (Baja 1280×720 y 844×390, Alta 1280×720 a resolución interna 0,6) salen de `node tools/base-captura.mjs shots/base low 1280 720 --jpg` (y `high … --pr=0.6`, `low 844 390 --hud`). La capa del Huésped es una tela con física: al «teletransportar» a la cámara de cada vista se estira como un palo; la herramienta avanza cuadros hasta que se asienta (si en una captura vieja ves un palo negro largo, es eso, no un arma).
+- **Aviso de consola** `toNonIndexed(): already non-indexed` en Baja y Alta: viene de `flora-fx.js` (la flora de las arenas), no de la Base.
+- **Pruebas de otros agentes que fallan hoy por su trabajo en curso** (no tocan la Base): `tests/hud.test.js` (HUD de partida y desborde del Bestiario) y `tests/huespedes-ui.test.js` (texto cortado con los Huéspedes nuevos).
+- Los capullos y las cubas leen el perfil cada ~0,4 s (`session.datosT` en `main.js › baseFrame`); `onCambio` del HUD fuerza una lectura inmediata tras sembrar o cosechar.
+- Para sumar una estación: agregarla a `ESTACIONES` (posición, rango, color, `pantalla` / `acciones` / `panel` / `accion`), una cobertura con su `kind` en `COVERS`, su dibujo en `env/base.js` (un `else if (k === …)`) y, si debe avisar, su clave en `avisosEstaciones`. Las pruebas de `tests/base.test.js` verifican solas que sea alcanzable caminando y que su pantalla exista.
