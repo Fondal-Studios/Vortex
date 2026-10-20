@@ -1,5 +1,5 @@
 // Capturas reales de LA BASE (docs/BASE.md) con Chromium por software, y medición de llamadas de dibujo / triángulos con renderer.info.
-// Uso: node tools/base-captura.mjs [carpeta=shots/base] [calidad=low] [ancho=1280] [alto=720] [--solo=vista1,vista2] [--hud] [--pr=0.5]
+// Uso: node tools/base-captura.mjs [carpeta=shots/base] [calidad=low] [ancho=1280] [alto=720] [--solo=vista1,vista2] [--hud] [--jpg] [--pr=0.5]
 // (--pr = resolución interna: en Alta por software conviene 0.5; las medidas de llamadas y triángulos no dependen de ella)
 // Cada vista = { x, z, rumbo } (rumbo en grados: 0 mira al norte, 90 al este). Por vista imprime el cuadro entero y su desglose: mapa, NPC y Huésped (se ocultan por turnos).
 import fs from 'node:fs';
@@ -7,7 +7,7 @@ import { launch } from './browser.js';
 import { startServer } from '../server/server.js';
 const args = process.argv.slice(2), pos = args.filter((a) => !a.startsWith('--'));
 const OUT = pos[0] || 'shots/base', Q = pos[1] || 'low', W = +pos[2] || 1280, H = +pos[3] || 720;
-const PR = (args.find((a) => a.startsWith('--pr=')) || '').slice(5), only = (args.find((a) => a.startsWith('--solo=')) || '').slice(7).split(',').filter(Boolean), conHud = args.includes('--hud'), sinCuerpo = args.includes('--sin-cuerpo');
+const PR = (args.find((a) => a.startsWith('--pr=')) || '').slice(5), only = (args.find((a) => a.startsWith('--solo=')) || '').slice(7).split(',').filter(Boolean), conHud = args.includes('--hud'), jpg = args.includes('--jpg');
 fs.mkdirSync(OUT, { recursive: true });
 export const VISTAS = {
   entrada: { x: 0, z: 36, rumbo: 0 }, hub: { x: 0, z: 10, rumbo: 0 }, mesa: { x: 0, z: 6, rumbo: 0 },
@@ -29,7 +29,10 @@ const medidas = [];
 for (const [nombre, v] of Object.entries(VISTAS)) {
   if (only.length && !only.includes(nombre)) continue;
   await pg.evaluate((v) => { const g = window.__session.game, p = g.players[0], a = v.rumbo * Math.PI / 180; p.pos.x = v.x; p.pos.z = v.z; p.pos.y = 0.9; p.vel = { x: 0, y: 0, z: 0 }; p.heading = { x: Math.sin(a), y: 0, z: -Math.cos(a) }; p.pitch = 0.05; window.__renderer.camInit = false; }, v);
-  await pg.waitForTimeout(2200);
+  // (la capa del Huésped es una tela con física: al «teletransportar» a la cámara de la vista se estira como un palo; se rehace el cuerpo para fotografiarlo normal)
+  await pg.evaluate(() => { const r = window.__renderer, id = window.__session.pid, e = r.ents.ply.get(id); if (e) { r.entRoot.remove(e.object); r.ents.ply.delete(id); } });
+  await pg.waitForFunction(() => { const e = [...window.__renderer.ents.ply.values()][0]; return e && e.body && e.body.isReady; }, null, { timeout: 120000, polling: 500 }).catch(() => {});
+  await pg.waitForTimeout(1500);
   const m = await pg.evaluate(() => {
     const r = window.__renderer, info = r.gl.info, uno = () => new Promise((ok) => requestAnimationFrame(() => { info.reset(); window.__step(16); ok({ calls: info.render.calls, tris: info.render.triangles }); }));
     return (async () => {
@@ -37,7 +40,7 @@ for (const [nombre, v] of Object.entries(VISTAS)) {
       r.objects.root.visible = true; r.entRoot.visible = true; return { todo, sinNpc, mapa };
     })();
   });
-  await pg.screenshot({ path: `${OUT}/${nombre}-${Q}-${W}x${H}.png`, timeout: 180000 });
+  await pg.screenshot({ path: `${OUT}/${nombre}-${Q}-${W}x${H}.${jpg ? 'jpg' : 'png'}`, timeout: 180000, ...(jpg ? { type: 'jpeg', quality: 82 } : {}) });
   const npc = { calls: m.todo.calls - m.sinNpc.calls, tris: m.todo.tris - m.sinNpc.tris }, hue = { calls: m.sinNpc.calls - m.mapa.calls, tris: m.sinNpc.tris - m.mapa.tris }, esc = { calls: m.mapa.calls + npc.calls, tris: m.mapa.tris + npc.tris };
   medidas.push({ vista: nombre, calls: m.todo.calls, tris: m.todo.tris, esc, mapa: m.mapa, hue, npc }); console.log(`${nombre.padEnd(10)} [${Q}] cuadro ${m.todo.calls}/${m.todo.tris} · escenario (mapa+NPC) ${esc.calls}/${esc.tris} [mapa ${m.mapa.calls}/${m.mapa.tris} + NPC ${npc.calls}/${npc.tris}] · Huésped ${hue.calls}/${hue.tris} (llamadas/triángulos)`);
 }

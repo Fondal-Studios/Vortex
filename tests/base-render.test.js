@@ -31,6 +31,8 @@ test('La Base en Baja: presupuesto, estaciones que abren sus pantallas, jardín,
   const usar = async () => { const n = await usos(); await pg.keyboard.down('KeyE'); await pg.waitForFunction((n0) => { const b = window.__session.game.base; return Object.values(b.visitas).reduce((x, y) => x + y, 0) + Object.values(b.habla).reduce((x, y) => x + y, 0) > n0; }, n, { timeout: 45000, polling: 100 }).catch(() => {}); await pg.keyboard.up('KeyE'); await pg.waitForFunction(() => { const p = window.__session.game.players[0]; return !p.input.interact && !p.interactPrev; }, null, { timeout: 15000, polling: 100 }).catch(() => {}); await pg.waitForTimeout(300); };
   const pantalla = () => pg.evaluate(() => ({ menu: !document.getElementById('menu').classList.contains('hidden'), screen: window.__ui.screen, tab: window.__ui.iv && window.__ui.iv.tab, abierta: window.__session.menuAbierto, panel: !document.getElementById('bhpanel').hidden && window.__ui && document.getElementById('bhpanel').querySelector('h3') ? document.getElementById('bhpanel').querySelector('h3').textContent : '' }));
   const esperar = async (screen) => { await pg.waitForFunction((n) => !document.getElementById('menu').classList.contains('hidden') && window.__ui.screen === n, screen, { timeout: 60000, polling: 500 }).catch(() => {}); return pantalla(); };
+  // (la capa del Huésped es una tela con física: tras «teletransportar» se estira como un palo; para las capturas se rehace el cuerpo)
+  const repo = async () => { await pg.evaluate(() => { const r = window.__renderer, id = window.__session.pid, e = r.ents.ply.get(id); if (e) { r.entRoot.remove(e.object); r.ents.ply.delete(id); } }); await pg.waitForFunction(() => { const e = [...window.__renderer.ents.ply.values()][0]; return e && e.body && e.body.isReady; }, null, { timeout: 120000, polling: 500 }).catch(() => {}); await pg.waitForTimeout(1200); };
   const volver = async () => { await pg.evaluate(() => window.__ui.back()); await pg.waitForTimeout(400); };
 
   // tutorial de la primera visita: se cierra y queda marcado en el perfil
@@ -51,7 +53,7 @@ test('La Base en Baja: presupuesto, estaciones que abren sus pantallas, jardín,
   assert.ok(mx.calls <= PRESUPUESTO.calls, `llamadas ${mx.calls}`); assert.ok(mx.tris <= PRESUPUESTO.tris, `triángulos ${mx.tris}`);
 
   // HUD mínimo: saldo, objetivo sugerido y los tres botones
-  await tp(0, 30, 0); await pg.waitForTimeout(900);
+  await tp(0, 30, 0); await repo(); await pg.waitForTimeout(900);
   const hud = await pg.evaluate(() => ({ saldo: document.getElementById('bhcores').textContent, obj: document.getElementById('bhobj').textContent, btns: ['bhjugar', 'bhmenu', 'bhsalir'].map((id) => !!document.getElementById(id)), hudCombate: getComputedStyle(document.getElementById('hud')).display }));
   assert.match(hud.saldo, /núcleos/); assert.match(hud.obj, /Objetivo/); assert.deepEqual(hud.btns, [true, true, true]); assert.equal(hud.hudCombate, 'none', 'el HUD de partida no se muestra en la Base');
   await pg.screenshot({ path: `${OUT}/base-hud-1280x720.png` });
@@ -94,8 +96,8 @@ test('La Base en Baja: presupuesto, estaciones que abren sus pantallas, jardín,
   await pg.evaluate(async () => { const P = await import('/src/client/perfil.js'), it = Object.keys((await import('/src/sim/items.js')).ITEMS)[0]; P.perfil().cultivo = { item: it, listo: Date.now() - 1000, dur: 60, q: 0.5 }; P.guardar(); });
   await pg.waitForFunction(() => { const d = window.__renderer.baseFx.datos; return d.avisos && d.avisos.forja === 1; }, null, { timeout: 30000, polling: 250 }).catch(() => {});
   const cuba = await pg.evaluate(() => { const d = window.__renderer.baseFx.datos, a = d.avisos || {}; return { aviso: a.forja, prog: d.cultivo && d.cultivo.prog }; }); assert.equal(cuba.aviso, 1); assert.equal(cuba.prog, 1);
-  await tp(0, -24, 0); await pg.waitForTimeout(1500); await pg.screenshot({ path: `${OUT}/base-forja-lista-1280x720.png` });
-  await tp(0, 12, 0); await pg.waitForTimeout(1500); await pg.screenshot({ path: `${OUT}/base-hub-1280x720.png` });
+  await tp(0, -24, 0); await repo(); await pg.waitForTimeout(1500); await pg.screenshot({ path: `${OUT}/base-forja-lista-1280x720.png` });
+  await tp(0, 12, 0); await repo(); await pg.waitForTimeout(1500); await pg.screenshot({ path: `${OUT}/base-hub-1280x720.png` });
 
   // el panel de combate del Huésped no actúa: disparar y habilidades no producen proyectiles
   await pg.evaluate(() => { window.__api.session.game.setInput(1, { fire: true, ability: true, mov: true }); });
@@ -103,11 +105,11 @@ test('La Base en Baja: presupuesto, estaciones que abren sus pantallas, jardín,
   assert.equal(await pg.evaluate(() => window.__session.game.projectiles.length), 0);
 
   // móvil apaisado 844×390: HUD legible, sin desbordes
-  await pg.setViewportSize({ width: 844, height: 390 }); await tp(0, 12, 0); await pg.waitForTimeout(2500);
-  const caja = await pg.evaluate(() => { const r = document.querySelector('.bh-top').getBoundingClientRect(), b = [...document.querySelectorAll('.bh-btn')].map((e) => e.getBoundingClientRect()); return { w: innerWidth, right: r.right, alto: r.height, btnMin: Math.min(...b.map((x) => x.height)), fuera: b.some((x) => x.right > innerWidth + 1 || x.left < -1), scroll: document.documentElement.scrollWidth > innerWidth + 1 }; });
+  await pg.setViewportSize({ width: 844, height: 390 }); await tp(0, 12, 0); await repo(); await pg.waitForTimeout(1500);
+  const caja = await pg.evaluate(() => { const r = document.querySelector('.bh-top').getBoundingClientRect(), b = [...document.querySelectorAll('.bh-btns .bh-btn')].map((e) => e.getBoundingClientRect()); return { w: innerWidth, right: r.right, alto: r.height, btnMin: Math.min(...b.map((x) => x.height)), fuera: b.some((x) => x.right > innerWidth + 1 || x.left < -1), scroll: document.documentElement.scrollWidth > innerWidth + 1 }; });
   assert.ok(!caja.fuera && !caja.scroll, JSON.stringify(caja)); assert.ok(caja.btnMin >= 36, 'botones tocables'); assert.ok(caja.alto < 130, 'la barra de arriba no tapa media pantalla: ' + caja.alto);
   await pg.screenshot({ path: `${OUT}/base-hud-844x390.png` });
-  await tp(0, -24, 0); await pg.waitForTimeout(1800); await pg.screenshot({ path: `${OUT}/base-forja-844x390.png` });
+  await tp(0, -24, 0); await repo(); await pg.waitForTimeout(1200); await pg.screenshot({ path: `${OUT}/base-forja-844x390.png` });
   await tp(26, -17, 0); await usar(); await pg.screenshot({ path: `${OUT}/base-jardin-844x390.png` });
   const panel = await pg.evaluate(() => { const r = document.getElementById('bhpanel').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: r.height }; }); assert.ok(panel.h <= 390 && panel.top >= -1 && panel.bottom <= 391, 'el panel del jardín cabe en 844×390: ' + JSON.stringify(panel));
 
