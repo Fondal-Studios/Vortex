@@ -78,12 +78,12 @@ test('La Base en Baja: presupuesto, estaciones que abren sus pantallas, jardín,
   await pg.evaluate(async () => { const P = await import('/src/client/perfil.js'); P.perfil().cores = 500; P.guardar(); });
   await tp(26, -17, 0); await usar(); s = await pantalla(); assert.match(s.panel, /Jardín/);
   await pg.screenshot({ path: `${OUT}/base-jardin-panel-1280x720.png` });
-  await pg.click('[data-s="0"]'); await pg.waitForTimeout(300);
+  await pg.click('#bhpanel [data-s="0"]'); await pg.waitForTimeout(300);
   const sem = await pg.evaluate(async () => { const P = await import('/src/client/perfil.js'); const j = P.jardinEstado()[0]; return { estado: j.estado, cores: P.perfil().cores, planta: j.planta && j.planta.id, mat: j.planta && j.planta.mat }; });
   assert.equal(sem.estado, 'crece'); assert.ok(sem.cores < 500);
   const antes = await pg.evaluate(async ([m]) => (await import('/src/client/perfil.js')).stockMin(m, 0), [sem.mat]);
   await pg.evaluate(async () => { const P = await import('/src/client/perfil.js'); P.perfil().base.jardin[0].t0 -= 3 * 3600 * 1000; });   // «pasaron 3 horas»
-  await pg.waitForSelector('[data-c="0"]', { timeout: 5000 }); await pg.click('[data-c="0"]'); await pg.waitForTimeout(300);
+  await pg.waitForSelector('#bhpanel [data-c="0"]', { timeout: 30000 }); await pg.click('#bhpanel [data-c="0"]'); await pg.waitForTimeout(300);
   const desp = await pg.evaluate(async ([m]) => { const P = await import('/src/client/perfil.js'); return { n: P.stockMin(m, 0), estado: P.jardinEstado()[0].estado }; }, [sem.mat]);
   assert.ok(desp.n > antes, 'la cosecha suma materiales'); assert.equal(desp.estado, 'vacia');
   await pg.keyboard.press('Escape'); await pg.waitForTimeout(300);
@@ -92,7 +92,7 @@ test('La Base en Baja: presupuesto, estaciones que abren sus pantallas, jardín,
   await tp(5, 24, 0); await usar();
   const frase = await pg.evaluate(() => { const e = document.getElementById('bhhabla'); return { on: e.classList.contains('on'), t: e.textContent }; }); assert.ok(frase.on && /Guía/.test(frase.t) && frase.t.length < 200, frase.t);
   await pg.evaluate(async () => { const P = await import('/src/client/perfil.js'), it = Object.keys((await import('/src/sim/items.js')).ITEMS)[0]; P.perfil().cultivo = { item: it, listo: Date.now() - 1000, dur: 60, q: 0.5 }; P.guardar(); });
-  await pg.waitForTimeout(1600);
+  await pg.waitForFunction(() => { const d = window.__renderer.baseFx.datos; return d.avisos && d.avisos.forja === 1; }, null, { timeout: 30000, polling: 250 }).catch(() => {});
   const cuba = await pg.evaluate(() => { const d = window.__renderer.baseFx.datos, a = d.avisos || {}; return { aviso: a.forja, prog: d.cultivo && d.cultivo.prog }; }); assert.equal(cuba.aviso, 1); assert.equal(cuba.prog, 1);
   await tp(0, -24, 0); await pg.waitForTimeout(1500); await pg.screenshot({ path: `${OUT}/base-forja-lista-1280x720.png` });
   await tp(0, 12, 0); await pg.waitForTimeout(1500); await pg.screenshot({ path: `${OUT}/base-hub-1280x720.png` });

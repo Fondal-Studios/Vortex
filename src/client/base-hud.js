@@ -117,7 +117,7 @@ export function createBaseHud(opts = {}) {
         <p class="bh-sel">${esc(P.texto)} Rinde <b>${P.n} × ${esc(MATERIALS[P.mat].name)}</b>.</p>
         <div class="bh-jar">${est.map((m, i) => {
           if (m.estado === 'vacia') return `<div class="bh-mac"><b>Maceta ${i + 1}</b><span>vacía</span><button class="bh-btn" type="button" data-s="${i}" ${p.cores < P.costo ? 'disabled style="opacity:.55"' : ''}>Sembrar ${esc(P.nombre)}</button></div>`;
-          if (m.estado === 'crece') return `<div class="bh-mac"><b>${esc(m.planta.nombre)}</b><span>crece… faltan ${mmss(m.faltan)}</span><div class="bar"><i style="width:${Math.round(m.prog * 100)}%"></i></div><span>Dará ${m.planta.n} × ${esc(MATERIALS[m.planta.mat].name)}</span></div>`;
+          if (m.estado === 'crece') return `<div class="bh-mac"><b>${esc(m.planta.nombre)}</b><span data-t="${i}">crece… faltan ${mmss(m.faltan)}</span><div class="bar"><i data-b="${i}" style="width:${Math.round(m.prog * 100)}%"></i></div><span>Dará ${m.planta.n} × ${esc(MATERIALS[m.planta.mat].name)}</span></div>`;
           return `<div class="bh-mac lista"><b>${esc(m.planta.nombre)}</b><span>¡Lista!</span><button class="bh-btn" type="button" data-c="${i}">Cosechar ${m.planta.n} × ${esc(MATERIALS[m.planta.mat].name)}</button></div>`;
         }).join('')}</div><div class="bh-acc" style="margin-top:10px"><button class="bh-btn" type="button" data-x="1">Cerrar (Esc)</button></div>`;
       const pn = $('bhpanel'); pn.innerHTML = html;
@@ -126,7 +126,14 @@ export function createBaseHud(opts = {}) {
       pn.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { const r = Perfil.cosechar(+b.dataset.c); toast(r.ok ? `Cosechaste ${r.n} × ${MATERIALS[r.mat].name}` : r.motivo); snd(r.ok ? 'ok' : 'back'); opts.onCambio && opts.onCambio(); draw(); }));
       pn.querySelector('[data-x]').addEventListener('click', () => { snd('back'); H.cerrarPanel(); });
     };
-    abrirPanel('jardin', '', null); draw(); clearInterval(H.jardinT); H.jardinT = setInterval(() => { if (H.open === 'jardin') draw(); else clearInterval(H.jardinT); }, 1000);
+    // cada segundo sólo se actualizan los textos y las barras (si se redibujara todo, un clic a mitad de camino se perdería); se redibuja entera si una maceta cambió de estado o de núcleos
+    const firma = () => Perfil.jardinEstado().map((m) => m.estado).join() + '|' + Perfil.perfil().cores;
+    abrirPanel('jardin', '', null); draw(); let ult = firma(); clearInterval(H.jardinT);
+    H.jardinT = setInterval(() => {
+      if (H.open !== 'jardin') return clearInterval(H.jardinT);
+      const f = firma(); if (f !== ult) { ult = f; return draw(); }
+      const pn = $('bhpanel'); Perfil.jardinEstado().forEach((m, i) => { const t = pn.querySelector(`[data-t="${i}"]`), b = pn.querySelector(`[data-b="${i}"]`); if (t) t.textContent = `crece… faltan ${mmss(m.faltan)}`; if (b) b.style.width = `${Math.round(m.prog * 100)}%`; });
+    }, 1000);
   };
 
   /* ── tutorial ── */

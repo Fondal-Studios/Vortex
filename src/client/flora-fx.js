@@ -138,7 +138,7 @@ const MOTE_VERT = `
 const MOTE_FRAG = `uniform float uLin; varying vec3 vC; varying float vA; void main(){ float d = length(gl_PointCoord - 0.5) * 2.0; float a = smoothstep(1.0, 0.2, d) * vA; if (a < 0.02) discard; vec3 c = vC * 1.3; if (uLin > 0.5) c = pow(c, vec3(2.2)); gl_FragColor = vec4(c * a, a); }`;
 const CLOUD_VERT = `
   attribute float aId; uniform vec4 uA[${NCL}], uB[${NCL}]; varying vec3 vP, vNs, vView; varying float vK, vT, vF;
-  void main(){ int i = int(aId + 0.5); vec4 c = uA[i]; vec4 b = uB[i]; vec3 wp = c.xyz + position * c.w; vP = position; vK = b.y; vT = b.x; vNs = normalize(position); vF = c.w; vView = normalize(cameraPosition - wp);
+  void main(){ int i = int(aId + 0.5); vec4 c = uA[i]; vec4 b = uB[i]; vec3 wp = c.xyz + position * c.w * 1.14; vP = position; vK = b.y; vT = b.x; vNs = normalize(position); vF = c.w; vView = normalize(cameraPosition - wp);
     gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0); }`;
 const CLOUD_FRAG = `
   uniform float uTime, uLin; varying vec3 vP, vNs, vView; varying float vK, vT, vF;
@@ -148,7 +148,7 @@ const CLOUD_FRAG = `
     float sw = 0.5 + 0.5 * sin(vP.x * 4.0 + vP.y * 6.0 - uTime * 1.2 + sin(vP.z * 3.0 + uTime * 0.6) * 2.0);
     vec3 col = vT < 0.5 ? mix(vec3(0.55, 0.15, 0.9), vec3(0.78, 1.0, 0.16), sw) : mix(vec3(0.35, 0.4, 1.0), vec3(0.8, 0.5, 1.0), sw);
     float hz = vT < 0.5 ? smoothstep(0.42, 0.5, fract((vP.x + vP.z) * 3.0 - uTime * 0.5)) * 0.35 : 0.0;
-    float a = (0.05 + 0.13 * sw + hz * 0.2) * pow(f, 1.5) * smoothstep(0.0, 0.25, vK);
+    float a = (0.05 + 0.13 * sw + hz * 0.2) * pow(f, 2.6) * 1.9 * smoothstep(0.0, 0.25, vK);
     if (uLin > 0.5) col = pow(col, vec3(2.2));
     gl_FragColor = vec4(col * (0.9 + 0.5 * sw), a);
   }`;
