@@ -1,5 +1,6 @@
 // Servidor estático + WebSocket autoritativo (cooperativo 2–4 jugadores).
 // Los clientes sólo mandan entradas; la simulación (src/sim) corre acá.
+import { faunaDeRed } from '../src/sim/fauna-data.js';   // Códice de Fauna: sólo especies conocidas y números sanos
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -48,7 +49,7 @@ export function startServer({ port = 8080, host = '0.0.0.0', autoTick = true } =
     return room;
   }
   function join(ws, room, name, m = {}) {
-    const p = room.game.addPlayer(name, null, { char: m.char, style: typeof m.style === 'string' ? m.style : undefined, melee: typeof m.melee === 'string' ? m.melee : undefined, evo: Number.isInteger(m.evo) ? m.evo : undefined, bend: Array.isArray(m.bend) ? m.bend.slice(0, 6) : undefined, equip: equipDe(m.char, m.equip), arbol: arbolDe(m.char, m.arbol), pity: m.pity && typeof m.pity === 'object' ? { l: Math.min(999, Math.floor(+m.pity.l || 0)), e: Math.min(999, Math.floor(+m.pity.e || 0)) } : undefined, sigs: Array.isArray(m.sigs) ? m.sigs.slice(0, 5).filter((x) => typeof x === 'string') : undefined, slots: Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined });
+    const p = room.game.addPlayer(name, null, { fauna: faunaDeRed(m.fauna), char: m.char, style: typeof m.style === 'string' ? m.style : undefined, melee: typeof m.melee === 'string' ? m.melee : undefined, evo: Number.isInteger(m.evo) ? m.evo : undefined, bend: Array.isArray(m.bend) ? m.bend.slice(0, 6) : undefined, herb: Array.isArray(m.herb) ? m.herb.slice(0, 12) : undefined, equip: equipDe(m.char, m.equip), arbol: arbolDe(m.char, m.arbol), pity: m.pity && typeof m.pity === 'object' ? { l: Math.min(999, Math.floor(+m.pity.l || 0)), e: Math.min(999, Math.floor(+m.pity.e || 0)) } : undefined, sigs: Array.isArray(m.sigs) ? m.sigs.slice(0, 5).filter((x) => typeof x === 'string') : undefined, slots: Array.isArray(m.slots) ? m.slots.slice(0, 5).map(Number) : undefined });
     ws.pname = name; ws.char = p ? p.char : m.char; ws.slots = p ? p.slots : undefined; ws.equip = p ? p.eqList : []; ws.arbol = p ? p.arb : undefined;
     if (!p) return send(ws, { t: 'error', msg: 'sala llena' });
     room.clients.set(ws, p.id);

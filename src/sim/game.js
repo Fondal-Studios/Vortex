@@ -8,6 +8,7 @@ import { makeObjective, updateObjective } from './objectives.js';
 import { initColoso, initMadre, initArgos, bossDeath } from './bossmech.js';
 import { useMove, useSpecial } from './characters.js';
 import { spawnNpc, clearNpc, npcStep } from './npcs.js';
+import { initBase, stepBase, baseStep, baseSinArmas } from './base.js';   // La Base (docs/BASE.md): mapa-hub sin oleadas
 import { orgSnap, loadOrgans, shapeOrgans, hasC } from './organos.js';
 import { applyBend } from './bendiciones.js';
 import { applyMaestria } from './maestria.js';
@@ -21,7 +22,9 @@ import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, a
 import { Director } from './director.js';
 import { initArenas, tickArenas, arSnap, arTargets, arExplosion, arKill, arVel, arDanio, danarOrgano } from './arenas-vivas.js'; // arenas vivas (src/sim/arenas-vivas.js)
 import { initNieblas, tickNieblas, ngSnap, ngVel, ngDanio, ngRecibe, ngOculta, ngMonstruoRecibe, ngDeforma } from './nieblas.js';   // nieblas de colores con función (src/sim/nieblas.js)
+import { initFlora, tickFlora, flSnap, flVel, flRecibe, floraRayo, floraExplosion, applyHerb } from './flora.js';   // flora interactiva (src/sim/flora.js)
 import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, limitarCaida } from './eventos.js';
+import { initFauna, initFaunaPlayer, tickFauna, shapeFauna, faunaSnap, faunaPlayerSnap } from './fauna.js';   // fauna consumible y metamorfosis (src/sim/fauna.js, docs/FAUNA.md)
 import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
 import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
 import { ROLES, ROLE_IDS } from './data.js';
@@ -50,7 +53,7 @@ export class Game {
     this.events = [];
     this.nextId = 1;
     this.state = 'playing'; // playing | won | lost
-    this.wave = 0; this.waveTotal = WAVE_PLANS[mapId].length + 1;
+    this.wave = 0; this.waveTotal = (WAVE_PLANS[mapId] || []).length + 1;
     this.phase = 'intermission'; this.phaseT = calm; // calma inicial (la historia usa más)
     this.queue = []; this.omens = []; this.spawnT = 0; this.spawnGap = 1.5;
     this.boss = null; this.mision = null; this.forceElite = false;
@@ -58,8 +61,11 @@ export class Game {
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
     this.cult = this.map.cultivo ? initCult(this) : null; // acertijo del mapa 4 (src/sim/cultivo.js)
     initArenas(this);                                     // arenas vivas: cada mapa es un organismo (src/sim/arenas-vivas.js; rng propio g.arRng)
+    initFlora(this);                                      // flora interactiva (src/sim/flora.js; rng propio g.flRng)
     initNieblas(this);                                    // nieblas de colores con función (src/sim/nieblas.js; rng propio g.ngRng)
+    initFauna(this);                                      // fauna consumible (src/sim/fauna.js; rng propio g.faRng, ids propios: no toca g.rng)
     initDrops(this, seed);                                // botín: g.drRng derivado de la semilla (nunca usa g.rng)
+    if (this.map.base) initBase(this);                    // La Base: estaciones y personajes fijos (src/sim/base.js)
     initEventos(this);                                    // eventos de oleada (src/sim/eventos.js): la gravedad invertida vive dentro de uno de ellos
   }
 
@@ -81,9 +87,9 @@ export class Game {
     };
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style] && opts.style !== 'combo') p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo, p.char); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     if (opts.mode === 'combo') p.mode = 'combo';
-    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
+    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyHerb(p, opts.herb); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
     p.kit = Math.max(0, Math.min(2, opts.kit | 0));   // botiquines iniciales de la Tienda (docs/TIENDA.md): una segunda oportunidad cada uno
-    initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
+    initFaunaPlayer(p, opts.fauna); initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
     this.players.push(p);
     return p;
   }
@@ -95,7 +101,7 @@ export class Game {
     if (inp.mode === 'combo' || inp.mode === 'shooter') setMode(p, inp.mode);   // modo de juego (src/sim/combos.js)
     i.mx = clamp(+inp.mx || 0, -1, 1); i.mz = clamp(+inp.mz || 0, -1, 1);
     i.dyaw = clamp(i.dyaw + (+inp.dyaw || 0), -7, 7); i.dpitch = clamp(i.dpitch + (+inp.dpitch || 0), -4, 4); // acumulativo hasta el próximo step; acotado contra entradas hostiles
-    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1 || inp.npc.offer === 2 || inp.npc.offer === 3)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style] && inp.style !== 'combo' && p.mode !== 'combo') p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult; i.soft = !!inp.soft;
+    i.jump = !!inp.jump; i.fire = !!inp.fire; i.dash = !!inp.dash; i.ability = !!inp.ability; i.interact = !!inp.interact; i.autoc = !!inp.autoc; i.ping = !!inp.ping; i.mov = !!inp.mov; i.esp = !!inp.esp; i.ads = !!inp.ads; i.crouch = !!inp.crouch; i.melee = !!inp.melee; i.reload = !!inp.reload; i.npc = (inp.npc && typeof inp.npc === 'object' && (inp.npc.offer === 0 || inp.npc.offer === 1 || inp.npc.offer === 2 || inp.npc.offer === 3)) ? { offer: inp.npc.offer } : null; if (typeof inp.style === 'string' && STYLES[inp.style] && inp.style !== 'combo' && p.mode !== 'combo') p.style = inp.style; i.organ = (inp.organ && typeof inp.organ === 'object' && Number.isInteger(inp.organ.w) && typeof inp.organ.id === 'string') ? { t: inp.organ.t === 'c' ? 'c' : 'w', w: inp.organ.w, id: inp.organ.id.slice(0, 30) } : null; i.evo = inp.evo === true ? 1 : (inp.evo === 1 || inp.evo === 2) ? inp.evo : 0; i.s3 = !!inp.s3; i.ult = !!inp.ult; i.soft = !!inp.soft;
     i.a1 = !!inp.a1; i.a2 = !!inp.a2; i.hab = !!inp.hab;   // Combo: ataque 1, ataque 2, habilidad principal
     { // los 3 slots de habilidad (HAB.1 = mov, HAB.2 = esp, HAB.3 = s3) se traducen según el modo (src/sim/modos.js): en Melé HAB.3 es la habilidad principal de Combo
       const r = enrutar(p.char, p.mode, { mov: i.mov, esp: i.esp, s3: i.s3 }, i.hab); i.mov = r.mov; i.esp = r.esp; i.s3 = r.s3; i.hab = r.hab;
@@ -140,7 +146,7 @@ export class Game {
     this.tick++; this.time += dt; this.dt = dt;
     if (this.state !== 'playing') { if (this.loot.length) flushLoot(this); return; }
     this.director.update(this, dt);
-    this.updateWaves(dt); this.updateOmens(); tickArenas(this, dt); tickNieblas(this, dt);
+    this.updateWaves(dt); this.updateOmens(); tickArenas(this, dt); tickNieblas(this, dt); tickFlora(this, dt); tickFauna(this, dt);
     for (const p of this.players) this.updatePlayer(p, dt);
     updateObjective(this, dt); this.updateObjects(dt); if (this.cult) tickCultivo(this, dt);
     if (this.pings.length) this.pings = this.pings.filter((q) => q.until > this.time);
@@ -168,6 +174,7 @@ export class Game {
     }
   }
   updateWaves(dt) {
+    if (this.map.base) return stepBase(this);
     if (this.practice) return this.updatePractice(dt);
     const plan = WAVE_PLANS[this.mapId];
     if (this.phase === 'intermission') {
@@ -340,6 +347,7 @@ export class Game {
 
   updatePlayer(p, dt) {
     const inp = p.input;
+    if (this.base) baseSinArmas(inp);
     if (p.dead) { inp.dyaw = inp.dpitch = 0; p.abilityCd = Math.max(0, p.abilityCd - dt); if (inp.ping && !p.pingPrev) this.doPing(p); p.pingPrev = inp.ping; this.updateRevive(p, dt); return; }
     const g = this.gravityFor(p, p.flipUntil, p.flipFrom);
     const zero = len(g) < 0.5;
@@ -351,7 +359,7 @@ export class Game {
     p.pitch = clamp(p.pitch + inp.dpitch, -1.5, 1.5);
     inp.dyaw = 0; inp.dpitch = 0;
     const right = cross(p.heading, up);
-    const speed = PLAYER.speed * (inp.dash && !inp.crouch ? PLAYER.dash : 1) * speedMul(p) * arVel(this, p) * ngVel(this, p) * (inp.crouch ? 0.55 : 1) * (inp.ads ? 0.8 : 1);
+    const speed = PLAYER.speed * (inp.dash && !inp.crouch ? PLAYER.dash : 1) * speedMul(p) * arVel(this, p) * ngVel(this, p) * flVel(this, p) * (inp.crouch ? 0.55 : 1) * (inp.ads ? 0.8 : 1);
     let wish = add(mul(p.heading, inp.mz), mul(right, inp.mx));
     wish = ngDeforma(this, p, wish);   // niebla magenta: tuerce un poco el rumbo (no con «Reducir efectos»)
     if (zero) {
@@ -406,7 +414,7 @@ export class Game {
     p.interactEdge = inp.interact && !p.interactPrev; p.interactPrev = inp.interact;
     if (inp.ability && !p.abilityPrev && !this.evSilencio) useAbility(this, p); p.abilityPrev = inp.ability;
     if (inp.ping && !p.pingPrev) this.doPing(p); p.pingPrev = inp.ping;
-    updateHost(this, p, dt); npcStep(this, p);
+    updateHost(this, p, dt); npcStep(this, p); if (this.base) baseStep(this, p);
     if (this.magazines) this.updateReload(p, dt);
     if (inp.fire && p.cd <= 0 && !p.carry) this.firePlayer(p);
     // recoger
@@ -429,6 +437,7 @@ export class Game {
     for (const o of this.objects) if (o.type === 'dome' && dist(p.pos, o.pos) < o.r) { dmg *= 0.6; break; }
     if (p.role === 'vanguardia') dmg *= 0.92;
     dmg *= ngRecibe(this, p);   // niebla ámbar: +30 % de daño recibido
+    dmg *= flRecibe(this, p);   // Brote del Coro (flora): −20 % de daño unos segundos
     dmg = hostDamageIn(this, p, dmg); hostDamaged(this, p);
     this.director.hurt(dmg);
     p.lastHurt = this.time;
@@ -472,7 +481,7 @@ export class Game {
     const origin = this.eyePos(p);
     const base = this.aimDir(p);
     const w = { ...w0, dmg: w0.dmg * st.dmg, mod: st.mod, pierce: w0.pierce || st.mod === 'perfora', chain: w0.chain || (st.mod === 'cadena' ? 2 : 0) };
-    shapeWeapon(w, st); shapeOrgans(w, p, p.weapon); shapeItemGun(w, p, p.weapon); shapeArbolGun(w, p);   // + nodos del árbol de disparo
+    shapeWeapon(w, st); shapeOrgans(w, p, p.weapon); shapeItemGun(w, p, p.weapon); shapeArbolGun(w, p); shapeFauna(w, p);   // + nodos del árbol de disparo
     if (w.kind === 'pulse') { // onda radial sin apuntar
       for (const m of this.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < w.radius + m.r) { this.damageMonster(m, w.dmg * (1 - 0.4 * d / (w.radius + m.r)), p, m.pos); m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), w.knock); } }
       for (const ob of [...this.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, p.pos) < w.radius + ob.r) this.damageObject(ob, w.dmg, p, ob.pos);
@@ -547,6 +556,7 @@ export class Game {
       }
       if (!w.pierce) { tEnd = h.t; break; }
     }
+    floraRayo(this, o, d, tEnd, w, p);   // flora interactiva: las plantas reciben el disparo (y su elemento) pero NO lo frenan
     for (const h of arTargets(this, o, d, w.range)) if (h.t <= tEnd + 0.01) danarOrgano(this, h.ar, w.dmg, p, madd(o, d, Math.max(0, h.t)));   // órganos de la arena viva: reciben el disparo pero NO lo frenan (no tapan a las criaturas)
     return madd(o, d, Math.max(0.5, Math.min(tEnd, w.range)));
   }
@@ -624,7 +634,7 @@ export class Game {
 
   /** Daño en área: a jugadores (pd) y criaturas (md). */
   explode(pos, radius, pd, md, by, hurtPlayers = true) {
-    this.emit({ t: 'boom', p: a3(pos), r: radius }); if (by) arExplosion(this, pos, radius, md, by);
+    this.emit({ t: 'boom', p: a3(pos), r: radius }); if (by) arExplosion(this, pos, radius, md, by); floraExplosion(this, pos, radius, md, by);
     if (hurtPlayers) for (const p of this.players) {
       const d = dist(p.pos, pos);
       if (!p.dead && d < radius + PLAYER.radius) this.hurtPlayer(p, pd * (1 - 0.6 * d / (radius + 1)));
@@ -829,7 +839,7 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
@@ -842,7 +852,7 @@ export class Game {
       obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
       mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
-      ev: evSnap(this), ar: arSnap(this), ng: ngSnap(this),
+      ev: evSnap(this), ar: arSnap(this), ng: ngSnap(this), fl: flSnap(this), fa: faunaSnap(this),
       dir: { stress: r2(this.director.stress), frag: this.fragments, buff: r2(Math.max(0, this.teamBuffUntil - this.time)) },
       events: this.drainEvents(),
     };

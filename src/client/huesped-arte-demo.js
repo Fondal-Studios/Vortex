@@ -1,6 +1,6 @@
 // Visor de arte de los Huéspedes (public/huesped-arte.html): el MISMO cuerpo unificado (huesped-cuerpo.js) con luces parecidas a las del juego.
 // Parámetros: char=axioma|vesper|micelio|umbra|seraf · evo=0..4 · pth=coraza,resonancia,… · q=low|medium|high · map=m1..m6 · mw=<arma melee> · clip=idle|punch|cast|death
-//   cam=full|close|head|torso|back|side|q34|legs|hands · yaw=<grados> · t=<s a avanzar> · w,h=<px> · bloom=1 · speed=<m/s> · hdri=<id> · frozen=1 (captura: __advance, __render)
+//   forma=<id de forma de fauna> · cam=full|close|head|torso|back|side|q34|legs|hands · yaw=<grados> · t=<s a avanzar> · w,h=<px> · bloom=1 · speed=<m/s> · hdri=<id> · frozen=1 (captura: __advance, __render)
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -10,6 +10,7 @@ import { loadHumanKit } from './humans.js';
 import { loadEnvHDRI } from './ph.js';
 import { tickMenuBeat } from './shaders.js';
 import { createHostBody } from './huesped-cuerpo.js';
+import { formaIndice } from '../sim/fauna-data.js';   // forma=<id>: metamorfosis de fauna activa (hielo, brasa, electrica, … o un híbrido: ventisca, vapor…)
 
 const qs = new URLSearchParams(location.search), quality = qs.get('q') || 'low', char = qs.get('char') || 'axioma', camMode = qs.get('cam') || 'full';
 const W = Number(qs.get('w')) || innerWidth, H = Number(qs.get('h')) || innerHeight, frozen = qs.get('frozen') === '1';
@@ -32,6 +33,7 @@ const hdri = qs.get('hdri') || 'small_cathedral_02';
 const env = loadEnvHDRI(gl, hdri).then((t) => { scene.environment = t; scene.environmentIntensity = Number(qs.get('envi')) || 1.3; }).catch(() => {});
 const kit = await loadHumanKit({ quality });
 const pl = { char, name: char, evo: Number(qs.get('evo')) || 0, pth: (qs.get('pth') || '').split(',').filter(Boolean), cg: (qs.get('cg') || '').split(',').filter(Boolean), mw: qs.get('mw') || '', mr: Number(qs.get('mr')) || 1, eq: qs.get('eq') || '', dead: false };
+if (qs.get('forma')) pl.mf = formaIndice(qs.get('forma'));
 const body = createHostBody(THREE, kit, pl, { quality, camera: cam, map: qs.get('map') || null });
 scene.add(body.object); await body.ready; await env;
 body.object.rotation.y = THREE.MathUtils.degToRad(Number(qs.get('yaw')) || 0);

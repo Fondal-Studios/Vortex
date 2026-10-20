@@ -3,13 +3,16 @@
 import { ESSENCE_OF } from './data.js';
 import { dist } from './math.js';
 import { dropsMision } from './drops.js';   // misión cumplida → objeto (docs/INVENTARIO.md)
+import { faunaForzarRara } from './fauna.js';   // misión «Alimentación»: asegura una especie rara cerca (docs/FAUNA.md)
 
 /** Textos y recompensas. `n(oleada)` = cuánto hay que lograr; `cores(oleada)` = núcleos de premio; `ess` = [tipo, cantidad] extra. */
 export const MISIONES = {
   melee:   { nombre: 'Golpe a golpe',  n: (w) => 3 + Math.floor(w / 2), cores: (w) => 10 + 3 * w, ess: ['carne', 2] },
   intacto: { nombre: 'Intocable',      n: () => 1,                       cores: (w) => 14 + 4 * w, ess: ['cristal', 1] },
   elite:   { nombre: 'Caza mayor',     n: () => 1,                       cores: (w) => 18 + 5 * w, ess: null /* el élite da su propia esencia: se premia con la de su tipo */ },
+  alimento: { nombre: 'Alimentación',  n: () => 1,                       cores: (w) => 16 + 4 * w, ess: ['carne', 3] },   // comer una especie RARA de la fauna (no entra en el ciclo: reemplaza a «Golpe a golpe» en las oleadas 4 y 7)
 };
+export const OLEADAS_ALIMENTO = [4, 7];
 const CICLO = ['melee', 'intacto', 'elite'];
 
 /** Qué misión toca en la oleada `n` (1..). El élite sólo desde la 3 (antes no hay élites). Determinista, sin azar. */
@@ -22,9 +25,15 @@ export function misionDe(n) {
 export function iniciarMision(g, n, esJefe) {
   g.forceElite = false;
   if (esJefe || g.practice) { g.mision = null; return; }
-  const k = misionDe(n), M = MISIONES[k];
+  const k = g.fa && OLEADAS_ALIMENTO.includes(n) ? 'alimento' : misionDe(n), M = MISIONES[k];
   g.mision = { k, n: M.n(n), p: 0, st: 'active', rc: Math.round(M.cores(n)), re: M.ess ? M.ess[1] : 0, ek: M.ess ? M.ess[0] : null, w: n };
   if (k === 'elite') g.forceElite = true; // el primer bicho que pueda ser élite lo será: la misión siempre se puede cumplir
+  if (k === 'alimento') faunaForzarRara(g);   // la rara nace ya, cerca de alguien, y no se va hasta que termine la oleada
+}
+/** Se comió un bicho: si la misión es «Alimentación» y era una especie rara, se cumple. */
+export function misionAlimento(g, sp) {
+  const mi = g.mision; if (!mi || mi.st !== 'active' || mi.k !== 'alimento' || !sp || !sp.rara) return;
+  mi.p = 1; pagar(g, null);
 }
 
 function pagar(g, m) {

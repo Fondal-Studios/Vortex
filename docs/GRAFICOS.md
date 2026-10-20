@@ -15,6 +15,8 @@
 | Partículas | Pocas · Normal · Muchas | Chispas, humo y esquirlas (1/3). |
 | Nubes de las nieblas de colores | Sólo aviso · Simples · Completas | Cuántas nubes se dibujan (1/3). El efecto en el juego no cambia. |
 | Detalle de Huéspedes y criaturas | Bajo · Medio · Alto | Polígonos de los cuerpos (2/3). Reconstruye la escena. |
+| Vegetación decorativa | Sí / No | Pasto que se aplasta al pasar, helechos, setas, árboles de cristal y hojas flotando (1/3). Apagada se dibujan igual las plantas que curan o dañan (con su aviso): son parte de la jugada. Ver `docs/FLORA.md`. |
+| Densidad de vegetación | Poca · Normal · Mucha | Cuánto pasto, decorado y hojas hay y cuánto detalle tienen las plantas (1/3). Baja = Poca, Media = Normal, Alta = Mucha. |
 | Decorado del mapa | Sí / No | Cielo en capas, ojos cósmicos, vegetación (2/3). Reconstruye la escena. |
 | Distancia de dibujo | Corta · Normal · Larga | Hasta dónde las criaturas se ven con todo su detalle (1/3). |
 | Límite de FPS | 30 · 60 | 30 gasta la mitad de batería y calor (2/3). |

@@ -37,7 +37,7 @@ export function refrescarInicio(menu) {
   let p; try { p = Perfil.perfil(); } catch { return; }
   const a = avisos(p), puertas = avisosPuertas(a), r = menu.root;
   r.querySelectorAll('[data-aviso-puerta]').forEach((d) => { const n = puertas[d.dataset.avisoPuerta] || 0; d.hidden = !n; d.title = n ? `${n} novedad${n === 1 ? '' : 'es'}` : ''; });
-  const TXT = { botin: 'Botín nuevo en el inventario', puntos: 'Puntos de progresión sin gastar', huesped: 'Hay un Huésped que ya podés comprar', tienda: 'Stock nuevo en la Tienda', bendicion: 'Tenés una bendición para elegir', mision: 'Se abrió un territorio nuevo' };
+  const TXT = { base: 'Hay un cultivo listo para recoger en la Base', botin: 'Botín nuevo en el inventario', puntos: 'Puntos de progresión sin gastar', huesped: 'Hay un Huésped que ya podés comprar', tienda: 'Stock nuevo en la Tienda', bendicion: 'Tenés una bendición para elegir', mision: 'Se abrió un territorio nuevo' };
   r.querySelectorAll('.hubcard [data-aviso]').forEach((d) => {
     const k = d.dataset.aviso, n = k === 'tienda' ? a.tienda + a.huesped : a[k] || 0; d.hidden = !n; d.title = n ? (k === 'tienda' && a.huesped ? TXT.huesped : TXT[k]) : '';
   });

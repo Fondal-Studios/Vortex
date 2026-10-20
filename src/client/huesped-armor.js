@@ -154,26 +154,58 @@ export const G = {
 };
 
 // ───────────────────────────────────────────────────────────── materiales
-function patchMat(m, { sat = 1, gain = 1, cavity = 0, key = '' } = {}) {
+// METAMORFOSIS (fauna consumible, docs/FAUNA.md): el cuerpo y la armadura cambian de MATERIAL (no se suma geometría) con 4 uniformes por Huésped
+// (uFC color · uFK intensidad 0-1 · uFV estilo 0-9 · uFT tiempo): 0 escarcha/cristal translúcido · 1 grietas incandescentes · 2 arcos · 3 agua · 4 facetas · 5 fantasmal · 6 burbujas · 7 resplandor · 8 placas de hueso · 9 telaraña.
+const NOFORMA = { uFC: { value: { r: 1, g: 1, b: 1 } }, uFK: { value: 0 }, uFV: { value: 0 }, uFT: { value: 0 } };
+const FORMA_UNI = 'uniform vec3 uFC; uniform float uFK, uFV, uFT;\n';
+const FORMA_FN = `
+  float fh_(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+  float fn_(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(fh_(i), fh_(i + vec3(1,0,0)), f.x), mix(fh_(i + vec3(0,1,0)), fh_(i + vec3(1,1,0)), f.x), f.y), mix(mix(fh_(i + vec3(0,0,1)), fh_(i + vec3(1,0,1)), f.x), mix(fh_(i + vec3(0,1,1)), fh_(i + vec3(1,1,1)), f.x), f.y), f.z); }
+  vec3 formaDif(vec3 d){
+    float k = uFV, m = k < 0.5 ? 0.5 : k < 1.5 ? 0.15 : k < 2.5 ? 0.1 : k < 3.5 ? 0.25 : k < 4.5 ? 0.45 : k < 5.5 ? -0.55 : k < 6.5 ? 0.25 : k < 7.5 ? 0.5 : k < 8.5 ? 0.6 : 0.2;
+    return m >= 0.0 ? mix(d, d * 0.35 + uFC * 0.85, m * uFK) : d * (1.0 + m * uFK);
+  }
+  vec3 formaEm(vec3 P, vec3 N, vec3 V){
+    float k = uFV, fr = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 2.4); vec3 e = vec3(0.0);
+    if (k < 0.5) { float g = fn_(P * 26.0); e = uFC * (fr * 1.7 + smoothstep(0.62, 0.9, g) * 0.7 + 0.15); }
+    else if (k < 1.5) { float c1 = abs(fn_(P * 24.0) - 0.5) * 2.0, c2 = abs(fn_(P * 11.0 + 4.0) - 0.5) * 2.0; float crack = smoothstep(0.09, 0.0, min(c1, c2 * 1.2)); e = uFC * (crack * 2.2 * (0.7 + 0.3 * sin(uFT * 3.0)) + fr * 0.35); }
+    else if (k < 2.5) { float a = abs(fn_(P * 13.0 + vec3(0.0, uFT * 3.0, 0.0)) - 0.5) * 2.0; float arc = smoothstep(0.07, 0.0, a) * step(0.35, fn_(P * 3.0 + floor(uFT * 6.0))); e = uFC * (arc * 3.0 + fr * 0.5); }
+    else if (k < 3.5) { float w = sin(P.y * 16.0 - uFT * 3.0 + fn_(P * 5.0) * 4.0); e = uFC * (smoothstep(0.55, 1.0, w) * 0.7 + fr * 1.2 + 0.1); }
+    else if (k < 4.5) { vec3 q = floor(P * 14.0); float f1 = fh_(q), glint = step(0.9, f1) * (0.6 + 0.4 * sin(uFT * 4.0 + f1 * 30.0)); vec3 pal = 0.5 + 0.5 * cos(6.2832 * (f1 + vec3(0.0, 0.33, 0.67) + uFT * 0.05)); e = uFC * glint * 2.0 + pal * fr * 0.8 + uFC * fr * 0.5; }
+    else if (k < 5.5) { float sc = 0.5 + 0.5 * sin(P.y * 40.0 - uFT * 2.0); e = uFC * (fr * 1.8 + 0.12 * sc + 0.1); }
+    else if (k < 6.5) { float b = fn_(P * 14.0 + vec3(0.0, -uFT * 0.8, 0.0)); float ring = smoothstep(0.6, 0.64, b) - smoothstep(0.64, 0.7, b); e = uFC * (ring * 2.4 + fr * 0.6 + 0.08); }
+    else if (k < 7.5) { e = uFC * (0.55 + 0.25 * sin(uFT * 2.5) + fr * 1.6); }
+    else if (k < 8.5) { vec3 q = abs(fract(P * vec3(9.0, 11.0, 9.0)) - 0.5); float edge = smoothstep(0.43, 0.5, max(q.x, max(q.y, q.z))); e = uFC * (edge * 0.35 + fr * 0.5); }
+    else { float an = atan(P.x, P.z), rad = length(P.xz); float spoke = smoothstep(0.08, 0.0, abs(fract(an * 1.2732) - 0.5)), ring = smoothstep(0.05, 0.0, abs(fract(P.y * 9.0 + rad * 2.0) - 0.5)); e = uFC * ((spoke + ring) * 1.2 + fr * 0.6); }
+    return e;
+  }`;
+function patchMat(m, { sat = 1, gain = 1, cavity = 0, key = '', F = null } = {}) {
   m.userData.k = { sat, gain, cavity };
   m.onBeforeCompile = (s) => {
-    s.fragmentShader = s.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
-      { float l_ = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)); diffuseColor.rgb = mix(vec3(l_), diffuseColor.rgb, ${sat.toFixed(3)}) * ${gain.toFixed(3)}; }`);
+    Object.assign(s.uniforms, F || NOFORMA);
+    s.vertexShader = 'varying vec3 vFP;\n' + s.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vFP = position;');
+    s.fragmentShader = 'varying vec3 vFP;\n' + FORMA_UNI + s.fragmentShader.replace('#include <common>', '#include <common>\n' + FORMA_FN).replace('#include <map_fragment>', `#include <map_fragment>
+      { float l_ = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)); diffuseColor.rgb = mix(vec3(l_), diffuseColor.rgb, ${sat.toFixed(3)}) * ${gain.toFixed(3)}; }
+      if (uFK > 0.001) diffuseColor.rgb = formaDif(diffuseColor.rgb);`).replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      if (uFK > 0.001) totalEmissiveRadiance += formaEm(vFP, normalize(normal), normalize(vViewPosition)) * uFK;`);
   };
   m.customProgramCacheKey = () => `huesped-${key}-${sat}-${gain}`;
   return m;
 }
 /** Piel espectral del cuerpo humano: oscura, con borde de luz (fresnel) y grietas de brasa que respiran (se ven entre las placas). */
 const uTimeG = { value: 0 };
-function spectralMaterial(color, rim, ember, belly = 0) {
+function spectralMaterial(color, rim, ember, belly = 0, F = null) {
   const m = new T.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.2, emissive: 0x000000 });
   const u = { uRim: { value: new T.Color(rim) }, uEmber: { value: new T.Color(ember) }, uBeat, uK: { value: 1 }, uBelly: { value: belly }, uTime: uTimeG, uClar };
   m.userData.u = u;
   m.onBeforeCompile = (s) => {
-    Object.assign(s.uniforms, u);
+    Object.assign(s.uniforms, u, F || NOFORMA);
     s.vertexShader = 'varying vec3 vRest;\n' + s.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vRest = position;');
-    s.fragmentShader = 'varying vec3 vRest; uniform vec3 uRim, uEmber; uniform float uBeat, uK, uBelly, uTime, uClar;\n' + s.fragmentShader
+    s.fragmentShader = 'varying vec3 vRest; uniform vec3 uRim, uEmber; uniform float uBeat, uK, uBelly, uTime, uClar;\n' + FORMA_UNI + s.fragmentShader
+      .replace('#include <color_fragment>', '#include <color_fragment>\n if (uFK > 0.001) diffuseColor.rgb = formaDif(diffuseColor.rgb);')
       .replace('#include <common>', `#include <common>
+        ${FORMA_FN}
         float h_(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
         float n_(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
           return mix(mix(mix(h_(i), h_(i + vec3(1,0,0)), f.x), mix(h_(i + vec3(0,1,0)), h_(i + vec3(1,1,0)), f.x), f.y),
@@ -183,7 +215,8 @@ function spectralMaterial(color, rim, ember, belly = 0) {
           float c1 = abs(n_(vRest * 30.0) - 0.5) * 2.0, c2 = abs(n_(vRest * 14.0 + 4.0) - 0.5) * 2.0;
           float crack = smoothstep(0.07, 0.0, min(c1, c2 * 1.3)) * smoothstep(0.35, 0.65, n_(vRest * 4.0 + 9.0)) * (0.65 + 0.7 * uBeat);
           float belly = smoothstep(1.0, 1.06, vRest.y) * smoothstep(1.215, 1.15, vRest.y) * smoothstep(0.12, 0.05, abs(vRest.x)) * uBelly;
-          totalEmissiveRadiance += uRim * fr * (1.3 + 1.0 * uClar) * uK + uEmber * (crack * 1.6 + belly * (1.1 + 0.7 * uBeat) * (0.6 + 0.8 * n_(vRest * 12.0 + uTime * 0.6))) * uK; }`);
+          totalEmissiveRadiance += uRim * fr * (1.3 + 1.0 * uClar) * uK + uEmber * (crack * 1.6 + belly * (1.1 + 0.7 * uBeat) * (0.6 + 0.8 * n_(vRest * 12.0 + uTime * 0.6))) * uK; }
+        if (uFK > 0.001) totalEmissiveRadiance += formaEm(vRest, normalize(normal), normalize(vViewPosition)) * uFK;`);
   };
   m.customProgramCacheKey = () => 'huesped-espectral';
   return m;
@@ -240,6 +273,9 @@ export function createArmorKit(human, kit, opts = {}) {
   const extraBones = [], extraInv = [], boneIdx = new Map(skel0.bones.map((b, i) => [b.name, i])), boneByName = new Map(skel0.bones.map((b) => [b.name, b]));
   const buckets = new Map(), mats = {}, disposables = [], updaters = [], clothes = [], chains = [];
   const uTimeK = { value: 0 }, dbg = [];
+  const forma = { uFC: { value: new T.Color(0xffffff) }, uFK: { value: 0 }, uFV: { value: 0 }, uFT: { value: 0 } };   // metamorfosis de fauna: color · intensidad · estilo · tiempo (compartidos por todos los materiales de ESTE cuerpo)
+  /** Metamorfosis: tiñe cuerpo y armadura con el estilo `vis` (0-9) y el color `hex`; `k` = intensidad 0-1 (0 apaga). */
+  const setForma = (hex, vis, k) => { if (hex != null) forma.uFC.value.set(hex); forma.uFV.value = vis | 0; forma.uFK.value = k; };
   let side = null, finished = false, objectRef = null;
 
   // — materiales (se crean a demanda por clave)
@@ -249,7 +285,7 @@ export function createArmorKit(human, kit, opts = {}) {
     let m;
     if (TEX[key]) {
       const d = TEX[key], t = phTextures(d.id, { repeat: 1 });
-      m = patchMat(new T.MeshStandardMaterial({ map: t.map, normalMap: t.normalMap, roughnessMap: d.rmap === false ? null : t.roughnessMap, color: opts.tint?.[key] ?? d.color, metalness: d.metalness, roughness: d.roughness, normalScale: new T.Vector2(d.normalScale, d.normalScale), vertexColors: true, side: d.side || T.FrontSide, envMapIntensity: d.env ?? (key === 'gold' ? 1.5 : key === 'metal' ? 1.25 : 1) }), { sat: d.sat, gain: d.gain, key });
+      m = patchMat(new T.MeshStandardMaterial({ map: t.map, normalMap: t.normalMap, roughnessMap: d.rmap === false ? null : t.roughnessMap, color: opts.tint?.[key] ?? d.color, metalness: d.metalness, roughness: d.roughness, normalScale: new T.Vector2(d.normalScale, d.normalScale), vertexColors: true, side: d.side || T.FrontSide, envMapIntensity: d.env ?? (key === 'gold' ? 1.5 : key === 'metal' ? 1.25 : 1) }), { sat: d.sat, gain: d.gain, key, F: forma });
       m.userData.uvk = d.k;
       if (key === 'cloth') { // el borde (dobladillo) puede brillar como brasa: atributo aE por vértice
         const base = m.onBeforeCompile, uEC = { value: new T.Color(opts.accent ?? 0xff7a22) };
@@ -267,7 +303,7 @@ export function createArmorKit(human, kit, opts = {}) {
     else if (key === 'flesh') { m = new T.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.36, metalness: 0.04, emissive: 0x501018, emissiveIntensity: 0.5, envMapIntensity: 1.2 }); }
     else if (key === 'mirror') { m = new T.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, metalness: 1, roughness: 0.07, envMapIntensity: 2.0 }); }
     else if (key === 'dark') { m = new T.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.4, metalness: 0.3 }); }
-    else if (key === 'body') { m = spectralMaterial(opts.skin ?? 0x14121c, opts.rim ?? 0x6ab8ff, opts.crack ?? 0xff6a1a, opts.belly ?? 0); }
+    else if (key === 'body') { m = spectralMaterial(opts.skin ?? 0x14121c, opts.rim ?? 0x6ab8ff, opts.crack ?? 0xff6a1a, opts.belly ?? 0, forma); }
     else throw new Error('material desconocido: ' + key);
     m.name = 'kit-' + key; mats[key] = m; disposables.push(m); return m;
   }
@@ -490,7 +526,7 @@ export function createArmorKit(human, kit, opts = {}) {
   // ───────────────────────────────────────── cuadro
   const _sc = V(), _gv = V();
   function update(dt, t, ctx = {}) {
-    dt = Math.min(dt, 1 / 20); uTimeK.value = t; uTimeG.value = t;
+    dt = Math.min(dt, 1 / 20); uTimeK.value = t; uTimeG.value = t; forma.uFT.value = t;
     const obj = ctx.object || objectRef; if (obj) { objectRef = obj; obj.updateWorldMatrix(true, false); }
     const b = uBeat.value, k = ctx.glow ?? 1;
     const em = mats.ember; if (em) em.color.setScalar((1.15 + 0.55 * b) * k);
@@ -515,7 +551,7 @@ export function createArmorKit(human, kit, opts = {}) {
     for (const m of meshes) m.removeFromParent(); for (const g of attached) g.removeFromParent(); for (const m of extraRoots) m.removeFromParent();
     for (const d of disposables) d.dispose && d.dispose(); for (const b of extraBones) b.removeFromParent(); if (ak.skeleton) ak.skeleton.dispose();
   }
-  const ak = { replaceSlots, keepAll, get replacedTris() { return replacedTris; }, dbg, T, Q, low, quality, W: Wv, P, add, both, one, bone, chain, cloth, collider, frame, onSeg, mount, halo, embers, finish, update, onUpdate, stats, dispose, material, mats, extraRoots, bones, body, skel0, bindMatrix, parent, ready: false, accent,
+  const ak = { setForma, replaceSlots, keepAll, get replacedTris() { return replacedTris; }, dbg, T, Q, low, quality, W: Wv, P, add, both, one, bone, chain, cloth, collider, frame, onSeg, mount, halo, embers, finish, update, onUpdate, stats, dispose, material, mats, extraRoots, bones, body, skel0, bindMatrix, parent, ready: false, accent,
     /** Segmentos «a nivel de calidad»: s(8) → 8 (alta), 5 (baja). */
     s: (n, min = 3) => Math.max(min, Math.round(n * Q)),
     setObject: (o) => { objectRef = o; } };

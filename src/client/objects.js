@@ -191,7 +191,8 @@ export class ObjectsView {
   buildNpc(d) {
     const info = NPC_INFO[d.nk] || { name: 'Alma' }, col = NPC_COLORS[d.nk] || 0xffffff;
     let g = null;
-    if (this.humans && this.humans.hm && this.humans.kit) {
+    if (this.npcLite) { try { g = this.npcLite(d, col); } catch (err) { console.warn('NPC liviano no disponible:', err.message); g = null; } }   // La Base en Baja (env/base.js): figura fusionada de 2-3 llamadas en vez de un humano de ~11
+    if (!g && this.humans && this.humans.hm && this.humans.kit) {
       try {
         const h = this.humans.hm.createHuman(this.humans.kit, { seed: 'npc-' + d.nk, name: info.name, color: col, weapon: null, noWeapon: true, noGear: true });
         g = new THREE.Group(); const pivot = new THREE.Group(); pivot.add(h.object); g.add(pivot);

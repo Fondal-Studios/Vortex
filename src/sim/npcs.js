@@ -17,6 +17,8 @@ export const NPC_INFO = {
     { text: 'Volver a sortear tus tarjetas (1 vez por respiro)', cost: '10 núcleos' }, { text: 'Forjar tarjetas de órgano con tus esencias', cost: '20 núcleos' }],
     /* oferta extra (docs/INVENTARIO.md): 2 = objeto vivo al azar (la construcción dirigida está en la Forja del menú) */
     forja: [{ text: 'Forjar un objeto vivo al azar (arma, armadura o reliquia)', cost: '45 núcleos + 4 esencias' }] },
+  /* la Guía vive sólo en la Base (src/sim/base.js, docs/BASE.md): no está en NPC_KINDS, así que nunca aparece entre oleadas */
+  guia: { name: 'La Guía del Santuario', says: 'Caminá, mirá y usá las estaciones.', offers: [] },
 };
 const maxKey = (p, f) => ESS_KEYS.reduce((a, k) => (f(p.ess[k], p.ess[a]) ? k : a), ESS_KEYS[0]);
 

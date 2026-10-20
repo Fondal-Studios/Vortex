@@ -104,7 +104,7 @@ function panelHtml() {
     <datalist id="gr-marcas"><option value="50"></option><option value="100"></option><option value="150"></option></datalist>
     <div class="gr-marcas" aria-hidden="true"><span>50 %</span><span>100 %</span><span>150 %</span></div>
     <h3 class="gr-h">Efectos <small>(cada uno dice cuánto pesa)</small></h3>
-    ${sec(['sombras', 'bloom', 'postproc', 'nieblaAire', 'particulas', 'nieblasFx', 'humanos', 'decorado', 'lod', 'fps'])}
+    ${sec(['sombras', 'bloom', 'postproc', 'nieblaAire', 'particulas', 'nieblasFx', 'vegetacion', 'vegDens', 'humanos', 'decorado', 'lod', 'fps'])}
     <h3 class="gr-h">Ayudas</h3>
     <div class="gr-row" data-row="claridad"><div class="gr-info"><b>Claridad</b><span class="gr-cost" data-c="0">${barras(0)} casi nada</span><small>Más luz de relleno y borde de luz sobre el Huésped y los enemigos, para no perderlos entre los colores. «Alta» ayuda en pantallas chicas o con sol.</small></div><div class="gr-seg" role="group" aria-label="Claridad"><button class="gr-opt gr-nav" type="button" data-cl="normal">Normal</button><button class="gr-opt gr-nav" type="button" data-cl="alta">Alta</button></div></div>
     <div class="gr-row" data-row="medidor"><div class="gr-info"><b>Medidor de FPS</b><span class="gr-cost" data-c="0">${barras(0)} casi nada</span><small>Un numerito en la esquina con los cuadros por segundo. Verde: bien · ámbar: justo · rojo: va lento.</small></div><div class="gr-seg" role="group" aria-label="Medidor de FPS"><button class="gr-opt gr-nav" type="button" data-med="true">Sí</button><button class="gr-opt gr-nav" type="button" data-med="false">No</button></div></div>

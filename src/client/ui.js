@@ -1,5 +1,7 @@
 // Interfaz de acceso estilo PlayStation 5: título → menú principal con tarjetas → sub-pantallas. Teclado, ratón, táctil y mando.
 import { BESTIARY, TIPS } from './lore.js';
+import { buildHerbarioTab, selectHerbario } from './flora-ui.js';   // pestaña «Herbario» del Bestiario (flora interactiva, docs/FLORA.md)
+import { buildFaunaTab, selectFauna } from './fauna-ui.js';   // pestaña «Fauna» del Bestiario (Códice de Fauna)
 import { CHARACTERS, CHARACTER_IDS, ROLES, WEAPONS } from '../sim/data.js';
 import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
 import { WEAPON_COLORS } from './shotfx.js';
@@ -58,6 +60,7 @@ export class MenuUI {
   refreshHuesped() { if (this.screen === 'main' || this.screen.startsWith('hub-')) refrescarInicio(this); }
   back() {
     if (this.screen === 'title') return;
+    if (this.desdeBase && (this.screen === 'main' || !this.stack.length)) { this.sound.ui('back'); this.desdeBase(); return; }   // abierto desde la Base (main.js › baseAbrir): el último «Volver» cierra el menú y vuelve al mapa
     if (this.screen === 'tienda' && this.tn && this.tn.dialogoAbierto()) { this.tn.cerrarDialogo(); this.sound.ui('back'); this.focus(this.idx, true); return; }   // Esc cierra primero el cartel de confirmación
     if (this.screen === 'main') return;   // en el inicio no hay a dónde volver (el título no se vuelve a mostrar)
     const prev = this.stack.pop(); this.sound.ui('back'); this.show(prev || 'main', false);
@@ -78,11 +81,14 @@ export class MenuUI {
     if (this.screen === 'bestiary') this.selectBeast(this.idx);
     if (!silent) this.sound.ui('tick');
   }
-  buildBestiary() {
+  buildBestiary() { this.buildBestiaryCriaturas(); buildFaunaTab(this); buildHerbarioTab(this); }
+  buildBestiaryCriaturas() {
     $('bgrid').innerHTML = BESTIARY.map((b, i) => `<button class="bcell" data-i="${i}" style="--c:${b.color}"><span>${b.name}</span></button>`).join('');
     $('bgrid').querySelectorAll('.bcell').forEach((c) => { c.addEventListener('mouseenter', () => { if (this.screen === 'bestiary') this.focus(+c.dataset.i); }); c.addEventListener('click', () => this.selectBeast(+c.dataset.i)); });
   }
   selectBeast(i) {
+    if (this.btab === 'h') return selectHerbario(this, i);   // pestaña Herbario del Bestiario
+    if (this.btab === 'f') return selectFauna(this, i);   // pestaña Fauna del Bestiario
     const b = BESTIARY[i]; if (!b) return; $('bname').textContent = b.name; $('brole').textContent = b.role + (b.boss ? ' · jefe' : '');
     $('bdesc').textContent = b.desc; $('bstats').innerHTML = `<dt>Vida</dt><dd>${b.hp}</dd><dt>Tipo</dt><dd>${b.fly ? 'volador' : 'terrestre'}</dd><dt>Consejo</dt><dd>${b.tip}</dd>`;
     const f = $('bview'), src = `./public/viewer.html?k=${b.kind}&turn=1&embed=1&big=1&q=${window.__api && window.__api.level === 'low' ? 'low' : 'medium'}`; if (f.dataset.k !== b.kind) { f.dataset.k = b.kind; f.src = new URL(src, document.baseURI).href; }
@@ -105,7 +111,7 @@ export class MenuUI {
     this.root.addEventListener('touchend', (e) => { if (!sw) return; const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = Math.abs(t.clientY - sw.y); sw = null; if (dx > 70 && dy < 60 && this.active && this.screen !== 'title') this.back(); }, { passive: true });
   }
   confirmTitle() { if (this.screen !== 'title') return; this.sound.init(); this.sound.resume(); this.sound.startMusic('m1'); this.sound.ui('ok'); this.show('main', false); }
-  go(name) { this.sound.ui('ok'); this.show(name); }
+  go(name) { this.sound.ui('ok'); if (name === 'base') { if (this.actions.base) this.actions.base(); return; } this.show(name); }   // «La Base» no es una pantalla del menú: es un mapa (main.js › startBase)
   /** Acciones abstractas: up/down/left/right/ok/back */
   act(a) {
     if (!this.active) return; this.sound.init();

@@ -16,6 +16,8 @@ import { uBeat } from './shaders.js';
 import { createPresence, pathColor, PATH_STYLE } from './huesped-presencia.js';
 import { REGION, pathFor } from './host-human.js';
 import { CHARACTERS, MELEE_WEAPONS, EVO_PATHS, evoPathsFor } from '../sim/data.js';
+import { settings } from './settings.js';
+import { formaPorIndice } from '../sim/fauna-data.js';   // metamorfosis de fauna: color y estilo de material de la forma activa (snapshot `mf`)
 import * as AXIOMA from './huesped/axioma.js';
 import * as VESPER from './huesped/vesper.js';
 import * as MICELIO from './huesped/micelio.js';
@@ -59,7 +61,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
   const holder = new T.Group(); holder.scale.setScalar(L.scale); object.add(holder);
   const human = createHuman(kit, { char: p.char, name: p.name || p.char, color: L.glow, accent: L.glow, noGear: true, weapon: null, hands: false, overrides: { body: NEUTRAL } });
   holder.add(human.object); holder.visible = false; // hasta que el kit esté armado no se muestra (si no, se vería el humano desnudo)
-  let itemW = [], shownEvo = -1, shape = { g: 1, x: 1, y: 1, z: 1 }, lean = 0, lastPath = '', ak = null, bodyGeo = null, map = opts.map || null, key = '', ready = false, disposed = false, time = Math.random() * 10, act = null, clip = '', fade = 1, fadeMats = [], weapon = null, organs = null, extra = {}, sigil = null;
+  let fk = 0, fkT = 0, fId = '', fHex = null, fVis = 0, itemW = [], shownEvo = -1, shape = { g: 1, x: 1, y: 1, z: 1 }, lean = 0, lastPath = '', ak = null, bodyGeo = null, map = opts.map || null, key = '', ready = false, disposed = false, time = Math.random() * 10, act = null, clip = '', fade = 1, fadeMats = [], weapon = null, organs = null, extra = {}, sigil = null;
   const camera = opts.camera || null, presence = createPresence(T, { glow: L.glow, quality, camera }); object.add(presence.object);
 
   async function loadBodyGeometry() {
@@ -132,6 +134,8 @@ export function createHostBody(THREE, kit, p, opts = {}) {
   const readyP = human.ready.then(async () => { if (disposed) return; bodyGeo = await loadBodyGeometry(); if (disposed) return; key = keyOf(p, map); assemble(p); return api; }).catch((e) => { console.warn('Huésped:', e); });
   const api = {
     object, human: true, ready: readyP, get isReady() { return ready; }, get labelY() { return 1.95 * L.scale * shape.y + 0.45 + (shownEvo >= 4 ? 0.3 : 0); }, get person() { return human; }, get map() { return map; }, get kit() { return ak; },
+    /** Metamorfosis: al comer, la transformación breve (≈ 0,8 s) con el color de la forma nueva. */
+    formaEvent(e) { if (e.ph !== 'come') return; const F = formaPorIndice(e.f); presence.burst(F ? parseInt(F.color.slice(1), 16) : L.glow, 1.5); },
     event(e) { if (e.t === 'evolve') { presence.burst(pathColor(e.path || lastPath, L.glow)); return; } act = { k: e.t === 'melee' ? 'punch' : 'cast', t: e.t === 'melee' ? 0.6 : 1.0 }; },
     pose(n) { if (n === 'melee' || n === 'skill') api.event({ t: n }); },
     setMap(m) { map = m || null; },
@@ -148,6 +152,10 @@ export function createHostBody(THREE, kit, p, opts = {}) {
       if (an && !an.measured && human.bones && human.bones.upperarm01_R_h) { an.measured = true; an.measure(human.bones); }
       const post = an && an.w > 0.01 ? (b, g) => an.apply(b, g) : null;
       human.update(stop ? 0 : dt, { speed: spd, moveDir: vis > 1 ? { x: 0, z: 1 } : ctx.moveDir, pitch: ctx.pitch || 0, camera, post });
+      { // metamorfosis (fauna): el MATERIAL del cuerpo y la armadura pasa a escarcha / brasa / arcos… (huesped-armor.js) y el aura toma su color; ≈ 0,8 s para entrar y salir
+        const F = formaPorIndice(pl.mf); if (F) { if (F.id !== fId) { fId = F.id; fHex = parseInt(F.color.slice(1), 16); fVis = F.vis; presence.setForma(fHex); } fkT = 1; } else if (fId) { fkT = 0; if (fk <= 0.001) { fId = ''; presence.setForma(null); } }
+        fk += Math.max(-dt * 1.25, Math.min(dt * 1.25, fkT - fk)); ak.setForma(fHex, fVis, settings().reducirGravedad ? fk * 0.7 : fk);
+      }
       presence.update(dt, time, { speed: spd, moveDir: ctx.moveDir, viewH: ctx.viewH });
       const evoN = shownEvo, lev = ((has2('apoteosis') || has2('reina')) ? 0.2 + 0.05 * Math.sin(time * 1.6) : has2('anomalia') ? 0.07 + 0.03 * Math.sin(time * 1.2) : 0); // la forma final levita
       const ao = an && an.w > 0 ? an.off : null, jit = stop ? Math.sin(time * 140) * 0.012 * (ctx.freezeK || 1) : 0;   // el hit-stop vibra apenas: el golpe «traba»

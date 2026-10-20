@@ -44,7 +44,7 @@ export function metaActual(state, me) {
 /** Marcador de la mini-misión secundaria de la oleada (o null). */
 export function textoMision(mis) {
   if (!mis) return null;
-  const base = { melee: `Golpe a golpe: matá ${mis.n} con melé`, intacto: 'Intocable: superá la oleada sin recibir daño', elite: 'Caza mayor: eliminá al élite (brilla distinto)' }[mis.k] || 'Misión';
+  const base = { melee: `Golpe a golpe: matá ${mis.n} con melé`, intacto: 'Intocable: superá la oleada sin recibir daño', elite: 'Caza mayor: eliminá al élite (brilla distinto)', alimento: 'Alimentación: comé a la criatura RARA que brilla (USAR / E)' }[mis.k] || 'Misión';
   const cuenta = mis.k === 'melee' ? ` (${mis.p}/${mis.n})` : '';
   const premio = `+${mis.rc} núcleos`;
   if (mis.st === 'done') return { cls: 'done', txt: `✔ ${base.split(':')[0]} cumplida · ${premio}` };

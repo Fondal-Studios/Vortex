@@ -14,6 +14,7 @@ import { ordenar, nubeArea, spawnUnits, llamado } from './enjambre.js';   // Col
 import { addPozo, singularFx, singularHab, SING } from './singular.js';   // Singular: pozos de gravedad y satélites (fx 'atrae' | 'pozo' | 'orbita', habilidad 'gravedad', remate 'pozo')
 import { NEUTRO_C, ARRASE_PRESUPUESTO, progHit, progSnap } from './progresion.js';   // árbol de combos permanente (docs/EVOLUCION.md): p.ac = efectos de los nodos
 import { itemComboSet, itemComboShape, itemStrike, execThreshold } from './items-fx.js';
+import { faunaMelee } from './fauna.js';   // fauna consumible: remate que devora y suelta el golpe elemental (src/sim/fauna.js)
 import { dzInit, dzOpen, dzBeat, dzDmg, dzRec, dzChain, dzContrapaso } from './danzante.js';   // Danzante: compás, parada y esquiva perfectas   // objetos equipados (docs/INVENTARIO.md)
 
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -194,6 +195,7 @@ function resolve(g, p, mv0, power, W, last, fin) {
       g.emit({ t: 'melee', pid: p.id, kind: mv.kind, p: a3(madd(o, dir0, 1.5)), d: a3(dir0), hit: hits, cmb: p.cmb, mw: M.id, sp: (M.item || (p.evo || 0) >= 1) ? M.special || undefined : undefined, ...(M.item ? { iw: M.iw, hd: (p.hand = (p.hand || 0) ^ 1) } : {}) });
     }
     if (fin && ac.fin) finisherArea(g, p, ac.fin, bud, dmg, o, dir0);   // Aniquilación en Área: el remate barre
+    if (!mv.ranged) faunaMelee(g, p, o, dir0, range, heavy || last);   // fauna: el remate (golpe pesado o último del combo) devora y suelta el golpe elemental de la forma
   } finally { g.dmgSrc = s0; p.inMelee = false; g.pierceNow = false; }
   return hits;
 }

@@ -166,5 +166,9 @@ import { makeMap3 } from './map3.js';
 import { makeMap4 } from './map4.js';
 import { makeMap5 } from './map5.js'; // Plaza de los Ecos (Praga de ARCANUM, muerta)
 import { makeMap6 } from './map6.js'; // Osario sin Techo (Sedlec de ARCANUM, muerto)
+import { makeBase } from './base.js'; // La Base: el mapa-hub (sin oleadas)
 export const MAPS = { m1: makeMap1(), m2: makeMap2(), m3: makeMap3(), m4: makeMap4(), m5: makeMap5(), m6: makeMap6() };
+// La Base (src/sim/base.js) también es un mapa para Game/Renderer, pero NO es una arena: se registra «invisible» (no enumerable) para que
+// MAP_IDS, las listas de arenas y las pruebas que recorren todos los mapas no la cuenten.
+Object.defineProperty(MAPS, 'base', { value: makeBase(), enumerable: false });
 export const MAP_IDS = Object.keys(MAPS);

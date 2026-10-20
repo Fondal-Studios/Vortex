@@ -9,6 +9,7 @@ export const DEFAULTS = Object.freeze({
   accelGain: 0.8,     // cuánto acelera un deslizamiento rápido (0..2)
   invertY: false,
   reducirGravedad: false, // «Reducir efectos de gravedad»: la inversión de la Marea de Gravedad es un empujón hacia arriba, sin giro de cámara (viaja en el input como `soft`)
+  faunaAuto: false,   // fauna consumible: comer solo al quedarte pegado a un bicho (~0,6 s); por URL ?autofauna=1. Por defecto se come con USAR / E
   gyro: false, gyroSens: 1,
   aim: null,          // ayuda de puntería 0..3 (null = según dispositivo)
   fingers: 2,         // 2, 3 o 4 dedos
@@ -20,6 +21,7 @@ export const DEFAULTS = Object.freeze({
   style: 'disparo',  // estilo de combate: 'melee' | 'disparo' | 'habilidad' (data.js STYLES)
   simple: true,       // MODO SIMPLE: ayuda de puntería alta, dispara solo al tener un enemigo en la mira y golpea solo cuando lo tenés encima
   claridad: 'normal', // CLARIDAD visual (quality.js · CLARIDAD): 'normal' | 'alta' (más luz de relleno y contorno de luz sobre el Huésped y los enemigos)
+  baseAlTerminar: true, // al terminar una partida se ofrece «Entrar a la Base» en vez de volver al menú (docs/BASE.md)
   third: true,        // cámara en tercera persona sobre el hombro (verte a vos mismo)
   camDist: 3.6, camSide: 1, camFov: 78,   // distancia, hombro (1 derecha / -1 izquierda) y campo de visión de la 3ª persona
   adsMode: 'mantener', // 'mantener' | 'alternar'

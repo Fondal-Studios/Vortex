@@ -7,7 +7,7 @@ import { Game } from '../src/sim/game.js';
 import { WEAPONS, WAVE_PLANS, MELEE_WEAPONS, MELEE_TYPES } from '../src/sim/data.js';
 import { MELEE_MODEL_IDS } from '../src/client/melee-models.js';
 import {
-  ITEMS, ITEM_IDS, SLOTS, ARMOR_SLOTS, RARITIES, MATERIALS, MATERIAL_IDS, PLANOS, SETS, SET_IDS, setActivos, setCounts, RECETAS, MATERIALES, CALIDADES, qForja, PLANOS_INICIALES, PASIVOS, SIGNATURES, ITEM_COMBO_SETS, ITEM_COMBO_WEAPON, CAPS, BN_KEYS, ADD_KEYS, UTIL_KEYS,
+  ITEMS, ITEM_IDS, SLOTS, ARMOR_SLOTS, RARITIES, MATERIALS, MATERIAL_IDS, PLANOS, SETS, SET_IDS, setActivos, setCounts, RECETAS, MATERIALES, TODOS_MAT_IDS, CALIDADES, qForja, PLANOS_INICIALES, PASIVOS, SIGNATURES, ITEM_COMBO_SETS, ITEM_COMBO_WEAPON, CAPS, BN_KEYS, ADD_KEYS, UTIL_KEYS,
   FASE_KILLS, FASE_MUL, faseDe, progresoFase, itemStats, pasivosActivos, cleanEquip, equipError, foldStatic, desguaceValor, lineasStats, lineasPasivos, lineasSinergias, proximaFase, poder, rollMul, LIMITE_INVENTARIO,
 } from '../src/sim/items.js';
 import { tirar, tirarBotin, BOTIN_TIPO, rarezaDe, pesosRareza, FUENTES, PITY, initPity, dropsJefe, firmaCumplida, soltar, updateLoot, forjar, lootSnap, MAT_MAPA } from '../src/sim/drops.js';
@@ -194,7 +194,7 @@ test('dropeo en una partida completa de bot: cae botín de varias fuentes y el j
     g.step(T60); for (const e of g.drainEvents()) if (e.t === 'drop') fuentes.add(e.src);
   }
   assert.ok(p.bag.length >= 4, `juntó ${p.bag.length} objetos en ${Math.round(t)} s`); assert.ok(fuentes.has('respiro') || fuentes.has('mision'), [...fuentes].join());
-  assert.ok(p.bag.every((b) => (b.id.startsWith('mat:') ? MATERIAL_IDS.includes(b.id.slice(4)) && b.q >= 0 && b.q <= 3 : b.id.startsWith('plano:') ? PLANOS[b.id.slice(6)] : ITEMS[b.id]) && b.n >= 1), 'materiales, planos u objetos válidos'); assert.ok(p.bag.some((b) => b.id.startsWith('mat:')), 'lo que más cae son materiales');
+  assert.ok(p.bag.every((b) => (b.id.startsWith('mat:') ? TODOS_MAT_IDS.includes(b.id.slice(4)) && b.q >= 0 && b.q <= 3 : b.id.startsWith('plano:') ? PLANOS[b.id.slice(6)] : ITEMS[b.id]) && b.n >= 1), 'materiales, planos u objetos válidos'); assert.ok(p.bag.some((b) => b.id.startsWith('mat:')), 'lo que más cae son materiales');
 });
 
 /* ───────────────────────── equipo en la simulación ───────────────────────── */
@@ -389,7 +389,7 @@ test('servidor: valida y acota el equipo (ids falsos, firmas ajenas, ranuras, ex
 
 /* ───────────────────────── forja biológica, planos y sets ───────────────────────── */
 test('contrato: MATERIALES, PLANOS, RECETAS y SETS cubren todo el catálogo y cada receta se puede cumplir', () => {
-  assert.deepEqual(Object.keys(MATERIALES).sort(), [...MATERIAL_IDS].sort()); assert.equal(CALIDADES.length, 4);
+  assert.deepEqual(Object.keys(MATERIALES).sort(), [...TODOS_MAT_IDS].sort(), 'los 7 orgánicos + los 8 vegetales de la flora (docs/FLORA.md)'); assert.equal(MATERIAL_IDS.length, 7); assert.equal(CALIDADES.length, 4);
   assert.deepEqual(Object.keys(PLANOS).sort(), [...ITEM_IDS].sort()); assert.deepEqual(Object.keys(RECETAS).sort(), [...ITEM_IDS].sort());
   assert.ok(PLANOS_INICIALES.length >= 8 && PLANOS_INICIALES.every((id) => ITEMS[id].r === 0), 'los planos Comunes se conocen de entrada');
   for (const id of ITEM_IDS) { const R = RECETAS[id], it = ITEMS[id]; assert.equal(R.plano, id); assert.ok(R.mats.length >= 1 && R.cores > 0 && R.tiempo > 0 && R.tiempo <= 120, id); for (const x of R.mats) { assert.ok(MATERIALES[x.mat] && x.n >= 1 && x.cal >= 0 && x.cal <= 3, id); } assert.ok(R.mats.some((x) => x.mat === it.mat), 'usa su propio material'); if (it.host) { assert.ok(R.mats.some((x) => x.cal === 3) && R.cores >= 300, `${id}: la firma pide materiales Perfectos`); assert.ok(PLANOS[id].firma && !PLANOS[id].inicial); } }
@@ -397,7 +397,7 @@ test('contrato: MATERIALES, PLANOS, RECETAS y SETS cubren todo el catálogo y ca
   assert.equal(qForja('x', 3, 1), qForja('x', 3, 1)); assert.notEqual(qForja('x', 3, 1), qForja('x', 4, 1)); for (let i = 0; i < 300; i++) { const q = qForja('gemelas_axioma', i, i % 4); assert.ok(q >= 0.15 && q <= 1); } assert.ok(qForja('a', 1, 3) > qForja('a', 1, 0));
 });
 test('sets orgánicos: 7 familias, cada una con 4 piezas de armadura (una por zona) + 1 arma, bonos de 2 y 4 piezas acotados', () => {
-  assert.equal(SET_IDS.length, 7); assert.deepEqual(SET_IDS.map((s) => SETS[s].mat).sort(), [...MATERIAL_IDS].sort(), 'un set por material');
+  const base = SET_IDS.filter((s) => !SETS[s].jardin); assert.equal(base.length, 7); assert.deepEqual(base.map((s) => SETS[s].mat).sort(), [...MATERIAL_IDS].sort(), 'un set por material'); assert.equal(SET_IDS.length - base.length, 2, 'más los 2 sets de jardín (docs/FLORA.md)');
   for (const sid of SET_IDS) {
     const S = SETS[sid]; assert.equal(S.items.length, 5, sid); assert.deepEqual(S.items.map((i) => ITEMS[i].slot).sort(), ['arms', 'gun', 'head', 'legs', 'melee', 'torso'].filter((x) => x !== 'gun').sort(), sid);
     for (const i of S.items) { assert.equal(ITEMS[i].set, sid); assert.ok(!ITEMS[i].host, 'las firmas no son de set'); assert.equal(ITEMS[i].mat, S.mat, `${i} es del material del set`); }

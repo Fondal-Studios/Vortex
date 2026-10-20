@@ -1,0 +1,46 @@
+[
+ {
+  "mapa": "base",
+  "calidad": "high",
+  "claridad": "normal",
+  "huesped": {
+   "ok": true,
+   "area": 15174,
+   "bandPx": 4339,
+   "ringPx": 9653,
+   "ratio": 4.77,
+   "rCuerpo": 4.77,
+   "rBorde": 2.91,
+   "dE": 58,
+   "fBorde": 0.84,
+   "legible": true,
+   "lumaCuerpo": 0.07,
+   "lumaBorde": 0.146,
+   "lumaFondo": 0.521,
+   "fondoP10": 0.347,
+   "fondoP90": 0.764
+  },
+  "enemigos": {
+   "ok": true,
+   "area": 4950,
+   "bandPx": 3201,
+   "ringPx": 11847,
+   "ratio": 1.67,
+   "rCuerpo": 1.67,
+   "rBorde": 1.67,
+   "dE": 23,
+   "fBorde": 0.89,
+   "legible": true,
+   "lumaCuerpo": 0.26,
+   "lumaBorde": 0.26,
+   "lumaFondo": 0.469,
+   "fondoP10": 0.006,
+   "fondoP90": 0.716
+  },
+  "lumaImg": 156.1,
+  "lumaCentro": 164.6,
+  "satMedia": 0.34,
+  "calls": 203,
+  "tris": 480220
+ }
+]

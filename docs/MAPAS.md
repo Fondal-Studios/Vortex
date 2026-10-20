@@ -130,3 +130,9 @@ Capturas de cada órgano en cada fase: `node tools/shot-arenas.js todas shots/ar
 
 ## Nieblas de colores por arena
 Cada arena tiene 2 nieblas temáticas (más las nubes de los pulmones y las de los eventos): ver la tabla completa y las reglas en `docs/MUNDO_VIVO.md` → «Nieblas tóxicas de colores». m1 cian + vacío · m2 magenta + ámbar · m3 blanca + cian · m4 ácida + magenta · m5 ámbar + blanca · m6 vacío + ácida. Las nubes se ven sobre el suelo de cada mapa con un aro del color de la niebla (siempre visible, aun con las nubes apagadas en Baja).
+
+## Fauna por arena
+Cada arena tiene 3 especies de fauna consumible con su folclore (m1 Lagartija de Hielo · Polilla de Vacío · Colibrí de Luz · m2 Escarabajo de Cristal · Araña de Seda de Eco · Mariposa Eléctrica · m3 Rana de Marea · Pez Lunar · Grillo Silbador · m4 Sapo Venenoso · Sanguijuela de Rubí · Caracol de Raíz · m5 Cucaracha Relojera · Paloma de Humo · Gorrión de Cobre · m6 Salamandra de Brasa · Ciempiés de Hueso · Murciélago de Ceniza) y dos raras en cualquiera. Detalle en **docs/FAUNA.md**.
+
+## Flora por arena (dueño, 2026-10-20)
+Cada arena tiene un jardín psicodélico interactivo (3 especies propias + 4 plantas raras de evento, misión y jefe): m1 Flor de Luz Mala · Liana Aferradora · Hongo de Ánima · m2 Fruto de Eco · Planta Espejo · Zarza de Cristal · m3 Brote del Coro · Flor del Sueño · Vejiga Silbadora · m4 Bulbo Vital · Boca del Jardín · Árbol de Savia · m5 Fruto de la Hora · Hiedra del Relojero · Arbusto de Brasas · m6 Lirio del Osario · Boca de Hueso · Cardo de Ceniza. Curan, muerden, atrapan, envenenan, reflejan o arden, avisan ≥ 1 s antes y se cosechan con USAR para forjar sets de jardín. Paleta de pasto, hojas y decorado propia de cada arena (`PALETA_ARENA`). Tabla completa, reglas, presupuestos y contrato en `docs/FLORA.md`.

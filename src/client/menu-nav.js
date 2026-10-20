@@ -4,6 +4,7 @@
 import { TERRITORIOS, TERRITORIO_IDS } from '../sim/bendiciones.js';
 import { gastado } from '../sim/progresion.js';
 import { HOST_IDS } from '../sim/data.js';
+import { macetaEstado } from '../sim/base.js';   // La Base: cosecha del jardín lista
 import { HUESPEDES_TIENDA, estadoHuesped, poseeHuesped, claveOferta, diaDe } from '../sim/tienda.js';
 
 /** Las 4 puertas de la pantalla de inicio. `art` = imagen de fondo; `desc` = una línea que se ve siempre (y como ayuda al pasar el mouse o tocar). */
@@ -20,6 +21,7 @@ export const HUBS = {
     { go: 'story', titulo: 'Historia', desc: 'La campaña: un tren, un andén, una luz. 2 capítulos y 2 jefes.', art: './public/art/historia.jpg' },
     { go: 'arenas', titulo: 'Arenas', desc: 'Directo a la acción en cualquiera de los 6 mapas, o probá armas en el Campo de pruebas.', art: './public/art/arena-m1.jpg', aviso: 'mision' },
     { go: 'coop', titulo: 'Cooperativo', desc: 'Hasta 4 Pasajeros con un código de sala (necesita el servidor).', art: './public/art/coop.jpg' },
+    { go: 'base', titulo: 'La Base', desc: 'El Santuario: un mapa donde caminás, forjás, cultivás y elegís tu próxima partida.', art: './public/art/arena-m4.jpg', aviso: 'base' },
   ] },
   'hub-huesped': { puerta: 'huesped', titulo: 'Mi Huésped', sub: 'Todo lo de tu organismo en un solo lugar.', items: [
     { go: 'huesped', titulo: 'Huésped', desc: 'Elegí a tu Huésped; mirá su maestría y su progresión Shooter / Combo.', art: './public/art/historia.jpg', aviso: 'puntos' },
@@ -42,7 +44,7 @@ export const HUBS = {
 export const PANTALLAS = {
   main: { nombre: 'Inicio', padre: null },
   'hub-jugar': { nombre: 'Jugar', padre: 'main' }, 'hub-huesped': { nombre: 'Mi Huésped', padre: 'main' }, 'hub-mundo': { nombre: 'Mundo', padre: 'main' }, 'hub-ajustes': { nombre: 'Ajustes', padre: 'main' },
-  story: { nombre: 'Historia', padre: 'hub-jugar' }, arenas: { nombre: 'Arenas', padre: 'hub-jugar' }, coop: { nombre: 'Cooperativo', padre: 'hub-jugar' },
+  story: { nombre: 'Historia', padre: 'hub-jugar' }, base: { nombre: 'La Base', padre: 'hub-jugar' }, arenas: { nombre: 'Arenas', padre: 'hub-jugar' }, coop: { nombre: 'Cooperativo', padre: 'hub-jugar' },
   huesped: { nombre: 'Huésped', padre: 'hub-huesped' }, evolucion: { nombre: 'Evolución', padre: 'hub-huesped' }, inventario: { nombre: 'Inventario', padre: 'hub-huesped' }, loadout: { nombre: 'Equipo', padre: 'hub-huesped' },
   territorios: { nombre: 'Territorios', padre: 'hub-mundo' }, bestiary: { nombre: 'Bestiario', padre: 'hub-mundo' }, tienda: { nombre: 'Tienda', padre: 'hub-mundo' },
   graficos: { nombre: 'Gráficos', padre: 'hub-ajustes' }, options: { nombre: 'Controles y sonido', padre: 'hub-ajustes' },
@@ -73,7 +75,7 @@ const numUid = (u) => parseInt(String(u).slice(1), 36) || 0;
  *  huesped: Huéspedes de la Tienda que ya podés comprar · tienda: stock nuevo que no viste · bendicion: territorio liberado sin bendición
  *  mision: territorio nuevo que se acaba de abrir (hay una arena nueva por ganar). */
 export function avisos(p, ahora = Date.now()) {
-  const out = { botin: 0, puntos: 0, huesped: 0, tienda: 0, bendicion: 0, mision: 0 };
+  const out = { botin: 0, puntos: 0, huesped: 0, tienda: 0, bendicion: 0, mision: 0, base: 0 };
   if (!p) return out;
   const visto = (p.menu && p.menu.iv) || 0;
   out.botin = (p.inventario || []).filter((it) => numUid(it.u) >= visto).length;
@@ -81,6 +83,7 @@ export function avisos(p, ahora = Date.now()) {
     if (!poseeHuesped(p, id)) continue;
     for (const modo of ['combo', 'disparo']) { const e = p.arb && p.arb[id] && p.arb[id][modo]; if (e && (e.pc | 0) - gastado(modo, id, e.nodos || []) > 0) out.puntos++; }
   }
+  out.base = (p.cultivo && p.cultivo.listo <= ahora ? 1 : 0) + ((p.base && p.base.jardin) || []).filter((m) => m && macetaEstado(m, ahora).estado === 'lista').length;   // La Base: cultivo de la Forja o cosecha del jardín listos
   out.huesped = HUESPEDES_TIENDA.filter((id) => estadoHuesped(p, id) === 'comprable').length;
   out.tienda = !p.menu || p.menu.tv !== claveOferta(diaDe(ahora), (p.tienda && p.tienda.rot) | 0) ? 1 : 0;
   for (const t of TERRITORIO_IDS) {
@@ -92,7 +95,7 @@ export function avisos(p, ahora = Date.now()) {
 }
 /** Avisos de cada puerta (suma de lo que cuelga de ella). */
 export function avisosPuertas(a) {
-  return { jugar: a.mision, huesped: a.botin + a.puntos, mundo: a.huesped + a.tienda + a.bendicion, ajustes: 0 };
+  return { jugar: a.mision + a.base, huesped: a.botin + a.puntos, mundo: a.huesped + a.tienda + a.bendicion, ajustes: 0 };
 }
 
 /* ───────── ruta de objetivos (Jugar) ───────── */

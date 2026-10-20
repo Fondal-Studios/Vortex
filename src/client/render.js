@@ -28,7 +28,9 @@ import { createComboFx } from './combo-fx.js';   // golpes del modo Combo: pose 
 import { createSingularFx } from './singular-fx.js';   // pozos de gravedad y satélites de Singular (singular-fx.js)
 import { EventosFx } from './eventos-fx.js';
 import { LuzArenas } from './luz-arenas.js';   // luz propia de cada arena + ciclo día/ocaso/eclipse + luces de los órganos (luz-arenas.js)
+import { FaunaFx } from './fauna-fx.js';   // fauna consumible: bichos psicodélicos, rastros y chispas (fauna-fx.js, docs/FAUNA.md)
 import { NieblasFx } from './nieblas-fx.js';   // nieblas de colores con función (nieblas-fx.js)
+import { FloraFx } from './flora-fx.js';   // flora interactiva y vegetación psicodélica (flora-fx.js)
 import { ArenasVivasFx } from './arenas-vivas-fx.js';   // órganos del organismo de cada arena (arenas-vivas-fx.js)
 import { createHostBody, isHost } from './host-body.js';
 import { blocked } from '../sim/physics.js';
@@ -90,7 +92,9 @@ export class Renderer {
     try { this.singularfx = createSingularFx(this); } catch (err) { console.warn('Efectos de Singular no disponibles', err.message); this.singularfx = null; }
     try { this.evfx = new EventosFx(this); } catch (err) { console.warn('Efectos de eventos no disponibles', err.message); this.evfx = null; } // eventos de oleada (eventos-fx.js)
     try { this.avfx = new ArenasVivasFx(this); } catch (err) { console.warn('Arenas vivas no disponibles', err.message); this.avfx = null; } // arenas vivas (arenas-vivas-fx.js)
+    try { this.flfx = new FloraFx(this); this.flfx.configure(cfg()); } catch (err) { console.warn('Flora no disponible', err.message); this.flfx = null; } // flora interactiva (flora-fx.js)
     try { this.nfx = new NieblasFx(this); this.nfx.configure(cfg()); } catch (err) { console.warn('Nieblas de colores no disponibles', err.message); this.nfx = null; } // nieblas de colores (nieblas-fx.js)
+    try { this.ffx = new FaunaFx(this); this.ffx.configure(cfg()); } catch (err) { console.warn('Fauna no disponible', err.message); this.ffx = null; } // fauna consumible (fauna-fx.js)
     try { this.luz = new LuzArenas(this); this.luz.configure(cfg()); } catch (err) { console.warn('Luz de arenas no disponible', err.message); this.luz = null; }
     this.dying = [];
     this.setupPost();
@@ -117,6 +121,8 @@ export class Renderer {
     this.level = level; setCurrent(level); OUT.linear = usesComposer(); this.gl.toneMappingExposure = usesComposer() ? 1.9 : 1.05; this.setupPost();
     this.gl.setPixelRatio(this.pixelRatioFor(level)); this.resize();
     this.fx.configure(cfg());
+    if (this.ffx) this.ffx.configure(cfg());   // fauna consumible
+    if (this.flfx) this.flfx.configure(cfg());   // vegetación: densidad y detalle según el nivel
     if (this.nfx) this.nfx.configure(cfg());   // nieblas de colores (nieblas-fx.js): cantidad de nubes según el nivel
     if (this.luz) this.luz.configure(cfg());   // luces de órganos: una en Baja, dos en Media/Alta
     if (this.clar) this.applyClaridad(this.claridadId || 'normal');
@@ -158,13 +164,13 @@ export class Renderer {
     this.mapId = mapId;
     for (const c of [...this.mapRoot.children]) { this.mapRoot.remove(c); c.traverse((o) => { o.geometry && o.geometry.dispose(); o.material && o.material.dispose && o.material.dispose(); }); }
     for (const m of Object.values(this.ents)) { for (const o of m.values()) this.entRoot.remove(o.object || o); m.clear(); }
-    this.dyn = [];
+    this.dyn = []; this.baseFx = null; this.objects.npcLite = null;
     const warm = mapId === 'm2', dream = mapId === 'm3';
     this.hemi.color.setHex(warm ? 0xffb0d8 : dream ? 0xd0b8ff : 0xaab8ff); this.hemi.groundColor.setHex(warm ? 0x3a0a2a : dream ? 0x2a1050 : 0x1a0f3a); this.sun.color.setHex(warm ? 0xffd2c0 : 0xe8f0ff); this.rim.color.setHex(warm ? 0x66ffd8 : 0xff66c4);
     setClaridadMapa(mapId); this.clar = claridad(); if (this.grade) { this.grade.preset(mapId); this.grade.clarity(this.clar); }
     this.useHDRI(mapId);
     this.sunDir = null; // el entorno fija la dirección del sol; luego las sombras la siguen
-    if (mapId === 'm3') this.loadMap3(MAPS.m3); else if (mapId === 'm4') this.loadMap4(MAPS.m4); else if (mapId === 'm5' || mapId === 'm6') this.loadLimbo(mapId); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
+    if (mapId === 'm3') this.loadMap3(MAPS.m3); else if (mapId === 'm4') this.loadMap4(MAPS.m4); else if (mapId === 'm5' || mapId === 'm6') this.loadLimbo(mapId); else if (mapId === 'base') this.loadBase(); else (mapId === 'm1' ? buildMap1 : buildMap2)(this, MAPS[mapId]);
     if (mapId === 'm1' || mapId === 'm2') import('./env/eyes.js').then((m) => {
       if (this.mapId !== mapId || !m.addCosmicEyes) return; const q = cfg().decor;
       if (mapId === 'm1') m.addCosmicEyes(this, this.mapRoot, { mode: 'sky', count: q ? 40 : 12, radius: 1000, minR: 450, size: 2.6, y0: -150, y1: 700 });
@@ -180,6 +186,10 @@ export class Renderer {
   /** Arenas del limbo (mapas 5 y 6: Praga y Sedlec de ARCANUM, muertos): env/map5.js y env/map6.js. */
   loadLimbo(mapId) {
     import(mapId === 'm5' ? './env/map5.js' : './env/map6.js').then((m) => { if (this.mapId === mapId) m.build(this, MAPS[mapId]); }).catch((e) => { console.error('mapa ' + mapId + ':', e); });
+  }
+  /** La Base · El Santuario (src/sim/base.js + env/base.js): el mapa-hub caminable (docs/BASE.md). */
+  loadBase() {
+    import('./env/base.js').then((m) => { if (this.mapId === 'base') m.build(this, MAPS.base); }).catch((e) => { console.error('mapa base:', e); });
   }
   loadMap4(map) {
     const mapId = 'm4';
@@ -238,8 +248,9 @@ export class Renderer {
     this.syncPickups(state);
     if (this.comboFx) { try { this.comboFx.ingest(state, me); } catch (err) { console.warn('comboFx', err.message); this.comboFx = null; } }   // ANTES de syncPlayers: arranca la pose de cada golpe
     this.syncPlayers(state, myId, dt);
-    if ((state.objs || []).some((o) => o.t === 'npc')) { if (!this.humansKit) this.ensureHumans(); if (this.humansKit && this.hm && !this.objects.humans) this.objects.humans = { kit: this.humansKit, hm: this.hm }; } // NPC del respiro: humano espectral cuando el kit ya cargó
+    if ((state.objs || []).some((o) => o.t === 'npc')) { if (!this.humansKit) this.ensureHumans(); if (this.humansKit && this.hm && !this.objects.humans) { this.objects.humans = { kit: this.humansKit, hm: this.hm }; for (const [id, it] of [...this.objects.items]) if (it.t === 'npc') { this.objects.root.remove(it.g); this.objects.items.delete(id); } } }   // (los NPC que se armaron como figura liviana antes de que el kit cargara se rehacen como humanos; en la Base pasa en el primer segundo) // NPC del respiro: humano espectral cuando el kit ya cargó
     this.objects.sync(state, dt, state.map, this.camera.position);
+    if (this.baseFx) { try { this.baseFx.update(dt, state, me); } catch (err) { console.warn('baseFx', err.message); this.baseFx = null; } }   // La Base: cubas, capullos, jardín… (base-fx.js)
     this.handleEvents(state, me);
     if (this.hostfx) this.hostfx.update(dt, state, me);
     if (this.comboFx) { try { this.comboFx.update(dt, state, me); } catch (err) { console.warn('comboFx', err.message); this.comboFx = null; } }
@@ -248,6 +259,8 @@ export class Renderer {
     if (this.avfx) { try { this.avfx.update(dt, state); } catch (err) { console.warn('avfx', err.message); this.avfx = null; } }
     if (this.luz) { try { this.luz.update(dt, state); } catch (err) { console.warn('luz', err.message); this.luz = null; } }
     if (this.nfx) { try { this.nfx.update(dt, state, me); } catch (err) { console.warn('nfx', err.message); this.nfx = null; } }
+    if (this.flfx) { try { this.flfx.update(dt, state, me); } catch (err) { console.warn('flfx', err.message); this.flfx = null; } }
+    if (this.ffx) { try { this.ffx.update(dt, state, me); } catch (err) { console.warn('ffx', err.message); this.ffx = null; } }   // fauna consumible
     this.updateDying(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
@@ -490,7 +503,7 @@ export class Renderer {
         k.color.set(0xffffff).lerp(new THREE.Color(col), 0.25); k.intensity = 20 * c.key * (this.luzKey || 1); k.visible = true;
       } else if (self) this.keyLight.intensity = 0;
       if (e.body) {
-        for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev);
+        for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev); else if (ev.t === 'fauna' && ev.pid === p.id && e.body.formaEvent) e.body.formaEvent(ev);   // fauna: la transformación al comer
         e.shotT = Math.max(0, e.shotT - dt); const cx = this.comboFx ? this.comboFx.frameFor(p.id, dt, p, state) : null;   // Combo: pose del golpe, avance visual y hit-stop del cuerpo
         e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, map: this.mapId, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null, ...cx });
       } else if (e.human) {
@@ -518,6 +531,8 @@ export class Renderer {
     if (this.singularfx && state.events.length) for (const e of state.events) this.singularfx.onEvent(e, me, state);   // pozos / satélites de Singular: avisa sin consumir el evento
     let evs = state.events; if (this.hostfx && evs.length) { evs = []; for (const e of state.events) if (!this.hostfx.onEvent(e, me, state)) evs.push(e); } // hostfx.js resuelve las habilidades / melee de los Huéspedes
     for (const e of evs) {
+      if (e.t === 'flora') { if (this.flfx) this.flfx.onEvent(e, me, state); continue; }   // flora interactiva: cura, picadura, esporas… (flora-fx.js); el sonido y los carteles los pone main.js
+      if (e.t === 'fauna') { if (this.ffx) this.ffx.onEvent(e, me, state); continue; }   // fauna consumible: chispas al comer / rematar (fauna-fx.js); el sonido y los carteles los pone main.js
       if (!OWN.has(e.t)) this.objects.onEvent(e, this.fx, bossP);
       if (e.t === 'shot') for (const [pid, pe] of this.ents.ply) if (pid === e.pid) pe.shotT = 0.25;
       switch (e.t) {

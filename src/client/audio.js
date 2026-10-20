@@ -152,6 +152,34 @@ export class Sound {
   /** Caída al vacío: silbido descendente y golpe hueco. */
   abyss() { this.tone({ f: 900, f2: 60, type: 'sine', dur: 0.9, vol: 0.3 }); this.noise({ dur: 0.7, vol: 0.25, freq: 3000, freq2: 100 }); this.thump(60, 24, 0.6, 0.5); }
   hurt() { this.tone({ f: 200, f2: 70, type: 'sawtooth', dur: 0.25, vol: 0.35 }); this.noise({ dur: 0.15, vol: 0.25, freq: 800 }); }
+  /** Fauna consumible (docs/FAUNA.md): 'come' (glup + arpegio según la forma) · 'rara' (destello) · 'fin' · 'muerde' · 'fase' · 'remate' / 'devora'. `f` = índice de la forma (cambia la nota). */
+  fauna(k, at = null, f = 0) {
+    const base = 330 * 2 ** (((f | 0) % 12) / 12);
+    if (k === 'come') { this.tone({ f: 260, f2: 620, type: 'sine', dur: 0.14, vol: 0.28, at }); this.noise({ dur: 0.1, vol: 0.12, freq: 900, at }); [0, 4, 7, 12, 16].forEach((s, i) => this.tone({ f: base * 2 ** (s / 12), type: 'triangle', dur: 0.18, vol: 0.16, at, delay: 0.1 + i * 0.055 })); }
+    else if (k === 'rara') [0, 7, 12, 19, 24].forEach((s, i) => this.tone({ f: 880 * 2 ** (s / 12), type: 'sine', dur: 0.3, vol: 0.12, at, delay: i * 0.07 }));
+    else if (k === 'fin') [0, -4, -9].forEach((s, i) => this.tone({ f: 520 * 2 ** (s / 12), type: 'sine', dur: 0.25, vol: 0.14, delay: i * 0.1 }));
+    else if (k === 'muerde') { this.thump(180, 70, 0.14, 0.3, at); this.crack(0.2, at); }
+    else if (k === 'fase') this.tone({ f: 900, f2: 200, type: 'sine', dur: 0.3, vol: 0.2, at });
+    else if (k === 'remate' || k === 'devora') { this.thump(140, 45, 0.3, 0.4, at); this.tone({ f: base * 2, f2: base * 4, type: 'sawtooth', dur: 0.25, vol: 0.12, at }); this.noise({ dur: 0.25, vol: 0.18, freq: 2500, freq2: 300, at }); }
+  }
+  /** Flora interactiva (docs/FLORA.md): sonidos mínimos reutilizando tone/noise/thump. */
+  flora(k, at = null) {
+    if (k === 'cura') [0, 4, 7, 12].forEach((s, i) => this.tone({ f: 660 * 2 ** (s / 12), type: 'sine', dur: 0.2, vol: 0.13, at, delay: i * 0.06 }));
+    else if (k === 'cosecha') { this.noise({ dur: 0.1, vol: 0.12, freq: 2200, at }); [0, 7, 12].forEach((s, i) => this.tone({ f: 784 * 2 ** (s / 12), type: 'triangle', dur: 0.14, vol: 0.13, at, delay: 0.04 + i * 0.05 })); }
+    else if (k === 'muerde') { this.thump(150, 55, 0.16, 0.34, at); this.crack(0.28, at, 2600, 0.05); this.noise({ dur: 0.14, vol: 0.14, freq: 900, at, delay: 0.02 }); }
+    else if (k === 'ata') { this.noise({ dur: 0.3, vol: 0.14, freq: 500, freq2: 1800, at }); this.tone({ f: 120, f2: 70, type: 'sawtooth', dur: 0.3, vol: 0.12, at }); }
+    else if (k === 'pincha') this.crack(0.14, at, 4200, 0.03);
+    else if (k === 'estalla') { this.thump(110, 40, 0.3, 0.4, at); this.noise({ dur: 0.35, vol: 0.2, freq: 3000, freq2: 200, at }); }
+    else if (k === 'nube') this.noise({ dur: 0.7, vol: 0.12, freq: 700, freq2: 300, at });
+    else if (k === 'refleja') { this.tone({ f: 1400, f2: 2400, type: 'sine', dur: 0.12, vol: 0.14, at }); this.tone({ f: 2100, type: 'triangle', dur: 0.2, vol: 0.08, at, delay: 0.05 }); }
+    else if (k === 'arde') this.noise({ dur: 0.5, vol: 0.14, freq: 1400, freq2: 500, at });
+    else if (k === 'hiela') { this.tone({ f: 1800, f2: 900, type: 'sine', dur: 0.2, vol: 0.12, at }); this.crack(0.16, at, 5000, 0.04); }
+    else if (k === 'crujido') { this.crack(0.22, at, 1800, 0.06); this.noise({ dur: 0.18, vol: 0.14, freq: 600, at }); }
+    else if (k === 'marchita') this.tone({ f: 330, f2: 200, type: 'sine', dur: 0.25, vol: 0.07, at });
+    else if (k === 'brota') this.tone({ f: 440, f2: 700, type: 'sine', dur: 0.18, vol: 0.07, at });
+    else if (k === 'aviso') this.tone({ f: 520, f2: 380, type: 'square', dur: 0.14, vol: 0.06, at });
+    else if (k === 'rara' || k === 'descubre') [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 660 * 2 ** (s / 12), type: 'sine', dur: 0.28, vol: 0.12, at, delay: i * 0.07 }));
+  }
   pickup() { [0, 4, 7, 12].forEach((s, i) => this.tone({ f: 523 * 2 ** (s / 12), type: 'triangle', dur: 0.12, vol: 0.2, delay: i * 0.05 })); }
   wave() { [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 110 * 2 ** (s / 12), type: 'sawtooth', dur: 0.9, vol: 0.18, att: 0.1, delay: i * 0.12 })); }
   gravity(at) { this.tone({ f: 80, f2: 600, type: 'sine', dur: 0.8, vol: 0.5, at }); this.tone({ f: 600, f2: 80, type: 'triangle', dur: 0.8, vol: 0.3, at, delay: 0.4 }); }
@@ -288,11 +316,12 @@ export class Sound {
   startMusic(mapId) {
     if (!this.ctx || this.mapId === mapId) return; this.mapId = mapId; this.step = 0;
     clearInterval(this.musTimer);
-    const sc = mapId === 'm1' ? [0, 2, 4, 6, 7, 9, 11] : [0, 1, 4, 5, 7, 8, 10];
-    const root = mapId === 'm1' ? 55 : 49;
+    const base = mapId === 'base';   // La Base (docs/BASE.md): música calma y cálida (pentatónica mayor, sin pulso de combate)
+    const sc = base ? [0, 2, 4, 7, 9, 12, 14] : mapId === 'm1' ? [0, 2, 4, 6, 7, 9, 11] : [0, 1, 4, 5, 7, 8, 10];
+    const root = base ? 52 : mapId === 'm1' ? 55 : 49;
     this.musTimer = setInterval(() => {
       if (!this.enabled || this.ctx.state !== 'running') return;
-      const t = this.ctx.currentTime + 0.05, i = this.step++, inten = this.intensity;
+      const t = this.ctx.currentTime + 0.05, i = this.step++, inten = base ? 0.05 : this.intensity;
       const note = (deg, oct, dur, vol, type = 'sine', bus = this.musBus, echo = true) => {
         const o = this.ctx.createOscillator(), e = this.ctx.createGain();
         o.type = type; o.frequency.value = root * 2 ** oct * 2 ** (sc[((deg % 7) + 7) % 7] / 12 + Math.floor(deg / 7));
@@ -302,7 +331,7 @@ export class Sound {
       if (i % 16 === 0) { note(0, 0, 4.5, 0.5, 'sawtooth', this.musBus, false); note(4, 1, 4.5, 0.18, 'triangle'); }
       if (i % 4 === 0 && inten > 0.15) note(0, 1, 0.3, 0.35 * inten + 0.1, 'sine', this.musBus, false); // pulso grave
       const prob = 0.35 + 0.5 * inten;
-      if (Math.random() < prob) note(Math.floor(Math.random() * 10), 3, 0.5, 0.22, i % 3 ? 'triangle' : 'sine');
+      if (Math.random() < (base ? 0.3 : prob)) note(Math.floor(Math.random() * 10), 3, 0.5, 0.22, i % 3 ? 'triangle' : 'sine');
       if (inten > 0.4 && i % 2 === 0) note(Math.floor(Math.random() * 5) * 2, 4, 0.18, 0.1, 'square');
     }, 220);
   }

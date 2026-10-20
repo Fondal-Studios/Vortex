@@ -2,6 +2,7 @@
 //   · estados: bloqueado (falta liberar el territorio previo) · disponible · liberado
 //   · al liberar un territorio (ganar su mapa) se elige UNA de dos bendiciones; la otra queda cerrada para siempre
 //   · lo guarda perfil.js; la partida lo recibe por `opts.bend` de addPlayer (src/sim/bendiciones.js). Estilos: public/territorios.css.
+import { floraBriefing } from '../sim/flora-data.js';   // flora de la arena y plantas raras que pueden brotar (docs/FLORA.md)
 import { TERRITORIOS, TERRITORIO_IDS, BENDICIONES, bendicionesDe } from '../sim/bendiciones.js';
 import * as Perfil from './perfil.js';
 
@@ -40,7 +41,7 @@ export function buildTerritoriosScreen(menu) {
       return `<button class="tr-bend tr-nav" type="button" data-id="${bid}" data-estado="${e}"${e === 'elegible' ? '' : ' aria-disabled="true"'}><b>${esc(b.nombre)}</b><span>${esc(b.desc)}</span><small>${tag}</small></button>`;
     }).join('');
     $('#trinfo').innerHTML = `<header><h2>${esc(t.nombre)}</h2><div class="tr-tags"><span class="tr-tag" data-estado="${est}">${ESTADO_ES[est]}</span><span class="tr-tag">Jefe: ${esc(t.jefe)}</span></div></header>
-      <p class="tr-folk">${esc(t.folclore)}</p><p class="tr-aviso">${aviso}</p><h4>Bendición del territorio</h4><div class="tr-bends">${cards}</div>`;
+      <p class="tr-folk">${esc(t.folclore)}</p><p class="tr-folk">🌿 ${floraBriefing(id).map(esc).join(' ')}</p><p class="tr-aviso">${aviso}</p><h4>Bendición del territorio</h4><div class="tr-bends">${cards}</div>`;
     $('#trinfo').querySelectorAll('.tr-bend').forEach((b) => b.addEventListener('click', (e) => {
       e.stopPropagation(); if (b.dataset.estado !== 'elegible') { menu.sound.ui('back'); return; }
       if (Perfil.elegirBendicion(id, b.dataset.id)) { menu.sound.ui('ok'); refresh(); }

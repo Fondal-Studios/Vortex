@@ -16,10 +16,14 @@ import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
 import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE, EVENTOS, ARENAS_VIVAS } from '../sim/data.js';
 import * as Perfil from './perfil.js';
+import { ESPECIES as ESPECIES_FLORA, especieDe as especieDeFlora, HITOS as HITOS_FLORA, FN as FN_FLORA } from '../sim/flora-data.js';   // flora interactiva y Herbario (docs/FLORA.md)
+import { MATERIALS, CALIDADES } from '../sim/items.js';
+import { FAUNA, especiePorIndice, formaPorIndice } from '../sim/fauna-data.js';   // fauna consumible (carteles, sonido y Códice: faunaEvento)
 import * as Tienda from './tienda.js';   // Tienda del Cambista (docs/TIENDA.md): aquí sólo el botiquín inicial
 import * as Territorios from '../sim/bendiciones.js';
 import { TITULOS } from '../sim/maestria.js';
 import { createCaida } from './caida.js';
+import { createBaseHud, recolectarDatos } from './base-hud.js';   // La Base (docs/BASE.md): HUD propio, mapa-hub en src/sim/base.js + src/client/env/base.js
 import { MODOS, MODO_ESPERA } from '../sim/modos.js';   // Disparo ↔ Melé en partida (docs/CONTROLES.md)
 import { createBotin, nombreBotin } from './botin-hud.js';   // botín en partida (docs/INVENTARIO.md)
 import { parseEq } from './items-vis.js';
@@ -91,7 +95,8 @@ const mouse = { dx: 0, dy: 0, fire: false, ping: false, esp: false, ads: false }
 const NOLOCK = params.get('nolock') === '1';
 let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), mouseSens = 0.0022;
 addEventListener('keydown', (e) => {
-  if (typeof ui !== 'undefined' && !session && ui.handleKey(e)) return;
+  if (typeof ui !== 'undefined' && (!session || session.menuAbierto) && ui.handleKey(e)) return;
+  if (session && session.base && baseHud && baseHud.handleKey(e)) { e.preventDefault(); return; }   // La Base: panelitos (opciones 1-3, Esc/E cierran)
   keys.add(e.code);
   if (npcPanel && npcPanel.open) { // panel de un NPC: 1 / 2 eligen la oferta, Esc o E lo cierran (no se cambia de arma ni de tarjeta)
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { npcPanel.choose(+e.code.slice(5) - 1); return; }
@@ -118,7 +123,7 @@ addEventListener('wheel', (e) => { if (session && gameMode() !== 'combo') wantWe
 addEventListener('mousemove', (e) => { if (locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
   if (NOLOCK) return; locked = document.pointerLockElement === canvas;
-  if (session && !session.ended && !session.touch) $('pause').classList.toggle('hidden', locked || session.headless || !!session.intro);
+  if (session && !session.ended && !session.touch) $('pause').classList.toggle('hidden', locked || session.headless || !!session.intro || !!session.menuAbierto || !!(baseHud && baseHud.open));
 });
 const lockPointer = () => { try { canvas.requestPointerLock(); } catch { /* sin pointer lock */ } };
 
@@ -139,7 +144,8 @@ let npcPanel = null, npcCtx = { npc: null }, npcPrevUse = false;
 function npcInput(i) {
   if (!npcPanel) { try { npcPanel = createNpcPanel(document.body, { onToggle: () => touch.reset() }); } catch (err) { console.warn('Panel de NPC no disponible', err.message); npcPanel = { open: false, take() { return null; }, show() {}, close() {}, choose() {}, result() {}, setHint() {} }; } }
   const pressed = !!i.interact && !npcPrevUse; npcPrevUse = !!i.interact;
-  if (pressed && npcCtx.npc && !npcPanel.open) npcPanel.show(npcCtx.npc.nk);
+  if (pressed && npcCtx.npc && !npcPanel.open && !(session && session.faunaCerca)) npcPanel.show(npcCtx.npc.nk);   // (si hay un bicho de la fauna a mano, USAR / E lo come en vez de abrir el panel)
+  i.autoc = !!(settings().faunaAuto || params.get('autofauna') === '1');   // fauna: comer solo al quedarse pegado (opcional)
   const rq = npcPanel.take(); if (rq) i.npc = rq;
   i.soft = !!settings().reducirGravedad;   // «Reducir efectos de gravedad»: la inversión llega como un empujón, sin giro de cámara
   return i;
@@ -252,7 +258,7 @@ async function startCoop(create, code, mapId) {
   net.onError = (m) => { $('menuerr').textContent = m; };
   net.welcomed = (m) => { session.map = m.map; session.pid = m.pid; renderer.camInit = false; session.look = null; session.ended = false; $('end').classList.add('hidden'); };
   session = { mode: 'coop', net, pid: null, map: mapId, ended: false, look: null, touch: useTouch(), intro: null };
-  net.send(create ? { t: 'create', map: mapId, name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char), equip: Perfil.equipoParaPartida(Equipo.char), pity: Perfil.perfil().pity } : { t: 'join', room: code, name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char), equip: Perfil.equipoParaPartida(Equipo.char), pity: Perfil.perfil().pity });
+  net.send(create ? { t: 'create', map: mapId, fauna: Perfil.faunaDeLaSala(), name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char), equip: Perfil.equipoParaPartida(Equipo.char), pity: Perfil.perfil().pity } : { t: 'join', room: code, fauna: Perfil.faunaDeLaSala(), name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char), equip: Perfil.equipoParaPartida(Equipo.char), pity: Perfil.perfil().pity });
   await new Promise((r) => { const t = setInterval(() => { if (net.pid || net.closed) { clearInterval(t); r(); } }, 30); setTimeout(() => { clearInterval(t); r(); }, 2500); });
   if (!net.pid) { session = null; $('menuerr').textContent ||= 'no se pudo entrar a la sala'; return; }
   enter(net.map);
@@ -260,6 +266,8 @@ async function startCoop(create, code, mapId) {
 }
 
 function enter(mapId) {
+  if (typeof ui !== 'undefined') ui.desdeBase = null;   // (si venías de la Base, ya no hay a dónde volver con «Volver»)
+  document.body.classList.toggle('en-base', mapId === 'base'); if (baseHud && mapId !== 'base') baseHud.mostrar(false);
   $('menu').classList.add('hidden'); $('end').classList.add('hidden'); $('hud').classList.remove('hidden'); document.body.classList.add('playing');
   sound.init(); sound.resume(); sound.startMusic(mapId);
   renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : !!settings().third);
@@ -337,6 +345,73 @@ function hordeTopUp(g) {
   while (g.monsters.length < 88) { const k = HORDE_KINDS[g.monsters.length % HORDE_KINDS.length], def = MONSTERS[k]; g.spawnMonster(k, def.fly ? g.map.spawnAir(g.rng, ref.pos, ref.up) : g.map.spawnGround(g.rng, ref.pos)); }
 }
 
+/* ───────── LA BASE · «El Santuario» (docs/BASE.md) ───────── */
+let baseHud = null;
+/** Entra a la Base: un mapa-hub caminable, sin oleadas ni enemigos. USAR (E) en una estación abre la pantalla de siempre (Forja, Tienda, Huésped…). */
+function startBase() {
+  asegurarHuesped();
+  const game = new Game({ mapId: 'base', seed: 1, calm: 0 });
+  const pp = Perfil.paraPartida(Equipo.char); pp.equip = (pp.equip || []).filter((e) => e.s !== 'melee' && e.s !== 'gun'); pp.melee = undefined;   // en la Base no hay armas desplegadas: se ve la armadura y las reliquias, no el arma
+  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...pp, style: settings().style, mode: 'shooter' });
+  session = { base: true, practice: false, horde: false, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch(), bot: null, headless: false, ended: false, map: 'base', campaign: null, intro: null, menuAbierto: false, datosT: 9 };
+  enter('base');
+  $('hud').classList.add('hidden'); $('end').classList.add('hidden');
+  if (!baseHud) baseHud = createBaseHud({
+    sound,
+    onAbrir: (spec) => baseAbrir(spec),
+    onPractica: () => loadAnd(() => startSolo('m1', { intro: false, practice: true })),
+    onMenu: () => baseAbrir({ pantalla: 'main' }),
+    onSalir: () => { const u = new URL(location.href); for (const k of ['state', 'auto', 'bot', 'wave', 'god', 'horde', 'look']) u.searchParams.delete(k); location.href = u.href; },
+    onPanel: (abierto) => { if (abierto) { if (document.exitPointerLock) document.exitPointerLock(); touch.reset(); const p = session && session.game.players[0]; if (p) { p.input.interact = false; p.interactPrev = false; } } else if (session && session.base && !session.touch) lockPointer(); },
+    onCambio: () => { if (session) session.datosT = 9; },
+  });
+  baseHud.mostrar(true);
+  if (!session.touch && !NOLOCK && !locked) { $('pausehint').textContent = 'Hacé clic para entrar al Santuario'; $('pause').classList.remove('hidden'); }
+  if (!Perfil.tutorialBaseVisto()) later(() => { if (session && session.base) baseHud.tutorial(!!session.touch); }, 900);
+  window.__session = session; window.__renderer = renderer;
+}
+/** Abre una pantalla del menú (Tienda, Inventario/Forja, Huésped, Territorios…) encima de la Base. «Volver» (o Esc) en la primera pantalla cierra el menú y vuelve al mapa. */
+function baseAbrir(spec) {
+  if (!session || !session.base) return;
+  session.menuAbierto = true; session.paused = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false); touch.reset();
+  { const p = session.game.players[0]; if (p) { p.input.interact = false; p.interactPrev = false; } }   // (que un USAR apretado al abrir no quede «pegado» y se pierda el próximo)
+  baseHud.mostrar(false); $('pause').classList.add('hidden');
+  $('menu').classList.remove('hidden'); document.body.classList.remove('playing'); ui.active = true; ui.desdeBase = baseCerrar; ui.stack = []; ui.screen = 'base';
+  ui.show(spec.pantalla || 'main', false);
+  if (spec.tab && ui.iv && ui.iv.setTab) ui.iv.setTab(spec.tab);
+  if (spec.pantalla === 'arenas') ui.stack = [];
+}
+function baseCerrar() {
+  if (!session || !session.base) return;
+  session.menuAbierto = false; session.paused = false; ui.desdeBase = null; $('menu').classList.add('hidden'); document.body.classList.add('playing'); $('hud').classList.add('hidden');
+  baseHud.mostrar(true); touch.show(!!session.touch); session.datosT = 9; if (!session.touch) lockPointer();
+}
+/** Un cuadro de la Base: entrada → simulación → eventos (estación / habla) → dibujo → HUD propio. */
+function baseFrame(dt) {
+  const g = session.game, paused = (!locked && !session.touch) || session.paused || session.menuAbierto || !!(baseHud && baseHud.open);
+  if (session.menuAbierto) for (const a of pad.menuEvents(dt)) ui.act(a);
+  if (!paused) {
+    g.setInput(session.pid, readInput()); session.acc += dt;
+    while (session.acc >= SIM_DT) { session.acc -= SIM_DT; g.step(SIM_DT); }
+  }
+  const state = g.snapshot(); if (paused) state.events = [];
+  if (!params.get('look')) session.look = soloLook(g, session.pid);
+  const me = state.players[0]; session.lastMe = me; renderer.firing = false;
+  for (const e of state.events) {
+    if (e.pid !== session.pid) continue;
+    if (e.t === 'estacion') baseHud.activar(e.id); else if (e.t === 'habla') baseHud.hablar(e.id, e.tx);
+  }
+  session.datosT += dt;
+  if (session.datosT > 0.4 && renderer.baseFx) {   // lo guardado → lo que se ve (cubas, capullos, jardín, avisos)
+    session.datosT = 0; try { const c = baseHud.cerca; renderer.baseFx.setDatos({ ...recolectarDatos(Perfil.perfil(), Date.now(), Equipo.char), cerca: c && c.tipo === 'estacion' && !baseHud.open ? { x: c.def.x, z: c.def.z, r: c.def.r * 0.62 } : null }); } catch (err) { console.warn('Base: datos', err.message); }
+  }
+  if (me && renderer.camera) { const r = new (renderer.camera.position.constructor)(1, 0, 0).applyQuaternion(renderer.camera.quaternion); sound.setListener({ x: me.pos[0], y: me.pos[1], z: me.pos[2] }, r); }
+  sound.intensity = 0;
+  renderer.render(state, dt, session.pid, session.look);
+  baseHud.update(me, dt, !!session.touch);
+  touch.setContext({ use: !!baseHud.cerca && !baseHud.open, ult: false, evo: false });
+}
+
 /* ───────── bucle principal ───────── */
 function frame(now) {
   if (!CAP) requestAnimationFrame(frame);
@@ -349,6 +424,7 @@ function frame(now) {
   uTime.value += 0; subs.update(dt); padDt = dt;
   if (session && session.prologo) { if (!params.get('prologo_manual')) session.prologo.tick(dt); return; } // prólogo 3D: dibuja él mismo
   if (!session) { for (const a of pad.menuEvents(dt)) ui.act(a); menuSpin(dt); return; }
+  if (session.base) { baseFrame(dt); return; }   // La Base: su propio cuadro, sin oleadas ni HUD de combate
   if (session && !session.touch && (!locked || session.ended) && !session.headless) for (const a of pad.menuEvents(dt)) { if (a === 'ok' && !$('pause').classList.contains('hidden')) lockPointer(); if (a === 'back' && !$('end').classList.contains('hidden')) location.reload(); }
   auto.tick(dt, level);
   let state = null;
@@ -422,12 +498,58 @@ function predictLook(me, dyaw, dpitch) {
   L.h = [h.x, h.y, h.z]; L.pitch = Math.max(-1.5, Math.min(1.5, L.pitch + dpitch));
 }
 
+/** Fauna consumible: carteles cortos con humor, sonido y Códice (sólo para el jugador propio; las criaturas de los demás suenan bajito). */
+/** Flora interactiva (docs/FLORA.md): sonidos mínimos, carteles cortos y el Herbario del perfil. Los dibujos de los efectos los pone flora-fx.js. */
+const FLORA_SONIDO = { cura: 'cura', escudo: 'cura', energia: 'cura', muerde: 'muerde', ata: 'ata', pincha: 'pincha', estalla: 'estalla', suelta: 'nube', refleja: 'refleja', arde: 'arde', hiela: 'hiela', rompe: 'hiela', cosecha: 'cosecha', rota: 'crujido', marchita: 'marchita', florece: 'brota', rara: 'rara', arma: 'aviso' };
+function floraEvento(e, mine, me) {
+  if (!session || session.intro) return;
+  const S = especieDeFlora(e.sp), k = FLORA_SONIDO[e.a];
+  if (k && (e.a !== 'marchita' || (me && Math.hypot(e.p[0] - me.pos[0], e.p[2] - me.pos[2]) < 12))) sound.flora(k, e.p);
+  if (e.a === 'rara' && S) banner(`✨ ¡Brotó una planta RARA: ${S.nombre}! Dura poco: cosechala con USAR.`, 3200);
+  else if (e.a === 'cura' && mine && S) banner(`${S.nombre}: +${Math.round(e.hp || 0)} vida · +${Math.round(e.sh || 0)} escudo`, 1400);
+  else if (e.a === 'energia' && mine && S) banner(`${S.nombre}: definitiva y habilidades recargadas`, 1500);
+  else if (e.a === 'escudo' && mine && S) banner(`${S.nombre}: escudo y −20 % de daño`, 1500);
+  else if (e.a === 'cosecha' && mine && S) {
+    banner(`🌿 Cosechaste ${e.n}× ${MATERIALS[e.m] ? MATERIALS[e.m].name : e.m} (${CALIDADES[Math.max(0, Math.min(3, e.q | 0))]})`, 1900);
+    try { for (const h of Perfil.cosechaPlanta(S.id)) later(() => banner(`📖 Herbario: «${HITOS_FLORA[h].nombre}» (${HITOS_FLORA[h].txt})`, 2800), 2000); } catch { /* sin perfil */ }
+  } else if (e.a === 'rota' && mine && S) banner(`${S.nombre} destruida: ${e.n}× ${MATERIALS[e.m] ? MATERIALS[e.m].name : e.m}`, 1500);
+  else if (e.a === 'refleja' && S) { /* sólo efecto y sonido */ }
+}
+/** Descubrimientos del Herbario: la primera vez que una especie está a la vista (≤ 14 m). */
+function floraDescubre() {
+  if (!renderer.flfx || !session || session.intro) return;
+  session.floraVistas = session.floraVistas || new Set();
+  for (const id of renderer.flfx.cerca) {
+    if (session.floraVistas.has(id)) continue; session.floraVistas.add(id);
+    const S = ESPECIES_FLORA[id]; if (!S) continue;
+    try { const r = Perfil.verPlanta(id); if (r.nuevo) { sound.flora('descubre', null); banner(`🌿 Nueva planta en el Herbario: ${S.nombre} (${FN_FLORA[S.fn].toLowerCase()})\n${S.desc}`, 3400); for (const h of r.hitos) later(() => banner(`📖 Herbario: «${HITOS_FLORA[h].nombre}» (${HITOS_FLORA[h].txt})`, 2800), 3500); } } catch { /* sin perfil */ }
+  }
+}
+function faunaEvento(e, mine, me) {
+  if (!session || session.intro) return;
+  const sp = especiePorIndice(e.sp), F = formaPorIndice(e.f), at = e.p || null;
+  if (e.ph === 'come') {
+    sound.fauna('come', at, e.f);
+    if (!mine) return;
+    let tx = F ? `${F.icono} ${F.nombre}${e.rf ? ' (renovada)' : ''}` : '', ex = '';
+    if (sp && !e.rf && !e.h) ex = sp.frase;
+    if (e.h && F) { tx = `¡HÍBRIDO! ${F.icono} ${F.nombre}`; ex = F.desc; }
+    banner(`${tx}${ex ? '\n' + ex : ''}`, e.h ? 3600 : 2600);
+    try { if (sp) { const r = Perfil.registrarFauna(sp.id, e.h && F && F.hib ? F.id : null); if (r && r.nuevo) later(() => banner(`📖 Nueva especie en el Códice: ${sp.nombre}`, 2600), 2700); else if (r && r.hito) later(() => banner(`📖 ${sp.nombre}: hito de ${r.hito.n} comidas · ${r.hito.txt}`, 3000), 2700); } } catch (err) { console.warn('Códice de Fauna:', err.message); }
+  } else if (e.ph === 'rara') { if (sp && session.lastMe) { sound.fauna('rara', at); banner(`✨ ¡Una criatura RARA cerca: ${sp.nombre}!`, 2600); } }
+  else if (e.ph === 'fin') { if (mine) { sound.fauna('fin', null); banner(`${F ? F.icono + ' ' + F.nombre : 'La metamorfosis'} se acaba… ¡volvés a ser vos!`, 2000); } }
+  else if (e.ph === 'muerde') { if (mine) { sound.fauna('muerde', at); banner(`¡${sp ? sp.nombre : 'Un bicho'} te mordió! Mirá dónde pisás`, 1800); } }
+  else if (e.ph === 'remate' || e.ph === 'devora') sound.fauna(e.ph, at, e.f);
+  else if (e.ph === 'fase' && mine) sound.fauna('fase', at);
+}
 function audioAndHud(state, me, dt) {
   if (!combatHud) { try { combatHud = createCombatHud($('hud'), { sound }); } catch (err) { console.warn('HUD de combate no disponible', err.message); combatHud = { onEvent() {}, update() {} }; } }
   if (!caida) { try { caida = createCaida({ renderer, root: $('hud'), sound }); } catch (err) { console.warn('Percepción de caída no disponible', err.message); caida = { onEvent() {}, update() {} }; } }
   $('cross').classList.toggle('lock', !!session.onTarget);
   if (me && renderer.camera) { const r = new (renderer.camera.position.constructor)(1, 0, 0).applyQuaternion(renderer.camera.quaternion); sound.setListener({ x: me.pos[0], y: me.pos[1], z: me.pos[2] }, r); }
   sound.intensity += (Math.min(1, state.monsters.length / 25) - sound.intensity) * Math.min(1, dt);
+  floraDescubre();
+  session.floraUsar = !!(renderer.flfx && renderer.flfx.usar);
   for (const e of state.events) {
     const mine = me && e.pid === me.id;
     if (combatHud) combatHud.onEvent(e, me, renderer.camera);
@@ -441,6 +563,8 @@ function audioAndHud(state, me, dt) {
         const T = NIEBLAS_T(e.k); if (T && e.ph === 'entra' && e.pid === session.pid && !session.intro) banner(`${T.icono} ${T.nombre}: ${T.corto}`, 2200);
         if (T && e.ph === 'aviso' && T.nocivo && !session.intro && session.lastMe && Math.hypot(e.p[0] - session.lastMe.pos[0], e.p[2] - session.lastMe.pos[2]) < 22) sound.ui && sound.ui('tick');
         break; }
+      case 'flora': floraEvento(e, mine, me); break;   // flora interactiva (src/sim/flora.js): curas, mordidas, esporas, cosecha, plantas raras
+      case 'fauna': faunaEvento(e, mine, me); break;   // fauna consumible (src/sim/fauna.js): comer, híbridos, remates, mordidas, rara a la vista
       case 'ar': { const AV = ARENAS_VIVAS[e.m], tx = AV && AV.frases[e.ph]; if (tx && !session.intro) later(() => banner(tx, 2600), e.ph === 'ofrenda' ? 2300 : e.ph === 'roto' || e.ph === 'renace' ? 0 : 2700); break; }   // arenas vivas: «El Corazón de Isla despierta»
       case 'arhit': sound.hit(e.p); break;
       case 'arofrenda': sound.pickup(); break;
@@ -587,13 +711,14 @@ function hudDirector(state, me) {
     if (!metaHud) metaHud = createMetaHud($('hud'), metaCtx);
     metaHud.update(state, me, renderer.camera, { touch: !!session.touch, oculto: !!(session.intro || session.practice) });
   } catch (err) { if (!window.__metaErr) { window.__metaErr = err; console.warn('Meta HUD:', err.message); } metaHud = metaHud || { update() {}, evento() {} }; }
+  session.faunaCerca = !!(me && !me.dead && state.fa && state.fa.l.some((r) => Math.hypot(r[2] - me.pos[0], r[3] - me.pos[1], r[4] - me.pos[2]) < FAUNA.alcance + 0.3));   // fauna consumible: hay algo para comer a mano
   { // Limbo vivo: NPC cercano (cartel «E · hablar»; en táctil el botón USAR ya aparece solo porque hay un objeto a menos de 7)
     npcCtx.npc = session && !session.intro ? npcNear(state, me) : null;
     if (npcPanel) { if (npcPanel.open && (!npcCtx.npc || npcCtx.npc.nk !== npcPanel.kind)) npcPanel.close(); npcPanel.setHint(npcCtx.npc ? NPC_INFO[npcCtx.npc.nk] : null, !!(session && session.touch)); }
   }
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
-    const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)) || (state.lt || []).some((o) => o[2] >= 2 && (!o[6] || o[6] === me.id) && near([o[3], o[4], o[5]], 4.6)));   // + botín épico/legendario cerca (USAR lo recoge)
+    const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)) || (state.lt || []).some((o) => o[2] >= 2 && (!o[6] || o[6] === me.id) && near([o[3], o[4], o[5]], 4.6)) || session.faunaCerca || session.floraUsar);   // + botín épico/legendario cerca (USAR lo recoge) + un bicho de la fauna a mano (USAR lo come)
     const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ul || 0) >= (C.ult.charge || 100) - 0.01 || (+me.ua || 0) > 0.05));
     touch.setContext({ ult: ultOn, use, evo: me.co != null && me.evn != null && me.co >= me.evn });
     const mp = Math.min(1, (performance.now() - modoT) / (MODO_ESPERA * 1000)); if (mp < 1 || session.modeP == null || session.modeP < 1) touch.setModeCd(mp); session.modeP = mp;   // anillo de espera del botón MODO
@@ -639,7 +764,7 @@ function flash() { const f = $('flash'); f.classList.add('on'); const my = ++fla
 /* ───────── final / campaña ───────── */
 /** Suma los núcleos de la partida al banco del perfil y guarda la evolución (una sola vez por partida solitaria). */
 let botin = null;
-function bankProfile(me, state) { if (!session || session.mode !== 'solo' || session.banked || !me) return; session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { bag: session.bag, wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
+function bankProfile(me, state) { if (!session || session.mode !== 'solo' || session.base || session.banked || !me) return; session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { bag: session.bag, wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
 function endGame(state, me) {
   bankProfile(me, state);
   let terrNuevo = null; if (state.state === 'won' && session.mode === 'solo' && !session.practice) { try { if (Perfil.liberarTerritorio(session.map)) terrNuevo = Territorios.TERRITORIOS[session.map]; } catch (err) { console.warn('Territorios: no se pudo guardar', err.message); } } // ganar el mapa libera el territorio (perfil.js)
@@ -661,6 +786,7 @@ function showEnd(won, stats, title) {
   $('endtitle').textContent = title || (won ? 'VÓRTICE ROTO' : 'ATRAPADO EN EL VÓRTICE');
   $('endstats').textContent = stats + (won && title ? '\n\nUn abajo bajo los pies. El tren pasó de largo.' : '');
   $('end').classList.remove('hidden'); document.body.classList.remove('playing');
+  { const tb = $('tobase'); if (tb) tb.classList.toggle('hidden', !settings().baseAlTerminar); }   // «Entrar a la Base» (docs/BASE.md): primera opción si el ajuste está en «sí»
 }
 
 function menuSpin(dt) {
@@ -675,6 +801,7 @@ const pad = new Pad();
 const loadAnd = (fn) => (params.get('cap') ? fn() : showLoading(1900, fn));
 const ui = new MenuUI({ sound, actions: {
   story: () => loadAnd(() => startSolo('m1', { campaign: 'm1' })),
+  base: () => loadAnd(() => startBase()),
   arena: (m) => loadAnd(() => (m === 'practica' ? startSolo('m1', { intro: false, practice: true }) : startSolo(m, { intro: false }))),
 } });
 $('mkroom').addEventListener('click', () => startCoop(true, null, $('coopmap').value));
@@ -766,6 +893,8 @@ syncModeUI();
 const _tEdit = touch.edit.bind(touch); touch.edit = (on) => { _tEdit(on); if (!on && session && session.paused && session.practice) { session.paused = false; } };
 $('showctl').addEventListener('click', (e) => { e.stopPropagation(); showTutorial(true); if (!(session && session.touch)) { setSetting('showKeys', true); keyHint(); } });   // «Ver controles» también deja la pista de teclas en pantalla (K la oculta)
 $('tomenu').addEventListener('click', () => location.reload());
+$('tobase').addEventListener('click', () => { const u = new URL(location.href); for (const k of ['auto', 'bot', 'wave', 'god', 'horde', 'look', 'prologo']) u.searchParams.delete(k); u.searchParams.set('state', 'base'); location.href = u.href; });   // «Entrar a la Base» al terminar una partida
+{ const bs = $('basesel'); if (bs) { bs.value = settings().baseAlTerminar === false ? '0' : '1'; bs.addEventListener('change', () => setSetting('baseAlTerminar', bs.value === '1')); } }
 $('again').addEventListener('click', () => {
   if (session.mode === 'coop') { session.net.send({ t: 'restart' }); return; }
   startSolo(session.campaign || session.map, { campaign: session.campaign, intro: false });
@@ -774,7 +903,9 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !par
 
 // Modos automáticos para pruebas visuales y de rendimiento: ?auto=m1&bot=1&wave=3&god=1
 if (params.get('prologo') && !params.get('auto')) loadAnd(() => startSolo('m1', { campaign: 'm1' })); // ?prologo=1 fuerza el prólogo (entra directo a la campaña)
-if (params.get('auto')) {
+if (params.get('state') === 'base' && !params.get('auto')) startBase();   // ?state=base: directo al Santuario
+if (params.get('auto') === 'base') { startBase(); window.__session = session; window.__renderer = renderer; }
+else if (params.get('auto')) {
   startSolo(params.get('auto'), { bot: params.get('bot') === '1', wave: +params.get('wave') || 0, god: params.get('god') === '1', horde: params.get('horde') === '1', seed: +params.get('seed') || 7, skill: +params.get('skill') || 1.2, difficulty: +params.get('difficulty') || 1, intro: false });
   window.__session = session; window.__renderer = renderer;
 }

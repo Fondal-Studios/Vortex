@@ -3,11 +3,13 @@ import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clone } from './m
 import { CHARACTERS, PLAYER, MELEE_WEAPONS, MELEE_AFFINITY, EVO_COST, EVO_PATHS, evoPathsFor, CORES, STYLES, STYLE_NEUTRAL } from './data.js';
 import { blocked } from './physics.js';
 import { initOrgans, champTick, absorb, hasC } from './organos.js';
+import { floraMelee } from './flora.js';   // flora interactiva (circular a propósito: sólo se usa dentro de funciones)
 import { arMelee } from './arenas-vivas.js';   // arenas vivas (circular a propósito: sólo se usa dentro de funciones)
 import { initCombo, comboStep, comboSnap } from './combos.js';
 import { dzTick, dzSpd, dzGuard, dzOut, dzBits, dzPirueta, dzParada, dzCintas } from './danzante.js';   // Danzante: paradas/esquivas perfectas y compás (src/sim/danzante.js)
 import { singularTick, singularMove, singularSpecial, singularReflujo, singularUlt, singularObject, singularOut, singularKill, singularSnap } from './singular.js';   // Singular: pozos, satélites y Horizonte (src/sim/singular.js)
 import { enjambreTick, enjambreObject, enjambreOut, enjambreIn, enjambreKill, enjambreSkill, enjambreSnap } from './enjambre.js';   // Colmena: zánganos, nidos y la Reina (src/sim/enjambre.js)
+import { faunaSpd, faunaJump, faunaOut, faunaDamageIn, faunaHit, faunaMelee } from './fauna.js';   // fauna consumible: metamorfosis temporal (src/sim/fauna.js, docs/FAUNA.md)
 import { MODO_K } from './modos.js';   // Melé: HAB.1 y HAB.2 no suman el ×1,5 de habilidad del estilo Combo (sólo la principal)
 import { progStep } from './progresion.js';   // progresión permanente: multi-kills y rango de estilo (docs/EVOLUCION.md)
 import { itemOut, itemDamageIn, itemHit, itemKill, itemTick, itemMeleeSet, execThreshold, itemStrike } from './items-fx.js';   // objetos equipados (docs/INVENTARIO.md)   // modo Combo (circular a propósito: sólo se usan dentro de funciones)
@@ -48,6 +50,7 @@ export function updateHost(g, p, dt) {
   }
   p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1) * (hasPath(p, 'velocidad') ? 1.12 : 1) * (p.bn ? p.bn.spd : 1) * (g.time < (p.frenzyUntil || 0) ? 1.3 : 1);
   champTick(g, p, dt); itemTick(g, p, dt);
+  p.spdMul *= faunaSpd(g, p); p.jumpMul *= faunaJump(g, p);   // metamorfosis de fauna: velocidad y salto de la forma activa
   if (p.char === 'colmena') enjambreTick(g, p, dt);   // Colmena: Cría viva, Marabunta, Nidos vivos y la Reina
   if (p.char === 'singular') singularTick(g, p, dt);   // Singular: satélites que giran y golpean, estado de la Marea
   if (p.char === 'danzante') { p.spdMul *= dzSpd(g, p); dzTick(g, p, dt); }   // Danzante: Danza Macabra (+25 % vel.), ventanas de parada/esquiva y compás
@@ -156,6 +159,8 @@ function strike(g, p, M, heavy) {
   g.pierceNow = false;
   for (const ob of [...g.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, o) < range + ob.r && dot(norm(sub(ob.pos, o)), dir0) > cosT) { g.damageObject(ob, dmg, p, ob.pos); hits++; }
   hits += arMelee(g, o, range, dir0, cosT, dmg, p);   // órganos de la arena viva
+  hits += floraMelee(g, o, range, dir0, cosT, dmg, p);   // plantas de la flora interactiva
+  faunaMelee(g, p, o, dir0, range, heavy || p.cmb === 3);   // fauna: el REMATE (golpe pesado o 3.er golpe) devora al bicho de enfrente y suelta el golpe elemental
   if (fused) meleeAfter(g, p, M.special, heavy, dir0, o, dmg, strong);
   if (IS.onda) meleeAfter(g, p, 'onda', true, dir0, o, dmg, strong);
   p.inMelee = false;
@@ -324,7 +329,8 @@ export function hostDamageIn(g, p, dmg) {
   if (p.char === 'colmena') dmg *= enjambreIn(p);   // Marabunta y Cohabitación
   if (p.ultId === 'supernova') dmg *= 0.75;   // la estrella aguanta
   if (g.time < (p.blessUntil || 0)) dmg *= 0.8;   // Bendición de Seraf (modo Combo)
-  return dmg;
+  return faunaDamageIn(g, p, dmg);   // metamorfosis de fauna: resistencia, fase, reflejo y espinas de la forma
+
 }
 export function hostDamaged(g, p) { const C = cdef(p); if (C && C.passive && C.passive.id === 'callo') { p.callo = Math.min(10, p.callo + 1); p.calloT = 6; } }
 
@@ -332,6 +338,7 @@ export function hostDamaged(g, p) { const C = cdef(p); if (C && C.passive && C.p
 export function hostOut(g, p, m) {
   const st = STYLES[p.style] || STYLE_NEUTRAL, src = g.dmgSrc || (p.inMelee ? 'melee' : 'gun');
   let k = (st.mul[src] || 1) * (p.mode === 'combo' && src === 'skill' && !p.inHab ? MODO_K : 1) * (p.bn && (src === 'melee' || src === 'gun' || src === 'skill') ? p.bn[src] : 1) * itemOut(g, p, m, src);
+  k *= faunaOut(g, p);   // metamorfosis de fauna: +daño de la forma
   const C = cdef(p); if (!C) return k;
   const id = C.passive && C.passive.id;
   if (id === 'desprevenido') { const f = m.fwd ? dot(norm(sub(p.pos, m.pos)), m.fwd) : 1; if (f < 0.3 || m.cloak) k *= 1.5; }
@@ -350,7 +357,7 @@ export function hostOut(g, p, m) {
 }
 /** Tras un impacto (daño real aplicado): carga de definitiva, vampirismo de Metamorfosis y ruptura del camuflaje. */
 export function hostHit(g, p, m, dealt) {
-  itemHit(g, p, m, dealt);
+  itemHit(g, p, m, dealt); faunaHit(g, p, m, dealt);   // fauna: efectos por golpe de la forma (hielo, brasa, rayos…)
   if (p.ultId === '' && !g.enjDmg) p.ul = Math.min(100, p.ul + dealt * ULT_PER_DMG * (p.bn ? p.bn.ult : 1) * (STYLES[p.style] || STYLE_NEUTRAL).ult * (hasPath(p, 'resonancia') ? 1.4 : 1) * (hasC(p, 'saco_g') ? 1.15 : 1));
   if (p.ultId === 'metamorfosis' && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + dealt * 0.04);
   if (p.cloakUntil) { p.cloakUntil = 0; p.cloakBonus = false; }   // atacar rompe el camuflaje (el primer golpe ya cobró el bonus)

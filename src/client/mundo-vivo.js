@@ -4,7 +4,7 @@ import { NPC_INFO, NPC_KINDS } from '../sim/npcs.js';
 import { AFFIXES, LINEAGE } from '../sim/data.js';
 
 export const NPC_RANGE = 7; // misma distancia que valida la simulación (npcStep: dist < 7)
-export const NPC_COLORS = { cambista: 0xffd45a, sanadora: 0x7dffb0, herrero: 0xff9a5a };
+export const NPC_COLORS = { cambista: 0xffd45a, sanadora: 0x7dffb0, herrero: 0xff9a5a, guia: 0x9fe8ff };
 
 const d3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 

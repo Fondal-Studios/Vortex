@@ -5,7 +5,7 @@
 //   · Sets: cuántas piezas de cada familia llevás y qué bonos de 2 y 4 piezas tenés. Usable con táctil, mouse, teclado y mando. Estilos: public/inventario.css.
 import { CHARACTERS, HOST_IDS } from '../sim/data.js';
 import {
-  ITEMS, ITEM_IDS, RARITIES, MATERIALS, MATERIAL_IDS, CALIDADES, SLOT_NAME, SLOTS, TYPE_NAME, TYPES, FASES, SETS, SET_IDS, RECETAS, PLANOS, LIMITE_INVENTARIO, MAT_STOCK_MAX,
+  ITEMS, ITEM_IDS, RARITIES, MATERIALS, MATERIAL_IDS, TODOS_MAT_IDS, CALIDADES, SLOT_NAME, SLOTS, TYPE_NAME, TYPES, FASES, SETS, SET_IDS, RECETAS, PLANOS, LIMITE_INVENTARIO, MAT_STOCK_MAX,
   lineasStats, lineasArma, lineasPasivos, lineasSinergias, proximaFase, progresoFase, faseDe, itemStats, poder, desguaceValor, costoTexto, setCounts, setActivos, fxTxt, STAT_ES, ADD_KEYS,
 } from '../sim/items.js';
 import * as Perfil from './perfil.js';
@@ -110,7 +110,7 @@ export function buildInventarioScreen(menu) {
   /* ───── piezas comunes ───── */
   const celda = (inst, sel) => { const it = ITEMS[inst.id], on = Perfil.puestoEn(inst.u); return `<button class="iv-cell iv-nav${sel ? ' sel' : ''}${on ? ' worn' : ''}" type="button" data-u="${inst.u}" style="--r:${RARITIES[it.r].css}" aria-label="${esc(it.name)}, ${RARITIES[it.r].name}${inst.lk ? ', bloqueado' : ''}">${iconoSvg(it, 40)}<span class="iv-ph">${'●'.repeat(faseDe(it, inst.k) + 1)}</span>${inst.fv ? '<em class="iv-fv" aria-hidden="true">★</em>' : ''}${inst.lk ? '<em class="iv-lk" aria-hidden="true">🔒</em>' : ''}${on ? `<em class="iv-on" aria-hidden="true">${esc(CHARACTERS[on.char].name.slice(0, 2))}</em>` : ''}</button>`; };
   function renderBank() {
-    const p = Perfil.perfil(), mats = MATERIAL_IDS.reduce((a, m) => a + Perfil.stockMin(m, 0), 0);
+    const p = Perfil.perfil(), mats = TODOS_MAT_IDS.reduce((a, m) => a + Perfil.stockMin(m, 0), 0);
     $('#ivbank').innerHTML = `<span><b>${p.cores}</b> núcleos</span><span><b>${Perfil.inventario().length}</b>/${LIMITE_INVENTARIO} objetos</span><span><b>${mats}</b> materiales</span><span><b>${Perfil.planos().length}</b> planos</span>`;
     for (const id of hosts()) { const n = Object.keys(Perfil.equipoDe(id)).length, el = root.querySelector('#ivsub-' + id); if (el) el.textContent = `${n} pieza${n === 1 ? '' : 's'} puesta${n === 1 ? '' : 's'}`; }
   }
@@ -188,7 +188,7 @@ export function buildInventarioScreen(menu) {
   function tabMateriales() {
     const m = Perfil.materiales();
     return `<p class="iv-help">Lo que cae en las partidas son sobre todo <b>materiales</b>. Cada uno tiene calidad (${CALIDADES.join(' · ')}); las recetas piden una calidad mínima. Tope: ${MAT_STOCK_MAX} de cada calidad.</p>
-      <div class="iv-mats">${MATERIAL_IDS.map((id) => { const M = MATERIALS[id]; return `<div class="iv-mat" style="--m:${hex(M.glow)}"><header><i></i><div><b>${esc(M.name)}</b><small>${esc(M.lema)}</small></div></header><p>${esc(M.texto)}</p><div class="iv-qs">${CALIDADES.map((c, q) => `<span class="${m[id][q] ? '' : 'z'}" title="${c}"><small>${c}</small><b>${m[id][q]}</b></span>`).join('')}</div></div>`; }).join('')}</div>`;
+      <div class="iv-mats">${TODOS_MAT_IDS.map((id) => { const M = MATERIALS[id]; return `<div class="iv-mat" style="--m:${hex(M.glow)}"><header><i></i><div><b>${esc(M.name)}</b><small>${esc(M.lema)}</small></div></header><p>${esc(M.texto)}</p><div class="iv-qs">${CALIDADES.map((c, q) => `<span class="${m[id][q] ? '' : 'z'}" title="${c}"><small>${c}</small><b>${m[id][q]}</b></span>`).join('')}</div></div>`; }).join('')}</div>`;
   }
   function tabPlanos() {
     const rows = ITEM_IDS.slice().sort((a, b) => ITEMS[a].r - ITEMS[b].r || SLOTS.indexOf(ITEMS[a].slot) - SLOTS.indexOf(ITEMS[b].slot));

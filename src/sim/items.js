@@ -6,6 +6,7 @@
 //   id = plantilla · q = tirada de calidad 0..1 (±6 % sobre los bonos) · k = bajas acumuladas con el objeto puesto (define la fase de maduración).
 // Los efectos viajan a la simulación como `opts.equip` de addPlayer/setLoadout (lista de { s: ranura, id, q, k }); src/sim/items-fx.js los aplica.
 import { WEAPONS } from './data.js';
+import { ESPECIES } from './flora-data.js';   // la flora de las arenas da materiales vegetales (docs/FLORA.md)
 
 /* ───────── ranuras y tipos ───────── */
 export const SLOTS = ['gun', 'melee', 'head', 'torso', 'arms', 'legs', 'relic'];
@@ -34,7 +35,22 @@ export const MATERIALS = {
   espora:  { name: 'Espora',  color: 0xa8d94a, dark: 0x4a6a1a, glow: 0xd6ff5a, ess: 'ojo',     lema: 'Se esparce',         texto: 'Hongo y moho luminoso: envenena, siembra y se multiplica.' },
   vacio:   { name: 'Vacío',   color: 0x2a1c46, dark: 0x0e0a1c, glow: 0xb98cff, ess: 'vacio',   lema: 'Hambre sin forma',   texto: 'Materia que no está del todo acá: ligera, rápida y hambrienta.' },
 };
-export const MATERIAL_IDS = Object.keys(MATERIALS);
+export const MATERIAL_IDS = Object.keys(MATERIALS);   // los 7 orgánicos que caen en el botín general
+/** MATERIALES VEGETALES (docs/FLORA.md): sólo salen de COSECHAR (USAR) o destruir plantas. Con calidad 0..3 como los demás. Se consultan igual en MATERIALS,
+ *  pero MATERIAL_IDS sigue siendo los 7 orgánicos (el botín general, la tienda y los sets no los mezclan). */
+export const MATERIALS_FLORA = {
+  fibra:       { name: 'Fibra viva',      color: 0x6fbf5a, dark: 0x2f6a2a, glow: 0x9bff7a, ess: 'ojo',     lema: 'Flexible y terca',     texto: 'Hebras de enredadera y zarza: trenzadas aguantan casi cualquier tirón.', flora: true },
+  savia:       { name: 'Savia',           color: 0xd9a441, dark: 0x8a5a14, glow: 0xffd45a, ess: 'carne',   lema: 'Dulce y espesa',       texto: 'Sangre de planta: cura, pega y conserva.', flora: true },
+  petalo:      { name: 'Pétalo de luz',   color: 0xbff7ff, dark: 0x5aa8c0, glow: 0x19f0ff, ess: 'cristal', lema: 'Luz que se doblega',   texto: 'Pétalos que guardan la luz de las flores curativas.', flora: true },
+  resina:      { name: 'Resina',          color: 0xe0a040, dark: 0x7a4a14, glow: 0xff9a3c, ess: 'carne',   lema: 'Pegajosa y paciente',  texto: 'Gotas de árbol viejo: sellan, ralentizan y arden despacio.', flora: true },
+  nectar:      { name: 'Néctar',          color: 0xffe08a, dark: 0xb08a2a, glow: 0xffd45a, ess: 'ojo',     lema: 'Un trago de tiempo',   texto: 'Néctar de frutos de eco y de hora: recarga lo que se gastó.', flora: true },
+  hoja_espejo: { name: 'Hoja espejo',     color: 0xc8e8ff, dark: 0x6a8ab0, glow: 0x9fd8ff, ess: 'cristal', lema: 'Devuelve lo que recibe', texto: 'Hoja pulida como un espejo: refleja disparos y luz.', flora: true },
+  raiz_hierro: { name: 'Raíz-hierro',     color: 0x7a6a58, dark: 0x3a3028, glow: 0xff7a4a, ess: 'carne',   lema: 'Madera que muerde',    texto: 'Raíz de carnívora endurecida como metal: afila y pesa.', flora: true },
+  polen:       { name: 'Polen psicodélico', color: 0xd09aff, dark: 0x6a3aa8, glow: 0xb07bff, ess: 'ojo',   lema: 'Aturde y multiplica',  texto: 'Polen de hongos y flores narcóticas: veneno, sueño y semillas.', flora: true },
+};
+export const FLORA_MAT_IDS = Object.keys(MATERIALS_FLORA);
+Object.assign(MATERIALS, MATERIALS_FLORA);
+export const TODOS_MAT_IDS = [...MATERIAL_IDS, ...FLORA_MAT_IDS];
 
 /* ───────── maduración ───────── */
 export const FASES = ['Latente', 'Despierta', 'Madura', 'Plena'];
@@ -209,6 +225,21 @@ def('manos_hongo', 'Manos de Micelio', 'arms', 1, 'espora', 'Hilos blancos que u
 def('pies_micelio', 'Pies de Micelio', 'legs', 1, 'espora', 'Una red de hilos bajo cada paso: sentís el suelo a lo lejos.', { st: { spd: 1.03, heal: 2 } });
 def('sudario_vacio', 'Sudario del Vacío', 'torso', 2, 'vacio', 'Tela que no termina de existir: el golpe la atraviesa un instante antes de llegar.', { st: { dmgIn: 0.96, spd: 1.02 }, pa: [{ id: 'sombra', v: 0.08 }] });
 
+/* ── JARDÍN (docs/FLORA.md): variantes hechas con plantas. Mismo material visual que su familia (raíz / cristal / espora), receta con materiales VEGETALES (`jardin: [[material, cantidad]]`). ── */
+def('capucha_savia', 'Capucha de Savia', 'head', 1, 'raiz', 'Una capucha de hojas selladas con savia: huele a bosque después de llover.', { st: { heal: 3, dmgIn: 0.99 }, pa: [{ id: 'regen', v: 0.8 }], jardin: [['savia', 2], ['fibra', 2]] });
+def('coraza_savia', 'Coraza de Savia', 'torso', 2, 'raiz', 'Corteza viva con savia dorada por dentro: se cierra sola sobre cada herida.', { st: { dmgIn: 0.96, heal: 4 }, pa: [{ id: 'savia', v: 1.2 }], jardin: [['savia', 3], ['resina', 2], ['fibra', 2]] });
+def('guantes_savia', 'Guantes de Savia', 'arms', 1, 'raiz', 'Dedos de liana tejida: agarran fuerte y no se rompen.', { st: { melee: 1.04, heal: 2 }, jardin: [['fibra', 3], ['savia', 1]] });
+def('botas_savia', 'Botas de Savia', 'legs', 1, 'raiz', 'Suelas de resina fresca: se pegan al suelo justo lo necesario.', { st: { spd: 1.02, heal: 3 }, jardin: [['resina', 2], ['fibra', 2]] });
+def('maza_savia', 'Maza de Savia', 'melee', 2, 'raiz', 'Un nudo de árbol viejo bañado en savia: cada golpe deja el suelo pegajoso.', { m: { type: 'martillo', special: 'espora', light: L(64, 3.7, 0.7, 0.66), heavy: L(176, 4.4, 0.8, 1.2, { knock: 17 }), model: 'maza_espora' }, pa: [{ id: 'regen', v: 1.2 }], vis: 'raiz', jardin: [['resina', 3], ['savia', 2], ['raiz_hierro', 1]] });
+def('corona_petalo', 'Corona de Pétalos', 'head', 1, 'cristal', 'Pétalos de luz entretejidos: cada baja cercana les saca un brillo nuevo.', { st: { skill: 1.04, ult: 1.03 }, jardin: [['petalo', 3], ['fibra', 1]] });
+def('peto_petalo', 'Peto de Pétalos', 'torso', 2, 'cristal', 'Capas de pétalo cristalino que se abren cuando algo golpea y devuelven escudo.', { st: { shield: 1.1, dmgIn: 0.97 }, pa: [{ id: 'escudo_pleno', v: 0.04 }], jardin: [['petalo', 4], ['nectar', 2], ['fibra', 2]] });
+def('brazales_petalo', 'Brazales de Pétalos', 'arms', 1, 'cristal', 'Dos manojos de flores de luz atados a las muñecas.', { st: { skill: 1.03, gun: 1.02 }, jardin: [['petalo', 3], ['fibra', 2]] });
+def('sandalias_petalo', 'Sandalias de Pétalos', 'legs', 1, 'cristal', 'Pétalos que no pesan: cada paso deja una huella de luz.', { st: { spd: 1.03, cd: 0.98 }, jardin: [['petalo', 2], ['nectar', 1], ['fibra', 2]] });
+def('cetro_petalo', 'Cetro de Pétalos', 'melee', 2, 'cristal', 'Un tallo de cristal florecido en la punta: perfora y deja una flor de luz.', { m: { type: 'lanza', special: 'linea', light: L(49, 6.6, 0.22, 0.4, { pierce: true }), heavy: L(132, 8.1, 0.2, 0.95, { pierce: true }), model: 'lanza_sinaptica' }, st: { skill: 1.03 }, vis: 'cristal', jardin: [['petalo', 4], ['hoja_espejo', 1], ['nectar', 2]] });
+def('cerbatana_espina', 'Cerbatana de Espinas', 'gun', 1, 'raiz', 'Un tallo hueco con espinas de zarza: cada soplido es una dosis de veneno.', { g: { base: 'dardos', dmg: 1.06, rate: 1.05, mag: 1.15, fx: { poison: 9 } }, vis: 'raiz', jardin: [['fibra', 3], ['polen', 2]] });
+def('semilla_jardin', 'Semilla de Jardín', 'relic', 1, 'espora', 'Una semilla que late: dicen que, si la plantás en tierra buena, da un jardín entero.', { st: { heal: 4, ess: 1.05 }, jardin: [['polen', 2], ['savia', 2]] });
+def('corazon_flor', 'Corazón de Flor', 'relic', 2, 'cristal', 'El centro de una flor de luz, todavía abierto: te cuida mientras no mires.', { st: { shield: 1.1, heal: 5 }, pa: [{ id: 'regen', v: 1 }], jardin: [['petalo', 3], ['nectar', 2], ['polen', 1]] });
+
 /* ───────── SETS ORGÁNICOS: familias de 4 piezas de armadura + 1 arma. Bonos con 2 y 4 piezas (el arma cuenta como pieza). ───────── */
 export const SETS = {
   osario:   { name: 'Set Osario', mat: 'hueso', items: ['casco_hueso', 'peto_hueso', 'brazales_hueso', 'grebas_hueso', 'cuchilla_hueso'], lore: 'Los huesos del osario se reconocen entre sí: juntos no se rompen.',
@@ -225,8 +256,15 @@ export const SETS = {
     b2: { fx: { ess: 1.1 } }, b4: { fx: { ess: 1.12, cores: 1.06 }, pa: [{ id: 'siembra', v: 5 }] }, vis: 'Nubes de esporas luminosas flotan alrededor y los sombreros brillan al compás.' },
   vacio:    { name: 'Set Vacío', mat: 'vacio', items: ['mascara_vacio', 'sudario_vacio', 'manos_eco', 'pasos_vacio', 'filo_vacio'], lore: 'El Vacío te viste: dejás de estar del todo en un solo lugar.',
     b2: { fx: { spd: 1.02 } }, b4: { fx: { spd: 1.03, cd: 0.95 }, pa: [{ id: 'sombra', v: 0.1 }] }, vis: 'Los bordes se deshacen en esquirlas violetas y una sombra te sigue medio paso atrás.' },
+  /* — SETS DE JARDÍN (docs/FLORA.md): se forjan con materiales vegetales; su aspecto es el de su material base — */
+  savia:    { name: 'Set Savia', mat: 'raiz', jardin: true, items: ['capucha_savia', 'coraza_savia', 'guantes_savia', 'botas_savia', 'maza_savia'], lore: 'La savia del Jardín no olvida: te cierra las heridas antes de que las notes.',
+    b2: { fx: { heal: 3 } }, b4: { fx: { heal: 5, dmgIn: 0.97 }, pa: [{ id: 'regen', v: 1.5 }] }, vis: 'Hojas húmedas brotan por el cuerpo y un hilo de savia dorada late bajo la armadura.' },
+  flor_luz: { name: 'Set Flor de Luz', mat: 'cristal', jardin: true, items: ['corona_petalo', 'peto_petalo', 'brazales_petalo', 'sandalias_petalo', 'cetro_petalo'], lore: 'Una flor abierta alrededor del cuerpo: cuanto más oscuro está, más brilla.',
+    b2: { fx: { shield: 1.08 } }, b4: { fx: { shield: 1.1, skill: 1.04, ult: 1.04 }, pa: [{ id: 'fervor', v: 1 }] }, vis: 'Pétalos de luz se abren en cadena y una corona de brillo cian gira detrás de la cabeza.' },
 };
 export const SET_IDS = Object.keys(SETS);
+/** Objetos de jardín (llevan `jardin`): los planos de las plantas raras salen de acá. */
+export const PLANOS_JARDIN = Object.keys(IT).filter((id) => IT[id].jardin);
 for (const sid of SET_IDS) for (const id of SETS[sid].items) { if (!IT[id]) throw new Error('Set ' + sid + ': objeto inexistente ' + id); IT[id].set = sid; }
 /** Piezas de cada set que lleva puestas la lista de equipo: { set: n }. */
 export function setCounts(list) { const c = {}; for (const e of list) { const it = IT[e.id]; if (it && it.set) c[it.set] = (c[it.set] || 0) + 1; } return c; }
@@ -348,7 +386,7 @@ export const LIMITE_INVENTARIO = 60;
    Lo que CAE en las partidas son sobre todo materiales (con calidad 0..3) y planos; los objetos finales se construyen en la Forja. */
 export const CALIDADES = ['Burdo', 'Fino', 'Excelente', 'Perfecto'];
 /** MATERIALES = los 7 materiales orgánicos + su nombre de calidad. Cada tipo se guarda por calidad: materiales[mat] = [n0, n1, n2, n3]. */
-export const MATERIALES = Object.fromEntries(MATERIAL_IDS.map((m) => [m, { ...MATERIALS[m], id: m, calidades: CALIDADES }]));
+export const MATERIALES = Object.fromEntries(TODOS_MAT_IDS.map((m) => [m, { ...MATERIALS[m], id: m, calidades: CALIDADES }]));
 export const MAT_STOCK_MAX = 99;
 /** Plano de cada objeto (id = el del objeto). Los de rareza Común se conocen de entrada; el resto se encuentra en partidas. Las armas firma sólo vienen del jefe de su mapa. */
 export const PLANOS = Object.fromEntries(ITEM_IDS.map((id) => [id, { id, item: id, nombre: 'Plano: ' + IT[id].name, r: IT[id].r, inicial: IT[id].r === 0, firma: !!IT[id].host }]));
@@ -359,6 +397,7 @@ function receta(id) {
   const it = IT[id], r = it.r, m = it.mat, s = SEC[m];
   const T = [{ mats: [{ mat: m, n: 3, cal: 0 }], cores: 15, tiempo: 5 }, { mats: [{ mat: m, n: 4, cal: 1 }, { mat: s, n: 1, cal: 0 }], cores: 40, tiempo: 15 }, { mats: [{ mat: m, n: 5, cal: 2 }, { mat: s, n: 2, cal: 1 }], cores: 90, tiempo: 30 }, { mats: [{ mat: m, n: 6, cal: 3 }, { mat: s, n: 3, cal: 2 }], cores: 220, tiempo: 60 }][r];
   const R = { item: id, plano: id, mats: T.mats.map((x) => ({ ...x })), cores: T.cores, tiempo: T.tiempo };
+  if (it.jardin) R.mats = [{ mat: m, n: Math.max(1, Math.ceil(T.mats[0].n / 2)), cal: T.mats[0].cal }, ...it.jardin.map(([fm, n]) => ({ mat: fm, n, cal: Math.max(0, r - 1) }))];   // variante de jardín: la mitad del material base + materiales vegetales
   if (it.host) { R.mats.push({ mat: 'vacio', n: 2, cal: 3 }); R.cores = 320; R.tiempo = 90; R.especial = 'Pide materiales Perfectos del Vacío y el plano raro que suelta el jefe de su mapa.'; }
   return R;
 }
@@ -371,3 +410,17 @@ export function qForja(id, contador, calMedia = 0) {
 }
 /** Texto del costo de una receta para la interfaz. */
 export const costoTexto = (R) => R.mats.map((x) => `${x.n}× ${MATERIALS[x.mat].name} (${CALIDADES[x.cal]}+)`).join(' · ') + ` · ${R.cores} núcleos`;
+
+/* ═════════════ CONSUMIBLES DE JARDÍN (docs/FLORA.md → «Forja de jardín»): se fabrican al instante con materiales vegetales ═════════════
+   da: { botiquin: n } suma botiquines iniciales (tope 5) · { cebo: n } cebos para atraer fauna (los usa el sistema de fauna) · { semilla: 'especie' } semilla para el
+   Jardín de la base (la base la planta; ver el contrato en docs/FLORA.md). Las semillas de plantas RARAS no se fabrican: sólo se encuentran. */
+export const CONSUMIBLES = {
+  botiquin_organico: { id: 'botiquin_organico', nombre: 'Botiquín orgánico', icono: '✚', desc: 'Un botiquín vivo: suma 1 botiquín inicial (te levanta una vez con la mitad de la vida). Máximo 5.', mats: [{ mat: 'savia', n: 3, cal: 1 }, { mat: 'fibra', n: 2, cal: 0 }], cores: 30, da: { botiquin: 1 } },
+  cebo_fauna: { id: 'cebo_fauna', nombre: 'Cebo para fauna', icono: '☘', desc: 'Néctar y polen en un fardo: atrae criaturas de la fauna al empezar una partida (para consumirlas y mutar).', mats: [{ mat: 'nectar', n: 2, cal: 1 }, { mat: 'polen', n: 2, cal: 0 }], cores: 20, da: { cebo: 1 } },
+};
+for (const sid of Object.keys(ESPECIES)) {
+  const S = ESPECIES[sid]; if (S.rara) continue;
+  CONSUMIBLES['semilla_' + sid] = { id: 'semilla_' + sid, nombre: 'Semilla: ' + S.nombre, icono: '❀', desc: `Para el Jardín de la base: cultivá ${S.nombre} y cosechala sin salir de casa. ${S.fn === 'ofensiva' ? 'Ojo: es peligrosa también ahí.' : ''}`.trim(),
+    mats: [{ mat: S.cos.mat, n: 2, cal: 1 }, { mat: 'savia', n: 1, cal: 0 }], cores: 25, da: { semilla: sid } };
+}
+export const CONSUMIBLE_IDS = Object.keys(CONSUMIBLES);

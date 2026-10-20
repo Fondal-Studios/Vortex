@@ -20,3 +20,6 @@ Todas las criaturas son **seres que perdieron la vida y la añoran**: quieren la
 | coloso | **El Mandinga** | jefe 1 | el diablo criollo, enorme, de fuego y sombra | cristal |
 | madre | **La Madre de las Ánimas** | jefe 2 | madre colosal que pare almas | carne |
 | argos | **El Basilisco** | jefe 3 | serpiente-gallo de mirada mortal (sus ojos son el combate) | ojo |
+
+## Fauna (los únicos vivos del limbo)
+Aparte de las almas en pena de arriba, cada arena tiene **fauna consumible**: bichos chicos y psicodélicos que no quieren tu vida (salvo tres que muerden si los pisás) y que el Huésped puede comer para transformarse. Se estudian en **Bestiario › pestaña Fauna**. Lista completa, formas e híbridos en **docs/FAUNA.md**.

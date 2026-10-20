@@ -79,6 +79,7 @@ export function createPresence(_T, { glow = 0x4ab4ff, quality = 'low', camera = 
   function buildParticles(evo, path, rank) {
     kill(pts); pts = null; const list = [], cos = cosmeticosActivos(rank), q = SIZE_BY_Q[quality] || 1;
     path.slice(0, evo).forEach((id) => { const st = PATH_STYLE[id]; if (st) for (let i = 0; i < Math.round(st.n * q); i++) list.push([st.kind, st.color]); });
+    if (cur.forma) for (let i = 0; i < Math.round(18 * q); i++) list.push([i % 3 === 0 ? 4 : 8, cur.forma]);   // metamorfosis de fauna: motas del color de la forma
     if (cos.includes('aura')) for (let i = 0; i < Math.round(14 * q); i++) list.push([8, glow]);
     if (cos.includes('estela')) for (let i = 0; i < Math.round(16 * q); i++) list.push([9, glow]);
     if (!list.length) return;
@@ -117,14 +118,19 @@ export function createPresence(_T, { glow = 0x4ab4ff, quality = 'low', camera = 
 
   /** Reconstruye con el estado del Huésped. evo 0..4 · path = ids de camino por nivel · rank = maestría 1..10 · scale = escala del cuerpo. */
   api.set = ({ evo = 0, path = [], rank = 1, scale = 1 } = {}) => {
-    const key = `${evo}|${path.join()}|${rank}|${scale.toFixed(2)}`; if (key === built) return; built = key; cur = { evo, path, rank, scale };
+    const key = `${evo}|${path.join()}|${rank}|${scale.toFixed(2)}|${cur.forma || ''}`; if (key === built) return; built = key; cur = { evo, path, rank, scale, forma: cur.forma };
     uni.uSc.value = scale; buildParticles(evo, path, rank); buildGround(evo, path, rank); buildMark(rank, scale);
     if (ground) ground.scale.setScalar(scale); if (pillar) pillar.scale.set(scale, scale, scale);
   };
 
-  /** TRANSFORMACIÓN: carga 0,25 s + destello, onda, columna y chispas hasta 1,2 s. */
-  api.burst = (colorHex = glow) => {
-    api.burstT = 0; api.hide = true; kill(api._b); const b = new T.Group(), col = new T.Color(colorHex), sc = cur.scale, white = new T.Color(0xffffff);
+  /** Metamorfosis de fauna: tiñe el charco, el halo y el aura con el color de la forma (hex) o los devuelve (null). */
+  api.setForma = (hex) => {
+    const f = hex == null ? null : hex; if ((cur.forma || null) === f) return; cur.forma = f;
+    poolU.uC.value.set(f == null ? glow : f); halo.material.color.set(f == null ? glow : f); api.set({ evo: cur.evo, path: cur.path, rank: cur.rank, scale: cur.scale });
+  };
+  /** TRANSFORMACIÓN: carga 0,25 s + destello, onda, columna y chispas hasta 1,2 s (`speed` > 1 la acorta: la de comer dura ≈ 0,8 s). */
+  api.burst = (colorHex = glow, speed = 1) => {
+    api.burstT = 0; api.burstK = speed; api.hide = true; kill(api._b); const b = new T.Group(), col = new T.Color(colorHex), sc = cur.scale, white = new T.Color(0xffffff);
     const mk = (geo, color, op) => { const m = new T.Mesh(geo, new T.MeshBasicMaterial({ color, ...add, opacity: op, side: T.DoubleSide })); m.frustumCulled = false; b.add(m); return m; };
     const orb = mk(new T.SphereGeometry(1, 14, 10), white.clone().lerp(col, 0.4), 0.0); orb.position.y = 1.0 * sc;
     const ring1 = mk(new T.RingGeometry(0.92, 1, 56), col, 0), ring2 = mk(new T.RingGeometry(0.94, 1, 56), white.clone().lerp(col, 0.5), 0);
@@ -140,7 +146,7 @@ export function createPresence(_T, { glow = 0x4ab4ff, quality = 'low', camera = 
     b.userData = { orb, ring1, ring2, colM, sparks, bu }; api._b = b; object.add(b);
   };
   function stepBurst(dt) {
-    const t = (api.burstT += dt), b = api._b; if (!b) { api.burstT = -1; api.hide = false; api.pop = 1; api.boost = 1; return; }
+    const t = (api.burstT += dt * (api.burstK || 1)), b = api._b; if (!b) { api.burstT = -1; api.hide = false; api.pop = 1; api.boost = 1; return; }
     const { orb, ring1, ring2, colM, bu } = b.userData, sc = cur.scale, ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
     bu.uB.value = t; const rel = t - 0.25;
     if (t < 0.25) { const u = t / 0.25; orb.visible = true; orb.material.opacity = 0.5 + 0.5 * u; orb.scale.setScalar((0.28 + 0.22 * u + 0.03 * Math.sin(t * 90)) * sc); api.hide = true; api.pop = 1; api.boost = 1 + 2 * u; }

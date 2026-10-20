@@ -1,11 +1,14 @@
 // Perfil del jugador (se guarda en el navegador): núcleos ahorrados, evolución de cada Huésped y arma cuerpo a cuerpo equipada.
 import { EVO_COST, evoPathsFor, MELEE_WEAPONS, CHARACTERS, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
 import { TERRITORIOS, BENDICIONES, cleanBend, hermana } from '../sim/bendiciones.js';
+import { ESPECIES as FLORA_ESP, HITOS, hitosCumplidos } from '../sim/flora-data.js';   // Herbario y materiales vegetales (docs/FLORA.md)
 import { organError } from '../sim/organos.js';
 import { xpPartida, progreso, rangoDeXp, RANGO_MAX } from '../sim/maestria.js';
 import { MODOS_ARBOL, cleanNodos, nodosDe, gastado, errorNodo, costeReinicio, puntosCombo, puntosDisparo } from '../sim/progresion.js';
 import { migrarHuespedes, poseeHuesped } from '../sim/tienda.js';
-import { ITEMS, SLOTS, SIGNATURES, LIMITE_INVENTARIO, MATERIAL_IDS, MAT_STOCK_MAX, PLANOS, PLANOS_INICIALES, RECETAS, qForja, cleanEquip, equipError, desguaceValor, faseDe, poder } from '../sim/items.js';
+import { limpiarFauna, registrarComida, faunaParaPartida, ESPECIES, HITOS as HITOS_FAUNA } from '../sim/fauna-data.js';   // Códice de Fauna (docs/FAUNA.md)
+import { ESTACION_IDS, PLANTAS, macetaEstado } from '../sim/base.js';   // La Base (docs/BASE.md): estaciones y jardín
+import { ITEMS, SLOTS, SIGNATURES, LIMITE_INVENTARIO, MATERIAL_IDS, TODOS_MAT_IDS, CONSUMIBLES, MAT_STOCK_MAX, PLANOS, PLANOS_INICIALES, RECETAS, qForja, cleanEquip, equipError, desguaceValor, faseDe, poder } from '../sim/items.js';
 const KEY = 'cristal.perfil.v1';
 let cache = null;
 /** terr = { m1: { bend: null|'id' } }: la clave existe = territorio liberado; bend = bendición elegida (null = liberado pero sin elegir). Se sanea al cargar. */
@@ -16,7 +19,14 @@ function limpiarTerr(t) {
 }
 /** guia = { off: saltada del todo, vistos: [ids de pasos ya mostrados] }. Se sanea al cargar. */
 function limpiarGuia(g) { const o = g && typeof g === 'object' ? g : {}; return { off: o.off === true, vistos: Array.isArray(o.vistos) ? o.vistos.filter((x) => typeof x === 'string').slice(0, 12) : [] }; }
-const fresh = () => ({ ver: 2, cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1, huespedes: [], tienda: { clave: '', comp: [], rot: 0 }, consum: { botiquin: 0 }, menu: { iv: 0, tv: '' } });
+/** base = { vis: { estacion: última vez (ms) }, tut: tutorial de la Base visto, jardin: [6 macetas: null | { p: planta, t0: hora de siembra (ms) }] } (docs/BASE.md). Se sanea al cargar. */
+function limpiarBase(b) {
+  const o = b && typeof b === 'object' ? b : {}, vis = {}, jardin = [null, null, null, null, null, null];
+  if (o.vis && typeof o.vis === 'object') for (const id of ESTACION_IDS) if (o.vis[id]) vis[id] = nn(o.vis[id], 4e12);
+  if (Array.isArray(o.jardin)) o.jardin.slice(0, 6).forEach((m, i) => { if (m && typeof m === 'object' && PLANTAS[m.p]) jardin[i] = { p: m.p, t0: nn(m.t0, 4e12) }; });
+  return { vis, tut: o.tut === true, jardin };
+}
+const fresh = () => ({ ver: 2, cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1, huespedes: [], tienda: { clave: '', comp: [], rot: 0 }, consum: { botiquin: 0 }, herbario: { vistas: {}, cosechas: {}, hitos: [] }, flora: { semillas: {}, cebos: 0 }, menu: { iv: 0, tv: '' }, base: { vis: {}, tut: false, jardin: [null, null, null, null, null, null] } });
 /* ───── inventario (docs/INVENTARIO.md): v2 del perfil. Los perfiles anteriores (sin `ver`) se abren igual: sólo les falta el inventario, que arranca vacío. ───── */
 const nn = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 /** inv = [{ u (id propio), id (plantilla), q (tirada 0..1), k (bajas), lk (bloqueado), fv (favorito), t }]. Se sanea al cargar: ids desconocidos, uid repetidos y exceso se descartan. */
@@ -38,8 +48,8 @@ function limpiarEq(e, inv) {
   return out;
 }
 /** materiales = { hueso: [n0, n1, n2, n3], … } (cantidad por calidad, tope MAT_STOCK_MAX). */
-const matsVacios = () => Object.fromEntries(MATERIAL_IDS.map((m) => [m, [0, 0, 0, 0]]));
-function limpiarMats(m) { const o = matsVacios(); if (m && typeof m === 'object') for (const id of MATERIAL_IDS) if (Array.isArray(m[id])) for (let c = 0; c < 4; c++) o[id][c] = nn(m[id][c], MAT_STOCK_MAX); return o; }
+const matsVacios = () => Object.fromEntries(TODOS_MAT_IDS.map((m) => [m, [0, 0, 0, 0]]));
+function limpiarMats(m) { const o = matsVacios(); if (m && typeof m === 'object') for (const id of TODOS_MAT_IDS) if (Array.isArray(m[id])) for (let c = 0; c < 4; c++) o[id][c] = nn(m[id][c], MAT_STOCK_MAX); return o; }
 /** planos = ids de objetos cuyo plano se conoce (los Comunes se saben de entrada). */
 function limpiarPlanos(a) { const s = new Set(PLANOS_INICIALES); if (Array.isArray(a)) for (const id of a) if (PLANOS[id] && !PLANOS[id].inicial) s.add(id); return [...s]; }
 /** cultivo = { item, listo (ms), q, dur } o null: la pieza que se está cultivando en la Forja. */
@@ -66,7 +76,7 @@ function limpiarTienda(t) { const o = t && typeof t === 'object' ? t : {}; retur
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
   const inv = limpiarInv(o.inventario || o.inv);
-  cache = { ...fresh(), ...o, ver: 2, inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb), huespedes: migrarHuespedes(o, huespedElegido()), tienda: limpiarTienda(o.tienda), consum: { botiquin: nn(o.consum && o.consum.botiquin, 5) }, menu: { iv: nn(o.menu && o.menu.iv, 1e9), tv: typeof (o.menu && o.menu.tv) === 'string' ? o.menu.tv.slice(0, 24) : '' } };
+  cache = { ...fresh(), ...o, ver: 2, inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), fauna: limpiarFauna(o.fauna), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb), huespedes: migrarHuespedes(o, huespedElegido()), tienda: limpiarTienda(o.tienda), consum: { botiquin: nn(o.consum && o.consum.botiquin, 5) }, herbario: limpiarHerbario(o.herbario), flora: limpiarFlora(o.flora), menu: { iv: nn(o.menu && o.menu.iv, 1e9), tv: typeof (o.menu && o.menu.tv) === 'string' ? o.menu.tv.slice(0, 24) : '' }, base: limpiarBase(o.base) };
   return cache;
 }
 export const perfil = () => cache || load();
@@ -74,7 +84,7 @@ export const perfil = () => cache || load();
 export const recargar = () => { cache = null; return load(); };
 export function guardar() { try { localStorage.setItem(KEY, JSON.stringify(perfil())); } catch { /* sin almacenamiento */ } }
 /** Datos que recibe la simulación al empezar una partida con este Huésped. */
-export const paraPartida = (char) => { const p = perfil(); return { equip: equipoParaPartida(char), pity: { ...p.pity }, sigs: Object.keys(p.sigs), melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas(), maestria: rangoMaestria(char), arbol: arbolParaPartida(char) }; };
+export const paraPartida = (char) => { const p = perfil(); return { equip: equipoParaPartida(char), pity: { ...p.pity }, sigs: Object.keys(p.sigs), melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas(), herb: [...perfil().herbario.hitos], maestria: rangoMaestria(char), arbol: arbolParaPartida(char), fauna: faunaParaPartida(p.fauna) }; };
 /** Al terminar (o pasar de oleada): guarda núcleos ganados y el nivel de evolución alcanzado. */
 export function cerrarPartida(char, jugador, info = {}) {
   if (!jugador) return null; const p = perfil(); const mae = ganarMaestria(char, jugador, info), arb = ganarArbol(char, jugador, info); if (mae && arb) mae.arbol = arb;
@@ -210,7 +220,7 @@ function ganarArbol(char, jugador, info) {
 /* ───── inventario y equipo (docs/INVENTARIO.md) ───── */
 export const inventario = () => perfil().inventario;
 export const instDe = (uid) => perfil().inventario.find((x) => x.u === uid) || null;
-const MATERIALES_TXT = Object.fromEntries(MATERIAL_IDS.map((m) => [m, ({ hueso: 'Hueso', quitina: 'Quitina', raiz: 'Raíz', cristal: 'Cristal', carne: 'Carne', espora: 'Espora', vacio: 'Vacío' })[m]]));
+const MATERIALES_TXT = Object.fromEntries(TODOS_MAT_IDS.map((m) => [m, ({ hueso: 'Hueso', quitina: 'Quitina', raiz: 'Raíz', cristal: 'Cristal', carne: 'Carne', espora: 'Espora', vacio: 'Vacío', fibra: 'Fibra viva', savia: 'Savia', petalo: 'Pétalo de luz', resina: 'Resina', nectar: 'Néctar', hoja_espejo: 'Hoja espejo', raiz_hierro: 'Raíz-hierro', polen: 'Polen psicodélico' })[m]]));
 const nuevoUid = () => { const p = perfil(); let u; do { u = 'u' + (p.nu++).toString(36); } while (p.inventario.some((x) => x.u === u)); return u; };
 /** Quién lleva puesta esta pieza: { char, slot } o null. */
 export function puestoEn(uid) { const eq = perfil().eq; for (const c of Object.keys(eq)) for (const s of Object.keys(eq[c])) if (eq[c][s] === uid) return { char: c, slot: s }; return null; }
@@ -269,7 +279,8 @@ function cerrarBotin(char, jugador, info) {
   botin.mats = {}; botin.planos = [];
   for (const d of bolsa.slice(0, 80)) {
     const id = String(d.id);
-    if (id.startsWith('mat:')) { const m = id.slice(4); if (MATERIAL_IDS.includes(m)) { const cal = nn(d.q, 3), n = Math.max(1, nn(d.n || 1, 9)); sumarMat(m, cal, n); (botin.mats[m] ||= [0, 0, 0, 0])[cal] += n; } }
+    if (id.startsWith('semilla:')) { const sp = id.slice(8); if (FLORA_ESP[sp]) { p.flora.semillas[sp] = nn((p.flora.semillas[sp] || 0) + Math.max(1, nn(d.n || 1, 9)), 99); (botin.semillas ||= []).push(sp); } }
+    else if (id.startsWith('mat:')) { const m = id.slice(4); if (TODOS_MAT_IDS.includes(m)) { const cal = nn(d.q, 3), n = Math.max(1, nn(d.n || 1, 9)); sumarMat(m, cal, n); (botin.mats[m] ||= [0, 0, 0, 0])[cal] += n; } }
     else if (id.startsWith('plano:')) { const it = id.slice(6); if (PLANOS[it]) { if (aprenderPlano(it)) botin.planos.push(it); else { sumarMat(ITEMS[it].mat, 1, 2); botin.planos.push(it + '!'); } } }
     else { const r = agregarItem(d); if (r.ok) botin.items.push({ id: d.id, q: d.q, ...r }); }
   }
@@ -346,3 +357,100 @@ export function fusionar(a, b) {
 }
 /** Piezas de cada set que lleva el Huésped y el estado de sus bonos (para la pantalla de sets). */
 export function setsDe(char) { const l = equipoParaPartida(char); return l; }
+
+/* ───── LA BASE (docs/BASE.md): estación visitada, tutorial y JARDÍN (las macetas guardan la hora real de siembra; la Forja usa `cultivo`, arriba) ───── */
+export const baseDatos = () => perfil().base;
+/** Marca una estación como visitada (el punto de aviso de la Base se apaga). */
+export function visitarEstacion(id, ahora = Date.now()) { if (!ESTACION_IDS.includes(id)) return false; perfil().base.vis[id] = ahora; guardar(); return true; }
+export const tutorialBaseVisto = () => perfil().base.tut === true;
+export function tutorialBaseListo() { perfil().base.tut = true; guardar(); }
+/** Estado de las 6 macetas con la hora `ahora`: [{ estado: 'vacia'|'crece'|'lista', faltan, prog, planta }]. */
+export const jardinEstado = (ahora = Date.now()) => perfil().base.jardin.map((m) => macetaEstado(m, ahora));
+/** Siembra `planta` en la maceta `i` pagando sus núcleos. { ok, motivo }. */
+export function sembrar(i, planta, ahora = Date.now()) {
+  const p = perfil(), P = PLANTAS[planta]; if (!P) return { ok: false, motivo: 'Esa semilla no existe' };
+  if (!(i >= 0 && i < 6)) return { ok: false, motivo: 'Esa maceta no existe' };
+  if (p.base.jardin[i]) return { ok: false, motivo: 'La maceta ya está ocupada' };
+  if (p.cores < P.costo) return { ok: false, motivo: `Faltan núcleos (${P.costo})` };
+  p.cores -= P.costo; p.base.jardin[i] = { p: planta, t0: ahora }; guardar(); return { ok: true, planta: P };
+}
+/** Cosecha la maceta `i` si está lista: suma los materiales al stock. { ok, mat, n, cal, motivo }. */
+export function cosechar(i, ahora = Date.now()) {
+  const p = perfil(), m = p.base.jardin[i], st = macetaEstado(m, ahora);
+  if (st.estado === 'vacia') return { ok: false, motivo: 'La maceta está vacía' };
+  if (st.estado !== 'lista') return { ok: false, motivo: 'Todavía está creciendo' };
+  const P = st.planta; p.materiales[P.mat] ||= [0, 0, 0, 0]; const n = sumarMat(P.mat, P.cal, P.n);   // (un material nuevo, p. ej. vegetal, puede no tener todavía su casillero)
+  p.base.jardin[i] = null; guardar(); return { ok: true, mat: P.mat, n, cal: P.cal, planta: P };
+}
+/** Avisos de la Base por estación: cuántas cosas listas hay (cultivo de la Forja listo, cosecha del jardín, Huésped comprable, botín nuevo). */
+export function avisosBase(ahora = Date.now()) {
+  const p = perfil(), out = {};
+  const f = cultivoFalta(ahora); if (p.cultivo && f === 0) out.forja = 1;
+  const c = jardinEstado(ahora).filter((x) => x.estado === 'lista').length; if (c) out.jardin = c;
+  return out;
+}
+
+
+/* ───── HERBARIO, SEMILLAS Y FORJA DE JARDÍN (docs/FLORA.md) ───── */
+/** herbario = { vistas: { especie: veces vista }, cosechas: { especie: n }, hitos: [ids] }: sólo especies y hitos que existen; números acotados. */
+function limpiarHerbario(h) {
+  const o = { vistas: {}, cosechas: {}, hitos: [] }; if (!h || typeof h !== 'object') return o;
+  for (const sp of Object.keys(FLORA_ESP)) { if (h.vistas && h.vistas[sp]) o.vistas[sp] = Math.max(1, nn(h.vistas[sp], 99999)); if (h.cosechas && h.cosechas[sp]) o.cosechas[sp] = Math.max(1, nn(h.cosechas[sp], 99999)); }
+  o.hitos = hitosCumplidos(o); return o;
+}
+/** flora = { semillas: { especie: n }, cebos: n }: lo que se fabrica con la Forja de jardín y espera en la mochila (la Base y la fauna lo usan). */
+function limpiarFlora(f) {
+  const o = { semillas: {}, cebos: 0 }; if (!f || typeof f !== 'object') return o;
+  for (const sp of Object.keys(FLORA_ESP)) if (f.semillas && f.semillas[sp]) o.semillas[sp] = Math.max(1, nn(f.semillas[sp], 99));
+  o.cebos = nn(f.cebos, 20); return o;
+}
+export const herbario = () => perfil().herbario;
+export const florita = () => perfil().flora;   // semillas y cebos
+/** Registra que se vio una planta (la primera vez es un descubrimiento). Devuelve { nuevo, hitos: [hitos nuevos] }. */
+export function verPlanta(sp) {
+  if (!FLORA_ESP[sp]) return { nuevo: false, hitos: [] };
+  const h = perfil().herbario, nuevo = !h.vistas[sp]; h.vistas[sp] = Math.min(99999, (h.vistas[sp] || 0) + 1);
+  const antes = new Set(h.hitos); h.hitos = hitosCumplidos(h); const nuevos = h.hitos.filter((x) => !antes.has(x));
+  if (nuevo || nuevos.length) guardar();
+  return { nuevo, hitos: nuevos };
+}
+/** Registra una cosecha o planta destruida con botín. Devuelve los hitos nuevos. */
+export function cosechaPlanta(sp) {
+  if (!FLORA_ESP[sp]) return [];
+  const h = perfil().herbario; h.cosechas[sp] = Math.min(99999, (h.cosechas[sp] || 0) + 1);
+  const antes = new Set(h.hitos); h.hitos = hitosCumplidos(h); const nuevos = h.hitos.filter((x) => !antes.has(x)); guardar(); return nuevos;
+}
+/** Estado de una receta de consumible de jardín: { ok, motivo, receta, faltan }. */
+export function estadoConsumible(id) {
+  const R = CONSUMIBLES[id], p = perfil(); if (!R) return { ok: false, motivo: 'no existe' };
+  const faltan = R.mats.map((x) => ({ ...x, tiene: stockMin(x.mat, x.cal) }));
+  let motivo = '';
+  if (faltan.some((x) => x.tiene < x.n)) motivo = 'Faltan materiales'; else if (p.cores < R.cores) motivo = 'Faltan núcleos';
+  else if (R.da.botiquin && p.consum.botiquin >= 5) motivo = 'Ya tenés 5 botiquines';
+  else if (R.da.cebo && p.flora.cebos >= 20) motivo = 'Ya tenés 20 cebos';
+  else if (R.da.semilla && (p.flora.semillas[R.da.semilla] || 0) >= 99) motivo = 'Ya tenés muchas';
+  return { ok: !motivo, motivo, receta: R, faltan };
+}
+/** Fabrica un consumible de jardín al instante (botiquín orgánico, cebo para fauna o semilla). */
+export function forjarConsumible(id) {
+  const st = estadoConsumible(id); if (!st.ok) return { ok: false, motivo: st.motivo };
+  const p = perfil(), R = st.receta;
+  for (const x of R.mats) gastarMat(x.mat, x.n, x.cal, false);
+  p.cores -= R.cores;
+  if (R.da.botiquin) p.consum.botiquin = Math.min(5, p.consum.botiquin + R.da.botiquin);
+  if (R.da.cebo) p.flora.cebos = Math.min(20, p.flora.cebos + R.da.cebo);
+  if (R.da.semilla) p.flora.semillas[R.da.semilla] = Math.min(99, (p.flora.semillas[R.da.semilla] || 0) + 1);
+  guardar(); return { ok: true, receta: R };
+}
+/** Gasta un cebo (la fauna lo pide al empezar la partida). false si no hay. */
+export function usarCebo() { const p = perfil(); if (p.flora.cebos < 1) return false; p.flora.cebos--; guardar(); return true; }
+
+/* ───── Códice de Fauna (docs/FAUNA.md): especies comidas, contador, hitos y ADN. Es del PERFIL: sobrevive a las partidas y a las versiones viejas del guardado. ───── */
+export const fauna = () => perfil().fauna;
+/** Anota que se comió una especie (se llama con cada evento `fauna/come` propio). Devuelve { nuevo, hitos:[n…], n, especie } para que la pantalla avise («¡Nueva especie en el Códice!», «Hito: 10 comidas»). */
+export function registrarFauna(espId, hibrido = null) {
+  const sp = ESPECIES[espId]; if (!sp) return null; const r = registrarComida(fauna(), espId, hibrido); guardar();
+  return { ...r, especie: sp, hito: r.hitos.length ? HITOS_FAUNA.find((h) => h.n === r.hitos[r.hitos.length - 1]) : null };
+}
+/** Lo que viaja a una sala cooperativa: { especie: veces }. */
+export const faunaDeLaSala = () => faunaParaPartida(fauna());

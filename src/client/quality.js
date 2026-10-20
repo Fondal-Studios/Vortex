@@ -1,8 +1,8 @@
 // Calidad gráfica: Baja (iPhone / equipos modestos), Media y Alta (PC). Se guarda en el navegador.
 export const LEVELS = {
-  low:    { label: 'Baja (iPhone)', pixelRatio: 0.85, maxPR: 1,   edges: false, particles: 700,  decor: false, skyIters: 4, shellIters: 3, halos: false, shards: 6,  tracers: 12, humans: 'low',    fps: 60, post: false, grade: true, msaa: 4, env: true, lights: 2, lod: 20, full: 10, shadows: false, fogLayers: 1, nieblas: 1, scale: 1 },
-  medium: { label: 'Media',         pixelRatio: 1,   maxPR: 1.25, edges: false, particles: 1600, decor: true,  skyIters: 6, shellIters: 4, halos: true,  shards: 12, tracers: 24, humans: 'medium', fps: 60, post: true,  grade: true, msaa: 4, env: true,  lights: 3, bloom: 0.4, lod: 38, full: 24, shadows: false, fogLayers: 2, nieblas: 2, scale: 1 },
-  high:   { label: 'Alta',          pixelRatio: 1.5, maxPR: 2,   edges: true,  particles: 3000, decor: true,  skyIters: 8, shellIters: 5, halos: true,  shards: 18, tracers: 40, humans: 'high',   fps: 60, post: true,  grade: true, msaa: 4, env: true,  lights: 4, bloom: 0.55, lod: 70, full: 56, shadows: true, fogLayers: 3, nieblas: 2, scale: 1 },
+  low:    { label: 'Baja (iPhone)', pixelRatio: 0.85, maxPR: 1,   edges: false, particles: 700,  decor: false, skyIters: 4, shellIters: 3, halos: false, shards: 6,  tracers: 12, humans: 'low',    fps: 60, post: false, grade: true, msaa: 4, env: true, lights: 2, lod: 20, full: 10, shadows: false, fogLayers: 1, nieblas: 1, veg: true, vegDens: 1, scale: 1 },
+  medium: { label: 'Media',         pixelRatio: 1,   maxPR: 1.25, edges: false, particles: 1600, decor: true,  skyIters: 6, shellIters: 4, halos: true,  shards: 12, tracers: 24, humans: 'medium', fps: 60, post: true,  grade: true, msaa: 4, env: true,  lights: 3, bloom: 0.4, lod: 38, full: 24, shadows: false, fogLayers: 2, nieblas: 2, veg: true, vegDens: 2, scale: 1 },
+  high:   { label: 'Alta',          pixelRatio: 1.5, maxPR: 2,   edges: true,  particles: 3000, decor: true,  skyIters: 8, shellIters: 5, halos: true,  shards: 18, tracers: 40, humans: 'high',   fps: 60, post: true,  grade: true, msaa: 4, env: true,  lights: 4, bloom: 0.55, lod: 70, full: 56, shadows: true, fogLayers: 3, nieblas: 2, veg: true, vegDens: 3, scale: 1 },
 };
 const KEY = 'cristal.calidad.v1';
 
@@ -56,7 +56,7 @@ export const CLARIDAD = {
 export const uClar = { value: 0 };
 /** Qué tan OSCURO es cada mapa (medido en tools/legibilidad.mjs: luma media de la imagen en 3ª persona, sin Claridad): los mapas ya claros (m4-m6) no necesitan relleno,
  *  que sólo les restaría contraste y lavaría los neones; los oscuros (m1-m3) lo llevan completo. Escala relleno, charco, piso de sombras y exposición. */
-export const MAP_OSCURO = { m1: 1, m2: 1.2, m3: 1.1, m4: 0.45, m5: 0.3, m6: 0.25 };
+export const MAP_OSCURO = { m1: 1, m2: 1.2, m3: 1.1, m4: 0.45, m5: 0.3, m6: 0.25, base: 0.7 };
 let clar = 'normal', mapa = 'm1', eff = null;
 function calc() {
   const b = CLARIDAD[clar], f = MAP_OSCURO[mapa] ?? 1;
