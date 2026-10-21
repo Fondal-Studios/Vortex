@@ -12,18 +12,19 @@ export const IA = {
   memoria: 60,          // constante de tiempo de la memoria larga (decaimiento exponencial; NO se borra al cambiar de fase)
   mezclaMemoria: 0.3,   // peso de la memoria larga frente a la ventana reciente
   primera: 7,           // no adapta antes de tener este tiempo de combate y de datos
-  confMin: 0.5,         // confianza mínima para adoptar una postura
-  histeresis: 0.12,     // el rival debe superar al estilo actual por este margen...
-  persiste: 3,          // ...durante estos segundos seguidos
+  confMin: 0.4,         // confianza mínima para adoptar una postura
+  histeresis: 0.15,     // el rival debe superar al estilo actual por este margen...
+  persiste: 4,          // ...durante estos segundos seguidos
   gracia: 11,           // tras cambiar de postura no cambia otra vez antes de este tiempo (ventana de gracia)
   rampa: 5,             // segundos que tarda una postura en llegar a su fuerza plena
   rezago: 10,           // si un jugador cambia de MODO (Disparo ↔ Melé) el jefe tarda esto en readaptar
   descon: 1.1,          // mientras está desconcertado recibe un 10 % más de daño
   topeRes: 0.25,        // TOPE de resistencia por adaptación (+25 %: el daño se divide por 1,25 como mucho)
+  resFase: [0.4, 0.6, 0.8, 1],   // fracción del tope que se usa en cada fase: la adaptación se endurece a medida que avanza el combate
   pisoMul: 0.2,         // jamás baja de este multiplicador total (nunca inmunidad)
   actividadMin: 70,     // daño en la ventana por debajo del cual el jugador cuenta como «pasivo»
   // enfurecimiento por tiempo
-  enrageT: 420, enrageCoop: 60, enrageRampa: 60, enrageDanio: 0.4, enrageRitmo: 0.35,
+  enrageT: 600, enrageCoop: 90, enrageRampa: 60, enrageDanio: 0.4, enrageRitmo: 0.35,
 };
 
 /** Posturas: lo que el jugador ve en la barra del jefe (icono + texto corto) y el aviso al adoptarla. */
@@ -53,16 +54,17 @@ export const ESTILOS = {
  * Todo ataque tiene una telegrafía de al menos 1 s (marca en el suelo + color + sonido).
  */
 export const REPERTORIO = {
-  nova:      { f: 1, w: 3.0, st: { antimele: 3.2 }, nombre: 'Onda circular', color: 0xff5a2a },
+  nova:      { f: 1, w: 3.0, st: { antimele: 2.4 }, nombre: 'Onda circular', color: 0xff5a2a },
   zonas:     { f: 1, w: 3.0, st: { antipasivo: 3 }, nombre: 'Zonas de peligro', color: 0xffb02a },
   barrido:   { f: 2, w: 2.0, st: { antipasivo: 2.2, antimele: 1.3 }, nombre: 'Aspas giratorias', color: 0xff3a6a },
-  carga:     { f: 2, w: 1.0, st: { antidist: 5 }, nombre: 'Picada', color: 0xff2a2a },
-  reflejo:   { f: 1, w: 0.4, st: { antidist: 7 }, nombre: 'Muro de reflejos', color: 0x6ad8ff },
-  espinas:   { f: 1, w: 0.4, st: { antimele: 7 }, nombre: 'Coraza de espinas', color: 0xff6a3a },
-  silencio:  { f: 1, w: 0.4, st: { antihab: 8 }, nombre: 'Silencio', color: 0xa86aff },
+  carga:     { f: 2, w: 1.0, st: { antidist: 3.5 }, nombre: 'Picada', color: 0xff2a2a },
+  reflejo:   { f: 1, w: 0.4, st: { antidist: 5 }, nombre: 'Muro de reflejos', color: 0x6ad8ff },
+  espinas:   { f: 1, w: 0.4, st: { antimele: 5 }, nombre: 'Coraza de espinas', color: 0xff6a3a },
+  silencio:  { f: 1, w: 0.4, st: { antihab: 6 }, nombre: 'Silencio', color: 0xa86aff },
   voladores: { f: 2, w: 0.8, st: { antidist: 4 }, nombre: 'Vuelo de almas', color: 0x9affd8 },
   reparto:   { f: 3, w: 1.2, st: {}, nombre: 'Juntos', color: 0xffe14a },
   arena:     { f: 2, w: 1.1, st: { antipasivo: 2, antihab: 1.4 }, nombre: 'El campo responde', color: 0x7affc8 },
+  muralla:   { f: 2, w: 0.3, st: { antidist: 6 }, nombre: 'Muralla de huesos', color: 0xe8e0c8 },
   trampas:   { f: 2, w: 0.3, st: { antipasivo: 9 }, nombre: 'Trampas', color: 0xff9a2a },
 };
 

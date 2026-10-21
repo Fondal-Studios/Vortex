@@ -3,6 +3,7 @@ import { MONSTERS, G } from './data.js';
 import { barrer, desvio, desatascar, radioCol, holgura } from './colision.js';
 import { updateColoso, updateMadre, updateArgos } from './bossmech.js';
 import { pulso } from './eventos.js';
+import { jefeTick, jefeMov, jefeBajo } from './jefes.js';   // jefes: fases, mecánicas e IA adaptativa (docs/JEFES.md)
 
 /* ───── utilidades de movimiento compartidas ───── */
 const nearest = (targets, pos) => {
@@ -35,8 +36,7 @@ function groundMove(game, m, dt, wish, speed, accel = 10) {
 }
 
 function flyMove(game, m, dt, desired, accel = 3) {
-  const up = m.up || v3(0, 1, 0);
-  if (m.state !== 'dive' && len(desired) > 1e-6) desired = desvio(game, m, desired, up, true);   // (la picada va derecho: sólo la frena el sólido)
+  // (los voladores no usan «antenas»: probado con bots, rodear/subir ante cada pared los vuelve inalcanzables; basta con deslizar —barrer()— y con flyMin en el mapa 3)
   const fm = game.map.flyMin;   // arenas con muros altos (mapa 3): los voladores cruzan POR ENCIMA, no por dentro
   if (fm !== undefined && m.state !== 'dive' && m.pos.y < fm) desired = { x: desired.x, y: Math.max(desired.y, (fm - m.pos.y) * 2.5 + 2), z: desired.z };
   m.vel = madd(m.vel, sub(desired, m.vel), Math.min(1, accel * dt));
@@ -334,13 +334,12 @@ export const AI = {
   // ───── jefes ─────
   coloso(game, m, dt, targets) {
     const a = game.map.bossAnchor, p = nearest(targets, m.pos);
-    const ph = m.hp > m.maxhp * 0.66 ? 1 : m.hp > m.maxhp * 0.33 ? 2 : 3;
-    if (ph !== m.phase) { m.phase = ph; game.emit({ t: 'phase', n: ph, id: m.id }); }
+    const ph = jefeTick(game, m, dt);   // fase (1..3 para los ataques de abajo; el jefe tiene 4) + mecánicas + IA adaptativa
     const want = v3(a.x + Math.cos(m.t * 0.25) * 12, a.y + Math.sin(m.t * 0.6) * 2, a.z + Math.sin(m.t * 0.25) * 12);
-    flyMove(game, m, dt, mul(sub(want, m.pos), 1.5), 3);
+    { const jm = jefeMov(game, m, dt, want); flyMove(game, m, dt, jm ? jm.desired : mul(sub(want, m.pos), 1.5), jm ? jm.accel : 3); }
     face(m, m.aim ? m.aim : sub(p.pos, m.pos));
-    const mech = updateColoso(game, m, dt); m.vis = m.mech;
-    if (mech.skip) return;
+    const mech = updateColoso(game, m, dt); m.vis = m.mech || (m.mec && m.mec.nu > 0 ? 'expuesto' : null);
+    if (mech.skip || jefeBajo(m)) return;
     m.cd -= dt; m.cd2 -= dt; m.sum = (m.sum ?? 6) - dt; m.flipT = (m.flipT ?? 10) - dt;
     if (m.state === 'wind') {
       if ((m.stateT -= dt) <= 0) {
@@ -354,7 +353,7 @@ export const AI = {
           shoot(game, m, m.pos, v3(Math.cos(ang) * Math.cos(el), Math.sin(el), Math.sin(ang) * Math.cos(el)), 17, 11 * dmgMul(game), 'orb', 0.9, 9);
         }
       }
-    } else if (m.cd <= 0) { m.state = 'wind'; m.stateT = 0.8; }
+    } else if (m.cd <= 0) { m.state = 'wind'; m.stateT = 1.0; }   // aviso de 1 s (política de telegrafía de los jefes)
     if (ph >= 2 && m.cd2 <= 0) {
       m.cd2 = 2.2;
       for (let i = -1; i <= 1; i++) {
@@ -368,12 +367,13 @@ export const AI = {
 
   argos(game, m, dt, targets) {
     const a = game.map.bossAnchor, p = nearest(targets, m.pos);
-    const ph = m.hp > m.maxhp * 0.66 ? 1 : m.hp > m.maxhp * 0.33 ? 2 : 3;
-    if (ph !== m.phase) { m.phase = ph; game.emit({ t: 'phase', n: ph, id: m.id }); }
-    flyMove(game, m, dt, mul(sub(v3(a.x + Math.cos(m.t * 0.2) * 6, a.y + Math.sin(m.t * 0.5) * 2, a.z + Math.sin(m.t * 0.2) * 6), m.pos), 1.5), 3);
+    const ph = jefeTick(game, m, dt);   // fase (1..3 para los ataques de abajo; el jefe tiene 4) + mecánicas + IA adaptativa
+    { const want = v3(a.x + Math.cos(m.t * 0.2) * 6, a.y + Math.sin(m.t * 0.5) * 2, a.z + Math.sin(m.t * 0.2) * 6), jm = jefeMov(game, m, dt, want);
+      if (jm && game.map.flyMin !== undefined) m.state = 'dive'; else if (m.state === 'dive') m.state = 'idle';   // 'dive': el piso mínimo de vuelo del laberinto no lo frena al bajar
+      flyMove(game, m, dt, jm ? jm.desired : mul(sub(want, m.pos), 1.5), jm ? jm.accel : 3); }
     face(m, m.gaze ? m.gaze.dir : sub(p.pos, m.pos));
     const mech = updateArgos(game, m, dt); m.vis = m.mech;
-    if (mech.skip) return;
+    if (mech.skip || jefeBajo(m)) return;
     m.cd -= dt; m.sum -= dt;
     if (m.cd <= 0) { m.cd = [0, 3.2, 2.6, 2.0][ph]; const n = 8 + 3 * ph, off = m.t; for (let i = 0; i < n; i++) { const ang = off + (i * Math.PI * 2) / n; shoot(game, m, m.pos, v3(Math.cos(ang) * 0.9, -0.35, Math.sin(ang) * 0.9), 15, 9 * dmgMul(game), 'orb', 0.9, 8); } }
     if (m.sum <= 0 && m.kids < 6) { m.sum = [0, 14, 11, 9][ph]; for (let i = 0; i < 3; i++) game.spawnMonster('prisma', game.map.spawnAir(game.rng, p.pos, p.up), { parent: m.id }) && m.kids++; game.spawnMonster('astilla', game.map.spawnGround(game.rng, p.pos), { parent: m.id }) && m.kids++; }
@@ -381,15 +381,16 @@ export const AI = {
 
   madre(game, m, dt, targets) {
     const p = nearest(targets, m.pos);
-    const ph = m.hp > m.maxhp * 0.66 ? 1 : m.hp > m.maxhp * 0.33 ? 2 : 3;
-    if (ph !== m.phase) { m.phase = ph; game.emit({ t: 'phase', n: ph, id: m.id }); }
-    m.vel = v3(); m.pos = clone(game.map.bossAnchor);
+    const ph = jefeTick(game, m, dt);   // fase (1..3 para los ataques de abajo; la Madre tiene 4) + mecánicas + IA adaptativa
+    m.vel = v3();
+    { const an = game.map.bossAnchor, jm = jefeMov(game, m, dt, an);   // se asoma hacia el casco con velocidad limitada (nunca de golpe)
+      if (jm) m.pos = madd(m.pos, jm.desired, dt); else { const to = sub(an, m.pos), d = len(to); m.pos = d < 0.3 ? clone(an) : madd(m.pos, to, Math.min(1, 4 * dt / d)); } }
     face(m, sub(p.pos, m.pos));
     updateMadre(game, m, dt);
     m.state = m.open ? 'open' : 'fire';
     if (m.justOpened && m.kids < 6) { summon(game, m, 'racimo', ph === 1 ? 3 : 5, 6); }
     if (m.rage > 4) { m.rage = 0; summon(game, m, 'racimo', 2, 6); }
-    if (!m.open) { // espirales: brazos que rotan y barren la esfera
+    if (!m.open && !jefeBajo(m)) { // espirales: brazos que rotan y barren la esfera (en pausa mientras se asoma y queda expuesta)
       m.cd -= dt;
       if (m.cd <= 0) {
         m.cd = [0, 0.22, 0.17, 0.13][ph] * (m.pressure >= 1 ? 0.7 : 1);

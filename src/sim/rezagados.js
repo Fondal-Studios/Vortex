@@ -15,7 +15,7 @@ export const ACOSO = {
   rampa: 10,          // s hasta el máximo
   soltar: 22,         // m: a esta distancia del jugador vuelve a su comportamiento normal (dispara, muerde…)
   soltarFinal: 12,    // m: en el tramo final de la oleada se las sigue empujando hasta estar al alcance (no se quedan flotando lejos)
-  pisoVel: 9,         // m/s mínimos de marcha (antes del ritmo global) para las lentas (Viuda, Silbón…)
+  pisoVel: 16,        // m/s mínimos de marcha (antes del ritmo global ×0,7 ⇒ ~11 m/s) para las lentas (Viuda, Silbón…); en el laberinto las rutas son largas
   ventana: 5,         // s sin avanzar al menos `minDesp` ⇒ atascada
   minDesp: 3,         // m
   oculta: 20,         // s cerca del jugador pero SIN línea de vista (escondida detrás de algo inalcanzable) ⇒ se desintegra

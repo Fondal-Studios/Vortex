@@ -187,6 +187,26 @@ export class Sound {
   objective(ok) { (ok ? [0, 4, 7, 12, 16] : [0, -3, -7]).forEach((s, i) => this.tone({ f: 440 * 2 ** (s / 12), type: 'triangle', dur: 0.25, vol: 0.22, delay: i * 0.09 })); }
   ping() { this.tone({ f: 1100, f2: 1500, type: 'sine', dur: 0.12, vol: 0.2 }); this.tone({ f: 1500, type: 'sine', dur: 0.1, vol: 0.14, delay: 0.1 }); }
   ray() { this.tone({ f: 120, f2: 900, type: 'sawtooth', dur: 1.6, vol: 0.28, att: 0.8 }); }
+  /** Jefes (jefes-fx.js): avisos y golpes de sus mecánicas. `at` = [x,y,z] o null (suena en el centro). */
+  jefe(kind, at) {
+    if (!this.ctx) return;
+    switch (kind) {
+      case 'tel': this.tone({ f: 220, f2: 440, type: 'sawtooth', dur: 0.9, vol: 0.16, att: 0.5 }); break;                     // algo se prepara (sube de tono)
+      case 'fase': [0, -5, -9].forEach((s, i) => this.tone({ f: 330 * 2 ** (s / 12), type: 'sawtooth', dur: 0.8, vol: 0.2, att: 0.05, delay: i * 0.16 })); this.noise({ dur: 0.6, vol: 0.2, freq: 900, freq2: 90 }); break;
+      case 'adapt': this.tone({ f: 523, type: 'triangle', dur: 0.25, vol: 0.2 }); this.tone({ f: 392, type: 'triangle', dur: 0.25, vol: 0.2, delay: 0.14 }); this.tone({ f: 262, f2: 196, type: 'sawtooth', dur: 0.5, vol: 0.18, delay: 0.28 }); break;   // «aprende de ti»
+      case 'desc': this.tone({ f: 300, f2: 700, type: 'sine', dur: 0.3, vol: 0.2 }); this.tone({ f: 700, f2: 250, type: 'triangle', dur: 0.4, vol: 0.18, delay: 0.2 }); break;
+      case 'enrage': this.tone({ f: 70, f2: 38, type: 'sawtooth', dur: 1.4, vol: 0.5 }); this.noise({ dur: 1.0, vol: 0.35, freq: 700, freq2: 60 }); break;
+      case 'unico': [0, 4, 7, 12].forEach((s, i) => this.tone({ f: 392 * 2 ** (s / 12), type: 'triangle', dur: 0.35, vol: 0.2, delay: i * 0.07 })); this.thump(90, 45, 0.5, 0.4, null, 0.3); break;
+      case 'impacto': this.thump(80, 30, 0.7, 0.7, at); this.noise({ dur: 0.6, vol: 0.45, freq: 500, freq2: 60, at }); break;
+      case 'golpe': this.thump(110, 45, 0.35, 0.45, at); this.noise({ dur: 0.25, vol: 0.25, freq: 1200, freq2: 150, at }); break;
+      case 'campana': this.tone({ f: 415, type: 'sine', dur: 1.3, vol: 0.3, at, att: 0.003 }); this.tone({ f: 830, type: 'sine', dur: 0.9, vol: 0.14, at, att: 0.003 }); break;
+      case 'barrido': this.tone({ f: 140, f2: 520, type: 'sawtooth', dur: 0.8, vol: 0.2, at, att: 0.15 }); break;
+      case 'rebote': this.tone({ f: 1500, f2: 700, type: 'square', dur: 0.12, vol: 0.14, at }); break;
+      case 'escudo': this.tone({ f: 260, f2: 780, type: 'sine', dur: 0.5, vol: 0.22, at }); this.tone({ f: 780, type: 'triangle', dur: 0.3, vol: 0.12, at, delay: 0.1 }); break;
+      case 'silencio': this.tone({ f: 120, f2: 60, type: 'sine', dur: 1.0, vol: 0.4, at }); this.noise({ dur: 0.8, vol: 0.2, freq: 300, freq2: 60, at }); break;
+      default: break;
+    }
+  }
   down() { this.tone({ f: 180, f2: 50, type: 'sawtooth', dur: 0.6, vol: 0.4 }); this.heartbeat(); }
   portal(at) { this.tone({ f: 300, f2: 1500, type: 'sine', dur: 0.35, vol: 0.3, at }); this.tone({ f: 1500, f2: 300, type: 'triangle', dur: 0.35, vol: 0.2, at, delay: 0.1 }); }
   /** Sonidos de interfaz (menús PS5): navegación, confirmar, volver, trofeo. */

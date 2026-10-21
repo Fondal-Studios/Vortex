@@ -6,6 +6,7 @@ import { AI } from './ai.js';
 import { useAbility, roleFor, reviveRate, speedMul } from './roles.js';
 import { makeObjective, updateObjective } from './objectives.js';
 import { initColoso, initMadre, initArgos, bossDeath } from './bossmech.js';
+import { jefeInit, jefeMult, jefeGolpe, jefeSnap, jefeNucleo, jefeVel, jefeSilencio } from './jefes.js';   // jefes: fases, mecánicas e IA adaptativa (docs/JEFES.md)
 import { useMove, useSpecial } from './characters.js';
 import { spawnNpc, clearNpc, npcStep } from './npcs.js';
 import { initBase, stepBase, baseStep, baseSinArmas } from './base.js';   // La Base (docs/BASE.md): mapa-hub sin oleadas
@@ -27,7 +28,7 @@ import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, li
 import { initFauna, initFaunaPlayer, tickFauna, shapeFauna, faunaSnap, faunaPlayerSnap } from './fauna.js';   // fauna consumible y metamorfosis (src/sim/fauna.js, docs/FAUNA.md)
 import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
 import { tickRezagados, tickAcoso, marcarAcoso, desintegrar } from './rezagados.js';   // sin teletransportes: acoso, marcas y desintegración visible
-import { resolverTodas, empujar, radioCol, colocarCerca } from './colision.js';   // colisión de criaturas con el mundo
+import { resolverTodas, empujar, radioCol, colocarCerca, liberar } from './colision.js';   // colisión de criaturas con el mundo
 import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
 import { ROLES, ROLE_IDS } from './data.js';
 
@@ -41,7 +42,8 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null } = {}) {
+    this.jefeMem = jefeMem;   // memoria del intento anterior contra el jefe (jefeMemoria): adaptación suave entre intentos
     this.magazines = !!magazines;   // cargadores y recarga (el juego real los usa; las pruebas viejas no)
     this.practice = !!practice; this.practiceT = 0;
     this.map = MAPS[mapId];
@@ -303,9 +305,9 @@ export class Game {
     if (!def.boss && this.evSpeedMul !== 1) m.speedMul *= this.evSpeedMul;   // Marea de Sangre: horda veloz
     if (m.elite && !def.boss) { m.affix = extra.affix || AFFIX_IDS[Math.floor(this.rng.next() * AFFIX_IDS.length)]; if (m.affix === 'veloz') m.speedMul *= 1.35; }
     if (extra.parent && !def.boss) { const par = this.monsters.find((q) => q.id === extra.parent); if (par) colocarCerca(this, m, par); }   // invocadas: nunca detrás de un muro del invocador
-    else if (!def.boss) collide(this.map, m.pos, null, radioCol(m), null);   // y nadie nace metido en un sólido
+    else if (!def.boss) { const cr = radioCol(m); collide(this.map, m.pos, null, cr, null); collide(this.map, m.pos, null, cr, null); liberar(this, m); }   // y nadie nace metido en un sólido (2 pasadas: rincones)
     this.monsters.push(m);
-    if (def.boss) { this.boss = m; if (kind === 'coloso') initColoso(this, m); else if (kind === 'argos') initArgos(this, m); else initMadre(this, m); }
+    if (def.boss) { this.boss = m; if (kind === 'coloso') initColoso(this, m); else if (kind === 'argos') initArgos(this, m); else initMadre(this, m); jefeInit(this, m); }
     this.stats.spawned++;
     return m;
   }
@@ -344,6 +346,7 @@ export class Game {
 
   updatePlayer(p, dt) {
     const inp = p.input;
+    if (jefeSilencio(this, p)) { inp.mov = inp.esp = inp.s3 = inp.hab = inp.ult = inp.ability = false; }   // «Silencio» del jefe: sin habilidades unos segundos
     if (this.base) baseSinArmas(inp);
     if (p.dead) { inp.dyaw = inp.dpitch = 0; p.abilityCd = Math.max(0, p.abilityCd - dt); if (inp.ping && !p.pingPrev) this.doPing(p); p.pingPrev = inp.ping; this.updateRevive(p, dt); return; }
     const g = this.gravityFor(p, p.flipUntil, p.flipFrom);
@@ -356,7 +359,7 @@ export class Game {
     p.pitch = clamp(p.pitch + inp.dpitch, -1.5, 1.5);
     inp.dyaw = 0; inp.dpitch = 0;
     const right = cross(p.heading, up);
-    const speed = PLAYER.speed * (inp.dash && !inp.crouch ? PLAYER.dash : 1) * speedMul(p) * arVel(this, p) * ngVel(this, p) * flVel(this, p) * (inp.crouch ? 0.55 : 1) * (inp.ads ? 0.8 : 1);
+    const speed = PLAYER.speed * (inp.dash && !inp.crouch ? PLAYER.dash : 1) * speedMul(p) * arVel(this, p) * ngVel(this, p) * flVel(this, p) * jefeVel(this, p) * (inp.crouch ? 0.55 : 1) * (inp.ads ? 0.8 : 1);
     let wish = add(mul(p.heading, inp.mz), mul(right, inp.mx));
     wish = ngDeforma(this, p, wish);   // niebla magenta: tuerce un poco el rumbo (no con «Reducir efectos»)
     if (zero) {
@@ -589,7 +592,8 @@ export class Game {
     if (m.stun) mul_ *= 1.5;
     if (m.affix === 'blindado') mul_ *= 0.6;
     if (m.affix === 'espectral' && this.time < (m.ghostUntil || 0)) mul_ *= 0.05;
-    if (m.kind === 'coloso' || m.kind === 'argos') { if (m.shield) mul_ *= BOSS_MECH.shield; if (m.stagger > 0) mul_ *= BOSS_MECH.stagger; }
+    if (m.kind === 'coloso' || m.kind === 'argos') { if (m.shield && !jefeNucleo(m)) mul_ *= BOSS_MECH.shield; if (m.stagger > 0) mul_ *= BOSS_MECH.stagger; }
+    if (m.def.boss) mul_ *= jefeMult(this, m, by);   // ventanas de vulnerabilidad, escudos temporales y adaptación al estilo (src/sim/jefes.js)
     if (this.time < (m.markUntil || 0)) mul_ *= m.markMul || 1.3;
     if (by && by.input) { mul_ *= hostOut(this, by, m); if (this.time < (m.dotUntil || 0) && m.dotKind === 'poison' && anyMut(by, 'neurotoxina')) mul_ *= 1.2; }
     if (by && this.time < this.teamBuffUntil) mul_ *= 1.25;
@@ -599,6 +603,7 @@ export class Game {
     mul_ *= ngMonstruoRecibe(this, m, by);           // niebla ámbar: la criatura de adentro también recibe +30 % · niebla blanca: disparar desde adentro te delata
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
+    if (by && by.input && this.boss) jefeGolpe(this, m, by, dmg * mul_);   // perfil de estilo del jugador (jefe-ia.js)
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
     if (m.affix === 'llorón' && !m.dead && this.time >= (m.weepAt || 0) && (m.kids || 0) < 3) { m.weepAt = this.time + 3; const k = this.spawnMonster('astilla', madd(m.pos, norm(this.rng.unit()), 3), { parent: m.id, noElite: true }); if (k) m.kids = (m.kids || 0) + 1; }
     this.emit({ t: 'hit', id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1, cr: this.critNow || undefined });
@@ -839,14 +844,14 @@ export class Game {
       tick: this.tick, time: r2(this.time), map: this.mapId, state: this.state, phase: this.phase,
       wave: this.wave, waveTotal: this.waveTotal, left: this.queue.length + this.omens.length + this.monsters.length, om: this.omens.map((o) => [...a3(o.pos), o.k, r2(o.at - this.time)]), intermission: r2(Math.max(0, this.phaseT)),
       fx: this.map.fx(this.time),
-      boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0 } : null,
+      boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0, ...jefeSnap(boss) } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
         dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
-        s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, af: m.affix || undefined, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || !!m.shield, st: !!m.stun || (m.stagger || 0) > 0,
+        s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, af: m.affix || undefined, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || (!!m.shield && !jefeNucleo(m)), st: !!m.stun || (m.stagger || 0) > 0 || jefeNucleo(m),
       })),
       projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),

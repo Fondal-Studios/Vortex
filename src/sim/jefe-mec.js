@@ -7,7 +7,7 @@ import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, project, clone, c
 import { blocked } from './physics.js';
 import { MONSTERS } from './data.js';
 import { JEFES, REPERTORIO, FASE_UMBRALES, IA, POSTURAS } from './jefe-data.js';
-import { iaRand, iaFase, iaEstilo, iaDistMedia } from './jefe-ia.js';
+import { iaRand, rngDe, iaFase, iaEstilo, iaDistMedia, CTL } from './jefe-ia.js';
 import { nieblaTemporal } from './nieblas.js';
 import { floraElemento } from './flora.js';
 
@@ -26,14 +26,15 @@ export function mecInit(g, m) {
   let gy = 0;
   if (!esfera) { gy = a.y - 40; for (let y = a.y; y > a.y - 80; y -= 0.5) if (blocked(g.map, v3(a.x, y, a.z))) { gy = y + 0.5; break; } }
   m.mec = {
-    J: g.mapId, f: 1, t: 0, act: null, cd: 9 + rnd(m) * 2, dCd: 22 + rnd(m) * 4, uCd: 0, unicoPend: false, unicoHecho: 0,
+    J: g.mapId, f: 1, t: 0, act: null, cd: 9 + rnd(m) * 2, dCd: (esfera ? 9 : 17) + rnd(m) * 4, uCd: 0, unicoPend: false, unicoHecho: 0,
     tg: [], haz: [], bajo: 0, nu: 0, vuln: 1, refl: 0, spin: 0, velo: 0, prot: 0, gy, esfera, low: null, goal: null, speed: 0, rise: false,
-    crias: [], brotes: [], dark: 0, rcd: 0, silencio: 0,
+    crias: [], brotes: [], pilares: [], dark: 0, rcd: 0, silencio: 0,
   };
   m.fase = 1; m.phase = 1;
   return m.mec;
 }
-export const mecBajo = (m) => !!(m.mec && m.mec.bajo > 0);
+/** ¿El jefe deja en pausa sus ataques de siempre? Mientras está expuesto (bajo) y, en el mapa esférico, mientras la Madre se asoma (el viaje dura 6 s). */
+export const mecBajo = (m) => !!(m.mec && (m.mec.bajo > 0 || (m.mec.esfera && m.mec.act && m.mec.act.id === 'descenso')));
 export const mecNucleo = (m) => !!(m.mec && m.mec.nu > 0);
 
 /* ───────── geometría ───────── */
@@ -204,7 +205,7 @@ const ATQ = {
     paso(g, m, a, dt) {
       a.mk.x = m.pos.x; a.mk.y = m.pos.y; a.mk.z = m.pos.z;
       if ((a.t -= dt) > 0) return false;
-      m.mec.refl = 3.6; quitar(m, a.mk); g.emit({ t: 'jatk', k: 'reflejo', p: a3(m.pos), id: m.id }); return true;
+      m.mec.refl = 3.2; quitar(m, a.mk); g.emit({ t: 'jatk', k: 'reflejo', p: a3(m.pos), id: m.id }); return true;
     },
   },
   espinas: {
@@ -235,7 +236,7 @@ const ATQ = {
     ini(g, m) {
       const n = Math.min(5, 2 + Math.floor(m.mec.f / 2) + cuenta(g) - 1), ref = elegir(g, m, 'shooter') || elegir(g, m, null), T = 1.2;
       for (let i = 0; i < n; i++) {
-        let pos = null; for (let k = 0; k < 6 && !pos; k++) { const q = g.map.spawnAir(g.arRng || g.rng, ref.pos, ref.up); if (q && dist(q, ref.pos) > 12) pos = q; }
+        let pos = null; for (let k = 0; k < 6 && !pos; k++) { const q = g.map.spawnAir(rngDe(m), ref.pos, ref.up); if (q && dist(q, ref.pos) > 12) pos = q; }
         if (pos) { g.omens.push({ kind: 'prisma', pos: clone(pos), at: g.time + T, k: 'prisma', parentId: m.id }); g.emit({ t: 'omen', k: 'prisma', p: a3(pos), in: T }); }
       }
       g.emit({ t: 'jatk', k: 'voladores', p: a3(m.pos) });
@@ -263,9 +264,10 @@ const ATQ = {
       if (A.ordenar && g.ar && g.ar.ph !== 'dormido' && g.ar.ph !== 'ofrenda') g.ar.org.forEach((S, i) => { if (g.ar.L.org[i].atk && !S.roto && S.cd > 1.2) { S.cd = 0.5 + 0.4 * n; n++; } });
       let mk = null;
       if (A.niebla && g.ng) {
-        const p = elegir(g, m, 'passive') || elegir(g, m, 'shooter') || elegir(g, m, null), pos = madd(p.pos, norm(sub(sueloBajo(g, m), p.pos), v3(1, 0, 0)), 7);
-        const z = nieblaTemporal(g, A.niebla, madd(pos, p.up, 0.6), 8, 16);
-        if (z) mk = marca(m, 'c', madd(pos, p.up, -0.8), 8, T + 1.2, 8);
+        const oculta = m.ia.st === 'antidist' && !m.mec.esfera;   // contra el tirador la niebla va alrededor del jefe: lo oculta de los disparos lejanos
+        const p = elegir(g, m, 'passive') || elegir(g, m, 'shooter') || elegir(g, m, null), pos = oculta ? sueloBajo(g, m) : madd(p.pos, norm(sub(sueloBajo(g, m), p.pos), v3(1, 0, 0)), 7);
+        const up = oculta ? UP : p.up, z = nieblaTemporal(g, A.niebla, madd(pos, up, 0.6), oculta ? 12 : 8, 16);
+        if (z) { mk = marca(m, 'c', madd(pos, up, -0.8), oculta ? 12 : 8, T + 1.2, 8); if (oculta) m.mec.velo = 14; }
       }
       g.emit({ t: 'jatk', k: 'arena', p: a3(m.pos), n, tx: A.etiqueta });
       return { id: 'arena', t: T, T, mk };
@@ -286,11 +288,29 @@ const ATQ = {
     },
     paso(g, m, a, dt) { return (a.t -= dt) <= 0; },
   },
+  muralla: {   // cobertura destruible del jefe contra los tiradores: pilares de hueso/cristal que frenan los disparos hasta que los rompés
+    ok: (g, m) => m.mec.pilares.length === 0 && m.def.fly,
+    ini(g, m) {
+      const T = 1.5, c = sueloBajo(g, m), vs = vivos(g).slice().sort((p, q) => iaDistMedia(m, q.id) - iaDistMedia(m, p.id)), t = vs[0], d = flatDir(c, t.pos), pts = [];
+      const lado = norm(cross(UP, d), v3(1, 0, 0));
+      for (let i = -1; i <= 1; i++) {
+        const pos = v3(c.x + d.x * 13 + lado.x * i * 5, c.y, c.z + d.z * 13 + lado.z * i * 5);
+        if (m.mec.esfera || blocked(g.map, v3(pos.x, pos.y + 1.2, pos.z))) continue;
+        pts.push({ pos, mk: marca(m, 'c', v3(pos.x, pos.y + 0.1, pos.z), 2.6, T, 0) });
+      }
+      return { id: 'muralla', t: T, T, pts };
+    },
+    paso(g, m, a, dt) {
+      if ((a.t -= dt) > 0) return false;
+      for (const q of a.pts) { const o = g.addObject('pilar', madd(q.pos, UP, 2.2), { hp: 260, maxhp: 260, hostile: true, r: 2.4, boss: true, parent: m.id }); m.mec.pilares.push({ id: o.id, vida: 14 }); quitar(m, q.mk); }
+      g.emit({ t: 'jatk', k: 'muralla', p: a3(m.pos) }); return true;
+    },
+  },
   /* ── descenso: PISOTÓN (Mandinga) · ASOMO (Madre) · CAÍDA DE PÁRPADOS (Basilisco) ── */
   descenso: {
     ok: (g, m) => !m.mec.bajo,
     ini(g, m, o = {}) {
-      const M = m.mec, T = o.T || (m.mec.esfera ? 6.5 : 2.0), c = sueloBajo(g, m), low = posBaja(g, m);
+      const M = m.mec, T = M.esfera ? 6.5 : (o.T || 2.0), c = sueloBajo(g, m), low = posBaja(g, m);
       M.low = low;
       const alto = M.esfera ? clone(m.pos) : v3(m.pos.x, m.pos.y + 3.5, m.pos.z);
       if (!M.esfera) bajar(m, alto, 6);
@@ -301,11 +321,12 @@ const ATQ = {
       const M = m.mec; a.t -= dt; a.mk.t = Math.max(0, a.t);
       if (a.fase === 'alza' && a.t < a.T * (M.esfera ? 0.75 : 0.5)) { a.fase = 'cae'; bajar(m, a.low, M.esfera ? 17 : 31); g.emit({ t: 'jatk', k: 'caida', p: a3(m.pos), id: m.id }); }
       if (a.fase === 'cae' && (dist(m.pos, a.low) < 2.2 || a.t < -2)) {
-        const nm = M.f; M.bajo = [7, 6.5, 6, 5.5][nm - 1] || 6; M.vuln = 1.35; M.low = clone(a.low);
-        M.nu = m.kind === 'coloso' ? M.bajo : 0;
+        const nm = M.f; M.bajo = ([7, 6.5, 6, 5.5][nm - 1] || 6) * (M.esfera ? 1.35 : 1) * (m.ia.st === 'antimele' ? 1 + 0.3 * m.ia.lvl : 1);   // con la coraza de espinas se afirma más tiempo en el suelo M.vuln = 1.35; M.low = clone(a.low);
+        M.nu = m.kind === 'madre' ? 0 : M.bajo;   // Mandinga: núcleo al descubierto · Basilisco: párpados cerrados (sin escudo de ojos)
+        if (m.kind === 'madre') { m.open = true; m.openT = Math.max(m.openT || 0, M.bajo * 0.7); }   // la Madre se asoma con el vientre abierto
         golpeCirculo(g, m, a.c, 17, 27 + 3 * nm, { suelo: true, knock: 16, hmax: 8 });
         bajar(m, a.low, 3);
-        g.emit({ t: 'jatk', k: 'impacto', p: a3(a.c), r: 17, nu: m.kind === 'coloso' ? 1 : 0, id: m.id }); quitar(m, a.mk);
+        g.emit({ t: 'jatk', k: 'impacto', p: a3(a.c), r: 17, nu: M.nu > 0 ? 1 : 0, id: m.id }); quitar(m, a.mk);
         return true;
       }
       return false;
@@ -316,7 +337,7 @@ const ATQ = {
     ok: (g, m) => !m.mec.crias.length,
     ini(g, m) {
       const T = 3.0, vs = vivos(g), n = Math.min(8, 5 + cuenta(g) - 1), pts = [];
-      for (let i = 0; i < n; i++) { const ref = vs[i % vs.length], pos = g.map.spawnGround(g.arRng || g.rng, ref.pos); pts.push({ pos, mk: marca(m, 'c', pos, 2.2, T, 0) }); }
+      for (let i = 0; i < n; i++) { const ref = vs[i % vs.length], pos = g.map.spawnGround(rngDe(m), ref.pos); pts.push({ pos, mk: marca(m, 'c', pos, 2.2, T, 0) }); }
       m.vis = 'gestate'; m.gestAnim = T;
       return { id: 'parto', t: T, T, pts };
     },
@@ -363,7 +384,7 @@ const ATQ = {
     ok: (g, m) => !m.mec.brotes.length,
     ini(g, m) {
       const T = 2.2, vs = vivos(g), n = Math.min(6, 3 + cuenta(g)), pts = [];
-      for (let i = 0; i < n; i++) { const ref = vs[i % vs.length], pos = g.map.spawnGround(g.arRng || g.rng, ref.pos); pts.push({ pos, mk: marca(m, 'c', pos, 2.0, T, 10) }); }
+      for (let i = 0; i < n; i++) { const ref = vs[i % vs.length], pos = g.map.spawnGround(rngDe(m), ref.pos); pts.push({ pos, mk: marca(m, 'c', pos, 2.0, T, 10) }); }
       return { id: 'floracion', t: T, T, pts };
     },
     paso(g, m, a, dt) {
@@ -417,8 +438,10 @@ function elegirAtaque(g, m) {
     const R = REPERTORIO[id]; if (R.f > M.f || (J.sin || []).includes(id)) continue;
     const A = ATQ[id]; if (!A || (A.ok && !A.ok(g, m))) continue;
     if (id === 'reparto' && vivos(g).length < 1) continue;
-    let w = R.w * (R.st[ia.st] ? 1 + (R.st[ia.st] - 1) * ia.lvl : 1);
+    let w = R.w * (R.st[ia.st] && !CTL.sinPesos ? 1 + (R.st[ia.st] - 1) * ia.lvl : 1);
     if (M.act === null && M.ultimo === id) w *= 0.25;   // no repetir
+    // lo que mide la IA además del estilo: si farmeás escoltas no le regala más; si te curás mucho te niega el espacio; si apuntás bien se cubre más
+    if (id === 'voladores') w *= 1 - 0.5 * (ia.foco || 0); else if (id === 'zonas') w *= 1 + 0.5 * (ia.cura || 0); else if (id === 'reflejo') w *= 0.7 + 0.6 * (ia.prec || 0);
     if (id === 'reflejo' && M.refl > 0 || id === 'espinas' && M.spin > 0) continue;
     cand.push([id, w]);
   }
@@ -430,15 +453,21 @@ function elegirAtaque(g, m) {
   return cand[cand.length - 1][0];
 }
 
+/** Pruebas y modo desarrollo: arranca YA el ataque `id` (si no hay otro en curso). Devuelve true si lo arrancó. */
+export function mecForzar(g, m, id, o) {
+  const M = m.mec, A = ATQ[id]; if (!M || !A || M.act || (A.ok && !A.ok(g, m))) return false;
+  M.act = A.ini(g, m, o); M.cd = 99; g.emit({ t: 'jatk', k: 'tel', a: id, id: m.id }); return true;
+}
 /* ───────── paso principal ───────── */
 export function mecTick(g, m, dt) {
   const M = m.mec; if (!M) return;
   const J = JEFES[M.J], ia = m.ia;
   M.t += dt;
+  if (!M.intro) { M.intro = 1; g.emit({ t: 'phase', n: 1, id: m.id, nm: J.fases[0], tot: 4, mj: M.J }); }   // presentación: «FASE 1»
   // fase por vida (cuatro fases)
   const frac = m.hp / m.maxhp; let f = 1; for (const u of FASE_UMBRALES) if (frac <= u) f++;
-  if (f > M.f) {
-    M.f = f; m.fase = f; m.phase = Math.min(3, f);
+  if (f > M.f && g.time - (M.fT ?? -9) >= 1.5) {   // de a una fase por vez (con 1,5 s entre una y otra): ninguna se salta aunque llegue un golpe enorme
+    f = M.f + 1; M.fT = g.time; M.f = f; m.fase = f; m.phase = Math.min(3, f);
     g.emit({ t: 'phase', n: f, id: m.id, nm: J.fases[f - 1], tot: 4, mj: M.J });
     iaFase(g, m);
     if (f === 3) { M.unicoPend = true; M.cd = Math.min(M.cd, 1.5); if (J.unico.id === 'pisoton') M.dCd = Math.min(M.dCd, 2.5); }
@@ -466,6 +495,9 @@ export function mecTick(g, m, dt) {
     }
   }
   M.haz = M.haz.filter((z) => { if (z.t > 0) return true; if (z.mk) quitar(m, z.mk); return false; });
+  if (M.pilares.length) {   // cobertura destruible: se rompe a tiros o se desmorona a los 14 s
+    for (const q of M.pilares) { q.vida -= dt; const o = g.objects.find((x) => x.id === q.id); if (o && (o.hp <= 0 || q.vida <= 0)) { g.emit({ t: 'jatk', k: 'pilar_cae', p: a3(o.pos) }); g.removeObject(o); q.vida = 0; } }
+    M.pilares = M.pilares.filter((q) => q.vida > 0 && g.objects.some((x) => x.id === q.id)); }
   // partes destruibles: crías de la Madre y ojos brotados
   if (M.crias.length) {
     let hay = 0, rotas = 0;
@@ -494,6 +526,7 @@ export function mecTick(g, m, dt) {
   if (M.gz) { for (const z of M.gz) { z.t -= dt; if (z.t <= 0) { golpeCirculo(g, m, z.c, 2.6, 14, { hmax: 5 }); quitar(m, z.mk); } } M.gz = M.gz.filter((z) => z.t > 0); }
   // bajo: mantiene la posición baja
   if (M.bajo > 0 && M.low && !M.goal) bajar(m, M.low, 3);
+  M.dCd -= dt;   // el reloj del próximo descenso corre siempre (también mientras ataca)
   // ataque en curso
   if (M.act) {
     const A = ATQ[M.act.id];
@@ -501,14 +534,14 @@ export function mecTick(g, m, dt) {
     return;
   }
   if (g.time < 0 || M.t < 6) return;   // al principio el jefe se presenta
-  M.cd -= dt; M.dCd -= dt;
+  M.cd -= dt;
   if (M.cd > 0 && !M.forzarCaida) return;
   // ¿toca descender?
   if (!M.bajo && (M.dCd <= 0 || M.forzarCaida) && ATQ.descenso.ok(g, m)) {
     const unico = (J.unico.id === 'pisoton' && M.f >= 3 && M.unicoPend);
     if (unico) { M.unicoPend = false; M.unicoHecho++; g.emit({ t: 'jia', k: 'unico', id: m.id, nm: J.unico.nombre, tx: J.unico.aviso }); }
     M.act = ATQ.descenso.ini(g, m, { unico, T: unico ? 2.4 : 2.0 });
-    M.dCd = [0, 30, 26, 22, 19][M.f] * ritmo * (ia.st === 'antimele' ? 1.15 : 1); M.forzarCaida = 0;
+    M.dCd = [0, 28, 24, 21, 18][M.f] * (M.esfera ? 0.7 : 1) * ritmo * (ia.st === 'antimele' ? 1.15 : 1); M.forzarCaida = 0;
     g.emit({ t: 'jatk', k: 'tel', a: 'descenso', id: m.id }); return;
   }
   let id;
@@ -527,9 +560,10 @@ export function mecMult(g, m, src, by) {
   const M = m.mec; if (!M) return 1;
   let k = 1;
   if (M.bajo > 0) k *= M.vuln;
-  if (M.refl > 0 && src === 'gun' && by && enCono(m, by)) k *= 0.3;
-  if (M.spin > 0 && src === 'melee') k *= 0.7;
+  if (M.refl > 0 && src === 'gun' && by && enCono(m, by)) k *= 0.45;
+  if (M.spin > 0 && src === 'melee') k *= 0.78;
   if (M.prot) k *= 0.6;
+  if (M.velo > 0 && src === 'gun' && by && dist(by.pos, m.pos) > 26) k *= 0.7;   // oculto en su niebla: los disparos de lejos le llegan al 70 %
   return k;
 }
 function enCono(m, by) { const to = norm(sub(by.pos, m.pos)); return dot(to, m.fwd || v3(0, 0, 1)) > 0.15; }

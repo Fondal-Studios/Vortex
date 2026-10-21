@@ -207,3 +207,17 @@ Las arenas también tienen **plantas vivas** (22 especies: 3 por arena + 4 raras
 
 ## La Base — el hub del limbo (2026-10-20)
 Entre partidas hay un mapa-hub caminable, **«El Santuario»**, sin oleadas ni enemigos: la Guía, el Cambista, el Herrero y la Sanadora (los mismos humanos espectrales de este documento, pero fijos en sus puestos) y estaciones que abren las pantallas de siempre. Ver **docs/BASE.md** (plano, estaciones, jardín, presupuesto de dibujo y lo no probado).
+
+## Colisión de criaturas y «sin teletransportes» (2026-10-21)
+Política y números completos en **docs/BESTIARIO_LIMBO.md** (sección «Colisión con el mundo y política sin teletransportes»). Resumen para quien toque el mundo vivo:
+- Las criaturas chocan con `map.solids` (los mismos que las balas y el jugador). Todo lo que sea un obstáculo **debe estar en `map.solids`** (lo que sólo esté en el cliente, las criaturas lo atraviesan) y tener ruta (`steer`/`nav`) si es un muro largo.
+- **Nada mueve a una criatura de golpe.** Para empujarla usá `empujar()` / `m.slide` (con barrido), no `m.pos = …`. Un teletransporte de *habilidad* (sólo el Pombero) exige aviso ≥ 0,8 s, marca en el punto de llegada y rastro (`tele` → `blink`), y se desactiva en el tramo final de la oleada (`game.finalDeOleada()`).
+- Rezagados: **acoso** (más rápidos, derechos al jugador), **faro + radar** para las últimas, **desintegración visible** si no pueden llegar. Eventos nuevos: `acoso`, `desint`, `tele`; campo `ac` en el snapshot de cada criatura.
+- Pruebas: `node --test tests/colision-criaturas.test.js` (hundimiento en 6 arenas con bots, lanzadas a 60 m/s, saltos por tick, rezagados, Pombero, perf).
+
+## Jefes con fases, mecánicas e IA adaptativa (dueño, 2026-10-21)
+Documento completo (tabla jefe × fases × mecánicas × contramedidas por estilo, algoritmo de la IA, parámetros, pruebas): **docs/JEFES.md**. Resumen:
+- Cada arena tiene **su** jefe con **4 fases** por vida (75 / 50 / 25 %), ataques con **telegrafía ≥ 1 s** (marcas en el suelo), ventanas de vulnerabilidad (el jefe **baja al suelo**: Pisotón, Asomo, Caída de párpados), partes destruibles (huevos, ojos brotados), la mecánica de equipo «Juntos», un **momento único** y **enfurecimiento a los 10 min**.
+- Los jefes **usan el organismo, las nieblas y la flora de su arena**: el ataque «El campo responde» ordena atacar ya a los órganos (`g.ar`), suelta una niebla temporal del tipo de su mapa (`nieblaTemporal`) y prende la flora (`floraElemento`).
+- **IA adaptativa** (`src/sim/jefe-ia.js`): mide tu estilo en una ventana de 20 s + memoria larga, te clasifica (melé / tirador / habilidades / esquivador / mixto) con histéresis y adopta una postura que te contrarresta (tope +25 % de resistencia, nunca inmunidad). Te avisa con un banner y un chip en la barra; si cambiás de modo, tarda 10 s en readaptar.
+- Política «sin teletransportes» también para los jefes: sólo se mueven con velocidad limitada (picadas, caídas, subidas lentas). Pruebas: `node --test tests/jefes.test.js`, `tests/jefes-bots.test.js`, `tests/jefes-balance.test.js`, `tests/jefes-render.test.js`.

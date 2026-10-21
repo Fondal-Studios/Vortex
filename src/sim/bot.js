@@ -2,6 +2,7 @@ import { v3, add, sub, mul, dot, cross, len, dist, norm, project, makeRng } from
 import { WEAPONS } from './data.js';
 import { blocked } from './physics.js';
 import { M3 } from './map3.js';
+import { mecEvitar } from './jefe-mec.js';   // marcas de telegrafía del jefe: el bot las lee como lo haría una persona
 
 /**
  * Jugador automático para pruebas de partida completa. Tiene límites "humanos":
@@ -38,7 +39,7 @@ function mazeStep(game, from, target) {
 }
 
 /** Siguiente punto de ruta hacia `target`; en M1 usa los portales para cambiar de isla. */
-function routeTo(game, p, target) {
+export function routeTo(game, p, target) {
   if (game.map.navStep) { const st = game.map.navStep(p.pos, target); return st && st !== 'none' ? v3(st.x, st.y, st.z) : target; } // mapa 4: grafo de plataformas
   if (game.map.maze) return mazeStep(game, p.pos, target);
   if (game.mapId !== 'm1') return target;
@@ -57,7 +58,7 @@ function routeTo(game, p, target) {
   return target;
 }
 /** Devuelve { pt, stay } o null: la tarea de equipo que le toca a este bot ahora. */
-function taskFor(game, p) {
+export function taskFor(game, p) {
   const alive = game.players.filter((q) => !q.dead), idx = Math.max(0, alive.indexOf(p)), n = alive.length;
   const o = game.objective, sp = game.map.spots;
   const boss = game.monsters.find((m) => !m.dead && m.def.boss);
@@ -187,6 +188,7 @@ export function makeBot(game, pid, { seed = 1, skill = 1 } = {}) {
       else wishMove = mul(wishMove, 0.2); // ya estoy en el lugar: me quedo
       if (dd > 6 || gp !== task.pt) inp.dash = false;
     }
+    { const ev = mecEvitar(game, p); if (ev) wishMove = add(mul(ev, 4), mul(wishMove, 0.3)); }   // sale de las marcas del jefe (o entra al refugio del «reparto»)
     const needHp = p.hp < 65, needAmmo = p.ammo[2] < 30 && p.ammo[1] < 6;
     let pk = null, pd = 45;
     for (const k of game.pickups) { const dd = dist(k.pos, p.pos); if (dd < pd && ((k.type === 'hp' && needHp) || (k.type === 'ammo' && needAmmo))) { pd = dd; pk = k; } }

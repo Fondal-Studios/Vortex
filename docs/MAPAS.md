@@ -136,3 +136,6 @@ Cada arena tiene 3 especies de fauna consumible con su folclore (m1 Lagartija de
 
 ## Flora por arena (dueño, 2026-10-20)
 Cada arena tiene un jardín psicodélico interactivo (3 especies propias + 4 plantas raras de evento, misión y jefe): m1 Flor de Luz Mala · Liana Aferradora · Hongo de Ánima · m2 Fruto de Eco · Planta Espejo · Zarza de Cristal · m3 Brote del Coro · Flor del Sueño · Vejiga Silbadora · m4 Bulbo Vital · Boca del Jardín · Árbol de Savia · m5 Fruto de la Hora · Hiedra del Relojero · Arbusto de Brasas · m6 Lirio del Osario · Boca de Hueso · Cardo de Ceniza. Curan, muerden, atrapan, envenenan, reflejan o arden, avisan ≥ 1 s antes y se cosechan con USAR para forjar sets de jardín. Paleta de pasto, hojas y decorado propia de cada arena (`PALETA_ARENA`). Tabla completa, reglas, presupuestos y contrato en `docs/FLORA.md`.
+
+### Jefes de las 6 arenas
+Cada mapa tiene un jefe propio con 4 fases, mecánicas con telegrafía y una IA que se adapta a tu estilo de juego: ver **docs/JEFES.md** (datos en `src/sim/jefe-data.js`, `JEFES[mapa]`).

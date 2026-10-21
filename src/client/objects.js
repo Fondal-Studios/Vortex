@@ -79,6 +79,11 @@ const BUILD = {
     g.userData = { ring, floor, beam };
     return g;
   },
+  pilar(o) {   // cobertura destruible de los jefes (jefe-mec.js → muralla): pilar de hueso/cristal que se agrieta al recibir daño
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.1, 4.6, 8), new THREE.MeshStandardMaterial({ color: 0xe8e0c8, emissive: 0x6a5a4a, emissiveIntensity: 0.5, roughness: 0.6, metalness: 0.05, transparent: true, opacity: 0.92 }));
+    body.position.y = 0; g.add(body); g.userData = { body }; return g;
+  },
   sac(o) {
     const g = new THREE.Group();
     const egg = new THREE.Mesh(GEO.sph, new THREE.MeshStandardMaterial({ color: 0x8a2a5a, emissive: 0xff2a8a, emissiveIntensity: 0.7, roughness: 0.35, metalness: 0.1, transparent: true, opacity: 0.92 }));
@@ -305,6 +310,7 @@ export class ObjectsView {
         u.beam.material.opacity = on ? 0.5 : 0.15; u.floor.material.opacity = on ? 0.3 : 0.14; u.ring.rotation.z = t * (on ? 3 : 0.8);
         break;
       }
+      case 'pilar': { const hpk = o.mx ? o.hp / o.mx : 1; u.body.material.emissiveIntensity = 0.3 + (1 - hpk) * 1.1 + 0.15 * Math.sin(t * 6); u.body.material.color.setHex(hpk > 0.5 ? 0xe8e0c8 : 0xd8a888); break; }
       case 'sac': {
         const hpk = o.mx ? o.hp / o.mx : 1, hatch = 1 - Math.min(1, (o.l || 0) / 12);
         u.egg.scale.set(1.1 + Math.sin(t * (6 + hatch * 14)) * 0.08 * (0.5 + hatch), 1.5, 1.1);

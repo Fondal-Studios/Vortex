@@ -1,19 +1,19 @@
 // COLISIÓN DE CRIATURAS CON EL MUNDO (paredes, muros, coberturas, islas, techos).
 // Una sola fuente de verdad para que NINGUNA criatura atraviese un sólido del mapa (`map.solids`: los mismos que frenan al jugador
 // y a las balas, y los mismos que dibuja el cliente):
-//   · radioCol(m): radio de colisión = radio visual del modelo (r) × factor (voladores un poco menos) × 1,15 si es élite.
+//   · radioCol(m): radio de colisión = radio visual del modelo (r) × 0,9 (suelo) o × 0,8 (aire) × 1,15 si es élite.
 //   · barrer(): mueve en sub-pasos según la velocidad (nunca más de ~0,45 radios por sub-paso) → no «tunelea» ni a 30 m/s.
 //   · empujar(): desplazamiento directo (esquiva del Pombero, arrastre de la niebla cian…) también con barrido.
 //   · resolverTodas(): red de seguridad al final de cada tick: si algo (separación entre criaturas, un empujón) dejó a una criatura
 //     dentro de un sólido, la saca por la cara más cercana.
 //   · desvio(): «antenas» de dirección: mira adelante y rodea muros/columnas en vez de empujar contra ellos (deslizando).
-import { v3, madd, len, dot, cross, norm } from './math.js';
+import { len, cross } from './math.js';
 import { collide } from './physics.js';
 
-export const COL = { suelo: 0.97, vuelo: 0.9, elite: 1.15, paso: 0.45 };
+export const COL = { suelo: 0.9, vuelo: 0.8, elite: 1.15, paso: 0.45 };   // (0,9 / 0,8 = los factores de siempre: el piso y el equilibrio de juego no cambian; lo nuevo es que ahora valen contra TODOS los sólidos)
 
 /** Radio de colisión de una criatura (m). */
-export const radioCol = (m) => globalThis.__X && globalThis.__X.rad ? m.r * (m.def.fly ? 0.8 : 0.9) : m.r * (m.def.fly ? COL.vuelo : COL.suelo) * (m.elite && !m.def.boss ? COL.elite : 1);
+export const radioCol = (m) => m.r * (m.def.fly ? COL.vuelo : COL.suelo) * (m.elite && !m.def.boss ? COL.elite : 1);
 
 /** Distancia con signo del punto `p` a la superficie del sólido `s` (+ afuera, − adentro). */
 export function sd(s, p) {
@@ -69,12 +69,26 @@ export function colocarCerca(game, m, par) {
   collide(game.map, m.pos, null, cr, null);
 }
 
+/** Último recurso para una criatura metida en un rincón de varios sólidos (collide() sale por la cara más cercana, que puede dar a otro sólido):
+ *  busca por anillos crecientes el punto libre más cercano (prefiere moverse en horizontal). Devuelve true si la movió. */
+const DIRS = (() => { const o = []; for (let y = 0; y <= 1; y++) for (let x = -1; x <= 1; x++) for (let z = -1; z <= 1; z++) { if (!x && !y && !z) continue; const l = Math.hypot(x, y, z); o.push([x / l, y / l, z / l]); } return o; })();
+export function liberar(game, m) {
+  const cr = radioCol(m), map = game.map;
+  if (holgura(map, m.pos) >= cr * 0.6) return false;
+  for (const R of [1, 2, 3, 4.5, 6, 8, 12]) for (const d of DIRS) {
+    const q = { x: m.pos.x + d[0] * R, y: m.pos.y + d[1] * R, z: m.pos.z + d[2] * R };
+    if (holgura(map, q) >= cr * 0.98) { m.pos.x = q.x; m.pos.y = q.y; m.pos.z = q.z; return true; }
+  }
+  return false;
+}
+
 /** Red de seguridad: saca de los sólidos a toda criatura que haya quedado adentro (separación, empujones, nacimientos). */
 export function resolverTodas(game) {
   const ms = game.monsters, map = game.map;
   for (let i = 0; i < ms.length; i++) {
     const m = ms[i]; if (m.dead || m.kind === 'madre') continue;
     collide(map, m.pos, m.vel, radioCol(m), null);
+    if (((game.tick + m.id) & 15) === 0) liberar(game, m);   // (de vez en cuando) ¿quedó metida en un rincón de varios sólidos?
   }
 }
 
@@ -85,7 +99,6 @@ export function resolverTodas(game) {
  */
 const ANG = [0.6, -0.6, 1.2, -1.2, 1.9, -1.9];
 export function desvio(game, m, wish, up, vuela) {
-  if (globalThis.__X && globalThis.__X.nodesvio) return wish;
   const l = len(wish); if (l < 1e-6) return wish;
   const map = game.map, cr = radioCol(m), look = cr + Math.max(2.2, Math.min(7, len(m.vel) * 0.45));
   const ux = wish.x / l, uy = wish.y / l, uz = wish.z / l;
@@ -109,7 +122,6 @@ export function desvio(game, m, wish, up, vuela) {
   }
   return wish;
 }
-export { v3, madd, dot, norm };
 
 /**
  * DESATASCADOR: si una criatura terrestre quiere avanzar pero casi no se mueve durante ~1 s (rincón entre dos obstáculos, hueco más angosto
@@ -117,7 +129,6 @@ export { v3, madd, dot, norm };
  */
 const NO_ATASCA = new Set(['charge', 'stun', 'wind', 'open', 'cast', 'aim', 'blink', 'pull']);
 export function desatascar(game, m, wish, speed, dt, up) {
-  if (globalThis.__X && globalThis.__X.nodesat) return wish;
   let st = m.stk; if (!st) st = m.stk = { x: m.pos.x, y: m.pos.y, z: m.pos.z, acc: 0, hasta: 0, dir: null };
   if (game.time < st.hasta && st.dir) return st.dir;
   if (speed < 2 || len(wish) < 1e-6 || NO_ATASCA.has(m.state) || !m.grounded) { st.x = m.pos.x; st.y = m.pos.y; st.z = m.pos.z; st.acc = 0; return wish; }
@@ -126,10 +137,13 @@ export function desatascar(game, m, wish, speed, dt, up) {
   const moved = Math.hypot(m.pos.x - st.x, m.pos.y - st.y, m.pos.z - st.z), esperado = speed * st.acc;
   st.x = m.pos.x; st.y = m.pos.y; st.z = m.pos.z; st.acc = 0;
   if (moved > esperado * 0.22) return wish;
+  // ¿lo frena la GEOMETRÍA (muro, cobertura, rincón) y no otra criatura o el jugador? Sonda corta hacia donde quiere ir.
+  { const cr0 = radioCol(m), ux = wish.x / len(wish), uy = wish.y / len(wish), uz = wish.z / len(wish), k = cr0 * 1.5;
+    if (holgura(game.map, { x: m.pos.x + up.x * cr0 * 0.55 + ux * k, y: m.pos.y + up.y * cr0 * 0.55 + uy * k, z: m.pos.z + up.z * cr0 * 0.55 + uz * k }) > cr0 * 1.05) return wish; }
   // atascada: elegir el rumbo libre (no el deseado), alternando el lado
   const cr = radioCol(m), l = len(wish), base = { x: wish.x / l, y: wish.y / l, z: wish.z / l }, side = cross(up, base), sl = len(side) || 1;
   const lado = (m.esc = -(m.esc || (m.id & 1 ? 1 : -1)));
-  let mejor = null, mejorH = -1;
+  let mejor = null, mejorH = -Infinity;
   for (const a of [1.57, 2.35, 0.8, 3.14, 1.2, 2.8]) {
     const c = Math.cos(a), s = Math.sin(a) * lado;
     const d = { x: base.x * c + side.x / sl * s, y: base.y * c + side.y / sl * s, z: base.z * c + side.z / sl * s };
@@ -138,6 +152,7 @@ export function desatascar(game, m, wish, speed, dt, up) {
     if (h > mejorH) { mejorH = h; mejor = d; }
     if (h >= cr * 1.1) break;
   }
+  if (!mejor) return wish;
   st.dir = { x: mejor.x * l, y: mejor.y * l, z: mejor.z * l }; st.hasta = game.time + 1.2;
   return st.dir;
 }

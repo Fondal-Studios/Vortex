@@ -29,6 +29,7 @@ import { createSingularFx } from './singular-fx.js';   // pozos de gravedad y sa
 import { EventosFx } from './eventos-fx.js';
 import { LuzArenas } from './luz-arenas.js';   // luz propia de cada arena + ciclo día/ocaso/eclipse + luces de los órganos (luz-arenas.js)
 import { FaunaFx } from './fauna-fx.js';   // fauna consumible: bichos psicodélicos, rastros y chispas (fauna-fx.js, docs/FAUNA.md)
+import { JefesFx } from './jefes-fx.js';   // jefes: marcas de telegrafía, barra con fases y postura, cine (jefes-fx.js)
 import { NieblasFx } from './nieblas-fx.js';   // nieblas de colores con función (nieblas-fx.js)
 import { FloraFx } from './flora-fx.js';   // flora interactiva y vegetación psicodélica (flora-fx.js)
 import { ArenasVivasFx } from './arenas-vivas-fx.js';   // órganos del organismo de cada arena (arenas-vivas-fx.js)
@@ -93,6 +94,7 @@ export class Renderer {
     try { this.evfx = new EventosFx(this); } catch (err) { console.warn('Efectos de eventos no disponibles', err.message); this.evfx = null; } // eventos de oleada (eventos-fx.js)
     try { this.avfx = new ArenasVivasFx(this); } catch (err) { console.warn('Arenas vivas no disponibles', err.message); this.avfx = null; } // arenas vivas (arenas-vivas-fx.js)
     try { this.flfx = new FloraFx(this); this.flfx.configure(cfg()); } catch (err) { console.warn('Flora no disponible', err.message); this.flfx = null; } // flora interactiva (flora-fx.js)
+    try { this.jfx = new JefesFx(this); } catch (err) { console.warn('Efectos de jefe no disponibles', err.message); this.jfx = null; }
     try { this.nfx = new NieblasFx(this); this.nfx.configure(cfg()); } catch (err) { console.warn('Nieblas de colores no disponibles', err.message); this.nfx = null; } // nieblas de colores (nieblas-fx.js)
     try { this.ffx = new FaunaFx(this); this.ffx.configure(cfg()); } catch (err) { console.warn('Fauna no disponible', err.message); this.ffx = null; } // fauna consumible (fauna-fx.js)
     try { this.luz = new LuzArenas(this); this.luz.configure(cfg()); } catch (err) { console.warn('Luz de arenas no disponible', err.message); this.luz = null; }
@@ -258,6 +260,7 @@ export class Renderer {
     if (this.evfx) { try { this.evfx.update(dt, state, me); } catch (err) { console.warn('evfx', err.message); this.evfx = null; } }
     if (this.avfx) { try { this.avfx.update(dt, state); } catch (err) { console.warn('avfx', err.message); this.avfx = null; } }
     if (this.luz) { try { this.luz.update(dt, state); } catch (err) { console.warn('luz', err.message); this.luz = null; } }
+    if (this.jfx) { try { this.jfx.update(dt, state, me); } catch (err) { console.warn('jfx', err.message); this.jfx = null; } }
     if (this.nfx) { try { this.nfx.update(dt, state, me); } catch (err) { console.warn('nfx', err.message); this.nfx = null; } }
     if (this.flfx) { try { this.flfx.update(dt, state, me); } catch (err) { console.warn('flfx', err.message); this.flfx = null; } }
     if (this.ffx) { try { this.ffx.update(dt, state, me); } catch (err) { console.warn('ffx', err.message); this.ffx = null; } }   // fauna consumible
@@ -265,6 +268,7 @@ export class Renderer {
     this.fx.update(dt);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
     if (me) this.updateCamera(me, dt, look);
+    if (this.jfx && this.jfx.cine) { try { this.jfx.postCamera(dt); } catch (err) { this.jfx.cine = null; } }   // presentación del jefe (cine breve)
     if (this.lost) return;
     if (this.grade) { this.camera.updateMatrixWorld(); this.grade.frame(this.camera, this.t, { sunDir: this.sunDir || this.sun.position, infect: this.infect || 0, fogR: this.mapId === 'm2' ? MAPS.m2.R : null }); }
     if (this.composer) this.composer.render(); else this.gl.render(this.scene, this.camera);

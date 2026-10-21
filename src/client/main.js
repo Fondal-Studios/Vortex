@@ -11,6 +11,8 @@ import { createEvoHud, EVO_KEY } from './hud-evolucion.js';
 import { createEvoChoice } from './evo-choice.js';
 import { createNpcPanel, npcNear, dealText } from './mundo-vivo.js';
 import { NPC_INFO } from '../sim/npcs.js';
+import { JEFES } from '../sim/jefe-data.js';
+import { jefeMemoria } from '../sim/jefes.js';   // jefes por arena (nombres, fases, cuerpo): jefes-fx.js
 import { createRadar } from './radar.js';
 import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
@@ -243,7 +245,7 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 function startSolo(mapId, opts = {}) {
   asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
-  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice });
+  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId) });
   const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode(), kit: opts.practice ? 0 : Tienda.usarBotiquin() }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
@@ -333,6 +335,7 @@ function updateWeaponHud(me) {
 let bannerTimer = 0;
 function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; b.classList.toggle('long', text.length > 60); b.classList.add('on'); bannerSeq++; const my = bannerSeq; later(() => { if (my === bannerSeq) b.classList.remove('on'); }, ms); }
 let bannerSeq = 0;
+const jfxCtx = { banner, flash: () => flash(), sound, get pid() { return session ? session.pid : 0; } };   // lo que necesita jefes-fx.js para avisar y sonar
 
 function pauseTouch(on) { if (!session) return; session.paused = on; $('pausehint').textContent = 'Tocá «Continuar» para seguir'; $('pause').classList.toggle('hidden', !on); if (on) touch.reset(); }
 
@@ -621,7 +624,8 @@ function audioAndHud(state, me, dt) {
       case 'gaze': sound.ray(); banner('¡ARGOS TE MIRA! Cubrite detrás de un muro', 2200); break;
       case 'ojobreak': sound.boom(e.p); break;
       case 'well': sound.gravity(e.p); break;
-      case 'phase': sound.voice(state.boss && state.boss.name.startsWith('Col') ? 'coloso' : 'madre', 'phase'); banner(`FASE ${e.n}`, 1800); flash(); break;
+      case 'phase': sound.voice(state.boss && /Mandinga|Col/.test(state.boss.name) ? 'coloso' : 'madre', 'phase'); if (renderer.jfx) renderer.jfx.event(e, jfxCtx); else { banner(`FASE ${e.n}`, 1800); flash(); } break;   // jefes: fases, adaptación y mecánicas (jefes-fx.js)
+      case 'jia': case 'jatk': if (renderer.jfx) renderer.jfx.event(e, jfxCtx); break;
     }
   }
   if (combatHud) combatHud.update(dt, state, me);
@@ -635,7 +639,7 @@ function audioAndHud(state, me, dt) {
   const pr = $('practice');
   if (session.practice && me) { pr.classList.remove('hidden'); pr.innerHTML = `<b>CAMPO DE PRUEBAS</b> · Héroe: <i>${CHARACTERS[me.char] ? CHARACTERS[me.char].name : '—'}</i> (H) · Arma: <i>${WEAPONS[me.w].name}</i> ( , . ) · munición y vida ilimitadas`; } else pr.classList.add('hidden');
   const bb = $('bossbar');
-  if (state.boss) { bb.classList.remove('hidden'); $('bossname').textContent = state.boss.name; $('bossfill').style.width = `${Math.max(0, 100 * state.boss.hp / state.boss.max)}%`; } else bb.classList.add('hidden');
+  if (state.boss) { bb.classList.remove('hidden'); if (!state.boss.mc) $('bossname').textContent = state.boss.name; $('bossfill').style.width = `${Math.max(0, 100 * state.boss.hp / state.boss.max)}%`; } else bb.classList.add('hidden');
   try { hudDirector(state, me); } catch (err) { if (!window.__hudErr) { window.__hudErr = err; console.error("HUD:", err); } }   // un error de interfaz nunca debe detener el dibujo (pantalla negra)
   if (me) {
     $('hpfill').style.width = `${me.hp}%`; $('shfill').style.width = `${me.sh}%`; $('hpnum').textContent = `Vida ${me.hp}`; $('shnum').textContent = `Escudo ${me.sh}`;
@@ -727,9 +731,11 @@ function hudDirector(state, me) {
   const bm = $('bossmech'), b = state.boss;
   if (b) {
     let t = '';
-    if (b.name.startsWith('Argos')) t = b.stagger > 0 ? `ATURDIDO ${Math.ceil(b.stagger)} s · ¡daño ×2,5!` : b.gaze > 0 ? `¡MIRADA en ${Math.ceil(b.gaze)} s! Escondete detrás de un muro` : b.eyes > 0 ? `${b.eyes} OJOS protegen a Argos · destruílos (puntos débiles)` : '';
-    else if (b.name.startsWith('Col')) t = b.stagger > 0 ? `ATURDIDO ${Math.ceil(b.stagger)} s · ¡daño ×2,5!` : b.ray > 0 ? `RAYO en ${Math.ceil(b.ray)} s · ¡a un pilar marcado!` : b.shield ? 'ESCUDO DE RESONANCIA · reflejá el rayo con un pilar' : '';
+    const kb = (b.mc && JEFES[b.mc.mj] && JEFES[b.mc.mj].base) || (/Basilisco|Argos/.test(b.name) ? 'argos' : /Mandinga|Col/.test(b.name) ? 'coloso' : 'madre');   // (los nombres cambiaron: se decide por el cuerpo del jefe)
+    if (kb === 'argos') t = b.stagger > 0 ? `ATURDIDO ${Math.ceil(b.stagger)} s · ¡daño ×2,5!` : b.gaze > 0 ? `¡MIRADA en ${Math.ceil(b.gaze)} s! Escondete detrás de un muro` : b.eyes > 0 ? `${b.eyes} OJOS protegen a Argos · destruílos (puntos débiles)` : '';
+    else if (kb === 'coloso') t = b.stagger > 0 ? `ATURDIDO ${Math.ceil(b.stagger)} s · ¡daño ×2,5!` : b.ray > 0 ? `RAYO en ${Math.ceil(b.ray)} s · ¡a un pilar marcado!` : b.shield ? 'ESCUDO DE RESONANCIA · reflejá el rayo con un pilar' : '';
     else t = b.pressure >= 1 ? 'PRESIÓN MÁXIMA · ¡purgá las dos válvulas!' : `PRESIÓN ${Math.round(b.pressure * 100)} % · mantené las 2 válvulas a la vez`;
+    if (renderer.jfx) t = renderer.jfx.mech(b, t);
     bm.textContent = t; bm.classList.toggle('hidden', !t);
   } else bm.classList.add('hidden');
   // aliados: nombre + vida sobre la cabeza; los caídos muestran el progreso de reanimación (visibles aunque estén lejos)
@@ -764,7 +770,11 @@ function flash() { const f = $('flash'); f.classList.add('on'); const my = ++fla
 /** Suma los núcleos de la partida al banco del perfil y guarda la evolución (una sola vez por partida solitaria). */
 let botin = null;
 function bankProfile(me, state) { if (!session || (session.mode !== 'solo' && session.mode !== 'coop') || session.base || session.banked || !me) return; if (session.mode === 'coop' && session.net && session.net.fin) session.bag = session.net.fin.bag.map((b) => ({ id: b.id, q: b.q, n: b.n || 1, r: b.r })); /* en cooperativo el botín lo dice el SERVIDOR al terminar */ session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { bag: session.bag, wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
+/** Adaptación suave ENTRE intentos: el jefe recuerda (un poco) cómo peleaste la última vez en esta arena (jefe-ia.js → iaMemoria). */
+function leerMemoriaJefe(mapId) { try { const m = JSON.parse(localStorage.getItem('arcanum.jefeMem.' + mapId) || 'null'); return m && typeof m.s === 'string' ? { s: m.s, c: +m.c || 0, n: +m.n || 0 } : null; } catch { return null; } }
+function guardarMemoriaJefe() { try { const g = session && session.game; if (!g || !g.boss || !g.boss.ia || session.practice) return; const m = jefeMemoria(g.boss); if (m && g.boss.ia.t > 15) localStorage.setItem('arcanum.jefeMem.' + session.map, JSON.stringify(m)); } catch { /* sin almacenamiento */ } }
 function endGame(state, me) {
+  guardarMemoriaJefe();
   bankProfile(me, state);
   let terrNuevo = null; if (state.state === 'won' && session.mode === 'solo' && !session.practice) { try { if (Perfil.liberarTerritorio(session.map)) terrNuevo = Territorios.TERRITORIOS[session.map]; } catch (err) { console.warn('Territorios: no se pudo guardar', err.message); } } // ganar el mapa libera el territorio (perfil.js)
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);

@@ -11,6 +11,8 @@ import { PLAYER } from './data.js';
 import { blocked } from './physics.js';
 import { IA, POSTURAS, CONTRA } from './jefe-data.js';
 
+/** Interruptores para pruebas A/B (apagar la adaptación entera o cada una de sus partes). */
+export const CTL = { apagada: false, sinResist: false, sinEfectos: false, sinPesos: false };
 const r2 = (n) => Math.round(n * 100) / 100;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const NB = 20;                    // cubetas de 1 s = ventana
@@ -27,6 +29,16 @@ export function iaRand(ia) {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
+/** Generador con la interfaz de makeRng (next/range/int/pick/unit/gauss) para pasárselo a map.spawnGround/spawnAir sin tocar g.rng. */
+const RNGS = new WeakMap();
+export function rngDe(boss) {
+  let r = RNGS.get(boss.ia); if (r) return r;
+  const n = () => iaRand(boss.ia);
+  r = { next: n, range: (a, b) => a + (b - a) * n(), int: (a, b) => Math.floor(a + (b - a + 1) * n()), pick: (arr) => arr[Math.floor(n() * arr.length)],
+    unit() { const z = n() * 2 - 1, a = n() * 6.2832, q = Math.sqrt(1 - z * z); return { x: q * Math.cos(a), y: z, z: q * Math.sin(a) }; }, gauss: () => (n() + n() + n() + n() - 2) * 1.2 };
+  RNGS.set(boss.ia, r); return r;
+}
+
 const nuevoJugador = () => ({ b: Array.from({ length: NB }, () => new Array(NF).fill(0)), mem: new Array(NF).fill(0), mode: '', hp: -1, estilo: 'mixed', conf: 0, ult: 0 });
 
 /** Crea el estado de IA del jefe. `mem` (opcional): memoria de intentos anteriores (iaMemoria) para empezar con una pista suave. */
@@ -37,7 +49,7 @@ export function iaInit(g, m, mem = null) {
     st: 'neutro', lvl: 0, cur: 'mixed', conf: 0, cand: 'mixed', candT: 0, ult: -99,   // estilo del equipo, candidato y último cambio de postura
     lag: 0, desc: 0, cambios: 0, avisos: [],
     prior: mem && mem.s && CONTRA[mem.s] ? mem.s : null,                               // intento anterior: el jefe «recuerda» (pista suave)
-    sh: [0, 0, 0], enr: 0, enrOn: false,
+    sh: [0, 0, 0], foco: 0, cura: 0, prec: 0, enr: 0, enrOn: false,
   };
   if (m.ia.prior) m.ia.priorT = 0;
   return m.ia;
@@ -57,17 +69,18 @@ export function iaGolpe(g, boss, by, victim, dealt) {
   if (k === F.GUN) { b[F.GHIT]++; pl.mem[F.GHIT]++; }
   if (victim !== boss) return;
   // efectos de la postura sobre quien golpea al jefe (docs/JEFES.md → «Posturas»)
+  if (CTL.sinEfectos) return;
   if (ia.st === 'antimele' && src === 'melee' && ia.lvl > 0.3 && g.time >= (pl.espCd || 0) && !by.dead) {
-    pl.espCd = g.time + 0.6; g.hurtPlayer(by, Math.min(7, 2 + dealt * 0.04) * ia.lvl);   // espinas: te devuelve un poco (tope 7 por golpe)
+    pl.espCd = g.time + 0.9; g.hurtPlayer(by, Math.min(5, 1.5 + dealt * 0.03) * ia.lvl);   // espinas: te devuelve un poco (tope 5 por golpe)
   }
-  if (ia.st === 'antihab' && src === 'skill' && ia.lvl > 0.3) boss.hp = Math.min(boss.maxhp, boss.hp + dealt * 0.07 * ia.lvl);   // absorción
+  if (ia.st === 'antihab' && src === 'skill' && ia.lvl > 0.3) boss.hp = Math.min(boss.maxhp, boss.hp + dealt * 0.05 * ia.lvl);   // absorción
 }
 
 /** Multiplicador del daño que recibe el jefe POR LA ADAPTACIÓN (nunca baja del piso; el tope de resistencia es IA.topeRes). */
 export function iaMult(g, boss, src) {
   const ia = boss.ia; if (!ia) return 1;
   let mul = 1; const P = POSTURAS[ia.st];
-  if (P && P.contra && P.contra === src) mul /= 1 + IA.topeRes * ia.lvl;
+  if (!CTL.sinResist && P && P.contra && P.contra === src) mul /= 1 + IA.topeRes * IA.resFase[Math.min(3, Math.max(0, (boss.mec ? boss.mec.f : 1) - 1))] * ia.lvl;
   if (ia.desc > 0) mul *= IA.descon;
   return Math.max(IA.pisoMul, mul);
 }
@@ -83,7 +96,8 @@ function muestrear(g, boss, dt) {
     add(F.DIST, Math.min(60, d)); add(F.N, 1); add(F.SPD, Math.min(v, 30));
     if (p.mode === 'combo') { if (inp.a1 || inp.a2) add(F.IMEL, 1); } else if (inp.melee) add(F.IMEL, 1);
     if (inp.fire && p.mode !== 'combo') { add(F.IGUN, 1); add(F.GFIRE, 1); }
-    if (inp.mov || inp.esp || inp.s3 || inp.hab || inp.ult) add(F.ISKL, 1);
+    if (inp.mov || inp.esp || inp.s3 || inp.hab || inp.ult) pl.cast = ia.t;
+    if (ia.t - (pl.cast ?? -99) < 6) add(F.ISKL, 1);   // lanzó una habilidad hace poco: sigue «en estilo habilidades» mientras se recarga
     if (inp.dash || (inp.jump && !pl.salto)) add(F.DODGE, 1);
     pl.salto = !!inp.jump;
     if (g.map.walls && ((ia.t * 4) | 0) % 2 === 0) { // cobertura: ¿hay un muro entre el jugador y el jefe? (1 rayo cada 0,5 s)
@@ -110,8 +124,8 @@ function puntajes(v, tFight) {
   const sm = sh(dm, tot, im, it), sg = sh(dg, tot, ig, it), ss = sh(ds, tot, is, it);
   const dMed = v[F.DIST] / n, cerca = clamp(1 - (dMed - 5) / 22, 0, 1), mov = clamp(v[F.SPD] / n / PLAYER.speed, 0, 1.4), cob = clamp(v[F.COV] / n, 0, 1);
   const activo = clamp(it / (n * 0.6), 0, 1);                     // fracción de muestras con intención de atacar
-  const pas = clamp(1 - tot / IA.actividadMin, 0, 1) * (1 - 0.8 * activo) * clamp((tFight - 8) / 8, 0, 1) * (0.5 + 0.3 * Math.min(1, mov) + 0.2 * cob);
-  return { melee: sm * (0.55 + 0.45 * cerca), shooter: sg * (0.55 + 0.45 * (1 - cerca)), skills: ss, passive: pas, dMed: r2(dMed), cerca: r2(cerca), tot };
+  const pas = clamp(1 - tot / IA.actividadMin, 0, 1) * (1 - 0.8 * activo) * clamp((tFight - 8) / 8, 0, 1) * (0.5 + 0.3 * Math.min(1, mov) + 0.2 * cob) * (0.25 + 0.75 * (1 - cerca));   // esperar pegado al jefe no es «esquivar»
+  return { melee: sm * (0.55 + 0.45 * cerca), shooter: sg * (0.55 + 0.45 * (1 - cerca)), skills: ss, passive: pas, dMed: r2(dMed), cerca: r2(cerca), tot, evid: tot + 12 * it / Math.max(1, n) * 4 };
 }
 function mejor(p) {
   const arr = [['melee', p.melee], ['shooter', p.shooter], ['skills', p.skills], ['passive', p.passive]].sort((a, b) => b[1] - a[1]);
@@ -122,7 +136,7 @@ function mejor(p) {
 /** Clasifica un vector (ventana o memoria) y mezcla ambos. */
 function clasificar(ia, vWin, vMem) {
   const a = puntajes(vWin, ia.t), c = puntajes(vMem, ia.t), w = IA.mezclaMemoria;
-  const mix = { melee: a.melee * (1 - w) + c.melee * w, shooter: a.shooter * (1 - w) + c.shooter * w, skills: a.skills * (1 - w) + c.skills * w, passive: a.passive * (1 - w) + c.passive * w, dMed: a.dMed, cerca: a.cerca, tot: a.tot };
+  const mix = { evid: a.evid, melee: a.melee * (1 - w) + c.melee * w, shooter: a.shooter * (1 - w) + c.shooter * w, skills: a.skills * (1 - w) + c.skills * w, passive: a.passive * (1 - w) + c.passive * w, dMed: a.dMed, cerca: a.cerca, tot: a.tot };
   return { ...mejor(mix), pt: mix };
 }
 
@@ -163,7 +177,10 @@ function evaluar(g, boss) {
   }
   if (!peso) return;
   const eq = clasificar(ia, tot, mem);
+  if (eq.e === 'mixed' && ia.cur !== 'mixed' && eq.pt.evid < IA.actividadMin * 0.6) { eq.e = ia.cur; eq.conf = Math.max(eq.conf, eq.pt[ia.cur] || 0); }   // sin pruebas de que haya cambiado (está esperando la próxima ventana): conserva el estilo
   ia.conf = r2(eq.conf);
+  // medidas sueltas que usan las mecánicas: foco en escoltas (0..1), curación en la ventana (0..1) y precisión de disparo (0..1)
+  ia.foco = r2(tot[F.ADD] / Math.max(1, tot[F.ADD] + tot[F.BOSS])); ia.cura = r2(clamp(tot[F.HEAL] / 250, 0, 1)); ia.prec = r2(clamp(tot[F.GHIT] / Math.max(1, tot[F.GFIRE] * 2.2), 0, 1));
   const dmg = tot[F.MEL] + tot[F.GUN] + tot[F.SKL] || 1;
   ia.sh = [Math.round(100 * tot[F.MEL] / dmg), Math.round(100 * tot[F.GUN] / dmg), Math.round(100 * tot[F.SKL] / dmg)];
   // histéresis: el estilo del equipo sólo cambia si el rival gana por margen durante `persiste` segundos
@@ -180,7 +197,7 @@ function evaluar(g, boss) {
 function decidirPostura(g, boss, fase) {
   const ia = boss.ia;
   if (ia.lag > 0 || ia.t < IA.primera) return;
-  const want = CONTRA[ia.cur] || 'neutro';
+  const want = CTL.apagada ? 'neutro' : CONTRA[ia.cur] || 'neutro';
   if (want === ia.st) return;
   const libre = g.time - ia.ult >= (fase ? IA.gracia * 0.5 : IA.gracia);
   if (!libre && ia.st !== 'neutro') return;
@@ -215,7 +232,7 @@ export function iaDistMedia(boss, id) { const pl = boss.ia && boss.ia.pl[id]; if
 /** Resumen COMPACTO para el snapshot (lo que dibuja el HUD). */
 export function iaSnap(boss) {
   const ia = boss.ia; if (!ia) return null;
-  return { st: ia.st, lv: r2(ia.lvl), es: ia.cur, cf: ia.conf, sh: ia.sh, lg: r2(ia.lag), ds: r2(ia.desc), en: r2(ia.enr), n: ia.cambios };
+  return { pc: ia.prec, fc: ia.foco, st: ia.st, lv: r2(ia.lvl), es: ia.cur, cf: ia.conf, sh: ia.sh, lg: r2(ia.lag), ds: r2(ia.desc), en: r2(ia.enr), n: ia.cambios };
 }
 /** Estado completo exportable (pruebas de determinismo y de ida y vuelta). */
 export function iaExport(boss) { return boss && boss.ia ? JSON.parse(JSON.stringify(boss.ia)) : null; }

@@ -1,5 +1,6 @@
 // Mapa 3: Laberinto Celestial — un laberinto de muros de cristal flotando en el cielo. Los muros frenan a jugadores,
-// balas y rayos; las criaturas (entidades cósmicas) los atraviesan. Puzzles: llevar el núcleo a través del laberinto.
+// balas, rayos y también a las criaturas (2026-10-21: antes las atravesaban; ahora las terrestres siguen la ruta por celdas y las voladoras
+// cruzan por encima, `flyMin`). Puzzles: llevar el núcleo a través del laberinto.
 import { v3, add, mul, norm, cross, makeRng } from './math.js';
 import { G } from './data.js';
 
