@@ -89,6 +89,7 @@
 #pause #resume { opacity: 1; color: #02122a; background: linear-gradient(90deg, #66ffee, #7fb2ff); border-radius: 26px; margin-bottom: 8px; min-height: 52px; }
 #pause #resume b { font-weight: 700; } #pause #resume.focus, #pause #resume:hover { transform: scale(1.03); box-shadow: 0 0 0 3px #fff, 0 0 40px #66ffee66; }
 #pause #quit, #pause #pbase { opacity: .75; }
+@media (max-height: 460px) { #pause .pbox h2 { margin: 0 0 2px; font-size: 18px; letter-spacing: .4em; } #pause #pausehint { margin: 0 0 6px; font-size: 12px; } #pause .pbox .item { padding-top: 0; padding-bottom: 0; } #pause #resume { min-height: 46px; margin-bottom: 4px; } #pause .pbox .item b { font-size: 15px; } }
 #pause .pmas { padding: 0; opacity: .6; } #pause .pmas[open] { opacity: 1; } #pause .pmas > summary { list-style: none; cursor: pointer; padding: 1.6vh 2vw 1.6vh 2.4vw; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; } #pause .pmas > summary::-webkit-details-marker { display: none; }
 #pause .pmas > summary::after { content: "▾"; opacity: .7; } #pause .pmas[open] > summary::after { content: "▴"; }
 #pause .pmas-in { max-height: 46vh; overflow-y: auto; padding: 4px 0 8px; border-top: 1px solid #ffffff22; }

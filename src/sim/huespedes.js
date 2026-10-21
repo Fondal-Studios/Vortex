@@ -140,7 +140,7 @@ function strike(g, p, M, heavy) {
     const facing = m.fwd ? dot(norm(sub(p.pos, m.pos)), m.fwd) : 0;
     let k = 1;
     if (m.kind === 'ariete' && facing > 0.6 && !g.pierceNow) { k = 0.35; g.emit({ t: 'block', id: m.id, p: a3(m.pos) }); }
-    if (m.kind === 'espejo' && !m.dodged && g.rng.next() < 0.3) { m.dodged = true; m.pos = madd(m.pos, cross(m.up || p.up, dir0), 3); g.emit({ t: 'dodge', id: m.id, p: a3(m.pos) }); continue; }
+    if (m.kind === 'espejo' && !m.dodged && g.rng.next() < 0.3) { m.dodged = true; m.slide = { v: mul(cross(m.up || p.up, dir0), 20), t: 0.15 }; g.emit({ t: 'dodge', id: m.id, p: a3(m.pos) }); continue; }   // esquiva: un deslizamiento de 0,15 s (visible, con colisión), no un salto
     if (!m.def.boss && m.hp <= m.maxhp * exT) { // ejecución contextual
       g.emit({ t: 'melee', pid: p.id, kind: 'exec', p: a3(m.pos), d: a3(dir0), hit: 1 });
       p.exec = true; g.damageMonster(m, m.hp + 1, p, m.pos); p.exec = false;

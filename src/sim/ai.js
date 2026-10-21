@@ -1,6 +1,6 @@
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, project, rotAround, clone } from './math.js';
 import { MONSTERS, G } from './data.js';
-import { collide } from './physics.js';
+import { barrer, desvio, desatascar, radioCol, holgura } from './colision.js';
 import { updateColoso, updateMadre, updateArgos } from './bossmech.js';
 import { pulso } from './eventos.js';
 
@@ -13,11 +13,13 @@ const nearest = (targets, pos) => {
 const dmgMul = (g) => 1 + 0.04 * (g.wave - 1);
 
 function groundMove(game, m, dt, wish, speed, accel = 10) {
-  if (game.map.steer && m.grounded) wish = game.map.steer(game, m, wish); // mapa 4: seguir rampas/puentes y no caminar al vacío
+  if (game.map.steer && m.grounded) wish = game.map.steer(game, m, wish); // mapas con rutas (limbo, mapa 3, mapa 4): seguir la ruta y no caminar al vacío
   const g = game.map.gravityAt(m.pos, game.time);
   const zero = len(g) < 0.5;
   if (!zero) m.up = norm(mul(g, -1));
   const up = m.up;
+  if (!game.map.steer && len(wish) > 1e-6) wish = desvio(game, m, wish, up, zero); // sin ruta propia: antenas que rodean muros y columnas
+  if (!zero && len(wish) > 1e-6) wish = desatascar(game, m, wish, speed, dt, up);   // rincón sin salida: prueba otro rumbo un momento
   if (zero) { // flotando: nada hacia el objetivo en 3D, a media velocidad
     m.vel = madd(m.vel, sub(mul(norm(wish, v3()), speed * 0.6), m.vel), Math.min(1, 1.5 * dt));
   } else {
@@ -28,24 +30,42 @@ function groundMove(game, m, dt, wish, speed, accel = 10) {
     m.vel = madd(m.vel, g, dt);
     const sp = len(m.vel); if (sp > 60) m.vel = mul(m.vel, 60 / sp);
   }
-  m.grounded = false;
-  for (let s = 0; s < 2; s++) {
-    m.pos = madd(m.pos, m.vel, dt / 2);
-    const c = collide(game.map.mapM || game.map, m.pos, m.vel, m.r * 0.9, up);
-    if (c && c.d > 0.55) m.grounded = true;
-  }
+  const c = barrer(game, m, dt, up);   // sub-pasos según la velocidad: no atraviesa paredes ni a toda marcha
+  m.grounded = !!(c && c.d > 0.55);
 }
 
 function flyMove(game, m, dt, desired, accel = 3) {
+  const up = m.up || v3(0, 1, 0);
+  if (m.state !== 'dive' && len(desired) > 1e-6) desired = desvio(game, m, desired, up, true);   // (la picada va derecho: sólo la frena el sólido)
+  const fm = game.map.flyMin;   // arenas con muros altos (mapa 3): los voladores cruzan POR ENCIMA, no por dentro
+  if (fm !== undefined && m.state !== 'dive' && m.pos.y < fm) desired = { x: desired.x, y: Math.max(desired.y, (fm - m.pos.y) * 2.5 + 2), z: desired.z };
   m.vel = madd(m.vel, sub(desired, m.vel), Math.min(1, accel * dt));
-  m.pos = madd(m.pos, m.vel, dt);
-  collide(game.map.mapM || game.map, m.pos, m.vel, m.r * 0.8, null);
+  barrer(game, m, dt, null);
   const g = game.map.gravityAt(m.pos, game.time);
   if (len(g) > 0.5) m.up = norm(mul(g, -1));
 }
+/** Avance «a la deriva» (sin querer ir a ningún lado): conserva la velocidad pero respeta paredes. */
+const drift = (game, m, dt) => { barrer(game, m, dt, null); };
 
+/** Lugar libre (sin muros) a ~3,4 m detrás del jugador para la emboscada; prueba también los costados. null si no hay. */
+function puntoEmboscada(game, m, p) {
+  const cr = radioCol(m);
+  for (const a of [0, 0.7, -0.7, 1.4, -1.4]) {
+    const dir = rotAround(p.heading, p.up, a), q = madd(madd(p.pos, dir, -3.4), p.up, 0.1);
+    if (holgura(game.map, madd(q, p.up, 1.2)) >= cr * 1.05) return q;   // (sonda elevada: el piso no cuenta como obstáculo)
+  }
+  return null;
+}
 const face = (m, dir) => { if (len(dir) > 1e-6) m.fwd = norm(dir); };
 const sp = (m) => m.def.speed * m.speedMul;
+
+/** Marcha directa hacia el jugador más cercano (la usa el ACOSO de rezagados, src/sim/rezagados.js): por la ruta del mapa y rodeando muros. */
+export function perseguir(game, m, dt, targets, speed) {
+  const p = nearest(targets, m.pos), to = sub(p.pos, m.pos), dir = norm(to);
+  if (m.state === 'aim' || m.state === 'charge' || m.state === 'cast' || m.state === 'wind' || m.state === 'blink' || m.state === 'pull') m.state = 'idle';   // cancela avisos a medias
+  if (m.def.fly) { flyMove(game, m, dt, mul(norm(sub(madd(p.pos, p.up, 5), m.pos)), speed), 4); face(m, dir); }
+  else { groundMove(game, m, dt, dir, speed, 12); face(m, project(dir, m.up)); }
+}
 
 function shoot(game, m, from, dir, speed, dmg, kind = 'shard', r = 0.7, life = 7) {
   game.addProjectile({ owner: 'm', kind, pos: clone(from), vel: mul(norm(dir), kind === 'ray' ? speed : speed * 0.85), dmg, r, life: kind === 'ray' ? life : life / 0.85 });
@@ -118,7 +138,7 @@ export const AI = {
     m.cd -= dt;
     if (m.state === 'wind') {
       m.vel = mul(m.vel, 1 - Math.min(1, 6 * dt));
-      m.pos = madd(m.pos, m.vel, dt);
+      drift(game, m, dt);
       face(m, sub(p.pos, m.pos));
       if ((m.stateT -= dt) <= 0) { m.state = 'dive'; m.stateT = 1.3; m.dive = norm(sub(p.pos, m.pos)); }
     } else if (m.state === 'dive') {
@@ -172,24 +192,36 @@ export const AI = {
     } else if (m.cd <= 0 && m.kids < 4) { m.state = 'cast'; m.stateT = 1.0; }
   },
 
-  // 6) Emboscador: invisible a distancia; parpadea detrás del jugador; revelado al recibir daño
+  // 6) Emboscador (Pombero): invisible a distancia; AVISA ≥ 0,9 s (se descubre, silba y deja una MARCA en el suelo donde va a aparecer, con
+  //    un rastro hasta ahí) y entonces aparece detrás del jugador; revelado al recibir daño. Política «sin teletransportes» (docs/MUNDO_VIVO.md):
+  //    en el tramo final de la oleada NO se teletransporta ni se camufla (se lo ve y se lo sigue), y si está en acoso tampoco.
   ambusher(game, m, dt, targets) {
     const p = nearest(targets, m.pos), to = sub(p.pos, m.pos), d = len(to), dir = norm(to);
+    const final = game.finalDeOleada() || !!m.acoso;
     m.reveal = Math.max(0, (m.reveal || 0) - dt);
-    m.cloak = m.reveal <= 0 && d > 5;
+    m.cloak = m.reveal <= 0 && d > 5 && !final && m.state !== 'blink';
     m.cd -= dt;
     if (m.state === 'blink') {
-      if ((m.stateT -= dt) <= 0) {
-        m.pos = madd(madd(p.pos, p.heading, -3.4), p.up, 0.1);
-        m.vel = v3(); m.state = 'strike'; m.cd = 0.4; m.cd2 = 5.5;
-        game.emit({ t: 'blink', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] });
+      if (final) { m.state = 'idle'; m.tele = null; }
+      else {
+        m.vel = mul(m.vel, 1 - Math.min(1, 8 * dt));
+        if ((m.stateT -= dt) <= 0) {
+          const from = [m.pos.x, m.pos.y, m.pos.z];
+          m.pos = clone(m.tele); m.tele = null;
+          m.vel = v3(); m.state = 'strike'; m.cd = 0.4; m.cd2 = 5.5;
+          game.emit({ t: 'blink', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z], from });
+        }
+        return;
       }
-      return;
     }
     groundMove(game, m, dt, dir, d > 14 ? sp(m) * 0.75 : sp(m), 10);
     face(m, project(dir, m.up));
     m.cd2 -= dt;
-    if (m.state !== 'strike' && m.cd2 <= 0 && d > 9 && d < 70) { m.state = 'blink'; m.stateT = 0.6; return; }
+    if (!final && m.state !== 'strike' && m.cd2 <= 0 && d > 9 && d < 70) {
+      const at = puntoEmboscada(game, m, p);
+      if (at) { m.tele = at; m.state = 'blink'; m.stateT = 0.9; game.emit({ t: 'tele', id: m.id, k: m.kind, a: [m.pos.x, m.pos.y, m.pos.z], p: [at.x, at.y, at.z], in: 0.9 }); return; }
+      m.cd2 = 1.5;   // no hay un lugar libre detrás del jugador: lo intenta más tarde
+    }
     bite(game, m, p, 20, 1.1);
   },
 
@@ -206,7 +238,7 @@ export const AI = {
     const p = nearest(targets, m.pos), to = sub(p.pos, m.pos), d = len(to), dir = norm(to);
     m.cd -= dt;
     if (m.state === 'charge') {
-      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); m.pos = madd(m.pos, m.vel, dt);
+      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); drift(game, m, dt);
       if ((m.stateT -= dt) <= 0) { pulseGravity(game, m, 60, 3.5); m.state = 'idle'; m.cd = 9; }
       return;
     }
@@ -239,7 +271,7 @@ export const AI = {
     const p = nearest(targets, m.pos), dir = norm(sub(p.pos, m.pos));
     m.cd -= dt;
     if (m.state === 'cast') {
-      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); m.pos = madd(m.pos, m.vel, dt);
+      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); drift(game, m, dt);
       if ((m.stateT -= dt) <= 0) {
         for (const o of game.monsters) if (!o.dead && o !== m && !o.def.boss && dist(o.pos, m.pos) < 18) { o.hp = Math.min(o.maxhp, o.hp + o.maxhp * 0.3); o.shieldUntil = game.time + 4; }
         game.emit({ t: 'heal', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] });
@@ -251,7 +283,7 @@ export const AI = {
     // se queda detrás y encima de sus aliados (centroide), lejos del jugador
     let cx = 0, cy = 0, cz = 0, n = 0;
     for (const o of game.monsters) if (!o.dead && o !== m && !o.def.boss) { cx += o.pos.x; cy += o.pos.y; cz += o.pos.z; n++; }
-    const want = n ? madd(madd(v3(cx / n, cy / n, cz / n), p.up, 5), mul(dir, -1), 5) : madd(madd(p.pos, p.up, 12), side, 30);
+    const want = n ? madd(madd(v3(cx / n, cy / n, cz / n), p.up, 5), mul(dir, -1), 5) : madd(madd(p.pos, p.up, 8), side, 12);   // (sola no tiene a quién curar: orbita cerca, a tiro, en vez de esconderse lejos)
     flyMove(game, m, dt, mul(sub(want, m.pos), 0.8), 2);
     face(m, dir);
     if (m.cd <= 0 && game.monsters.some((o) => o !== m && !o.dead && !o.def.boss && dist(o.pos, m.pos) < 12)) { m.state = 'cast'; m.stateT = 0.9; }
@@ -283,12 +315,12 @@ export const AI = {
     const p = nearest(targets, m.pos), dir = norm(sub(p.pos, m.pos));
     m.cd -= dt;
     if (m.state === 'charge') {
-      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); m.pos = madd(m.pos, m.vel, dt);
+      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); drift(game, m, dt);
       if ((m.stateT -= dt) <= 0) { m.state = 'pull'; m.stateT = 2.6; game.emit({ t: 'pull', id: m.id, p: [m.pos.x, m.pos.y, m.pos.z] }); }
       return;
     }
     if (m.state === 'pull') {
-      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); m.pos = madd(m.pos, m.vel, dt);
+      m.vel = mul(m.vel, 1 - Math.min(1, 4 * dt)); drift(game, m, dt);
       for (const q of targets) { const dd = dist(q.pos, m.pos); if (dd < 50 && dd > 2) game.push(q, mul(norm(sub(m.pos, q.pos)), 55 * dt)); }
       if ((m.stateT -= dt) <= 0) { m.state = 'idle'; m.cd = 8; }
       return;

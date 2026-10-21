@@ -392,6 +392,10 @@ body.cards-open #touch { pointer-events: none; } body.cards-open #touch .tc-btn,
 #radar .rd-arrow i { display: block; font-style: normal; font-size: 24px; line-height: 32px; }
 #radar .rd-arrow span { display: block; color: #fff; text-shadow: 0 0 4px #000; margin-top: -4px; }
 #radar .rd-arrow.in i { font-size: 18px; }
+#radar .rd-arrow.ult { color: #ffc24a; filter: drop-shadow(0 0 8px rgba(255,194,74,1)); width: 44px; margin-left: -22px; font-size: 13px; }
+#radar .rd-arrow.ult i { font-size: 30px; animation: rd-late .9s ease-in-out infinite; }
+#radar .rd-arrow.ac { color: #ff4fd8; filter: drop-shadow(0 0 9px rgba(255,79,216,1)); }
+@keyframes rd-late { 0%, 100% { transform-origin: 50% 50%; opacity: .75; } 50% { opacity: 1; } }
 
 /* Limbo vivo: panel de NPC y cartel de interacción (src/client/mundo-vivo.js) */
 #npcpanel { position: fixed; inset: 0; z-index: 38; display: flex; align-items: center; justify-content: center; background: rgba(4,2,12,.55); padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }

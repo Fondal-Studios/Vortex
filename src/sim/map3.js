@@ -59,12 +59,66 @@ export function makeMap3() {
     eyes: (n) => Array.from({ length: n }, (_, k) => { const a = (k / n) * Math.PI * 2; return v3(Math.cos(a) * 22, 20 + (k % 2) * 6, Math.sin(a) * 22); }),
     boss: v3(0, 26, 0),
   };
-  const mSolids = [slab]; // criaturas: sólo el suelo (atraviesan muros)
+  // RUTAS PARA CRIATURAS: los muros ahora frenan también a las criaturas (antes las «atravesaban»: solución equivocada, se veían
+  // pasar por las paredes). Para que igual lleguen hasta el jugador, calculan por dónde ir con una búsqueda por celdas (todas las
+  // rutas más cortas entre las 81 celdas, precalculadas una vez) y cruzan cada celda por la mitad del lado abierto.
+  const NC = N * N, nextHop = new Int16Array(NC * NC).fill(-1), cellIx = (i, j) => i * N + j;
+  const open = (i, j, k) => (k === 0 ? i > 0 && !maze.vw[i][j] : k === 1 ? i < N - 1 && !maze.vw[i + 1][j] : k === 2 ? j > 0 && !maze.hw[i][j] : j < N - 1 && !maze.hw[i][j + 1]);
+  const DI = [-1, 1, 0, 0], DJ = [0, 0, -1, 1];
+  for (let d = 0; d < NC; d++) { // anchura desde cada destino: nextHop[src*NC+dst] = celda vecina a la que hay que ir
+    const q = [d]; nextHop[d * NC + d] = d;
+    for (let h = 0; h < q.length; h++) {
+      const c = q[h], ci = Math.floor(c / N), cj = c % N;
+      for (let k = 0; k < 4; k++) { if (!open(ci, cj, k)) continue; const nb = cellIx(ci + DI[k], cj + DJ[k]); if (nextHop[nb * NC + d] === -1) { nextHop[nb * NC + d] = c; q.push(nb); } }
+    }
+  }
+  const cellOf = (p) => cellIx(Math.max(0, Math.min(N - 1, Math.floor((p.x + half) / CELL))), Math.max(0, Math.min(N - 1, Math.floor((p.z + half) / CELL))));
+  const cellMid = (c) => ({ x: maze.X(Math.floor(c / N)) + CELL / 2, z: maze.Z(c % N) + CELL / 2 });
+  /** ¿El segmento A→B (en planta) pasa libre de muros con margen `mg`? */
+  const segLibre = (ax, az, bx, bz, mg) => {
+    const dx = bx - ax, dz = bz - az;
+    for (const w of walls) {
+      let t0 = 0, t1 = 1, ok = true;
+      const lo = [w.c.x - w.h.x - mg, w.c.z - w.h.z - mg], hi = [w.c.x + w.h.x + mg, w.c.z + w.h.z + mg], p0 = [ax, az], dd = [dx, dz];
+      for (let k = 0; k < 2 && ok; k++) {
+        if (Math.abs(dd[k]) < 1e-9) { if (p0[k] <= lo[k] || p0[k] >= hi[k]) ok = false; }
+        else { let a = (lo[k] - p0[k]) / dd[k], b = (hi[k] - p0[k]) / dd[k]; if (a > b) [a, b] = [b, a]; t0 = Math.max(t0, a); t1 = Math.min(t1, b); if (t0 >= t1) ok = false; }
+      }
+      if (ok) return false;
+    }
+    return true;
+  };
   return {
     id: 'm3', name: 'Laberinto Celestial', solids, walls, maze, portals, zones: [], islands: [{ x: 0, z: 0, r: half, top: 0, y0: -6, hang: false }],
-    mapM: { solids: mSolids }, center: v3(0, 10, 0), bounds: half + 60, voidY: -60, bossAnchor: v3(0, 26, 0), spots,
+    flyMin: H + 2.4, center: v3(0, 10, 0), bounds: half + 60, voidY: -60, bossAnchor: v3(0, 26, 0), spots,
     playerSpawn: (i) => add(cellC(0, N - 1), v3(((i % 4) - 1.5) * 2.5, 0, 0)),
     gravityAt() { return DOWN; }, timeScaleAt() { return 1; },
+    /** Dirección de marcha de una criatura terrestre: derecho si no hay muros en medio; si no, por la ruta de celdas (se recalcula cada 0,3 s). */
+    steer(game, m, wish) {
+      const l = Math.hypot(wish.x, wish.z); if (l < 1e-6) return wish;
+      let tgt = null, bd = Infinity;
+      for (const p of game.players) { if (p.dead) continue; const d = Math.hypot(p.pos.x - m.pos.x, p.pos.z - m.pos.z); if (d < bd) { bd = d; tgt = p; } }
+      if (!tgt) return wish;
+      const toT = (wish.x * (tgt.pos.x - m.pos.x) + wish.z * (tgt.pos.z - m.pos.z)) / (l * (bd || 1));
+      let out = wish;
+      if (toT > 0.3) { // sólo si la marcha es hacia el jugador (huir o rodear sigue su propio rumbo)
+        if (!m._nv || game.time - m._nv.t > 0.3) {
+          const mg = (m.r || 1) + 0.6; let wp = null;
+          if (!segLibre(m.pos.x, m.pos.z, tgt.pos.x, tgt.pos.z, mg)) {
+            const a = cellOf(m.pos), b = cellOf(tgt.pos), nx = nextHop[a * NC + b];
+            if (nx >= 0 && nx !== a) {
+              const ca = cellMid(a), cn = cellMid(nx), edge = { x: (ca.x + cn.x) / 2, z: (ca.z + cn.z) / 2 };   // punto medio del lado abierto
+              wp = Math.hypot(edge.x - m.pos.x, edge.z - m.pos.z) > 3.2 && segLibre(m.pos.x, m.pos.z, edge.x, edge.z, mg * 0.8) ? edge : cn;
+              if (wp === cn && !segLibre(m.pos.x, m.pos.z, cn.x, cn.z, mg * 0.5)) wp = edge;
+            } else wp = cellMid(b);
+          }
+          m._nv = { t: game.time, wp };
+        }
+        const wp = m._nv.wp;
+        if (wp) { const dx = wp.x - m.pos.x, dz = wp.z - m.pos.z, dl = Math.hypot(dx, dz) || 1; out = { x: dx / dl * l, y: 0, z: dz / dl * l }; }
+      }
+      return out;
+    },
     outOfBounds(p) { return p.y < this.voidY || Math.abs(p.x) > half + 40 || Math.abs(p.z) > half + 40; },
     islandAt() { return this.islands[0]; },
     spawnGround(r, ref) {

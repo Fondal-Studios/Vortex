@@ -261,7 +261,7 @@ export class Renderer {
     if (this.nfx) { try { this.nfx.update(dt, state, me); } catch (err) { console.warn('nfx', err.message); this.nfx = null; } }
     if (this.flfx) { try { this.flfx.update(dt, state, me); } catch (err) { console.warn('flfx', err.message); this.flfx = null; } }
     if (this.ffx) { try { this.ffx.update(dt, state, me); } catch (err) { console.warn('ffx', err.message); this.ffx = null; } }   // fauna consumible
-    this.updateDying(dt); this.updateGuide(dt, me);
+    this.updateDying(dt); this.updateAvisos(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
     if (me) this.updateCamera(me, dt, look);
@@ -400,6 +400,7 @@ export class Renderer {
         if (e.kick > 0.01) { e.kickT += dt; e.kick *= Math.exp(-dt * 7); const w = Math.sin(e.kickT * 38) * e.kick * 0.13; o.scale.set(scale * (1 + w), scale * (1 - w * 1.3), scale * (1 + w)); } else o.scale.setScalar(scale);
       }
       this.orient(o, m.u, m.f);
+      this.faro(e, m, state, scale);   // faro de rastreo: rezagadas en acoso y últimas criaturas de la oleada (se ven a través de muros)
       this.updateBar(e, m);
       const boss = m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'; this.tmpV.copy(this.camera.position).sub(o.position); const far = !boss && (this.tmpV.length() > cfg().lod + m.r * 2 || !full.has(m.id));
       if (far !== e.far) { e.far = far; e.object.children[0].visible = !far; e.proxy.visible = far; }
@@ -414,6 +415,36 @@ export class Renderer {
     }
     for (const [id, e] of this.ents.mon) if (!seen.has(id)) { if (e.bar) { this.barRoot.remove(e.bar); e.bar = null; } this.ents.mon.delete(id); e.dyingT = 0; e.dyingMax = e.kind === 'coloso' || e.kind === 'madre' || e.kind === 'argos' ? 1.8 : 0.5; e.base = e.object.scale.clone(); this.dying.push(e); }
   }
+  /** FARO DE RASTREO (política «sin teletransportes», docs/MUNDO_VIVO.md): una columna de luz + halo grande sobre las criaturas en acoso (`m.ac`) y sobre
+   *  las últimas de la oleada (≤ 6 sin jefe), dibujados SIN profundidad: se ven a través de paredes y niebla. Magenta = acosando; ámbar = de las últimas. */
+  faro(e, m, state, scale) {
+    const ultima = state.left <= 6 && !state.boss && !(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'), on = !!m.ac || ultima;
+    if (!on) { if (e.faro) { e.faro.visible = false; } return; }
+    if (!e.faro) {
+      const g = new THREE.Group(); g.name = 'faro';
+      const hm = (c) => this.shared('faro' + c, () => new THREE.SpriteMaterial({ map: this.halo, color: c, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0.8 }));
+      const col = new THREE.Sprite(hm(0xffffff)); col.name = 'col'; g.add(col);
+      const hal = new THREE.Sprite(hm(0xffffff)); hal.name = 'hal'; g.add(hal);
+      col.renderOrder = hal.renderOrder = 998; e.object.add(g); e.faro = g; e.faroC = 0;
+    }
+    const c = m.ac ? 0xff4fd8 : 0xffc24a;
+    if (e.faroC !== c) { e.faroC = c; const mat = this.shared('faro' + c, () => new THREE.SpriteMaterial({ map: this.halo, color: c, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0.8 })); e.faro.getObjectByName('col').material = mat; e.faro.getObjectByName('hal').material = mat; }
+    const k = 1 / Math.max(0.2, scale), pul = 0.85 + 0.15 * Math.sin(this.t * 6 + m.id);
+    e.faro.visible = true;
+    const col = e.faro.getObjectByName('col'), hal = e.faro.getObjectByName('hal');
+    col.scale.set(2.2 * k, 46 * k, 1); col.position.set(0, 21 * k, 0);   // columna vertical (hacia arriba del mundo; el objeto está orientado con su «arriba»)
+    hal.scale.setScalar(9 * k * pul);
+  }
+  /** Marcas de aviso en el suelo (nacimientos `omen`, llegada del Pombero `tele`): un anillo que late hasta que se cumple el plazo. */
+  updateAvisos(dt) {
+    if (!this.avisos || !this.avisos.length) return;
+    for (let i = this.avisos.length - 1; i >= 0; i--) {
+      const a = this.avisos[i]; a.left -= dt; a.tick -= dt;
+      if (a.tick <= 0) { a.tick = 0.32; this.fx.ring(a.p, a.n, a.color, a.r, 0.5, { op: 0.9, lift: 0.08 }); this.fx.flash(a.p.clone().addScaledVector(a.n, 0.6), a.color, 1.4, 0.3, { op: 0.8 }); }
+      if (a.left <= 0) this.avisos.splice(i, 1);
+    }
+  }
+  addAviso(p, up, color, r, secs) { (this.avisos = this.avisos || []).push({ p: V(p), n: up ? V(up).normalize() : new THREE.Vector3(0, 1, 0), color, r, left: secs, tick: 0 }); if (this.avisos.length > 24) this.avisos.shift(); }
   /** Muerte: la criatura se desploma y se desinfla mientras salen esquirlas (ver evento 'kill'). */
   updateDying(dt) {
     for (let i = this.dying.length - 1; i >= 0; i--) {
@@ -548,6 +579,13 @@ export class Renderer {
         case 'boom': C.event(e); this.shake = Math.max(this.shake, Math.min(1, 12 / (near(e.p) + 4)) * (C.reduced ? 0.2 : 1)); break;
         case 'portal': this.fx.blast(V(e.p), 0x66ffff, 4, 0.5); break;
         case 'summon': this.fx.blast(V(e.p), 0xff7a45, 6, 0.7); break;
+        case 'omen': this.addAviso(e.p, me ? me.up : null, 0xff7a45, 2.6, e.in || 1.1); break;   // aviso de nacimiento: la criatura aparece AHÍ, no salta
+        case 'tele': { // el Pombero avisa: marca en el punto de llegada + rastro hasta ahí durante todo el aviso
+          this.addAviso(e.p, me ? me.up : null, 0xff5ad0, 2.2, e.in || 0.9);
+          const a = V(e.a), b = V(e.p); for (let t = 0; t < 3; t++) this.fx.line(a, b, 0xff5ad0, 0.12, (e.in || 0.9) * (1 - t * 0.25), { a0: 0.7, a1: 0.2 });
+          break; }
+        case 'acoso': this.fx.blast(V(e.p), 0xff4fd8, 5, 0.6); break;   // empieza a acosarte: faro y flecha de radar
+        case 'desint': { const p = V(e.p); this.fx.blast(p, 0x9a7bff, 5, 0.7); this.fx.burst(p, 0xb89cff, 40, 7, 0.9, 0.7); this.fx.flash(p, 0xffffff, 3, 0.25); break; }   // desintegración visible (atascada o fuera del mapa)
         case 'gravity': this.fx.blast(V(e.p), 0x6a7bff, 60, 1.0); break;
         case 'phase': this.shake = 1.5; break;
         case 'bite': break;

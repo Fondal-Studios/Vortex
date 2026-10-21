@@ -26,6 +26,8 @@ import { initFlora, tickFlora, flSnap, flVel, flRecibe, floraRayo, floraExplosio
 import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, limitarCaida } from './eventos.js';
 import { initFauna, initFaunaPlayer, tickFauna, shapeFauna, faunaSnap, faunaPlayerSnap } from './fauna.js';   // fauna consumible y metamorfosis (src/sim/fauna.js, docs/FAUNA.md)
 import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
+import { tickRezagados, tickAcoso, marcarAcoso, desintegrar } from './rezagados.js';   // sin teletransportes: acoso, marcas y desintegración visible
+import { resolverTodas, empujar, radioCol, colocarCerca } from './colision.js';   // colisión de criaturas con el mundo
 import { initCult, tickCultivo, feedCapullo } from './cultivo.js';
 import { ROLES, ROLE_IDS } from './data.js';
 
@@ -153,7 +155,7 @@ export class Game {
     for (const m of this.monsters) this.updateMonster(m, dt);
     this.updateProjectiles(dt);
     this.updatePickups(dt); updateLoot(this, dt);
-    this.separate();
+    this.separate(); resolverTodas(this);   // y se sacan de los sólidos las criaturas que quedaron adentro
     if (this.monsters.some((m) => m.dead)) this.monsters = this.monsters.filter((m) => !m.dead);
     this.stats.maxAlive = Math.max(this.stats.maxAlive, this.monsters.length);
     if (this.players.length && this.players.every((p) => p.dead)) { this.state = 'lost'; this.emit({ t: 'lost' }); }
@@ -194,15 +196,8 @@ export class Game {
     }
     if (this.director.wantsRelief()) { const a = this.alivePlayers(); if (a.length) this.dropPickup('hp', madd(a[0].pos, a[0].up, 2)); }
     if (this.queue.length > 3 && this.director.wantsSurge()) { const sp = this.curTypes.filter((t) => ['obelisco', 'aurora', 'espiral', 'graviton', 'cuarzo'].includes(t)); if (sp.length) { this.queue.splice(1, 0, this.rng.pick(sp), this.rng.pick(sp)); this.emit({ t: 'surge' }); } }
-    // rezagados: si pasan 40 s sin bajas y quedan criaturas lejos, el Vórtice las "empuja" hacia los jugadores (evita oleadas eternas)
-    const left = this.monsters.filter((m) => !m.dead && !m.def.boss);
-    if (!this.queue.length && !this.omens.length && left.length && left.length === this.monsters.filter((m) => !m.dead).length) {
-      this.straggleT = (this.straggleT || 0) + dt;
-      if (this.straggleT > (left.length <= 4 ? 6 : 25)) {   // las últimas criaturas vienen a buscarte: nunca hay que salir a cazarlas por el mapa
-        this.straggleT = 0; const ref = this.alivePlayers()[0];
-        if (ref) for (const m of left) if (dist(m.pos, ref.pos) > 28) { m.pos = m.def.fly ? this.map.spawnAir(this.rng, ref.pos, ref.up) : this.map.spawnGround(this.rng, ref.pos); m.vel = v3(); this.emit({ t: 'blink', p: a3(m.pos) }); }
-      }
-    } else this.straggleT = 0;
+    // rezagados: las últimas criaturas YA NO se teletransportan; se las acosa hacia el jugador y se las marca (src/sim/rezagados.js)
+    tickRezagados(this, dt);
     if (!this.queue.length && !this.omens.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
       misionFin(this); finOleada(this);
@@ -307,6 +302,8 @@ export class Game {
     if (extra.affix && !def.boss) m.elite = true;
     if (!def.boss && this.evSpeedMul !== 1) m.speedMul *= this.evSpeedMul;   // Marea de Sangre: horda veloz
     if (m.elite && !def.boss) { m.affix = extra.affix || AFFIX_IDS[Math.floor(this.rng.next() * AFFIX_IDS.length)]; if (m.affix === 'veloz') m.speedMul *= 1.35; }
+    if (extra.parent && !def.boss) { const par = this.monsters.find((q) => q.id === extra.parent); if (par) colocarCerca(this, m, par); }   // invocadas: nunca detrás de un muro del invocador
+    else if (!def.boss) collide(this.map, m.pos, null, radioCol(m), null);   // y nadie nace metido en un sólido
     this.monsters.push(m);
     if (def.boss) { this.boss = m; if (kind === 'coloso') initColoso(this, m); else if (kind === 'argos') initArgos(this, m); else initMadre(this, m); }
     this.stats.spawned++;
@@ -657,23 +654,29 @@ export class Game {
       m.hp -= m.dotDps * dt; m.hurt = Math.max(m.hurt, 0.05);
       if (m.hp <= 0) { this.killMonster(m, this.players.find((q) => q.id === m.dotBy) || null); return; }
     }
+    if (m.slide) { empujar(this, m, mul(m.slide.v, dtm)); if ((m.slide.t -= dt) <= 0) m.slide = null; }   // deslizamientos cortos (esquiva del Pombero)
     m.t += dtm; m.hurt = Math.max(0, m.hurt - dt);
     const targets = this.alivePlayers().filter((q) => (this.time >= (q.cloakUntil || 0) || dist(q.pos, m.pos) < 6) && !ngOculta(this, q, m));   // camuflaje: te pierden salvo muy cerca
-    if (m.passive && targets.length) { const d = sub(targets[0].pos, m.pos), up = m.up || v3(0, 1, 0); m.fwd = norm(project(d, up), m.fwd); }
-    else if (targets.length) AI[m.def.ai](this, m, dtm, targets);
+    const acosada = !!m.acoso && !m.passive && targets.length > 0 && !m.def.boss && tickAcoso(this, m, dtm, targets);   // rezagada: la mueve el acoso (visible), no su IA
     if (m.dead) return;
-    if (!finite(m.pos) || this.map.outOfBounds(m.pos)) { m.dead = true; if (m.parent) { const par = this.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); } if (m.def.boss) { m.pos = clone(this.map.bossAnchor); m.dead = false; m.vel = v3(); } return; }
-    // reubicar rezagados (fuera de alcance mucho tiempo)
-    if (targets.length && !m.def.boss) {
+    if (m.passive && targets.length) { const d = sub(targets[0].pos, m.pos), up = m.up || v3(0, 1, 0); m.fwd = norm(project(d, up), m.fwd); }
+    else if (targets.length && !acosada) AI[m.def.ai](this, m, dtm, targets);
+    if (m.dead) return;
+    if (!finite(m.pos) || this.map.outOfBounds(m.pos)) {   // fuera del mapa: se desintegra a la vista (sin botín); el jefe vuelve a su ancla
+      if (m.def.boss) { m.pos = clone(this.map.bossAnchor); m.vel = v3(); return; }
+      if (!finite(m.pos)) { m.dead = true; if (m.parent) { const par = this.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); } return; }
+      desintegrar(this, m, 'fuera'); return;
+    }
+    // lejos o inmóvil mucho tiempo: no se reubica; empieza a acosar al jugador (más rápido y derecho hacia él)
+    if (targets.length && !m.def.boss && !m.acoso) {
       let d = Infinity; for (const p of targets) d = Math.min(d, dist(p.pos, m.pos));
       m.far = d > 95 || (d > 55 && m.t > 14 && m.def.speed > 0 && len(m.vel) < 0.5) ? m.far + dt : 0;
-      if (m.far > 7) {
-        const ref = targets[0];
-        m.pos = m.def.fly ? this.map.spawnAir(this.rng, ref.pos, ref.up) : this.map.spawnGround(this.rng, ref.pos);
-        m.vel = v3(); m.far = 0;
-      }
+      if (m.far > 7) { m.far = 0; marcarAcoso(this, m); }
     }
   }
+
+  /** Tramo final de la oleada: sin cola ni avisos y quedan pocas criaturas (≤ 8). Ahí no hay teletransportes ni camuflaje que dificulten rastrearlas. */
+  finalDeOleada() { return this.phase === 'wave' && !this.queue.length && !this.omens.length && this.monsters.reduce((n, q) => n + (q.dead || q.def.boss ? 0 : 1), 0) <= 8; }
 
   separate() {
     const ms = this.monsters, n = ms.length;
@@ -842,7 +845,7 @@ export class Game {
         dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
-        id: m.id, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
+        id: m.id, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
         s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, af: m.affix || undefined, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || !!m.shield, st: !!m.stun || (m.stagger || 0) > 0,
       })),
       projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),

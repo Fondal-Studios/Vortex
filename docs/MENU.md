@@ -88,4 +88,7 @@ PAUSA EN PARTIDA
 - `node --test tests/recorrido-menu.test.js` (toques desde el inicio hasta cada función en 3 tamaños, Q/E, bienvenida, pausa)
 - `node --test tests/tienda-ui.test.js` · `graficos-ui.test.js` · `huespedes-ui.test.js` · `inventario-ui.test.js` · `hud.test.js` (menús vía `tools/shot-menus.js`)
 - Capturas: `node tools/shot-menu5.js shots/menu5 [pantallas] [tamaños]` (4 tamaños, avisa de textos cortados, botones chicos y cosas fuera de pantalla) y `node tools/shot-pausa.js shots/menu5`.
-- **No probado**: iPhone real (Safari), mando físico, lectores de pantalla.
+- Capturas de la versión actual: `shots/menu5/` (4 tamaños × 13 pantallas + pausa).
+- Resultado del 2026-10-21: marca 6/6 · recorrido-menu 6/6 · tienda-ui 7/7 · graficos-ui 3/3 · inventario-ui 3/3 · huespedes-ui 6/6 · hud «menús» 1/1.
+- **No probado**: iPhone real (Safari), mando físico (LB/RB), lectores de pantalla, el menú con la Base en pantalla real de teléfono.
+- **Pendiente conocido**: el Equipo (`#loadout`) repite parte de Huésped y Evolución (habilidades y ranuras de armas); se dejó como pestaña final hasta confirmar que se puede fusionar sin perder nada. La barra propia del HUD de la Base (Jugar · Menú · Salir) no se unificó con la barra del menú a propósito (es inmersiva).

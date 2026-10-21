@@ -9,6 +9,7 @@
 // «Reducir efectos» (input.soft, el mismo interruptor de la gravedad) apaga la deriva de la niebla magenta.
 import { v3, madd, mul, sub, dot, len, dist, norm, project, rotAround, makeRng } from './math.js';
 import { PLAYER } from './data.js';
+import { empujar } from './colision.js';   // arrastre con colisión (no atraviesa muros)
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
@@ -228,7 +229,7 @@ function efectosCriaturas(g, dt, zs) {
         if (m.hp <= 0) { g.killMonster(m, credito(g, m)); }
       } else if (dist(m.pos, z.pos) > z.r * 0.6) {   // cian: tira suave hacia el centro (en el piso: sólo por el plano tangente)
         let dir = norm(sub(z.pos, m.pos)); if (!m.def.fly) dir = norm(project(dir, m.up || z.u), dir);
-        m.pos = madd(m.pos, dir, P.tira * dt);   // arrastre directo (la IA recalcula su velocidad cada paso, un empujón de velocidad no se notaría)
+        empujar(g, m, mul(dir, P.tira * dt));   // arrastre directo (la IA recalcula su velocidad cada paso, un empujón de velocidad no se notaría)
       }
     }
   }
