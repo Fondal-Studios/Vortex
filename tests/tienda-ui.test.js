@@ -62,7 +62,7 @@ test('Tienda: comprar un Huésped pide confirmación, descuenta núcleos, lo vue
   await pg.click('[data-host=colmena]'); assert.match(await pg.textContent('[data-comprar-host=colmena]'), /Falta requisito|No alcanzan/);
   // el Huésped comprado se puede elegir en la pantalla de Huésped
   await pg.evaluate(() => window.__api.ui.show('huesped')); await pg.waitForSelector('#huesped.on'); await pg.click('.hs-chip[data-id="danzante"]');
-  assert.equal(await pg.evaluate(() => localStorage.getItem('cristal.huesped.v1')), 'danzante', 'un toque en un Huésped tuyo ya lo elige'); assert.equal(await pg.textContent('#hspick'), 'Listo ✓'); await pg.click('#hspick'); await pg.waitForSelector('#main.on');   // «Listo» vuelve al inicio
+  assert.equal(await pg.evaluate(() => localStorage.getItem('cristal.huesped.v1')), 'danzante', 'un toque en un Huésped tuyo ya lo elige'); assert.equal(await pg.textContent('#hspick'), 'Listo ✓'); await pg.click('#hspick'); await pg.waitForSelector('#huesped:not(.on)');   // «Listo» vuelve a la pantalla anterior
   assert.deepEqual(errors, [], errors.join('\n')); await ctx.close();
 });
 

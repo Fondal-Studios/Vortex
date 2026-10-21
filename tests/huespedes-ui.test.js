@@ -52,7 +52,7 @@ for (const [vn, w, h, touch] of SIZES) {
       assert.deepEqual(m.problems, [], `${vn} ${id}: ${m.problems.join(' | ')}`);
       assert.ok(m.stage.w > 150 && m.stage.h > 110, `${vn} ${id}: el escenario 3D es muy chico (${Math.round(m.stage.w)}x${Math.round(m.stage.h)})`);
       const nombre = await pg.textContent('#hsname'); assert.match(nombre, new RegExp(id, 'i'));
-      assert.equal(await pg.locator('.hs-ab').count(), 6, 'hab.1, hab.2, hab.3, definitiva, pasiva y melee');
+      assert.equal(await pg.locator('.hs-ab').count(), 7, 'hab.1, hab.2, hab.3, definitiva, pasiva, modo Combo y melee');
       assert.equal(await pg.locator('.hs-stat').count(), 6, 'las 6 estadísticas');
     }
     // los veteranos están en una sección secundaria y no rompen el diseño

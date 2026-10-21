@@ -96,6 +96,7 @@
 .opts-more { margin-top: 2.4vh; } .opts-more > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; padding: 0 16px; border-radius: 14px; background: #ffffff14; border: 1px solid #ffffff33; letter-spacing: .12em; text-transform: uppercase; font-size: 13px; color: #cdd7ff; }
 .opts-more > summary::marker { color: var(--pg); } .opts-more[open] > summary { margin-bottom: 8px; border-color: #ffffff77; color: #fff; }
 .opts-more #touchopts { margin-top: 0; }
+#options .panel select { max-width: 56%; text-overflow: ellipsis; }
 #options .sub { margin: 10px 0 0; letter-spacing: .25em; text-transform: uppercase; font-size: 12px; color: #ffe27a; font-weight: 600; }
 
 /* ── 6 · retoques de cada pantalla: un solo lenguaje, toques ≥ 44 px, sin duplicados ── */
@@ -105,6 +106,9 @@
 #menu[data-tabs="1"] .screen > .stitle { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0 !important; }   /* el título lo da la pestaña activa (queda para lectores de pantalla) */
 .hs-vettoggle { min-height: 44px; }
 .hs-btn { font-size: 12px; letter-spacing: .06em; padding: 0 6px; white-space: normal; line-height: 1.1; }
+/* chips de la pantalla Huésped: el texto no se corta (el rol baja de renglón; en teléfono vertical los chips pasan a 2 filas de 4) */
+.hs-cn small { white-space: normal; overflow-wrap: anywhere; } .hs-chip.chosen .hs-cn small { padding-right: 12px; }
+@media (max-aspect-ratio: 1/1) { .hs-hosts, .hs-vets { flex-wrap: wrap; } .hs-chip { flex: 1 1 calc(25% - 4px); } .hs-cn small { font-size: 8.5px; } }
 .hs-pg-tab, .iv-tab, .ev-mode, .ev-tab, .hx-tab, .tn-tab, .iv-f, .iv-chip, .ev-btn, .hx-hero { min-height: 44px; }
 .iv-tabs { flex-wrap: wrap; }
 /* Bestiario en teléfono y tablet: la rejilla cabe en pantalla y la ficha de la criatura (antes oculta) sube como una hoja desde abajo, igual que la de Fauna y Herbario */
@@ -126,11 +130,13 @@
   .saldo { padding: 0 12px; } .saldo span { display: none; }
   .mb-pills i { padding: 6px 9px; font-size: 11px; letter-spacing: .04em; }
 }
-@media (max-width: 719px) and (min-height: 461px) {   /* teléfono vertical: la fila de pestañas pasa abajo */
+@media (max-width: 959px) and (min-height: 461px) {   /* teléfono vertical y tablet: la fila de pestañas pasa abajo */
   .topbar { flex-wrap: wrap; row-gap: 6px; }
   .tb-tabs { order: 3; flex: 1 1 100%; }
   #menu[data-tabs="1"] .screen:not(#title):not(#main) { padding-top: calc(env(safe-area-inset-top, 0px) + 114px); }
   .tb-tab { padding: 0 13px; }
+}
+@media (max-width: 719px) and (min-height: 461px) {
   .playrow { flex-direction: column; } .elegir { flex-direction: row; gap: 10px; min-height: 52px; }
   #main #mainlist.doors { grid-template-columns: repeat(2, minmax(0, 1fr)); } .door:nth-child(5) { grid-column: 1 / -1; min-height: 100px; }
   .door { min-height: clamp(120px, 17vh, 170px); }
