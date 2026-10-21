@@ -47,17 +47,16 @@ export function iaInit(g, m, mem = null) {
     rs: (((g.seed | 0) ^ 0x7ef1a5) * 2654435761) >>> 0,
     t: 0, sec: 0, acc: 0, tEval: 0, pl: {},
     st: 'neutro', lvl: 0, cur: 'mixed', conf: 0, cand: 'mixed', candT: 0, ult: -99,   // estilo del equipo, candidato y último cambio de postura
-    lag: 0, desc: 0, cambios: 0, avisos: [],
+    lag: 0, desc: 0, cambios: 0,
     prior: mem && mem.s && CONTRA[mem.s] ? mem.s : null,                               // intento anterior: el jefe «recuerda» (pista suave)
     sh: [0, 0, 0], foco: 0, cura: 0, prec: 0, enr: 0, enrOn: false,
   };
-  if (m.ia.prior) m.ia.priorT = 0;
   return m.ia;
 }
 
 const jug = (ia, id) => (ia.pl[id] ||= nuevoJugador());
 function cubeta(ia, pl) { return pl.b[ia.sec % NB]; }
-function sumar(pl, campos) { const v = new Array(NF).fill(0); for (const b of pl.b) for (let i = 0; i < NF; i++) v[i] += b[i]; return campos ? v : v; }
+function sumar(pl) { const v = new Array(NF).fill(0); for (const b of pl.b) for (let i = 0; i < NF; i++) v[i] += b[i]; return v; }
 
 /** Anota un golpe del jugador `by` a la criatura `victim` (de cualquier tipo) con daño `dealt` ya multiplicado. Lo llama game.damageMonster. */
 export function iaGolpe(g, boss, by, victim, dealt) {
@@ -105,10 +104,10 @@ function muestrear(g, boss, dt) {
       if (l > 4) { const n = norm(dd); for (let t = 2; t < l - 4; t += 2) if (blocked(g.map, madd(p.pos, n, t))) { cub = 1; break; } }
       add(F.COV, cub * 2);
     }
-    const tot = p.hp + p.shield; if (pl.hp >= 0 && tot > pl.hp + 6) add(F.HEAL, tot - pl.hp); pl.hp = tot;
+    if (pl.hp >= 0 && p.hp > pl.hp + 3) add(F.HEAL, p.hp - pl.hp); pl.hp = p.hp;   // curación: sube la VIDA (el escudo se regenera solo y no cuenta)
     // cambio de MODO (Disparo ↔ Melé): el jefe se desconcierta y tarda en readaptar
     if (pl.mode && pl.mode !== p.mode && ia.st !== 'neutro' && ia.t > IA.primera) {
-      ia.lag = IA.rezago; ia.desc = Math.min(IA.rezago, 8); ia.avisos.push('desc'); g.emit({ t: 'jia', k: 'desc', id: boss.id });
+      ia.lag = IA.rezago; ia.desc = Math.min(IA.rezago, 8); g.emit({ t: 'jia', k: 'desc', id: boss.id });
       for (const bb of pl.b) for (let i = 0; i < 3; i++) bb[i] *= 0.4;   // olvida rápido el estilo anterior (la memoria larga queda)
     }
     pl.mode = p.mode;

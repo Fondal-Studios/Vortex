@@ -143,18 +143,36 @@ El resumen pesa < 1,2 KB aun con 16 marcas (prueba). Eventos nuevos: `phase {n, 
 | Suite | Qué prueba |
 |---|---|
 | `tests/jefes.test.js` | datos de los 6 jefes · telegrafía ≥ 1 s de cada ataque · nova, zonas, caída/núcleo, picada, reflejo, espinas, silencio, reparto, parto, floración, campanadas, procesión, mirada total · reacción de la IA (< 15 s: melé→antimele, tirador→antidist, habilidades→antihab, esquivador→antipasivo, mixto sin zigzag) · readaptación con retraso al cambiar de modo · topes · determinismo y JSON · snapshot compacto · enfurecimiento · memoria entre intentos |
-| `tests/jefes-bots.test.js` | los 6 jefes caen ante bots tirador, melé y de habilidades pasando por las 4 fases, sin teletransportes |
-| `tests/jefes-balance.test.js` | coste de la adaptación (IA encendida vs apagada) entre −25 % y +45 % por estilo (varias semillas) |
-| `tests/jefes-render.test.js` | presupuesto de render en Chromium (≤ 16 llamadas, ≤ 6 000 triángulos) y barra con fases/postura |
+| `tests/jefes-bots.test.js` | los 6 jefes caen ante bots tirador, melé y de habilidades (≥ 1 victoria de hasta 3 semillas) pasando por las 4 fases, sin teletransportes |
+| `tests/jefes-coop.test.js` | 2, 3 y 4 jugadores de estilos mezclados vencen al jefe; la IA reconoce a cada uno; «Juntos» reparte el golpe entre 4; snapshot < 1,4 KB |
+| `tests/jefes-huespedes.test.js` | los 8 Huéspedes × Disparo/Melé: Disparo → «Muro de reflejos», Melé → «Coraza de espinas» (Colmena → habilidades) |
+| `tests/jefes-balance.test.js` | coste de la adaptación (IA encendida vs apagada) entre −25 % y +45 % por estilo (4 semillas, m1/m5/m6) |
+| `tests/jefes-render.test.js` | presupuesto de render en Chromium (medido: 8–9 llamadas y ≈ 2 340 triángulos con 24 instancias de marca; tope 16 / 6 000) y barra con fases/postura en las 6 arenas |
 
 Herramientas: `node tools/shot-jefes.mjs m5 campanadas,nova,descenso` (capturas de telegrafías), `tools/jefe-bots.js` (`pelea({ mapId, estilos, ia })`).
 `mecForzar(g, boss, 'zonas')` arranca un ataque a pedido (pruebas y modo desarrollo); los interruptores `CTL` de jefe-ia.js (`apagada`, `sinResist`, `sinEfectos`, `sinPesos`) permiten medir cada parte.
 
 ### Equilibrio entre estilos: lo que se midió (y lo que no)
-Con bots, el tirador y el melé tardan parecido (40–120 s contra la mayoría de los jefes) y el bot de **habilidades** (Singular) es 2–5 veces más lento contra los escudos de los
-jefes (150–570 s): su daño sólo cuenta bien en las ventanas. Es una diferencia del jugador de prueba y de los escudos de siempre, **no** de la adaptación (el coste de ésta está acotado
-arriba). No se ajustaron los escudos 0,05 de Mandinga/Basilisco para no tocar el diseño de siempre; si la sensación humana lo pide, el lugar es `BOSS_MECH.shield`.
-Quedan sin probar con personas: la sensación de las telegrafías, el cine, el iPhone, el cooperativo real por red y el equilibrio fino con mejoras de partida completa.
+**Tiempos de victoria de los bots (1 jugador, en segundos de combate contra el jefe, mejor de hasta 3 semillas; `tests/jefes-bots.test.js`):**
+
+| Jefe | Tirador | Melé | Habilidades |
+|---|---|---|---|
+| m1 Mandinga | 57 | 50 | 59 |
+| m2 Madre | 111 | 77 | 131 |
+| m4 Basilisco del Jardín | 75 | 140 | 444 |
+| m5 Mandinga del Reloj | 40 | 35 | 74 |
+| m6 Basilisco del Osario | 83 | 73 | 190 |
+| m3 Basilisco (laberinto) | 97 | 141 | 214 |
+
+**Coste de la adaptación** (tiempo con IA ÷ tiempo con IA apagada − 1, promedio de 4 semillas; `tests/jefes-balance.test.js`):
+tirador +23 / +30 / +26 % (m1 / m5 / m6) · melé −1 / −19 / −5 % · habilidades −2 / +17 / +27 %. Todo dentro del rango de la prueba (−25 % a +45 %): la adaptación molesta al estilo
+contrarrestado (sobre todo al tirador, que es el más común) pero no lo vuelve injusto.
+
+**Lo que NO está equilibrado:** entre estilos, el tirador y el melé quedan parejos (±30 % en la mayoría), pero el bot de **habilidades** (Singular, con su arma entre poderes) tarda 1,2–4× más
+contra los escudos de Basilisco y Mandinga: su daño sólo cuenta bien en las ventanas y el bot no rompe los ojos con sus poderes. Es una diferencia del jugador de prueba y de los escudos de siempre
+(`BOSS_MECH.shield` = 0,05), **no** de la adaptación; no se tocaron esos escudos para no cambiar el diseño de siempre. Los bots de **melé** a veces mueren por las escoltas del jefe
+(laberinto: 1 victoria de 3 semillas; el resto 2–3 de 3): la prueba pide al menos 1 victoria por jefe y estilo. Con `kit: 2` (botiquines de la Tienda) los bots llegan como quien juega la partida completa.
+**Quedan sin probar con personas:** la sensación de las telegrafías y del cine, el iPhone, el cooperativo real por internet y el equilibrio fino con las mejoras de una partida completa.
 
 ## Cómo agregar un jefe o un ataque
 1. Datos: `JEFES[mapa]` (nombre, cuerpo, fases, único, arena) y, si es un ataque nuevo, su entrada en `REPERTORIO` (fase, peso, pesos por postura).

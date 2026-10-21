@@ -64,7 +64,7 @@ export class JefesFx {
     this.shield = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x6ad8ff, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide }));
     this.shield.visible = false; this.shield.name = 'jefe-escudo'; this.shield.renderOrder = 9; this.root.add(this.shield);           // 80
     const halo = renderer.halo || null;
-    this.core = new THREE.Sprite(new THREE.SpriteMaterial({ map: halo, color: 0xffd060, transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
+    this.core = new THREE.Sprite(new THREE.SpriteMaterial({ map: halo, color: 0xffd060, transparent: true, opacity: 0, depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending }));
     this.core.visible = false; this.core.name = 'jefe-nucleo'; this.core.renderOrder = 10; this.root.add(this.core);                  // 2
     this.q = new THREE.Quaternion(); this.m4 = new THREE.Matrix4(); this.v = new THREE.Vector3(); this.v2 = new THREE.Vector3(); this.s = new THREE.Vector3(); this.up = new THREE.Vector3(0, 1, 0); this.col = new THREE.Color();
     if (typeof document !== 'undefined') {
@@ -119,7 +119,7 @@ export class JefesFx {
       this.shield.material.color.setHex(mc.sp > 0 ? 0xff6a3a : 0x6ad8ff); this.shield.material.opacity = prep ? 0.1 + 0.12 * Math.abs(Math.sin(this.t * 12)) : 0.24;
     } else this.shield.visible = false;
     // núcleo expuesto / ventana de vulnerabilidad
-    if (bm && (mc.nu > 0 || mc.bj > 0)) { this.core.visible = true; this.core.position.set(bm.p[0], bm.p[1], bm.p[2]); this.core.scale.setScalar((bm.r * 2.6) * (1 + 0.08 * Math.sin(this.t * 7))); this.core.material.opacity = mc.nu > 0 ? 0.85 : 0.45; this.core.material.color.setHex(mc.nu > 0 ? 0xffd060 : 0xff9a5a); }
+    if (bm && (mc.nu > 0 || mc.bj > 0)) { this.core.visible = true; this.core.position.set(bm.p[0], bm.p[1], bm.p[2]); this.core.scale.setScalar((bm.r * 2.0) * (1 + 0.08 * Math.sin(this.t * 7))); this.core.material.opacity = mc.nu > 0 ? 0.5 : 0.28; this.core.material.color.setHex(mc.nu > 0 ? 0xffd060 : 0xff9a5a); }
     else this.core.visible = false;
     if (this.dark) this.dark.classList.toggle('on', mc.dk > 0 && !this.reducido);
   }

@@ -81,6 +81,7 @@ test('Gravitón (El Familiar) DENTRO de la Marea de Gravedad: carga y luego invi
 
 function bossFight(mapId, kind) {
   const { g, p } = arena(mapId); g.wave = g.waveTotal; g.phase = 'wave'; g.queue = [];
+  g.director.wantsRelief = () => false; g.ng = null;   // el jugador de prueba es un blanco quieto con vida enorme: un botiquín de alivio o la niebla restauradora la bajarían a 100 (los jefes ahora tienen mecánicas que pegan)
   const b = g.spawnMonster(kind, g.map.bossAnchor); b.t = 0;
   return { g, p, b };
 }
