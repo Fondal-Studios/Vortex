@@ -4,7 +4,7 @@ La Base es un **mapa-hub caminable** (como el Orbiter de Warframe): un santuario
 Cada pantalla que ya existía (Forja, Tienda, Huésped, Territorios, Bestiario…) tiene acá una **estación física**: te parás al lado y tocás **USAR** (E en PC).
 **No reemplaza al menú**: todas las pantallas siguen en el menú; la Base es una forma más inmersiva de llegar a ellas.
 
-- Entrar: menú **Jugar › La Base**, la URL `?state=base`, o el botón **Entrar a la Base** al terminar una partida (ajuste en **Opciones › Al terminar una partida**; por defecto «Entrar a la Base»).
+- Entrar: menú **La Base** (la primera puerta del inicio, 1 toque), la URL `?state=base`, o el botón **Entrar a la Base** al terminar una partida (ajuste en **Opciones › Al terminar una partida**; por defecto «Entrar a la Base»).
 - Salir: botón **Salir** (vuelve al título), **Menú** (abre el menú encima de la Base) o **Jugar** (abre las Arenas) del HUD de la Base. Desde cualquier pantalla abierta en la Base, **Volver** o Esc te devuelve al mapa.
 - Controles: los mismos de siempre (WASD / palanca, mouse / cámara de la mano, **E / USAR**, **P / 👁** cambia 1.ª ↔ 3.ª persona). Sin disparo, sin habilidades, sin modo Melé: los botones de combate no hacen nada (la simulación los apaga) y el HUD táctil esconde todo salvo palanca, salto, USAR y pausa.
 
@@ -60,7 +60,7 @@ Los capullos de los Huéspedes y las cubas se actualizan solos cada ~0,4 s desde
 | `src/client/base-fx.js` | La **animación**: cubas, pieza flotante, pines de la Mesa, capullos, plantas del jardín, gemas, puntitos «!» y resalte del piso cerca de una estación. |
 | `src/client/base-hud.js` | El **HUD propio y mínimo** (saldo, materiales, objetivo sugerido, Jugar · Menú · Salir, cartel «E · Usar», mini-menús, panel del Jardín, frases, tutorial) y su parte pura (`recolectarDatos`, `avisosEstaciones`, `objetivoBase`, `mmss`). Sólo engancha con `main.js` en `startBase / baseAbrir / baseCerrar / baseFrame`. |
 | `src/client/perfil.js` | `base = { vis, tut, jardin[6] }` (saneado al cargar; un perfil viejo se abre igual), `visitarEstacion`, `tutorialBaseListo`, `sembrar`, `cosechar`, `jardinEstado`, `avisosBase`. |
-| `src/client/menu-nav.js` · `menu-hubs.js` · `ui.js` | Tarjeta «La Base» en el hub Jugar (con puntito), `ui.go('base')` → entra al mapa, y `ui.desdeBase` para que «Volver» cierre el menú y regrese al mapa. |
+| `src/client/menu-nav.js` · `menu-hubs.js` · `ui.js` | Puerta «La Base» del inicio (con puntito; `PUERTAS` en menu-nav.js), `ui.go('base')` → entra al mapa, y `ui.desdeBase` para que «Volver» cierre el menú y regrese al mapa. Mapa completo del menú: docs/MENU.md. |
 | `src/client/render.js` · `audio.js` · `post.js` · `quality.js` | Enganches puntuales: `loadBase()`, `baseFx.update`, NPC rehechos como humanos al cargar el kit, música calma de la Base (pentatónica mayor, sin pulso de combate), preajuste de color cálido y `MAP_OSCURO.base`. |
 
 ## Presupuesto de dibujo (Baja)
@@ -103,7 +103,7 @@ Capturas reales con Chromium por software en 1280×720 y 844×390, Baja y Alta (
 ## Limitaciones y cosas que quedan
 
 - **Cooperativo**: sin presencia multijugador. Integrarlo pide que el servidor (`server/`) acepte una sala «base» sin oleadas; la simulación ya es apta (sin azar), pero queda fuera de esta entrega. La estación sólo abre el panel de salas.
-- **Polígono**: reusa el Campo de pruebas existente (sale de la Base: al terminar, Menú › Jugar › La Base). Los maniquíes de la Base son decorado; el medidor de daño no está.
+- **Polígono**: reusa el Campo de pruebas existente (sale de la Base: al terminar, Menú › La Base). Los maniquíes de la Base son decorado; el medidor de daño no está.
 - Los capullos muestran una silueta de alma por Huésped (no su modelo 3D completo): el Huésped elegido es tu propio personaje, visible en 3.ª persona.
 - Se puede salir de la Base sin guardar nada: no tiene partida (`bankProfile` la ignora), sólo el perfil de siempre.
 

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { MARCA, aplicarMarca } from '../src/client/marca.js';
-import { migas, migasTexto, PANTALLAS, HUBS, PUERTAS, continuarDe, avisos, rutaObjetivos } from '../src/client/menu-nav.js';
+import { migas, migasTexto, PANTALLAS, SECCIONES, SECCION_DE, PUERTAS, tabActiva, avisosPuertas, continuarDe, avisos, rutaObjetivos } from '../src/client/menu-nav.js';
 
 // El título del juego vive en UNA constante (src/client/marca.js) y no quedan restos del nombre viejo en lo que ve el jugador.
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
@@ -24,14 +24,25 @@ test('marca: aplicarMarca escribe título, logo, subtítulo y carga en el docume
   const doc = { title: '', querySelectorAll: (sel) => { const m = /data-marca="(\w+)"/.exec(sel); if (m) return [els[m[1]]]; return sel.includes('apple-mobile-web-app-title') ? [meta] : []; } };
   aplicarMarca(doc); assert.equal(doc.title, 'VORTEX'); assert.equal(els.logo2.textContent, 'VORTEX'); assert.equal(els.nombre.textContent, 'VORTEX'); assert.equal(els.subtitulo.textContent, MARCA.subtitulo); assert.equal(meta.c, 'Vortex');
 });
-test('menú: 4 puertas, cada pantalla colgada de un hub, migas «Inicio › Mi Huésped › Inventario»', () => {
-  assert.deepEqual(PUERTAS.map((d) => d.id), ['jugar', 'huesped', 'mundo', 'ajustes']);
-  assert.equal(migasTexto('inventario'), 'Inicio › Mi Huésped › Inventario'); assert.equal(migasTexto('tienda'), 'Inicio › Mundo › Tienda'); assert.equal(migasTexto('main'), 'Inicio'); assert.deepEqual(migas('title'), []);
-  const destinos = Object.values(HUBS).flatMap((h) => h.items.map((i) => i.go));
-  for (const d of ['story', 'arenas', 'coop', 'huesped', 'evolucion', 'inventario', 'loadout', 'territorios', 'bestiary', 'tienda', 'graficos', 'options']) assert.ok(destinos.includes(d), `${d} se alcanza desde un hub`);
-  assert.equal(new Set(destinos).size, destinos.length, 'sin duplicados entre hubs');
-  for (const [id, h] of Object.entries(HUBS)) { assert.equal(PANTALLAS[id].padre, 'main'); for (const it of h.items) { assert.equal(PANTALLAS[it.go].padre, id, it.go); assert.ok(it.desc.length > 15, 'cada tarjeta explica qué hace'); } }
-  for (const d of PUERTAS) assert.ok(fs.existsSync(new URL('../' + d.art.replace('./', ''), import.meta.url)), d.art);
+test('menú: 5 puertas, 4 secciones con pestañas, cada pantalla a ≤ 2 pasos del inicio (docs/MENU.md)', () => {
+  assert.deepEqual(PUERTAS.map((d) => d.id), ['base', 'huespedes', 'coleccion', 'coop', 'ajustes']);
+  assert.ok(PUERTAS.length <= 5, 'como máximo 5 puertas secundarias');
+  assert.equal(migasTexto('inventario'), 'Inicio › Huéspedes'); assert.equal(migasTexto('tienda'), 'Inicio › Huéspedes'); assert.equal(migasTexto('main'), 'Inicio'); assert.deepEqual(migas('title'), []);
+  // cada pantalla del menú se alcanza desde una puerta (data-go) o desde una pestaña de la sección de esa puerta
+  const destinos = new Set([...PUERTAS.map((d) => d.go), 'arenas', ...Object.values(SECCIONES).flatMap((S) => S.tabs.map((t) => t.go))]);
+  for (const d of ['story', 'arenas', 'coop', 'huesped', 'evolucion', 'inventario', 'loadout', 'territorios', 'bestiary', 'tienda', 'graficos', 'options', 'base']) assert.ok(destinos.has(d), `${d} se alcanza desde el inicio o una pestaña`);
+  for (const [sid, S] of Object.entries(SECCIONES)) { assert.ok(S.tabs.length >= 2 && S.tabs.length <= 6, sid); for (const t of S.tabs) { assert.ok(PANTALLAS[t.go], `${sid}/${t.t}: pantalla ${t.go} existe`); assert.ok(t.t.length <= 20, 'rótulo corto: ' + t.t); } }
+  for (const p of Object.keys(PANTALLAS)) if (p !== 'main') { assert.equal(PANTALLAS[p].padre, 'main', p + ' cuelga del inicio (un solo nivel)'); assert.ok(SECCION_DE[p], p + ' pertenece a una sección con pestañas'); }
+  for (const d of PUERTAS) { assert.ok(d.desc.length > 15 && d.desc.length < 60, 'una línea de ayuda: ' + d.id); assert.ok(d.icono && d.color, d.id); }
+  // pestaña activa: Inventario y Forja comparten pantalla; Criaturas / Fauna / Herbario también
+  assert.equal(SECCIONES.huespedes.tabs[tabActiva('inventario', { ivtab: 'obj' })].t, 'Inventario'); assert.equal(SECCIONES.huespedes.tabs[tabActiva('inventario', { ivtab: 'for' })].t, 'Forja');
+  assert.equal(SECCIONES.coleccion.tabs[tabActiva('bestiary', { btab: 'h' })].t, 'Herbario'); assert.equal(SECCIONES.coleccion.tabs[tabActiva('bestiary', {})].t, 'Criaturas'); assert.equal(tabActiva('main'), -1);
+  assert.equal(SECCIONES.partidas.tabs[tabActiva('coop')].t, 'Cooperativo');
+});
+test('menú: los puntitos sólo salen donde hay una acción útil', () => {
+  const p = { cores: 700, inventario: [{ u: 'u5' }], menu: { iv: 0 }, terr: { m1: { bend: null } }, arb: {} };
+  const v = avisosPuertas(avisos(p)); assert.ok(v.huespedes >= 1 && v.coleccion === 1, JSON.stringify(v)); assert.equal(v.coop, 0); assert.equal(v.ajustes, 0);
+  assert.deepEqual(avisosPuertas(avisos({ cores: 0, inventario: [], menu: { iv: 0, tv: '' }, terr: {}, arb: {} })).coleccion, 0);
 });
 test('menú: Continuar y avisos salen del perfil', () => {
   assert.deepEqual(continuarDe(null, 'Axioma'), { tipo: 'story', titulo: 'Jugar', sub: 'Empezar la Historia · con Axioma' });

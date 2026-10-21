@@ -7,6 +7,7 @@ import { Game } from '../src/sim/game.js';
 import { HOST_IDS, COMBO_SETS } from '../src/sim/data.js';
 import { sub, norm, dot, len, mul } from '../src/sim/math.js';
 import { arbolCombo, ARBOL_DISPARO, RAMAS, PC_COSTE, cleanArbol, cleanNodos, errorNodo, gastado, costeReinicio, puntosCombo, puntosDisparo, efectosCombo, efectosDisparo, rangoDeEstilo, UMBRAL_ESTILO, RANGOS_ESTILO, NEUTRO_C } from '../src/sim/progresion.js';
+import { PROTOCOLO } from '../src/sim/red.js';
 import { arbolDe } from '../server/server.js';
 
 const T60 = 1 / 60;
@@ -127,7 +128,7 @@ test('servidor: arbolDe acota lo que manda el cliente y viaja por addPlayer / se
   const srv = await startServer({ port: 0, autoTick: false });
   try {
     const ws = new WebSocket(`ws://localhost:${srv.port}/ws`); await new Promise((r) => ws.on('open', r));
-    ws.send(JSON.stringify({ t: 'create', map: 'm1', name: 'x', char: 'seraf', arbol: { combo: ['area3', 'area1', 'area2', 'cadena1'], disparo: ['perfora2'] } }));
+    ws.send(JSON.stringify({ t: 'create', v: PROTOCOLO, map: 'm1', name: 'x', char: 'seraf', arbol: { combo: ['area3', 'area1', 'area2', 'cadena1'], disparo: ['perfora2'] } }));
     await new Promise((r) => { const t = setInterval(() => { if (srv.rooms.size) { clearInterval(t); r(); } }, 20); });
     const pl = [...srv.rooms.values()][0].game.players[0]; assert.deepEqual(pl.arb, { combo: ['area1', 'area2', 'area3'], disparo: [] }, 'el servidor sanea: la rama la fija el primero válido y se exige el orden');
     ws.close();

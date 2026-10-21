@@ -13,7 +13,7 @@ import {
 } from '../src/sim/base.js';
 import { HOST_IDS } from '../src/sim/data.js';
 import { MATERIALS, ITEMS } from '../src/sim/items.js';
-import { HUBS, PANTALLAS, avisos } from '../src/client/menu-nav.js';
+import { PUERTAS, PANTALLAS, avisos, avisosPuertas } from '../src/client/menu-nav.js';
 
 const DT = 1 / 60, MAP = MAPS.base;
 const IDLE = { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, pick: -1 };
@@ -191,9 +191,9 @@ test('perfil: estación visitada, tutorial de la Base y avisos (cultivo de la Fo
 });
 
 /* ───────────────────────── interfaz: partes puras ───────────────────────── */
-test('menú: «La Base» es una tarjeta del hub Jugar, no una pantalla; su puntito sale del perfil', () => {
-  const it = HUBS['hub-jugar'].items.find((x) => x.go === 'base'); assert.ok(it && it.desc.length > 15 && it.aviso === 'base');
-  assert.equal(PANTALLAS.base.padre, 'hub-jugar');
+test('menú: «La Base» es una puerta del inicio, no una pantalla; su puntito sale del perfil', () => {
+  const it = PUERTAS.find((x) => x.go === 'base'); assert.ok(it && it.desc.length > 15 && avisosPuertas({ base: 2, botin: 0, puntos: 0, huesped: 0, bendicion: 0, mision: 0 }).base === 2);
+  assert.equal(PANTALLAS.base, undefined, 'la Base es un mapa (main.js › startBase), no una pantalla del menú');
   const id = PLANTA_IDS[0], T = 1e12, P = PLANTAS[id];
   assert.equal(avisos({ cores: 0, inventario: [], menu: {}, base: { jardin: [{ p: id, t0: T }] } }, T + 1000).base, 0);
   assert.equal(avisos({ cores: 0, inventario: [], menu: {}, base: { jardin: [{ p: id, t0: T }] } }, T + P.t * 1000).base, 1);

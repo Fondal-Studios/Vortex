@@ -2,7 +2,7 @@ import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS, GAME_MODES, HABILIDADES } from '../sim/data.js';
 import { comboAssist } from './combo-assist.js';
-import { Equipo, asegurarHuesped } from './equipo.js';
+import { Equipo, asegurarHuesped, saveEquipo } from './equipo.js';
 import { settings, setSetting, sensFromSlider, sliderFromSens } from './settings.js';
 import { WEAPON_COLORS } from './shotfx.js';
 import { createCombatHud } from './hud-combat.js';
@@ -32,7 +32,8 @@ import { blocked } from '../sim/physics.js';
 import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.js';
 import { Renderer } from './render.js';
 import { Sound } from './audio.js';
-import { NetClient } from './net.js';
+import { createCoopUI } from './coop-ui.js';   // Cooperativo: servidor, lobby e invitación (docs/COOP_ONLINE.md)
+import { poseeHuesped as poseeHuespedSim } from '../sim/tienda.js';
 import { LEVELS, initialClaridad, AutoQuality, isTouchDevice, isIOS, cfg } from './quality.js';
 import { nieblaPorIndice as NIEBLAS_T } from '../sim/nieblas.js';   // nieblas de colores: nombre, color y función por índice
 import * as Graficos from './graficos-ui.js';   // menú «Gráficos»: presets, resolución, efectos, FPS (graficos.js es la parte pura)
@@ -251,18 +252,16 @@ function startSolo(mapId, opts = {}) {
   if (intro) beginIntro(opts.campaign && opts.campaign !== 'm1' ? 'short' : 'full'); else finishIntro();
 }
 
-async function startCoop(create, code, mapId) {
+/** La sala empieza (o se reconecta): coop-ui.js entrega la red ya conectada. */
+function startCoopGame(net, m) {
+  if (session && session.mode === 'coop' && session.net === net) { session.pid = m.pid; renderer.camInit = false; session.look = null; return; }   // volvió tras un corte: sigue la misma partida
   asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
-  const net = new NetClient();
-  try { await net.connect(); } catch (e) { $('menuerr').textContent = e.message; return; }
-  net.onError = (m) => { $('menuerr').textContent = m; };
-  net.welcomed = (m) => { session.map = m.map; session.pid = m.pid; renderer.camInit = false; session.look = null; session.ended = false; $('end').classList.add('hidden'); };
-  session = { mode: 'coop', net, pid: null, map: mapId, ended: false, look: null, touch: useTouch(), intro: null };
-  net.send(create ? { t: 'create', map: mapId, fauna: Perfil.faunaDeLaSala(), name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char), equip: Perfil.equipoParaPartida(Equipo.char), pity: Perfil.perfil().pity } : { t: 'join', room: code, fauna: Perfil.faunaDeLaSala(), name: Story.NAME, char: Equipo.char, slots: Equipo.slots, arbol: Perfil.arbolParaPartida(Equipo.char), equip: Perfil.equipoParaPartida(Equipo.char), pity: Perfil.perfil().pity });
-  await new Promise((r) => { const t = setInterval(() => { if (net.pid || net.closed) { clearInterval(t); r(); } }, 30); setTimeout(() => { clearInterval(t); r(); }, 2500); });
-  if (!net.pid) { session = null; $('menuerr').textContent ||= 'no se pudo entrar a la sala'; return; }
+  session = { mode: 'coop', net, pid: m.pid, map: m.map, ended: false, look: null, touch: useTouch(), intro: null };
+  net.welcomed = (w) => { session.map = w.map; session.pid = w.pid; renderer.camInit = false; session.look = null; session.ended = false; $('end').classList.add('hidden'); };
+  net.onFin = () => { if (session && session.bankWait) { session.bankWait = false; bankProfile(session.lastMe, session.lastState); endGame(session.lastState, session.lastMe); } };
+  net.onError = (msg) => banner(msg, 4000);
   enter(net.map);
-  if (!params.get('skipintro')) beginIntro('short'); else finishIntro();
+  if (!params.get('skipintro') && !m.reanudado) beginIntro('short'); else finishIntro();   // si volvés tras recargar la página, no se repite la intro
 }
 
 function enter(mapId) {
@@ -479,7 +478,7 @@ function frame(now) {
   renderer.render(state, dt, session.pid, session.look);
   try { if (!botin) botin = createBotin(THREE, renderer.scene, $('hud')); botin.update(state, me, dt); } catch (err) { if (!window.__botinErr) { window.__botinErr = err; console.warn('Botín:', err.message); } botin = botin || { update() {}, event() {} }; }
   audioAndHud(state, me, dt);
-  if (!session.ended && (state.state === 'won' || state.state === 'lost')) endGame(state, me);
+  if (!session.ended && (state.state === 'won' || state.state === 'lost')) { if (session.mode === 'coop' && !session.net.fin && (session.endWait = (session.endWait || 0) + dt) < 2) { session.lastState = state; session.lastMe = me; session.bankWait = true; } else { session.bankWait = false; endGame(state, me); } }
 }
 const lite = (g) => ({ map: g.mapId, monsters: g.monsters.map((m) => ({ p: [m.pos.x, m.pos.y, m.pos.z], c: m.cloak })), players: g.players.map((p) => ({ pos: [p.pos.x, p.pos.y, p.pos.z], up: [p.up.x, p.up.y, p.up.z], h: [p.heading.x, p.heading.y, p.heading.z], pitch: p.pitch, dead: p.dead })) });
 
@@ -644,7 +643,7 @@ function audioAndHud(state, me, dt) {
     updateWeaponHud(me);
     if (state.players.length > 1) {
       const c = $('coop'); c.classList.remove('hidden');
-      c.innerHTML = 'Sala ' + (session.net ? session.net.room : '') + '<br>' + state.players.map((p) => `${p.id === me.id ? '▶' : ' '} ${p.name} ${p.id} ${p.dead ? `✖ ${Math.round(p.rv / 3 * 100)}%` : p.hp}`).join('<br>');
+      c.textContent = ''; c.append('Sala ' + (session.net ? session.net.room + (session.net.rtt ? ` · ${session.net.rtt} ms` : '') : ''), ...state.players.flatMap((p) => [document.createElement('br'), `${p.id === me.id ? '▶' : ' '} ${p.name} ${p.id} ${p.aw ? '(sin conexión)' : p.dead ? `✖ ${Math.round(p.rv / 3 * 100)}%` : p.hp}`]));   // (textContent: los nombres vienen de otros jugadores)
     }
   }
 }
@@ -764,7 +763,7 @@ function flash() { const f = $('flash'); f.classList.add('on'); const my = ++fla
 /* ───────── final / campaña ───────── */
 /** Suma los núcleos de la partida al banco del perfil y guarda la evolución (una sola vez por partida solitaria). */
 let botin = null;
-function bankProfile(me, state) { if (!session || session.mode !== 'solo' || session.base || session.banked || !me) return; session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { bag: session.bag, wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
+function bankProfile(me, state) { if (!session || (session.mode !== 'solo' && session.mode !== 'coop') || session.base || session.banked || !me) return; if (session.mode === 'coop' && session.net && session.net.fin) session.bag = session.net.fin.bag.map((b) => ({ id: b.id, q: b.q, n: b.n || 1, r: b.r })); /* en cooperativo el botín lo dice el SERVIDOR al terminar */ session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { bag: session.bag, wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
 function endGame(state, me) {
   bankProfile(me, state);
   let terrNuevo = null; if (state.state === 'won' && session.mode === 'solo' && !session.practice) { try { if (Perfil.liberarTerritorio(session.map)) terrNuevo = Territorios.TERRITORIOS[session.map]; } catch (err) { console.warn('Territorios: no se pudo guardar', err.message); } } // ganar el mapa libera el territorio (perfil.js)
@@ -804,16 +803,15 @@ const ui = new MenuUI({ sound, actions: {
   base: () => loadAnd(() => startBase()),
   arena: (m) => loadAnd(() => (m === 'practica' ? startSolo('m1', { intro: false, practice: true }) : startSolo(m, { intro: false }))),
 } });
-$('mkroom').addEventListener('click', () => startCoop(true, null, $('coopmap').value));
-$('joinroom').addEventListener('click', () => startCoop(false, $('roomcode').value.trim()));
-$('pause').addEventListener('click', (e) => { if (e.target.closest('.item.sel') || e.target.id === 'quit') return; if (session && session.touch) return; lockPointer(); });
+$('pause').addEventListener('click', (e) => { if (e.target.closest('.item.sel') || e.target.closest('.pmas') || e.target.id === 'quit') return; if (session && session.touch) return; lockPointer(); });
 $('resume').addEventListener('click', () => { if (session && session.touch) pauseTouch(false); else lockPointer(); });
 $('sens').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.value; });
 $('sens0').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.value; });
 $('vol').addEventListener('input', (e) => sound.setVolume(+e.target.value / 10));
 $('subsel').addEventListener('change', (e) => { $('sub').style.display = e.target.value === '1' ? '' : 'none'; });
 $('evoopen').addEventListener('click', (e) => { e.stopPropagation(); if (!evoMenu) evoMenu = createEvoMenu(document.body, { getMe: () => session && session.lastMe, request: (o) => { organReq = o; organReqT = performance.now(); }, sound }); evoMenu.open(); });
-$('quit').addEventListener('click', () => { bankProfile(session && session.lastMe); location.reload(); });
+$('quit').addEventListener('click', () => { bankProfile(session && session.lastMe); if (session && session.net) { try { session.net.salir(); } catch { /* ya cerrado */ } try { sessionStorage.removeItem('arcanum.sala.v1'); } catch { /* nada */ } const u = new URL(location.href); u.searchParams.delete('sala'); location.replace(u.href); return; } location.reload(); });
+{ const pb = $('pbase'); if (pb) pb.addEventListener('click', (e) => { e.stopPropagation(); bankProfile(session && session.lastMe); $('tobase').click(); }); }   // Pausa › «Salir a la Base» (misma salida que «Entrar a la Base» del final de partida)
 /* ───── ajustes de controles táctiles y cámara (se guardan por jugador) ───── */
 function bindTouchSettings() {
   const S = settings(), $$ = (id) => $(id), pct = (v) => `${Math.round(v * 100)} %`;
@@ -892,7 +890,7 @@ syncModeUI();
 // al terminar de editar los botones, se reanuda la partida
 const _tEdit = touch.edit.bind(touch); touch.edit = (on) => { _tEdit(on); if (!on && session && session.paused && session.practice) { session.paused = false; } };
 $('showctl').addEventListener('click', (e) => { e.stopPropagation(); showTutorial(true); if (!(session && session.touch)) { setSetting('showKeys', true); keyHint(); } });   // «Ver controles» también deja la pista de teclas en pantalla (K la oculta)
-$('tomenu').addEventListener('click', () => location.reload());
+$('tomenu').addEventListener('click', () => { if (session && session.net) { try { session.net.salir(); } catch { /* ya cerrado */ } try { sessionStorage.removeItem('arcanum.sala.v1'); } catch { /* nada */ } const u = new URL(location.href); u.searchParams.delete('sala'); location.replace(u.href); return; } location.reload(); });
 $('tobase').addEventListener('click', () => { const u = new URL(location.href); for (const k of ['auto', 'bot', 'wave', 'god', 'horde', 'look', 'prologo']) u.searchParams.delete(k); u.searchParams.set('state', 'base'); location.href = u.href; });   // «Entrar a la Base» al terminar una partida
 { const bs = $('basesel'); if (bs) { bs.value = settings().baseAlTerminar === false ? '0' : '1'; bs.addEventListener('change', () => setSetting('baseAlTerminar', bs.value === '1')); } }
 $('again').addEventListener('click', () => {
@@ -912,8 +910,16 @@ else if (params.get('auto')) {
 window.__api = { ui, pad, setSetting, setGameMode, gameMode, settings, get session() { return session; }, get caida() { return caida; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
 window.__frame = frame; window.__step = (ms) => frame(last + ms); window.__ui = ui; if (!params.get('cap')) requestAnimationFrame(frame);
 
-// En un sitio estático (sin servidor) el cooperativo no está disponible: se avisa y se deshabilita.
-fetch('health').then((r) => { if (!r.ok) throw new Error('sin servidor'); }).catch(() => {
-  document.querySelectorAll('.coop button, .coop input, .coop select').forEach((x) => { x.disabled = true; });
-  $('menuerr').textContent = 'Cooperativo no disponible acá: necesita el servidor (npm start). El modo solo funciona igual.'; $('menuerr').style.color = '#b9aee8';
+// Cooperativo: la dirección del servidor sale de ?server=, de Opciones, de public/config.json o del propio sitio (src/client/servidor.js).
+const coopUI = createCoopUI({
+  $, ui, params, CHARACTERS, HOST_IDS: Object.keys(CHARACTERS).filter((id) => CHARACTERS[id].host), posee: (id) => poseeHuespedSim(Perfil.perfil(), id),
+  nombre: () => Story.NAME, charActual: () => Equipo.char, gesto: () => { try { sound.init(); sound.resume(); } catch { /* sin audio */ } },
+  modoDe: (ch) => modoElegido(ch), ponerModo: (ch, m) => { const S = settings(); setSetting('modes', { ...(S.modes || {}), [ch]: m }); setSetting('mode', m); try { ui.refreshHuesped(); } catch { /* menú no listo */ } },
+  elegirChar: (ch) => { if (ch !== Equipo.char) { Equipo.char = ch; saveEquipo(); try { ui.refreshHuesped(); } catch { /* menú no listo */ } } },
+  cargaDe: (modo) => { const ch = Equipo.char, P = Perfil.paraPartida(ch); return { name: Story.NAME, char: ch, slots: Equipo.slots, mode: modo || modoElegido(ch), fauna: Perfil.faunaDeLaSala(), arbol: P.arbol, equip: P.equip, pity: P.pity, sigs: P.sigs, melee: P.melee, evo: P.evo, path: P.path, bend: P.bend, herb: P.herb, maestria: P.maestria, style: settings().style }; },
+  onEmpezar: startCoopGame, banner, enPartida: () => !!(session && session.mode === 'coop'),
+  volverAlLobby: () => location.reload(),   // «Otra vez» tras el final: se recarga y el enlace ?sala= devuelve a la sala de espera
 });
+ui.actions.coop = () => coopUI.mostrar();
+window.__coop = coopUI;
+if (params.get('sala')) setTimeout(() => coopUI.autoUnirse(), 0);

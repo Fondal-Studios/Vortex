@@ -1,6 +1,6 @@
 # Tienda — El Cambista de Almas
 
-Pantalla **Mundo › Tienda**. Es el mismo mercader que aparece dentro de las partidas (`src/sim/npcs.js`, «El Cambista de Almas»): acá vende de verdad, a cambio de **núcleos** (`perfil.cores`). Las esencias (`perfil.ess`) sólo se cambian.
+Pantalla **Huéspedes › Tienda** (también con **un toque en tus núcleos**, arriba a la derecha, desde cualquier pantalla del menú; mapa del menú en [`docs/MENU.md`](MENU.md)). Es el mismo mercader que aparece dentro de las partidas (`src/sim/npcs.js`, «El Cambista de Almas»): acá vende de verdad, a cambio de **núcleos** (`perfil.cores`). Las esencias (`perfil.ess`) sólo se cambian.
 
 ## Archivos
 | Archivo | Qué hace |

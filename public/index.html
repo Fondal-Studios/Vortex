@@ -50,27 +50,24 @@
     <button id="pressstart" class="pressstart"><i class="glyph x">✕</i><span id="startlabel">Presioná cualquier botón</span></button>
     <div class="legal" data-marca="legal">Acción psicodélica en 3D · PC · iPhone · 1–4 jugadores</div>
   </section>
-  <!-- ═════ MENÚ PRINCIPAL ═════ -->
+  <!-- ═════ INICIO (docs/MENU.md): un botón enorme + «Elegir partida» + 5 puertas (se dibujan desde src/client/menu-hubs.js con los datos de menu-nav.js) ═════ -->
   <section id="main" class="screen" data-screen="main">
     <div class="brand"><span data-marca="logo1"></span><span data-marca="logo2">VORTEX</span></div>
     <div class="mainwrap">
-      <!-- «Continuar / Jugar»: siempre visible; qué abre lo decide menu-hubs.js según lo último que jugaste -->
-      <button id="continuar" class="continuar" type="button"><i class="glyph x" aria-hidden="true">▶</i><span><b>Continuar</b><small></small></span></button>
-      <!-- las 4 puertas se dibujan desde src/client/menu-nav.js (PUERTAS): Jugar · Mi Huésped · Mundo · Ajustes -->
+      <div class="playrow">
+        <!-- «Continuar / Jugar»: qué abre lo decide menu-hubs.js según lo último que jugaste -->
+        <button id="continuar" class="continuar" type="button"><i class="glyph x" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></i><span><b>Continuar</b><small></small></span></button>
+        <button id="elegir" class="elegir" type="button" data-go="arenas" title="Historia, Arenas, Campo de pruebas y Cooperativo"><i class="dot" data-aviso-puerta="partidas" hidden></i><span class="el-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></span><span class="el-t">Elegir partida</span></button>
+      </div>
+      <button id="proximo" class="proximo" type="button" hidden><em>Próximo paso</em><span></span><i aria-hidden="true">›</i></button>
       <nav id="mainlist" class="doors" aria-label="Menú principal"></nav>
     </div>
   </section>
-  <!-- ═════ LOS 4 HUBS (se dibujan desde src/client/menu-nav.js → HUBS con menu-hubs.js) ═════ -->
-  <section id="hub-jugar" class="screen" data-screen="hub-jugar"></section>
-  <section id="hub-huesped" class="screen" data-screen="hub-huesped"></section>
-  <section id="hub-mundo" class="screen" data-screen="hub-mundo"></section>
-  <section id="hub-ajustes" class="screen" data-screen="hub-ajustes"></section>
   <!-- ═════ TIENDA: el Cambista de Almas (src/client/tienda-ui.js) ═════ -->
   <section id="tienda" class="screen" data-screen="tienda"></section>
   <!-- ═════ HISTORIA ═════ -->
   <section id="story" class="screen" data-screen="story">
     <h3 class="stitle">Historia</h3>
-    <p class="ruta">Ruta: Elegí Huésped → Sobreviví las oleadas → Evolucioná → Derrotá al jefe → Liberá el territorio (premio: una bendición permanente).</p>
     <div class="cards">
       <button id="campaign" class="card big" data-art="historia"><img src="/public/art/historia.jpg" alt=""><div><b>Nueva partida</b><small>Cine del tren · El despertar · 2 capítulos y 2 jefes</small></div></button>
     </div>
@@ -79,7 +76,6 @@
   <!-- ═════ ARENAS ═════ -->
   <section id="arenas" class="screen" data-screen="arenas">
     <h3 class="stitle">Arenas</h3>
-    <p class="ruta">Ruta: Elegí Huésped → Sobreviví las oleadas → Evolucioná → Derrotá al jefe → Liberá el territorio (premio: una bendición permanente).</p>
     <div class="cards">
       <button class="card" data-start="m1"><img src="/public/art/arena-m1.jpg" alt=""><div><b>Vacío de Islas</b><small>Gravedad rota · portales · tiempo lento<br>Jefe: Coloso Prismático<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Pie de Isla o Luz Mala)</em></small></div></button>
       <button class="card" data-start="m2"><img src="/public/art/arena-m2.jpg" alt=""><div><b>Cámara Fractal</b><small>Una esfera hueca · la marea sin peso<br>Jefe: Madre Geoda<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Eco o Espejo)</em></small></div></button>
@@ -120,14 +116,28 @@
   </section>
   <!-- ═════ COOPERATIVO ═════ -->
   <section id="coopscr" class="screen" data-screen="coop">
-    <h3 class="stitle">Cooperativo · 2 a 4 jugadores</h3>
-    <div class="panel coop">
+    <h3 class="stitle">Cooperativo · hasta 4 jugadores</h3>
+    <div class="panel coop" id="coopA">
+      <p id="coopstat" class="hint" role="status" aria-live="polite">Buscando el servidor…</p>
+      <button id="coopretry" class="btn" type="button">Probar de nuevo</button>
       <label>Mapa <select id="coopmap"><option value="m1">Vacío de Islas</option><option value="m2">Cámara Fractal</option><option value="m3">Laberinto Celestial</option><option value="m4">Jardín de Carne</option><option value="m5">Plaza de los Ecos</option><option value="m6">Osario sin Techo</option></select></label>
       <button id="mkroom" class="btn primary">Crear sala</button>
       <div class="or">o unite con el código</div>
-      <input id="roomcode" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
+      <input id="roomcode" placeholder="ABCD" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false">
       <button id="joinroom" class="btn">Unirse</button>
-      <p class="hint">Elegí tu rol en Opciones. Si un compañero cae, acercate 3 s (E) para reanimarlo: el Soporte lo hace el doble de rápido. Resolvé los objetivos juntos y usá B para señalar.</p>
+      <p class="hint">Creá una sala, tocá «Invitar amigos» y mandales el enlace: al abrirlo entran solos. Si un compañero cae, acercate 3 s (E) para reanimarlo. Resolvé los objetivos juntos y usá B para señalar. La dirección del servidor se cambia en Opciones › Cooperativo.</p>
+    </div>
+    <div class="panel coop" id="coopL" hidden>
+      <div class="lb-code">Sala <b id="lbcode">----</b> <small id="lbcount"></small></div>
+      <button id="lbinvite" class="btn primary" type="button">Invitar amigos (copiar enlace)</button>
+      <ul id="lbplayers" class="lb-list"></ul>
+      <label>Mapa <select id="lbmap"><option value="m1">Vacío de Islas</option><option value="m2">Cámara Fractal</option><option value="m3">Laberinto Celestial</option><option value="m4">Jardín de Carne</option><option value="m5">Plaza de los Ecos</option><option value="m6">Osario sin Techo</option></select></label>
+      <label>Tu Huésped <select id="lbchar"></select></label>
+      <label>Tu modo <select id="lbmode"><option value="shooter">Shooter (disparo)</option><option value="combo">Melé (combo)</option></select></label>
+      <button id="lbready" class="btn" type="button">Estoy listo</button>
+      <button id="lbstart" class="btn primary" type="button">Empezar la partida</button>
+      <button id="lbleave" class="btn" type="button">Salir de la sala</button>
+      <p id="lbmsg" class="hint" role="status" aria-live="polite"></p>
     </div>
   </section>
   <!-- ═════ BESTIARIO ═════ -->
@@ -138,22 +148,28 @@
   </section>
   <!-- ═════ OPCIONES ═════ -->
   <section id="options" class="screen" data-screen="options">
-    <h3 class="stitle">Opciones</h3>
+    <h3 class="stitle">Controles y sonido</h3>
     <div class="panel opts">
-      <label>Gráficos (rápido) <select id="qsel"></select></label>
-      <button id="gfxgo" class="btn" type="button" data-go="graficos">Abrir el menú de Gráficos (resolución, efectos, FPS)…</button>
+      <label hidden><select id="qsel"></select></label><!-- (los Gráficos viven en su pestaña y en el engranaje de la barra; este selector oculto lo usa main.js) -->
       <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado, ratón y mando</option></select></label>
-      <label>Modo de juego <select id="modesel"><option value="shooter">Shooter (el de siempre)</option><option value="combo">Combo (dos ataques + una habilidad)</option></select></label>
       <label>Ayuda de puntería <select id="aimsel"><option value="0">Apagada</option><option value="1">Baja</option><option value="2" selected>Media</option><option value="3">Alta</option></select></label>
-      <label>Efectos de golpe (Combo) <select id="fxsel"><option value="0">Completos</option><option value="1">Reducidos (menos partículas y sacudida)</option></select></label>
-      <label>Reducir movimiento <select id="motionsel"><option value="0">No</option><option value="1">Sí (menos sacudidas)</option></select></label>
       <label>Sensibilidad <input id="sens0" type="range" min="2" max="10" value="5"></label>
       <label>Volumen <input id="vol" type="range" min="0" max="10" value="6"></label>
       <label>Subtítulos <select id="subsel"><option value="1">Sí</option><option value="0">No</option></select></label>
       <label>Al terminar una partida <select id="basesel"><option value="1">Entrar a la Base</option><option value="0">Volver al menú</option></select></label>
+      <h4 class="sub">Accesibilidad</h4>
+      <label>Efectos de golpe (Melé) <select id="fxsel"><option value="0">Completos</option><option value="1">Reducidos (menos partículas y sacudida)</option></select></label>
+      <label>Reducir movimiento <select id="motionsel"><option value="0">No</option><option value="1">Sí (menos sacudidas)</option></select></label>
     </div>
+    <div class="panel opts" id="coopopts">
+      <h4 class="sub">Cooperativo (jugar con amigos por internet)</h4>
+      <label>Servidor <input id="srvurl" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://tu-servidor.onrender.com"></label>
+      <button id="srvtest" class="btn" type="button">Probar conexión</button>
+      <button id="srvreset" class="btn" type="button">Usar el servidor por defecto</button>
+      <p id="srvstat" class="hint" role="status" aria-live="polite"></p>
+    </div>
+    <details class="opts-more"><summary>Controles táctiles y cámara</summary>
     <div class="panel opts" id="touchopts">
-      <h4 class="sub">Controles táctiles y cámara</h4>
       <label>Sensibilidad horizontal <input id="tsx" type="range" min="1" max="20"><output id="tsxo"></output></label>
       <label>Sensibilidad vertical <input id="tsy" type="range" min="1" max="20"><output id="tsyo"></output></label>
       <label>Al apuntar (ADS) <input id="tsa" type="range" min="10" max="100"><output id="tsao"></output></label>
@@ -172,31 +188,44 @@
       <button id="tedit" class="btn" type="button">Editar posición de los botones</button>
       <button id="tresetlay" class="btn" type="button">Restablecer botones</button>
     </div>
+    </details>
   </section>
-  <nav id="crumbs" class="crumbs" aria-label="Dónde estás" hidden></nav><div id="saldo" class="saldo" hidden title="Tus núcleos"></div>
-  <footer id="prompts"><span><i class="glyph x">✕</i> Seleccionar</span><span><i class="glyph o">○</i> Volver (Esc)</span><span><i class="glyph t">△</i> Navegar</span></footer>
+  <!-- ═════ BARRA SUPERIOR ÚNICA (misma en todas las pantallas): [‹ Volver] · pestañas de la sección · Modo · Gráficos · núcleos (toque = Tienda) ═════ -->
+  <header id="topbar" class="topbar" hidden>
+    <span id="tbsec" class="tb-sec"></span>
+    <nav id="tbtabs" class="tb-tabs" role="tablist" aria-label="Secciones" hidden></nav>
+    <div class="tb-tools">
+      <button id="modeitem" class="tb-mode" type="button" data-mode="shooter" aria-label="Modo de juego: Shooter o Melé" title="Shooter: disparás y apuntás. Melé: el cuerpo a cuerpo manda, con dos ataques encadenados y una habilidad."><span class="mb-pills" aria-hidden="true"><i data-m="shooter">Shooter</i><i data-m="combo">Melé</i></span><b class="sr"></b><small class="sr"></small></button>
+      <button id="tbgfx" class="tb-icon" type="button" aria-label="Gráficos" title="Gráficos"></button>
+      <button id="saldo" class="saldo" type="button" title="Tus núcleos · tocá para abrir la Tienda"></button>
+    </div>
+  </header>
+  <footer id="prompts"><span><i class="glyph x">✕</i> Seleccionar</span><span><i class="glyph o">○</i> Volver (Esc)</span><span><i class="glyph t">△</i> Navegar</span><span><i class="glyph s">⇄</i> Pestañas (Q / E)</span></footer>
   <p id="menuerr" class="err"></p>
   <div id="loading" class="hidden"><div class="ltitle" data-marca="nombre">VORTEX</div><div class="lbar"><b id="lfill"></b></div><p id="ltip"></p></div>
 </div>
 <button id="camquick" class="hidden" aria-label="Cambiar cámara (primera / tercera persona)">👁</button><div id="comfort"></div><div id="gravmsg">⟲ LA GRAVEDAD CAMBIÓ · el piso es donde pisás</div>
 <div id="trophies"></div>
 <div id="pause" class="hidden ps"><div class="pbox"><h2>PAUSA</h2><p id="pausehint">Hacé clic para continuar</p>
+  <!-- Pausa simple: Continuar · Modo · Gráficos · Controles · Salir (todo lo demás cuelga de «Controles y cámara»). Los ids no cambian: main.js los usa. -->
   <div class="list"><button class="item" id="resume"><b>Continuar</b></button>
+  <button class="item" id="modetoggle"><b>Modo de juego: Shooter</b></button>
+  <button class="item" id="gfxopen"><b>Gráficos</b></button>
+  <details class="item pmas" id="pmas"><summary><b>Controles y cámara</b></summary><div class="list pmas-in">
   <button class="item" id="showctl"><b>Ver controles</b></button>
   <button class="item" id="editctl"><b>Editar botones</b></button>
+  <label class="item sel">Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label>
   <button class="item" id="camtoggle"><b>Cámara: primera persona</b></button>
-  <button class="item" id="claridad"><b>Claridad: Normal</b></button>
   <button class="item" id="camside"><b>Hombro de la cámara: derecho</b></button>
   <label class="item sel">Distancia de cámara <input id="camdist" type="range" min="2" max="6" step="0.2" value="3.6"></label>
   <label class="item sel">Campo de visión <input id="camfov" type="range" min="60" max="100" step="2" value="78"></label>
-  <button class="item" id="modetoggle"><b>Modo de juego: Shooter</b></button>
+  <button class="item" id="claridad"><b>Claridad: Normal</b></button>
   <button class="item" id="styletoggle"><b>Estilo de combate: Disparo 🎯</b></button>
   <button class="item" id="simpletoggle"><b>Modo simple (dispara solo): sí</b></button>
   <button class="item" id="advtoggle"><b>Habilidades: no</b></button>
-  <button class="item" id="gfxopen"><b>Gráficos… (calidad, resolución, FPS)</b></button>
-  <label class="item sel" hidden style="display:none"><select id="qsel2"></select></label>
-  <label class="item sel">Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label>
   <button class="item" id="evoopen"><b>Evolución (órganos y esencias)</b></button>
+  <label class="item sel" hidden style="display:none"><select id="qsel2"></select></label></div></details>
+  <button class="item" id="pbase"><b>Salir a la Base</b></button>
   <button class="item" id="quit"><b>Salir al menú</b></button></div></div></div>
 <div id="end" class="hidden ps"><div class="pbox"><h2 id="endtitle"></h2><pre id="endstats"></pre><div class="list"><button class="item hidden" id="tobase"><b>Entrar a la Base</b></button><button class="item" id="again"><b>Jugar de nuevo</b></button><button class="item" id="tomenu"><b>Menú principal</b></button></div></div></div>
 <script type="module" src="/src/client/main.js"></script>

@@ -1,0 +1,4 @@
+{
+  "servidor": "",
+  "ayuda": "Acá se escribe la dirección del servidor cooperativo (la que te da Render, por ejemplo https://arcanum-coop.onrender.com). Si queda vacía, el juego prueba el mismo sitio donde está alojado (sirve cuando abrís el juego desde el propio servidor) y, si no hay ninguno, el cooperativo se muestra apagado. Se puede cambiar sin tocar código; cada jugador también la puede cambiar en Opciones › Cooperativo o con ?server=https://… en el enlace."
+}

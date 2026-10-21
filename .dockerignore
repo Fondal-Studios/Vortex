@@ -1,0 +1,13 @@
+.git
+node_modules
+dist
+shots
+demo
+docs
+tests
+tools
+registros
+jugadores
+escritorio/bin
+*.log
+.env

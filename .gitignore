@@ -2,3 +2,9 @@ node_modules/
 shots/tmp/
 *.log
 dist/
+
+# Datos del jugador y binarios: nunca se suben (también en .dockerignore)
+registros/
+jugadores/
+escritorio/bin/
+.env

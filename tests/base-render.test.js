@@ -124,10 +124,10 @@ test('La Base: «Entrar a la Base» al terminar una partida y el ajuste de Opcio
   try {
   await pg.goto(`${base}/?q=low&autoq=0&nolock=1&skipintro=1`, { timeout: 180000 });
   await pg.waitForFunction('window.__ui && window.__api', null, { timeout: 120000 });
-  // el menú: Jugar › La Base entra al mapa
-  const r = await pg.evaluate(() => { const u = window.__ui; u.show('hub-jugar'); const card = [...document.querySelectorAll('#hub-jugar .hubcard')].find((c) => c.dataset.go === 'base'); return { hay: !!card, titulo: card && card.textContent }; });
+  // el menú: la puerta «La Base» del inicio entra al mapa (1 toque)
+  const r = await pg.evaluate(() => { const u = window.__ui; u.show('main'); const card = [...document.querySelectorAll('#mainlist .door')].find((c) => c.dataset.go === 'base'); return { hay: !!card, titulo: card && card.textContent }; });
   assert.ok(r.hay && /Base/.test(r.titulo));
-  await pg.evaluate(() => document.querySelector('#hub-jugar .hubcard[data-go="base"]').click());
+  await pg.evaluate(() => document.querySelector('#mainlist .door[data-go="base"]').click());
   await pg.waitForFunction('window.__api.session && window.__api.session.base', null, { timeout: 120000 });
   assert.equal(await pg.evaluate(() => document.body.classList.contains('en-base')), true);
   // el ajuste (por defecto «sí») muestra u oculta el botón del final de partida

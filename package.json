@@ -10,7 +10,10 @@
     "test:fast": "node --expose-gc --test tests/weapons.test.js tests/physics.test.js tests/ai.test.js tests/waves.test.js tests/limits.test.js",
     "bench": "node tools/perf-browser.js",
     "bots": "node tools/bots-report.js",
-    "shots": "node tools/screenshots.js"
+    "shots": "node tools/screenshots.js",
+    "servidor": "node server/server.js",
+    "coop:test": "node --test --test-concurrency=1 tests/coop.test.js tests/coop4.test.js",
+    "coop:navegador": "node --test tests/coop-browser.test.js"
   },
   "dependencies": {
     "three": "0.186.1",
@@ -18,5 +21,8 @@
   },
   "devDependencies": {
     "playwright-core": "^1.50.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -44,9 +44,13 @@ test('e2e coop: dos navegadores reales (crear sala / unirse con código) compart
     const openCoop = async (pg) => { await pg.evaluate(() => { window.__ui.act('ok'); window.__ui.go('coop'); }); await pg.waitForTimeout(800); };
     await openCoop(A); await openCoop(B);
     await A.selectOption('#coopmap', 'm2'); await A.click('#mkroom');
-    await A.waitForFunction(() => window.__api.session && window.__api.session.net && window.__api.session.net.room, null, { timeout: 25000 });
-    const code = await A.evaluate(() => window.__api.session.net.room);
+    await A.waitForFunction(() => window.__coop && window.__coop.net && window.__coop.net.room, null, { timeout: 25000 });
+    const code = await A.evaluate(() => window.__coop.net.room);
     await B.fill('#roomcode', code); await B.click('#joinroom');
+    await B.waitForFunction(() => window.__coop.net && window.__coop.net.lobby && window.__coop.net.lobby.players.length === 2, null, { timeout: 25000 });
+    await B.click('#lbready'); await A.waitForFunction(() => window.__coop.net.lobby.players[1] && window.__coop.net.lobby.players[1].ready, null, { timeout: 10000 });
+    await A.click('#lbstart');   // sala de espera → cuenta regresiva → los dos entran a la vez
+    await A.waitForFunction(() => window.__api.session && window.__api.session.net && window.__api.session.net.pid, null, { timeout: 25000 });
     await B.waitForFunction(() => window.__api.session && window.__api.session.net && window.__api.session.net.pid, null, { timeout: 25000 });
     await A.waitForFunction(() => /Pasajero/.test(document.getElementById('coop').textContent) && document.getElementById('coop').textContent.split('Pasajero').length >= 3, null, { timeout: 25000 });
     await B.waitForFunction(() => document.getElementById('coop').textContent.split('Pasajero').length >= 3, null, { timeout: 25000 });

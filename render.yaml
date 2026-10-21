@@ -1,0 +1,22 @@
+# Plano ("Blueprint") para Render.com: crea el servidor cooperativo GRATIS con un solo clic.
+# Pasos completos (con cada botón a tocar) en docs/COOP_ONLINE.md.
+services:
+  - type: web
+    name: arcanum-coop
+    runtime: node
+    plan: free                      # plan gratuito: se duerme tras 15 min sin tráfico y tarda ~1 min en despertar
+    buildCommand: npm ci --omit=dev # instala sólo lo que el servidor necesita (three y ws)
+    startCommand: node server/server.js
+    healthCheckPath: /health        # Render lo consulta para saber que el servidor está sano
+    autoDeploy: true                # cada vez que subís cambios a la rama, se actualiza solo
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY            # Render está delante del servidor: la dirección real del visitante viene en X-Forwarded-For
+        value: "1"
+      - key: ALLOWED_ORIGINS        # ⚠ Completalo en el panel de Render: tu página de GitHub Pages, sin barra final.
+        sync: false                 #   Ejemplo: https://tuusuario.github.io   (varias separadas por coma; vacío = cualquiera)
+      - key: MAX_SALAS
+        value: "10"
+      - key: MAX_POR_IP
+        value: "8"

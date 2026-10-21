@@ -23,12 +23,21 @@ Elegí **▶ Historia** (campaña con la intro del tren) o una **Arena**, y hac�
 
 ### En iPhone
 - **Con tu PC:** corré `npm start` y abrí `http://IP-DE-TU-PC:8080` en Safari (misma Wi-Fi). Funciona **solo y cooperativo**. Compartir ▸ *Agregar a pantalla de inicio* lo deja a pantalla completa.
-- **Sin PC (solo, tipo app):** `node tools/build-static.js` genera `dist/` (sitio estático); el workflow `.github/workflows/pages.yml` lo publica en GitHub Pages (activá *Settings ▸ Pages ▸ Source: GitHub Actions*). El cooperativo necesita el servidor.
+- **Sin PC (solo, tipo app):** `node tools/build-static.js` genera `dist/` (sitio estático); el workflow `.github/workflows/pages.yml` lo publica en GitHub Pages (activá *Settings ▸ Pages ▸ Source: GitHub Actions*). El cooperativo necesita el servidor (ver abajo).
 - **Controles táctiles:** palanca a la izquierda (empujala al borde para correr), arrastrá a la derecha para mirar, botón **DISPARO** grande (también se puede arrastrar desde él), **SALTO**, **CORRER**, **HABILIDAD**, **USAR**, ◆ (señalar), ‹ › para cambiar de arma o tocar el nombre del arma, ❚❚ pausa. Hay una pequeña asistencia de puntería. Girá el teléfono en horizontal.
 - **Gráficos:** el menú y la pausa tienen *Baja / Media / Alta*. En teléfono arranca en **Baja**; si los FPS caen solos, baja un nivel. Se recuerda la elección.
 
-### Cooperativo (2–4)
-Una persona crea la sala (código de 4 dígitos) y las demás se unen con ese código desde `http://IP:8080`. Si un compañero cae, **acercate 3 segundos para reanimarlo**.
+### Cooperativo online (hasta 4 jugadores) — resumen
+1. El cooperativo necesita un **servidor** (programa Node en `server/server.js`); el modo solo no.
+2. Probarlo en tu PC: `npm run servidor` y abrir `http://localhost:8080` (o `http://IP-DE-TU-PC:8080` desde el celular en la misma Wi-Fi).
+3. Gratis en internet: **Render Free** (se arma con `render.yaml`, se duerme tras 15 min) y, de respaldo, **tu PC + `cloudflared`**. Comparación y pasos en `docs/COOP_ONLINE.md`.
+4. La dirección del servidor se escribe en `public/config.json`, en **Opciones › Cooperativo** o con `?server=https://…` en el enlace.
+5. Pantalla **Cooperativo**: crear sala (código de 4 caracteres, ej. `K7MQ`), unirse, y sala de espera con nombre, Huésped, modo y «Estoy listo».
+6. **Invitar amigos** copia el enlace `…/Shower-psico/?sala=K7MQ`: al abrirlo se entra solo a la sala.
+7. El cartel avisa si el servidor está **encendido**, **dormido** (tarda hasta 1 min en despertar) o **sin conexión**; los errores salen en español (sala llena, inexistente, versión distinta).
+8. Si se corta la conexión o se recarga la página, se vuelve al mismo jugador (45 s de gracia); si alguien se va, la partida sigue.
+9. Al terminar, cada jugador guarda **su** botín, núcleos y maestría en su propio perfil.
+10. Pruebas: `npm run coop:test` (4 bots por WebSocket, 200 ms de latencia) y `npm run coop:navegador` (navegadores reales).
 
 ## Demo en video
 `demo/cristal-vortice-demo.mp4`: título y menú PS5, la intro del tren, el despertar con el Heraldo, los dos capítulos, los dos jefes y el bestiario. Se regenera con `node tools/make-video.js && bash tools/assemble-video.sh` (tarda: el render es por CPU).
@@ -60,7 +69,7 @@ shots/        capturas reales (Chromium) de cada mapa y criatura
 ```
 
 ## Menú y Tienda
-El menú tiene **Continuar** y cuatro puertas: **Jugar** (Historia, Arenas, Cooperativo y el selector Shooter/Combo), **Mi Huésped** (Huésped, Evolución, Inventario y Forja, Equipo), **Mundo** (Territorios, Bestiario, Tienda) y **Ajustes** (Gráficos, Controles y sonido). Volvés con Esc, el botón ○ del mando o deslizando desde el borde izquierdo. En la **Tienda** el Cambista de Almas vende Huéspedes (empezás con Axioma, Vesper y Micelio), planos, materiales, objetos y servicios a cambio de núcleos. Detalles: [`docs/TIENDA.md`](docs/TIENDA.md) · [`docs/CONTROLES.md`](docs/CONTROLES.md). El nombre y el subtítulo del juego viven en un solo archivo: `src/client/marca.js`.
+El menú tiene un botón enorme **Continuar / Jugar**, **Elegir partida** y cinco puertas: **La Base** (el Santuario caminable), **Huéspedes** (pestañas Huésped · Evolución · Inventario · Forja · Tienda · Equipo), **Colección** (Criaturas · Fauna · Herbario · Territorios), **Cooperativo** y **Ajustes** (Controles y sonido · Gráficos). Arriba siempre está la misma barra: Volver, las pestañas, el Modo Shooter/Melé, el engranaje de Gráficos y tus núcleos (tocalos para ir a la Tienda). Volvés con Esc, el botón ○ del mando o deslizando desde el borde izquierdo; Q/E (LB/RB) cambian de pestaña. Mapa completo: [`docs/MENU.md`](docs/MENU.md). En la **Tienda** el Cambista de Almas vende Huéspedes (empezás con Axioma, Vesper y Micelio), planos, materiales, objetos y servicios a cambio de núcleos. Detalles: [`docs/TIENDA.md`](docs/TIENDA.md) · [`docs/CONTROLES.md`](docs/CONTROLES.md). El nombre y el subtítulo del juego viven en un solo archivo: `src/client/marca.js`.
 
 ## Documentación
 [Tienda](docs/TIENDA.md) · [Diseño](docs/DISENO.md) · [Historia](docs/HISTORIA.md) · [Bestiario](docs/BESTIARIO.md) · [Mapas](docs/MAPAS.md) · [Decisiones](docs/DECISIONES.md) · [Arte y audio](docs/ARTE_AUDIO.md) · [Licencias](docs/LICENCIAS.md) · [Informe de calidad](docs/INFORME_CALIDAD.md)

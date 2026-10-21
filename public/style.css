@@ -542,3 +542,14 @@ body.touch-ui #estilohud, body.touch-ui.cam3 #estilohud { right: calc(env(safe-a
 body.touch-ui #estilohud b { font-size: 26px; display: inline; } body.touch-ui #estilohud small { font-size: 11px; font-weight: 800; } body.touch-ui #estilohud u { display: none; }
 body.touch-ui #combohud b { font-size: 30px; white-space: nowrap; } body.touch-ui #combohud b i { margin-left: 3px; }
 body.touch-ui #estilohud, body.touch-ui.cam3 #estilohud { top: calc(env(safe-area-inset-top, 0px) + 130px); }
+
+/* ───── Cooperativo: sala de espera (lobby) ───── */
+.panel[hidden] { display: none !important; }
+#coopstat, #srvstat, #lbmsg { text-align: center; min-height: 1.2em; }
+#coopstat.ok, #srvstat.ok { color: #8be3a4; } #coopstat.warn, #srvstat.warn { color: #ffd37a; } #coopstat.mal, #srvstat.mal { color: #ff8f8f; }
+.lb-code { text-align: center; font-size: 15px; } .lb-code b { font-size: 34px; letter-spacing: .35em; margin-left: .3em; color: #cfe0ff; user-select: all; } .lb-code small { opacity: .7; }
+.lb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: 100%; max-width: 520px; align-self: center; }
+.lb-list li { display: flex; gap: 8px; align-items: center; background: #0c113099; border: 1px solid #ffffff22; border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+.lb-list li.yo { border-color: #7fb2ff; } .lb-list li.vacio { opacity: .35; justify-content: center; }
+.lb-list .nom { flex: 1; font-weight: 600; } .lb-list .det { opacity: .75; font-size: 12px; } .lb-list .ok { color: #8be3a4; } .lb-list .no { color: #ffd37a; } .lb-list .ausente { color: #ff8f8f; }
+#netstat { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; padding: 4px 12px; border-radius: 999px; background: #000a; color: #ffd37a; font-size: 12px; pointer-events: none; }

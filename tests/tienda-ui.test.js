@@ -24,19 +24,25 @@ async function abrir(w, h, touch, perfil, errors) {
 }
 const perfil = (pg) => pg.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
 
-test('menú: 4 puertas + Continuar; Mundo › Tienda con migas y Esc que vuelve de a un paso', { skip: !hasChromium, timeout: 600000 }, async () => {
+test('menú: 5 puertas + Continuar; Huéspedes › pestaña Tienda (o los núcleos de la barra) y Esc que vuelve al inicio', { skip: !hasChromium, timeout: 600000 }, async () => {
   const errors = [], { ctx, pg } = await abrir(1280, 720, false, { cores: 700 }, errors);
-  assert.equal(await pg.locator('#mainlist .door').count(), 4); assert.ok(await pg.locator('#continuar').isVisible(), 'Continuar siempre visible');
+  assert.equal(await pg.locator('#mainlist .door').count(), 5); assert.ok(await pg.locator('#continuar').isVisible(), 'Continuar siempre visible');
   assert.match(await pg.textContent('#continuar'), /Jugar|Continuar/); assert.equal(await pg.title(), 'VORTEX');
-  await pg.click('#mainlist [data-door=mundo]'); await pg.waitForSelector('#hub-mundo.on');
-  assert.deepEqual(await pg.locator('#hub-mundo .hubcard').allInnerTexts().then((a) => a.map((t) => t.split('\n')[0].trim())), ['TERRITORIOS', 'BESTIARIO', 'TIENDA']);
-  assert.match(await pg.textContent('#hub-mundo [data-go=tienda]'), /700 núcleos/, 'la tarjeta de la Tienda muestra el saldo');
-  await pg.click('#hub-mundo [data-go=tienda]'); await pg.waitForSelector('#tienda.on .tn-tab');
-  assert.equal((await pg.textContent('#crumbs')).replace(/\s*›\s*/g, ' › ').trim(), 'Inicio › Mundo › Tienda');
-  assert.match(await pg.textContent('#tnsaldo'), /700/);
-  await pg.keyboard.press('Escape'); await pg.waitForSelector('#hub-mundo.on'); await pg.keyboard.press('Escape'); await pg.waitForSelector('#main.on');
-  // teclado: el foco arranca en Continuar; ↓ baja a la puerta más cercana (Mi Huésped) y Enter abre su hub
-  await pg.keyboard.press('ArrowDown'); await pg.keyboard.press('Enter'); await pg.waitForSelector('#hub-huesped.on', { timeout: 20000 });
+  assert.deepEqual(await pg.locator('#mainlist .door b').allInnerTexts().then((a) => a.map((t) => t.trim().toUpperCase())), ['LA BASE', 'HUÉSPEDES', 'COLECCIÓN', 'COOPERATIVO', 'AJUSTES']);
+  assert.match(await pg.textContent('#saldo'), /700/, 'los núcleos están siempre en la barra');
+  // 1 toque a la Tienda: los núcleos de la barra
+  await pg.click('#saldo'); await pg.waitForSelector('#tienda.on .tn-tab'); assert.match(await pg.textContent('#tnsaldo'), /700/);
+  await pg.keyboard.press('Escape'); await pg.waitForSelector('#main.on');
+  // 2 toques: Huéspedes › Tienda (la barra superior muestra las pestañas de la sección)
+  await pg.click('#mainlist [data-door=huespedes]'); await pg.waitForSelector('#huesped.on');
+  assert.deepEqual(await pg.locator('#tbtabs .tb-tab').allInnerTexts().then((a) => a.map((t) => t.trim())), ['Huésped', 'Evolución', 'Inventario', 'Forja', 'Tienda', 'Equipo']);
+  await pg.click('#tbtabs .tb-tab:has-text("Tienda")'); await pg.waitForSelector('#tienda.on .tn-tab'); assert.equal(await pg.locator('#tbtabs .tb-tab.on').innerText(), 'Tienda');
+  assert.equal((await pg.locator('#tbsec').textContent()).trim(), 'Huéspedes');
+  // las pestañas no apilan: un solo Esc vuelve al inicio
+  await pg.keyboard.press('Escape'); await pg.waitForSelector('#main.on');
+  // teclado: el foco arranca en Continuar; ↓ baja a la puerta más cercana y Enter la abre; Q/E cambian de pestaña
+  await pg.keyboard.press('ArrowDown'); await pg.keyboard.press('ArrowDown'); await pg.keyboard.press('Enter'); await pg.waitForSelector('.screen.on:not(#main)', { timeout: 20000 });
+  await pg.keyboard.press('Escape'); await pg.waitForSelector('#main.on');
   assert.deepEqual(errors, [], errors.join('\n')); await ctx.close();
 });
 
@@ -56,7 +62,7 @@ test('Tienda: comprar un Huésped pide confirmación, descuenta núcleos, lo vue
   await pg.click('[data-host=colmena]'); assert.match(await pg.textContent('[data-comprar-host=colmena]'), /Falta requisito|No alcanzan/);
   // el Huésped comprado se puede elegir en la pantalla de Huésped
   await pg.evaluate(() => window.__api.ui.show('huesped')); await pg.waitForSelector('#huesped.on'); await pg.click('.hs-chip[data-id="danzante"]');
-  assert.equal(await pg.textContent('#hspick'), 'Elegir'); await pg.click('#hspick'); assert.equal(await pg.evaluate(() => localStorage.getItem('cristal.huesped.v1')), 'danzante');
+  assert.equal(await pg.evaluate(() => localStorage.getItem('cristal.huesped.v1')), 'danzante', 'un toque en un Huésped tuyo ya lo elige'); assert.equal(await pg.textContent('#hspick'), 'Listo ✓'); await pg.click('#hspick'); await pg.waitForSelector('#main.on');   // «Listo» vuelve al inicio
   assert.deepEqual(errors, [], errors.join('\n')); await ctx.close();
 });
 
@@ -72,14 +78,15 @@ test('Huésped sin comprar: se puede mirar pero «Comprar» lleva a la Tienda y 
 for (const [vn, w, h, touch] of SIZES) {
   test(`menú y Tienda ${vn}: nada se sale de la pantalla y los botones son tocables`, { skip: !hasChromium, timeout: 900000 }, async () => {
     const errors = [], { ctx, pg } = await abrir(w, h, touch, { cores: 640, mae: { axioma: { xp: 300, partidas: 3, kills: 3, oleada: 2 } }, materiales: { hueso: [4, 2, 0, 0] } }, errors);
-    for (const [s, tab] of [['main'], ['hub-jugar'], ['hub-huesped'], ['hub-mundo'], ['hub-ajustes'], ['tienda', 'hue'], ['tienda', 'pla'], ['tienda', 'obj'], ['tienda', 'ser']]) {
+    for (const [s, tab] of [['main'], ['story'], ['huesped'], ['bestiary'], ['options'], ['tienda', 'hue'], ['tienda', 'pla'], ['tienda', 'obj'], ['tienda', 'ser']]) {
       await pg.evaluate(([s, tab]) => { window.__api.ui.show(s); if (tab) window.__api.ui.tn.setTab(tab); }, [s, tab]); await pg.waitForTimeout(500);
       const bad = await pg.evaluate(() => {
         const sc = document.querySelector('.screen.on'), vw = innerWidth, out = [], vis = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
-        for (const e of sc.querySelectorAll('button, .door, .hubcard, h3, .tn-saldo')) { if (!vis(e) || e.closest('.tn-rail')) continue; const r = e.getBoundingClientRect(); if (r.width && (r.right > vw + 1 || r.left < -1)) out.push(`fuera: ${e.className} ${e.textContent.trim().slice(0, 18)}`); if (r.width && /door|hubcard|continuar|tn-btn|tn-tab/.test(e.className) && r.height < 43) out.push(`chico: ${e.className} ${Math.round(r.height)}`); }
+        for (const e of sc.querySelectorAll('button, .door, h3, .tn-saldo')) { if (!vis(e) || e.closest('.tn-rail, #bgrid')) continue; const r = e.getBoundingClientRect(); if (r.width && (r.right > vw + 1 || r.left < -1)) out.push(`fuera: ${e.className} ${e.textContent.trim().slice(0, 18)}`); if (r.width && /door|continuar|tn-btn|tn-tab/.test(e.className) && r.height < 43) out.push(`chico: ${e.className} ${Math.round(r.height)}`); }
         if (sc.scrollWidth - sc.clientWidth > 1) out.push('scroll horizontal');
-        const cr = document.querySelector('#crumbs:not([hidden])'), bk = document.querySelector('.screen.on .backbtn'), sl = document.querySelector('#saldo:not([hidden])'), R = (e) => e && e.getBoundingClientRect(), hit = (a, b) => a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-        if (hit(R(cr), R(bk))) out.push('migas pisan Volver'); if (hit(R(cr), R(sl))) out.push('migas pisan saldo');
+        const R = (e) => e && e.getBoundingClientRect(), hit = (a, b) => a && b && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+        const bk = document.querySelector('.screen.on .backbtn'), tb = document.querySelector('#tbtabs:not([hidden])'), tl = document.querySelector('.tb-tools');   // la barra única: Volver · pestañas · herramientas no se pisan
+        if (hit(R(tb), R(bk))) out.push('pestañas pisan Volver'); if (hit(R(tb), R(tl))) out.push('pestañas pisan las herramientas'); if (hit(R(tl), R(bk))) out.push('herramientas pisan Volver');
         return out;
       });
       assert.deepEqual(bad, [], `${vn} ${s} ${tab || ''}: ${bad.join(' | ')}`);

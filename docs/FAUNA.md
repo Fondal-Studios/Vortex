@@ -10,7 +10,7 @@
 3. **Apretá E / USAR** y el bicho vuela a tu boca. Ya tenés una **forma** (60–90 s) con su ícono y barra de tiempo arriba de tu vida (`#ffchip`).
 4. **Comé otra especie**: si las formas son compatibles se **funden en un híbrido** (¡hay 12!); si no, la nueva reemplaza a la anterior y la vieja queda como **residuo menor** (40 % de sus números pasivos, ≤ 20 s).
 5. **En Melé** el **remate** (golpe pesado o 3.er golpe del combo) **devora** al bicho que tengas delante («devorar») y además suelta el **golpe elemental** de tu forma (congela, quema, empuja…). **En Shooter** la forma cambia la munición: color elemental del rastro, balas que atraviesan, estados en cada impacto.
-6. Todo lo que comas queda en el **Códice de Fauna** (menú › Mundo › **Bestiario › pestaña Fauna**, también con la tecla **F**): contador, hitos, ADN e híbridos descubiertos.
+6. Todo lo que comas queda en el **Códice de Fauna** (menú › **Colección › pestaña Fauna**, también con la tecla **F**): contador, hitos, ADN e híbridos descubiertos.
 
 **Opcional:** comer solo al quedarte pegado a un bicho ~0,6 s: URL `?autofauna=1` o el ajuste `faunaAuto` (por defecto se come con USAR / E).
 

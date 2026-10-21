@@ -68,7 +68,7 @@ export function buildHuespedScreen(menu) {
           <div class="hs-tags"><span class="hs-tag" id="hsrole"></span><span class="hs-tag hs-diff" id="hsdiff"></span><span class="hs-tag hs-chosen" id="hschosen" hidden>✓ Tu Huésped</span></div>
         </header>
         <div class="hs-stage" id="hsstage"><canvas id="hscanvas" aria-label="Modelo 3D del Huésped: arrastrá para girarlo"></canvas><iframe id="hsframe" title="Vista del veterano" tabindex="-1" hidden></iframe><div class="hs-fallback" id="hsfb" hidden></div><div class="hs-region" id="hsregion" aria-live="off"></div></div>
-        <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsmode" aria-label="Modo de juego: Shooter o Combo">Modo: Shooter</button><button class="hs-btn hs-nav" type="button" id="hsinv" aria-label="Abrir el inventario con este Huésped">Inventario</button><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
+        <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
       </section>
       <aside class="hs-info" id="hsinfo" aria-label="Información del Huésped"></aside>
     </div>`;
@@ -212,7 +212,7 @@ export function buildHuespedScreen(menu) {
     const d = C.stats ? C.stats.dificultad : null; const dd = $('#hsdiff'); dd.hidden = d == null;
     if (d != null) dd.innerHTML = `Dificultad: <b>${LEVEL(d)}</b> <span class="hs-pips" aria-hidden="true">${Array.from({ length: 5 }, (_, i) => `<i class="${i < Math.ceil(d / 2) ? 'on' : ''}"></i>`).join('')}</span>`;
     $('#hschosen').hidden = Equipo.char !== id;
-    const own = poseeHuesped(Perfil.perfil(), id), pk = $('#hspick'); pk.textContent = own ? 'Elegir' : 'Comprar'; pk.dataset.locked = own ? '' : '1'; pk.title = own ? '' : `${C.name} no es tuyo todavía: el Cambista de Almas lo vende.`;   // se puede mirar y probar antes de comprar
+    const own = poseeHuesped(Perfil.perfil(), id), pk = $('#hspick'); pk.textContent = own ? (Equipo.char === id ? 'Listo ✓' : 'Elegir') : 'Comprar'; pk.dataset.locked = own ? '' : '1'; pk.title = own ? '' : `${C.name} no es tuyo todavía: el Cambista de Almas lo vende.`;   // se puede mirar y probar antes de comprar
     root.querySelectorAll('.hs-chip').forEach((b) => { const on = b.dataset.id === id; b.classList.toggle('sel', on); b.classList.toggle('chosen', b.dataset.id === Equipo.char); b.classList.toggle('locked', !poseeHuesped(Perfil.perfil(), b.dataset.id)); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     if (vet && $('#hsvets').hidden) toggleVets(true);
     renderInfo(id);
@@ -239,10 +239,13 @@ export function buildHuespedScreen(menu) {
   function toggleVets(open) {
     const v = $('#hsvets'), t = $('#hsvettoggle'); const on = open === undefined ? v.hidden : open; v.hidden = !on; t.setAttribute('aria-expanded', on ? 'true' : 'false'); t.querySelector('span').textContent = on ? '▴' : '▾';
   }
-  root.querySelectorAll('.hs-chip').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); select(b.dataset.id); }));
+  root.querySelectorAll('.hs-chip').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation(); select(b.dataset.id);
+    // un toque en uno de TUS Huéspedes ya lo elige (Inicio › Huéspedes › toque = 2 toques; «Listo» vuelve al inicio). Los que aún no son tuyos sólo se miran.
+    if (poseeHuesped(Perfil.perfil(), hs.sel) && Equipo.char !== hs.sel) { Equipo.char = hs.sel; saveEquipo(); menu.sound.ui('ok'); root.querySelectorAll('.hs-chip').forEach((c) => c.classList.toggle('chosen', c.dataset.id === Equipo.char)); $('#hschosen').hidden = false; $('#hspick').textContent = 'Listo ✓'; menu.refreshHuesped && menu.refreshHuesped(); }
+  }));
   $('#hsvettoggle').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('tick'); toggleVets(); });
   $('#hsdemo').addEventListener('click', (e) => { e.stopPropagation(); demo('both'); });
-  $('#hsinv').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('ok'); menu.ivHost = hs.sel; menu.show('inventario'); });   // inventario con las piezas puestas en el modelo (docs/INVENTARIO.md)
   $('#hspick').addEventListener('click', (e) => {
     e.stopPropagation(); if (!poseeHuesped(Perfil.perfil(), hs.sel)) { menu.sound.ui('ok'); if (menu.tn) menu.tn.host = hs.sel; menu.show('tienda'); return; }   // no es tuyo: va a la Tienda
     Equipo.char = hs.sel; saveEquipo(); menu.sound.ui('ok');

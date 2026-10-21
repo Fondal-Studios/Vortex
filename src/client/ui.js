@@ -13,20 +13,21 @@ import { buildInventarioScreen, showInventario } from './inventario-ui.js';
 import { buildGraficosScreen, showGraficos } from './graficos-ui.js';
 import { buildTiendaScreen, showTienda } from './tienda-ui.js';
 import { aplicarMarca } from './marca.js';
-import { buildMain, buildHubs, refrescarInicio, dibujarMigas, vecino, guardarUltimo, leerUltimo } from './menu-hubs.js';
-import { continuarDe, PANTALLAS } from './menu-nav.js';
+import { buildMain, buildBarra, dibujarBarra, refrescarInicio, vecino, guardarUltimo, leerUltimo } from './menu-hubs.js';
+import { continuarDe, SECCIONES, SECCION_DE, tabActiva } from './menu-nav.js';
+import { crearBienvenida, debeSaludar } from './menu-bienvenida.js';
 import * as Perfil from './perfil.js';
 
 const $ = (id) => document.getElementById(id);
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); aplicarMarca(); buildMain(this); buildHubs(this); this.addBackButtons(); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
   }
   /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
   addBackButtons() {
     this.root.querySelectorAll('.screen').forEach((sc) => {
-      if (sc.id === 'title' || sc.id === 'main') return;
+      if (sc.id === 'title' || sc.id === 'main' || sc.querySelector(':scope > .backbtn, .backbtn')) return;   // (algunas pantallas traen el suyo en su plantilla; el Equipo se arma después y no lo trae)
       const b = document.createElement('button'); b.className = 'backbtn'; b.type = 'button'; b.innerHTML = '<span aria-hidden="true">‹</span> Volver'; b.setAttribute('aria-label', 'Volver al menú anterior');
       b.addEventListener('click', (e) => { e.stopPropagation(); this.back(); }); sc.prepend(b);
     });
@@ -34,16 +35,17 @@ export class MenuUI {
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { title: '#pressstart', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr select, #coopscr .btn, #coopscr input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #mainlist .door', 'hub-jugar': '#hub-jugar #modeitem, #hub-jugar .hubcard, #hub-jugar .rstep', 'hub-huesped': '#hub-huesped .hubcard', 'hub-mundo': '#hub-mundo .hubcard', 'hub-ajustes': '#hub-ajustes .hubcard', options: '#options .panel label, #options .gfxgo, #options #gfxgo' }[name];
+    const q = { title: '#pressstart', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
     if (name === 'tienda' && this.tn && this.tn.dialogoAbierto()) return [...this.root.querySelectorAll('#tnyes, #tnno')];   // con el cartel de confirmación abierto, sólo se navega entre Sí y No
-    return [...this.root.querySelectorAll(q)];
+    const l = [...this.root.querySelectorAll(q)];
+    return name === 'options' ? l.filter((e) => e.getClientRects().length > 0) : l;   // (los ajustes táctiles plegados no cuentan)
   }
   show(name, push = true) {
     if (push && this.screen !== name && name !== 'title') this.stack.push(this.screen);
     const antes = this.screen; this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';   // dirección de la transición corta (menu.css)
     this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name));
-    dibujarMigas(this, name); const inicio = name === 'main' || name.startsWith('hub-'); this.root.dataset.inicio = inicio ? '1' : '0'; const sal = $('saldo'); if (sal) sal.hidden = !inicio;   // (la Tienda trae su propio saldo)
-    if (inicio) refrescarInicio(this);
+    dibujarBarra(this, name); this.root.dataset.inicio = name === 'main' ? '1' : '0';   // barra superior única: volver · pestañas · Modo · Gráficos · núcleos
+    refrescarInicio(this);   // (núcleos y puntitos de la barra se recalculan en cada pantalla)
     this.idx = name === 'bestiary' ? 0 : 0; this.focus(this.idx, true);
     $('prompts').style.opacity = name === 'title' || name === 'tienda' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
     if (name === 'bestiary') this.selectBeast(0);
@@ -55,9 +57,10 @@ export class MenuUI {
     if (name === 'tienda') showTienda(this);
     if (name === 'inventario') { try { const p = Perfil.perfil(); p.menu.iv = p.nu; Perfil.guardar(); } catch { /* sin perfil */ } const h = this.ivHost; this.ivHost = null; showInventario(this, h); }
     if (name === 'main') this.refreshHuesped();
+    if (name === 'coop' && this.actions.coop) this.actions.coop();   // Cooperativo: prueba el servidor y muestra la sala (coop-ui.js)
   }
   /** Rótulo del menú principal: qué Huésped está elegido (el panel de Mi Huésped, Continuar y los avisos se recalculan). */
-  refreshHuesped() { if (this.screen === 'main' || this.screen.startsWith('hub-')) refrescarInicio(this); }
+  refreshHuesped() { if (this.screen !== 'title') refrescarInicio(this); }
   back() {
     if (this.screen === 'title') return;
     if (this.desdeBase && (this.screen === 'main' || !this.stack.length)) { this.sound.ui('back'); this.desdeBase(); return; }   // abierto desde la Base (main.js › baseAbrir): el último «Volver» cierra el menú y vuelve al mapa
@@ -65,8 +68,24 @@ export class MenuUI {
     if (this.screen === 'main') return;   // en el inicio no hay a dónde volver (el título no se vuelve a mostrar)
     const prev = this.stack.pop(); this.sound.ui('back'); this.show(prev || 'main', false);
   }
-  /** Salta a una pantalla de las migas de pan (reconstruye el camino de vuelta: Inicio › … ). */
-  saltar(name) { if (!PANTALLAS[name]) return; const camino = []; for (let id = PANTALLAS[name].padre; id; id = PANTALLAS[id].padre) camino.unshift(id); this.stack = camino; this.sound.ui('tick'); this.show(name, false); }
+  /** Cambia de pestaña dentro de la sección (barra superior): reemplaza la pantalla SIN apilar, así «Volver» sigue yendo al inicio (o a la Base). */
+  irTab(def) {
+    if (!def) return; const cambia = def.go !== this.screen;
+    if (cambia) { this.root.dataset.dir = 'fwd'; this.show(def.go, false); }
+    if (def.btab) { const b = this.root.querySelector(`#btabs .bt-tab[data-t="${def.btab}"]`); if (b && this.btab !== def.btab) b.click(); }
+    if (def.ivtab && this.iv && this.iv.setTab && this.iv.tab !== def.ivtab) this.iv.setTab(def.ivtab);
+    dibujarBarra(this, this.screen);
+  }
+  /** Pestaña anterior / siguiente de la sección (Q / E, LB / RB del mando). */
+  cambiarTab(d) {
+    const S = SECCIONES[SECCION_DE[this.screen]]; if (!S) return; const i = tabActiva(this.screen, { btab: this.btab, ivtab: this.iv && this.iv.tab });
+    const j = i + d; if (j < 0 || j >= S.tabs.length) return; this.sound.ui('tick'); this.irTab(S.tabs[j]);
+  }
+  /** Las pestañas internas del Bestiario (Criaturas · Fauna · Herbario) y del Inventario se cambian por dentro de sus pantallas: se mira cuándo para que la barra marque la correcta. */
+  vigilarPestanas() {
+    const sync = () => { if (this.screen === 'bestiary' || this.screen === 'inventario') dibujarBarra(this, this.screen); };
+    for (const [sel, filtro] of [['#bestiary', ['class']], ['#ivtabs', ['class']]]) { const el = this.root.querySelector(sel); if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: filtro, subtree: sel === '#ivtabs' }); }
+  }
   /** Botón grande «Continuar»: retoma lo último que jugaste (Historia o la última arena). */
   continuar() {
     const u = continuarDe(leerUltimo()); this.sound.ui('ok');
@@ -77,7 +96,7 @@ export class MenuUI {
     const l = this.list(); if (!l.length) return; this.idx = (i + l.length) % l.length;
     l.forEach((e, k) => e.classList.toggle('focus', k === this.idx));
     const el = l[this.idx];
-    if ((this.screen === 'graficos' || this.screen === 'tienda' || this.screen.startsWith('hub-')) && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
+    if ((this.screen === 'graficos' || this.screen === 'tienda' || this.screen === 'main') && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
     if (this.screen === 'bestiary') this.selectBeast(this.idx);
     if (!silent) this.sound.ui('tick');
   }
@@ -98,7 +117,7 @@ export class MenuUI {
   renderLoadout() { renderHeroScreen(this); }
   /* ───── entrada ───── */
   bindEvents() {
-    this.root.querySelectorAll('[data-go]').forEach((b) => { b.addEventListener('mouseenter', () => { if (this.screen === 'main' || this.screen.startsWith('hub-')) this.focus(this.list().indexOf(b)); }); b.addEventListener('click', () => this.go(b.dataset.go)); });
+    this.root.querySelectorAll('[data-go]').forEach((b) => { b.addEventListener('mouseenter', () => { if (this.screen === 'main') this.focus(this.list().indexOf(b)); }); b.addEventListener('click', () => this.go(b.dataset.go)); });
     $('pressstart').addEventListener('click', () => this.confirmTitle());
     this.root.addEventListener('click', (e) => { if (this.screen === 'title' && this.active) this.confirmTitle(); });
     this.root.querySelectorAll('.card, .btn, #options label').forEach((c) => c.addEventListener('mouseenter', () => { const l = this.list(); const i = l.indexOf(c); if (i >= 0) this.focus(i); }));
@@ -110,15 +129,17 @@ export class MenuUI {
     this.root.addEventListener('touchstart', (e) => { const t = e.touches[0]; sw = e.touches.length === 1 && t.clientX < 28 ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
     this.root.addEventListener('touchend', (e) => { if (!sw) return; const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = Math.abs(t.clientY - sw.y); sw = null; if (dx > 70 && dy < 60 && this.active && this.screen !== 'title') this.back(); }, { passive: true });
   }
-  confirmTitle() { if (this.screen !== 'title') return; this.sound.init(); this.sound.resume(); this.sound.startMusic('m1'); this.sound.ui('ok'); this.show('main', false); }
+  confirmTitle() { if (this.screen !== 'title') return; this.sound.init(); this.sound.resume(); this.sound.startMusic('m1'); this.sound.ui('ok'); this.show('main', false); if (debeSaludar()) this.bv.abrir(); }
   go(name) { this.sound.ui('ok'); if (name === 'base') { if (this.actions.base) this.actions.base(); return; } this.show(name); }   // «La Base» no es una pantalla del menú: es un mapa (main.js › startBase)
   /** Acciones abstractas: up/down/left/right/ok/back */
   act(a) {
     if (!this.active) return; this.sound.init();
     if (this.screen === 'title') { if (a === 'ok' || a === 'any') this.confirmTitle(); return; }
+    if (this.bv && this.bv.abierto()) { if (a === 'ok') this.bv.siguiente(); else if (a === 'back') this.bv.cerrar(); return; }   // la bienvenida de la primera vez tiene el foco
     if (a === 'back') return this.back();
+    if (a === 'tabprev' || a === 'tabnext') return this.cambiarTab(a === 'tabnext' ? 1 : -1);
     const l = this.list(); if (!l.length) return; const cur = l[this.idx];
-    if (this.screen === 'main' || this.screen.startsWith('hub-') || this.screen === 'tienda') {   // rejillas, pestañas y paneles: se va al vecino más cercano en esa dirección
+    if (this.screen === 'main' || this.screen === 'tienda') {   // rejillas, pestañas y paneles: se va al vecino más cercano en esa dirección
       if (a === 'ok') { this.sound.ui('ok'); if (cur.tagName === 'SELECT') return this.stepSelect(cur, 1); return cur.click(); }
       if ((a === 'left' || a === 'right') && cur.tagName === 'SELECT') return this.stepSelect(cur, a === 'right' ? 1 : -1);
       const j = vecino(l, this.idx, a); if (j >= 0) this.focus(j); return;
@@ -135,7 +156,7 @@ export class MenuUI {
   handleKey(e) {
     if (!this.active || (this.root.classList.contains('hidden'))) return false;
     if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.type !== 'range') { if (e.code === 'Escape' || e.code === 'Enter') { document.activeElement.blur(); e.preventDefault(); return true; } return false; }
-    const m = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Enter: 'ok', Space: 'ok', Escape: 'back', Backspace: 'back' }[e.code];
+    const m = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Enter: 'ok', Space: 'ok', Escape: 'back', Backspace: 'back', KeyQ: 'tabprev', PageUp: 'tabprev', KeyE: 'tabnext', PageDown: 'tabnext' }[e.code];
     if (this.screen === 'title') { this.act('any'); e.preventDefault(); return true; }
     if (!m) return false; this.act(m); e.preventDefault(); return true;
   }

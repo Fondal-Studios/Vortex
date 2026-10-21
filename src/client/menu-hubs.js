@@ -1,64 +1,80 @@
-// Menú principal en CUATRO puertas (JUGAR · MI HUÉSPED · MUNDO · AJUSTES) + «Continuar», migas de pan, saldo y puntitos de aviso.
-// Dibuja el inicio y los 4 «hubs» desde src/client/menu-nav.js (única fuente) y los deja listos para que ui.js los recorra con teclado, mando, mouse o toque.
+// Dibujo del menú (docs/MENU.md): INICIO (botón enorme + 5 puertas), la BARRA SUPERIOR única (volver · pestañas de la sección · Modo · Gráficos · núcleos),
+// los puntitos de aviso y la navegación espacial. Los datos viven en src/client/menu-nav.js (única fuente). ui.js recorre todo con teclado, mando, mouse o toque.
 import { CHARACTERS } from '../sim/data.js';
-import { PUERTAS, HUBS, migas, continuarDe, avisos, avisosPuertas, rutaObjetivos } from './menu-nav.js';
+import { PUERTAS, SECCIONES, SECCION_DE, tabActiva, continuarDe, avisos, avisosPuertas, rutaObjetivos } from './menu-nav.js';
 import { Equipo } from './equipo.js';
-import { settings } from './settings.js';
 import * as Perfil from './perfil.js';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ULTIMO = 'pacto.ultimo.v1';
-/** Las imágenes de las tarjetas van como variable CSS: se pasan a dirección completa porque ahí las rutas relativas se leen desde el .css, no desde la página. */
-const url = (u) => `url('${new URL(u, document.baseURI).href}')`;
 export const guardarUltimo = (u) => { try { localStorage.setItem(ULTIMO, JSON.stringify(u)); } catch { /* sin almacenamiento */ } };
 export const leerUltimo = () => { try { return JSON.parse(localStorage.getItem(ULTIMO) || 'null'); } catch { return null; } };
 
-/** Dibuja la pantalla de inicio: marca, botón Continuar y las 4 puertas. */
+/** Iconos de línea (24×24, el color lo pone el texto): un solo lenguaje visual para todas las puertas. */
+export const ICONOS = {
+  base: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M10 20v-5.5h4V20"/></svg>',
+  huesped: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/><path d="M12 14v3"/></svg>',
+  coleccion: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/></svg>',
+  coop: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="8.5" r="3"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M2.5 19c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><path d="M15 14.2c3-.4 5.6.9 6.5 4.8"/></svg>',
+  ajustes: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8"/></svg>',
+  jugar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>',
+  mapa: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg>',
+};
+
+/** Dibuja el inicio: botón enorme + «Elegir partida» + las 5 puertas. */
 export function buildMain(menu) {
   const main = menu.root.querySelector('#main'); if (!main) return;
-  main.querySelector('#mainlist').innerHTML = PUERTAS.map((d) => `<button class="door" type="button" data-go="${d.hub}" data-door="${d.id}" title="${esc(d.desc)}" style="--art:${url(d.art)}"><i class="dot" data-aviso-puerta="${d.id}" hidden></i><span class="door-t"><b>${esc(d.titulo)}</b><small>${esc(d.desc)}</small></span></button>`).join('');
+  main.querySelector('#mainlist').innerHTML = PUERTAS.map((d) => `<button class="door" type="button" data-go="${d.go}" data-door="${d.id}" title="${esc(d.desc)}" style="--tint:${d.color}"><i class="dot" data-aviso-puerta="${d.id}" hidden></i><span class="door-ico">${ICONOS[d.icono] || ''}</span><span class="door-t"><b>${esc(d.titulo)}</b><small>${esc(d.desc)}</small></span></button>`).join('');
   main.querySelector('#continuar').addEventListener('click', (e) => { e.stopPropagation(); menu.continuar(); });
+  const pr = main.querySelector('#proximo'); if (pr) pr.addEventListener('click', (e) => { e.stopPropagation(); if (pr.dataset.go) menu.go(pr.dataset.go); });
 }
 
-/** Crea las 4 pantallas «hub» dentro del menú. */
-export function buildHubs(menu) {
-  for (const [id, H] of Object.entries(HUBS)) {
-    const sec = menu.root.querySelector('#' + id); if (!sec) continue; sec.classList.add('hub');
-    const extra = id === 'hub-jugar' ? `<button id="modeitem" class="modebar" type="button" data-hero="modo" data-mode="shooter" title="Shooter: disparás y apuntás. Combo: el cuerpo a cuerpo manda, con dos ataques encadenados y una habilidad."><span class="mb-l"><b>Modo de juego: Shooter</b><small>Disparás, apuntás y usás habilidades</small></span><span class="mb-pills" aria-hidden="true"><i data-m="shooter">Shooter</i><i data-m="combo">Combo</i></span></button>` : '';
-    const estado = id === 'hub-huesped' ? '<div class="hub-status" id="hubstatus" aria-live="polite"></div>' : '';
-    const ruta = id === 'hub-jugar' ? '<section class="ruta-obj" aria-label="Ruta de objetivos"><h4>Tu ruta</h4><div id="rutaobj" class="ruta-list"></div></section>' : '';
-    sec.innerHTML = `<h3 class="stitle">${esc(H.titulo)}</h3><p class="hub-sub">${esc(H.sub)}</p>${extra}${estado}
-      <div class="hubgrid" data-n="${H.items.length}">${H.items.map((it) => `<button class="hubcard" type="button" data-go="${it.go}" title="${esc(it.desc)}" style="--art:${url(it.art)}"><i class="dot" ${it.aviso ? `data-aviso="${it.aviso}"` : ''} hidden></i><b>${esc(it.titulo)}</b><small>${esc(it.desc)}</small>${it.saldo ? '<em class="hc-saldo" data-saldo></em>' : ''}</button>`).join('')}</div>${ruta}`;
+/** La barra superior única: Modo · Gráficos · núcleos (clic = Tienda). Las pestañas se dibujan en dibujarBarra(). */
+export function buildBarra(menu) {
+  const bar = menu.root.querySelector('#topbar'); if (!bar) return;
+  const g = bar.querySelector('#tbgfx'); if (g) { g.innerHTML = ICONOS.ajustes; g.addEventListener('click', (e) => { e.stopPropagation(); menu.irTab({ go: 'graficos' }); }); }
+  const s = bar.querySelector('#saldo'); if (s) s.addEventListener('click', (e) => { e.stopPropagation(); if (menu.screen !== 'tienda') menu.go('tienda'); });
+}
+
+/** Barra superior de la pantalla actual: se esconde en el título; en el inicio sólo muestra las herramientas; en una sección muestra sus pestañas (la activa resaltada, con puntito si hay aviso). */
+export function dibujarBarra(menu, pantalla) {
+  const bar = menu.root.querySelector('#topbar'); if (!bar) return;
+  const visible = pantalla !== 'title'; bar.hidden = !visible; menu.root.dataset.barra = visible ? '1' : '0';
+  const sid = SECCION_DE[pantalla], S = sid && SECCIONES[sid], tabs = bar.querySelector('#tbtabs'), sec = bar.querySelector('#tbsec');
+  menu.root.dataset.tabs = S ? '1' : '0'; menu.root.dataset.sec = sid || '';
+  if (sec) sec.textContent = S ? S.titulo : '';
+  if (!S) { tabs.innerHTML = ''; tabs.hidden = true; delete tabs.dataset.sec; return; }
+  tabs.hidden = false;
+  const act = tabActiva(pantalla, { btab: menu.btab, ivtab: menu.iv && menu.iv.tab });
+  if (tabs.dataset.sec !== sid) {
+    tabs.dataset.sec = sid;
+    tabs.innerHTML = S.tabs.map((t, i) => `<button class="tb-tab" type="button" role="tab" data-i="${i}"${t.aviso ? ` data-aviso="${t.aviso}"` : ''}><span>${esc(t.t)}</span><i class="dot" hidden></i></button>`).join('');
+    tabs.querySelectorAll('.tb-tab').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('tick'); menu.irTab(S.tabs[+b.dataset.i]); }));
   }
+  tabs.querySelectorAll('.tb-tab').forEach((b, i) => { const on = i === act; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; if (on && b.scrollIntoView) { try { const t = tabs.getBoundingClientRect(), r = b.getBoundingClientRect(); if (r.left < t.left || r.right > t.right) tabs.scrollLeft += (r.left + r.right) / 2 - (t.left + t.right) / 2; } catch { /* sin medidas */ } } });
+  pintarAvisosPestanas(menu);
+  const marcaMas = () => tabs.classList.toggle('mas', tabs.scrollWidth > tabs.clientWidth + 2 && tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 4);   // sombra a la derecha = hay más pestañas
+  marcaMas(); if (!tabs.dataset.sc) { tabs.dataset.sc = '1'; tabs.addEventListener('scroll', marcaMas, { passive: true }); addEventListener('resize', marcaMas); }
+}
+/** Puntitos de las pestañas (sólo donde hay algo útil por hacer). */
+function pintarAvisosPestanas(menu) {
+  let a; try { a = avisos(Perfil.perfil()); } catch { return; }
+  const TXT = { huesped: 'Hay un Huésped que ya podés comprar', botin: 'Botín nuevo en el inventario', puntos: 'Puntos de progresión sin gastar', bendicion: 'Tenés una bendición para elegir', mision: 'Se abrió un territorio nuevo' };
+  menu.root.querySelectorAll('#tbtabs .tb-tab[data-aviso]').forEach((b) => { const k = b.dataset.aviso, n = a[k] || 0, d = b.querySelector('.dot'); d.hidden = !n || b.classList.contains('on') && k === 'botin'; b.title = n ? TXT[k] : ''; });
 }
 
-/** Puntitos de aviso, saldo, Continuar, estado del Huésped y ruta: se recalcula cada vez que se entra a una pantalla del inicio. */
+/** Puntitos, núcleos, «Continuar» y «Próximo paso»: se recalcula cada vez que se entra al inicio (y al elegir Huésped o modo). */
 export function refrescarInicio(menu) {
   let p; try { p = Perfil.perfil(); } catch { return; }
   const a = avisos(p), puertas = avisosPuertas(a), r = menu.root;
   r.querySelectorAll('[data-aviso-puerta]').forEach((d) => { const n = puertas[d.dataset.avisoPuerta] || 0; d.hidden = !n; d.title = n ? `${n} novedad${n === 1 ? '' : 'es'}` : ''; });
-  const TXT = { base: 'Hay un cultivo listo para recoger en la Base', botin: 'Botín nuevo en el inventario', puntos: 'Puntos de progresión sin gastar', huesped: 'Hay un Huésped que ya podés comprar', tienda: 'Stock nuevo en la Tienda', bendicion: 'Tenés una bendición para elegir', mision: 'Se abrió un territorio nuevo' };
-  r.querySelectorAll('.hubcard [data-aviso]').forEach((d) => {
-    const k = d.dataset.aviso, n = k === 'tienda' ? a.tienda + a.huesped : a[k] || 0; d.hidden = !n; d.title = n ? (k === 'tienda' && a.huesped ? TXT.huesped : TXT[k]) : '';
-  });
-  const c = CHARACTERS[Equipo.char], u = continuarDe(leerUltimo(), c ? c.name : ''), modo = settings().mode === 'combo' ? 'modo Combo' : 'modo Shooter';
-  const cont = r.querySelector('#continuar'); if (cont) { cont.querySelector('b').textContent = u.titulo; cont.querySelector('small').textContent = `${u.sub} · ${modo}`; }
-  const sal = r.querySelector('#saldo'); if (sal) sal.innerHTML = `<span>Tus núcleos</span><b>${p.cores}</b><i aria-hidden="true">◆</i>`;
-  r.querySelectorAll('[data-saldo]').forEach((e) => { e.textContent = `Tenés ${p.cores} núcleos`; });
-  const st = r.querySelector('#hubstatus');
-  if (st && c) { const mr = Perfil.rangoMaestria(Equipo.char), evo = p.evo[Equipo.char] || 0; st.innerHTML = `<span class="hs-dot" style="background:#${c.color.toString(16).padStart(6, '0')}"></span><b>Tu Huésped: ${esc(c.name)}</b> <small>${esc(c.title || '')} · evolución ${evo}/4 · maestría ${mr}</small>`; }
-  const rr = r.querySelector('#rutaobj');
-  if (rr) rr.innerHTML = rutaObjetivos(p).map((s) => `<button class="rstep${s.hecho ? ' ok' : ''}" type="button" data-go="${s.go}"><i aria-hidden="true">${s.hecho ? '✓' : '○'}</i><span>${esc(s.texto)}</span></button>`).join('');
-  // los pasos de la ruta se crean cada vez: se les engancha el clic acá
-  rr && rr.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); menu.go(b.dataset.go); }));
-}
-
-/** Migas de pan clicables: «Inicio › Mi Huésped › Inventario». En Inicio y en el título no se muestran. */
-export function dibujarMigas(menu, pantalla) {
-  const el = menu.root.querySelector('#crumbs'); if (!el) return;
-  const m = migas(pantalla); el.hidden = m.length < 2; if (m.length < 2) { el.innerHTML = ''; return; }
-  el.innerHTML = m.map((x, i) => (i === m.length - 1 ? `<span class="cr-now" aria-current="page">${esc(x.nombre)}</span>` : `<button type="button" class="cr-go" data-cr="${x.id}">${esc(x.nombre)}</button><i aria-hidden="true">›</i>`)).join('');
-  el.querySelectorAll('[data-cr]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); menu.saltar(b.dataset.cr); }));
+  const c = CHARACTERS[Equipo.char], u = continuarDe(leerUltimo(), c ? c.name : '');
+  const cont = r.querySelector('#continuar'); if (cont) { cont.querySelector('b').textContent = u.titulo; cont.querySelector('small').textContent = u.sub; }
+  const sal = r.querySelector('#saldo'); if (sal) sal.innerHTML = `<span>Núcleos</span><b>${p.cores}</b><i aria-hidden="true">◆</i>`;
+  const hu = r.querySelector('[data-door="huespedes"] small'); if (hu && c) hu.textContent = `Ahora: ${c.name} · elegir, evolucionar, comprar`;
+  const pr = r.querySelector('#proximo');
+  if (pr) { const s = rutaObjetivos(p, 7).find((x) => !x.hecho); pr.hidden = !s; if (s) { pr.dataset.go = s.go; pr.querySelector('span').textContent = s.texto; } }
+  pintarAvisosPestanas(menu);
 }
 
 /** Navegación espacial: de todos los elementos, el más cercano en esa dirección (arriba/abajo/izq./der.), para rejillas, pestañas y paneles. -1 si no hay. */

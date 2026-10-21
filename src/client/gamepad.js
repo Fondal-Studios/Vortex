@@ -17,9 +17,9 @@ export class Pad {
   /** Eventos discretos para menús: devuelve lista de 'up'|'down'|'left'|'right'|'ok'|'back' con repetición al mantener. */
   menuEvents(dt) {
     const g = this.gp; if (!g) return []; const out = []; const now = performance.now();
-    const down = { up: g.buttons[12]?.pressed || (g.axes[1] || 0) < -0.6, down: g.buttons[13]?.pressed || (g.axes[1] || 0) > 0.6, left: g.buttons[14]?.pressed || (g.axes[0] || 0) < -0.6, right: g.buttons[15]?.pressed || (g.axes[0] || 0) > 0.6, ok: g.buttons[0]?.pressed || g.buttons[9]?.pressed, back: g.buttons[1]?.pressed };
+    const down = { up: g.buttons[12]?.pressed || (g.axes[1] || 0) < -0.6, down: g.buttons[13]?.pressed || (g.axes[1] || 0) > 0.6, left: g.buttons[14]?.pressed || (g.axes[0] || 0) < -0.6, right: g.buttons[15]?.pressed || (g.axes[0] || 0) > 0.6, ok: g.buttons[0]?.pressed || g.buttons[9]?.pressed, back: g.buttons[1]?.pressed, tabprev: g.buttons[4]?.pressed, tabnext: g.buttons[5]?.pressed };   // LB / RB: pestaña anterior / siguiente de la sección del menú
     for (const k of Object.keys(down)) {
-      if (down[k]) { if (!this.prev[k]) { out.push(k); this.repeat[k] = now + 380; } else if ((k !== 'ok' && k !== 'back') && now > this.repeat[k]) { out.push(k); this.repeat[k] = now + 110; } }
+      if (down[k]) { if (!this.prev[k]) { out.push(k); this.repeat[k] = now + 380; } else if ((k !== 'ok' && k !== 'back' && k !== 'tabprev' && k !== 'tabnext') && now > this.repeat[k]) { out.push(k); this.repeat[k] = now + 110; } }
       this.prev[k] = down[k];
     }
     return out;

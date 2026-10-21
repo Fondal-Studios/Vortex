@@ -1,62 +1,71 @@
-// Mapa del menú principal (datos PUROS: sin DOM). Cuatro puertas → cuatro «hubs» → las pantallas de siempre.
-//   Inicio ─ JUGAR (Historia · Arenas · Cooperativo) · MI HUÉSPED (Huésped · Evolución · Inventario y Forja · Equipo) · MUNDO (Territorios · Bestiario · Tienda) · AJUSTES (Gráficos · Controles y sonido)
-// Las pantallas existentes NO cambian de id: sólo se reubican. Acá también viven las migas de pan, los puntitos de aviso y la ruta de objetivos.
+// Mapa del menú (datos PUROS: sin DOM). Docs: docs/MENU.md.
+//   INICIO = un botón enorme (CONTINUAR / JUGAR) + «Elegir partida» + 5 puertas: BASE · HUÉSPEDES · COLECCIÓN · COOPERATIVO · AJUSTES.
+//   Cada puerta abre SU primera pantalla directamente (sin pasillos intermedios) y arriba queda siempre la misma barra con las pestañas de esa sección:
+//     PARTIDAS   Historia · Arenas · Cooperativo
+//     HUÉSPEDES  Huésped · Evolución · Inventario · Forja · Tienda · Equipo
+//     COLECCIÓN  Criaturas · Fauna · Herbario · Territorios
+//     AJUSTES    Controles y sonido · Gráficos
+//   «La Base» no es una pantalla: es el mapa jugable (main.js › startBase). Las pantallas NO cambian de id; sólo se reubican.
 import { TERRITORIOS, TERRITORIO_IDS } from '../sim/bendiciones.js';
 import { gastado } from '../sim/progresion.js';
 import { HOST_IDS } from '../sim/data.js';
 import { macetaEstado } from '../sim/base.js';   // La Base: cosecha del jardín lista
 import { HUESPEDES_TIENDA, estadoHuesped, poseeHuesped, claveOferta, diaDe } from '../sim/tienda.js';
 
-/** Las 4 puertas de la pantalla de inicio. `art` = imagen de fondo; `desc` = una línea que se ve siempre (y como ayuda al pasar el mouse o tocar). */
+/** Las 5 puertas de la pantalla de inicio. `go` = pantalla que abre; `icono` = clave de menu-hubs.js › ICONOS; `desc` = UNA línea de ayuda; `color` = tinte de la tarjeta. */
 export const PUERTAS = [
-  { id: 'jugar', hub: 'hub-jugar', titulo: 'Jugar', desc: 'Historia, Arenas y Cooperativo', art: './public/art/arena-m1.jpg' },
-  { id: 'huesped', hub: 'hub-huesped', titulo: 'Mi Huésped', desc: 'Elegirlo, evolucionarlo, equiparlo y forjar', art: './public/art/historia.jpg' },
-  { id: 'mundo', hub: 'hub-mundo', titulo: 'Mundo', desc: 'Territorios, Bestiario y la Tienda del Cambista', art: './public/art/arena-m4.jpg' },
-  { id: 'ajustes', hub: 'hub-ajustes', titulo: 'Ajustes', desc: 'Gráficos, controles, sonido y subtítulos', art: './public/art/opciones.jpg' },
+  { id: 'base', go: 'base', titulo: 'La Base', icono: 'base', desc: 'Caminá, forjá, cultivá y elegí partida', color: '#ffb35a' },
+  { id: 'huespedes', go: 'huesped', titulo: 'Huéspedes', icono: 'huesped', desc: 'Elegir, evolucionar, equipar y comprar', color: '#66ffee' },
+  { id: 'coleccion', go: 'bestiary', titulo: 'Colección', icono: 'coleccion', desc: 'Criaturas, fauna, herbario y territorios', color: '#b98cff' },
+  { id: 'coop', go: 'coop', titulo: 'Cooperativo', icono: 'coop', desc: 'Hasta 4 jugadores con un código', color: '#7fb2ff' },
+  { id: 'ajustes', go: 'options', titulo: 'Ajustes', icono: 'ajustes', desc: 'Controles, sonido y gráficos', color: '#9fb0d8' },
 ];
 
-/** Cada hub: título, frase corta y sus tarjetas. `go` = pantalla que abre; `aviso` = clave del puntito (ver avisos()). */
-export const HUBS = {
-  'hub-jugar': { puerta: 'jugar', titulo: 'Jugar', sub: 'Elegí cómo querés jugar hoy.', items: [
-    { go: 'story', titulo: 'Historia', desc: 'La campaña: un tren, un andén, una luz. 2 capítulos y 2 jefes.', art: './public/art/historia.jpg' },
-    { go: 'arenas', titulo: 'Arenas', desc: 'Directo a la acción en cualquiera de los 6 mapas, o probá armas en el Campo de pruebas.', art: './public/art/arena-m1.jpg', aviso: 'mision' },
-    { go: 'coop', titulo: 'Cooperativo', desc: 'Hasta 4 Pasajeros con un código de sala (necesita el servidor).', art: './public/art/coop.jpg' },
-    { go: 'base', titulo: 'La Base', desc: 'El Santuario: un mapa donde caminás, forjás, cultivás y elegís tu próxima partida.', art: './public/art/arena-m4.jpg', aviso: 'base' },
+/** Secciones con pestañas. Cada pestaña: { go: pantalla, t: rótulo, aviso?: clave del puntito, btab?: pestaña interna del Bestiario, ivtab?: pestaña interna del Inventario }. */
+export const SECCIONES = {
+  partidas: { titulo: 'Partidas', tabs: [
+    { go: 'story', t: 'Historia' }, { go: 'arenas', t: 'Arenas', aviso: 'mision' }, { go: 'coop', t: 'Cooperativo' },
   ] },
-  'hub-huesped': { puerta: 'huesped', titulo: 'Mi Huésped', sub: 'Todo lo de tu organismo en un solo lugar.', items: [
-    { go: 'huesped', titulo: 'Huésped', desc: 'Elegí a tu Huésped; mirá su maestría y su progresión Shooter / Combo.', art: './public/art/historia.jpg', aviso: 'puntos' },
-    { go: 'evolucion', titulo: 'Evolución', desc: 'Gastá núcleos: 4 niveles, mutaciones, órganos y armas fusionadas.', art: './public/art/arena-m3.jpg' },
-    { go: 'inventario', titulo: 'Inventario y Forja', desc: 'Objetos, materiales, planos, sets y la Forja biológica.', art: './public/art/arena-m2.jpg', aviso: 'botin' },
-    { go: 'loadout', titulo: 'Equipo', desc: 'Veteranos y tus armas de disparo (4 ranuras, el Haz es fijo).', art: './public/art/coop.jpg' },
+  huespedes: { titulo: 'Huéspedes', tabs: [
+    { go: 'huesped', t: 'Huésped', aviso: 'puntos' }, { go: 'evolucion', t: 'Evolución' }, { go: 'inventario', t: 'Inventario', ivtab: 'obj', aviso: 'botin' },
+    { go: 'inventario', t: 'Forja', ivtab: 'for' }, { go: 'tienda', t: 'Tienda', aviso: 'huesped' }, { go: 'loadout', t: 'Equipo' },
   ] },
-  'hub-mundo': { puerta: 'mundo', titulo: 'Mundo', sub: 'El Vórtice, sus lugares, sus bestias y su mercader.', items: [
-    { go: 'territorios', titulo: 'Territorios', desc: 'Los 6 lugares robados del mundo y una bendición por cada uno.', art: './public/art/arena-m5.jpg', aviso: 'bendicion' },
-    { go: 'bestiary', titulo: 'Bestiario', desc: 'Girá cada criatura en 3D y leé sus avisos y debilidades.', art: './public/art/bestiario.jpg' },
-    { go: 'tienda', titulo: 'Tienda', desc: 'El Cambista vende Huéspedes, planos, materiales y servicios.', art: './public/art/arena-m6.jpg', aviso: 'tienda', saldo: true },
+  coleccion: { titulo: 'Colección', tabs: [
+    { go: 'bestiary', t: 'Criaturas', btab: 'c' }, { go: 'bestiary', t: 'Fauna', btab: 'f' }, { go: 'bestiary', t: 'Herbario', btab: 'h' }, { go: 'territorios', t: 'Territorios', aviso: 'bendicion' },
   ] },
-  'hub-ajustes': { puerta: 'ajustes', titulo: 'Ajustes', sub: 'Que se vea bien y se sienta cómodo.', items: [
-    { go: 'graficos', titulo: 'Gráficos', desc: 'Baja, Media o Alta, resolución, sombras y límite de FPS.', art: './public/art/opciones.jpg' },
-    { go: 'options', titulo: 'Controles y sonido', desc: 'Sensibilidad, ayuda de puntería, volumen, subtítulos y botones táctiles.', art: './public/art/opciones.jpg' },
+  ajustes: { titulo: 'Ajustes', tabs: [
+    { go: 'options', t: 'Controles y sonido' }, { go: 'graficos', t: 'Gráficos' },
   ] },
 };
+/** Atajos: a qué sección pertenece cada pantalla (la primera pestaña que la nombra). */
+export const SECCION_DE = {};
+for (const [sid, S] of Object.entries(SECCIONES)) for (const tb of S.tabs) if (!SECCION_DE[tb.go]) SECCION_DE[tb.go] = sid;
+SECCION_DE.coop = 'partidas';   // Cooperativo: puerta del inicio, pero vive junto a Historia y Arenas
 
-/** Nombre de cada pantalla en las migas de pan y de quién cuelga. */
+/** Nombre de cada pantalla (título de la barra) y de quién cuelga: todo cuelga del Inicio (un solo nivel; las pestañas no apilan). */
 export const PANTALLAS = {
   main: { nombre: 'Inicio', padre: null },
-  'hub-jugar': { nombre: 'Jugar', padre: 'main' }, 'hub-huesped': { nombre: 'Mi Huésped', padre: 'main' }, 'hub-mundo': { nombre: 'Mundo', padre: 'main' }, 'hub-ajustes': { nombre: 'Ajustes', padre: 'main' },
-  story: { nombre: 'Historia', padre: 'hub-jugar' }, base: { nombre: 'La Base', padre: 'hub-jugar' }, arenas: { nombre: 'Arenas', padre: 'hub-jugar' }, coop: { nombre: 'Cooperativo', padre: 'hub-jugar' },
-  huesped: { nombre: 'Huésped', padre: 'hub-huesped' }, evolucion: { nombre: 'Evolución', padre: 'hub-huesped' }, inventario: { nombre: 'Inventario', padre: 'hub-huesped' }, loadout: { nombre: 'Equipo', padre: 'hub-huesped' },
-  territorios: { nombre: 'Territorios', padre: 'hub-mundo' }, bestiary: { nombre: 'Bestiario', padre: 'hub-mundo' }, tienda: { nombre: 'Tienda', padre: 'hub-mundo' },
-  graficos: { nombre: 'Gráficos', padre: 'hub-ajustes' }, options: { nombre: 'Controles y sonido', padre: 'hub-ajustes' },
+  story: { nombre: 'Historia', padre: 'main' }, arenas: { nombre: 'Arenas', padre: 'main' }, coop: { nombre: 'Cooperativo', padre: 'main' },
+  huesped: { nombre: 'Huésped', padre: 'main' }, evolucion: { nombre: 'Evolución', padre: 'main' }, inventario: { nombre: 'Inventario', padre: 'main' }, tienda: { nombre: 'Tienda', padre: 'main' }, loadout: { nombre: 'Equipo', padre: 'main' },
+  bestiary: { nombre: 'Colección', padre: 'main' }, territorios: { nombre: 'Territorios', padre: 'main' },
+  options: { nombre: 'Controles y sonido', padre: 'main' }, graficos: { nombre: 'Gráficos', padre: 'main' },
 };
-/** Camino desde Inicio hasta la pantalla: [{ id, nombre }] (para las migas «Inicio › Mi Huésped › Inventario»). El título no tiene migas. */
+/** Camino desde Inicio hasta la pantalla: [{ id, nombre }]. Ahora son como mucho dos pasos: «Inicio › Huéspedes». El título no tiene camino. */
 export function migas(pantalla) {
-  const out = []; let id = pantalla, guard = 0;
-  while (id && PANTALLAS[id] && guard++ < 6) { out.unshift({ id, nombre: PANTALLAS[id].nombre }); id = PANTALLAS[id].padre; }
-  return pantalla === 'title' || !PANTALLAS[pantalla] ? [] : out;
+  if (pantalla === 'title' || !PANTALLAS[pantalla]) return [];
+  if (pantalla === 'main') return [{ id: 'main', nombre: 'Inicio' }];
+  const sec = SECCIONES[SECCION_DE[pantalla]];
+  return [{ id: 'main', nombre: 'Inicio' }, { id: pantalla, nombre: sec ? sec.titulo : PANTALLAS[pantalla].nombre }];
 }
-/** Texto plano de las migas: «Inicio › Mi Huésped › Inventario». */
+/** Texto plano del camino: «Inicio › Huéspedes». */
 export const migasTexto = (pantalla) => migas(pantalla).map((m) => m.nombre).join(' › ');
+/** La pestaña activa de una pantalla dentro de su sección: `ctx` = { btab, ivtab } (pestañas internas del Bestiario y del Inventario). -1 si no hay sección. */
+export function tabActiva(pantalla, ctx = {}) {
+  const S = SECCIONES[SECCION_DE[pantalla]]; if (!S) return -1;
+  let i = S.tabs.findIndex((t) => t.go === pantalla && (t.btab ? t.btab === (ctx.btab || 'c') : t.ivtab ? (t.ivtab === 'for') === (ctx.ivtab === 'for') : true));
+  if (i < 0) i = S.tabs.findIndex((t) => t.go === pantalla);
+  return i;
+}
 
 /* ───────── «Continuar» ───────── */
 export const MAPAS_NOMBRE = { m1: 'Vacío de Islas', m2: 'Cámara Fractal', m3: 'Laberinto Celestial', m4: 'Jardín de Carne', m5: 'Plaza de los Ecos', m6: 'Osario sin Techo', practica: 'Campo de pruebas' };
@@ -93,12 +102,12 @@ export function avisos(p, ahora = Date.now()) {
   }
   return out;
 }
-/** Avisos de cada puerta (suma de lo que cuelga de ella). */
+/** Avisos de cada puerta del inicio (sólo lo que pide una acción útil: cosecha lista, botín nuevo, puntos sin gastar, un Huésped que ya podés comprar, bendición por elegir, territorio nuevo). */
 export function avisosPuertas(a) {
-  return { jugar: a.mision + a.base, huesped: a.botin + a.puntos, mundo: a.huesped + a.tienda + a.bendicion, ajustes: 0 };
+  return { base: a.base, huespedes: a.botin + a.puntos + a.huesped, coleccion: a.bendicion, coop: 0, ajustes: 0, partidas: a.mision };
 }
 
-/* ───────── ruta de objetivos (Jugar) ───────── */
+/* ───────── ruta de objetivos (el «Próximo paso» del inicio y el objetivo de la Base) ───────── */
 /** Los próximos pasos sugeridos, cada uno con su estado: [{ texto, hecho, go }]. Muestra hasta `max` (los hechos más recientes cuentan como contexto). */
 export function rutaObjetivos(p, max = 4) {
   const owned = HOST_IDS.filter((id) => poseeHuesped(p, id));

@@ -14,6 +14,7 @@ import { tirar, tirarBotin, BOTIN_TIPO, rarezaDe, pesosRareza, FUENTES, PITY, in
 import { comboUnlocked } from '../src/sim/combos.js';
 import { meleeSet } from '../src/sim/huespedes.js';
 import { wstat } from '../src/sim/loadout.js';
+import { PROTOCOLO } from '../src/sim/red.js';
 import { startServer, equipDe } from '../server/server.js';
 import { sub, norm, dot, len, mul, v3 } from '../src/sim/math.js';
 import { hash } from './helpers.js';
@@ -377,7 +378,7 @@ test('servidor: valida y acota el equipo (ids falsos, firmas ajenas, ranuras, ex
   const srv = await startServer({ port: 0, autoTick: false });
   try {
     const { WebSocket } = await import('ws'); const ws = new WebSocket(`ws://127.0.0.1:${srv.port}/ws`); await new Promise((r) => ws.on('open', r));
-    const sent = { t: 'create', map: 'm1', name: 'Eq', char: 'axioma', equip: [{ s: 'melee', id: 'gemelas_axioma', q: 0.5, k: 10 }, { s: 'melee', id: 'cuchilla_hueso' }, { s: 'head', id: 'arco_aureola' }, { id: '__proto__' }, { s: 'torso', id: 'corazon_coloso', k: 1e12 }, ...Array.from({ length: 30 }, () => ({ id: 'peto_hueso' }))], pity: { l: 1e9, e: -4 }, sigs: ['axioma', 7] };
+    const sent = { t: 'create', v: PROTOCOLO, map: 'm1', name: 'Eq', char: 'axioma', equip: [{ s: 'melee', id: 'gemelas_axioma', q: 0.5, k: 10 }, { s: 'melee', id: 'cuchilla_hueso' }, { s: 'head', id: 'arco_aureola' }, { id: '__proto__' }, { s: 'torso', id: 'corazon_coloso', k: 1e12 }, ...Array.from({ length: 30 }, () => ({ id: 'peto_hueso' }))], pity: { l: 1e9, e: -4 }, sigs: ['axioma', 7] };
     assert.ok(JSON.stringify(sent).length < 4096, 'cabe en el mensaje'); ws.send(JSON.stringify(sent));
     for (let i = 0; i < 100 && !srv.rooms.size; i++) await new Promise((r) => setTimeout(r, 15));
     const g = [...srv.rooms.values()][0].game, p = g.players[0]; assert.deepEqual(p.eqList.map((e) => e.id), ['gemelas_axioma', 'corazon_coloso']); assert.ok(p.eqList.every((e) => e.k <= 99999)); assert.equal(p.pity.l, 999); assert.equal(p.pity.e, 0); assert.equal(p.sigPlan, true);

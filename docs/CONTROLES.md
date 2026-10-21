@@ -109,22 +109,25 @@ Dos ataques encadenados + tres habilidades. Ya no se elige sólo en el menú: se
 - Opciones › «Efectos de golpe» (Completos / Reducidos) y «Reducir movimiento» apagan o atenúan sacudida, FOV, hit-stop y cámara lenta. En 3.ª persona el contador de combo se corre a la derecha para no tapar al héroe.
 - Detalle técnico y tabla de poses: docs/HUESPEDES.md → «Golpes que se ven y se sienten». **No probado**: iPhone real, táctil real, mando, coop.
 
-## Menú principal en 4 puertas (VORTEX)
-Inicio = botón grande **Continuar / Jugar** (retoma lo último que jugaste: Historia o la última arena) + 4 puertas. Cada una abre un «hub» de tarjetas:
+## Menú principal (VORTEX): una acción grande + 5 puertas
+Detalle y mapa completo en **docs/MENU.md**. Inicio = botón enorme **Continuar / Jugar** (retoma lo último que jugaste), **Elegir partida** al lado y cinco puertas: **La Base · Huéspedes · Colección · Cooperativo · Ajustes**. Cada puerta abre directo su primera pantalla (sin pasillos) y arriba queda **una sola barra** en todas las pantallas:
 
-| Puerta | Qué trae |
+`[‹ Volver] · pestañas de la sección · [Shooter | Melé] · [engranaje = Gráficos] · [◆ núcleos = Tienda]`
+
+| Sección | Pestañas |
 |---|---|
-| **Jugar** | Barra de modo **Shooter / Combo** (siempre arriba) · Historia · Arenas · Cooperativo · «Tu ruta» (próximos objetivos) |
-| **Mi Huésped** | Huésped (elegir, maestría, progresión Shooter/Combo) · Evolución · Inventario y Forja · Equipo |
-| **Mundo** | Territorios · Bestiario · Tienda (con tu saldo) |
-| **Ajustes** | Gráficos · Controles y sonido |
+| Partidas (Elegir partida) | Historia · Arenas · Cooperativo |
+| Huéspedes | Huésped · Evolución · Inventario · Forja · Tienda · Equipo |
+| Colección | Criaturas · Fauna · Herbario · Territorios |
+| Ajustes | Controles y sonido · Gráficos |
 
-- **Volver**: botón «‹ Volver», **Esc / Retroceso**, botón ○ del mando, o (táctil) deslizar desde el **borde izquierdo** hacia la derecha. En la Tienda, Esc cierra primero el cartel de confirmación.
-- **Migas de pan** arriba («Inicio › Mi Huésped › Inventario»): cada miga anterior es clicable y salta directo.
-- **Teclado / mando**: flechas o WASD mueven el foco al vecino más cercano en esa dirección (rejillas y pestañas incluidas); Enter/Espacio/✕ abre; en un `<select>` izquierda/derecha lo cambia.
-- **Ayuda breve**: cada puerta y tarjeta muestra una línea de qué hace (y la repite como `title` al pasar el mouse).
-- **Puntitos rojos**: botín nuevo, puntos de progresión sin gastar, Huésped comprable, stock nuevo en la Tienda, bendición para elegir, territorio recién abierto. Se calculan del perfil (`src/client/menu-nav.js → avisos`), no se guardan aparte (salvo «inventario visto» y «stock visto» en `perfil.menu`).
-- Los ids de siempre se conservan (`#huesped`, `#inventario`, `#evolucion`, `#loadout`, `#graficos`, `#options`, `#modeitem`…): sólo cambió dónde se llega a ellos. Código: `src/client/menu-hubs.js` (dibujo), `menu-nav.js` (mapa, avisos, ruta), `ui.js` (navegación), `public/menu.css`.
+- **Volver**: botón «‹ Volver», **Esc / Retroceso**, botón ○ del mando, o (táctil) deslizar desde el **borde izquierdo** hacia la derecha. Las pestañas no apilan: un solo Volver sale de la sección. En la Tienda, Esc cierra primero el cartel de confirmación.
+- **Pestañas**: tocar, o **Q / E** (también RePág / AvPág) y **LB / RB** del mando (acciones `tabprev` / `tabnext`).
+- **Teclado / mando**: flechas o WASD mueven el foco al vecino más cercano en el inicio y la Tienda; Enter/Espacio/✕ abre; en un `<select>` izquierda/derecha lo cambia. El foco se ve siempre (anillo blanco).
+- **Puntitos rojos** sólo donde hay una acción útil: cosecha lista en la Base, botín nuevo, puntos de progresión sin gastar, Huésped que ya podés comprar, bendición para elegir y arena nueva abierta. Se calculan del perfil (`menu-nav.js → avisos`).
+- **Primera vez**: bienvenida de 3 pasos (Elegí tu Huésped → Jugá → Volvé a la Base) con «Saltar»; no vuelve. En pruebas automáticas no sale salvo con `?bienvenida=1`.
+- **Pausa en partida**: Continuar · Modo de juego · Gráficos · Controles y cámara (plegable: ver controles, editar botones, sensibilidad, cámara, claridad, estilo, habilidades, Evolución) · Salir a la Base · Salir al menú.
+- Los ids de siempre se conservan (`#huesped`, `#inventario`, `#evolucion`, `#loadout`, `#graficos`, `#options`, `#modeitem`…). Código: `src/client/menu-hubs.js` (dibujo), `menu-nav.js` (mapa, avisos, ruta), `menu-bienvenida.js`, `ui.js` (navegación), `public/menu.css`.
 
 ## En la Base (2026-10-20)
 En el mapa-hub «El Santuario» (docs/BASE.md) los controles de movimiento y cámara son los de siempre; **USAR / E** interactúa con la estación o el personaje que tengas cerca (el cartel de abajo lo dice). **No hay armas**: disparo, habilidades y modo Melé quedan apagados (la simulación los ignora) y en táctil sólo se ven palanca, salto, USAR y pausa. Los mini-menús de las estaciones se eligen con 1 / 2 / 3 (o tocando) y se cierran con Esc / E. Desde cualquier pantalla abierta en la Base, **Volver** o Esc te devuelve al mapa.
