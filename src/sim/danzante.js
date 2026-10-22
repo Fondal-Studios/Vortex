@@ -1,3 +1,4 @@
+import { refundUltimate } from './ultimate-cooldown.js';
 // DANZANTE — el duelista acrobático (docs/HUESPEDES.md → «Danzante»). Su mecánica propia vive acá; huespedes.js y combos.js sólo la llaman en puntos concretos.
 //   · PARADA y ESQUIVA PERFECTAS: ventanas muy cortas. Si algo te golpea dentro de la ventana, el golpe se ANULA entero, se devuelve ×3 en área y quedás en RÉPLICA
 //     (+35 % de daño 4 s). Si la ventana se acaba sin recibir nada, la habilidad se recarga en la mitad de tiempo (fallar barato, acertar caro).
@@ -54,7 +55,7 @@ function perfect(g, p, kind, dmg) {
     if (has(p, 'anomalia')) g.explode(clone(p.pos), 5, 0, 60, p, false);
   } finally { g.dmgSrc = s0; }
   p.rplUntil = t + DZ.rep + (has(p, 'depredador') ? 2 : 0);
-  p.shield = Math.min(PLAYER.shield, p.shield + 14); p.ul = Math.min(100, p.ul + 10);
+  p.shield = Math.min(PLAYER.shield, p.shield + 14); refundUltimate(p, 2);
   if (p.mode === 'combo') { p.compas = Math.min(DZ.compasMax, (p.compas | 0) + 2); p.habCd = Math.max(0, p.habCd - 2); }
   if (kind === 'parada') p.pryHit = true; else p.dgHit = true;
   p.pryUntil = 0; p.dgUntil = 0; p.invulUntil = Math.max(p.invulUntil, t + 0.25);   // un respiro para que no entren los demás golpes del mismo instante

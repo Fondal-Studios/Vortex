@@ -160,12 +160,12 @@ test('blanca: las criaturas lejanas dejan de ver al jugador; las cercanas (≤ 9
   p.pos = madd(p.pos, v3(0, 0, -1), 30); run(g, 2, null); assert.equal(ngOculta(g, p, lejos), false, 'fuera de la niebla te ve');
 });
 
-test('negra: congela la recarga de habilidades y apaga la carga de la definitiva', () => {
-  const { g, p } = cancha('m5'); p.movCd = 5; p.espCd = 5; p.abilityCd = 5; p.s3Cd = 5; p.ul = 60; p.ultT = 0; p.ultId = '';
+test('negra: congela la recarga de habilidades incluida la definitiva', () => {
+  const { g, p } = cancha('m5'); p.movCd = 5; p.espCd = 5; p.abilityCd = 5; p.s3Cd = 5; p.ultCd = 60; p.ultT = 0; p.ultId = '';
   const z = crear(g, 'negra', madd(p.pos, p.up, 1.2), 8); esperaActiva(g, z);
-  const antes = [p.movCd, p.espCd, p.abilityCd, p.s3Cd], ul = p.ul; run(g, 3, null);
+  const antes = [p.movCd, p.espCd, p.abilityCd, p.s3Cd], ultCd = p.ultCd; run(g, 3, null);
   for (let i = 0; i < 4; i++) assert.ok(Math.abs([p.movCd, p.espCd, p.abilityCd, p.s3Cd][i] - antes[i]) < 0.05, 'recarga congelada');
-  assert.ok(p.ul < ul - 15, 'la definitiva se drena'); assert.ok(g.ng.stats.drenado > 0);
+  assert.ok(Math.abs(p.ultCd - ultCd) < .1, 'la espera de definitiva se congela'); assert.ok(g.ng.stats.drenado > 0);
   p.pos = madd(p.pos, v3(0, 0, -1), 30); run(g, 2, null); assert.ok(p.movCd < antes[0] - 1, 'al salir vuelve a recargar');
 });
 

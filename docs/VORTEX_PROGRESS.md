@@ -90,3 +90,7 @@ Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro ac
 ## HUD de cuatro acciones — 2026-10-22
 
 Implementación y validación en `VORTEX_FOUR_ACTION_HUD.md`: ataque + defensa/apoyo/ulti ilustrados, cooldown autoritativo, limpieza visual y protocolo 4. Conserva apoyo tras oleada 1 y ulti tras oleada 3; defensa desde el inicio. Pendiente Safari físico y balance humano longitudinal.
+
+## 2026-10-22 — Vida inferior y cooldowns sin recurso
+
+Ver VORTEX_CLEAN_HUD.md. Retrato/vida inferiores, ataque principal + tres habilidades ilustradas, cooldowns sin maná/carga y límites a sus mejoras. Protocolo 5 requiere cliente/servidor coordinados. 147 pruebas seleccionadas y 59 del núcleo; tres tamaños Chromium y 16 sondas de cinco minutos. Persisten dos fallos reproducibles también en main: enemigo rezagado y balance legendario Vesper melee. Próximo ciclo: resolver orientación final y balance melee con pruebas humanas; Safari físico pendiente.

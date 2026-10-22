@@ -1,3 +1,4 @@
+import { refundUltimate } from './ultimate-cooldown.js';
 // EFECTOS DE LOS OBJETOS EN LA PARTIDA (docs/INVENTARIO.md). Todo determinista y sin DOM; NO usa g.rng ni g.drRng.
 // El equipo entra por `opts.equip` de addPlayer (y `prof.equip` de setLoadout): lista de { s, id, q, k }. Aquí se valida (cleanEquip), se convierte en:
 //   · multiplicadores fijos en p.bn (mismas claves que bendiciones y maestría; idempotente, siempre parte de ellas),
@@ -154,7 +155,7 @@ export function itemKill(g, p, m) {
   }
   if (p.racha) { p.racha.push(g.time); if (p.racha.length > 8) p.racha.shift(); }
   if (ix.savia && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + ix.savia);
-  if (ix.fervor && p.ultId === '') p.ul = Math.min(100, p.ul + ix.fervor);
+  if (ix.fervor) refundUltimate(p, ix.fervor * .2);
   if (ix.sombra) p.sombra = g.time + 2;
   if (ix.siembra) { p.killN = (p.killN || 0) + 1; if (p.killN % 6 === 0) g.addObject('spores', clone(m.pos), { owner: p.id, life: 3, r: ix.siembra }); }
   if (grew) recompute(p, g);

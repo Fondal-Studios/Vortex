@@ -97,8 +97,8 @@ test('curativas: escudo del Coro (−20 % de daño 6 s), fruto de eco (definitiv
   pasos(g, p, pl, 0.4); assert.ok(p.shield >= 50, `escudo ${p.shield}`); assert.ok(flRecibe(g, p) < 1 && Math.abs(flRecibe(g, p) - 0.8) < 1e-9);
   const antes = vida(p); g.hurtPlayer(p, 20); const conEscudo = antes - vida(p);
   run(g, 7, null); assert.equal(flRecibe(g, p), 1); p.shield = 100; p.hp = 100; const a2 = vida(p); g.hurtPlayer(p, 20); const sin = a2 - vida(p); assert.ok(Math.abs(conEscudo / sin - 0.8) < 0.01, `el daño bajó 20 % (${conEscudo} vs ${sin})`);
-  ({ g, p } = mk('m2', 3)); pl = solo(g, p, 'fruto_eco'); p.ul = 10; p.abilityCd = 10; p.movCd = 4; pasos(g, p, pl, 0.4);
-  assert.ok(p.ul >= 23 && p.ul <= 25 && p.abilityCd <= 4.1 && p.movCd <= 1.7, `ul ${p.ul} cd ${p.abilityCd}/${p.movCd}`);
+  ({ g, p } = mk('m2', 3)); pl = solo(g, p, 'fruto_eco'); p.ultCd = 50; p.ultRefundBudget = 10; p.abilityCd = 10; p.movCd = 4; pasos(g, p, pl, 0.4);
+  assert.ok(p.ultCd < 48 && p.ultCd > 46 && p.abilityCd <= 4.1 && p.movCd <= 1.7, `ul ${p.ultCd} cd ${p.abilityCd}/${p.movCd}`);
   ({ g, p } = mk('m4', 3)); pl = solo(g, p, 'bulbo_vital'); p.hp = 50; p.shield = 100; const r0 = pl.res;
   pasos(g, p, pl, 5); assert.ok(p.hp > 55 && p.hp < 70, `cura lenta ${p.hp}`); assert.ok(pl.res < r0 && pl.st === 1);
   p.hp = 20; p.shield = 0; const h20 = p.hp; pasos(g, p, pl, 40, 0, () => { if (p.hp > 99) p.hp = 20; }); assert.equal(pl.st, 3, 'se agota y se marchita'); assert.ok(g.fl.stats.curado >= 55, 'curó toda su reserva');

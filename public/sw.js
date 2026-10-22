@@ -1,5 +1,5 @@
 // Service worker: instalable en la pantalla de inicio. RED PRIMERO para el código (así nunca queda una versión vieja pegada) y caché de respaldo sin conexión.
-const CACHE = 'cristal-vortice-v6-four-actions';
+const CACHE = 'cristal-vortice-v7-cooldowns';
 self.addEventListener('install', () => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {

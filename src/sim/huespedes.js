@@ -1,3 +1,4 @@
+import { beginUltimateCooldown, refundUltimate } from './ultimate-cooldown.js';
 // Los Huéspedes: melee, 3 habilidades, definitiva y pasiva de cada uno. Todo determinista y sin DOM. Contrato: docs/HUESPEDES.md
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clone } from './math.js';
 import { CHARACTERS, PLAYER, MELEE_WEAPONS, MELEE_AFFINITY, EVO_COST, EVO_PATHS, evoPathsFor, CORES, STYLES, STYLE_NEUTRAL } from './data.js';
@@ -21,14 +22,14 @@ export const ULT_DUR = { marabunta: 10, sobrecarga: 10, frenesi: 8, floracion: 1
 const DEFAULT_MELEE = { light: { dmg: 40, range: 3.4, arc: 0.5, cd: 0.4 }, heavy: { dmg: 115, range: 4.2, arc: 0.45, cd: 0.95, knock: 12 } };
 const HOLD_HEAVY = 0.42;     // s manteniendo melee → golpe pesado
 const COMBO_WINDOW = 0.95;   // s para encadenar el siguiente golpe ligero
-const ULT_PER_DMG = 0.08, ULT_PER_KILL = 2.5;
+
 
 export const cdef = (p) => (p.char ? CHARACTERS[p.char] : null);
 export const isHost = (p) => !!(cdef(p) && cdef(p).host);
 const flat = (p) => norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.heading);
 
 export function initHost(p) {
-  Object.assign(p, { s3Cd: 0, ul: 0, ultT: 0, ultId: '', meleeCd: 0, meleeHold: 0, meleePrev: false, s3Prev: false, ultPrev: false, cmb: 0, cmbT: 0, slam: 0, buf: 0,
+  Object.assign(p, { s3Cd: 0, ultCd: 0, ultCdMax: 0, ultRefundBudget: 0, ultT: 0, ultId: '', meleeCd: 0, meleeHold: 0, meleePrev: false, s3Prev: false, ultPrev: false, cmb: 0, cmbT: 0, slam: 0, buf: 0,
     guardUntil: 0, cloakUntil: 0, cloakBonus: false, desfaseUntil: 0, glideUntil: 0, callo: 0, calloT: 0, adapt: {}, spdMul: 1, symb: null, regen: 0, evo: p.evo || 0, path: Array.isArray(p.path) ? p.path : [], melee: p.melee || '', cores: p.cores || 0, evoPrev: 0 }); initOrgans(p); initCombo(p);
 }
 
@@ -36,6 +37,7 @@ export function initHost(p) {
 export function updateHost(g, p, dt) {
   const C = cdef(p), inp = p.input;
   if (inp.evo && !p.evoPrev) evolve(g, p, inp.evo - 1); p.evoPrev = inp.evo;
+  p.ultCd = Math.max(0, (p.ultCd || 0) - dt);
   p.s3Cd = Math.max(0, p.s3Cd - dt); p.meleeCd = Math.max(0, p.meleeCd - dt);
   if (p.cmbT > 0) { p.cmbT -= dt; if (p.cmbT <= 0) p.cmb = 0; }
   if (p.calloT > 0) { p.calloT -= dt; if (p.calloT <= 0) p.callo = 0; }
@@ -242,7 +244,7 @@ export function hostSpecial(g, p, id) {
     case 'pulso': {
       let n = 0;
       for (const m of g.monsters) { if (m.dead) continue; const dd = dist(m.pos, p.pos); if (dd < 8 + m.r) { g.damageMonster(m, 36, p, m.pos); n++; } }
-      p.hp = Math.min(PLAYER.hp, p.hp + 20 + Math.min(n, 5) * 4); p.shield = Math.min(PLAYER.shield, p.shield + 20); p.ul = Math.min(100, p.ul + 5 + n * 2);
+      p.hp = Math.min(PLAYER.hp, p.hp + 20 + Math.min(n, 5) * 4); p.shield = Math.min(PLAYER.shield, p.shield + 20); refundUltimate(p, 1 + Math.min(n,5) * .4);
       g.emit({ t: 'pulse', pid: p.id, p: a3(p.pos) });
       return true;
     }
@@ -288,8 +290,10 @@ function useS30(g, p) {
 
 /* ───────── definitiva ───────── */
 function useUlt0(g, p) {
-  const C = cdef(p); if (!C || !C.ult || p.dead || p.carry || p.ul < C.ult.charge || p.ultT > 0) return false;
-  const id = C.ult.id; p.ul = 0; p.ultId = id; p.ultT = (ULT_DUR[id] || 8) * (hasPath(p, 'apoteosis') ? 1.3 : 1) * (hasPath(p, 'resonancia') ? 1.25 : 1) * (hasC(p, 'espiraculo') ? 1.2 : 1);
+  const C = cdef(p); if (!C || !C.ult || p.dead || p.carry || (p.ultCd || 0) > 0 || p.ultT > 0) return false;
+  const id = C.ult.id; p.ultId = id; p.ultT = (ULT_DUR[id] || 8) * (hasPath(p, 'apoteosis') ? 1.3 : 1) * (hasPath(p, 'resonancia') ? 1.25 : 1) * (hasC(p, 'espiraculo') ? 1.2 : 1);
+  const haste = (p.bn?.ult || 1) * (STYLES[p.style] || STYLE_NEUTRAL).ult * (hasPath(p, 'resonancia') ? 1.15 : 1) * (hasC(p, 'saco_g') ? 1.15 : 1);
+  beginUltimateCooldown(p, C.ult.cd, p.ultT, haste);
   if (id === 'supernova') singularUlt(g, p);
   if (id === 'colapso') {
     const pos = madd(p.pos, flat(p), 12);
@@ -355,10 +359,9 @@ export function hostOut(g, p, m) {
   if (p.char === 'danzante') k *= dzOut(g, p, src);   // Réplica
   return k;
 }
-/** Tras un impacto (daño real aplicado): carga de definitiva, vampirismo de Metamorfosis y ruptura del camuflaje. */
+/** Tras un impacto (daño real aplicado): vampirismo de Metamorfosis y ruptura del camuflaje. */
 export function hostHit(g, p, m, dealt) {
   itemHit(g, p, m, dealt); faunaHit(g, p, m, dealt);   // fauna: efectos por golpe de la forma (hielo, brasa, rayos…)
-  if (p.ultId === '' && !g.enjDmg) p.ul = Math.min(100, p.ul + dealt * ULT_PER_DMG * (p.bn ? p.bn.ult : 1) * (STYLES[p.style] || STYLE_NEUTRAL).ult * (hasPath(p, 'resonancia') ? 1.4 : 1) * (hasC(p, 'saco_g') ? 1.15 : 1));
   if (p.ultId === 'metamorfosis' && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + dealt * 0.04);
   if (p.cloakUntil) { p.cloakUntil = 0; p.cloakBonus = false; }   // atacar rompe el camuflaje (el primer golpe ya cobró el bonus)
 }
@@ -369,10 +372,9 @@ export function hostKill(g, p, m) {
   if (p.char === 'singular') singularKill(g, p, m);   // Anomalía: tira de los vecinos hacia el cadáver
   addCores(g, p, m.def.cost * CORES.perCost * (m.elite ? CORES.eliteMul : 1) * (g.evCoreMul || 1) + (m.def.boss ? CORES.boss : 0));
   const C = cdef(p); if (!C) return;
-  if (p.ultId === '') p.ul = Math.min(100, p.ul + ULT_PER_KILL);
   const id = C.passive && C.passive.id;
   if (id === 'adaptacion') p.adapt[m.kind] = (p.adapt[m.kind] || 0) + 1;
-  if (id === 'carnivoro' && p.inMelee && !p.dead) { p.hp = Math.min(PLAYER.hp, p.hp + 14); p.ul = Math.min(100, p.ul + 8); }
+  if (id === 'carnivoro' && p.inMelee && !p.dead) { p.hp = Math.min(PLAYER.hp, p.hp + 14); refundUltimate(p, 1.6); }
   if (p.ultId === 'frenesi') { // reinicia el desplazamiento y salta a la siguiente víctima (la marcada primero)
     p.movCd = 0;
     let best = null, bd = 32;
@@ -435,7 +437,7 @@ export function hostSnap(g, p) {
   const sy = g.objects.find((o) => o.type === 'symb' && o.owner === p.id);
   if (p.char === 'colmena' && (g.time < (p.swarmUntil || 0) || p.ultId === 'marabunta')) bf |= BF.swarm;   // el enjambre está en frenesí
   if (p.char === 'danzante') bf |= dzBits(g, p);   // bits 12+ (parada, esquiva, réplica, danza y compás 0..5)
-  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, sty: p.style || '', co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), pth: p.path, mw: p.melee || '', mr: p.mastery || 1, ...comboSnap(p), ...singularSnap(g, p), ...enjambreSnap(g, p) };
+  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ud: r2(p.ultCd || 0), ux: r2(p.ultCdMax || 0), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, sty: p.style || '', co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), pth: p.path, mw: p.melee || '', mr: p.mastery || 1, ...comboSnap(p), ...singularSnap(g, p), ...enjambreSnap(g, p) };
 }
 
 function useS3(g, p) { const s = g.dmgSrc; g.dmgSrc = 'skill'; try { return useS30(g, p); } finally { g.dmgSrc = s; } }

@@ -154,7 +154,7 @@ export class TouchControls {
   /** Nombre corto de una habilidad al tocar su botón (flota unos instantes sobre él). */
   showTip(el, text) {
     if (!this.tip || !el || !text) return; const r = el.getBoundingClientRect(), W = innerWidth;
-    this.tip.textContent = text; this.tip.classList.remove('hidden'); this.tip.style.left = `${Math.max(70, Math.min(W - 70, r.left + r.width / 2))}px`; this.tip.style.top = `${Math.max(4, r.top - 6)}px`;
+    this.tip.textContent = text; this.tip.classList.remove('hidden'); const half = this.tip.getBoundingClientRect().width / 2; this.tip.style.left = `${Math.max(half + 8, Math.min(W - half - 8, r.left + r.width / 2))}px`; this.tip.style.top = `${Math.max(4, r.top - 6)}px`;
     this.tip.classList.remove('pop'); void this.tip.offsetWidth; this.tip.classList.add('pop'); clearTimeout(this.tipT); this.tipT = setTimeout(() => this.tip.classList.add('hidden'), 1100);
   }
   /** Cantidad de dedos (2/3/4): muestra u oculta los botones extra. */
@@ -173,7 +173,7 @@ export class TouchControls {
       this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ }
       this.press(p); return;
     }
-    { const wi = this.weaponAt(e.clientX, e.clientY, false); if (wi >= 0) { p.kind = 'wbar'; p.last = wi; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ } this.weapon = wi; return; } } // barra de armas: tocar elige, deslizar cambia
+    { const wi = this.weaponAt(e.clientX, e.clientY, false); if (wi >= 0) { p.kind = 'wbar'; p.last = wi; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ } this.weapon = this.onWeapon ? this.onWeapon(1) : wi; return; } } // barra de armas: tocar elige, deslizar cambia
     if (e.clientX < W * 0.5) { // zona izquierda: SÓLO palanca
       if ([...this.ptrs.values()].some((q) => q.kind === 'move')) return;
       if (now - (this.lastMoveTap || -1000) < 300 && Math.hypot(e.clientX - (this.lastMoveX || 0), e.clientY - (this.lastMoveY || 0)) < 55) this.jumpUntil = performance.now() + 160;
@@ -211,7 +211,7 @@ export class TouchControls {
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : null, list = evs && evs.length ? evs : [e]; // todos los puntos intermedios: precisión en microajustes
     for (const ev of list) {
       const dx = ev.clientX - p.x, dy = ev.clientY - p.y; p.x = ev.clientX; p.y = ev.clientY;
-      if (p.kind === 'wbar') { const wi = this.weaponAt(p.x, p.y, true); if (wi >= 0 && wi !== p.last) { p.last = wi; this.weapon = wi; } } else if (p.kind === 'move') this.stickMove(p);
+      if (p.kind === 'wbar') { /* one tap cycles the compact weapon selector */ } else if (p.kind === 'move') this.stickMove(p);
       else if (p.kind === 'look' || (p.kind === 'btn' && p.look)) this.look(p, dx, dy, ev.timeStamp || performance.now());
     }
   }

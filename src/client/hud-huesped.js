@@ -1,5 +1,5 @@
-// HUD del Huésped (docs/HUESPEDES.md): nombre, 3 habilidades + definitiva con enfriamiento/carga, combo de melee y estados activos.
-// Lee sólo el snapshot del jugador propio: mc/ec/s3c (segundos de enfriamiento), ul (carga 0..100), ua (segundos de definitiva activa),
+// HUD del Huésped (docs/HUESPEDES.md): nombre, 3 habilidades + definitiva con enfriamiento, combo de melee y estados activos.
+// Lee sólo el snapshot del jugador propio: mc/ec/s3c (segundos de enfriamiento), ud (segundos hasta definitiva), ua (segundos de definitiva activa),
 // cmb (combo melee 0..3), bf (máscara de estados). Si un campo falta se trata como 0 (y mv/es, los antiguos, sirven de respaldo).
 // En PC dibuja un panel a la derecha; en táctil dibuja una tira compacta arriba a la izquierda y pone el anillo de enfriamiento
 // (variable CSS --p, clases .ready/.act, número en data-cd) sobre los botones .tc-mov .tc-esp .tc-s3 .tc-ult .tc-melee.
@@ -95,8 +95,8 @@ export function createHuespedHud(rootEl) {
     me0 = me; const combo = !!me.md; doc.body.classList.toggle('modo-combo', combo);   // en Combo no hay barra de armas ni munición
     const key = `${me.char}|${touch}|${combo}|${me.sk}`; if (key !== built) { built = key; build(C, touch, combo); }
     const cd = (sec, frac, def) => (sec != null ? +sec || 0 : (+frac || 0) * (def ? def.cd : 0));
-    const mc = cd(me.mc, me.mv, C.mov), ec = cd(me.ec, me.es, C.esp), s3c = +me.s3c || 0, ul = +me.ul || 0, ua = +me.ua || 0, cmb = Math.max(0, Math.min(3, me.cmb | 0)), bf = me.bf | 0;
-    const ultMax = (C.ult && C.ult.charge) || 100;
+    const mc = cd(me.mc, me.mv, C.mov), ec = cd(me.ec, me.es, C.esp), s3c = +me.s3c || 0, uc = +me.ud || 0, ua = +me.ua || 0, cmb = Math.max(0, Math.min(3, me.cmb | 0)), bf = me.bf | 0;
+
     // una fila/botón por SLOT (mov = HAB.1, esp = HAB.2, s3 = HAB.3); de dónde sale cada uno lo dice modos.js (en Melé el slot 3 es la principal de Combo)
     const skill = (k, sec, def, extra = {}) => {
       const total = Math.max(0.01, extra.total || (def ? def.cd : 1)), p = sec > 0.01 ? 1 - Math.min(1, sec / total) : 1, ready = sec <= 0.01 && !!def, row = rows[k], act = !!extra.act;
@@ -108,12 +108,12 @@ export function createHuespedHud(rootEl) {
       const val = { mov: [mc, C.mov, {}], esp: [ec, C.esp, {}], s3: [s3c, C.s3, {}], hab: [hc, H, { total: hx, act: hw > 0 }] };
       ['mov', 'esp', 's3'].forEach((k, i) => { const v = val[S[i].src]; skill(k, v[0], v[1], v[2]); });
     }
-    { // definitiva: carga 0..100, «lista» al llegar, y cuenta atrás mientras está activa
-      const row = rows.ult, active = ua > 0.05, ready = !active && ul >= ultMax - 0.01, p = active ? Math.min(1, ua / 12) : Math.min(1, ul / ultMax);
-      const sig = `${active}|${ready}|${Math.round(ul)}|${Math.ceil(ua)}`;
-      if (cache.ult !== sig) { cache.ult = sig; row.r.classList.toggle('ready', ready); row.r.classList.toggle('act', active); row.em.textContent = active ? `${Math.ceil(ua)} s` : ready ? '¡LISTA!' : `${Math.floor(ul)}%`; row.bar.style.transform = `scaleX(${p})`; }
-      setBtn('.tc-ult', p, active ? '#ff66c4' : RING.ult, 0, ready, active, C.ult ? C.ult.name : '');
-      const b = doc.querySelector('.tc-ult'); if (b) { if (active) b.dataset.cd = String(Math.ceil(ua)); else delete b.dataset.cd; }
+    { // definitiva: cooldown en segundos y duración mientras está activa
+      const row = rows.ult, active = ua > 0.05, ready = !active && uc <= .01, p = active ? Math.min(1, ua / 12) : 1 - Math.min(1, uc / Math.max(1, me.ux || C.ult?.cd || 60));
+      const sig = `${active}|${ready}|${Math.ceil(uc)}|${Math.ceil(ua)}`;
+      if (cache.ult !== sig) { cache.ult = sig; row.r.classList.toggle('ready', ready); row.r.classList.toggle('act', active); row.em.textContent = active ? `${Math.ceil(ua)} s` : ready ? '¡LISTA!' : `${Math.ceil(uc)} s`; row.bar.style.transform = `scaleX(${p})`; }
+      setBtn('.tc-ult', p, active ? '#ff66c4' : RING.ult, active ? ua : uc, ready, active, C.ult ? C.ult.name : '');
+
     }
     { // Four-action HUD always depicts physical powers, independent of melee slot routing.
       const source = SUPPORT[me.char] || 'esp', def = C[source];
@@ -133,7 +133,7 @@ export function createHuespedHud(rootEl) {
         b.setAttribute('aria-disabled', String(!!action.locked));
         if (action.locked) { b.classList.remove('ready','act'); delete b.dataset.cd; b.style.setProperty('--p','0'); }
       }
-      const ub = doc.querySelector('.tc-ult'); if (ub) ub.dataset.charge = ua > .05 ? `${Math.ceil(ua)}s` : ul >= ultMax ? 'LISTA' : `${Math.floor(ul)}%`;
+      const ub = doc.querySelector('.tc-ult'); if (ub) ub.dataset.cooldownLabel = ua > .05 ? `${Math.ceil(ua)}s` : uc <= .01 ? 'LISTA' : `${Math.ceil(uc)} s`;
     }
     { // contador de combo grande (modo Combo): ×N, nombre del último golpe y barra de la ventana
       const n = combo ? (me.cn | 0) : 0, w = combo ? +me.cw || 0 : 0, on = n > 0 && w > 0, cp = me.char === 'danzante' ? ((me.bf | 0) >> 16) & 7 : 0, sig = `${on}|${n}|${me.cnm}|${cp}`;   // cp = compás de la Danzante (bits 16-18 de bf)
