@@ -100,3 +100,8 @@ Reconexión: fixtures de posiciones en seis mapas, solo/coop; rutas y plazo sin
 playtest. Caza: finaliza oleada al matar el blanco, sin recompensas por acompañantes;
 desaparición del blanco falla sin premio y sin bloqueo. Sin doble pago al repetir update.
 Build y diff --check correctos. Gate de navegador/iPhone continúa pendiente.
+
+
+## 2026-10-22 — Alfa 3 sobre PR #5 integrado
+
+Ver `VORTEX_ALPHA_3.md`. Conserva apoyo/ulti progresivos; corrige límite de tres tarjetas, ramas completas, mejoras tempranas gratuitas, precio de órganos y elección fallida/automática. Recupera continuidad sin sobrescribir controles del PR #5. 20 sondas antes +20 después: 18 activas/2 derrotas en ambas variantes, 4→6 llegan a oleada 7. Son bots, no usuarios ni retención. Puntuaciones hipotéticas separadas. Rama `codex/vortex-alpha3-balance`, base main09dfac8. Pendientes melee exclusivo, campaña completa, Safari físico y alfa humana.

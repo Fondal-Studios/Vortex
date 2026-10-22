@@ -1,0 +1,13 @@
+✔ cooperativo: crear sala, unirse, ambos clientes ven la misma partida (2 jugadores) (361.624774ms)
+# coop: 105 muestras, divergencia máxima entre las dos vistas 0.92 u; snapshots A=71 B=71 (~20/s)
+✔ cooperativo: cada cliente controla sólo a su jugador; sin desincronización grave entre vistas (3605.536436ms)
+✔ cooperativo: sala llena (5º cliente rechazado), desconexión limpia y sala vacía se elimina (220.694114ms)
+✔ cooperativo: el servidor ignora entradas malformadas y no se cae (366.12744ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 50223.860157

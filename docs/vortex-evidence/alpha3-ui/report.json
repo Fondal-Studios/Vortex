@@ -1,0 +1,24 @@
+[
+  {
+    "touch": false,
+    "unlock1": true,
+    "unlock3": true,
+    "threeCards": true,
+    "visiblePrice": true,
+    "failedPurchaseRetainsChoices": true,
+    "freeChoiceWorks": true,
+    "chapterBriefAndTransition": true,
+    "errors": []
+  },
+  {
+    "touch": true,
+    "unlock1": true,
+    "unlock3": true,
+    "threeCards": true,
+    "visiblePrice": true,
+    "failedPurchaseRetainsChoices": true,
+    "freeChoiceWorks": true,
+    "chapterBriefAndTransition": true,
+    "errors": []
+  }
+]
