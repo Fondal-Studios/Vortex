@@ -1,0 +1,14 @@
+✔ cooperativo: crear sala, unirse, ambos clientes ven la misma partida (2 jugadores) (414.808625ms)
+# coop: 105 muestras, divergencia máxima entre las dos vistas 0.93 u; snapshots A=71 B=71 (~20/s)
+✔ cooperativo: cada cliente controla sólo a su jugador; sin desincronización grave entre vistas (3598.665027ms)
+✔ cooperativo: sala llena (5º cliente rechazado), desconexión limpia y sala vacía se elimina (220.29513ms)
+✔ cooperativo: el servidor ignora entradas malformadas y no se cae (372.552684ms)
+✔ two real WebSocket clients receive identical hunt and sequence objective snapshots (186.830182ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 50440.733961

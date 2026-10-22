@@ -1,4 +1,4 @@
-import { thirdForMode } from './essential-controls.js';
+import { thirdForMode, essentialInteraction, essentialPower } from './essential-controls.js';
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS, GAME_MODES, HABILIDADES } from '../sim/data.js';
@@ -27,7 +27,7 @@ import * as Territorios from '../sim/bendiciones.js';
 import { TITULOS } from '../sim/maestria.js';
 import { createCaida } from './caida.js';
 import { createBaseHud, recolectarDatos } from './base-hud.js';   // La Base (docs/BASE.md): HUD propio, mapa-hub en src/sim/base.js + src/client/env/base.js
-import { MODOS, MODO_ESPERA } from '../sim/modos.js';   // Disparo ↔ Melé en partida (docs/CONTROLES.md)
+import { MODOS, MODO_ESPERA, habSlots } from '../sim/modos.js';   // Disparo ↔ Melé en partida (docs/CONTROLES.md)
 import { createBotin, nombreBotin } from './botin-hud.js';   // botín en partida (docs/INVENTARIO.md)
 import { parseEq } from './items-vis.js';
 import { MAPS } from '../sim/maps.js';
@@ -127,7 +127,7 @@ let cardsOpen = false;
 addEventListener('wheel', (e) => { if (session && gameMode() !== 'combo') wantWeapon = (((session.mySlot || 0) + (e.deltaY > 0 ? 1 : -1)) % 5 + 5) % 5; });
 addEventListener('mousemove', (e) => { if (locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
-  if (NOLOCK) return; locked = document.pointerLockElement === canvas;
+  if (NOLOCK) return; locked = document.pointerLockElement === canvas; if (!locked && session) syncModeUI();
   if (session && !session.ended && !session.touch) $('pause').classList.toggle('hidden', locked || session.headless || !!session.intro || !!session.menuAbierto || !$('tutorial').classList.contains('hidden') || !!(baseHud && baseHud.open));
 });
 const lockPointer = () => { try { canvas.requestPointerLock(); } catch { /* sin pointer lock */ } };
@@ -308,7 +308,7 @@ function showTutorial(force = false) {
   if ((seen && !force) || !session || session.headless) return;
   const touchUI = !!session.touch, el = $('tutorial');
   const rows = touchUI
-    ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Derecha: girar la cámara.'], ['ATACAR', 'botón grande', 'Vos decidís cuándo atacar. Melé encadena golpes al mantener.'], ['SALTO / PODER', 'dos botones', 'Saltá obstáculos o usá el poder de tu Huésped. USAR aparece cerca de objetos.'], ['MODO', 'Disparo ↔ Melé', 'Disparo en primera persona; espada en tercera. Pausa → controles completos para más acciones.']]
+    ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Derecha: girar la cámara.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['SALTO / PODER', 'mantener 0,36 s', 'SALTO: mantener activa movilidad. PODER: mantener pide definitiva cargada. Elegí tu poder en pausa.'], ['MODO', 'Disparo ↔ Melé', 'Disparo en primera persona; espada en tercera. Pausa → controles completos para más acciones.']]
     : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['G / Z', 'poder del Huésped', 'G en Disparo; Z en Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
   el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Tu conciencia está atrapada en VORTEX. <b>Vencé al guardián de este archivo para avanzar.</b> Seguí el objetivo de arriba y elegí una mejora entre oleadas.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();
@@ -340,7 +340,7 @@ function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; 
 let bannerSeq = 0;
 const jfxCtx = { banner, flash: () => flash(), sound, get pid() { return session ? session.pid : 0; } };   // lo que necesita jefes-fx.js para avisar y sonar
 
-function pauseTouch(on) { if (!session) return; session.paused = on; $('pausehint').textContent = 'Tocá «Continuar» para seguir'; $('pause').classList.toggle('hidden', !on); if (on) touch.reset(); }
+function pauseTouch(on) { if (!session) return; syncModeUI(); session.paused = on; $('pausehint').textContent = 'Tocá «Continuar» para seguir'; $('pause').classList.toggle('hidden', !on); if (on) touch.reset(); }
 
 /* ───────── modo de prueba de rendimiento ───────── */
 const HORDE_KINDS = ['astilla', 'geoda', 'prisma', 'lente', 'cuarzo', 'espejo', 'racimo', 'graviton', 'obelisco', 'aurora', 'ariete', 'espiral'];
@@ -656,7 +656,7 @@ function audioAndHud(state, me, dt) {
 }
 
 /* ───────── HUD del director: objetivo, habilidad, jefe, ping, caído ───────── */
-const OBJ_ICON = { ancla: '⚓', sintonia: '◈', nucleo: '✦', cultivo: '✿' };
+const OBJ_ICON = { secuencia: '▣', caza: '⌖', ancla: '⚓', sintonia: '◈', nucleo: '✦', cultivo: '✿' };
 function objectiveEvent(e) {
   if (e.ph === 'start') { banner(e.title, 1800); sound.objective(true); }
   else if (e.ph === 'done') {
@@ -725,7 +725,7 @@ function hudDirector(state, me) {
   }
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
-    const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)) || (state.lt || []).some((o) => o[2] >= 2 && (!o[6] || o[6] === me.id) && near([o[3], o[4], o[5]], 4.6)) || session.faunaCerca || session.floraUsar);   // + botín épico/legendario cerca (USAR lo recoge) + un bicho de la fauna a mano (USAR lo come)
+    const use = essentialInteraction(state, me, { npc: !!npcCtx.npc, fauna: session.faunaCerca, flora: session.floraUsar });
     const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ul || 0) >= (C.ult.charge || 100) - 0.01 || (+me.ua || 0) > 0.05));
     touch.setContext({ ult: ultOn, use, evo: me.co != null && me.evn != null && me.co >= me.evn });
     const mp = Math.min(1, (performance.now() - modoT) / (MODO_ESPERA * 1000)); if (mp < 1 || session.modeP == null || session.modeP < 1) touch.setModeCd(mp); session.modeP = mp;   // anillo de espera del botón MODO
@@ -842,6 +842,10 @@ function bindTouchSettings() {
   bind('tadsm', () => S.adsMode, (v) => setSetting('adsMode', v));
   bind('tfing', () => String(S.fingers), (v) => touch.setFingers(+v));
   bind('tadv', () => (S.advanced ? '1' : '0'), (v) => { setSetting('advanced', v === '1'); syncAdv(); });
+  const powerSelect = $('essentialpower');
+  if (powerSelect) {
+    powerSelect.addEventListener('change', () => { const key = `${myChar()}:${gameMode()}`; setSetting('essentialPowers', { ...(settings().essentialPowers || {}), [key]: powerSelect.value }); touch.reset(); touch.applyLayout(); });
+  }
   const syncAdv = () => { document.body.classList.toggle('hud-focused', !settings().advanced); const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Controles: ${settings().advanced ? 'completos' : 'esenciales (4 botones)'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
   const syncCam = () => { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; };
   const setCam = (on) => { renderer.setThird(on); setSetting('third', !!on); syncCam(); };
@@ -869,6 +873,7 @@ function bindTouchSettings() {
 bindTouchSettings();
 /* ───── selector de MODO DE JUEGO (Shooter / Combo): menú principal, Huésped, Opciones y Pausa ───── */
 function syncModeUI() {
+  const select = $('essentialpower'); if (select) { select.value = essentialPower(gameMode(), settings().essentialPowers?.[`${myChar()}:${gameMode()}`]); const slots = habSlots(myChar(), gameMode()); for (const option of select.options) { option.textContent = option.value === 'ability' ? 'Poder de equipo' : slots[option.value === 'esp' ? 1 : 2]?.name || option.value; } }
   const m = settings().mode === 'combo' ? 'combo' : 'shooter', G = GAME_MODES[m], note = m === 'combo' && gameMode() !== 'combo' ? ' (sólo con Huéspedes)' : '';
   const mi = $('modeitem'); if (mi) { mi.dataset.mode = m; mi.querySelector('b').textContent = `Modo de juego: ${G.icon} ${G.name}`; mi.querySelector('small').textContent = (m === 'combo' ? 'Dos ataques encadenados + una habilidad' : 'Disparás, apuntás y usás habilidades') + note; }
   const hb = $('hsmode'); if (hb) { hb.textContent = `Modo: ${G.icon} ${G.name}`; hb.title = G.desc + note; }

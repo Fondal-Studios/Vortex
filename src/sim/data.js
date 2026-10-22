@@ -513,14 +513,16 @@ export const ROLE_IDS = Object.keys(ROLES);
 
 // Qué objetivo trae cada oleada (además de sobrevivir). Sintonía/Núcleo/Ancla: ver docs/DISENO_DIRECTOR.md
 export const OBJECTIVE_PLAN = {
-  m1: { 2: 'ancla', 4: 'sintonia', 5: 'nucleo', 6: 'ancla' },
-  m2: { 2: 'sintonia', 3: 'ancla', 4: 'nucleo', 6: 'sintonia' },
-  m3: { 2: 'ancla', 3: 'sintonia', 5: 'nucleo', 6: 'ancla' },
+  m1: { 2: 'ancla', 4: 'sintonia', 5: 'nucleo', 6: 'secuencia' },
+  m2: { 2: 'sintonia', 3: 'caza', 4: 'nucleo', 6: 'secuencia' },
+  m3: { 2: 'ancla', 3: 'caza', 5: 'nucleo', 6: 'secuencia' },
   m4: { 2: 'cultivo', 3: 'ancla', 5: 'nucleo', 6: 'ancla' }, // 5: si el puente aún no creció, el mapa lo cambia por otro Cultivo
-  m5: { 2: 'sintonia', 3: 'ancla', 5: 'nucleo', 6: 'ancla' },   // Plaza de los Ecos: núcleo de los Soportales al portal del Reloj
-  m6: { 2: 'ancla', 3: 'nucleo', 5: 'sintonia', 6: 'ancla' },   // Osario sin Techo: núcleo del brazo oeste al altar
+  m5: { 2: 'secuencia', 3: 'ancla', 5: 'nucleo', 6: 'caza' },   // Plaza de los Ecos: núcleo de los Soportales al portal del Reloj
+  m6: { 2: 'ancla', 3: 'nucleo', 5: 'secuencia', 6: 'caza' },   // Osario sin Techo: núcleo del brazo oeste al altar
 };
 export const OBJECTIVE_INFO = {
+  secuencia: { title: 'RECONEXIÓN DEL ARCHIVO', desc: 'Seguí la flecha y ocupá cada terminal durante 2 s. Se activan en orden y conservan el progreso.', limit: 150 },
+  caza: { title: 'CAZA DEL CUSTODIO', desc: 'Eliminá al custodio marcado. Al caer, sus defensas se apagan y termina la oleada.', limit: 110 },
   ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Quedate dentro del círculo para estabilizar el recuerdo. Defendé el ancla de las criaturas.', limit: 110 },
   sintonia: { title: 'SINTONÍA', desc: 'Pisá todas las placas a la vez durante 3 s. Solo: cada placa queda viva 10 s tras salir.', limit: 110 },
   cultivo:  { title: 'CULTIVO: PUENTE VIVO', desc: 'Alimentá los 3 capullos disparándoles hasta que florezcan: cada uno hace crecer un tramo del puente al Umbral. Las criaturas los roen: defendelos.', limit: 260 },

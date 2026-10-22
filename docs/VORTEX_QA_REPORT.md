@@ -89,3 +89,14 @@ El avance acelerado de una simulación no es una sesión humana de 5/15/30 minut
 
 Gate de integración: ejecutar navegador sin omisiones, revisar capturas y primera
 partida real; después autorizar merge. Esta entrega queda en el PR borrador.
+
+## Ciclo 2 — Misiones y balance de entradas
+127 pruebas seleccionadas aprobadas, cero omisiones: 63 específicas + 59 test:fast
++ 5 de red. Logs mission-controls-*.txt. Dos clientes reales de red reciben
+los mismos campos de las misiones; no son dos jugadores humanos ni navegadores.
+Las 16 comparaciones huésped/modo ejecutan la simulación y comparan snapshots,
+incluyendo daño, ataques secundarios y definitivas. Eso no mide win rate humano.
+Reconexión: fixtures de posiciones en seis mapas, solo/coop; rutas y plazo sin
+playtest. Caza: finaliza oleada al matar el blanco, sin recompensas por acompañantes;
+desaparición del blanco falla sin premio y sin bloqueo. Sin doble pago al repetir update.
+Build y diff --check correctos. Gate de navegador/iPhone continúa pendiente.

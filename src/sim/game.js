@@ -293,6 +293,8 @@ export class Game {
     const w = Math.max(1, this.wave);
     const pm = def.boss ? 1 + 0.7 * (this.players.length - 1) : 1;
     let elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5 + (this.evEliteBoost || 0);
+    const hunted = !def.boss && !extra.noElite && this.objective?.type === 'caza' && this.objective.state === 'active' && this.objective.target == null;
+    if (hunted) elite = true;
     if (!elite && this.forceElite && !def.boss && !extra.noElite) elite = true; // misión «Caza mayor»: garantiza un élite
     if (elite) this.forceElite = false;
     const hp = def.hp * (def.boss ? 1 : (1 + WAVE_SCALE.hp * (w - 1)) * (elite ? 2.2 : 1)) * pm;
@@ -303,10 +305,11 @@ export class Game {
     };
     if (extra.affix && !def.boss) m.elite = true;
     if (!def.boss && this.evSpeedMul !== 1) m.speedMul *= this.evSpeedMul;   // Marea de Sangre: horda veloz
-    if (m.elite && !def.boss) { m.affix = extra.affix || AFFIX_IDS[Math.floor(this.rng.next() * AFFIX_IDS.length)]; if (m.affix === 'veloz') m.speedMul *= 1.35; }
+    if (m.elite && !def.boss) { m.affix = hunted ? 'blindado' : extra.affix || AFFIX_IDS[Math.floor(this.rng.next() * AFFIX_IDS.length)]; if (m.affix === 'veloz') m.speedMul *= 1.35; }
     if (extra.parent && !def.boss) { const par = this.monsters.find((q) => q.id === extra.parent); if (par) colocarCerca(this, m, par); }   // invocadas: nunca detrás de un muro del invocador
     else if (!def.boss) { const cr = radioCol(m); collide(this.map, m.pos, null, cr, null); collide(this.map, m.pos, null, cr, null); liberar(this, m); }   // y nadie nace metido en un sólido (2 pasadas: rincones)
     this.monsters.push(m);
+    if (hunted) { this.objective.target = m.id; }
     if (def.boss) { this.boss = m; if (kind === 'coloso') initColoso(this, m); else if (kind === 'argos') initArgos(this, m); else initMadre(this, m); jefeInit(this, m); }
     this.stats.spawned++;
     return m;
@@ -612,6 +615,7 @@ export class Game {
 
   killMonster(m, by) {
     if (m.dead) return;
+    if (this.objective?.type === 'caza' && this.objective.state === 'active' && this.objective.target === m.id) this.objective.prog = 1;
     m.dead = true; this.stats.kills++; this.straggleT = 0; arKill(this, m);   // alimenta a las Bocas cercanas (arenas vivas)
     if (by && by.input) hostKill(this, by, m);
     if (by) { by.kills++; by.score += m.def.score; if (wstat(by, by.weapon).mod === 'vampirica' && !by.dead) { const mu = wstat(by, by.weapon).mut; by.hp = Math.min(PLAYER.hp, by.hp + (mu === 'simbiosis' ? 10 : 6)); if (mu === 'simbiosis') by.shield = Math.min(PLAYER.shield, by.shield + 8); if (mu === 'parasito') { const w0 = WEAPONS[by.weapon]; if (w0.per > 0) by.ammo[by.weapon] = Math.min(ammoMax(by, by.weapon), by.ammo[by.weapon] + w0.per * 3); } }
@@ -857,7 +861,7 @@ export class Game {
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),
       ...(this.loot.length ? { lt: lootSnap(this) } : {}),
       objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, nk: o.kind || undefined, ow: o.owner || 0, l: r2(o.life || 0) })),
-      obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
+      obj: this.objective ? { type: this.objective.type, stage: this.objective.stage, total: this.objective.ids.length, target: this.objective.target, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
       mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
       ev: evSnap(this), ar: arSnap(this), ng: ngSnap(this), fl: flSnap(this), fa: faunaSnap(this),

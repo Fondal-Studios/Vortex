@@ -54,3 +54,14 @@ No se corrigió en esta entrega navegación de rezagados, colisiones especiales,
 variedad de objetivos, balance de modo esencial, crecimiento de enemigos ni cámara lenta.
 La suite de HUD se actualizó al contrato nuevo (cuatro acciones); el antiguo
 `tools/shot-hud.js` conserva expectativas históricas y no es el gate de esta versión.
+
+## Ciclo 2 — Variedad de misiones y controles esenciales
+Base remota verificada: 635748cc, PR #1 abierto/borrador; base aún 9b7d54a.
+Cambios autorizados e implementados: Reconexión y Caza en planes por arena;
+Primer contacto acepta cualquier estilo; mantener recupera A2/movilidad/definitiva;
+poder equipable por huésped/modo. Corregido USAR ocultando poder durante objetivos
+y actualización de contexto cancelando pulsaciones. Detalle en VORTEX_MISSION_CONTROLS.md.
+Validación: 63/63 específicas, 59/59 núcleo, 5/5 red. Build correcto.
+Protocolo 3: desplegar cliente y servidor de la misma versión.
+No merge/despliegue, no playtest visual ni hardware. Balance por acción verificado;
+versatilidad del kit y ergonomía pendientes de sesiones humanas.

@@ -9,7 +9,7 @@ import * as THREE from 'three';
 
 // DOM fixture: verifies visibility policy and input, not browser layout or WebGL.
 class Element {
-  constructor() { this.children=[]; this.style={setProperty(){}}; this.classes=new Set(); this.classList={add:x=>this.classes.add(x),remove:x=>this.classes.delete(x),toggle:(x,on)=>on?this.classes.add(x):this.classes.delete(x)}; this.parts={}; }
+  constructor() { this.children=[]; this.dataset={}; this.style={setProperty(){}}; this.classes=new Set(); this.classList={add:x=>this.classes.add(x),remove:x=>this.classes.delete(x),toggle:(x,on)=>on?this.classes.add(x):this.classes.delete(x)}; this.parts={}; }
   appendChild(x){this.children.push(x);}
   querySelector(x){return this.parts[x] ||= new Element();}
 }
@@ -35,7 +35,7 @@ test('TouchControls applies essentials and restores complete actions in both mod
   for (const mode of ['shooter','combo']) {
     t.mode=mode; settings().advanced=false; t.applyLayout();
     assert.ok(visible(mode==='combo'?'s3':'esp')); assert.ok(!visible('reload')); assert.ok(!visible('ult'));
-    t.st={esp:true,s3:true,use:false}; t.setContext({use:true});
+    t.st={esp:true,s3:false,use:false}; t.setContext({use:true}); assert.ok(!visible('use'),'power is stable while held'); assert.equal(t.st.esp,true,'held input is not cancelled'); t.st.esp=false; t.setContext({use:true});
     assert.ok(visible('use')); assert.ok(!visible('esp')); assert.ok(!visible('s3'));
     assert.equal(t.st.esp,false); assert.equal(t.st.s3,false);
     settings().advanced=true; t.applyLayout();

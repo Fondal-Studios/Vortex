@@ -28,3 +28,10 @@ Antes de la próxima entrega: ejecutar `node tools/check-essential-ui.js`, verif
 primera partida y tutorial en PC y Safari/iPhone; revisar diferencias de poder entre
 esencial/completo. Después: recuperación de enemigos rezagados y una misión distintiva
 por arena. La implementación actual no declara terminados Bloques 1, 2 ni 3.
+
+### Ciclo 2 implementado en rama
+Reconexión, Caza y primer desafío libre de arma. Controles esenciales recuperan
+secundario, movilidad y definitiva; selección de poder por huésped/modo.
+Siguiente gate: recorridos humanos por arena y huésped, especialmente plazos,
+lectura del blanco, carga de Seraf y ventana de Danzante. Comparar esencial/completo
+por supervivencia y uso accidental, no sólo por equivalencia de acciones.

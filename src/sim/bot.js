@@ -74,6 +74,8 @@ export function taskFor(game, p) {
   }
   if (!o || o.state !== 'active') return null;
   const ob = o.ids.map((id) => game.objects.find((x) => x.id === id)).filter(Boolean);
+  if (o.type === 'secuencia') { const terminal = ob[o.stage]; return terminal ? { pt: terminal.pos, stay: 1 } : null; }
+  if (o.type === 'caza') { const target = game.monsters.find((m) => m.id === o.target && !m.dead); return target ? { pt: target.pos, stay: 9 } : null; }
   if (o.type === 'cultivo') { // ir al capullo sin florecer más cercano y darle de comer a tiros
     let best = null, bd = Infinity; for (const c of ob) if (c.type === 'capullo' && !c.on) { const d = dist(c.pos, p.pos); if (d < bd) { bd = d; best = c; } }
     return best ? { pt: best.pos, stay: 16 } : null;

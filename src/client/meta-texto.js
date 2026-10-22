@@ -9,6 +9,8 @@ export function textoObjetivo(o, me, solo = false) {
   if (!o) return '';
   const carga = me && me.carry;
   switch (o.type) {
+    case 'secuencia': return `Reconectá terminal ${Math.min((o.stage || 0) + 1, o.total || 3)}/${o.total || 3} · quedate 2 s`;
+    case 'caza': return o.target == null ? 'Localizá al custodio cuando aparezca' : 'Eliminá al custodio marcado para terminar la oleada';
     case 'ancla': return `Cargá el Ancla: quedate dentro del círculo (${pct(o.prog)})`;
     case 'sintonia': return solo ? `Pisá cada placa antes de que se apague (${pct(o.prog)})` : `Ocupen todas las placas a la vez (${pct(o.prog)})`;
     case 'nucleo': return carga ? 'Llevá el núcleo al altar' : (o.prog > 0.02 ? 'Llevá el núcleo al altar (alguien lo lleva)' : 'Recogé el núcleo y llevalo al altar');
@@ -44,8 +46,8 @@ export function metaActual(state, me) {
 /** Marcador de la mini-misión secundaria de la oleada (o null). */
 export function textoMision(mis) {
   if (!mis) return null;
-  const base = { melee: `Golpe a golpe: matá ${mis.n} con melé`, intacto: 'Intocable: superá la oleada sin recibir daño', elite: 'Caza mayor: eliminá al élite (brilla distinto)', alimento: 'Alimentación: comé a la criatura RARA que brilla (USAR / E)' }[mis.k] || 'Misión';
-  const cuenta = mis.k === 'melee' ? ` (${mis.p}/${mis.n})` : '';
+  const base = { asalto: `Primer contacto: eliminá ${mis.n} enemigos con tu estilo`, melee: `Golpe a golpe: matá ${mis.n} con melé`, intacto: 'Intocable: superá la oleada sin recibir daño', elite: 'Caza mayor: eliminá al élite (brilla distinto)', alimento: 'Alimentación: comé a la criatura RARA que brilla (USAR / E)' }[mis.k] || 'Misión';
+  const cuenta = ['melee', 'asalto'].includes(mis.k) ? ` (${mis.p}/${mis.n})` : '';
   const premio = `+${mis.rc} núcleos`;
   if (mis.st === 'done') return { cls: 'done', txt: `✔ ${base.split(':')[0]} cumplida · ${premio}` };
   if (mis.st === 'failed') return { cls: 'fail', txt: `✖ ${base.split(':')[0]} perdida` };

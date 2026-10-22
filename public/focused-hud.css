@@ -31,3 +31,9 @@ body.hud-focused.modo-combo .hq .hs.esp { display:none !important; }
 body.hud-focused.between-waves #mision { display:block !important; }
 body.hud-focused.between-waves #mision.hidden { display:none !important; }
 body.hud-focused.modo-combo #cross { opacity:.35; }
+#touch.essential .tc-ability { right:calc(26px + env(safe-area-inset-right)); left:auto; top:auto; bottom:calc(128px + env(safe-area-inset-bottom)); width:62px; height:62px; }
+body.hud-focused[data-essential-power] .hq .hs { display:none !important; }
+body.hud-focused[data-essential-power="esp"] .hq .hs.esp,
+body.hud-focused[data-essential-power="s3"] .hq .hs.s3 { display:flex !important; }
+body.hud-focused:not([data-essential-power="ability"]) #ability { display:none !important; }
+#essentialpower { min-height:44px; max-width:100%; }

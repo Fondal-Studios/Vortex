@@ -30,3 +30,13 @@
 - Ataque manual por defecto; respetar accesibilidad previamente elegida.
 - No aplicar cámara lenta a la simulación cooperativa ni agrandar hitboxes sin pruebas de navegación.
 - No asignar nueva puntuación de diversión sin jugar. Retener el borrador hasta validar visualmente.
+
+## Ciclo 2 — 22/10/2026
+- Añadir dos objetivos con acciones distintas, reutilizando objetos y spawn existentes.
+- Caza termina por su blanco; evitar limpieza residual y premios por enemigos retirados.
+- Primer desafío libre de arma para no contradecir la elección inicial del jugador.
+- Recuperar acciones esenciales mediante mantener y elección de poder; sin bonos
+  ocultos para maquillar estadísticas. Verificar paridad por acción en simulación.
+- Reconocer que un poder equipado no tiene la misma versatilidad que todos accesibles.
+  No asignar puntuación final de balance sin juego humano.
+- Subir protocolo al cambiar tipos/campos del objetivo; cliente y servidor juntos.
