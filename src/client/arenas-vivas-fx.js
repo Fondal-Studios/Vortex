@@ -1,3 +1,4 @@
+import { ARENA_IDENTITY } from '../shared/identity.js';
 // ARENAS VIVAS (cliente): dibuja los órganos del organismo de cada arena y sus avisos. La simulación está en src/sim/arenas-vivas.js
 // (docs/MUNDO_VIVO.md → «Arenas vivas»). Sólo LEE `state.ar`; la disposición (dónde está cada órgano) sale de layoutArena(mapa).
 // PSICODELIA FLASHERA PERO LEGIBLE: todo es autoiluminado (nunca queda una zona oscura), los beneficios son anillos suaves que suben y
@@ -13,10 +14,7 @@ import { ARENAS_VIVAS } from '../sim/data.js';
 
 const hex = (s) => parseInt(s.slice(1), 16);
 /** Color de ayuda y de amenaza de cada arena (de su paleta de identidad; ver docs/MAPAS.md). */
-const PAL = {
-  m1: { ay: '#19f0ff', am: '#ff3df2' }, m2: { ay: '#9b5cff', am: '#ffb52e' }, m3: { ay: '#3dffb8', am: '#e8fbff' },
-  m4: { ay: '#b6ff2a', am: '#ff2f5e' }, m5: { ay: '#ffcf4a', am: '#5b8bff' }, m6: { ay: '#efe6c8', am: '#ff6a14' },
-};
+const PAL = Object.fromEntries(Object.entries(ARENA_IDENTITY).map(([id, a]) => [id, { ay: a.color, am: a.accent }]));
 const BEAT = { dormido: 0.5, despierto: 1.0, furioso: 1.9, ofrenda: 0.75 };      // latidos por segundo
 const FASE = { dormido: 0.35, despierto: 0.7, furioso: 1.0, ofrenda: 0.85 };    // intensidad del brillo
 const Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), MB = new THREE.Matrix4();
@@ -117,12 +115,12 @@ function bodyMat(c1, c2) {
 const VERT_UV = `varying vec2 vUv; varying vec3 vP; attribute float aT; varying float vT; void main(){ vUv = uv; vT = aT; vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 const HAZARD = `float hz(vec2 p, float t){ return smoothstep(0.42, 0.5, fract((p.x + p.y) * 5.0 - t * 0.6)); }`;
 /** Marca de suelo + haz de luz de una boca (ayuda) o de un pulmón (nube que sana / envenena). */
-function zonaMat(ay, am) {
+function zonaMat(ay, am, identity) {
   return finish(new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
-    uniforms: { uTime, uAy: { value: screenColor(hex(ay)) }, uAm: { value: screenColor(hex(am)) }, uAct: { value: 0 }, uFill: { value: 0 }, uTox: { value: 0 }, uWarn: { value: 0 }, uDens: { value: 0 } },
+    uniforms: { uTime, uAy: { value: screenColor(hex(ay)) }, uAm: { value: screenColor(hex(am)) }, uAct: { value: 0 }, uFill: { value: 0 }, uTox: { value: 0 }, uWarn: { value: 0 }, uDens: { value: 0 }, uSegments: { value: identity.shape }, uRhythm: { value: identity.rhythm } },
     vertexShader: VERT_UV,
-    fragmentShader: `uniform float uTime, uAct, uFill, uTox, uWarn, uDens; uniform vec3 uAy, uAm; varying vec2 vUv; varying vec3 vP; varying float vT; ${HAZARD}
+    fragmentShader: `uniform float uTime, uAct, uFill, uTox, uWarn, uDens, uSegments, uRhythm; uniform vec3 uAy, uAm; varying vec2 vUv; varying vec3 vP; varying float vT; ${HAZARD}
       void main(){
         vec3 colA = mix(uAy, uAm, uTox);
         if (vT > 0.5 && vT < 1.5) { // haz de luz (pared del cilindro): faro que se ve de lejos
@@ -136,12 +134,12 @@ function zonaMat(ay, am) {
         }
         vec2 p = (vUv - 0.5) * 2.0; float r = length(p), a = atan(p.y, p.x);
         float edge = smoothstep(0.07, 0.0, abs(r - 0.94)), disc = smoothstep(1.0, 0.0, r);
-        float rings = smoothstep(0.08, 0.0, abs(fract(r * 2.5 - uTime * (0.25 + 0.4 * uAct)) - 0.5) - 0.40) * smoothstep(1.0, 0.2, r);
+        float rings = smoothstep(0.08, 0.0, abs(fract(r * 2.5 - uTime * (uRhythm + 0.2 * uAct)) - 0.5) - 0.40) * smoothstep(1.0, 0.2, r);
         float ang = fract((a + 1.5708) / 6.28318), arc = step(ang, uFill) * smoothstep(0.05, 0.0, abs(r - 0.8) - 0.03);
-        float dash = step(0.5, fract(a * 4.0 + uTime * 0.5));
+        float dash = step(0.5, fract(a * uSegments / 6.28318 + uTime * uRhythm));
         float warn = uWarn * hz(p, uTime * 3.0) * smoothstep(1.0, 0.85, r) * (0.5 + 0.5 * sin(uTime * 12.0));
         vec3 col = colA * (0.5 + 0.9 * rings + 1.1 * edge) + vec3(1.0) * arc * 0.5;
-        float al = uAct * (0.10 * disc + 0.24 * rings + 0.38 * edge) + (1.0 - uAct) * (0.04 * disc + 0.28 * edge * (0.4 + 0.6 * dash)) + arc * 0.75 + warn * 0.35;
+        float al = uAct * (0.04 * disc + 0.16 * rings + 0.38 * edge) + (1.0 - uAct) * (0.04 * disc + 0.28 * edge * (0.4 + 0.6 * dash)) + arc * 0.75 + warn * 0.35;
         gl_FragColor = vec4(col, al * smoothstep(1.0, 0.92, r));
       }`,
   }));
@@ -207,7 +205,7 @@ export class ArenasVivasFx {
         body.position.y = o.k === 'corazon' || o.k === 'raiz' ? (o.h || 1.4) : 0; it.esc = o.k === 'raiz' ? 1.6 : o.k === 'boca' || o.k === 'pulmon' ? 1.3 : 1; it.body = body; g.add(body);   // corazón y raíz: centrados en su esfera golpeable; boca y pulmón: apoyados en el piso
         body.material.uniforms.uPivot.value = o.hr * 0.65;   // el péndulo cuelga del centro de la esfera de reloj
         const halo = new THREE.Sprite(this.r.halo_(hex(def.color2)).clone());
-        halo.material.opacity = 0.7; halo.position.y = o.k === 'boca' || o.k === 'pulmon' ? 1.2 : body.position.y; halo.scale.setScalar(o.hr * 2.6); halo.renderOrder = 3; it.halo = halo; g.add(halo);
+        halo.material.opacity = 0.28; halo.position.y = o.k === 'boca' || o.k === 'pulmon' ? 1.2 : body.position.y; halo.scale.setScalar(o.hr * 1.8); halo.renderOrder = 3; it.halo = halo; g.add(halo);
       }
       if (o.k === 'boca' || o.k === 'pulmon') { // marca de suelo + faro (boca) o nube (pulmón)
         const R = o.r, parts = [];
@@ -215,7 +213,7 @@ export class ArenasVivasFx {
         disc.setAttribute('aT', new THREE.BufferAttribute(new Float32Array(disc.attributes.position.count).fill(0), 1)); parts.push(disc);
         if (o.k === 'boca') { const wall = new THREE.CylinderGeometry(1, 1, 2.6 / R, 36, 1, true); wall.translate(0, 1.3 / R, 0); wall.setAttribute('aT', new THREE.BufferAttribute(new Float32Array(wall.attributes.position.count).fill(1), 1)); parts.push(wall); }
         else { const dome = new THREE.SphereGeometry(1, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2); dome.setAttribute('aT', new THREE.BufferAttribute(new Float32Array(dome.attributes.position.count).fill(2), 1)); parts.push(dome); it.domeStart = disc.attributes.position.count; }
-        const m = new THREE.Mesh(mergeGeometries(parts.map((p) => p.toNonIndexed())), zonaMat(pal.ay, pal.am));
+        const m = new THREE.Mesh(mergeGeometries(parts.map((p) => p.toNonIndexed())), zonaMat(pal.ay, pal.am, ARENA_IDENTITY[mapId]));
         m.position.y = 0.08; m.scale.setScalar(R); m.renderOrder = 2; it.zona = m; g.add(m);
       }
       if (o.k === 'vena') { // cinta + dos pilares
@@ -259,7 +257,7 @@ export class ArenasVivasFx {
         if (o.k === 'corazon' && this.def.motivo !== 'reloj') { it.body.rotation.y += dt * (0.25 + 0.4 * (ph === 'furioso')); it.body.position.y = o.h + Math.sin(this.t * 1.3 + i) * 0.18; }
         if (o.k === 'raiz' && cargando && cargando[1] >= 2) it.body.rotation.y = this.def.motivo === 'reloj' ? Math.atan2(-cargando[7], cargando[5]) : Math.atan2(cargando[5], cargando[7]);   // la manecilla / la trompeta apuntan al aviso
         else if (o.k === 'raiz' && !roto && o.atk && o.atk.tipo === 'giro') it.body.rotation.y += dt * 0.3;
-        if (it.halo) it.halo.material.opacity = roto ? 0.12 : (0.18 + 0.3 * beat) * (0.5 + 0.6 * fase) + this.flash[i] * 0.4;
+        if (it.halo) it.halo.material.opacity = roto ? 0.12 : (0.08 + 0.15 * beat) * (0.5 + 0.6 * fase) + this.flash[i] * 0.18;
       }
       if (it.zona && o.k === 'boca') { const U = it.zona.material.uniforms; U.uAct.value += ((zona > 0 ? 1 : 0) - U.uAct.value) * Math.min(1, dt * 4); U.uFill.value = fed / 100; }
       if (it.zona && o.k === 'pulmon') {

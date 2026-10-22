@@ -45,3 +45,19 @@ Rol: diferenciar seis firmas de proyectil, contactos melee/remates, equipo y pul
 | Costo | 8 | Huésped equipado Baja: 13 llamadas / 14.578 triángulos; consola sin errores. |
 
 Mínimo: 7. [Capturas y validación](COMBAT_POLISH.md). Escena de referencia Baja: 61 llamadas; sin luces nuevas. No certifica todas las piezas, arenas, FPS en iPhone ni calidad global. Alta aún conserva bastante brillo ambiental; HUD congestionado fuera del alcance. No se agregaron recursos externos.
+
+## Identidad y colección cosmética — 2026-10-22 — PASA (delta acotado)
+Autor Codex; crítico independiente visual_review. Revisión de 32 vistas de acabados (porcelana en los8 huéspedes y pares de contraste), catálogo desktop/móvil, seis arenas Baja/Alta y cuatro closeups de zonas activas. Fixtures de inspección, no recorridos completos.
+
+| Criterio incremental | Nota | Evidencia |
+|---|---:|---|
+| Legibilidad de catálogo/acabados | 7 | Precio, propiedad, futuro y equipamiento distintos |
+| Materiales y luz del visor | 7 | Acabados visibles sin cambiar emisivos; porcelana algo plana en Umbra |
+| Coherencia | 8 | Silueta y color de habilidades preservados |
+| Navegación | 7 | Foco y scroll de mercado/arenas corregidos |
+| Integridad cosmética | 9 | Compra única, persistencia, límites por huésped; futuras ediciones bloqueadas |
+| Costo incremental | 8 | No añade geometría ni luces a la partida |
+
+Zonas de arenas: legibilidad7, materiales/luz7, coherencia8, costo incremental8. Suelo visible, anillo identificable y halo contenido. No se modificó ni certificó modelado/animación completos. m2 Alta tiene obstrucción parcial por objetos próximos en el fixture.
+
+**No aprueba Host/Arena/Game Gate completos.** [Registro por pieza](identity-gates.json), [producción y límites](IDENTITY_PRODUCTION.md). Presupuestos de los cuerpos base del visor Baja: Axioma15.084, Micelio15.216, Seraf15.454 >15.000. El bloque anterior medía Axioma con equipo que reemplaza geometría: no es el mismo fixture. Las variantes regionales también pueden sumar geometría. Deuda pendiente, sin aumento geométrico en este cambio.

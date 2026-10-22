@@ -1,3 +1,4 @@
+import { perfil as cosmeticProfile } from './perfil.js';
 import * as THREE from 'three';
 import { MAPS } from '../sim/maps.js';
 import { skyMaterial, crystalMaterial, groundMaterial, shellMaterial, zoneMaterial, uTime, uInfect, uBeat, OUT } from './shaders.js';
@@ -540,6 +541,7 @@ export class Renderer {
         k.color.set(0xffffff).lerp(new THREE.Color(col), 0.25); k.intensity = 20 * c.key * (this.luzKey || 1); k.visible = true;
       } else if (self) this.keyLight.intensity = 0;
       if (e.body) {
+        if (e.body.setCosmetic) e.body.setCosmetic(self ? cosmeticProfile().cosmetics?.equipped?.[p.char] : null);
         for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev); else if (ev.t === 'fauna' && ev.pid === p.id && e.body.formaEvent) e.body.formaEvent(ev);   // fauna: la transformación al comer
         e.shotT = Math.max(0, e.shotT - dt); const cx = this.comboFx ? this.comboFx.frameFor(p.id, dt, p, state) : null;   // Combo: pose del golpe, avance visual y hit-stop del cuerpo
         e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, map: this.mapId, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null, ...cx });

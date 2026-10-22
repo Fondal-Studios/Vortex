@@ -1,0 +1,237 @@
+{
+  "arenas": [
+    {
+      "quality": "low",
+      "map": "m1",
+      "scene": {
+        "frame": 59,
+        "calls": 51,
+        "triangles": 44765,
+        "points": 2518,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 15214,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            3668
+          ],
+          [
+            "kit-metal",
+            3820
+          ],
+          [
+            "kit-gold",
+            1678
+          ],
+          [
+            "kit-bone",
+            2574
+          ],
+          [
+            "kit-dark",
+            84
+          ],
+          [
+            "kit-light",
+            336
+          ],
+          [
+            "kit-ember",
+            2490
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            372
+          ],
+          [
+            "kit-spirit",
+            64
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "low",
+      "map": "m2",
+      "scene": {
+        "frame": 59,
+        "calls": 47,
+        "triangles": 69137,
+        "points": 2458,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 15276,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            3668
+          ],
+          [
+            "kit-metal",
+            3820
+          ],
+          [
+            "kit-gold",
+            1678
+          ],
+          [
+            "kit-bone",
+            2574
+          ],
+          [
+            "kit-dark",
+            84
+          ],
+          [
+            "kit-light",
+            206
+          ],
+          [
+            "kit-ember",
+            2490
+          ],
+          [
+            "kit-crystal",
+            200
+          ],
+          [
+            "kit-leather",
+            372
+          ],
+          [
+            "kit-spirit",
+            64
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "high",
+      "map": "m1",
+      "scene": {
+        "frame": 85,
+        "calls": 112,
+        "triangles": 298670,
+        "points": 3456,
+        "lines": 16
+      },
+      "body": {
+        "calls": 13,
+        "tris": 62558,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            26756
+          ],
+          [
+            "kit-metal",
+            9364
+          ],
+          [
+            "kit-gold",
+            9032
+          ],
+          [
+            "kit-bone",
+            8216
+          ],
+          [
+            "kit-dark",
+            180
+          ],
+          [
+            "kit-light",
+            702
+          ],
+          [
+            "kit-ember",
+            7146
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            752
+          ],
+          [
+            "kit-spirit",
+            128
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "high",
+      "map": "m2",
+      "scene": {
+        "frame": 85,
+        "calls": 85,
+        "triangles": 297500,
+        "points": 3260,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 62578,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            26756
+          ],
+          [
+            "kit-metal",
+            9364
+          ],
+          [
+            "kit-gold",
+            9032
+          ],
+          [
+            "kit-bone",
+            8216
+          ],
+          [
+            "kit-dark",
+            180
+          ],
+          [
+            "kit-light",
+            434
+          ],
+          [
+            "kit-ember",
+            7146
+          ],
+          [
+            "kit-crystal",
+            296
+          ],
+          [
+            "kit-leather",
+            752
+          ],
+          [
+            "kit-spirit",
+            128
+          ]
+        ]
+      },
+      "organs": 3
+    }
+  ],
+  "errors": []
+}
