@@ -31,3 +31,17 @@ Alta: mismas llamadas, 3.5k–14.7k tris (jefes ≤ 20.2k). Textura CC0 reutiliz
 
 ## Veredicto global (críticos de shooter independientes)
 _(se completa al final: meta = mediana > 7)_
+
+## Pulido incremental de combate — 2026-10-22 — PASA
+Rol: diferenciar seis firmas de proyectil, contactos melee/remates, equipo y pulsos de huésped/arena. Silueta objetivo: trazas y geometrías propias; contacto localizado sin ocultar al objetivo. Implementación: Codex; crítico independiente: visual_review (no autor).
+
+| Criterio | Nota | Evidencia |
+|---|---:|---|
+| Silueta y legibilidad | 7 | Proyectiles distinguibles; faro cercano ya no oculta el combate. |
+| Modelado y detalle | 7 | Equipo con motivos propios y poses acordes al golpe. |
+| Materiales y luz | 7 | Contactos contenidos; huésped conserva silueta y color. |
+| Coherencia | 8 | Paletas canónicas y lenguaje orgánico/cristalino. |
+| Animación y feedback | 7 | Remate distinto de ejecución; críticos y ondas identificables. |
+| Costo | 8 | Huésped equipado Baja: 13 llamadas / 14.578 triángulos; consola sin errores. |
+
+Mínimo: 7. [Capturas y validación](COMBAT_POLISH.md). Escena de referencia Baja: 61 llamadas; sin luces nuevas. No certifica todas las piezas, arenas, FPS en iPhone ni calidad global. Alta aún conserva bastante brillo ambiental; HUD congestionado fuera del alcance. No se agregaron recursos externos.

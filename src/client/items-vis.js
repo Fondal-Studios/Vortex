@@ -154,6 +154,16 @@ function arms(ak, t, e, p) {
   const { G, X, S, low, spikeAt, seam } = t, add = ak.add;
   ak.both(() => {
     const U = ak.P('upperarm01'), E = ak.P('lowerarm01'), W = ak.P('wrist');
+    // Siluetas funcionales: tendones en paralelo para ritmo, placas anchas para peso.
+    if (e.it.id === 'tendones_relampago') {
+      for (const side of [-1, 1]) {
+        const pts = [E, along(E, W, 0.45), W].map((v, i) => v.clone().add(V(side * (i === 1 ? 0.075 : 0.045), 0, 0.055)));
+        add('flesh', G.tube(pts, 0.012, 0.008, { radial: 4, tubular: low ? 5 : 10 }), 'lowerarm01', { color: p.dark });
+        add('ember', seam(pts, 0.003), 'lowerarm01', { color: p.glow });
+      }
+    } else if (e.it.id === 'punos_basalticos') {
+      for (const u of [0.35, 0.7]) add('metal', t.ringAt(E, W, u, 0.085, 0.06, 0.018), 'lowerarm01', { color: p.dark });
+    }
     // brazal: cono sobre el antebrazo y banda sobre el brazo
     cascaron(ak, t, p, t.limb(t.cuff(0.062, 0.052, E.distanceTo(W) * 0.8, 0.012, S(14, 8)), E, W, 0.5), 'lowerarm01', p.main);
     cascaron(ak, t, p, t.ringAt(U, E, 0.55, 0.062, 0.05, 0.012), 'upperarm01', p.dark);
@@ -194,6 +204,7 @@ function relic(ak, t, e, p) {
     case 'vacio': add('spirit', X(G.shard(0.14 * k, 0.026 * k, S(5, 4)), { p: [c.x, c.y - 0.12, c.z], r: [Math.PI, 0.3, 0.2] }), 'spine03', { color: mixHex(p.acc, 0x6a3aff, 0.3) }); add('dark', X(G.shard(0.07 * k, 0.018, S(4, 3)), { p: [c.x + 0.025, c.y - 0.05, c.z], r: [Math.PI, 0, -0.3] }), 'spine03', { color: p.main }); break;
     default: add(key, X(G.sphere(0.04 * k, S(8, 5), S(6, 4)), { p: [c.x, c.y - 0.05, c.z], s: [0.85, 1.35, 0.85] }), 'spine03', { color: p.main }); add('ember', seam([c.clone().add(V(0, -0.0, 0.034)), c.clone().add(V(0, -0.1, 0.034))], 0.004), 'spine03', { color: p.glow }); break;
   }
+  if (e.it.id === 'relicario_amortiguador') for (const r of [0.065, 0.085]) add('metal', G.torus(r * k, 0.005, 4, S(14, 8)).translate(c.x, c.y - 0.05, c.z), 'spine03', { color: p.dark });
   if (p.r >= 2) add('ember', G.torus(0.05 * k, 0.003, 3, S(14, 8)).rotateX(Math.PI / 2).translate(c.x, c.y - 0.05, c.z), 'spine03', { color: p.glow });
   if (p.r >= 3 && p.f >= 2) ak.halo('spine03', V(c.x, c.y - 0.05, c.z), p.glowRaw, 0.35, 0.45);
 }

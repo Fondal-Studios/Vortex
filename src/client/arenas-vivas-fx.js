@@ -107,7 +107,8 @@ function bodyMat(c1, c2) {
         float lam = 0.55 + 0.45 * dot(n, normalize(vec3(0.4, 0.8, 0.3)));
         vec3 base = mix(uC1, uC2, vK + 0.15 * sin(uTime * 2.0 + vK * 6.0));
         vec3 col = base * (0.28 + 0.5 * lam) * (0.6 + 0.55 * uFase);
-        col += base * uBeat * (0.12 + 0.45 * vG) * uFase + uC2 * f * (0.3 + 0.35 * uFase) + vec3(1.0) * (uCharge * 0.45 * (0.5 + 0.5 * sin(uTime * 30.0)) + uHurt * 0.5);
+        col += base * uBeat * (0.12 + 0.45 * vG) * uFase + uC2 * f * (0.3 + 0.35 * uFase) + vec3(1.0) * (uCharge * 0.3 * (0.75 + 0.25 * sin(uTime * 4.0)) + uHurt * 0.5);
+        col += uC2 * vG * 0.14 * pow(0.5 + 0.5 * sin(vK * 18.0 - uTime * 2.0), 5.0) * uFase;
         float gris = dot(col, vec3(0.33)); col = mix(col, vec3(gris * 0.9 + 0.12), uRoto * 0.85);
         gl_FragColor = vec4(col, 1.0);
       }`,

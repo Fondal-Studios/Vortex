@@ -420,7 +420,7 @@ export class Renderer {
     for (const [id, e] of this.ents.mon) if (!seen.has(id)) { if (e.bar) { this.barRoot.remove(e.bar); e.bar = null; } this.ents.mon.delete(id); e.dyingT = 0; e.dyingMax = e.kind === 'coloso' || e.kind === 'madre' || e.kind === 'argos' ? 1.8 : 0.5; e.base = e.object.scale.clone(); this.dying.push(e); }
   }
   /** FARO DE RASTREO (política «sin teletransportes», docs/MUNDO_VIVO.md): una columna de luz + halo grande sobre las criaturas en acoso (`m.ac`) y sobre
-   *  las últimas de la oleada (≤ 6 sin jefe), dibujados SIN profundidad: se ven a través de paredes y niebla. Magenta = acosando; ámbar = de las últimas. */
+   *  las últimas de la oleada (≤ 6 sin jefe), dibujados SIN profundidad: se ven a través de paredes y niebla a distancia; se retiran cerca de cámara para no tapar el melee. Magenta = acosando; ámbar = de las últimas. */
   faro(e, m, state, scale) {
     const ultima = state.left <= 6 && !state.boss && !(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'), on = !!m.ac || ultima;
     if (!on) { if (e.faro) { e.faro.visible = false; } return; }
@@ -434,10 +434,12 @@ export class Renderer {
     const c = m.ac ? 0xff4fd8 : 0xffc24a;
     if (e.faroC !== c) { e.faroC = c; const mat = this.shared('faro' + c, () => new THREE.SpriteMaterial({ map: this.halo, color: c, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0.8 })); e.faro.getObjectByName('col').material = mat; e.faro.getObjectByName('hal').material = mat; }
     const k = 1 / Math.max(0.2, scale), pul = 0.85 + 0.15 * Math.sin(this.t * 6 + m.id);
-    e.faro.visible = true;
+    const distance = this.camera.position.distanceTo(e.object.position);
+    const far = THREE.MathUtils.smoothstep(distance, 14, 38);
+    e.faro.visible = far > 0.01;
     const col = e.faro.getObjectByName('col'), hal = e.faro.getObjectByName('hal');
-    col.scale.set(2.2 * k, 46 * k, 1); col.position.set(0, 21 * k, 0);   // columna vertical (hacia arriba del mundo; el objeto está orientado con su «arriba»)
-    hal.scale.setScalar(9 * k * pul);
+    col.scale.set(2.2 * k * far, 46 * k, 1); col.position.set(0, 21 * k, 0);   // columna vertical (hacia arriba del mundo; el objeto está orientado con su «arriba»)
+    hal.scale.setScalar(9 * k * pul * far);
   }
   /** Marcas de aviso en el suelo (nacimientos `omen`, llegada del Pombero `tele`): un anillo que late hasta que se cumple el plazo. */
   updateAvisos(dt) {
