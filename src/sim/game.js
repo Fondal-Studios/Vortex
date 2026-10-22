@@ -606,7 +606,7 @@ export class Game {
     if (by && by.input && this.boss) jefeGolpe(this, m, by, dmg * mul_);   // perfil de estilo del jugador (jefe-ia.js)
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
     if (m.affix === 'llorón' && !m.dead && this.time >= (m.weepAt || 0) && (m.kids || 0) < 3) { m.weepAt = this.time + 3; const k = this.spawnMonster('astilla', madd(m.pos, norm(this.rng.unit()), 3), { parent: m.id, noElite: true }); if (k) m.kids = (m.kids || 0) + 1; }
-    this.emit({ t: 'hit', id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1, cr: this.critNow || undefined });
+    this.emit({ t: 'hit', src: this.dmgSrc, char: by?.char, id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1, cr: this.critNow || undefined });
     if (m.hp <= 0) this.killMonster(m, by);
   }
 

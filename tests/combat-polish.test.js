@@ -28,6 +28,7 @@ test('heavy finisher emits critical; follow-up never inherits it',()=>{
  const events=[];
  for(const button of ['a1','a1','a2'])for(let i=0;i<24;i++) {g.setInput(p.id,{mode:'combo',[button]:i<3});g.step(1/60);events.push(...g.snapshot().events);}
  assert.ok(events.some(e=>e.t==='hit'&&e.cr),'server emits true critical');
+ assert.ok(events.some(e=>e.t==='boom'&&e.src==='host'&&e.char==='axioma'),'host shockwave keeps its identity');
  assert.equal(!!g.critNow,false);
  g.events=[];g.damageMonster(m,10,p,m.pos);assert.ok(g.snapshot().events.some(e=>e.t==='hit'&&!e.cr));
 });

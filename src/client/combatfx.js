@@ -419,6 +419,16 @@ export class CombatFx {
     const crit = !!e.cr, boost = !e.arm && !crit && mul >= 1.22, heavy = dmg >= 90, k = clamp(0.6 + Math.log10(dmg + 1) * 0.45 + (crit ? 0.5 : 0), 0.6, 2.4);
     // marca para la animación de muerte (cómo lo mataron)
     this.lastHit.set(e.id, { style, w, t: this.t, nrm, p });
+    // Melee already has contact/weapon trails: do not stack the full gun impact on top.
+    if (e.src === 'melee') {
+      const c = e.arm ? NUMCOL.armor : CHARACTERS[e.char]?.color || mc;
+      const count = this.tier === 0 || this.reduced ? 4 : 7;
+      fx.sparks(p, crit ? 0xffd23f : c, count, 10, 0.3, { dir: nrm, cone: 1.1, c2: c });
+      if (crit) fx.ring(p, nrm, 0xffd23f, 1.5, 0.24, { r0: 0.2, th: 0.06, op: 0.5 });
+      this.nums.add(p.clone().addScaledVector(this.up, m ? m.r * 0.45 : 0.5), dmg,
+        { key: e.id, color: crit ? 0xffd23f : c, size: crit ? 1.5 : 1.0, crit });
+      return;
+    }
     // capa 1: el material de la criatura reacciona
     if (e.arm) { fx.sparks(p, 0xcfd8ff, 5, 12, 0.3, { dir: nrm, cone: 1.2, c2: 0x6a7bff }); fx.ring(p, nrm, 0x9999ff, 1.0, 0.2, { r0: 0.2, op: 0.7 }); }
     else if (mat === 'bio') { fx.spray(p, mc, 7 * k, 7, 0.7, 0.7, { dir: nrm, cone: 1.6, grav: 9, c2: mix(mc, 0x000000, 0.65), grow: -0.4 }); fx.spray(p, mc, 3 * k, 4, 0.5, 1.0, { c2: 0xffffff, grow: 0.3 }); fx.spray(p, 0xffffff, 2, 5, 0.3, 0.4, { shape: SHAPE.ember }); }
@@ -478,6 +488,15 @@ export class CombatFx {
   /* ═══════════════════════ EXPLOSIONES Y ÁREAS ═══════════════════════ */
   boom(e) {
     const fx = this.fx, p = V(e.p), r = e.r || 5, up = this.up;
+    // Host shockwaves are ground cuts, not fireball explosions. Preserve targets inside the radius.
+    if (e.src === 'host') {
+      const c = CHARACTERS[e.char]?.color || 0x66ffee;
+      fx.ring(p, up, c, r, 0.38, { r0: 0.4, th: 0.08, op: 0.5, shock: true });
+      fx.sparks(p, c, this.tier === 0 || this.reduced ? 5 : 10, Math.min(16, r * 2), 0.35, { dir: up, cone: 1.6, c2: c });
+      fx.flash(p, c, Math.min(1.4, r * 0.25), 0.1, { op: 0.35 });
+      if (!this.reduced && this.cam) this.addShake(0.12 * clamp(12 / (this.cam.position.distanceTo(p) + 6), 0.1, 1));
+      return;
+    }
     if (this.cam) this.addShake(clamp(r / 9, 0.3, 1.4) * clamp(16 / (this.cam.position.distanceTo(p) + 6), 0.12, 1));
     let src = null; for (const en of this.ended) if (en.p.distanceTo(p) < r + 4) { src = en; break; }
     let w = src ? src.w : -1; const sk = this.skills.find((s) => s.id === 'onda' && s.p.distanceTo(p) < 12);

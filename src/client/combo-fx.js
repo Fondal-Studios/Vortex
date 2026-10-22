@@ -134,7 +134,7 @@ export function createComboFx(renderer) {
     const near = hit || C.ranged;
     if (near && R2.hostfx && R2.hostfx.melee && R2.hostfx.melee.worldImpact) {
       const n = _d.copy(h).negate().clone(); // el estilo propio de cada Huésped (chispas, garras, anillos…)
-      R2.hostfx.melee.worldImpact(p.char, P, n, pal, peso >= 1.4, !!C.fin, up);
+      R2.hostfx.melee.worldImpact(p.char, P, n, pal, peso >= 1.4, C.e.kind === 'exec' || !!C.e.execAlso, up);
     }
     // onda extra y chispas por peso (con tope y presupuesto de partículas)
     const b = budget();
