@@ -1,3 +1,4 @@
+import { ULT_COOLDOWN } from './ultimate-cooldown.js';
 // COLMENA — el sexto Huésped (invocador / enjambre). Sólo DATOS puros (sin importar nada): data.js los registra en CHARACTERS, COMBO_SETS, HABILIDADES, etc.
 // La lógica (zánganos, nidos, la Reina) vive en src/sim/enjambre.js. Contrato y balance: docs/HUESPEDES.md → «Colmena».
 // Folclore del limbo: las abejas de un colmenar quemado que no se fueron: aprendieron a pensar juntas y ahora son una sola voz con miles de alas.
@@ -17,7 +18,7 @@ export const COLMENA = {
     mov: { id: 'zumbido', name: 'Zumbido', cd: 6, desc: 'Un salto zumbante hacia donde mirás, con 0,3 s de invulnerabilidad. Al arrancar nace un zángano.' },
     esp: { id: 'cria', name: 'Criar enjambre', cd: 11, desc: 'Tres zánganos brotan delante tuyo y atacan solos durante 20 s. Con el límite lleno, renueva el tiempo del más viejo.' },
     s3: { id: 'nido', name: 'Nido-torreta', cd: 16, desc: 'Un nido orgánico brota en el suelo y dispara a todo lo que se acerque durante 14 s (máx. 2 a la vez).' },
-    ult: { id: 'marabunta', name: 'Marabunta', cd: 0, charge: 100, desc: '10 s: el enjambre entra en frenesí (ataca al doble de rápido), nace un zángano por segundo y recibís 20 % menos de daño.' },
+    ult: { id: 'marabunta', name: 'Marabunta', cd: ULT_COOLDOWN.marabunta, desc: '10 s: el enjambre entra en frenesí (ataca al doble de rápido), nace un zángano por segundo y recibís 20 % menos de daño.' },
     passive: { id: 'cria_viva', name: 'Cría viva', desc: 'Cada 6 s nace un zángano gratis (hasta 2) y cada zángano vivo (máx. 5) te da +3 % de daño.' },
   },
   /** Caminos de evolución PROPIOS (4 niveles × 2 excluyentes). Las ids son nuevas: el resto del juego las ignora si no las conoce. */

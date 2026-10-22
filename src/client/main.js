@@ -253,7 +253,7 @@ function simpleAssist(inp, state, me) {
   if (st === 'disparo') { if (!(me.rl > 0)) inp.fire = true; }
   else if (st === 'habilidad') {                                                 // estilo habilidades: lanza sus poderes solo cuando están listos
     if (!(me.ec > 0)) inp.esp = (T % 20) < 4; else if (!(me.s3c > 0)) inp.s3 = (T % 20) < 4; else if (!(me.rl > 0)) inp.fire = true;
-    if ((me.ul | 0) >= 100) inp.ult = (T % 30) < 4;
+    if ((me.ud || 0) <= 0) inp.ult = (T % 30) < 4;
   }
   // estilo melé: no dispara solo; el jugador se acerca y el golpe sale solo
 }
@@ -324,7 +324,7 @@ function explainSkill(level) {
   if (!power) return;
   const el = $('tutorial'), current = session; current.paused = true; touch.reset(); keys.clear(); mouse.fire = mouse.esp = false;
   if (!current.touch && !NOLOCK) document.exitPointerLock?.();
-  el.innerHTML = `<h4>${level === 1 ? 'APOYO DESBLOQUEADO' : 'ULTI DESBLOQUEADA'}</h4><p><b>${power.name}</b></p><p>${power.desc || ''}</p><p>${level === 1 ? 'Usalo para preparar un grupo de enemigos y continuar con disparos o melee. Se recupera después de cada uso.' : 'Se carga durante el combate. Al llegar al 100%, activala en un momento difícil; después tendrás que volver a cargarla.'}</p><p><b>${current.touch ? (level === 1 ? 'Tocá APOYO' : 'Tocá ULTI') : (level === 1 ? 'Q o G · apoyo / mando RB' : 'T · ulti / mando cruceta ↓')}</b> · El mismo poder en ambos modos.</p><button id="skillok" type="button">Entendido · continuar</button>`;
+  el.innerHTML = `<h4>${level === 1 ? 'APOYO DESBLOQUEADO' : 'ULTI DESBLOQUEADA'}</h4><p><b>${power.name}</b></p><p>${power.desc || ''}</p><p>${level === 1 ? 'Usalo para preparar un grupo de enemigos y continuar con disparos o melee. Se recupera después de cada uso.' : 'No consume maná ni carga por daño. Tras usarla, esperá el cooldown indicado en su botón.'}</p><p><b>${current.touch ? (level === 1 ? 'Tocá APOYO' : 'Tocá ULTI') : (level === 1 ? 'Q o G · apoyo / mando RB' : 'T · ulti / mando cruceta ↓')}</b> · El mismo poder en ambos modos.</p><button id="skillok" type="button">Entendido · continuar</button>`;
   el.classList.remove('hidden');
   $('skillok').onclick = () => { el.classList.add('hidden'); if (session === current) { current.paused = false; current.skillExplained = level; touch.reset(); if (!current.touch && !NOLOCK) lockPointer(); } };
 }
@@ -333,7 +333,7 @@ function showTutorial(force = false) {
   if ((seen && !force) || !session || session.headless) return;
   const touchUI = !!session.touch, el = $('tutorial');
   const rows = touchUI
-    ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Doble toque izquierdo: saltar. Derecha: girar la cámara.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['APOYO / ULTI', 'se desbloquean jugando', 'Tras la primera oleada: apoyo. Tras la tercera: ulti. Cada uno tendrá su propio botón y explicación.'], ['DEFENSA', 'primer poder · disponible desde el inicio', 'Su imagen representa la movilidad o defensa de tu huésped. El número indica segundos de espera. Cambiá Disparo / Melé arriba.']]
+    ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Doble toque izquierdo: saltar. Derecha: girar la cámara. Tocá el nombre del arma para cambiarla.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['APOYO / ULTI', 'se desbloquean jugando', 'Tras la primera oleada: apoyo. Tras la tercera: ulti. Cada uno tendrá su propio botón y explicación.'], ['DEFENSA', 'primer poder · disponible desde el inicio', 'Su imagen representa la movilidad o defensa de tu huésped. El número indica segundos de espera. Cambiá Disparo / Melé arriba.']]
     : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['F / Q / T', 'defensa / apoyo / ulti', 'F: movilidad o defensa desde el inicio. Apoyo tras la primera oleada; ulti tras la tercera. Mismos poderes en Disparo y Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
   const chapter = Story.chapterBrief(session.map);
   el.innerHTML = `<h4>${chapter.title}</h4><p>${chapter.context}</p><p><b>${chapter.task}</b></p><p>Al lograrlo: ${chapter.reward}</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
@@ -680,6 +680,8 @@ function audioAndHud(state, me, dt) {
   if (state.boss) { bb.classList.remove('hidden'); if (!state.boss.mc) $('bossname').textContent = state.boss.name; $('bossfill').style.width = `${Math.max(0, 100 * state.boss.hp / state.boss.max)}%`; } else bb.classList.add('hidden');
   try { hudDirector(state, me); } catch (err) { if (!window.__hudErr) { window.__hudErr = err; console.error("HUD:", err); } }   // un error de interfaz nunca debe detener el dibujo (pantalla negra)
   if (me) {
+    const portrait = $('hudportrait'); if (portrait.dataset.char !== me.char) { portrait.dataset.char = me.char; portrait.src = new URL(CHARACTERS[me.char]?.host ? `../../public/portraits/${me.char}.png` : '../../public/icon-180.png', import.meta.url).href; portrait.alt = CHARACTERS[me.char]?.name || 'Tu huésped'; }
+    $('hudname').textContent = CHARACTERS[me.char]?.name || 'Huésped';
     $('hpfill').style.width = `${me.hp}%`; $('shfill').style.width = `${me.sh}%`; $('hpnum').textContent = `Vida ${me.hp}`; $('shnum').textContent = `Escudo ${me.sh}`;
     $('score').textContent = `Puntos ${me.score} · Bajas ${me.kills}` + (me.dead ? ' · CAÍDO: un compañero cerca te reanima' : '');
     updateWeaponHud(me);
@@ -763,7 +765,7 @@ function hudDirector(state, me) {
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
     const use = essentialInteraction(state, me, { npc: !!npcCtx.npc, fauna: session.faunaCerca, flora: session.floraUsar });
-    const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ul || 0) >= (C.ult.charge || 100) - 0.01 || (+me.ua || 0) > 0.05));
+    const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ud || 0) <= 0 || (+me.ua || 0) > 0.05));
     touch.setSkillLevel(me.sk);
     touch.setContext({ ult: ultOn, use, evo: me.co != null && me.evn != null && me.co >= me.evn });
     const mp = Math.min(1, (performance.now() - modoT) / (MODO_ESPERA * 1000)); if (mp < 1 || session.modeP == null || session.modeP < 1) touch.setModeCd(mp); session.modeP = mp;   // anillo de espera del botón MODO

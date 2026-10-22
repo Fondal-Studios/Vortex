@@ -22,7 +22,7 @@ test('Singular está completo: datos, tienda y rol de gravedad', () => {
   const C = CHARACTERS.singular; assert.ok(C && C.host && HOST_IDS.includes('singular'));
   for (const k of ['mov', 'esp', 's3']) assert.ok(C[k].id && C[k].name && C[k].cd > 0 && C[k].desc, k);
   assert.deepEqual([C.mov.id, C.esp.id, C.s3.id, C.ult.id, C.passive.id], ['honda', 'pozo', 'reflujo', 'supernova', 'horizonte']);
-  assert.ok(C.ult.charge === 100 && C.story && C.title && C.extra && C.extra.desc && C.melee.heavy.dmg > C.melee.light.dmg);
+  assert.ok(C.ult.cd === 60 && C.ult.charge === undefined && C.story && C.title && C.extra && C.extra.desc && C.melee.heavy.dmg > C.melee.light.dmg);
   assert.equal(C.starter, false, 'no es inicial'); assert.ok(C.unlock && C.unlock.precio > 0, 'se compra en la tienda con núcleos');
   assert.ok(C.melee.heavy.knock < 0 && C.melee.light.knock < 0, 'sus golpes ARRASTRAN en vez de empujar');
   assert.equal(COMBO_SETS.singular.length, 8); assert.equal(HABILIDADES.singular.id, 'gravedad');

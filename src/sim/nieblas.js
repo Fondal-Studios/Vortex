@@ -45,7 +45,7 @@ export const NIEBLAS = {
     desc: 'Las criaturas a más de 9 m dejan de verte (los jefes no se engañan, y quien recibe un disparo tuyo te ve 3 s). Escondete para respirar.',
     par: { ver: 9, revela: 3 } },
   negra:   { i: 5, nombre: 'Niebla del vacío', corto: 'Drena', color: '#7a4dff', icono: '◍', nocivo: true, minOla: 3, aviso: 2.4,
-    desc: 'Drena tus habilidades: los tiempos de recarga se congelan y la carga de la definitiva se apaga. Cruzala rápido.',
+    desc: 'Drena tus habilidades: los tiempos de recarga se congelan incluida la definitiva. Cruzala rápido.',
     par: { drenaUlt: 8 } },
 };
 export const NIEBLA_IDS = Object.keys(NIEBLAS);
@@ -200,8 +200,7 @@ function efectosJugador(g, p, dt, zs) {
     } else if (z.tipo === 'blanca') {
       B.oculto = true;
     } else if (z.tipo === 'negra') {
-      for (const k of ['movCd', 'espCd', 'abilityCd', 's3Cd', 'habCd']) if (p[k] > 0) { p[k] += dt; N.stats.drenado += dt; }   // congela la recarga (updatePlayer resta dt después)
-      if (!(p.ultT > 0) && p.ul > 0) p.ul = Math.max(0, p.ul - P.drenaUlt * dt);
+      for (const k of ['movCd', 'espCd', 'abilityCd', 's3Cd', 'habCd', 'ultCd']) if (p[k] > 0) { p[k] += dt; N.stats.drenado += dt; }   // congela la recarga (updatePlayer resta dt después)
     }
   }
   // aviso de entrada / salida (con histéresis): un evento por cambio de niebla principal

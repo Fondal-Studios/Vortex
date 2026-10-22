@@ -22,7 +22,7 @@ export const BENDICIONES = {
   luz_mala:      { id: 'luz_mala',      terr: 'm1', nombre: 'Luz Mala',          desc: '+5 % de daño con armas de disparo.', fx: { gun: 1.05 } },
   eco:           { id: 'eco',           terr: 'm2', nombre: 'Eco',               desc: '+10 % de daño de habilidades.', fx: { skill: 1.10 } },
   espejo:        { id: 'espejo',        terr: 'm2', nombre: 'Espejo',            desc: 'Recibís un 5 % menos de daño: el golpe vuelve a quien lo dio.', fx: { dmgIn: 0.95 } },
-  silbido:       { id: 'silbido',       terr: 'm3', nombre: 'Silbido',           desc: 'La definitiva se carga un 10 % más rápido.', fx: { ult: 1.10 } },
+  silbido:       { id: 'silbido',       terr: 'm3', nombre: 'Silbido',           desc: 'La definitiva se recupera un 10 % más rápido.', fx: { ult: 1.10 } },
   canto:         { id: 'canto',         terr: 'm3', nombre: 'Canto',             desc: 'El escudo se recarga un 20 % más rápido.', fx: { shield: 1.20 } },
   hambre:        { id: 'hambre',        terr: 'm4', nombre: 'Hambre',            desc: '+25 % de esencias al matar.', fx: { ess: 1.25 } },
   raiz:          { id: 'raiz',          terr: 'm4', nombre: 'Raíz',              desc: 'El respiro entre oleadas te cura 10 de vida extra.', fx: { heal: 10 } },

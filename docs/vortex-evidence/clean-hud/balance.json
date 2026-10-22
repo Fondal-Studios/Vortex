@@ -1,0 +1,211 @@
+{
+  "scope": "16 deterministic bots, one seed, m1 only, maximum 300 game seconds; no human comprehension or retention measurement; modes requested explicitly",
+  "results": [
+    {
+      "char": "axioma",
+      "mode": "shooter",
+      "seconds": 300,
+      "wave": 7,
+      "state": "playing",
+      "kills": 189,
+      "casts": [
+        107.02,
+        172.02,
+        231.02,
+        289.02
+      ],
+      "ultCooldown": 44.02
+    },
+    {
+      "char": "axioma",
+      "mode": "combo",
+      "seconds": 300,
+      "wave": 4,
+      "state": "playing",
+      "kills": 95,
+      "casts": [
+        219.02,
+        274.02
+      ],
+      "ultCooldown": 24.46
+    },
+    {
+      "char": "vesper",
+      "mode": "shooter",
+      "seconds": 300,
+      "wave": 6,
+      "state": "playing",
+      "kills": 176,
+      "casts": [
+        122.02,
+        176.02,
+        232.02,
+        288.02
+      ],
+      "ultCooldown": 41.02
+    },
+    {
+      "char": "vesper",
+      "mode": "combo",
+      "seconds": 300,
+      "wave": 2,
+      "state": "playing",
+      "kills": 25,
+      "casts": [],
+      "ultCooldown": 0
+    },
+    {
+      "char": "micelio",
+      "mode": "shooter",
+      "seconds": 300,
+      "wave": 6,
+      "state": "playing",
+      "kills": 188,
+      "casts": [
+        106.02,
+        185.02,
+        259.02
+      ],
+      "ultCooldown": 39.42
+    },
+    {
+      "char": "micelio",
+      "mode": "combo",
+      "seconds": 300,
+      "wave": 2,
+      "state": "playing",
+      "kills": 16,
+      "casts": [],
+      "ultCooldown": 0
+    },
+    {
+      "char": "umbra",
+      "mode": "shooter",
+      "seconds": 300,
+      "wave": 6,
+      "state": "playing",
+      "kills": 192,
+      "casts": [
+        119.02,
+        181.02,
+        243.02
+      ],
+      "ultCooldown": 5.38
+    },
+    {
+      "char": "umbra",
+      "mode": "combo",
+      "seconds": 300,
+      "wave": 2,
+      "state": "playing",
+      "kills": 24,
+      "casts": [],
+      "ultCooldown": 0
+    },
+    {
+      "char": "seraf",
+      "mode": "shooter",
+      "seconds": 300,
+      "wave": 5,
+      "state": "playing",
+      "kills": 147,
+      "casts": [
+        166.02,
+        235.02,
+        297.02
+      ],
+      "ultCooldown": 64.02
+    },
+    {
+      "char": "seraf",
+      "mode": "combo",
+      "seconds": 300,
+      "wave": 2,
+      "state": "playing",
+      "kills": 24,
+      "casts": [],
+      "ultCooldown": 0
+    },
+    {
+      "char": "danzante",
+      "mode": "shooter",
+      "seconds": 300,
+      "wave": 6,
+      "state": "playing",
+      "kills": 185,
+      "casts": [
+        138.02,
+        203.02,
+        270.02
+      ],
+      "ultCooldown": 33.27
+    },
+    {
+      "char": "danzante",
+      "mode": "combo",
+      "seconds": 300,
+      "wave": 4,
+      "state": "playing",
+      "kills": 53,
+      "casts": [
+        286.02
+      ],
+      "ultCooldown": 43.84
+    },
+    {
+      "char": "singular",
+      "mode": "shooter",
+      "seconds": 300,
+      "wave": 6,
+      "state": "playing",
+      "kills": 178,
+      "casts": [
+        123.02,
+        199.02,
+        276.02
+      ],
+      "ultCooldown": 47.33
+    },
+    {
+      "char": "singular",
+      "mode": "combo",
+      "seconds": 300,
+      "wave": 5,
+      "state": "playing",
+      "kills": 94,
+      "casts": [
+        215.02,
+        279.02
+      ],
+      "ultCooldown": 40.19
+    },
+    {
+      "char": "colmena",
+      "mode": "shooter",
+      "seconds": 300,
+      "wave": 6,
+      "state": "playing",
+      "kills": 188,
+      "casts": [
+        110.02,
+        191.02,
+        262.02
+      ],
+      "ultCooldown": 34.62
+    },
+    {
+      "char": "colmena",
+      "mode": "combo",
+      "seconds": 300,
+      "wave": 6,
+      "state": "playing",
+      "kills": 137,
+      "casts": [
+        121.02,
+        189.02,
+        255.02
+      ],
+      "ultCooldown": 20.19
+    }
+  ]
+}

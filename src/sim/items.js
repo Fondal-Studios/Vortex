@@ -64,7 +64,7 @@ export const BN_KEYS = ['attackSpeed', 'spd', 'gun', 'melee', 'skill', 'dmgIn', 
 export const ADD_KEYS = ['heal', 'kheal'];
 /** Bonos de economía y escudo: pueden ser el doble de grandes que los de combate (no cuentan para la suma de poder de combate). */
 export const UTIL_KEYS = ['shield', 'ess', 'cores'];
-export const STAT_ES = { attackSpeed: 'Velocidad de ataque', spd: 'Velocidad', gun: 'Daño de disparo', melee: 'Daño cuerpo a cuerpo', skill: 'Daño de habilidades', dmgIn: 'Daño recibido', ult: 'Carga de la definitiva', shield: 'Recarga del escudo', ess: 'Esencias', cores: 'Núcleos', cd: 'Recarga de habilidades', heal: 'Vida entre oleadas', kheal: 'Vida por baja' };
+export const STAT_ES = { attackSpeed: 'Velocidad de ataque', spd: 'Velocidad', gun: 'Daño de disparo', melee: 'Daño cuerpo a cuerpo', skill: 'Daño de habilidades', dmgIn: 'Daño recibido', ult: 'Recuperación de definitiva', shield: 'Recarga del escudo', ess: 'Esencias', cores: 'Núcleos', cd: 'Recarga de habilidades', heal: 'Vida entre oleadas', kheal: 'Vida por baja' };
 /** Topes del total (con todo puesto y fase Plena): nada se sale de acá aunque se sumen 7 legendarias. */
 export const CAPS = { attackSpeed: [0.88, 1.15], spd: [0.92, 1.12], gun: [0.8, 1.05], melee: [0.8, 1.1], skill: [0.8, 1.1], dmgIn: [0.78, 1.1], ult: [0.8, 1.35], shield: [0.8, 1.5], ess: [0.8, 1.4], cores: [0.8, 1.3], cd: [0.8, 1.2], heal: [0, 20], kheal: [0, 2] };
 
@@ -79,7 +79,7 @@ export const PASIVOS = {
   siembra:        { name: 'Siembra', txt: (v) => `Cada 6.ª baja suelta una nube de esporas de ${v} m de radio.` },
   regen:          { name: 'Regeneración', txt: (v) => `Tras 3 s sin recibir daño recuperás ${v} de vida por segundo.` },
   eco_golpe:      { name: 'Eco', txt: (v) => `Cada 5.º golpe cuerpo a cuerpo pega +${pc(v)} % más fuerte.` },
-  fervor:         { name: 'Fervor', txt: (v) => `Cada baja suma ${v} puntos a la definitiva.` },
+  fervor:         { name: 'Fervor', txt: (v) => `Cada baja reduce ${(v * .2).toFixed(1)} s la espera de la definitiva (límite por uso).` },
   presa:          { name: 'Presa marcada', txt: (v) => `El primer golpe a una criatura sana la marca: recibe +${pc(v)} % de daño 4 s.` },
   sombra:         { name: 'Sombra', txt: (v) => `Tras una baja, 2 s con ${pc(v)} % menos de daño recibido.` },
   furia:          { name: 'Furia', txt: (v) => `Con la definitiva activa, +${pc(v)} % de daño.` },

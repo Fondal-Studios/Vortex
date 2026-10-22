@@ -10,7 +10,7 @@ for(let n=0;n<20;n++){
  const unlocks=[],cards=[],objective=[];let previousSkill=0,firstKill=null,supports=0,ultimates=0,prevEsp=0,prevUlt=0,lastCards=null;
  for(let tick=0;tick<18000&&g.state==='playing';tick++){
   const i=think(1/60),near=g.monsters.filter(m=>!m.dead&&Math.hypot(m.pos.x-p.pos.x,m.pos.y-p.pos.y,m.pos.z-p.pos.z)<28).length;
-  i.support= tick%60===0 && near>=2; i.ult=tick%60===0&&near>=2&&p.ul>=100;
+  i.support= tick%60===0 && near>=2; i.ult=tick%60===0&&near>=2&&p.ultCd<=0;
   g.setInput(p.id,i);g.step(1/60);
   if(p.espCd>prevEsp+.01)supports++;if(p.ultT>0&&prevUlt<=0)ultimates++;prevEsp=p.espCd;prevUlt=p.ultT;
   if(g.stats.kills)firstKill??=g.time;
