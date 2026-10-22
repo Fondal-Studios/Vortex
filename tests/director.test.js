@@ -117,7 +117,7 @@ test('Ping: marca lo que apuntás (enemigo / objeto / punto), dura ~7 s y viaja 
 test('Caídos: se desangran (25 s); un compañero cerca los reanima en 3 s (Soporte 1,5 s); si nadie llega quedan fuera hasta la próxima oleada', () => {
   const { g, ps: [a, b] } = room('m1', 2); a.role = 'vanguardia'; b.role = 'vanguardia';
   b.hp = 5; b.shield = 0; g.hurtPlayer(b, 100); assert.ok(b.dead && b.bleed > 20);
-  stand(a, b.pos); run(g, 2.6, () => stand(a, b.pos)); assert.ok(b.dead, 'a los 2,6 s aún no');
+  g.setInput(a.id, { interact: true }); stand(a, b.pos); run(g, 2.6, () => stand(a, b.pos)); assert.ok(b.dead, 'a los 2,6 s aún no');
   run(g, 0.6, () => stand(a, b.pos)); assert.ok(!b.dead, 'reanimado a los 3 s');
   b.hp = 5; b.shield = 0; g.hurtPlayer(b, 100); a.role = 'soporte'; run(g, 1.6, () => stand(a, b.pos)); assert.ok(!b.dead, 'Soporte: 1,5 s');
   b.hp = 5; b.shield = 0; g.hurtPlayer(b, 100); stand(a, { x: 0, y: 0.9, z: 40 }); run(g, PLAYER.bleed + 1, () => stand(a, { x: 0, y: 0.9, z: 40 })); assert.ok(b.dead && b.lost, 'se perdió');

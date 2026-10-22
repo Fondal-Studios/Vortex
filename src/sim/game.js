@@ -1,3 +1,4 @@
+import { reviveTarget } from '../shared/tactical.js';
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
 import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS, evoPathsFor, STYLES, AFFIX_IDS, LINEAGE } from './data.js';
 import { MAPS } from './maps.js';
@@ -325,10 +326,10 @@ export class Game {
     p.dead = false; p.lost = false; p.bleed = 0; p.hp = 50; p.shield = 0; p.reviveT = 0; p.lastHurt = this.time; p.vel = v3(); p.ext = v3();
     this.emit({ t: 'revive', pid: p.id, p: a3(p.pos) });
   }
-  /** Un compañero vivo cerca (3,5 u) reanima al caído en el lugar: 3 s (el Soporte, 1,5 s). Si se agota la cuenta de desangrado, queda fuera hasta la próxima oleada. */
+  /** Un compañero vivo manteniendo USAR cerca (3,5 u) reanima al caído en el lugar: 3 s (el Soporte, 1,5 s). Si se agota la cuenta de desangrado, queda fuera hasta la próxima oleada. */
   updateRevive(p, dt) {
     if (p.lost) return;
-    let rate = 0; for (const q of this.players) if (!q.dead && q !== p && dist(q.pos, p.pos) < 3.5) rate = Math.max(rate, reviveRate(q));
+    let rate = 0; for (const q of this.players) if (q.input.interact && reviveTarget(this.players, q)?.id === p.id) rate = Math.max(rate, reviveRate(q));
     p.reviveT = rate ? p.reviveT + dt * rate : Math.max(0, p.reviveT - dt * 0.5);
     p.bleed -= dt;
     if (p.reviveT >= 3) return this.reviveInPlace(p);
@@ -850,14 +851,14 @@ export class Game {
         dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
-        id: m.id, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
+        id: m.id, boss: !!m.def.boss, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
         s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, af: m.affix || undefined, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || (!!m.shield && !jefeNucleo(m)), st: !!m.stun || (m.stagger || 0) > 0 || jefeNucleo(m),
       })),
       projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, w: q.wid, pid: q.pid, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),
       ...(this.loot.length ? { lt: lootSnap(this) } : {}),
       objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, nk: o.kind || undefined, ow: o.owner || 0, l: r2(o.life || 0) })),
-      obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
+      obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this), targets: this.objective.state === 'active' ? this.objects.filter(o => this.objective.ids.includes(o.id) && !o.on && !o.carrier).map(o => a3(o.pos)) : [] } : null,
       mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
       ev: evSnap(this), ar: arSnap(this), ng: ngSnap(this), fl: flSnap(this), fa: faunaSnap(this),

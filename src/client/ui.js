@@ -1,3 +1,4 @@
+import { buildAccountMenu } from './account-menu.js';
 import { buildIdentityMenu } from './identity-menu.js';
 // Interfaz de acceso estilo PlayStation 5: título → menú principal con tarjetas → sub-pantallas. Teclado, ratón, táctil y mando.
 import { BESTIARY, TIPS } from './lore.js';
@@ -23,7 +24,7 @@ const $ = (id) => document.getElementById(id);
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); buildIdentityMenu(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); buildIdentityMenu(this); buildAccountMenu(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
   }
   /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
   addBackButtons() {

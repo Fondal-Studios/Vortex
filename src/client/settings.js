@@ -13,7 +13,7 @@ export const DEFAULTS = Object.freeze({
   gyro: false, gyroSens: 1,
   aim: null,          // ayuda de puntería 0..3 (null = según dispositivo)
   fingers: 2,         // 2, 3 o 4 dedos
-  hudScale: 1, hudOpacity: 0.85,
+  minimapOpacity: 0.85, hudScale: 1, hudOpacity: 0.85,
   advanced: false,    // modo avanzado: muestra HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO y SEÑALAR (básico = sólo disparo, recargar, melee y salto)
   mode: 'shooter',    // MODO DE JUEGO: 'shooter' (el de siempre) | 'combo' (dos ataques encadenados + una habilidad; data.js GAME_MODES). También por URL ?modo=combo|shooter
   modes: {},          // MODO elegido por Huésped en partida: { axioma: 'combo', vesper: 'shooter', … } ('shooter' = Disparo, 'combo' = Melé); sin entrada ⇒ vale `mode`

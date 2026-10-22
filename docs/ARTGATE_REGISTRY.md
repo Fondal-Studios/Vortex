@@ -61,3 +61,7 @@ Autor Codex; crítico independiente visual_review. Revisión de 32 vistas de aca
 Zonas de arenas: legibilidad7, materiales/luz7, coherencia8, costo incremental8. Suelo visible, anillo identificable y halo contenido. No se modificó ni certificó modelado/animación completos. m2 Alta tiene obstrucción parcial por objetos próximos en el fixture.
 
 **No aprueba Host/Arena/Game Gate completos.** [Registro por pieza](identity-gates.json), [producción y límites](IDENTITY_PRODUCTION.md). Presupuestos de los cuerpos base del visor Baja: Axioma15.084, Micelio15.216, Seraf15.454 >15.000. El bloque anterior medía Axioma con equipo que reemplaza geometría: no es el mismo fixture. Las variantes regionales también pueden sumar geometría. Deuda pendiente, sin aumento geométrico en este cambio.
+
+## HUD táctico y Cuenta — PASA incremental (2026-10-22)
+
+Rol: orientación por siluetas, reanimación contextual y acceso legible a cuentas. Formas distintas para huésped, aliados, caídos, enemigo, élite, jefe, objetivo y misión. Capturas Chromium Baja/Alta/escritorio y 844×390 con controles táctiles en `docs/tactical/`. Revisión independiente: `docs/tactical/review.md`, mínimo 7/10 aplicable. Costo: Canvas2D10Hz/DOM, cero draw calls WebGL añadidas. Corregidos solapamientos táctiles y propagación de release. No aprueba el arte/HUD global ni rendimiento de iPhone físico.
