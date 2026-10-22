@@ -2,6 +2,8 @@
 import { dist, clone, madd, clamp, norm, sub } from './math.js';
 import { OBJECTIVE_PLAN, OBJECTIVE_INFO, FRAGMENTS, PLAYER, WEAPONS } from './data.js';
 import { startCultivo, cultivoObjective } from './cultivo.js';
+import { desintegrar } from './rezagados.js';
+import { ammoMax } from './loadout.js';
 
 export function makeObjective(g, n) {
   let kind = (OBJECTIVE_PLAN[g.mapId] || {})[n];
@@ -9,6 +11,13 @@ export function makeObjective(g, n) {
   if (!kind) return null;
   const info = OBJECTIVE_INFO[kind], sp = g.map.spots, np = g.players.length;
   const o = { type: kind, state: 'active', t: 0, limit: info.limit, prog: 0, title: info.title, desc: info.desc, ids: [], solo: np <= 1, sync: 0 };
+  if (kind === 'secuencia') {
+    o.stage = 0; o.sync = 0;
+    const positions = sp.plates.slice(0, 3);
+    const offset = Math.abs((g.seed | 0) + n) % positions.length;
+    for (let i = 0; i < positions.length; i++) o.ids.push(g.addObject('plate', clone(positions[(i + offset) % positions.length]), { r: 2.8, hold: 0, on: false, objective: true }).id);
+  }
+  if (kind === 'caza') o.target = null; // el primer spawn normal ocupa el presupuesto existente
   if (kind === 'ancla') o.ids.push(g.addObject('ancla', clone(sp.anchor), { hp: 700, maxhp: 700, r: 7, on: false, objective: true }).id);
   if (kind === 'sintonia') {
     const cnt = np <= 1 ? 2 : Math.min(4, np);
@@ -29,7 +38,18 @@ export function updateObjective(g, dt) {
   const o = g.objective; if (!o || o.state !== 'active') return;
   o.t += dt;
   const alive = g.alivePlayers();
-  if (o.type === 'ancla') {
+  if (o.type === 'secuencia') {
+    const terminals = objs(g, o), terminal = terminals[o.stage];
+    if (!terminal) return finish(g, o, false);
+    if (alive.some((p) => dist(p.pos, terminal.pos) < terminal.r)) o.sync += dt;
+    terminal.v = clamp(o.sync / 2, 0, 1);
+    if (o.sync >= 2) { terminal.on = true; terminal.v = 1; o.stage++; o.sync = 0; }
+    o.prog = clamp((o.stage + o.sync / 2) / terminals.length, 0, 1);
+    if (o.stage >= terminals.length) return finish(g, o, true);
+  } else if (o.type === 'caza') {
+    if (o.prog >= 1) return finish(g, o, true);
+    if (o.target != null && !g.monsters.some((m) => m.id === o.target && !m.dead)) return finish(g, o, false);
+  } else if (o.type === 'ancla') {
     const a = objs(g, o)[0]; if (!a) return finish(g, o, false);
     const inside = alive.filter((p) => dist(p.pos, a.pos) < a.r).length; a.on = inside > 0;
     let near = 0; for (const m of g.monsters) if (!m.dead && dist(m.pos, a.pos) < 5) near++;
@@ -67,9 +87,16 @@ function finish(g, o, ok) {
   o.state = ok ? 'done' : 'failed';
   for (const x of objs(g, o)) { if (x.type === 'core') for (const p of g.players) if (p.carry === x.id) p.carry = 0; g.removeObject(x); }
   if (ok) {
+    if (o.type === 'caza') {
+      g.queue = []; g.omens = [];
+      for (const m of g.monsters) if (!m.dead && !m.def.boss) desintegrar(g, m, 'custodio');
+    }
     for (const p of g.alivePlayers()) {
       p.hp = Math.min(PLAYER.hp, p.hp + 30); p.shield = PLAYER.shield;
-      for (const w of [1, 2, 3]) p.ammo[w] = Math.min(WEAPONS[w].max, p.ammo[w] + Math.ceil(WEAPONS[w].max * 0.3));
+      for (const w of p.slots) {
+        if (WEAPONS[w].max === Infinity) continue;
+        p.ammo[w] = Math.min(ammoMax(p, w), p.ammo[w] + Math.ceil(WEAPONS[w].max * 0.3));
+      }
       g.dropPickup('hp', madd(p.pos, p.up, 2));
     }
     g.teamBuffUntil = g.time + 30; // +25 % de daño del equipo

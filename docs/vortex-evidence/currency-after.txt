@@ -1,0 +1,80 @@
+  DPS con arma firma / DPS base (shooter, combo): {"axioma":{"0":[1.13,1.17],"4":[1.13,1.14]},"vesper":{"0":[0.9,1.16],"4":[0.9,1.11]},"micelio":{"0":[1.2,1],"4":[1.2,1.22]},"umbra":{"0":[1.04,1.18],"4":[1.04,1.09]},"seraf":{"0":[1.14],"4":[1.14]}}
+✔ catálogo: ≥ 40 objetos, ids = claves, los 4 tipos, las 4 ranuras de armadura, 4 rarezas y los 7 materiales (2.035501ms)
+✔ catálogo: bonos acotados por rareza (y dentro de CAPS), pasivos y sinergias válidos, armas con base real (1.451744ms)
+✔ catálogo: una arma FIRMA legendaria por Huésped, cada una con su condición, y las Espadas Gemelas son de Axioma con dos hojas y set de combo propio (0.340004ms)
+✔ fases de maduración: umbrales crecientes, bonos que crecen y el próximo desbloqueo se describe (0.529566ms)
+✔ equipo: cleanEquip descarta ids falsos, ranuras mal puestas, firmas ajenas y repetidos; devuelve a lo sumo una por ranura (0.470368ms)
+✔ dropeo: determinista por semilla, con rng propio (g.rng queda intacto) y sin cambiar las oleadas (304.36455ms)
+✔ dropeo: las tablas de rareza se cumplen por fuente (sin pity) y escalan con la oleada (17.861181ms)
+✔ dropeo: garantía (pity): la legendaria nunca tarda más de 30 tiradas y la épica más de 10 (20.558183ms)
+✔ dropeo: las tiradas generales NUNCA sueltan armas firma y el material de la arena pesa (60.925918ms)
+✔ dropeo: el PLANO RARO del arma firma sólo cae para SU Huésped, en el mapa de su condición, tras el jefe y con las misiones cumplidas (32.878424ms)
+✔ dropeo: el jefe real suelta materiales y planos al caer (y el plano raro de la firma), las misiones sueltan botín personal (1.453616ms)
+✔ botín en el mundo: comunes y raras se recogen al pasar; épicas y legendarias con USAR; es personal en coop; aparece en el snapshot; nada se pierde al terminar (5.185203ms)
+✔ herrero (en partida): forja un objeto vivo al azar con núcleos y esencias; no se puede en el campo de pruebas ni sin recursos (2.31873ms)
+✔ dropeo en una partida completa de bot: cae botín de varias fuentes y el jugador junta objetos (736.902754ms)
+✔ equipo: los bonos entran a p.bn (idempotente, sobre bendiciones y maestría), se validan y se cambian con setLoadout (2.070433ms)
+✔ arma cuerpo a cuerpo de objeto: reemplaza a la fusionada, dos hojas pegan más, sus eventos traen iw y la mano (22.869863ms)
+✔ Espadas Gemelas en modo Combo: usan su set propio (8 golpes, cadena de 5), desbloquean por evolución y quitan el set de Axioma (5.119676ms)
+✔ arma de disparo de objeto: ocupa la última ranura, multiplica el arma base y suma sus efectos; la firma de Seraf potencia sus flechas del modo Combo (2.737071ms)
+✔ pasivos con condición: Savia cura, Sombra protege tras una baja, Eco golpea más fuerte cada 5.º y la Racha suma (14.276634ms)
+✔ sinergias: se activan con la esencia, el estilo o el camino y se apagan al faltar (2.458928ms)
+✔ maduración: cada baja con el objeto puesto suma; al cruzar el umbral sube de fase, sale el evento, crece el bono y se desbloquea un pasivo (0.888128ms)
+✖ equilibrio: con TODO el equipo legendario (fase 0 y fase Plena) los bots de los 3 estilos limpian la misma oleada a ±30 % del tiempo base (tests/estilos.test.js) (353.164157ms)
+✔ equilibrio: el daño sostenido de cada arma firma queda a ±30 % del melé de su Huésped (shooter) y del Combo (461.97115ms)
+✔ perfil: un perfil viejo (sin inventario) se abre igual, conserva todo y pasa a la versión 2 (6.576178ms)
+✔ perfil: el inventario se sanea al cargar (ids falsos, uids repetidos, equipo de otro Huésped, firma en el Huésped equivocado) (2.669561ms)
+✔ perfil: agregar, equipar, bloquear, favorito y desguazar siguen sus reglas (3.405814ms)
+✔ perfil: con el inventario lleno, lo nuevo reemplaza al peor objeto sobrante (o se desguaza solo si es peor); lo bloqueado y lo puesto no se tocan (7.281345ms)
+✔ perfil: cerrarPartida guarda el botín, madura lo puesto con las bajas de la partida, conserva el pity y marca la firma cumplida (6.640734ms)
+✔ de punta a punta: el equipo del perfil entra al sim, madura jugando y vuelve al perfil (4.588659ms)
+  set completo (fase Plena) / base: 1.00
+✔ servidor: valida y acota el equipo (ids falsos, firmas ajenas, ranuras, exceso, payload) (101.656402ms)
+✔ contrato: MATERIALES, PLANOS, RECETAS y SETS cubren todo el catálogo y cada receta se puede cumplir (1.051861ms)
+✔ sets orgánicos: 7 familias, cada una con 4 piezas de armadura (una por zona) + 1 arma, bonos de 2 y 4 piezas acotados (0.473463ms)
+✔ sets en la partida: con 2 y 4 piezas el bono entra a p.bn, los pasivos del bono de 4 se activan, sale por el snapshot y no rompe el equilibrio (1600.050596ms)
+✔ Forja (perfil): el plano, los materiales y los núcleos construyen la pieza; cultivo con tiempo, calidad determinista, acelerar, fusión y desguace → materiales (7.448332ms)
+✔ núcleos migrados son números y la recompensa suma, no concatena (2.037173ms)
+✔ núcleos inválidos no contaminan el perfil ni permiten saldos negativos (0.544268ms)
+✔ catálogo: iniciales = Axioma, Vesper y Micelio; el resto de los Huéspedes se compra y tiene precio (1.664409ms)
+✔ stock rotativo: determinista, cambia con el día y con las partidas, precios coherentes (2.641159ms)
+✔ precios: la rareza y la calidad suben el precio; vender paga menos que comprar (0.38423ms)
+✔ migración: quien ya usaba un Huésped lo conserva; el resto de los pagos queda cerrado (0.334517ms)
+✔ requisitos: Colmena pide rango 3 con otro Huésped; Singular también; Danzante no pide nada (0.287797ms)
+✔ perfil: un perfil previo con maestría abre con ese Huésped incluido; uno nuevo sólo con los 3 iniciales (1.142795ms)
+✔ comprar Huésped: gasta el precio justo, no se repite, respeta el requisito y nunca deja núcleos negativos (0.671977ms)
+✔ renglones: materiales, planos y objetos llegan al perfil; cada renglón se compra una vez por tanda (0.89669ms)
+✔ renglones: sin núcleos no se compra, con el depósito lleno o el inventario lleno tampoco, y no se cobra (1.007805ms)
+✔ servicios: botiquín (tope 5), reinicio de árbol completo, retirada de tirada, cambio de esencias (1.436812ms)
+✔ vender: materiales al 35 %, sobrantes sin tocar lo protegido, y no se puede vender lo que no se tiene (0.789842ms)
+✔ cada partida terminada cambia el stock; el Huésped elegido de antes de la tienda se conserva (0.389487ms)
+✔ botiquín en la simulación: la primera caída te levanta con la mitad de la vida; la segunda ya no (9.067264ms)
+✔ un Huésped que no es tuyo no evoluciona ni gasta puntos de árbol; el que sí es tuyo sí (0.396548ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 49
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3978.310178
+
+✖ failing tests:
+
+test at tests/inventario.test.js:288:1
+✖ equilibrio: con TODO el equipo legendario (fase 0 y fase Plena) los bots de los 3 estilos limpian la misma oleada a ±30 % del tiempo base (tests/estilos.test.js) (353.164157ms)
+  AssertionError [ERR_ASSERTION]: vesper melee k0: 7.5→16.5
+      at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/inventario.test.js:292:229)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

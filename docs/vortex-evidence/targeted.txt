@@ -1,0 +1,133 @@
+✔ bestiario: 12 criaturas + 3 jefes, cada una con IA propia y rol distinto (0.91653ms)
+✔ Astilla (corredor): persigue rápido, muerde y salta para cerrar distancia (29.921427ms)
+✔ Geoda (tanque): rueda cerrada y se abre en ciclos; cerrada es más veloz y blindada (34.8841ms)
+✔ Prisma (volador): orbita en alto, avisa (wind) y pica (dive) causando daño (20.722838ms)
+✔ Lente (a distancia): se aleja a rango, avisa con "aim" y dispara proyectiles esquivables (15.360461ms)
+✔ Cuarzo (invocador): invoca Astillas hijas (máx. 4 vivas) y huye (87.90475ms)
+✔ Espejo (emboscador): invisible a distancia, se revela al recibir daño y parpadea detrás del jugador (11.536288ms)
+✔ Racimo (explosivo): detona al contacto dañando al jugador y a los vecinos (5.527401ms)
+✔ Gravitón (El Familiar) FUERA de la Marea: atrae y dispara, pero NO invierte la gravedad (17.159521ms)
+✔ Gravitón (El Familiar) DENTRO de la Marea de Gravedad: carga y luego invierte la gravedad del jugador unos segundos (9.868703ms)
+✔ Coloso (jefe M1): 3 fases por vida, lluvia de orbes, invoca refuerzos, invierte gravedad y es derrotable (162.116568ms)
+✔ Madre Geoda (jefe M2): se purga en las válvulas (sólo entonces se abre), lanza espirales, invoca Racimos y es derrotable (98.050334ms)
+✔ Obelisco (francotirador): se aleja, traza línea 1.6 s, fija el blanco y dispara un rayo veloz que se puede esquivar (44.932108ms)
+✔ Aurora (sanadora): cura 30 % y escuda (daño ×0.5) a las criaturas cercanas (14.25391ms)
+✔ Ariete (embestidor): avisa 1 s, carga en línea recta, empuja al jugador y queda aturdido (×1.5 de daño) (6.61844ms)
+✔ Espiral (atractor): carga y arrastra al jugador hacia sí durante ~2.6 s (10.049541ms)
+✔ Coop: un compañero cerca reanima al caído en 3 s (50 de vida, en el lugar) (6.388329ms)
+✔ cooperativo: crear sala, unirse, ambos clientes ven la misma partida (2 jugadores) (347.372315ms)
+# coop: 106 muestras, divergencia máxima entre las dos vistas 0.93 u; snapshots A=71 B=71 (~20/s)
+✔ cooperativo: cada cliente controla sólo a su jugador; sin desincronización grave entre vistas (3601.022577ms)
+✔ cooperativo: sala llena (5º cliente rechazado), desconexión limpia y sala vacía se elimina (215.954615ms)
+✔ cooperativo: el servidor ignora entradas malformadas y no se cae (365.417764ms)
+# delta: 1333 snapshots, completo 4575 B → delta 1094 B por snapshot (76% menos), hasta 2 criaturas
+✔ delta de snapshots: aplicar(compactar(x)) reconstruye EXACTAMENTE el snapshot completo (4000 ticks, 4 jugadores) (1072.996092ms)
+✔ lobby: crear, unirse, elegir Huésped y modo, listo, sólo el anfitrión empieza, cuenta regresiva sincronizada (3168.366053ms)
+✔ errores claros: versión distinta, sala inexistente, sala llena, mensajes basura (429.69715ms)
+# 4 bots: oleada 4, estado playing, 37751 ticks (10.5 min de juego), pico 25 criaturas, 59/4/36 bajas
+✖ 4 bots por WebSocket (200 ms de latencia en dos de ellos): 3+ oleadas sin desincronizar, reconexión y salida de un jugador (108620.370303ms)
+✔ fin de partida: cada jugador recibe SU botín del servidor; "otra vez" vuelve al lobby (3117.609382ms)
+✔ seguridad: sin salirse de las carpetas del juego, origen permitido, tope de conexiones por red y salud con CORS (28.658418ms)
+✔ roles: 4 roles distintos, cada uno con habilidad y recarga; se asignan por orden o por elección (7.125016ms)
+✔ habilidad Vanguardia: la cúpula reduce 40 % el daño adentro y destruye proyectiles enemigos; entra en recarga (19.381491ms)
+✔ habilidad Soporte: cura a los cercanos y reanima al instante a un caído a ≤ 4 u (1.363022ms)
+✔ habilidad Ingeniero: torreta que dispara sola a las criaturas y desaparece; Explorador: marca (+30 % de daño) (50.09614ms)
+✔ objetivo Ancla: se carga sólo con alguien adentro, las criaturas la roen, se cumple y premia al equipo (47.23078ms)
+✔ objetivo Ancla: si las criaturas la destruyen o se acaba el tiempo, falla y el Vórtice se enfurece (112.242611ms)
+✔ objetivo Sintonía (coop): hay que pisar TODAS las placas a la vez 3 s; con una sola no avanza (26.843627ms)
+✔ objetivo Sintonía (solo): la placa queda viva tras salir y se puede resolver corriendo de una a otra (7.422698ms)
+✔ objetivo Núcleo: se recoge, se lleva (−25 % de velocidad, sin disparar), se pasa con E y se entrega en el altar (2.129197ms)
+✔ Coloso: el Rayo del Vacío marca un pilar; si alguien lo sintoniza, el escudo estalla y el jefe queda aturdido recibiendo más daño (24.964391ms)
+✔ Coloso: si nadie sintoniza el pilar marcado, el pilar cae y el escudo sigue (10.459962ms)
+✔ Director: con estrés alto espacia las apariciones y suelta botiquines de alivio; con calma mete especiales (8.479575ms)
+✔ Ping: marca lo que apuntás (enemigo / objeto / punto), dura ~7 s y viaja en el snapshot (16.142689ms)
+✔ Caídos: se desangran (25 s); un compañero cerca los reanima en 3 s (Soporte 1,5 s); si nadie llega quedan fuera hasta la próxima oleada (38.263983ms)
+✔ snapshot del director: roles, objetos, objetivo, pings y estado del jefe viajan al cliente (JSON) (0.966253ms)
+# pico de entidades (4 jugadores, dificultad 2.5): {"m":81,"p":32,"k":40}
+# crecimiento de heap tras 3 partidas: -0.2 MB
+✔ límites de entidades: proyectiles, pickups y eventos están acotados (8.716005ms)
+✔ limpieza: proyectiles y pickups vencen; los muertos se purgan (109.912039ms)
+✔ partida larga con horda al máximo: arreglos acotados todo el tiempo y sin NaN (5084.942308ms)
+✔ memoria: tres partidas completas seguidas no hacen crecer el heap de forma sostenida (764.131818ms)
+✔ objetivo: repone el arsenal equipado de vesper, conserva munición infinita y respeta mejoras (6.067561ms)
+✔ objetivo: repone el arsenal equipado de micelio, conserva munición infinita y respeta mejoras (0.443888ms)
+✔ núcleos migrados son números y la recompensa suma, no concatena (2.724718ms)
+✔ núcleos inválidos no contaminan el perfil ni permiten saldos negativos (0.774748ms)
+✔ M1: el jugador queda apoyado sobre la isla central (grounded, y≈0.9) (14.733143ms)
+✔ M1: saltar sube y vuelve a caer a la isla (4.04913ms)
+✔ M1: zona de gravedad invertida (ascensor): el jugador "cae" hacia arriba y camina por el techo (4.354513ms)
+✔ M1: zona sin gravedad: se conserva la velocidad y no hay caída (2.714784ms)
+✔ M1: planetoide con gravedad propia: se camina alrededor sin caerse (8.832559ms)
+✔ M1: caer al vacío resta vida y reaparece en la isla central (3.903484ms)
+✔ M1: portales teletransportan y el enfriamiento evita el rebote infinito (1.417851ms)
+✔ M1: burbuja de tiempo lento reduce la velocidad de las criaturas dentro (30%) (5.665866ms)
+✔ M1: los proyectiles se detienen contra la geometría y fuera del mapa (5.37121ms)
+✔ M2: se camina por el interior de la esfera: el radio se conserva y el "arriba" apunta al centro (49.346378ms)
+✔ M2: la marea apaga la gravedad en la ventana programada y avisa antes (0.713818ms)
+✔ M2: en marea cero-G el jugador flota (no cae) y puede nadar con 3D (4.068369ms)
+✔ M2: las colinas son sólidas (no se atraviesan) (1.265986ms)
+✔ fuzz: entradas aleatorias durante 60 s nunca producen NaN/Infinity en ninguna mapa (454.503376ms)
+✔ determinismo: misma semilla y mismas entradas ⇒ mismo estado (base del servidor autoritativo) (206.68178ms)
+✔ catálogo: iniciales = Axioma, Vesper y Micelio; el resto de los Huéspedes se compra y tiene precio (1.90271ms)
+✔ stock rotativo: determinista, cambia con el día y con las partidas, precios coherentes (2.995929ms)
+✔ precios: la rareza y la calidad suben el precio; vender paga menos que comprar (0.305663ms)
+✔ migración: quien ya usaba un Huésped lo conserva; el resto de los pagos queda cerrado (0.240286ms)
+✔ requisitos: Colmena pide rango 3 con otro Huésped; Singular también; Danzante no pide nada (0.302068ms)
+✔ perfil: un perfil previo con maestría abre con ese Huésped incluido; uno nuevo sólo con los 3 iniciales (1.135833ms)
+✔ comprar Huésped: gasta el precio justo, no se repite, respeta el requisito y nunca deja núcleos negativos (0.614832ms)
+✔ renglones: materiales, planos y objetos llegan al perfil; cada renglón se compra una vez por tanda (0.958981ms)
+✔ renglones: sin núcleos no se compra, con el depósito lleno o el inventario lleno tampoco, y no se cobra (0.906403ms)
+✔ servicios: botiquín (tope 5), reinicio de árbol completo, retirada de tirada, cambio de esencias (1.920686ms)
+✔ vender: materiales al 35 %, sobrantes sin tocar lo protegido, y no se puede vender lo que no se tiene (0.767096ms)
+✔ cada partida terminada cambia el stock; el Huésped elegido de antes de la tienda se conserva (0.422476ms)
+✔ botiquín en la simulación: la primera caída te levanta con la mitad de la vida; la segunda ya no (6.494645ms)
+✔ un Huésped que no es tuyo no evoluciona ni gasta puntos de árbol; el que sí es tuyo sí (0.35097ms)
+✔ m1: la dificultad sube oleada a oleada (presupuesto de criaturas creciente) (8.913349ms)
+✔ m1: sólo aparecen criaturas habilitadas para esa oleada y el jefe llega al final (1.276702ms)
+✔ m2: la dificultad sube oleada a oleada (presupuesto de criaturas creciente) (4.199974ms)
+✔ m2: sólo aparecen criaturas habilitadas para esa oleada y el jefe llega al final (4.641424ms)
+✔ el bestiario completo se usa entre los dos mapas (8 criaturas + 2 jefes) (1.312936ms)
+✔ más jugadores ⇒ hordas más grandes (escalado cooperativo) (0.685586ms)
+✔ ciclo de oleada: calma inicial → spawn en goteo → oleada limpia → respiro → siguiente (100.625726ms)
+✔ victoria: matar al jefe de la oleada final termina la partida en "won"; perder a todos en "lost" (16.355538ms)
+✔ cooperativo: el jugador caído revive al comenzar la siguiente oleada (1.62594ms)
+✔ límite duro de criaturas vivas aun con spawns forzados (5.130032ms)
+✔ Haz: un disparo hitscan daña a la criatura apuntada exactamente su daño (13.347891ms)
+✔ cada arma hitscan (Haz, Prisma, Ráfaga, Aguja) hace daño y respeta su tope (2.891915ms)
+✔ la cadencia limita los disparos: Ráfaga ≈ 1/0.085 por segundo (7.58427ms)
+✔ consumo de munición: Prisma gasta 1 por disparo; Haz es infinito (2.152209ms)
+✔ sin munición el arma cae al Haz (0.383829ms)
+✔ Aguja atraviesa (pierce) a varias criaturas; Haz sólo a la primera (1.804554ms)
+✔ la geometría bloquea los disparos (una criatura bajo la isla no recibe daño) (0.447323ms)
+✔ Nova: proyectil con daño en área y caída por distancia; sin daño propio (4.641419ms)
+✔ escudo absorbe primero, después la vida; el escudo se regenera tras la demora (16.864222ms)
+✔ muerte: al llegar a 0 de vida el jugador cae y, sin más jugadores, la partida se pierde (0.651926ms)
+✔ blindaje: Geoda cerrada recibe 20% del daño; abierta 100% (0.319584ms)
+✔ matar da puntos y bajas al jugador que disparó (0.840836ms)
+✔ recoger botiquín y munición respeta los topes (0.576394ms)
+ℹ tests 102
+ℹ suites 0
+ℹ pass 101
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 221988.519434
+
+✖ failing tests:
+
+test at tests/coop4.test.js:80:1
+✖ 4 bots por WebSocket (200 ms de latencia en dos de ellos): 3+ oleadas sin desincronizar, reconexión y salida de un jugador (108620.370303ms)
+  AssertionError [ERR_ASSERTION]: hay snapshots en común
+      at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/coop4.test.js:116:12)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processTimers (node:internal/timers:568:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

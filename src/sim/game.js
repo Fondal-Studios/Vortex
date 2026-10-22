@@ -1,3 +1,5 @@
+import { BOSS_NAMES } from './campaign-names.js';
+import { reviveTarget } from '../shared/tactical.js';
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
 import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS, evoPathsFor, STYLES, AFFIX_IDS, LINEAGE } from './data.js';
 import { MAPS } from './maps.js';
@@ -15,6 +17,7 @@ import { applyBend } from './bendiciones.js';
 import { applyMaestria } from './maestria.js';
 import { applyArbol, shapeArbolGun } from './progresion.js';   // árbol de combos y de disparo permanentes (docs/EVOLUCION.md)
 import { setMode } from './combos.js';
+import { cleanSkillLevel, earnedSkillLevel, gateSkills } from '../shared/skill-path.js';
 import { enrutar } from './modos.js';   // slots de habilidad por modo (Disparo / Melé)
 import { initDrops, initPity, updateLoot, flushLoot, lootSnap, dropsKill, dropsJefe, dropsRespiro } from './drops.js';   // dropeo de objetos (docs/INVENTARIO.md): rng propio g.drRng
 import { applyEquip, itemsSnap, shapeItemGun, ensureGunSlot } from './items-fx.js';
@@ -42,7 +45,8 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null } = {}) {
+    this.skillLevel = skillLevel === null ? null : cleanSkillLevel(skillLevel);
     this.jefeMem = jefeMem;   // memoria del intento anterior contra el jefe (jefeMemoria): adaptación suave entre intentos
     this.magazines = !!magazines;   // cargadores y recarga (el juego real los usa; las pruebas viejas no)
     this.practice = !!practice; this.practiceT = 0;
@@ -111,6 +115,7 @@ export class Game {
       const r = enrutar(p.char, p.mode, { mov: i.mov, esp: i.esp, s3: i.s3 }, i.hab); i.mov = r.mov; i.esp = r.esp; i.s3 = r.s3; i.hab = r.hab;
       if (p.mode === 'combo') { i.fire = false; i.melee = false; i.reload = false; }   // en Melé el disparo, el melé rápido y recargar no hacen nada (el ataque es A1/A2)
     }
+    if (this.skillLevel !== null || inp.compact === true) gateSkills(Object.assign(i, { support: !!inp.support }), p.char, this.skillLevel ?? 2);
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
@@ -204,6 +209,7 @@ export class Game {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
       misionFin(this); finOleada(this);
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
+      if (this.skillLevel !== null) this.skillLevel = Math.max(this.skillLevel, earnedSkillLevel(this.wave));
       for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
       this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this); dropsRespiro(this);
       for (const p of this.players) addCores(this, p, CORES.wave + this.wave * 2);
@@ -218,7 +224,7 @@ export class Game {
   startWave(n, plan) {
     clearNpc(this);
     this.wave = n; this.phase = 'wave'; this.spawnT = 1;
-    for (const p of this.players) if (p.cards.length) { applyCard(p, p.cards[0], this); p.cards = []; } // quien no eligió, recibe la primera
+    for (const p of this.players) if (p.cards.length) { const free = p.cards.find(c => c.k !== 'organ'); if (free) applyCard(p, free, this); p.cards = []; } // quien no eligió, recibe la primera
     for (const p of this.players) { if (p.dead) this.revive(p); if (p.role === 'ingeniero' && !p.dead) { for (const w of [2, 1, 3]) this.dropPickup('ammo', madd(madd(p.pos, p.up, 1.5), p.heading, 2 + w), w); } }
     const n_pl = Math.max(1, this.players.length);
     this.queue = [];
@@ -289,10 +295,12 @@ export class Game {
 
   spawnMonster(kind, pos, extra = {}) {
     if (this.monsters.length >= LIMITS.monsters) return null;
-    const def = MONSTERS[kind];
+    const baseDef = MONSTERS[kind], def = baseDef.boss ? { ...baseDef, name: BOSS_NAMES[this.mapId] || baseDef.name } : baseDef;
     const w = Math.max(1, this.wave);
     const pm = def.boss ? 1 + 0.7 * (this.players.length - 1) : 1;
     let elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5 + (this.evEliteBoost || 0);
+    const hunted = !def.boss && !extra.noElite && this.objective?.type === 'caza' && this.objective.state === 'active' && this.objective.target == null;
+    if (hunted) elite = true;
     if (!elite && this.forceElite && !def.boss && !extra.noElite) elite = true; // misión «Caza mayor»: garantiza un élite
     if (elite) this.forceElite = false;
     const hp = def.hp * (def.boss ? 1 : (1 + WAVE_SCALE.hp * (w - 1)) * (elite ? 2.2 : 1)) * pm;
@@ -303,10 +311,11 @@ export class Game {
     };
     if (extra.affix && !def.boss) m.elite = true;
     if (!def.boss && this.evSpeedMul !== 1) m.speedMul *= this.evSpeedMul;   // Marea de Sangre: horda veloz
-    if (m.elite && !def.boss) { m.affix = extra.affix || AFFIX_IDS[Math.floor(this.rng.next() * AFFIX_IDS.length)]; if (m.affix === 'veloz') m.speedMul *= 1.35; }
+    if (m.elite && !def.boss) { m.affix = hunted ? 'blindado' : extra.affix || AFFIX_IDS[Math.floor(this.rng.next() * AFFIX_IDS.length)]; if (m.affix === 'veloz') m.speedMul *= 1.35; }
     if (extra.parent && !def.boss) { const par = this.monsters.find((q) => q.id === extra.parent); if (par) colocarCerca(this, m, par); }   // invocadas: nunca detrás de un muro del invocador
     else if (!def.boss) { const cr = radioCol(m); collide(this.map, m.pos, null, cr, null); collide(this.map, m.pos, null, cr, null); liberar(this, m); }   // y nadie nace metido en un sólido (2 pasadas: rincones)
     this.monsters.push(m);
+    if (hunted) { this.objective.target = m.id; }
     if (def.boss) { this.boss = m; if (kind === 'coloso') initColoso(this, m); else if (kind === 'argos') initArgos(this, m); else initMadre(this, m); jefeInit(this, m); }
     this.stats.spawned++;
     return m;
@@ -325,10 +334,10 @@ export class Game {
     p.dead = false; p.lost = false; p.bleed = 0; p.hp = 50; p.shield = 0; p.reviveT = 0; p.lastHurt = this.time; p.vel = v3(); p.ext = v3();
     this.emit({ t: 'revive', pid: p.id, p: a3(p.pos) });
   }
-  /** Un compañero vivo cerca (3,5 u) reanima al caído en el lugar: 3 s (el Soporte, 1,5 s). Si se agota la cuenta de desangrado, queda fuera hasta la próxima oleada. */
+  /** Un compañero vivo manteniendo USAR cerca (3,5 u) reanima al caído en el lugar: 3 s (el Soporte, 1,5 s). Si se agota la cuenta de desangrado, queda fuera hasta la próxima oleada. */
   updateRevive(p, dt) {
     if (p.lost) return;
-    let rate = 0; for (const q of this.players) if (!q.dead && q !== p && dist(q.pos, p.pos) < 3.5) rate = Math.max(rate, reviveRate(q));
+    let rate = 0; for (const q of this.players) if (q.input.interact && reviveTarget(this.players, q)?.id === p.id) rate = Math.max(rate, reviveRate(q));
     p.reviveT = rate ? p.reviveT + dt * rate : Math.max(0, p.reviveT - dt * 0.5);
     p.bleed -= dt;
     if (p.reviveT >= 3) return this.reviveInPlace(p);
@@ -405,7 +414,7 @@ export class Game {
     if (this.time - p.lastHurt > PLAYER.shieldDelay && p.shield < PLAYER.shield) p.shield = Math.min(PLAYER.shield, p.shield + PLAYER.shieldRate * (p.bn ? p.bn.shield : 1) * (hasC(p, 'corazon_cristal') ? 1.5 : 1) * dt);
     // armas
     if (inp.weapon >= 0) { p.weapon = inp.weapon < 5 ? p.slots[inp.weapon] : inp.weapon; inp.weapon = -1; }
-    if (inp.pick >= 0) { if (p.cards.length) { applyCard(p, p.cards[inp.pick] || p.cards[0], this); p.cards = []; this.emit({ t: 'upgrade', pid: p.id }); } inp.pick = -1; }
+    if (inp.pick >= 0) { if (p.cards.length) { if (applyCard(p, p.cards[inp.pick] || p.cards[0], this) !== false) { p.cards = []; this.emit({ t: 'upgrade', pid: p.id }); } else { this.emit({ t: 'rewardUnavailable', pid: p.id }); } } inp.pick = -1; }
     p.movCd = Math.max(0, p.movCd - dt); p.espCd = Math.max(0, p.espCd - dt);
     if (inp.mov && !p.movPrev && !this.evSilencio) useMove(this, p); p.movPrev = inp.mov;
     if (inp.esp && !p.espPrev && !this.evSilencio) useSpecial(this, p); p.espPrev = inp.esp;
@@ -474,7 +483,7 @@ export class Game {
     if (w0.per > 0 && p.ammo[p.weapon] < w0.per) { // sin munición → Haz
       p.weapon = 0; return;
     }
-    p.cd = Math.max(p.cd, -this.dt) + w0.rate / st.rate;
+    p.cd = Math.max(p.cd, -this.dt) + w0.rate / st.rate / (p.bn?.attackSpeed || 1);
     if (st.forma === 'alba') { p.albaN = (p.albaN || 0) + 1; if (p.albaN % 5 === 0 && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + 4); } // arrastra el sobrante: la cadencia no se redondea al tick
     if (w0.per > 0) p.ammo[p.weapon] -= w0.per;
     if (this.magazines) p.clip[p.weapon]--;
@@ -606,12 +615,13 @@ export class Game {
     if (by && by.input && this.boss) jefeGolpe(this, m, by, dmg * mul_);   // perfil de estilo del jugador (jefe-ia.js)
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
     if (m.affix === 'llorón' && !m.dead && this.time >= (m.weepAt || 0) && (m.kids || 0) < 3) { m.weepAt = this.time + 3; const k = this.spawnMonster('astilla', madd(m.pos, norm(this.rng.unit()), 3), { parent: m.id, noElite: true }); if (k) m.kids = (m.kids || 0) + 1; }
-    this.emit({ t: 'hit', id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1, cr: this.critNow || undefined });
+    this.emit({ t: 'hit', src: this.dmgSrc, char: by?.char, id: m.id, p: a3(at || m.pos), d: r2(dmg * mul_), arm: mul_ < 1, cr: this.critNow || undefined });
     if (m.hp <= 0) this.killMonster(m, by);
   }
 
   killMonster(m, by) {
     if (m.dead) return;
+    if (this.objective?.type === 'caza' && this.objective.state === 'active' && this.objective.target === m.id) this.objective.prog = 1;
     m.dead = true; this.stats.kills++; this.straggleT = 0; arKill(this, m);   // alimenta a las Bocas cercanas (arenas vivas)
     if (by && by.input) hostKill(this, by, m);
     if (by) { by.kills++; by.score += m.def.score; if (wstat(by, by.weapon).mod === 'vampirica' && !by.dead) { const mu = wstat(by, by.weapon).mut; by.hp = Math.min(PLAYER.hp, by.hp + (mu === 'simbiosis' ? 10 : 6)); if (mu === 'simbiosis') by.shield = Math.min(PLAYER.shield, by.shield + 8); if (mu === 'parasito') { const w0 = WEAPONS[by.weapon]; if (w0.per > 0) by.ammo[by.weapon] = Math.min(ammoMax(by, by.weapon), by.ammo[by.weapon] + w0.per * 3); } }
@@ -846,18 +856,18 @@ export class Game {
       fx: this.map.fx(this.time),
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0, ...jefeSnap(boss) } : null,
       players: this.players.map((p) => ({
-        id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
+        id: p.id, name: p.name, sk: this.skillLevel, ac: r2(Math.max(0, p.mode === 'combo' ? p.cb?.cd || 0 : Math.max(p.cd || 0, p.reloadT || 0))), pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
         dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
-        id: m.id, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
+        id: m.id, boss: !!m.def.boss, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
         s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, af: m.affix || undefined, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || (!!m.shield && !jefeNucleo(m)), st: !!m.stun || (m.stagger || 0) > 0 || jefeNucleo(m),
       })),
-      projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),
+      projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, w: q.wid, pid: q.pid, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),
       ...(this.loot.length ? { lt: lootSnap(this) } : {}),
       objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, nk: o.kind || undefined, ow: o.owner || 0, l: r2(o.life || 0) })),
-      obj: this.objective ? { type: this.objective.type, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this) } : null,
+      obj: this.objective ? { type: this.objective.type, stage: this.objective.stage, total: this.objective.ids.length, target: this.objective.target, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this), targets: this.objective.state === 'active' ? this.objects.filter(o => this.objective.ids.includes(o.id) && !o.on && !o.carrier).map(o => a3(o.pos)) : [] } : null,
       mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
       ev: evSnap(this), ar: arSnap(this), ng: ngSnap(this), fl: flSnap(this), fa: faunaSnap(this),

@@ -7,6 +7,7 @@ import { faunaForzarRara } from './fauna.js';   // misión «Alimentación»: as
 
 /** Textos y recompensas. `n(oleada)` = cuánto hay que lograr; `cores(oleada)` = núcleos de premio; `ess` = [tipo, cantidad] extra. */
 export const MISIONES = {
+  asalto: { nombre: 'Primer contacto', n: () => 3, cores: (w) => 10 + 3 * w, ess: ['carne', 2] },
   melee:   { nombre: 'Golpe a golpe',  n: (w) => 3 + Math.floor(w / 2), cores: (w) => 10 + 3 * w, ess: ['carne', 2] },
   intacto: { nombre: 'Intocable',      n: () => 1,                       cores: (w) => 14 + 4 * w, ess: ['cristal', 1] },
   elite:   { nombre: 'Caza mayor',     n: () => 1,                       cores: (w) => 18 + 5 * w, ess: null /* el élite da su propia esencia: se premia con la de su tipo */ },
@@ -17,6 +18,7 @@ const CICLO = ['melee', 'intacto', 'elite'];
 
 /** Qué misión toca en la oleada `n` (1..). El élite sólo desde la 3 (antes no hay élites). Determinista, sin azar. */
 export function misionDe(n) {
+  if (n === 1) return 'asalto';
   const k = CICLO[(n - 1) % CICLO.length];
   return k === 'elite' && n < 3 ? 'melee' : k;
 }
@@ -51,7 +53,8 @@ function pagar(g, m) {
 /** Una criatura murió (`by` = jugador que la mató, o null). */
 export function misionKill(g, m, by) {
   const mi = g.mision; if (!mi || mi.st !== 'active' || m.def.boss) return;
-  if (mi.k === 'melee') { if (by && by.inMelee) { mi.p++; if (mi.p >= mi.n) pagar(g, m); } }
+  if (mi.k === 'asalto') { if (by) { mi.p++; if (mi.p >= mi.n) pagar(g, m); } }
+  else if (mi.k === 'melee') { if (by && by.inMelee) { mi.p++; if (mi.p >= mi.n) pagar(g, m); } }
   else if (mi.k === 'elite') { if (m.elite) { mi.p = 1; pagar(g, m); } }
 }
 /** Un jugador recibió daño. */
@@ -65,14 +68,16 @@ export function misionFin(g) {
   if (mi.k === 'intacto') { mi.p = 1; pagar(g, null); }
   else { mi.st = 'failed'; g.emit({ t: 'mision', ph: 'failed', k: mi.k }); }
 }
-export const misionSnap = (g) => (g.mision ? { k: g.mision.k, n: g.mision.n, p: g.mision.p, st: g.mision.st, rc: g.mision.rc } : null);
+export const misionSnap = (g) => (g.mision ? { k: g.mision.k, n: g.mision.n, p: g.mision.p, st: g.mision.st, rc: g.mision.rc, targets: g.mision.st !== 'active' ? [] : (g.mision.k === 'alimento' ? (g.fa?.list || []).filter(f => f.sp.rara && f.vida > 0) : g.monsters.filter(m => !m.dead && (g.mision.k === 'elite' ? m.elite : g.mision.k === 'melee'))).map(m => [m.pos.x, m.pos.y, m.pos.z]) } : null);
 
 /** Punto del mundo al que apunta el objetivo activo (para la flecha del HUD), o null si no hay un lugar concreto. */
 export function puntoObjetivo(g) {
   const o = g.objective; if (!o || o.state !== 'active') return null;
   const objs = o.ids.map((id) => g.objects.find((x) => x.id === id)).filter(Boolean);
   let t = null;
-  if (o.type === 'ancla') t = objs[0];
+  if (o.type === 'secuencia') t = objs[o.stage];
+  else if (o.type === 'caza') t = g.monsters.find((m) => m.id === o.target && !m.dead);
+  else if (o.type === 'ancla') t = objs[0];
   else if (o.type === 'sintonia') t = objs.find((x) => !x.on) || objs[0];
   else if (o.type === 'nucleo') { const [core, altar] = objs; t = core && core.carrier ? altar : core; }
   else if (o.type === 'cultivo') { const ref = g.alivePlayers()[0]; t = objs.filter((x) => !x.on).sort((a, b) => (ref ? dist(a.pos, ref.pos) - dist(b.pos, ref.pos) : 0))[0]; }

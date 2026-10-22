@@ -17,7 +17,7 @@ test('los 5 Huéspedes tienen todo lo pedido: melee, 3 habilidades, definitiva, 
   for (const id of HOST_IDS) {
     const C = CHARACTERS[id];
     for (const k of ['mov', 'esp', 's3']) assert.ok(C[k].id && C[k].name && C[k].cd > 0 && C[k].desc, `${id}.${k}`);
-    assert.ok(C.ult.id && C.ult.charge === 100 && C.passive.id && C.story && C.title && C.melee.light.dmg > 0 && C.melee.heavy.dmg > C.melee.light.dmg);
+    assert.ok(C.ult.id && C.ult.cd >= 45 && C.ult.charge === undefined && C.passive.id && C.story && C.title && C.melee.light.dmg > 0 && C.melee.heavy.dmg > C.melee.light.dmg);
     for (const s of ['dano', 'resistencia', 'movilidad', 'control', 'utilidad', 'dificultad']) assert.ok(C.stats[s] >= 0 && C.stats[s] <= 10);
   }
 });
@@ -59,7 +59,7 @@ test('Axioma: impulso embiste, espinas perforan en línea, caparazón absorbe y 
   let { g, p } = mk('axioma'); let m = target(g, p, 'astilla', 6); let h0 = m.hp; tap(g, p, 'mov'); run(g, 0.4); assert.ok(m.hp < h0, 'impulso daña');
   ({ g, p } = mk('axioma')); const a = target(g, p, 'astilla', 10), b = target(g, p, 'astilla', 25); tap(g, p, 'esp'); run(g, 0.1); assert.ok(a.hp < 5000 && b.hp < 5000, 'espinas atraviesan');
   ({ g, p } = mk('axioma')); p.hp = 100; p.shield = 0; tap(g, p, 's3'); g.hurtPlayer(p, 40); assert.ok(p.hp > 100 - 40 * 0.5, `caparazón absorbe (hp ${p.hp})`); run(g, 4.2); p.lastHurt = -99; p.shield = 0; const hp1 = p.hp; g.hurtPlayer(p, 40); assert.ok(hp1 - p.hp > 20, 'se acaba a los 4 s');
-  ({ g, p } = mk('axioma')); p.ul = 100; const cd0 = 0.34; tap(g, p, 'ult'); assert.equal(p.ultId, 'sobrecarga'); assert.ok(p.spdMul > 1.3 && p.ultT > 9); run(g, 10.2); assert.equal(p.ultId, '', 'termina a los 10 s'); assert.equal(p.ul, 0);
+  ({ g, p } = mk('axioma')); p.ul = 100; const cd0 = 0.34; tap(g, p, 'ult'); assert.equal(p.ultId, 'sobrecarga'); assert.ok(p.spdMul > 1.3 && p.ultT > 9); run(g, 10.2); assert.equal(p.ultId, '', 'termina a los 10 s'); assert.ok(p.ultCd > 40);
   ({ g, p } = mk('axioma')); const w = target(g, p, 'astilla', 2.5, 30); p.hp = 40; tap(g, p, 'melee'); run(g, 0.2); tap(g, p, 'melee'); run(g, 0.5); assert.ok(p.hp > 40, 'Voracidad cura con bajas de melee'); void cd0; void w;
 });
 
@@ -103,10 +103,10 @@ test('Seraf: alas (planeo), pulso vital, simbionte ataca solo, metamorfosis; pas
   const k2 = g.spawnMonster('geoda', ahead(p, 3)); k2.hp = k2.maxhp = 1e5; k2.open = true; const q = g.spawnMonster('astilla', ahead(p, 3)); q.hp = q.maxhp = 1e5; g.damageMonster(q, 100, p); assert.ok(1e5 - q.hp <= 100 * 1.1 + 1e-6, 'tope de adaptación +10 %');
 });
 
-test('definitiva: se carga con daño y bajas, no antes; enfriamientos de habilidades; el estado viaja en el snapshot', () => {
-  const { g, p } = mk('axioma'); tap(g, p, 'ult'); assert.equal(p.ultT, 0, 'sin carga no se activa');
-  const m = target(g, p, 'astilla', 3); const u0 = p.ul; g.damageMonster(m, 500, p); assert.ok(p.ul > u0 + 30, `carga por daño ${p.ul}`);
-  tap(g, p, 's3'); const s = g.snapshot().players[0]; assert.ok(s.s3c > 10 && s.ul >= 30 && s.bf & 1 && typeof s.mc === 'number' && 'cmb' in s);
+test('definitiva: lista sin maná, cooldown y estado autoritativo en snapshot', () => {
+  const { g, p } = mk('axioma'); tap(g, p, 'ult'); assert.ok(p.ultT > 9, 'activa sin recurso');
+  const m = target(g, p, 'astilla', 3); const before = p.ultCd; g.damageMonster(m, 500, p); assert.equal(p.ultCd,before,'daño normal no carga ni reinicia la ulti');
+  tap(g, p, 's3'); const s = g.snapshot().players[0]; assert.ok(s.s3c > 10 && s.ud > 40 && !('ul' in s) && s.bf & 1 && typeof s.mc === 'number' && 'cmb' in s);
   tap(g, p, 's3'); assert.ok(p.s3Cd > 10, 'no se reinicia el enfriamiento antes de tiempo'); run(g, 17); assert.equal(p.s3Cd, 0);
 });
 
@@ -190,7 +190,7 @@ test('evolución: cada nivel es una bifurcación EXCLUYENTE y cada camino cambia
   assert.ok(recibido(['coraza']) < recibido([]) * 0.85, 'Coraza: −18 % de daño'); assert.ok(Math.abs(recibido(['depredador']) - recibido([])) < 0.01);
   const cd = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; tap(g, p, 's3'); return p.s3Cd; }; assert.ok(cd(['coraza', 'velocidad']) < cd(['coraza', 'resonancia']) * 0.9, 'Velocidad: habilidades más rápidas');
   const ulT = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; p.ul = 100; tap(g, p, 'ult'); return p.ultT; }; assert.ok(ulT(['coraza', 'resonancia']) > ulT(['coraza', 'velocidad']) * 1.2, 'Resonancia: definitiva más larga');
-  const carga = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; const m = target(g, p, 'astilla', 5, 1e5); g.damageMonster(m, 500, p); return p.ul; }; assert.ok(carga(['coraza', 'resonancia']) > carga(['coraza', 'velocidad']) * 1.3);
+  const espera = path => { const {g,p}=mk('axioma');p.evo=path.length;p.path=path;tap(g,p,'ult');return p.ultCd-p.ultT; }; assert.ok(espera(['coraza','resonancia']) < espera(['coraza','velocidad']), 'Resonancia acelera recuperación sin recurso');
   const q = new Game({ mapId: 'm1', seed: 2 }).addPlayer('x', null, { char: 'seraf', evo: 2, path: ['coraza', 'inventado', 'simbiosis'] }); assert.deepEqual(q.path, ['coraza'], 'el perfil se valida: caminos inexistentes se descartan y nunca más caminos que niveles');
 });
 test('fusión: el poder especial del arma sólo despierta al evolucionar (nivel 1+) y cambia el combate', () => {

@@ -1,0 +1,2 @@
+skip actual prologue: briefing visible, pauses and resumes solo
+forced m1 victory: m2 goal correct, briefing closes without pause lock; zero page errors

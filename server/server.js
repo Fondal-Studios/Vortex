@@ -1,3 +1,4 @@
+import { createAccounts } from './accounts.js';
 // Servidor del modo COOPERATIVO (hasta 4 jugadores) + sitio estático opcional.
 // La simulación (src/sim) corre ACÁ y es la única fuente de verdad: los clientes sólo mandan entradas y reciben snapshots.
 //
@@ -70,7 +71,7 @@ function resolveFile(url) {
 
 const csv = (s) => String(s || '').split(',').map((x) => x.trim().replace(/\/$/, '')).filter(Boolean);
 
-export function startServer(opts = {}) {
+export async function startServer(opts = {}) {
   const env = process.env;
   const cfg = {
     port: opts.port ?? 8080, host: opts.host ?? '0.0.0.0', autoTick: opts.autoTick ?? true,
@@ -86,7 +87,9 @@ export function startServer(opts = {}) {
   const origenOk = (o) => !cfg.origenes.length || !o || cfg.origenes.includes(String(o).replace(/\/$/, ''));
   const jugadores = () => { let n = 0; for (const r of rooms.values()) n += r.members.length; return n; };
 
+  const accounts = await createAccounts({ databaseUrl: opts.databaseUrl, db: opts.accountDb, trustProxy: cfg.trustProxy });
   const server = http.createServer((req, res) => {
+    if (String(req.url).split('?')[0].startsWith('/api/account/')) { void accounts.handle(req, res); return; }
     const url = String(req.url || '/');
     const cors = {}; const o = req.headers.origin; if (o && origenOk(o)) { cors['Access-Control-Allow-Origin'] = o; cors.Vary = 'Origin'; }
     if (req.method === 'OPTIONS') { res.writeHead(204, { ...cors, 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Max-Age': '600' }); return res.end(); }
@@ -94,7 +97,7 @@ export function startServer(opts = {}) {
     const ruta = url.split('?')[0];
     if (ruta === '/health' || ruta === '/salud') {
       res.writeHead(200, { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-      return res.end(JSON.stringify({ ok: true, proto: PROTOCOLO, salas: rooms.size, jugadores: jugadores(), max: cfg.maxSalas, up: Math.round((Date.now() - arranque) / 1000) }));
+      return res.end(JSON.stringify({ ok: true, accounts: accounts.enabled, proto: PROTOCOLO, salas: rooms.size, jugadores: jugadores(), max: cfg.maxSalas, up: Math.round((Date.now() - arranque) / 1000) }));
     }
     if (!cfg.servirJuego) { res.writeHead(404, cors); return res.end('Este servidor sólo atiende partidas cooperativas.'); }
     const f = resolveFile(url);
@@ -198,7 +201,7 @@ export function startServer(opts = {}) {
       // cierre voluntario (salir, cerrar la pestaña con .close()): se va ya. Corte raro (1006, 1001...): se le guarda el lugar un rato.
       if (code === 1000 || code === 1005 || cfg.graciaMs <= 0) return quitar(room, m, 'salió');
       m.away = Date.now();
-      if (room.game && m.pid) room.game.setInput(m.pid, { mx: 0, mz: 0, fire: false });
+      if (room.game && m.pid) { room.game.setInput(m.pid, { mx: 0, mz: 0, fire: false }); const p = room.game.players.find(p => p.id === m.pid); if (p) p.aw = true; }
       if (room.phase !== 'juego') difundirLobby(room);
       log(`sala ${room.code}: un jugador perdió la conexión (le guardamos el lugar ${cfg.graciaMs / 1000} s)`);
     });
@@ -231,7 +234,7 @@ export function startServer(opts = {}) {
         const me = typeof m.token === 'string' ? r.members.find((x) => x.token === m.token) : null;
         if (!me) return error(ws, 'token');
         if (me.ws && me.ws !== ws) { const viejo = me.ws; viejo.miembro = null; me.ws = null; try { viejo.close(1000, 'reemplazado'); } catch { /* ya cerrado */ } }
-        me.ws = ws; ws.miembro = me; me.away = 0;
+        me.ws = ws; ws.miembro = me; me.away = 0; if (r.game) { const p = r.game.players.find(p => p.id === me.pid); if (p) p.aw = false; }
         if (r.phase === 'juego') bienvenida(r, me, { reanudado: true }); difundirLobby(r);
         log(`sala ${r.code}: un jugador volvió`);
         return;
@@ -346,7 +349,7 @@ export function startServer(opts = {}) {
     if (timer) clearInterval(timer); clearInterval(latido);
     if (aviso) for (const room of rooms.values()) todos(room, { t: 'error', code: 'cierre', msg: ERRORES.cierre });
     for (const c of wss.clients) { try { c.close(1001, 'cierre'); } catch { /* ya cerrado */ } }
-    setTimeout(() => { for (const c of wss.clients) c.terminate(); wss.close(); server.close(() => r()); server.closeAllConnections && server.closeAllConnections(); }, aviso ? 300 : 0);
+    setTimeout(() => { for (const c of wss.clients) c.terminate(); wss.close(); server.close(() => { accounts.close().then(r, r); }); server.closeAllConnections && server.closeAllConnections(); }, aviso ? 300 : 0);
   });
   return new Promise((resolve, reject) => { server.once('error', reject); server.listen(cfg.port, cfg.host, () => resolve({ port: server.address().port, rooms, tickRooms, stats, cfg, close: () => cerrar(false), cerrar })); });
 }

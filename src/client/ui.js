@@ -1,3 +1,5 @@
+import { buildAccountMenu } from './account-menu.js';
+import { buildIdentityMenu } from './identity-menu.js';
 // Interfaz de acceso estilo PlayStation 5: título → menú principal con tarjetas → sub-pantallas. Teclado, ratón, táctil y mando.
 import { BESTIARY, TIPS } from './lore.js';
 import { buildHerbarioTab, selectHerbario } from './flora-ui.js';   // pestaña «Herbario» del Bestiario (flora interactiva, docs/FLORA.md)
@@ -22,7 +24,7 @@ const $ = (id) => document.getElementById(id);
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); buildIdentityMenu(this); buildAccountMenu(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
   }
   /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
   addBackButtons() {
@@ -35,19 +37,20 @@ export class MenuUI {
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { title: '#pressstart', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
+    const q = { mercado: '#mercado .market-nav:not(:disabled)', title: '#pressstart', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
     if (name === 'tienda' && this.tn && this.tn.dialogoAbierto()) return [...this.root.querySelectorAll('#tnyes, #tnno')];   // con el cartel de confirmación abierto, sólo se navega entre Sí y No
     const l = [...this.root.querySelectorAll(q)];
     return name === 'options' ? l.filter((e) => e.getClientRects().length > 0) : l;   // (los ajustes táctiles plegados no cuentan)
   }
   show(name, push = true) {
+    if (this.screen === 'mercado') this.market?.leave();
     if (push && this.screen !== name && name !== 'title') this.stack.push(this.screen);
     const antes = this.screen; this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';   // dirección de la transición corta (menu.css)
     this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name));
     dibujarBarra(this, name); this.root.dataset.inicio = name === 'main' ? '1' : '0';   // barra superior única: volver · pestañas · Modo · Gráficos · núcleos
     refrescarInicio(this);   // (núcleos y puntitos de la barra se recalculan en cada pantalla)
     this.idx = name === 'bestiary' ? 0 : 0; this.focus(this.idx, true);
-    $('prompts').style.opacity = name === 'title' || name === 'tienda' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
+    $('prompts').style.opacity = name === 'mercado' || name === 'title' || name === 'tienda' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
     if (name === 'bestiary') this.selectBeast(0);
     if (name === 'loadout') this.renderLoadout();
     if (name === 'huesped') showHuesped(this);
@@ -55,6 +58,7 @@ export class MenuUI {
     if (name === 'graficos') showGraficos(this);
     if (name === 'evolucion') showEvolucion(this);
     if (name === 'tienda') showTienda(this);
+    if (name === 'mercado') this.market.enter();
     if (name === 'inventario') { try { const p = Perfil.perfil(); p.menu.iv = p.nu; Perfil.guardar(); } catch { /* sin perfil */ } const h = this.ivHost; this.ivHost = null; showInventario(this, h); }
     if (name === 'main') this.refreshHuesped();
     if (name === 'coop' && this.actions.coop) this.actions.coop();   // Cooperativo: prueba el servidor y muestra la sala (coop-ui.js)
@@ -96,7 +100,7 @@ export class MenuUI {
     const l = this.list(); if (!l.length) return; this.idx = (i + l.length) % l.length;
     l.forEach((e, k) => e.classList.toggle('focus', k === this.idx));
     const el = l[this.idx];
-    if ((this.screen === 'graficos' || this.screen === 'tienda' || this.screen === 'main') && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
+    if ((this.screen === 'arenas' || this.screen === 'mercado' || this.screen === 'graficos' || this.screen === 'tienda' || this.screen === 'main') && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
     if (this.screen === 'bestiary') this.selectBeast(this.idx);
     if (!silent) this.sound.ui('tick');
   }
@@ -139,7 +143,7 @@ export class MenuUI {
     if (a === 'back') return this.back();
     if (a === 'tabprev' || a === 'tabnext') return this.cambiarTab(a === 'tabnext' ? 1 : -1);
     const l = this.list(); if (!l.length) return; const cur = l[this.idx];
-    if (this.screen === 'main' || this.screen === 'tienda') {   // rejillas, pestañas y paneles: se va al vecino más cercano en esa dirección
+    if (this.screen === 'main' || this.screen === 'tienda' || this.screen === 'mercado' || this.screen === 'arenas') {   // rejillas, pestañas y paneles: se va al vecino más cercano en esa dirección
       if (a === 'ok') { this.sound.ui('ok'); if (cur.tagName === 'SELECT') return this.stepSelect(cur, 1); return cur.click(); }
       if ((a === 'left' || a === 'right') && cur.tagName === 'SELECT') return this.stepSelect(cur, a === 'right' ? 1 : -1);
       const j = vecino(l, this.idx, a); if (j >= 0) this.focus(j); return;

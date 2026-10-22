@@ -1,0 +1,66 @@
+# VORTEX — Decisiones de junta
+
+## Ciclo 0 · 21/10/2026
+- Base canónica observada: rama predeterminada `claude/larga-con-eso-s43nfe`, commit 9b7d54a. No renombrar ni asumir main. Render corre el mismo commit y tiene autodeploy por commit.
+- Mantener identidad 3D orgánica, gravedad extraña, estación/tren y criaturas diferenciadas. Rechazar propuesta de sumar más sistemas antes de probar una ruta breve.
+- Prioridad consensuada: proteger progreso, recuperar premios sin duplicarlos y entregar un primer minuto claro. Después tacto de combate y navegación.
+- Aprobar en rama dos fixes pequeños, reproducibles: normalizar moneda y premiar munición del equipo real. No autoriza merge automático ni certifica el producto.
+- Rechazar reenvío aislado de `fin`: arreglar transporte sin idempotencia podría facilitar doble acreditación. Conservar reproducción como pendiente técnico.
+- No ajustar umbrales de balance sólo para que tests pasen. Fallo de inventario también reproducido en commit original.
+- No llamar “iPhone probado” a emulación Chromium; no usar capturas antiguas como render actual ni métricas históricas como mediciones nuevas.
+- No decidir borrar mapas o sistemas definitivamente con lectura estática. Sí reducir exposición inicial de forja, flora/fauna, árboles y elecciones irreversibles; validar después con novatos.
+
+## Reunión ejecutiva
+| Pregunta | Respuesta |
+|---|---|
+|¿Más divertido?|No comprobado; se corrigieron errores lógicos, no se midió diversión.|
+|¿Mayor perjuicio?|Riesgo de perder/no acreditar progreso, seguido del onboarding y fiabilidad de publicación.|
+|¿Mejoras verificadas?|Ver QA: moneda y munición; no atribuir otras correcciones.|
+|¿Qué sobra?|Hipótesis: espera de forja y exposición simultánea de demasiadas capas; ocultar/probar antes de eliminar.|
+|¿Qué impide publicar?|Guardado y premios sin garantías, test de balance rojo, gates incompletos, sin sesión visual/hardware certificada.|
+|¿Próximo ciclo?|Bloque 1: persistencia idempotente, fallo WebGL explicable, controles seguros; luego primer combate ≤30 s.|
+
+## Ciclo 1 — 22/10/2026
+- Autorización explícita para implementar simplificación y reescritura creativa.
+- Adoptar conciencia digital + genoma humano + IA sin presentar recuerdos como ADN.
+- Reutilizar estación y folclore como reconstrucciones de memoria; no cambiar IDs ni guardados.
+- Separar objetivo final (salir de VORTEX) de acción inmediata (instrucción del HUD).
+- Conservar salto hasta adaptar geometría; cuatro botones esenciales no equivalen aún
+  a un rediseño balanceado de todas las habilidades. Completo sigue disponible en pausa.
+- Ataque manual por defecto; respetar accesibilidad previamente elegida.
+- No aplicar cámara lenta a la simulación cooperativa ni agrandar hitboxes sin pruebas de navegación.
+- No asignar nueva puntuación de diversión sin jugar. Retener el borrador hasta validar visualmente.
+
+## Ciclo 2 — 22/10/2026
+- Añadir dos objetivos con acciones distintas, reutilizando objetos y spawn existentes.
+- Caza termina por su blanco; evitar limpieza residual y premios por enemigos retirados.
+- Primer desafío libre de arma para no contradecir la elección inicial del jugador.
+- Recuperar acciones esenciales mediante mantener y elección de poder; sin bonos
+  ocultos para maquillar estadísticas. Verificar paridad por acción en simulación.
+- Reconocer que un poder equipado no tiene la misma versatilidad que todos accesibles.
+  No asignar puntuación final de balance sin juego humano.
+- Subir protocolo al cambiar tipos/campos del objetivo; cliente y servidor juntos.
+
+
+## 2026-10-22 — Alfa 3 sobre PR #5 integrado
+
+Ver `VORTEX_ALPHA_3.md`. Conserva apoyo/ulti progresivos; corrige límite de tres tarjetas, ramas completas, mejoras tempranas gratuitas, precio de órganos y elección fallida/automática. Recupera continuidad sin sobrescribir controles del PR #5. 20 sondas antes +20 después: 18 activas/2 derrotas en ambas variantes, 4→6 llegan a oleada 7. Son bots, no usuarios ni retención. Puntuaciones hipotéticas separadas. Rama `codex/vortex-alpha3-balance`, base main09dfac8. Pendientes melee exclusivo, campaña completa, Safari físico y alfa humana.
+
+
+## Integración de PR #1 y #6 — 2026-10-22
+
+Se integró el historial del alfa 2. Los controles que retiraban los poderes quedan superados por PR #5 y el balance del alfa 3: se preservan apoyo tras oleada 1 y definitiva tras oleada 3. Se conservan minimapa, cuentas, recompensas y narrativa actuales. Evidencia histórica: VORTEX_ALPHA_2.md; evaluación vigente: VORTEX_ALPHA_3.md.
+
+
+## 2026-10-22 — Principiante y alfa 2
+
+Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro acciones estables, poderes conservados en controles completos; segunda pasada corrige nombres de jefe, avisos y bloqueo táctil del resumen. 107 pruebas seleccionadas y verificaciones de navegador; 20 sondas con 16 supervivencias al corte y cuatro derrotas. Puntuaciones hipotéticas aún no cumplen todas >80. Pendiente balance sin poderes, compatibilidad de recompensas, orientación en combate, campaña completa y alfa humana/Safari físico. Sin merge ni despliegue.
+
+
+## HUD de cuatro acciones — 2026-10-22
+
+Implementación y validación en `VORTEX_FOUR_ACTION_HUD.md`: ataque + defensa/apoyo/ulti ilustrados, cooldown autoritativo, limpieza visual y protocolo 4. Conserva apoyo tras oleada 1 y ulti tras oleada 3; defensa desde el inicio. Pendiente Safari físico y balance humano longitudinal.
+
+## 2026-10-22 — Vida inferior y cooldowns sin recurso
+
+Ver VORTEX_CLEAN_HUD.md. Retrato/vida inferiores, ataque principal + tres habilidades ilustradas, cooldowns sin maná/carga y límites a sus mejoras. Protocolo 5 requiere cliente/servidor coordinados. 147 pruebas seleccionadas y 59 del núcleo; tres tamaños Chromium y 16 sondas de cinco minutos. Persisten dos fallos reproducibles también en main: enemigo rezagado y balance legendario Vesper melee. Próximo ciclo: resolver orientación final y balance melee con pruebas humanas; Safari físico pendiente.

@@ -1,0 +1,709 @@
+{
+  "arenas": [
+    {
+      "quality": "low",
+      "map": "m1",
+      "scene": {
+        "frame": 59,
+        "calls": 51,
+        "triangles": 44765,
+        "points": 2518,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 15214,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            3668
+          ],
+          [
+            "kit-metal",
+            3820
+          ],
+          [
+            "kit-gold",
+            1678
+          ],
+          [
+            "kit-bone",
+            2574
+          ],
+          [
+            "kit-dark",
+            84
+          ],
+          [
+            "kit-light",
+            336
+          ],
+          [
+            "kit-ember",
+            2490
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            372
+          ],
+          [
+            "kit-spirit",
+            64
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "low",
+      "map": "m2",
+      "scene": {
+        "frame": 59,
+        "calls": 47,
+        "triangles": 69137,
+        "points": 2458,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 15276,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            3668
+          ],
+          [
+            "kit-metal",
+            3820
+          ],
+          [
+            "kit-gold",
+            1678
+          ],
+          [
+            "kit-bone",
+            2574
+          ],
+          [
+            "kit-dark",
+            84
+          ],
+          [
+            "kit-light",
+            206
+          ],
+          [
+            "kit-ember",
+            2490
+          ],
+          [
+            "kit-crystal",
+            200
+          ],
+          [
+            "kit-leather",
+            372
+          ],
+          [
+            "kit-spirit",
+            64
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "low",
+      "map": "m3",
+      "scene": {
+        "frame": 59,
+        "calls": 70,
+        "triangles": 38285,
+        "points": 2308,
+        "lines": 504
+      },
+      "body": {
+        "calls": 13,
+        "tris": 15210,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            3668
+          ],
+          [
+            "kit-metal",
+            3820
+          ],
+          [
+            "kit-gold",
+            1696
+          ],
+          [
+            "kit-bone",
+            2574
+          ],
+          [
+            "kit-dark",
+            84
+          ],
+          [
+            "kit-light",
+            314
+          ],
+          [
+            "kit-ember",
+            2490
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            372
+          ],
+          [
+            "kit-spirit",
+            64
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "low",
+      "map": "m4",
+      "scene": {
+        "frame": 59,
+        "calls": 63,
+        "triangles": 72210,
+        "points": 2238,
+        "lines": 504
+      },
+      "body": {
+        "calls": 14,
+        "tris": 15588,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            3668
+          ],
+          [
+            "kit-metal",
+            3820
+          ],
+          [
+            "kit-gold",
+            1678
+          ],
+          [
+            "kit-bone",
+            2574
+          ],
+          [
+            "kit-dark",
+            84
+          ],
+          [
+            "kit-light",
+            430
+          ],
+          [
+            "kit-ember",
+            2490
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            372
+          ],
+          [
+            "kit-spirit",
+            64
+          ],
+          [
+            "kit-flesh",
+            280
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "low",
+      "map": "m5",
+      "scene": {
+        "frame": 59,
+        "calls": 62,
+        "triangles": 51786,
+        "points": 2468,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 15468,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            3668
+          ],
+          [
+            "kit-metal",
+            3820
+          ],
+          [
+            "kit-gold",
+            1678
+          ],
+          [
+            "kit-bone",
+            2574
+          ],
+          [
+            "kit-dark",
+            84
+          ],
+          [
+            "kit-light",
+            206
+          ],
+          [
+            "kit-ember",
+            2490
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            372
+          ],
+          [
+            "kit-spirit",
+            448
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "low",
+      "map": "m6",
+      "scene": {
+        "frame": 59,
+        "calls": 66,
+        "triangles": 91657,
+        "points": 2478,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 15468,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            3668
+          ],
+          [
+            "kit-metal",
+            3820
+          ],
+          [
+            "kit-gold",
+            1678
+          ],
+          [
+            "kit-bone",
+            2574
+          ],
+          [
+            "kit-dark",
+            84
+          ],
+          [
+            "kit-light",
+            206
+          ],
+          [
+            "kit-ember",
+            2490
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            372
+          ],
+          [
+            "kit-spirit",
+            448
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "high",
+      "map": "m1",
+      "scene": {
+        "frame": 85,
+        "calls": 112,
+        "triangles": 298670,
+        "points": 3456,
+        "lines": 16
+      },
+      "body": {
+        "calls": 13,
+        "tris": 62558,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            26756
+          ],
+          [
+            "kit-metal",
+            9364
+          ],
+          [
+            "kit-gold",
+            9032
+          ],
+          [
+            "kit-bone",
+            8216
+          ],
+          [
+            "kit-dark",
+            180
+          ],
+          [
+            "kit-light",
+            702
+          ],
+          [
+            "kit-ember",
+            7146
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            752
+          ],
+          [
+            "kit-spirit",
+            128
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "high",
+      "map": "m2",
+      "scene": {
+        "frame": 85,
+        "calls": 85,
+        "triangles": 297500,
+        "points": 3260,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 62578,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            26756
+          ],
+          [
+            "kit-metal",
+            9364
+          ],
+          [
+            "kit-gold",
+            9032
+          ],
+          [
+            "kit-bone",
+            8216
+          ],
+          [
+            "kit-dark",
+            180
+          ],
+          [
+            "kit-light",
+            434
+          ],
+          [
+            "kit-ember",
+            7146
+          ],
+          [
+            "kit-crystal",
+            296
+          ],
+          [
+            "kit-leather",
+            752
+          ],
+          [
+            "kit-spirit",
+            128
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "high",
+      "map": "m3",
+      "scene": {
+        "frame": 85,
+        "calls": 104,
+        "triangles": 155158,
+        "points": 3144,
+        "lines": 519
+      },
+      "body": {
+        "calls": 13,
+        "tris": 62992,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            26756
+          ],
+          [
+            "kit-metal",
+            9364
+          ],
+          [
+            "kit-gold",
+            9050
+          ],
+          [
+            "kit-bone",
+            8216
+          ],
+          [
+            "kit-dark",
+            180
+          ],
+          [
+            "kit-light",
+            1118
+          ],
+          [
+            "kit-ember",
+            7146
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            752
+          ],
+          [
+            "kit-spirit",
+            128
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "high",
+      "map": "m4",
+      "scene": {
+        "frame": 85,
+        "calls": 84,
+        "triangles": 161954,
+        "points": 2450,
+        "lines": 504
+      },
+      "body": {
+        "calls": 14,
+        "tris": 63450,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            26756
+          ],
+          [
+            "kit-metal",
+            9364
+          ],
+          [
+            "kit-gold",
+            9032
+          ],
+          [
+            "kit-bone",
+            8216
+          ],
+          [
+            "kit-dark",
+            180
+          ],
+          [
+            "kit-light",
+            658
+          ],
+          [
+            "kit-ember",
+            7146
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            752
+          ],
+          [
+            "kit-spirit",
+            128
+          ],
+          [
+            "kit-flesh",
+            936
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "high",
+      "map": "m5",
+      "scene": {
+        "frame": 85,
+        "calls": 88,
+        "triangles": 171697,
+        "points": 3000,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 62674,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            26756
+          ],
+          [
+            "kit-metal",
+            9364
+          ],
+          [
+            "kit-gold",
+            9032
+          ],
+          [
+            "kit-bone",
+            8216
+          ],
+          [
+            "kit-dark",
+            180
+          ],
+          [
+            "kit-light",
+            434
+          ],
+          [
+            "kit-ember",
+            7146
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            752
+          ],
+          [
+            "kit-spirit",
+            512
+          ]
+        ]
+      },
+      "organs": 3
+    },
+    {
+      "quality": "high",
+      "map": "m6",
+      "scene": {
+        "frame": 85,
+        "calls": 91,
+        "triangles": 233596,
+        "points": 3048,
+        "lines": 0
+      },
+      "body": {
+        "calls": 13,
+        "tris": 62674,
+        "meshes": [
+          [
+            "kit-cuerpo",
+            26756
+          ],
+          [
+            "kit-metal",
+            9364
+          ],
+          [
+            "kit-gold",
+            9032
+          ],
+          [
+            "kit-bone",
+            8216
+          ],
+          [
+            "kit-dark",
+            180
+          ],
+          [
+            "kit-light",
+            434
+          ],
+          [
+            "kit-ember",
+            7146
+          ],
+          [
+            "kit-crystal",
+            8
+          ],
+          [
+            "kit-leather",
+            752
+          ],
+          [
+            "kit-spirit",
+            512
+          ]
+        ]
+      },
+      "organs": 3
+    }
+  ],
+  "errors": []
+}

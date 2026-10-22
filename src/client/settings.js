@@ -13,16 +13,17 @@ export const DEFAULTS = Object.freeze({
   gyro: false, gyroSens: 1,
   aim: null,          // ayuda de puntería 0..3 (null = según dispositivo)
   fingers: 2,         // 2, 3 o 4 dedos
-  hudScale: 1, hudOpacity: 0.85,
-  advanced: false,    // modo avanzado: muestra HAB.1/2/3, APUNTAR, AGACHAR, EQUIPO y SEÑALAR (básico = sólo disparo, recargar, melee y salto)
+  minimapOpacity: 0.85, hudScale: 1, hudOpacity: 0.85,
+  essentialPowers: {}, // un poder equipado por huésped y modo, los demás disponibles en completo
+  advanced: false,    // controles completos; por defecto cuatro acciones táctiles y HUD esencial
   mode: 'shooter',    // MODO DE JUEGO: 'shooter' (el de siempre) | 'combo' (dos ataques encadenados + una habilidad; data.js GAME_MODES). También por URL ?modo=combo|shooter
   modes: {},          // MODO elegido por Huésped en partida: { axioma: 'combo', vesper: 'shooter', … } ('shooter' = Disparo, 'combo' = Melé); sin entrada ⇒ vale `mode`
   showKeys: false,    // «Mostrar controles»: pista de teclas en pantalla (PC)
   style: 'disparo',  // estilo de combate: 'melee' | 'disparo' | 'habilidad' (data.js STYLES)
-  simple: true,       // MODO SIMPLE: ayuda de puntería alta, dispara solo al tener un enemigo en la mira y golpea solo cuando lo tenés encima
+  simple: false,       // MODO SIMPLE: ayuda de puntería alta, dispara solo al tener un enemigo en la mira y golpea solo cuando lo tenés encima
   claridad: 'normal', // CLARIDAD visual (quality.js · CLARIDAD): 'normal' | 'alta' (más luz de relleno y contorno de luz sobre el Huésped y los enemigos)
   baseAlTerminar: true, // al terminar una partida se ofrece «Entrar a la Base» en vez de volver al menú (docs/BASE.md)
-  third: true,        // cámara en tercera persona sobre el hombro (verte a vos mismo)
+  third: false,        // cámara en tercera persona sobre el hombro (verte a vos mismo)
   camDist: 3.6, camSide: 1, camFov: 78,   // distancia, hombro (1 derecha / -1 izquierda) y campo de visión de la 3ª persona
   adsMode: 'mantener', // 'mantener' | 'alternar'
   layout: {},         // { botón: { dx, dy, s } }: posiciones y tamaños personalizados

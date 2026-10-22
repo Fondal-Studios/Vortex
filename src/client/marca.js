@@ -5,11 +5,11 @@ export const MARCA = {
   /** Dos líneas del logo grande (título y menú): la primera en fino, la segunda en grande. */
   logo: ['', 'VORTEX'],
   corto: 'Vortex',
-  subtitulo: 'Sobrevivir al Vórtice, donde la gravedad es solo una opinión',
+  subtitulo: 'Recuperá tu identidad. Escapá de la red.',
   legal: 'Acción psicodélica en 3D · PC · iPhone · 1–4 jugadores',
   /** Nombre del mundo: el limbo donde pasa todo. */
   mundo: 'el Vórtice',
-  descripcion: 'Acción psicodélica en 3D en el limbo: pactá con un Huésped, evolucioná y sobreviví al Vórtice, solo o hasta 4 en cooperativo.',
+  descripcion: 'Una conciencia humana. Un Huésped de genoma e IA. Una salida de VORTEX.',
 };
 /** Escribe la marca en el documento (título de la pestaña, logo, pantalla de carga). Se llama una vez al arrancar el menú. */
 export function aplicarMarca(doc = document) {

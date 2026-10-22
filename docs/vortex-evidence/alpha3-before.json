@@ -1,0 +1,2771 @@
+{
+  "source": "09dfac8a76d2bd38b340301134245ec73e109fc0",
+  "scope": "20 Axioma shooter probes, identical seeds and policy before/after PR5 adjustments; 300 gameplay seconds maximum; no human usability or retention",
+  "results": [
+    {
+      "seed": 1001,
+      "skill": 0.35,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 157,
+      "firstKill": 8.550000000000004,
+      "supports": 12,
+      "ultimates": 4,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 22.58,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 121.17,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 5,
+              "k": "rate"
+            },
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "toxica"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "vampirica"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "mod",
+              "mod": "toxica"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "vesicula_acida"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "explosiva"
+            },
+            {
+              "w": 3,
+              "k": "mag"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "nervio_conductor"
+            },
+            {
+              "w": 4,
+              "k": "mod",
+              "mod": "precision"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1002,
+      "skill": 0.35,
+      "state": "lost",
+      "seconds": 280.97,
+      "wave": 6,
+      "kills": 173,
+      "firstKill": 8.750000000000014,
+      "supports": 14,
+      "ultimates": 5,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 28.42,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 123.12,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "nervio_conductor"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "nervio_conductor"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "nervio_conductor"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "perfora"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "vesicula_acida"
+            },
+            {
+              "w": 0,
+              "k": "mod",
+              "mod": "toxica"
+            },
+            {
+              "w": 2,
+              "k": "mod",
+              "mod": "vampirica"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1003,
+      "skill": 0.35,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 5,
+      "kills": 139,
+      "firstKill": 8.71666666666668,
+      "supports": 16,
+      "ultimates": 4,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 22.85,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 116.08,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 3,
+              "k": "mag"
+            },
+            {
+              "w": 4,
+              "k": "mod",
+              "mod": "explosiva"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "musculo_cargador"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "musculo_cargador"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        }
+      ]
+    },
+    {
+      "seed": 1004,
+      "skill": 0.35,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 187,
+      "firstKill": 8.91666666666669,
+      "supports": 18,
+      "ultimates": 6,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 26.4,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 111.12,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 4,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "c",
+              "id": "tentaculo"
+            },
+            {
+              "w": 3,
+              "k": "mag"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 2,
+              "k": "mod",
+              "mod": "cadena"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "vampirica"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_vital"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "cadena"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1005,
+      "skill": 0.35,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 151,
+      "firstKill": 8.366666666666662,
+      "supports": 12,
+      "ultimates": 4,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 26.47,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 125.57,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "musculo_cargador"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "nervio_conductor"
+            },
+            {
+              "w": 2,
+              "k": "mod",
+              "mod": "toxica"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_vital"
+            },
+            {
+              "w": 0,
+              "k": "mod",
+              "mod": "explosiva"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1006,
+      "skill": 0.65,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 168,
+      "firstKill": 8.550000000000004,
+      "supports": 12,
+      "ultimates": 6,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 27.35,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 117.85,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 4,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_vital"
+            },
+            {
+              "w": 4,
+              "k": "mod",
+              "mod": "cadena"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1007,
+      "skill": 0.65,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 159,
+      "firstKill": 8.600000000000007,
+      "supports": 16,
+      "ultimates": 6,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 28.08,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 119.08,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 4,
+              "k": "mod",
+              "mod": "cadena"
+            },
+            {
+              "w": 5,
+              "k": "mag"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 4,
+              "k": "organ",
+              "t": "w",
+              "id": "corazon_doble"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_vital"
+            },
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "precision"
+            },
+            {
+              "w": 0,
+              "k": "mod",
+              "mod": "perfora"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "perfora"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1008,
+      "skill": 0.65,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 7,
+      "kills": 171,
+      "firstKill": 8.166666666666652,
+      "supports": 16,
+      "ultimates": 6,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 24.07,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 112.62,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 5,
+              "k": "mag"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 5,
+              "k": "mag"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "ojo_compuesto"
+            },
+            {
+              "w": 2,
+              "k": "mod",
+              "mod": "vampirica"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "c",
+              "id": "medula"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 6,
+          "cards": [
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "cadena"
+            },
+            {
+              "w": 0,
+              "k": "mod",
+              "mod": "vampirica"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1009,
+      "skill": 0.65,
+      "state": "lost",
+      "seconds": 208.87,
+      "wave": 5,
+      "kills": 127,
+      "firstKill": 8.750000000000014,
+      "supports": 8,
+      "ultimates": 2,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 26.08,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 111.08,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "musculo_cargador"
+            },
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "explosiva"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 5,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        }
+      ]
+    },
+    {
+      "seed": 1010,
+      "skill": 0.65,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 182,
+      "firstKill": 8.816666666666684,
+      "supports": 15,
+      "ultimates": 5,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 26.02,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 115.57,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "perfora"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_vital"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "nervio_conductor"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "ojo_compuesto"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "c",
+              "id": "ojo_extra"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "perfora"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1011,
+      "skill": 1,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 185,
+      "firstKill": 8.283333333333324,
+      "supports": 15,
+      "ultimates": 7,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 27.53,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 117.62,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "corazon_doble"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "vesicula_acida"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "corazon_doble"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "musculo_cargador"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1012,
+      "skill": 1,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 167,
+      "firstKill": 8.38333333333333,
+      "supports": 13,
+      "ultimates": 6,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 26.45,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 115.98,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 2,
+              "k": "mod",
+              "mod": "perfora"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_vital"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 4,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "musculo_cargador"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 0,
+              "k": "mod",
+              "mod": "vampirica"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            },
+            {
+              "w": 4,
+              "k": "mod",
+              "mod": "toxica"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1013,
+      "skill": 1,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 193,
+      "firstKill": 8.683333333333344,
+      "supports": 12,
+      "ultimates": 4,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 22.73,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 115.4,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 4,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "mod",
+              "mod": "toxica"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 5,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "vampirica"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "toxica"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "vesicula_acida"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1014,
+      "skill": 1,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 195,
+      "firstKill": 8.683333333333344,
+      "supports": 14,
+      "ultimates": 7,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 24.07,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 112.8,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 3,
+              "k": "mag"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "precision"
+            },
+            {
+              "w": 3,
+              "k": "mag"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "perfora"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "c",
+              "id": "placas"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "mod",
+              "mod": "explosiva"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1015,
+      "skill": 1,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 7,
+      "kills": 169,
+      "firstKill": 8.31666666666666,
+      "supports": 12,
+      "ultimates": 6,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 27.63,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 117.08,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 5,
+              "k": "mag"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 4,
+              "k": "rate"
+            },
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "vampirica"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 4,
+              "k": "organ",
+              "t": "w",
+              "id": "espina_cristal"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 6,
+          "cards": [
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1016,
+      "skill": 1.2,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 163,
+      "firstKill": 8.199999999999987,
+      "supports": 15,
+      "ultimates": 7,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 24.07,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 115.65,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 0,
+              "k": "rate"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "corazon_doble"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "musculo_cargador"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "mod",
+              "mod": "cadena"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_vital"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            },
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "vampirica"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 3,
+              "k": "mag"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1017,
+      "skill": 1.2,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 7,
+      "kills": 179,
+      "firstKill": 8.149999999999984,
+      "supports": 15,
+      "ultimates": 5,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 28.8,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 114.67,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "mod",
+              "mod": "precision"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "c",
+              "id": "tentaculo"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "mod",
+              "mod": "vampirica"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "ojo_compuesto"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 5,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 4,
+              "k": "organ",
+              "t": "w",
+              "id": "nervio_conductor"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 6,
+          "cards": [
+            {
+              "w": 4,
+              "k": "mag"
+            },
+            {
+              "w": 2,
+              "k": "mod",
+              "mod": "vampirica"
+            },
+            {
+              "w": 2,
+              "k": "mag"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1018,
+      "skill": 1.2,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 172,
+      "firstKill": 8.65000000000001,
+      "supports": 12,
+      "ultimates": 6,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 22.6,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 107.33,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 3,
+              "k": "mag"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "ojo_compuesto"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "mod",
+              "mod": "perfora"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "corazon_doble"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "c",
+              "id": "medula"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "nervio_conductor"
+            },
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "toxica"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1019,
+      "skill": 1.2,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 172,
+      "firstKill": 8.466666666666667,
+      "supports": 14,
+      "ultimates": 5,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 22.5,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 111.02,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 5,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 2,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_vital"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "musculo_cargador"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 5,
+              "k": "organ",
+              "t": "w",
+              "id": "espina_cristal"
+            },
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 3,
+              "k": "organ",
+              "t": "w",
+              "id": "vesicula_acida"
+            },
+            {
+              "w": 5,
+              "k": "mod",
+              "mod": "toxica"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    },
+    {
+      "seed": 1020,
+      "skill": 1.2,
+      "state": "playing",
+      "seconds": 300,
+      "wave": 7,
+      "kills": 180,
+      "firstKill": 8.216666666666654,
+      "supports": 13,
+      "ultimates": 5,
+      "unlocks": [
+        {
+          "level": 1,
+          "time": 22.45,
+          "wave": 1
+        },
+        {
+          "level": 2,
+          "time": 112.35,
+          "wave": 3
+        }
+      ],
+      "cards": [
+        {
+          "wave": 1,
+          "cards": [
+            {
+              "w": 5,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 2,
+          "cards": [
+            {
+              "w": 2,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            },
+            {
+              "w": 4,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 3,
+          "cards": [
+            {
+              "w": 4,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            }
+          ]
+        },
+        {
+          "wave": 4,
+          "cards": [
+            {
+              "w": 0,
+              "k": "organ",
+              "t": "w",
+              "id": "glandula_osea"
+            },
+            {
+              "w": 2,
+              "k": "rate"
+            },
+            {
+              "w": 3,
+              "k": "mag"
+            }
+          ]
+        },
+        {
+          "wave": 5,
+          "cards": [
+            {
+              "w": 3,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            },
+            {
+              "w": 4,
+              "k": "rate"
+            }
+          ]
+        },
+        {
+          "wave": 6,
+          "cards": [
+            {
+              "w": 3,
+              "k": "rate"
+            },
+            {
+              "w": 5,
+              "k": "dmg"
+            },
+            {
+              "w": 0,
+              "k": "dmg"
+            }
+          ]
+        }
+      ],
+      "objective": [
+        {
+          "wave": 2,
+          "type": "ancla"
+        },
+        {
+          "wave": 4,
+          "type": "sintonia"
+        },
+        {
+          "wave": 5,
+          "type": "nucleo"
+        },
+        {
+          "wave": 6,
+          "type": "secuencia"
+        }
+      ]
+    }
+  ],
+  "sourceMeaning": "base commit; exact source hashes below distinguish the modified working tree",
+  "sourceHashes": {
+    "src/sim/game.js": "a50ac3d9bb8862fca509a2c2eb3b5a8fd502912141e7dadf41766e3e3ba64816",
+    "src/sim/loadout.js": "e713dc959fc6da185a57fe06fcd6f52853aa5972fcd2b72dec73de790503367a",
+    "src/shared/skill-path.js": "9014de41f63602ec794fa03de27c6e689defed1b8d53db65ae14aa64d81d942b"
+  }
+}

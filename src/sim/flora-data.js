@@ -61,9 +61,9 @@ export const ESPECIES = {
     tele: 'La seta se hincha y se pone violeta durante 1,2 s antes de soltar la nube.', contra: 'Reventala de lejos para que la nube caiga sobre los enemigos. El veneno de la nube no te baja de 8 de vida.' },
   /* ── m2 · Cámara Fractal (espejos y ecos) ── */
   fruto_eco: { i: 3, nombre: 'Fruto de Eco', mapa: 'm2', fn: 'cura', col: 'dorado', tipo: 'energia', forma: 'fruto', hp: 30, r: 1.9, brote: 10, rebrota: 55,
-    p: { ul: 14, cd: 0.6, icd: 4 }, cos: { mat: 'nectar', n: [1, 2], q: 1 },
-    desc: 'Un fruto dorado que repite lo que le cantás: al comerlo cargás parte de la definitiva y acelerás tus habilidades.',
-    folk: 'En la Cámara todo vuelve; este fruto vuelve a dar fuerza.', tele: 'Brilla dorado y late cuando está maduro.', contra: 'Se come al pasar (si te falta definitiva). Los enemigos a distancia lo rompen.' },
+    p: { ultSeconds: 2.8, cd: 0.6, icd: 4 }, cos: { mat: 'nectar', n: [1, 2], q: 1 },
+    desc: 'Un fruto dorado que repite lo que le cantás: al comerlo reducís la espera de la definitiva y acelerás tus habilidades.',
+    folk: 'En la Cámara todo vuelve; este fruto vuelve a dar fuerza.', tele: 'Brilla dorado y late cuando está maduro.', contra: 'Se come al pasar (si tenés habilidades en espera). Los enemigos a distancia lo rompen.' },
   planta_espejo: { i: 4, nombre: 'Planta Espejo', mapa: 'm2', fn: 'toxica', col: 'cian', tipo: 'espejo', forma: 'espejo', hp: 70, r: 2.6, brote: 12, rebrota: 50,
     p: { reflejos: 4, costo: 16 }, cos: { mat: 'hoja_espejo', n: [1, 1], q: 2 },
     desc: 'Sus hojas son espejos: devuelven los proyectiles enemigos que pasan cerca. Cada reflejo la agrieta.',
@@ -100,8 +100,8 @@ export const ESPECIES = {
     folk: 'Cada gota de savia recuerda un paso que no pudo darse.', tele: 'El charco ámbar del suelo se ve siempre.', contra: 'Rodealo, o atraé enemigos al charco. Con fuego arde (y suelta resina).' },
   /* ── m5 · Plaza de los Ecos (reloj y ciudad muerta) ── */
   fruto_hora: { i: 12, nombre: 'Fruto de la Hora', mapa: 'm5', fn: 'cura', col: 'dorado', tipo: 'energia', forma: 'fruto', hp: 30, r: 1.9, brote: 10, rebrota: 55,
-    p: { ul: 9, cd: 0.4, icd: 4, hp: 8 }, cos: { mat: 'nectar', n: [1, 2], q: 1 },
-    desc: 'Un fruto que maduró fuera de hora: al comerlo recuperás tiempo (tus habilidades se recargan antes) y algo de energía.',
+    p: { ultSeconds: 1.8, cd: 0.4, icd: 4, hp: 8 }, cos: { mat: 'nectar', n: [1, 2], q: 1 },
+    desc: 'Un fruto que maduró fuera de hora: al comerlo recuperás tiempo (tus habilidades se recargan antes) incluida la definitiva.',
     folk: 'El relojero sembró horas entre los adoquines.', tele: 'Dorado y con un tictac visible cuando está maduro.', contra: 'Se come al pasar. Los enemigos a distancia lo rompen.' },
   hiedra_espina: { i: 13, nombre: 'Hiedra del Relojero', mapa: 'm5', fn: 'ofensiva', col: 'magenta', tipo: 'zarza', forma: 'zarza', hp: 60, r: 2.3, brote: 8, rebrota: 40, infl: true,
     p: { gracia: 0.5, tick: 0.6, dmg: 6, mdps: 5, vel: 0.55 }, cos: { mat: 'fibra', n: [1, 2], q: 1 },

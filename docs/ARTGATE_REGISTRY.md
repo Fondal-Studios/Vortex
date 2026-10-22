@@ -31,3 +31,42 @@ Alta: mismas llamadas, 3.5k–14.7k tris (jefes ≤ 20.2k). Textura CC0 reutiliz
 
 ## Veredicto global (críticos de shooter independientes)
 _(se completa al final: meta = mediana > 7)_
+
+## Pulido incremental de combate — 2026-10-22 — PASA
+Rol: diferenciar seis firmas de proyectil, contactos melee/remates, equipo y pulsos de huésped/arena. Silueta objetivo: trazas y geometrías propias; contacto localizado sin ocultar al objetivo. Implementación: Codex; crítico independiente: visual_review (no autor).
+
+| Criterio | Nota | Evidencia |
+|---|---:|---|
+| Silueta y legibilidad | 7 | Proyectiles distinguibles; faro cercano ya no oculta el combate. |
+| Modelado y detalle | 7 | Equipo con motivos propios y poses acordes al golpe. |
+| Materiales y luz | 7 | Contactos contenidos; huésped conserva silueta y color. |
+| Coherencia | 8 | Paletas canónicas y lenguaje orgánico/cristalino. |
+| Animación y feedback | 7 | Remate distinto de ejecución; críticos y ondas identificables. |
+| Costo | 8 | Huésped equipado Baja: 13 llamadas / 14.578 triángulos; consola sin errores. |
+
+Mínimo: 7. [Capturas y validación](COMBAT_POLISH.md). Escena de referencia Baja: 61 llamadas; sin luces nuevas. No certifica todas las piezas, arenas, FPS en iPhone ni calidad global. Alta aún conserva bastante brillo ambiental; HUD congestionado fuera del alcance. No se agregaron recursos externos.
+
+## Identidad y colección cosmética — 2026-10-22 — PASA (delta acotado)
+Autor Codex; crítico independiente visual_review. Revisión de 32 vistas de acabados (porcelana en los8 huéspedes y pares de contraste), catálogo desktop/móvil, seis arenas Baja/Alta y cuatro closeups de zonas activas. Fixtures de inspección, no recorridos completos.
+
+| Criterio incremental | Nota | Evidencia |
+|---|---:|---|
+| Legibilidad de catálogo/acabados | 7 | Precio, propiedad, futuro y equipamiento distintos |
+| Materiales y luz del visor | 7 | Acabados visibles sin cambiar emisivos; porcelana algo plana en Umbra |
+| Coherencia | 8 | Silueta y color de habilidades preservados |
+| Navegación | 7 | Foco y scroll de mercado/arenas corregidos |
+| Integridad cosmética | 9 | Compra única, persistencia, límites por huésped; futuras ediciones bloqueadas |
+| Costo incremental | 8 | No añade geometría ni luces a la partida |
+
+Zonas de arenas: legibilidad7, materiales/luz7, coherencia8, costo incremental8. Suelo visible, anillo identificable y halo contenido. No se modificó ni certificó modelado/animación completos. m2 Alta tiene obstrucción parcial por objetos próximos en el fixture.
+
+**No aprueba Host/Arena/Game Gate completos.** [Registro por pieza](identity-gates.json), [producción y límites](IDENTITY_PRODUCTION.md). Presupuestos de los cuerpos base del visor Baja: Axioma15.084, Micelio15.216, Seraf15.454 >15.000. El bloque anterior medía Axioma con equipo que reemplaza geometría: no es el mismo fixture. Las variantes regionales también pueden sumar geometría. Deuda pendiente, sin aumento geométrico en este cambio.
+
+## HUD táctico y Cuenta — PASA incremental (2026-10-22)
+
+Rol: orientación por siluetas, reanimación contextual y acceso legible a cuentas. Formas distintas para huésped, aliados, caídos, enemigo, élite, jefe, objetivo y misión. Capturas Chromium Baja/Alta/escritorio y 844×390 con controles táctiles en `docs/tactical/`. Revisión independiente: `docs/tactical/review.md`, mínimo 7/10 aplicable. Costo: Canvas2D10Hz/DOM, cero draw calls WebGL añadidas. Corregidos solapamientos táctiles y propagación de release. No aprueba el arte/HUD global ni rendimiento de iPhone físico.
+
+
+### Aprendizaje de dos habilidades · gate incremental
+
+PASA, mínimo 7. Apoyo tras oleada 1 y ulti tras oleada 3; panel de explicación pausado, dos controles separados, enfriamiento/carga y bloqueos legibles. Capturas PC/móvil Baja/Alta y revisión independiente: `docs/skills/review.md`. Sin geometría ni luces nuevas; no sustituye el gate global del juego.

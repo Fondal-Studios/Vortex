@@ -1,0 +1,25 @@
+✔ roles: 4 roles distintos, cada uno con habilidad y recarga; se asignan por orden o por elección (11.016227ms)
+✔ habilidad Vanguardia: la cúpula reduce 40 % el daño adentro y destruye proyectiles enemigos; entra en recarga (24.789356ms)
+✔ habilidad Soporte: cura a los cercanos y reanima al instante a un caído a ≤ 4 u (1.251698ms)
+✔ habilidad Ingeniero: torreta que dispara sola a las criaturas y desaparece; Explorador: marca (+30 % de daño) (51.020571ms)
+✔ objetivo Ancla: se carga sólo con alguien adentro, las criaturas la roen, se cumple y premia al equipo (55.398699ms)
+✔ objetivo Ancla: si las criaturas la destruyen o se acaba el tiempo, falla y el Vórtice se enfurece (105.267653ms)
+✔ objetivo Sintonía (coop): hay que pisar TODAS las placas a la vez 3 s; con una sola no avanza (23.891324ms)
+✔ objetivo Sintonía (solo): la placa queda viva tras salir y se puede resolver corriendo de una a otra (5.869591ms)
+✔ objetivo Núcleo: se recoge, se lleva (−25 % de velocidad, sin disparar), se pasa con E y se entrega en el altar (2.309728ms)
+✔ Coloso: el Rayo del Vacío marca un pilar; si alguien lo sintoniza, el escudo estalla y el jefe queda aturdido recibiendo más daño (28.598058ms)
+✔ Coloso: si nadie sintoniza el pilar marcado, el pilar cae y el escudo sigue (14.399068ms)
+✔ Director: con estrés alto espacia las apariciones y suelta botiquines de alivio; con calma mete especiales (5.764023ms)
+✔ Ping: marca lo que apuntás (enemigo / objeto / punto), dura ~7 s y viaja en el snapshot (17.543454ms)
+✔ Caídos: se desangran (25 s); un compañero cerca los reanima en 3 s (Soporte 1,5 s); si nadie llega quedan fuera hasta la próxima oleada (45.451298ms)
+✔ snapshot del director: roles, objetos, objetivo, pings y estado del jefe viajan al cliente (JSON) (1.332087ms)
+✔ objetivo: repone el arsenal equipado de vesper, conserva munición infinita y respeta mejoras (5.751585ms)
+✔ objetivo: repone el arsenal equipado de micelio, conserva munición infinita y respeta mejoras (0.434054ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 579.025395

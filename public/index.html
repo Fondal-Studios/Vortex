@@ -11,6 +11,8 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css"><link rel="stylesheet" href="/public/territorios.css"><link rel="stylesheet" href="/public/inventario.css"><link rel="stylesheet" href="/public/graficos.css"><link rel="stylesheet" href="/public/tienda.css"><link rel="stylesheet" href="/public/menu.css">
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
+<link rel="stylesheet" href="/public/identity.css">
+<link rel="stylesheet" href="/public/focused-hud.css">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -22,6 +24,7 @@
   <div id="bossbar" class="hidden"><span id="bossname"></span><div><b id="bossfill"></b></div></div>
   <div id="banner"></div>
   <div id="bars">
+    <img id="hudportrait" src="/public/portraits/axioma.png" alt="Tu huésped"><strong id="hudname">Huésped</strong>
     <div class="bar sh"><b id="shfill"></b><span id="shnum"></span></div>
     <div class="bar hp"><b id="hpfill"></b><span id="hpnum"></span></div>
     <div id="score"></div>
@@ -37,7 +40,7 @@
   <div id="allies"></div>
   <div id="pings"></div>
   <div id="skills"><div class="sk" id="skm"><b>F</b><span></span><i></i></div><div class="sk" id="ske"><b>CLIC DER</b><span></span><i></i></div></div>
-  <div id="cards" class="hidden"><div class="cards-in"><h3>MEJORÁ UN ARMA</h3><div id="cardlist"></div><p id="cardhint"></p></div></div>
+  <div id="cards" class="hidden"><div class="cards-in"><h3>ELEGÍ UNA MEJORA</h3><div id="cardlist"></div><p id="cardhint"></p></div></div>
 </div>
 <div id="touch" class="hidden"></div>
 <div id="rotate" class="hidden"><p>📱↻</p><p>Girá el teléfono en horizontal para jugar</p></div>
@@ -69,7 +72,7 @@
   <section id="story" class="screen" data-screen="story">
     <h3 class="stitle">Historia</h3>
     <div class="cards">
-      <button id="campaign" class="card big" data-art="historia"><img src="/public/art/historia.jpg" alt=""><div><b>Nueva partida</b><small>Cine del tren · El despertar · 2 capítulos y 2 jefes</small></div></button>
+      <button id="campaign" class="card big" data-art="historia"><img src="/public/art/historia.jpg" alt=""><div><b>Nueva partida</b><small>Recuperá tu identidad · Abrí la salida · 2 capítulos</small></div></button>
     </div>
     <p class="storytxt">Te atropella un tren. Despertás en el Vórtice —lo que hay entre vivir y no— con armas en las manos y un bicho extraño que te explica la única regla: sobrevivir a todo para volver al mundo de los vivos.</p>
   </section>
@@ -82,7 +85,7 @@
       <button class="card" data-start="practica"><img src="/public/art/arena-m1.jpg" alt=""><div><b>Campo de pruebas</b><small>Probá héroes y las 25 armas contra blancos · sin riesgo<br>H cambia de héroe · , . cambian de arma</small></div></button>
       <button class="card" data-start="m3"><img src="/public/art/arena-m3.jpg" alt=""><div><b>Laberinto Celestial</b><small>Muros de cristal · ojos por todas partes<br>Jefe: Argos, el Ojo Primordial<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Silbido o Canto)</em></small></div></button>
       <button class="card" data-start="m4"><img src="/public/art/arena-m4.jpg" alt=""><div><b>Jardín de Carne</b><small>Un planeta vivo: caminos que crecen · alimentá capullos para abrir el puente<br>Jefe: Argos, el Ojo Primordial<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Hambre o Raíz)</em></small></div></button>
-      <button class="card" data-start="m5"><img src="/public/art/arena-m5.jpg" alt=""><div><b>Plaza de los Ecos</b><small>La Praga de Arcanum, muerta: una plaza clara · la fuente cae hacia arriba (gravedad rota)<br>Jefe: El Mandinga<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Hora Detenida o Farol)</em></small></div></button>
+      <button class="card" data-start="m5"><img src="/public/art/arena-m5.jpg" alt=""><div><b>Plaza de los Ecos</b><small>Un archivo de memoria de Praga: una plaza clara · la fuente cae hacia arriba (gravedad rota)<br>Jefe: El Mandinga<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Hora Detenida o Farol)</em></small></div></button>
       <button class="card" data-start="m6"><img src="/public/art/arena-m6.jpg" alt=""><div><b>Osario sin Techo</b><small>Una iglesia de huesos en cruz · seguí las losas claras hasta el altar<br>Jefe: El Basilisco<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Hueso Firme o Descanso Ajeno)</em></small></div></button>
     </div>
   </section>
@@ -154,6 +157,8 @@
       <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado, ratón y mando</option></select></label>
       <label>Ayuda de puntería <select id="aimsel"><option value="0">Apagada</option><option value="1">Baja</option><option value="2" selected>Media</option><option value="3">Alta</option></select></label>
       <label>Sensibilidad <input id="sens0" type="range" min="2" max="10" value="5"></label>
+      <label>Opacidad del minimapa <input id="minimap-opacity" aria-label="Opacidad del minimapa" type="range" min="20" max="100" step="5" value="85"></label>
+      <p class="hint">Minimapa: ▲ vos · ● aliado · ✚ caído · × enemigo · ◆ élite · ★ jefe · ■ objetivo · ⚑ misión. Arriba es tu frente; ↑/↓ indica otra altura.</p>
       <label>Volumen <input id="vol" type="range" min="0" max="10" value="6"></label>
       <label>Subtítulos <select id="subsel"><option value="1">Sí</option><option value="0">No</option></select></label>
       <label>Al terminar una partida <select id="basesel"><option value="1">Entrar a la Base</option><option value="0">Volver al menú</option></select></label>
@@ -222,6 +227,7 @@
   <button class="item" id="claridad"><b>Claridad: Normal</b></button>
   <button class="item" id="styletoggle"><b>Estilo de combate: Disparo 🎯</b></button>
   <button class="item" id="simpletoggle"><b>Modo simple (dispara solo): sí</b></button>
+  <label class="item">Poder esencial <select id="essentialpower"><option value="esp">Habilidad 2</option><option value="s3">Habilidad 3 / principal Melé</option><option value="ability">Poder de equipo</option></select><small>Mantener PODER activa la definitiva cuando está cargada.</small></label>
   <button class="item" id="advtoggle"><b>Habilidades: no</b></button>
   <button class="item" id="evoopen"><b>Evolución (órganos y esencias)</b></button>
   <label class="item sel" hidden style="display:none"><select id="qsel2"></select></label></div></details>

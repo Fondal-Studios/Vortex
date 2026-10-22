@@ -1,6 +1,7 @@
 // HUD de META: una línea arriba con lo que hay que hacer ahora, marcador de la mini-misión opcional, flecha al objetivo y guía de primera partida.
 // Todo se alimenta del snapshot (state.wave/left/obj/boss/mis); los textos viven en meta-texto.js (puro, con tests). Sin botones nuevos: nada tapa el HUD táctil.
 import * as THREE from 'three';
+import { hudSafePoint } from './hud-safe-point.js';
 import { metaActual, textoMision, metaMapa, PASOS_GUIA } from './meta-texto.js';
 import * as Perfil from './perfil.js';
 
@@ -56,7 +57,8 @@ export function createMetaHud(host, ctx = {}) {
     if (on) { flecha.classList.add('in'); flecha.style.transform = `translate(${(x * 0.5 + 0.5) * W}px, ${Math.max(100, (-y * 0.5 + 0.5) * H - 38)}px)`; flecha.querySelector('i').style.transform = 'rotate(90deg)'; return; }
     flecha.classList.remove('in');
     const ang = Math.atan2(y, x), s = Math.min(0.9 / Math.abs(Math.cos(ang) || 1e-6), 0.82 / Math.abs(Math.sin(ang) || 1e-6));
-    flecha.style.transform = `translate(${(Math.cos(ang) * s * 0.5 + 0.5) * W}px, ${Math.max(100, (-Math.sin(ang) * s * 0.5 + 0.5) * H)}px)`;   // nunca tapa la línea de meta de arriba
+    const [px, py] = hudSafePoint((Math.cos(ang) * s * 0.5 + 0.5) * W, Math.max(100, (-Math.sin(ang) * s * 0.5 + 0.5) * H), W, H);
+    flecha.style.transform = `translate(${px}px, ${py}px)`;   // nunca tapa la línea de meta de arriba
     flecha.querySelector('i').style.transform = `rotate(${-ang}rad)`;
   }
 
@@ -84,7 +86,7 @@ export function createMetaHud(host, ctx = {}) {
     evento(e, banner, sound) {
       mision.classList.remove('pop'); void mision.offsetWidth; mision.classList.add('pop');
       if (e.ph === 'done') { sound.objective(true); banner(`¡MISIÓN CUMPLIDA! +${e.rc} núcleos`, 2600); }
-      else if (e.ph === 'failed') banner('Misión opcional perdida', 1600);
+      // No interrumpir el combate para anunciar un desafío opcional fallido.
     },
   };
 }

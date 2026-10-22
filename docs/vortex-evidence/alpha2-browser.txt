@@ -1,0 +1,8 @@
+pc shooter: camera ok; 0 actions; bounds ok
+pc combo: camera ok; 0 actions; bounds ok
+iphoneSE shooter: camera ok; 4 actions; bounds ok
+iphoneSE combo: camera ok; 4 actions; bounds ok
+iphone13 shooter: camera ok; 4 actions; bounds ok
+iphone13 combo: camera ok; 4 actions; bounds ok
+tablet shooter: camera ok; 4 actions; bounds ok
+tablet combo: camera ok; 4 actions; bounds ok

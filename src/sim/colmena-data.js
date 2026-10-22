@@ -1,3 +1,4 @@
+import { ULT_COOLDOWN } from './ultimate-cooldown.js';
 // COLMENA — el sexto Huésped (invocador / enjambre). Sólo DATOS puros (sin importar nada): data.js los registra en CHARACTERS, COMBO_SETS, HABILIDADES, etc.
 // La lógica (zánganos, nidos, la Reina) vive en src/sim/enjambre.js. Contrato y balance: docs/HUESPEDES.md → «Colmena».
 // Folclore del limbo: las abejas de un colmenar quemado que no se fueron: aprendieron a pensar juntas y ahora son una sola voz con miles de alas.
@@ -11,13 +12,13 @@ export const COLMENA = {
     unlock: { precio: 600, req: { rango: 3, texto: 'Llegá al rango 3 de maestría con cualquier otro Huésped.' } },
     preset: 'jugador3', seed: null, color: 0xf0384e, hp: 0.9, speed: 1, slots: [17, 9, 19, 13],
     desc: 'Invocadora. Cría un enjambre de zánganos que atacan solos, planta nidos que disparan y manda sobre el campo sin moverse demasiado. Sola es frágil; acompañada, no hay quien la pare.',
-    story: 'Era un colmenar al pie de una estación que ya no figura en ningún mapa. Se quemó, y las abejas no se fueron: aprendieron a pensar juntas. Ahora son una sola voz con miles de alas y te piden, muy educadas, un lugar donde poner el panal.',
+    story: 'Una conciencia humana enlazada con una IA distribuida entre drones biológicos. Cada criatura del enjambre es una extensión del mismo Huésped.',
     stats: { dano: 6, resistencia: 4, movilidad: 6, control: 7, utilidad: 8, dificultad: 7 },
     melee: { light: { dmg: 28, range: 3.4, arc: 0.55, cd: 0.4 }, heavy: { dmg: 85, range: 4, arc: 0.5, cd: 0.9, knock: 8 } },
     mov: { id: 'zumbido', name: 'Zumbido', cd: 6, desc: 'Un salto zumbante hacia donde mirás, con 0,3 s de invulnerabilidad. Al arrancar nace un zángano.' },
     esp: { id: 'cria', name: 'Criar enjambre', cd: 11, desc: 'Tres zánganos brotan delante tuyo y atacan solos durante 20 s. Con el límite lleno, renueva el tiempo del más viejo.' },
     s3: { id: 'nido', name: 'Nido-torreta', cd: 16, desc: 'Un nido orgánico brota en el suelo y dispara a todo lo que se acerque durante 14 s (máx. 2 a la vez).' },
-    ult: { id: 'marabunta', name: 'Marabunta', cd: 0, charge: 100, desc: '10 s: el enjambre entra en frenesí (ataca al doble de rápido), nace un zángano por segundo y recibís 20 % menos de daño.' },
+    ult: { id: 'marabunta', name: 'Marabunta', cd: ULT_COOLDOWN.marabunta, desc: '10 s: el enjambre entra en frenesí (ataca al doble de rápido), nace un zángano por segundo y recibís 20 % menos de daño.' },
     passive: { id: 'cria_viva', name: 'Cría viva', desc: 'Cada 6 s nace un zángano gratis (hasta 2) y cada zángano vivo (máx. 5) te da +3 % de daño.' },
   },
   /** Caminos de evolución PROPIOS (4 niveles × 2 excluyentes). Las ids son nuevas: el resto del juego las ignora si no las conoce. */

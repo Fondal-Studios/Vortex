@@ -1,3 +1,4 @@
+import { perfil as cosmeticProfile } from './perfil.js';
 import * as THREE from 'three';
 import { MAPS } from '../sim/maps.js';
 import { skyMaterial, crystalMaterial, groundMaterial, shellMaterial, zoneMaterial, uTime, uInfect, uBeat, OUT } from './shaders.js';
@@ -363,12 +364,12 @@ export class Renderer {
       const g = new THREE.Group(), mk = (c, o, ro) => { const mt = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthTest: false, depthWrite: false }); const q = new THREE.Mesh(this.barGeo, mt); q.renderOrder = ro; return q; };
       g.userData = { bg: mk(0x05030f, 0.7, 996), fill: mk(0x66ff88, 0.95, 997), edge: mk(0xffffff, 0.0, 995) }; g.add(g.userData.edge, g.userData.bg, g.userData.fill); this.barRoot.add(g); e.bar = g;
     }
-    const g = e.bar, u = g.userData, w = Math.max(1.4, Math.min(4.6, m.r * 1.7)), hh = Math.max(0.16, w * 0.085), frac = Math.max(0, Math.min(1, m.hp / m.mh));
+    const g = e.bar, u = g.userData, w = Math.max(1.4, Math.min(m.el ? 5.2 : 4.6, m.r * (m.el ? 2.1 : 1.7))), hh = Math.max(0.16, w * 0.085), frac = Math.max(0, Math.min(1, m.hp / m.mh));
     g.visible = true; g.quaternion.copy(this.camera.quaternion);
     g.position.copy(V(m.p)).addScaledVector(V(m.u), m.r * 1.25 + 0.9);
     u.edge.scale.set(w + hh * 0.5, hh * 1.5, 1); u.bg.scale.set(w, hh, 1); u.fill.scale.set(Math.max(0.001, w * frac), hh * 0.8, 1); u.fill.position.set(-w * (1 - frac) / 2, 0, 0.001);
     u.fill.material.color.setHex(m.ef & 4 ? 0xff9a3a : m.ef & 2 ? 0xa6ff4a : frac > 0.6 ? 0x66ff88 : frac > 0.3 ? 0xffd23f : 0xff4a5a);
-    u.edge.material.opacity = m.el ? 0.8 : 0; u.edge.material.color.setHex(0xff3a5a);
+    u.edge.material.opacity = m.el ? 0.8 : 0; u.edge.material.color.setHex(0xffc857);
   }
   /** Afijo de élite (AFFIXES): UN sprite de halo del color del afijo + UNA etiqueta con el nombre (textura compartida por texto). Sólo élites, así que cuesta poco. */
   setAffix(e, af) {
@@ -420,7 +421,7 @@ export class Renderer {
     for (const [id, e] of this.ents.mon) if (!seen.has(id)) { if (e.bar) { this.barRoot.remove(e.bar); e.bar = null; } this.ents.mon.delete(id); e.dyingT = 0; e.dyingMax = e.kind === 'coloso' || e.kind === 'madre' || e.kind === 'argos' ? 1.8 : 0.5; e.base = e.object.scale.clone(); this.dying.push(e); }
   }
   /** FARO DE RASTREO (política «sin teletransportes», docs/MUNDO_VIVO.md): una columna de luz + halo grande sobre las criaturas en acoso (`m.ac`) y sobre
-   *  las últimas de la oleada (≤ 6 sin jefe), dibujados SIN profundidad: se ven a través de paredes y niebla. Magenta = acosando; ámbar = de las últimas. */
+   *  las últimas de la oleada (≤ 6 sin jefe), dibujados SIN profundidad: se ven a través de paredes y niebla a distancia; se retiran cerca de cámara para no tapar el melee. Magenta = acosando; ámbar = de las últimas. */
   faro(e, m, state, scale) {
     const ultima = state.left <= 6 && !state.boss && !(m.k === 'coloso' || m.k === 'madre' || m.k === 'argos'), on = !!m.ac || ultima;
     if (!on) { if (e.faro) { e.faro.visible = false; } return; }
@@ -434,10 +435,12 @@ export class Renderer {
     const c = m.ac ? 0xff4fd8 : 0xffc24a;
     if (e.faroC !== c) { e.faroC = c; const mat = this.shared('faro' + c, () => new THREE.SpriteMaterial({ map: this.halo, color: c, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, opacity: 0.8 })); e.faro.getObjectByName('col').material = mat; e.faro.getObjectByName('hal').material = mat; }
     const k = 1 / Math.max(0.2, scale), pul = 0.85 + 0.15 * Math.sin(this.t * 6 + m.id);
-    e.faro.visible = true;
+    const distance = this.camera.position.distanceTo(e.object.position);
+    const far = THREE.MathUtils.smoothstep(distance, 14, 38);
+    e.faro.visible = far > 0.01;
     const col = e.faro.getObjectByName('col'), hal = e.faro.getObjectByName('hal');
-    col.scale.set(2.2 * k, 46 * k, 1); col.position.set(0, 21 * k, 0);   // columna vertical (hacia arriba del mundo; el objeto está orientado con su «arriba»)
-    hal.scale.setScalar(9 * k * pul);
+    col.scale.set(2.2 * k * far, 46 * k, 1); col.position.set(0, 21 * k, 0);   // columna vertical (hacia arriba del mundo; el objeto está orientado con su «arriba»)
+    hal.scale.setScalar(9 * k * pul * far);
   }
   /** Marcas de aviso en el suelo (nacimientos `omen`, llegada del Pombero `tele`): un anillo que late hasta que se cumple el plazo. */
   updateAvisos(dt) {
@@ -538,6 +541,7 @@ export class Renderer {
         k.color.set(0xffffff).lerp(new THREE.Color(col), 0.25); k.intensity = 20 * c.key * (this.luzKey || 1); k.visible = true;
       } else if (self) this.keyLight.intensity = 0;
       if (e.body) {
+        if (e.body.setCosmetic) e.body.setCosmetic(self ? cosmeticProfile().cosmetics?.equipped?.[p.char] : null);
         for (const ev of state.events) if ((ev.t === 'melee' || ev.t === 'skill') && ev.pid === p.id) e.body.event(ev); else if (ev.t === 'fauna' && ev.pid === p.id && e.body.formaEvent) e.body.formaEvent(ev);   // fauna: la transformación al comer
         e.shotT = Math.max(0, e.shotT - dt); const cx = this.comboFx ? this.comboFx.frameFor(p.id, dt, p, state) : null;   // Combo: pose del golpe, avance visual y hit-stop del cuerpo
         e.body.update(dt, p, { speed: e.spd, moveDir: e.moveDir, pitch: p.pitch, self, shot: e.shotT > 0, map: this.mapId, camDist: self ? this.camera.position.distanceTo(V(p.pos)) : null, ...cx });

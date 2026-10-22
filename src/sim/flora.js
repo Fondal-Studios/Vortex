@@ -1,3 +1,4 @@
+import { refundUltimate } from './ultimate-cooldown.js';
 // FLORA INTERACTIVA (docs/FLORA.md): cada arena tiene un jardín psicodélico que INTERACTÚA con el Huésped, las criaturas y el entorno.
 // Determinista y sin DOM: usa su PROPIO generador derivado de la semilla (g.flRng, como g.arRng en arenas-vivas.js y g.ngRng en nieblas.js)
 // y NUNCA toca g.rng. Los datos viven en flora-data.js. Las plantas NO son sólidas (no tapan caminos, disparos ni apariciones): son
@@ -267,7 +268,7 @@ function comer(g, pl, p) {
   if (S.tipo === 'cura') { p.hp = Math.min(PLAYER.hp, p.hp + (P.hp || 0) * bonus * aur); p.shield = Math.min(PLAYER.shield, p.shield + (P.sh || 0) * bonus * aur); }
   else if (S.tipo === 'escudo') { p.shield = Math.min(PLAYER.shield, p.shield + P.sh * bonus); p.hp = Math.min(PLAYER.hp, p.hp + (P.hp || 0) * bonus); p.flWard = P.ward; p.flWardUntil = g.time + P.wardT; markFx(g, p, 4, P.wardT); }
   else if (S.tipo === 'energia') {
-    p.ul = Math.min(100, (p.ul || 0) + P.ul * bonus); p.hp = Math.min(PLAYER.hp, p.hp + (P.hp || 0) * bonus);
+    refundUltimate(p, (P.ultSeconds || 0) * bonus); p.hp = Math.min(PLAYER.hp, p.hp + (P.hp || 0) * bonus);
     for (const k of ['abilityCd', 'movCd', 'espCd', 's3Cd']) if (p[k] > 0) p[k] *= 1 - P.cd;
   }
   p.flIcd = g.time + FLORA.curaIcd; g.fl.stats.curado += (p.hp - h0) + (p.shield - s0);
@@ -275,7 +276,7 @@ function comer(g, pl, p) {
   marchitar(g, pl, 'comida');
 }
 function necesita(p, S) {
-  if (S.tipo === 'energia') return (p.ul || 0) < 92 || ['abilityCd', 'movCd', 'espCd', 's3Cd'].some((k) => p[k] > 1);
+  if (S.tipo === 'energia') return (p.ultCd || 0) > 1 || ['abilityCd', 'movCd', 'espCd', 's3Cd'].some((k) => p[k] > 1);
   if (S.tipo === 'escudo') return p.shield < PLAYER.shield * 0.7 || p.hp < PLAYER.hp * 0.7;
   return (p.hp + p.shield) / (PLAYER.hp + PLAYER.shield) < FLORA.curaSiBajo;
 }

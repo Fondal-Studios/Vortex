@@ -1,0 +1,10 @@
+﹣ HUD esencial: cuatro acciones y cámara por modo en PC y viewports móviles (0.999758ms) # SKIP
+﹣ menús: botón Volver en cada sub-pantalla y sin desborde horizontal (0.230303ms) # SKIP
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 2
+ℹ todo 0
+ℹ duration_ms 101.818383

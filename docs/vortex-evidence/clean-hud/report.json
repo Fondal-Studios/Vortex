@@ -1,0 +1,210 @@
+[
+  {
+    "name": "desktop",
+    "combat": [
+      {
+        "key": "fire",
+        "images": 1,
+        "rect": {
+          "x": 1168,
+          "y": 686,
+          "width": 96,
+          "height": 96,
+          "top": 686,
+          "right": 1264,
+          "bottom": 782,
+          "left": 1168
+        }
+      },
+      {
+        "key": "mov",
+        "images": 1,
+        "rect": {
+          "x": 1078,
+          "y": 706,
+          "width": 76,
+          "height": 76,
+          "top": 706,
+          "right": 1154,
+          "bottom": 782,
+          "left": 1078
+        }
+      },
+      {
+        "key": "esp",
+        "images": 1,
+        "rect": {
+          "x": 1078,
+          "y": 618,
+          "width": 76,
+          "height": 76,
+          "top": 618,
+          "right": 1154,
+          "bottom": 694,
+          "left": 1078
+        }
+      },
+      {
+        "key": "ult",
+        "images": 1,
+        "rect": {
+          "x": 1176,
+          "y": 560,
+          "width": 76,
+          "height": 76,
+          "top": 560,
+          "right": 1252,
+          "bottom": 636,
+          "left": 1176
+        }
+      }
+    ],
+    "all": [
+      "fire",
+      "mov",
+      "esp",
+      "ult"
+    ],
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "combat": [
+      {
+        "key": "fire",
+        "images": 1,
+        "rect": {
+          "x": 736,
+          "y": 280,
+          "width": 92,
+          "height": 92,
+          "top": 280,
+          "right": 828,
+          "bottom": 372,
+          "left": 736
+        }
+      },
+      {
+        "key": "mov",
+        "images": 1,
+        "rect": {
+          "x": 658,
+          "y": 308,
+          "width": 64,
+          "height": 64,
+          "top": 308,
+          "right": 722,
+          "bottom": 372,
+          "left": 658
+        }
+      },
+      {
+        "key": "esp",
+        "images": 1,
+        "rect": {
+          "x": 668,
+          "y": 230,
+          "width": 64,
+          "height": 64,
+          "top": 230,
+          "right": 732,
+          "bottom": 294,
+          "left": 668
+        }
+      },
+      {
+        "key": "ult",
+        "images": 1,
+        "rect": {
+          "x": 756,
+          "y": 186,
+          "width": 64,
+          "height": 64,
+          "top": 186,
+          "right": 820,
+          "bottom": 250,
+          "left": 756
+        }
+      }
+    ],
+    "all": [
+      "fire",
+      "mov",
+      "esp",
+      "ult",
+      "mode",
+      "pause"
+    ],
+    "errors": []
+  },
+  {
+    "name": "small-mobile",
+    "combat": [
+      {
+        "key": "fire",
+        "images": 1,
+        "rect": {
+          "x": 559,
+          "y": 265,
+          "width": 92,
+          "height": 92,
+          "top": 265,
+          "right": 651,
+          "bottom": 357,
+          "left": 559
+        }
+      },
+      {
+        "key": "mov",
+        "images": 1,
+        "rect": {
+          "x": 481,
+          "y": 293,
+          "width": 64,
+          "height": 64,
+          "top": 293,
+          "right": 545,
+          "bottom": 357,
+          "left": 481
+        }
+      },
+      {
+        "key": "esp",
+        "images": 1,
+        "rect": {
+          "x": 491,
+          "y": 215,
+          "width": 64,
+          "height": 64,
+          "top": 215,
+          "right": 555,
+          "bottom": 279,
+          "left": 491
+        }
+      },
+      {
+        "key": "ult",
+        "images": 1,
+        "rect": {
+          "x": 579,
+          "y": 171,
+          "width": 64,
+          "height": 64,
+          "top": 171,
+          "right": 643,
+          "bottom": 235,
+          "left": 579
+        }
+      }
+    ],
+    "all": [
+      "fire",
+      "mov",
+      "esp",
+      "ult",
+      "mode",
+      "pause"
+    ],
+    "errors": []
+  }
+]

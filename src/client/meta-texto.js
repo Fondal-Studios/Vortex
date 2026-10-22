@@ -5,12 +5,14 @@ const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 const pct = (v) => `${Math.round(Math.max(0, Math.min(1, v || 0)) * 100)} %`;
 
 /** Meta del OBJETIVO de oleada en curso (ancla, sintonía, núcleo, cultivo). */
-export function textoObjetivo(o, me) {
+export function textoObjetivo(o, me, solo = false) {
   if (!o) return '';
   const carga = me && me.carry;
   switch (o.type) {
+    case 'secuencia': return `Reconectá terminal ${Math.min((o.stage || 0) + 1, o.total || 3)}/${o.total || 3} · quedate 2 s`;
+    case 'caza': return o.target == null ? 'Localizá al custodio cuando aparezca' : 'Eliminá al custodio marcado para terminar la oleada';
     case 'ancla': return `Cargá el Ancla: quedate dentro del círculo (${pct(o.prog)})`;
-    case 'sintonia': return `Pisá todas las placas a la vez (${pct(o.prog)})`;
+    case 'sintonia': return solo ? `Pisá cada placa antes de que se apague (${pct(o.prog)})` : `Ocupen todas las placas a la vez (${pct(o.prog)})`;
     case 'nucleo': return carga ? 'Llevá el núcleo al altar' : (o.prog > 0.02 ? 'Llevá el núcleo al altar (alguien lo lleva)' : 'Recogé el núcleo y llevalo al altar');
     case 'cultivo': return 'Alimentá los capullos disparándoles hasta que florezcan';
     default: return o.title || 'Cumplí el objetivo';
@@ -28,24 +30,24 @@ export function metaActual(state, me) {
   if (state.phase === 'intermission') {
     if (me && me.cards && me.cards.length) return { kind: 'mejora', main: 'Elegí una mejora de arma', next: w + 1 >= W ? 'Luego: el jefe' : `Luego: oleada ${w + 1}/${W}` };
     const sig = w + 1, jefe = sig >= W;
-    if (!w) return { kind: 'espera', main: `Prepará tu Huésped · empieza en ${Math.ceil(state.intermission)} s`, next: 'Meta: sobrevivir cada oleada y vencer al jefe' };
+    if (!w) return { kind: 'espera', main: `Prepará tu Huésped · empieza en ${Math.ceil(state.intermission)} s`, next: state.map === 'm2' ? 'Vencé a la Madre Geoda para abrir la salida' : 'Recuperá tu identidad: sobreviví y vencé al guardián' };
     return { kind: 'espera', main: `Respiro · ${jefe ? 'viene el jefe' : `oleada ${sig}/${W}`} en ${Math.ceil(state.intermission)} s`, next: jefe ? 'Luego: derrotar al jefe' : 'Aprovechá: recogé munición y vida' };
   }
   if (esJefe) {
     const b = state.boss;
-    return { kind: 'jefe', main: b ? `Derrotá a ${b.name} (${Math.max(0, Math.round(100 * b.hp / (b.max || 1)))} % de su vida)` : 'Derrotá al jefe', next: 'Luego: liberar el territorio' };
+    return { kind: 'jefe', main: b ? `Derrotá a ${b.name} (${Math.max(0, Math.round(100 * b.hp / (b.max || 1)))} % de su vida)` : 'Derrotá al jefe', next: 'Liberá este archivo de la red' };
   }
   const quedan = state.left || 0;
   const o = state.obj && state.obj.state === 'active' ? state.obj : null;
-  if (o) return { kind: 'objetivo', main: `${tag} · ${textoObjetivo(o, me)}`, next: quedan ? `Además: ${plural(quedan, 'criatura', 'criaturas')} en pie` : 'Luego: terminar con las criaturas' };
+  if (o) return { kind: 'objetivo', main: `${tag} · ${textoObjetivo(o, me, state.players?.length === 1)}`, next: `Tiempo: ${Math.ceil(o.left || 0)} s · ${plural(quedan, 'enemigo', 'enemigos')}` };
   return { kind: 'oleada', main: quedan ? `${tag} · Eliminá ${plural(quedan, 'criatura', 'criaturas')}` : `${tag} · Casi: ya no queda ninguna`, next: w + 1 >= W ? 'Luego: el jefe' : 'Luego: respiro y mejora' };
 }
 
 /** Marcador de la mini-misión secundaria de la oleada (o null). */
 export function textoMision(mis) {
   if (!mis) return null;
-  const base = { melee: `Golpe a golpe: matá ${mis.n} con melé`, intacto: 'Intocable: superá la oleada sin recibir daño', elite: 'Caza mayor: eliminá al élite (brilla distinto)', alimento: 'Alimentación: comé a la criatura RARA que brilla (USAR / E)' }[mis.k] || 'Misión';
-  const cuenta = mis.k === 'melee' ? ` (${mis.p}/${mis.n})` : '';
+  const base = { asalto: `Primer contacto: eliminá ${mis.n} enemigos con tu estilo`, melee: `Golpe a golpe: matá ${mis.n} con melé`, intacto: 'Intocable: superá la oleada sin recibir daño', elite: 'Caza mayor: eliminá al élite (brilla distinto)', alimento: 'Alimentación: comé a la criatura RARA que brilla (USAR / E)' }[mis.k] || 'Misión';
+  const cuenta = ['melee', 'asalto'].includes(mis.k) ? ` (${mis.p}/${mis.n})` : '';
   const premio = `+${mis.rc} núcleos`;
   if (mis.st === 'done') return { cls: 'done', txt: `✔ ${base.split(':')[0]} cumplida · ${premio}` };
   if (mis.st === 'failed') return { cls: 'fail', txt: `✖ ${base.split(':')[0]} perdida` };

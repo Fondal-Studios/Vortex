@@ -7,6 +7,7 @@
 //   ANIM_HAB[huespedId] = { cast: arquetipo, go: arquetipo } para la habilidad principal (evento `hab`)
 // Todo es visual: no toca la simulación (que sigue determinista). `StrikePose` (abajo) es la máquina de estados por jugador; la usa combo-fx.js.
 import * as THREE from 'three';
+import { ITEM_COMBO_SETS } from '../sim/items.js';
 import { COMBO_SETS } from '../sim/data.js';
 import { twoBoneIK, setWorldQuat } from '../arcanum/pose.js';
 
@@ -231,7 +232,7 @@ export function deducir(mv = {}, n = 1) {
   if (mv.kind === 'heavy' || mv.w === 'h') return D(par ? 'punio' : 'martillo', { esc: 1.1, av: 1.0, peso: 1.6, hs: 4, trk: 0.9, fp: 'SLAM' });
   return D('tajo', { m: par, av: 1.0, peso: 1.0 + 0.08 * (mv.hits || 1), hs: 3, trk: 0.8, fp: par ? 'SLASH_L' : 'SLASH' });
 }
-const moveOf = (char, id) => (COMBO_SETS[char] || []).find((m) => m.id === id) || null;
+const moveOf = (char, id) => (COMBO_SETS[char] || []).find((m) => m.id === id) || Object.values(ITEM_COMBO_SETS).flat().find((m) => m.id === id) || null;
 /** Descriptor de un golpe: la tabla del Huésped y, si falta, el respaldo por tipo. `fin` = remate de la cadena (más peso y hit-stop). */
 export function animDe(char, id, { fin = false, n = 1, mv = null } = {}) {
   const base = (ANIM_GOLPE[char] && ANIM_GOLPE[char][id]) || (id === 'plunge' ? ANIM_PLUNGE : deducir(mv || moveOf(char, id) || {}, n));

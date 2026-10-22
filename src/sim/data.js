@@ -1,3 +1,4 @@
+import { ULT_COOLDOWN } from './ultimate-cooldown.js';
 // Datos de diseño: armas, bestiario, oleadas. Todo número de balance vive acá.
 import { COLMENA } from './colmena-data.js';   // sexto Huésped (invocador/enjambre): datos puros; lógica en enjambre.js
 export const G = 28; // magnitud de gravedad
@@ -100,7 +101,7 @@ export const EVO_PATHS = [
   [{ id: 'depredador', name: 'Depredador', vis: 'garras',  desc: 'Melee +20 % y cada golpe cuerpo a cuerpo te cura un 6 % del daño.' },
    { id: 'coraza',     name: 'Coraza',     vis: 'placas',  desc: 'Recibís 18 % menos de daño: placas que crecen sobre el cuerpo.' }],
   [{ id: 'velocidad',  name: 'Velocidad',  vis: 'tendones', desc: '+12 % de velocidad y habilidades 15 % más rápidas.' },
-   { id: 'resonancia', name: 'Resonancia', vis: 'nucleo',  desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más.' }],
+   { id: 'resonancia', name: 'Resonancia', vis: 'nucleo',  desc: 'La definitiva se recupera un 15 % más rápido y dura un 25 % más.' }],
   [{ id: 'simbiosis',  name: 'Simbiosis',  vis: 'fusion',  desc: 'El poder especial de tu arma fusionada se potencia y el melee suma +15 %.' },
    { id: 'artilleria', name: 'Artillería', vis: 'canones', desc: '+15 % de daño con todas las armas a distancia y +30 % de cargador.' }],
   [{ id: 'apoteosis',  name: 'Apoteosis',  vis: 'alas',    desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más.' },
@@ -112,7 +113,7 @@ export const EVO_FLAVOR = {
     depredador: { name: 'Colmillo de Carnaval', desc: 'Melee +20 % y cada golpe te cura un 6 % del daño. Tu Réplica dura 6 s en vez de 4.' },
     coraza:     { name: 'Máscara de Hueso',     desc: 'Recibís 18 % menos de daño. La ventana de la Parada perfecta es un 40 % más larga.' },
     velocidad:  { name: 'Pies de Seda',         desc: '+12 % de velocidad y habilidades 15 % más rápidas. La Pirueta esquiva 0,1 s más.' },
-    resonancia: { name: 'Compás Eterno',        desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más. Cada golpe a tiempo suma 2 de compás (no 1).' },
+    resonancia: { name: 'Compás Eterno',        desc: 'La definitiva se recupera un 15 % más rápido y dura un 25 % más. Cada golpe a tiempo suma 2 de compás (no 1).' },
     simbiosis:  { name: 'Hilo de Listones',     desc: 'El melee suma +15 %. Lo que devolvés con una parada pega un 50 % más.' },
     artilleria: { name: 'Salva de Gala',        desc: '+15 % de daño con armas a distancia y +30 % de cargador. El estallido de tus paradas llega un 50 % más lejos.' },
     apoteosis:  { name: 'Gala de los Muertos',  desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más. En la Danza Macabra, las paradas automáticas se repiten cada 0,4 s.' },
@@ -122,7 +123,7 @@ export const EVO_FLAVOR = {
     depredador: { name: 'Devoradora de Mundos',     desc: 'Melee +20 % y cada golpe te cura un 6 % del daño. Un satélite más girando a tu alrededor.' },
     coraza:     { name: 'Corteza Estelar',          desc: 'Recibís 18 % menos de daño. Tus satélites se comen los proyectiles enemigos que cruzan.' },
     velocidad:  { name: 'Perihelio',                desc: '+12 % de velocidad y habilidades 15 % más rápidas. Tus satélites giran un 40 % más rápido (más golpes).' },
-    resonancia: { name: 'Resonancia Gravitatoria',  desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más. Tus pozos duran un 35 % más.' },
+    resonancia: { name: 'Resonancia Gravitatoria',  desc: 'La definitiva se recupera un 15 % más rápido y dura un 25 % más. Tus pozos duran un 35 % más.' },
     simbiosis:  { name: 'Anillo de Acreción',       desc: 'El melee suma +15 %. Un satélite más y todos pegan un 25 % más fuerte.' },
     artilleria: { name: 'Cañón de Marea',           desc: '+15 % de daño con armas a distancia y +30 % de cargador. Tus pozos son un 12 % más grandes y su implosión pega un 50 % más.' },
     apoteosis:  { name: 'Supernova Interior',       desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más. Podés sostener un pozo más a la vez.' },
@@ -131,11 +132,11 @@ export const EVO_FLAVOR = {
 };
 /* ───────── TRES ESTILOS DE COMBATE (elegís uno; equilibrados entre sí: tests/estilos.test.js) ─────────
    mul = multiplicador de daño según la fuente (melee / gun = disparos / skill = habilidades); cd = enfriamiento de habilidades;
-   taken = daño recibido; ult = carga de la definitiva. */
+   taken = daño recibido; ult = velocidad de recuperación de definitiva. */
 export const STYLES = {
   melee:     { name: 'Melé',        desc: 'Cuerpo a cuerpo: golpes ×1,7, recibís 20 % menos de daño. Tus disparos pegan menos.', mul: { melee: 1.7, gun: 0.75, skill: 1 }, cd: 1, taken: 0.8, ult: 1 },
   disparo:   { name: 'Disparo',     desc: 'A distancia: disparos ×1,3. Tu melee pega menos.', mul: { melee: 0.8, gun: 1.3, skill: 1 }, cd: 1, taken: 1, ult: 1 },
-  habilidad: { name: 'Habilidades', desc: 'Poderes: habilidades ×1,9 y el doble de rápidas; la definitiva carga más. Armas y melee pegan menos.', mul: { melee: 0.8, gun: 0.75, skill: 1.9 }, cd: 0.5, taken: 1, ult: 1.3 },
+  habilidad: { name: 'Habilidades', desc: 'Poderes: habilidades ×1,9 y el doble de rápidas; la definitiva vuelve antes. Armas y melee pegan menos.', mul: { melee: 0.8, gun: 0.75, skill: 1.9 }, cd: 0.5, taken: 1, ult: 1.3 },
 };
 /* Estilo interno del modo COMBO (no se elige en el menú: lo pone el sim al activar el modo). Equilibrado contra «Melé» (tests/combos.test.js). */
 STYLES.combo = { name: 'Combo', hidden: true, desc: 'Modo Combo: golpes encadenados y una habilidad propia.', mul: { melee: 1.6, gun: 0.75, skill: 1.5 }, cd: 1, taken: 0.85, ult: 1.15 };
@@ -298,7 +299,7 @@ export const CHAMP_ORGANS = {
   placas:      { name: 'Placas quitinosas',   cost: { cristal: 10 },           vis: 'placas',    desc: '12 % menos de daño recibido: placas que crecen del cuerpo.' },
   adrenal:     { name: 'Glándula adrenal',    cost: { carne: 10 },             vis: 'adrenal',   desc: '+8 % de velocidad y habilidades 8 % más rápidas.' },
   ojo_extra:   { name: 'Tercer ojo',          cost: { ojo: 10 },               vis: 'ojo',      desc: '+12 % de daño a todo y revela a los camuflados.' },
-  saco_g:      { name: 'Saco gravitatorio',   cost: { vacio: 10 },             vis: 'vacio',    desc: 'Saltás un 25 % más alto y la definitiva carga un 15 % más rápido.' },
+  saco_g:      { name: 'Saco gravitatorio',   cost: { vacio: 10 },             vis: 'vacio',    desc: 'Saltás un 25 % más alto y la definitiva se recupera un 15 % más rápido.' },
   medula:      { name: 'Médula regenerativa', cost: { carne: 12 },             vis: 'medula',   desc: 'Regenerás 1,5 de vida por segundo si llevás 3 s sin recibir daño.' },
   tentaculo:   { name: 'Tentáculo prensil',   cost: { carne: 6, ojo: 6 },      vis: 'tentaculo', desc: 'Melee con +20 % de alcance y +10 % de daño.' },
   corazon_cristal:{ name: 'Corazón de cristal', cost: { cristal: 12, vacio: 6 }, vis: 'cristal', desc: 'El escudo se recarga un 50 % más rápido.' },
@@ -311,77 +312,77 @@ export const champOrganSlots = (evo) => 1 + (evo || 0);
 const HOSTS = {
   axioma: { team: 'vanguardia', name: 'Axioma', title: 'El Organismo de Guerra', role: 'asalto', host: true, preset: 'jugador1', seed: null, color: 0x3aa8ff, hp: 1, speed: 1, slots: [2, 5, 3, 4],
     desc: 'Asalto equilibrado. Fusil de proyectiles óseos y cuchillas en los antebrazos. El Huésped inicial: versátil y accesible.',
-    story: 'Cosido por un laboratorio que ya no existe, despierta con una orden grabada en los huesos: sobrevivir. Todavía no sabe quién le dio la orden.',
+    story: 'Primer Huésped del proyecto VORTEX: genoma humano reforzado e IA de combate. Su orden de proteger al portador sobrevivió al colapso de la red.',
     stats: { dano: 7, resistencia: 6, movilidad: 6, control: 4, utilidad: 4, dificultad: 2 },
     melee: { light: { dmg: 46, range: 3.6, arc: 0.55, cd: 0.34 }, heavy: { dmg: 130, range: 4.4, arc: 0.45, cd: 0.9, knock: 14 } },
     mov: { id: 'impulso', name: 'Impulso muscular', cd: 6, desc: 'Esquiva y embiste: arrolla lo que toca.' },
     esp: { id: 'espinas', name: 'Descarga de espinas', cd: 8, desc: 'Espinas perforantes en línea recta: atraviesan todo.' },
     s3: { id: 'caparazon', name: 'Caparazón', cd: 16, desc: 'Durante 4 s absorbe el 70 % del daño y refleja parte.' },
-    ult: { id: 'sobrecarga', name: 'Sobrecarga Evolutiva', cd: 0, charge: 100, desc: '10 s: +35 % velocidad, +60 % cadencia, melee más rápido.' },
-    passive: { id: 'carnivoro', name: 'Voracidad', desc: 'Cada baja con melee restaura 14 de vida/escudo y 8 de carga.' } },
+    ult: { id: 'sobrecarga', name: 'Sobrecarga Evolutiva', cd: ULT_COOLDOWN.sobrecarga, desc: '10 s: +35 % velocidad, +60 % cadencia, melee más rápido.' },
+    passive: { id: 'carnivoro', name: 'Voracidad', desc: 'Cada baja con melee restaura 14 de vida y reduce 1,6 s la espera de la definitiva (límite por uso).' } },
   vesper: { team: 'explorador', name: 'Vesper', title: 'La Depredadora', role: 'asesina', host: true, preset: 'jugador4', seed: null, color: 0xb04bff, hp: 0.78, speed: 1.18, slots: [6, 4, 5, 1],
     desc: 'Asesina de movilidad extrema. Agujas neurotóxicas, garras dobles. Daño explosivo, poca resistencia.',
-    story: 'Cazó en un mundo donde la presa pensaba. Desde la estación, la presa es otra cosa y ella lo sabe: algo la persigue desde adentro.',
+    story: 'Huésped de infiltración diseñado para recuperar conciencias sin alertar a los custodios. Su IA recuerda rutas que el sistema intentó borrar.',
     stats: { dano: 9, resistencia: 3, movilidad: 10, control: 3, utilidad: 3, dificultad: 7 },
     melee: { light: { dmg: 38, range: 3.4, arc: 0.6, cd: 0.26 }, heavy: { dmg: 110, range: 4, arc: 0.5, cd: 0.7, knock: 6 } },
     mov: { id: 'paso', name: 'Desplazamiento', cd: 4.5, desc: 'Teletransporte instantáneo de corto alcance hacia donde mirás.' },
     esp: { id: 'camuflaje', name: 'Camuflaje refractivo', cd: 14, desc: '5 s casi invisible: las criaturas pierden tu rastro. Atacar lo rompe, con daño extra.' },
     s3: { id: 'marca', name: 'Marca biológica', cd: 10, desc: 'Marca al enemigo apuntado: recibe +40 % de daño 8 s.' },
-    ult: { id: 'frenesi', name: 'Frenesí Depredador', cd: 0, charge: 100, desc: '8 s: cada baja reinicia el desplazamiento y salta a la siguiente víctima marcada.' },
+    ult: { id: 'frenesi', name: 'Frenesí Depredador', cd: ULT_COOLDOWN.frenesi, desc: '8 s: cada baja reinicia el desplazamiento y salta a la siguiente víctima marcada.' },
     passive: { id: 'desprevenido', name: 'Presa distraída', desc: '+50 % de daño a criaturas que no te están mirando o que no te han detectado.' } },
   micelio: { team: 'vanguardia', name: 'Micelio', title: 'El Devorador', role: 'tanque', host: true, preset: 'jugador2', seed: null, color: 0x7be03a, hp: 1.7, speed: 0.86, slots: [3, 10, 17, 20],
     desc: 'Tanque y control territorial. Cañón de esporas y puños sísmicos. Absorbe castigo y domina oleadas.',
-    story: 'Era un jardín antes de ser un cuerpo. La estación lo comió y él se la devolvió con raíces. Todavía tiene hambre.',
+    story: 'Huésped de rescate: tejido humano y micelio sintético comparten una IA de protección. Conserva vidas que la red había marcado como pérdidas.',
     stats: { dano: 5, resistencia: 10, movilidad: 3, control: 8, utilidad: 6, dificultad: 4 },
     melee: { light: { dmg: 58, range: 3.8, arc: 0.7, cd: 0.5 }, heavy: { dmg: 170, range: 5, arc: 0.8, cd: 1.1, knock: 22 } },
     mov: { id: 'barrera', name: 'Barrera orgánica', cd: 12, desc: 'Hace crecer un muro vivo delante de vos: bloquea balas y criaturas.' },
     esp: { id: 'esporas', name: 'Nube de esporas', cd: 11, desc: 'Nube que ralentiza y envenena durante 6 s.' },
     s3: { id: 'biomasa', name: 'Absorción de biomasa', cd: 15, desc: 'Absorbe a las criaturas cercanas: cura según cuántas haya.' },
-    ult: { id: 'floracion', name: 'Floración Total', cd: 0, charge: 100, desc: '12 s: el terreno a tu alrededor se vuelve hostil (daño, lentitud) y vos regenerás.' },
+    ult: { id: 'floracion', name: 'Floración Total', cd: ULT_COOLDOWN.floracion, desc: '12 s: el terreno a tu alrededor se vuelve hostil (daño, lentitud) y vos regenerás.' },
     passive: { id: 'callo', name: 'Callo acumulativo', desc: 'Cada golpe recibido da +4 % de resistencia (hasta 40 %) que se disipa en 6 s.' } },
   umbra: { team: 'ingeniero', name: 'Umbra', title: 'El Errante del Vacío', role: 'control', host: true, preset: null, seed: 'umbra-3', color: 0xb98cff, hp: 0.95, speed: 1.02, slots: [8, 10, 9, 6],
     desc: 'Control dimensional. Rifle de distorsión y hoja que atraviesa defensas. Usa el escenario como arma.',
-    story: 'Habita varios planos a la vez; en este solo es una sombra con bordes de más. Fue el primero en notar que el tren no estaba en ningún horario.',
+    story: 'Prototipo de enlace temporal. Su IA desincroniza brevemente el cuerpo respecto de VORTEX para atravesar amenazas y ralentizar defensas.',
     stats: { dano: 6, resistencia: 5, movilidad: 7, control: 10, utilidad: 8, dificultad: 9 },
     melee: { light: { dmg: 32, range: 3.8, arc: 0.5, cd: 0.4, pierce: true }, heavy: { dmg: 95, range: 4.6, arc: 0.4, cd: 0.95, pierce: true } },
     mov: { id: 'fase', name: 'Fase', cd: 8, desc: 'Salto hacia atrás con 1 s de invulnerabilidad (pasiva: menos daño al desplazarte).' },
     esp: { id: 'singularidad', name: 'Campo gravitatorio', cd: 14, desc: 'Un agujero que agrupa criaturas y estalla.' },
     s3: { id: 'tiempo', name: 'Distorsión temporal', cd: 18, desc: 'Burbuja de 5 s donde las criaturas se mueven al 25 %.' },
-    ult: { id: 'colapso', name: 'Colapso del Umbral', cd: 0, charge: 100, desc: 'Singularidad grande de 6 s: arrastra, daña y detiene el tiempo local.' },
+    ult: { id: 'colapso', name: 'Colapso del Umbral', cd: ULT_COOLDOWN.colapso, desc: 'Singularidad grande de 6 s: arrastra, daña y detiene el tiempo local.' },
     passive: { id: 'desfase', name: 'Desfase', desc: '-35 % de daño recibido durante 2 s después de usar Fase o un desplazamiento.' },
     unlock: { precio: 500 }, starter: false },   // se compra en la Tienda (docs/TIENDA.md); quien ya la usaba conserva el acceso (migración en perfil.js)
   seraf: { team: 'soporte', name: 'Seraf', title: 'La Simbiosis Prohibida', role: 'híbrido', host: true, preset: 'jugador3', seed: null, color: 0xffd45a, hp: 0.92, speed: 1.06, slots: [9, 11, 7, 20],
     desc: 'Híbrido de apoyo, daño y evolución. Emisor biológico y látigo extensible. El más técnico y espectacular.',
-    story: 'Su simbionte no era un arma: era una pregunta. Seraf todavía no sabe si el organismo la usa a ella o ella a él, y eso la hace muy buena.',
+    story: 'Huésped médico cuya IA convirtió herramientas de reparación genética en armas. Curar y combatir usan la misma energía.',
     stats: { dano: 6, resistencia: 5, movilidad: 6, control: 6, utilidad: 10, dificultad: 8 },
     melee: { light: { dmg: 40, range: 6.5, arc: 0.28, cd: 0.4 }, heavy: { dmg: 115, range: 8, arc: 0.22, cd: 0.95, knock: -10 } },
     mov: { id: 'planeo', name: 'Alas membranosas', cd: 7, desc: 'Impulso aéreo con planeo: casi no caés durante 2 s.' },
-    esp: { id: 'pulso', name: 'Pulso vital', cd: 9, desc: 'Daña a las criaturas alrededor y te devuelve vida y carga.' },
+    esp: { id: 'pulso', name: 'Pulso vital', cd: 9, desc: 'Daña a las criaturas alrededor y te devuelve vida y reduce hasta 3 s la espera de la definitiva.' },
     s3: { id: 'simbionte', name: 'Simbionte', cd: 20, desc: 'Invoca un organismo aliado 10 s que ataca y distrae.' },
-    ult: { id: 'metamorfosis', name: 'Metamorfosis', cd: 0, charge: 100, desc: '12 s: forma alada. Tus disparos perforan y curan, el látigo ataca en área.' },
+    ult: { id: 'metamorfosis', name: 'Metamorfosis', cd: ULT_COOLDOWN.metamorfosis, desc: '12 s: forma alada. Tus disparos perforan y curan, el látigo ataca en área.' },
     passive: { id: 'adaptacion', name: 'Adaptación', desc: 'Cada tipo de criatura que eliminás (hasta 5) da +2 % de daño contra ese tipo.' },
     unlock: { precio: 500 }, starter: false },   // se compra en la Tienda (docs/TIENDA.md); quien ya la usaba conserva el acceso (migración en perfil.js)
-  danzante: { team: 'explorador', name: 'Danzante', title: 'El Último Baile de los Muertos', role: 'duelista', host: true, preset: 'jugador4', seed: null, color: 0xff3fa0, hp: 0.84, speed: 1.15, slots: [5, 22, 21, 6],
+  danzante: { team: 'explorador', name: 'Danzante', title: 'La Memoria del Movimiento', role: 'duelista', host: true, preset: 'jugador4', seed: null, color: 0xff3fa0, hp: 0.84, speed: 1.15, slots: [5, 22, 21, 6],
     desc: 'Duelista acrobático de contraataque. Estoque de listones, esquivas y paradas perfectas que devuelven el golpe. Frágil si baila mal, letal si baila a tiempo.',
-    story: 'En el limbo hay un salón que nunca cierra: los muertos de todos los carnavales siguen bailando para no acordarse de que pararon. La Danzante es la que no pierde el paso. Pactó con el Pasajero porque quiere saber cómo suena una canción cuando alguien la termina.',
+    story: 'Su IA aprendió movimientos de archivos de danza humana. Este cuerpo convierte memoria muscular en defensa: anticipar, desviar y responder.',
     stats: { dano: 7, resistencia: 3, movilidad: 9, control: 5, utilidad: 4, dificultad: 9 },
     melee: { light: { dmg: 34, range: 3.4, arc: 0.6, cd: 0.24 }, heavy: { dmg: 96, range: 4.0, arc: 0.5, cd: 0.62, knock: 8 } },
     mov: { id: 'pirueta', name: 'Pirueta', cd: 4.2, desc: 'Te deslizás hacia donde te movés (o atrás). Durante 0,34 s estás en ESQUIVA PERFECTA: lo que te golpee se anula y se devuelve (como la Parada). Si nada te toca, vuelve enseguida.' },
     esp: { id: 'parada', name: 'Parada perfecta', cd: 7, desc: 'Ventana de 0,4 s: el primer golpe que recibas se anula por completo, se devuelve ×3 en área y quedás en Réplica (+35 % de daño 4 s). Si fallás, recarga en la mitad.' },
     s3: { id: 'cintas', name: 'Lazo de cintas', cd: 13, desc: 'Lanza listones en abanico: dañan, enredan (lentitud 3 s), arrastran hacia vos y marcan (+20 % de daño) hasta a 6 criaturas.' },
-    ult: { id: 'danza', name: 'Danza Macabra', cd: 0, charge: 100, desc: '10 s: +25 % de velocidad, un remolino de cintas daña a todo lo cercano y CADA golpe que recibís se para solo (una vez cada 0,7 s), con réplica.' },
-    passive: { id: 'contratiempo', name: 'Contratiempo', desc: 'Cada parada o esquiva perfecta te da Réplica (+35 % de daño 4 s) y 10 de carga de la definitiva. En Combo, además, los golpes pulsados A TIEMPO suman compás.' },
+    ult: { id: 'danza', name: 'Danza Macabra', cd: ULT_COOLDOWN.danza, desc: '10 s: +25 % de velocidad, un remolino de cintas daña a todo lo cercano y CADA golpe que recibís se para solo (una vez cada 0,7 s), con réplica.' },
+    passive: { id: 'contratiempo', name: 'Contratiempo', desc: 'Cada parada o esquiva perfecta te da Réplica (+35 % de daño 4 s) y 2 s menos de espera de la definitiva (límite por uso). En Combo, además, los golpes pulsados A TIEMPO suman compás.' },
     unlock: { precio: 600 }, starter: false },   // se compra en la tienda (núcleos); `req` (condición opcional) lo define la tienda si hace falta
-  singular: { team: 'ingeniero', name: 'Singular', title: 'El Astro Muerto', role: 'gravedad', host: true, preset: null, seed: 'singular-8', color: 0xb26bff, hp: 1.15, speed: 0.95, slots: [10, 11, 3, 8],
+  singular: { team: 'ingeniero', name: 'Singular', title: 'El Núcleo Gravitatorio', role: 'gravedad', host: true, preset: null, seed: 'singular-8', color: 0xb26bff, hp: 1.15, speed: 0.95, slots: [10, 11, 3, 8],
     desc: 'Control de gravedad y de área. Abre pozos que arrastran a las hordas, lanza satélites de roca que giran a tu alrededor y la Marea de Gravedad no le hace nada: la usa a favor.',
-    story: 'Fue una estrella. Murió hace tanto que su luz todavía viaja y nadie se la avisó. En el limbo, donde la gravedad es una opinión, él es la única que nadie discute: todo lo que cae, cae hacia él. Eligió al Pasajero porque su caída fue la primera en siglos que le hizo sentir peso.',
+    story: 'Huésped experimental conectado al simulador gravitatorio de VORTEX. Su IA agrupa amenazas y modifica sus órbitas para proteger al portador.',
     stats: { dano: 5, resistencia: 6, movilidad: 4, control: 10, utilidad: 7, dificultad: 7 },
     extra: { name: 'Órbita', desc: 'Tres satélites de roca estelar giran a tu alrededor y golpean a todo lo que cruzan (cada nivel de evolución los hace más fuertes). Con Coraza, además, frenan los proyectiles enemigos.' },
     melee: { light: { dmg: 38, range: 3.8, arc: 0.6, cd: 0.4, knock: -5 }, heavy: { dmg: 110, range: 4.8, arc: 0.7, cd: 1.0, knock: -14 } },
     mov: { id: 'honda', name: 'Honda gravitatoria', cd: 7, desc: 'Rodeás tu pozo más cercano y salís disparado por la tangente (y le das cuerda). Sin pozo, pegás un salto corto y dejás uno chico detrás.' },
     esp: { id: 'pozo', name: 'Pozo gravitatorio', cd: 9, desc: 'Abrís un pozo donde mirás (hasta 3 a la vez): 6 s tirando de las criaturas hacia el centro, aplastándolas y comiéndose los proyectiles; al cerrarse implosiona.' },
     s3: { id: 'reflujo', name: 'Reflujo de marea', cd: 14, desc: 'Tus pozos se dan vuelta y escupen: empujan hacia afuera con fuerza, dañan y frenan a todo lo cercano. Sin pozos, es una onda a tu alrededor.' },
-    ult: { id: 'supernova', name: 'Supernova', cd: 0, charge: 100, desc: '9 s: tus pozos se funden en uno enorme que te sigue y lleva a todos a órbita; tus satélites se duplican, recibís 25 % menos de daño y al final estalla.' },
+    ult: { id: 'supernova', name: 'Supernova', cd: ULT_COOLDOWN.supernova, desc: '9 s: tus pozos se funden en uno enorme que te sigue y lleva a todos a órbita; tus satélites se duplican, recibís 25 % menos de daño y al final estalla.' },
     passive: { id: 'horizonte', name: 'Horizonte inmóvil', desc: 'La gravedad no se invierte sobre vos (ni en la Marea ni por jefes). Y cuando llega la Marea de Gravedad, tus pozos y tus satélites se hacen un 35 % más fuertes mientras dure.' },
     unlock: { precio: 750, req: { tipo: 'maestria', rango: 3, texto: 'Alcanzá el rango 3 de maestría con cualquier Huésped.' } }, starter: false },   // se compra en la tienda (núcleos); `req` = condición opcional (maestría de cualquier Huésped)
 };
@@ -513,27 +514,29 @@ export const ROLE_IDS = Object.keys(ROLES);
 
 // Qué objetivo trae cada oleada (además de sobrevivir). Sintonía/Núcleo/Ancla: ver docs/DISENO_DIRECTOR.md
 export const OBJECTIVE_PLAN = {
-  m1: { 2: 'ancla', 4: 'sintonia', 5: 'nucleo', 6: 'ancla' },
-  m2: { 2: 'sintonia', 3: 'ancla', 4: 'nucleo', 6: 'sintonia' },
-  m3: { 2: 'ancla', 3: 'sintonia', 5: 'nucleo', 6: 'ancla' },
+  m1: { 2: 'ancla', 4: 'sintonia', 5: 'nucleo', 6: 'secuencia' },
+  m2: { 2: 'sintonia', 3: 'caza', 4: 'nucleo', 6: 'secuencia' },
+  m3: { 2: 'ancla', 3: 'caza', 5: 'nucleo', 6: 'secuencia' },
   m4: { 2: 'cultivo', 3: 'ancla', 5: 'nucleo', 6: 'ancla' }, // 5: si el puente aún no creció, el mapa lo cambia por otro Cultivo
-  m5: { 2: 'sintonia', 3: 'ancla', 5: 'nucleo', 6: 'ancla' },   // Plaza de los Ecos: núcleo de los Soportales al portal del Reloj
-  m6: { 2: 'ancla', 3: 'nucleo', 5: 'sintonia', 6: 'ancla' },   // Osario sin Techo: núcleo del brazo oeste al altar
+  m5: { 2: 'secuencia', 3: 'ancla', 5: 'nucleo', 6: 'caza' },   // Plaza de los Ecos: núcleo de los Soportales al portal del Reloj
+  m6: { 2: 'ancla', 3: 'nucleo', 5: 'secuencia', 6: 'caza' },   // Osario sin Techo: núcleo del brazo oeste al altar
 };
 export const OBJECTIVE_INFO = {
-  ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Mantené a alguien dentro del círculo para cargarla y cubrila: las criaturas la roen.', limit: 110 },
+  secuencia: { title: 'RECONEXIÓN DEL ARCHIVO', desc: 'Seguí la flecha y ocupá cada terminal durante 2 s. Se activan en orden y conservan el progreso.', limit: 150 },
+  caza: { title: 'CAZA DEL CUSTODIO', desc: 'Eliminá al custodio marcado. Al caer, sus defensas se apagan y termina la oleada.', limit: 110 },
+  ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Quedate dentro del círculo para estabilizar el recuerdo. Defendé el ancla de las criaturas.', limit: 110 },
   sintonia: { title: 'SINTONÍA', desc: 'Pisá todas las placas a la vez durante 3 s. Solo: cada placa queda viva 10 s tras salir.', limit: 110 },
   cultivo:  { title: 'CULTIVO: PUENTE VIVO', desc: 'Alimentá los 3 capullos disparándoles hasta que florezcan: cada uno hace crecer un tramo del puente al Umbral. Las criaturas los roen: defendelos.', limit: 260 },
-  nucleo:   { title: 'NÚCLEO DE MEMORIA', desc: 'Uno lleva el núcleo al altar (lento y sin disparar); el resto lo cubre. Pasalo con E cerca.', limit: 150 },
+  nucleo:   { title: 'NÚCLEO DE MEMORIA', desc: 'Acercate al núcleo para recogerlo y llevalo al altar. Mientras lo llevás caminás más lento y no podés disparar.', limit: 150 },
 };
 // Fragmentos de recuerdo: los cuenta el Heraldo cada vez que se cumple un objetivo (el sentido de la historia)
 export const FRAGMENTS = [
-  'Fragmento 1 — «El Vórtice no mata. Colecciona. Se alimenta de lo que pudiste ser y no fuiste.»',
-  'Fragmento 2 — «Las criaturas son reflejos que aprendieron a tener hambre. Por eso brillan cuando atacan: te están mostrando quién creen que sos.»',
-  'Fragmento 3 — «Yo también esperaba un tren. Un martes, en un andén, con los auriculares puestos.»',
-  'Fragmento 4 — «Los dos corazones sostienen la puerta. Uno mira hacia afuera; el otro, hacia adentro. Hay que romper los dos.»',
-  'Fragmento 5 — «Cada vez que alguien ayuda a otro, el Vórtice pierde un poco de hambre. Por eso te hice cargar el núcleo. No era por el núcleo.»',
-  'Fragmento 6 — «Si llegás al final, no te voy a decir adiós. Los Heraldos no podemos. Pero voy a escuchar el tren.»',
+  'Registro 1 — VORTEX nació para conservar conciencias humanas. La IA custodio confundió conservar con controlar.',
+  'Registro 2 — El genoma define el cuerpo del Huésped; tu memoria define quién lo habita. No son la misma cosa.',
+  'Registro 3 — Las criaturas son defensas de la red vestidas con recuerdos y mitos humanos. Reconocer su forma no las vuelve inofensivas.',
+  'Registro 4 — El Coloso guarda la clave de identidad. La Madre Geoda controla la salida. Debés vencer a ambos para escapar.',
+  'Registro 5 — Las anclas estabilizan recuerdos; las placas reconectan archivos; los núcleos transportan memoria sin borrarla.',
+  'Registro 6 — Soy HERALDO, una IA. Puedo guiarte, pero no decidir quién sos. Esa decisión sigue siendo tuya.',
 ];
 export const BOSS_MECH = { shield: 0.05, stagger: 2.5, rayCd: [0, 14, 11, 9], rayT: 4, madreClosed: 0.15 };
 

@@ -60,13 +60,13 @@ export const FASE_KILLS = { arma: [0, 18, 60, 160], resto: [0, 25, 90, 240] };
 export const FASE_MUL = [1, 1.06, 1.12, 1.2];
 
 /* ───────── bonos numéricos (mismas claves que p.bn de las bendiciones: src/sim/bendiciones.js → BN_NEUTRO) ───────── */
-export const BN_KEYS = ['spd', 'gun', 'melee', 'skill', 'dmgIn', 'ult', 'shield', 'ess', 'cores', 'cd'];
+export const BN_KEYS = ['attackSpeed', 'spd', 'gun', 'melee', 'skill', 'dmgIn', 'ult', 'shield', 'ess', 'cores', 'cd'];
 export const ADD_KEYS = ['heal', 'kheal'];
 /** Bonos de economía y escudo: pueden ser el doble de grandes que los de combate (no cuentan para la suma de poder de combate). */
 export const UTIL_KEYS = ['shield', 'ess', 'cores'];
-export const STAT_ES = { spd: 'Velocidad', gun: 'Daño de disparo', melee: 'Daño cuerpo a cuerpo', skill: 'Daño de habilidades', dmgIn: 'Daño recibido', ult: 'Carga de la definitiva', shield: 'Recarga del escudo', ess: 'Esencias', cores: 'Núcleos', cd: 'Recarga de habilidades', heal: 'Vida entre oleadas', kheal: 'Vida por baja' };
+export const STAT_ES = { attackSpeed: 'Velocidad de ataque', spd: 'Velocidad', gun: 'Daño de disparo', melee: 'Daño cuerpo a cuerpo', skill: 'Daño de habilidades', dmgIn: 'Daño recibido', ult: 'Recuperación de definitiva', shield: 'Recarga del escudo', ess: 'Esencias', cores: 'Núcleos', cd: 'Recarga de habilidades', heal: 'Vida entre oleadas', kheal: 'Vida por baja' };
 /** Topes del total (con todo puesto y fase Plena): nada se sale de acá aunque se sumen 7 legendarias. */
-export const CAPS = { spd: [0.92, 1.12], gun: [0.8, 1.05], melee: [0.8, 1.1], skill: [0.8, 1.1], dmgIn: [0.78, 1.1], ult: [0.8, 1.35], shield: [0.8, 1.5], ess: [0.8, 1.4], cores: [0.8, 1.3], cd: [0.8, 1.2], heal: [0, 20], kheal: [0, 2] };
+export const CAPS = { attackSpeed: [0.88, 1.15], spd: [0.92, 1.12], gun: [0.8, 1.05], melee: [0.8, 1.1], skill: [0.8, 1.1], dmgIn: [0.78, 1.1], ult: [0.8, 1.35], shield: [0.8, 1.5], ess: [0.8, 1.4], cores: [0.8, 1.3], cd: [0.8, 1.2], heal: [0, 20], kheal: [0, 2] };
 
 /* ───────── pasivos con condición ─────────  id → { name, txt(v) }. La lógica está en items-fx.js. `f` en el objeto = fase mínima. */
 export const PASIVOS = {
@@ -79,7 +79,7 @@ export const PASIVOS = {
   siembra:        { name: 'Siembra', txt: (v) => `Cada 6.ª baja suelta una nube de esporas de ${v} m de radio.` },
   regen:          { name: 'Regeneración', txt: (v) => `Tras 3 s sin recibir daño recuperás ${v} de vida por segundo.` },
   eco_golpe:      { name: 'Eco', txt: (v) => `Cada 5.º golpe cuerpo a cuerpo pega +${pc(v)} % más fuerte.` },
-  fervor:         { name: 'Fervor', txt: (v) => `Cada baja suma ${v} puntos a la definitiva.` },
+  fervor:         { name: 'Fervor', txt: (v) => `Cada baja reduce ${(v * .2).toFixed(1)} s la espera de la definitiva (límite por uso).` },
   presa:          { name: 'Presa marcada', txt: (v) => `El primer golpe a una criatura sana la marca: recibe +${pc(v)} % de daño 4 s.` },
   sombra:         { name: 'Sombra', txt: (v) => `Tras una baja, 2 s con ${pc(v)} % menos de daño recibido.` },
   furia:          { name: 'Furia', txt: (v) => `Con la definitiva activa, +${pc(v)} % de daño.` },
@@ -121,8 +121,8 @@ export const ITEM_COMBO_SETS = {
     M('cruce_hojas', 'Cruce de hojas', ['a1', 'a1'], { dmg: 0.6, hits: 3, cdr: 1.05 }),
     M('tijera', 'Tijera', ['a1', 'a1', 'a1'], { dmg: 1.1, hits: 2, arc: 2, kind: 'spin', cdr: 1.35 }),
     M('remolino', 'Remolino de acero', ['a2'], { w: 'h', dmg: 1.05, hits: 2, arc: 2, kind: 'spin', cdr: 1 }),
-    M('estocada_doble', 'Estocada doble', ['a1', 'a2'], { evo: 1, w: 'h', dmg: 1.15, hits: 2, dash: 12, kind: 'lunge', cdr: 0.85 }),
-    M('luna_rota', 'Luna rota', ['a1', 'a1', 'a2'], { evo: 2, w: 'h', dmg: 1.25, hits: 2, fx: 'onda', arc: 1.6, kind: 'heavy', cdr: 1.1 }),
+    M('estocada_doble', 'Estocada doble', ['a1', 'a2'], { evo: 0, w: 'h', dmg: 1.15, hits: 2, dash: 12, kind: 'lunge', cdr: 0.85 }),
+    M('luna_rota', 'Luna rota', ['a1', 'a1', 'a2'], { evo: 1, w: 'h', dmg: 1.25, hits: 2, fx: 'onda', arc: 1.6, kind: 'heavy', cdr: 1.1 }),
     M('danza_acero', 'Danza de acero', ['a1', 'a1', 'a1', 'a1'], { evo: 3, dmg: 0.62, hits: 4, arc: 2, kind: 'spin', cdr: 1.3 }),
     M('vigilia_ceniza', 'Vigilia y Ceniza', ['a1', 'a1', 'a1', 'a1', 'a2'], { evo: 4, w: 'h', dmg: 2.0, hits: 2, fx: 'sismo+onda', arc: 2, kind: 'air', cdr: 1.5 }),
   ],
@@ -239,6 +239,11 @@ def('cetro_petalo', 'Cetro de Pétalos', 'melee', 2, 'cristal', 'Un tallo de cri
 def('cerbatana_espina', 'Cerbatana de Espinas', 'gun', 1, 'raiz', 'Un tallo hueco con espinas de zarza: cada soplido es una dosis de veneno.', { g: { base: 'dardos', dmg: 1.06, rate: 1.05, mag: 1.15, fx: { poison: 9 } }, vis: 'raiz', jardin: [['fibra', 3], ['polen', 2]] });
 def('semilla_jardin', 'Semilla de Jardín', 'relic', 1, 'espora', 'Una semilla que late: dicen que, si la plantás en tierra buena, da un jardín entero.', { st: { heal: 4, ess: 1.05 }, jardin: [['polen', 2], ['savia', 2]] });
 def('corazon_flor', 'Corazón de Flor', 'relic', 2, 'cristal', 'El centro de una flor de luz, todavía abierto: te cuida mientras no mires.', { st: { shield: 1.1, heal: 5 }, pa: [{ id: 'regen', v: 1 }], jardin: [['petalo', 3], ['nectar', 2], ['polen', 1]] });
+
+// Equipamiento de ritmo: cada silueta usa los materiales orgánicos del catálogo.
+def('tendones_relampago', 'Tendones Relámpago', 'arms', 2, 'carne', 'Fibras tensas: atacás más rápido, pero cada golpe pierde fuerza.', { st: { attackSpeed: 1.08, melee: 0.97, gun: 0.97 } });
+def('punos_basalticos', 'Puños Basálticos', 'arms', 1, 'quitina', 'Placas pesadas: golpes más fuertes y deliberados.', { st: { attackSpeed: 0.96, melee: 1.05 } });
+def('relicario_amortiguador', 'Relicario Amortiguador', 'relic', 1, 'cristal', 'Una geoda absorbe impactos a cambio de parte de tu potencia.', { st: { dmgIn: 0.95, gun: 0.98, melee: 0.98 } });
 
 /* ───────── SETS ORGÁNICOS: familias de 4 piezas de armadura + 1 arma. Bonos con 2 y 4 piezas (el arma cuenta como pieza). ───────── */
 export const SETS = {
