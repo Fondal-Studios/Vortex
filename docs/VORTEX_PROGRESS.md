@@ -65,3 +65,8 @@ Validación: 63/63 específicas, 59/59 núcleo, 5/5 red. Build correcto.
 Protocolo 3: desplegar cliente y servidor de la misma versión.
 No merge/despliegue, no playtest visual ni hardware. Balance por acción verificado;
 versatilidad del kit y ergonomía pendientes de sesiones humanas.
+
+
+## 2026-10-22 — Alfa simulada, 20 perfiles
+
+Informe: `VORTEX_ALPHA_SIMULATED.md`. 20 valoraciones editoriales ficticias separadas de 20 sondas headless de m1 (hasta 300 s). 18 siguen en oleada 6; dos derrotas en oleada 5. No hubo humanos, campaña completa ni validación visual. Hallazgos nuevos: WAKE_SHORT contradictorio al llegar a m2, restos del final anterior y omisión de WAKE al saltar prólogo. Pendientes de corregir; sin cambios de gameplay en este ciclo. Datos y script guardados para reproducción.
