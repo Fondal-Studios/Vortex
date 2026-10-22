@@ -1,0 +1,27 @@
+✖ equilibrio: con TODO el equipo legendario (fase 0 y fase Plena) los bots de los 3 estilos limpian la misma oleada a ±30 % del tiempo base (tests/estilos.test.js) (428.922858ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 600.887403
+
+✖ failing tests:
+
+test at ../../../../tmp/vortex-baseline/tests/inventario.test.js:288:1
+✖ equilibrio: con TODO el equipo legendario (fase 0 y fase Plena) los bots de los 3 estilos limpian la misma oleada a ±30 % del tiempo base (tests/estilos.test.js) (428.922858ms)
+  AssertionError [ERR_ASSERTION]: vesper melee k0: 7.5→16.5
+      at TestContext.<anonymous> (file:///tmp/vortex-baseline/tests/inventario.test.js:292:229)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

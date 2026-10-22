@@ -1,0 +1,52 @@
+✖ núcleos migrados son números y la recompensa suma, no concatena (2.450846ms)
+✖ núcleos inválidos no contaminan el perfil ni permiten saldos negativos (0.329399ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 92.350078
+
+✖ failing tests:
+
+test at tests/perfil-currency.test.js:6:1
+✖ núcleos migrados son números y la recompensa suma, no concatena (2.450846ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '1005' !== 105
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/perfil-currency.test.js:9:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '1005',
+    expected: 105,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/perfil-currency.test.js:12:1
+✖ núcleos inválidos no contaminan el perfil ni permiten saldos negativos (0.329399ms)
+  AssertionError [ERR_ASSERTION]: -5
+  
+  -5 !== 0
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/perfil-currency.test.js:15:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -5,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

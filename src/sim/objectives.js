@@ -2,6 +2,7 @@
 import { dist, clone, madd, clamp, norm, sub } from './math.js';
 import { OBJECTIVE_PLAN, OBJECTIVE_INFO, FRAGMENTS, PLAYER, WEAPONS } from './data.js';
 import { startCultivo, cultivoObjective } from './cultivo.js';
+import { ammoMax } from './loadout.js';
 
 export function makeObjective(g, n) {
   let kind = (OBJECTIVE_PLAN[g.mapId] || {})[n];
@@ -69,7 +70,10 @@ function finish(g, o, ok) {
   if (ok) {
     for (const p of g.alivePlayers()) {
       p.hp = Math.min(PLAYER.hp, p.hp + 30); p.shield = PLAYER.shield;
-      for (const w of [1, 2, 3]) p.ammo[w] = Math.min(WEAPONS[w].max, p.ammo[w] + Math.ceil(WEAPONS[w].max * 0.3));
+      for (const w of p.slots) {
+        if (WEAPONS[w].max === Infinity) continue;
+        p.ammo[w] = Math.min(ammoMax(p, w), p.ammo[w] + Math.ceil(WEAPONS[w].max * 0.3));
+      }
       g.dropPickup('hp', madd(p.pos, p.up, 2));
     }
     g.teamBuffUntil = g.time + 30; // +25 % de daño del equipo
