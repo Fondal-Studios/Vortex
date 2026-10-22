@@ -115,7 +115,7 @@ export class Game {
       const r = enrutar(p.char, p.mode, { mov: i.mov, esp: i.esp, s3: i.s3 }, i.hab); i.mov = r.mov; i.esp = r.esp; i.s3 = r.s3; i.hab = r.hab;
       if (p.mode === 'combo') { i.fire = false; i.melee = false; i.reload = false; }   // en Melé el disparo, el melé rápido y recargar no hacen nada (el ataque es A1/A2)
     }
-    if (this.skillLevel !== null) gateSkills(Object.assign(i, { support: !!inp.support }), p.char, this.skillLevel);
+    if (this.skillLevel !== null || inp.compact === true) gateSkills(Object.assign(i, { support: !!inp.support }), p.char, this.skillLevel ?? 2);
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
     if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
@@ -856,7 +856,7 @@ export class Game {
       fx: this.map.fx(this.time),
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0, ...jefeSnap(boss) } : null,
       players: this.players.map((p) => ({
-        id: p.id, name: p.name, sk: this.skillLevel, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
+        id: p.id, name: p.name, sk: this.skillLevel, ac: r2(Math.max(0, p.mode === 'combo' ? p.cb?.cd || 0 : Math.max(p.cd || 0, p.reloadT || 0))), pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
         dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({

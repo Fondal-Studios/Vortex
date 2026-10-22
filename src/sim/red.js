@@ -3,7 +3,7 @@
 // 2) compactar / aplicar: los snapshots viajan como "delta" (sólo lo que cambió) para gastar poco internet.
 
 /** Subí este número cada vez que cambie el formato de los mensajes. Cliente y servidor deben coincidir. */
-export const PROTOCOLO = 3; // secuencia/caza y sus campos de objetivo
+export const PROTOCOLO = 4; // compact input routes physical support; ac reports basic attack recovery
 /** Tope de jugadores por sala. */
 export const MAX_JUGADORES = 4;
 /** Alfabeto del código de sala: sin 0/O/1/I para que no se confunda al dictarlo. */

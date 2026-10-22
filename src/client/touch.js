@@ -10,7 +10,8 @@
 //  · el pequeño de arriba es RECARGAR (Disparo) o ATAQUE 2 (Melé); HAB.1, HAB.2 y HAB.3 se ven siempre, en arco alrededor del ataque.
 // Todo se guarda en settings.js. La cámara depende sólo de píxeles recorridos (no de los FPS).
 import { settings, setSetting, save, resetLayout } from './settings.js';
-import { essentialActions, essentialPower, expandEssentialInput } from './essential-controls.js';
+import { essentialPower } from './essential-controls.js';
+import { skillImage, combatSkills } from './skill-images.js';
 import { fuentes, MODOS } from '../sim/modos.js';   // qué habilidad hay en cada slot según el modo (Disparo / Melé)
 
 const BTN = [
@@ -33,7 +34,7 @@ const BTN = [
   ['mode', 'tc-mode', '⌖', 'MODO', 'tap', false],           // alterna Disparo ↔ Melé al instante (con una pequeña espera)
   ['pause', 'tc-pause', '❚❚', '', 'tap', false],
 ];
-// Esencial: ataque, salto, un poder y MODO (+ pausa). USAR sustituye al poder.
+// Combate: ataque, defensa, apoyo y definitiva. USAR nunca sustituye una habilidad.
 // El preset completo conserva los ataques y habilidades adicionales de ambos modos.
 //  · contextuales (CTX): aparecen sólo cuando sirven (definitiva cargada, algo para usar, evolución lista);
 //  · modo avanzado (setting `advanced`, sólo Disparo): apuntar, agachar, equipo y señalar.
@@ -64,7 +65,7 @@ export class TouchControls {
   reset(first = false) {
     this.mx = 0; this.mz = 0; this.dyaw = 0; this.dpitch = 0; this.weapon = -1;
     this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, reload: false, evo: false, ability: false, use: false, ping: false, };
-    this.heldSince = {};
+    this.heldSince = {}; this.jumpUntil = 0; this.lastMoveTap = -1000;
     this.dashStick = false; this.adsToggled = false; this.ctx = this.ctx || {};
     if (!first) { this.ptrs.clear(); this.stick.classList.add('hidden'); this.host.querySelectorAll('.on').forEach((b) => b.classList.remove('on')); }
   }
@@ -98,7 +99,8 @@ export class TouchControls {
   /* ───── diseño personalizado ───── */
   setSkillLevel(level) { if (this.skillLevel !== level) { this.skillLevel = level; this.reset(); this.applyLayout(); } }
   applyLayout() {
-    const s = settings(), basic = this.skillLevel != null || !s.advanced, vis = new Set(this.skillLevel != null ? ['fire','jump','mode','pause', ...(this.ctx?.use ? ['use'] : []), ...(this.skillLevel >= 1 ? ['esp'] : []), ...(this.skillLevel >= 2 ? ['ult'] : [])] : basic ? essentialActions(this.mode, this.ctx, s.essentialPowers?.[`${this.char}:${this.mode}`]) : SHOW(s.fingers, true, this.mode === 'combo'));
+    const s = settings(), basic = true, vis = new Set(['fire','mov','esp','ult','mode','pause', ...(this.ctx?.use ? ['use'] : [])]);
+    this.host.classList.add('four-actions');
     document.body.dataset.essentialPower = essentialPower(this.mode, s.essentialPowers?.[`${this.char}:${this.mode}`]);
     this.relabel(); this.host.classList.toggle('essential', basic); document.body.classList.toggle('hud-focused', basic);
     this.host.style.setProperty('--hud-op', String(s.hudOpacity)); this.host.style.setProperty('--hud-s', String(s.hudScale));
@@ -114,10 +116,10 @@ export class TouchControls {
   setSelectedSize(k) { if (!this.sel) return; const s = settings(); (s.layout[this.sel] ||= {}).s = k; this.applyLayout(); }
   /** Botones contextuales: { ult, use, evo } = ¿sirven ahora? Sólo repinta cuando algo cambia. */
   setContext(c) {
-    // No sustituir la acción bajo un dedo que ya está apoyado.
-    if (!settings().advanced && ['esp','s3','ability','use'].some(k => this.st[k])) c = { ...c, use: !!this.ctx?.use };
+    // Contextual interaction is separate from the four combat actions.
+
     this.ctx = this.ctx || {}; const wasUse = !!this.ctx.use; let ch = false; for (const k of CTX) { const v = !!c[k]; if (this.ctx[k] !== v) { this.ctx[k] = v; ch = true; if (!v && this.st[k]) { this.st[k] = false; this.host.querySelector(`[data-a="${k}"]`)?.classList.remove('on'); } } }
-    if (ch) { if (!settings().advanced && wasUse !== this.ctx.use) { this.st.esp = this.st.s3 = this.st.ability = this.st.use = false; this.heldSince = {}; } this.applyLayout(); }
+    if (ch) this.applyLayout();
   }
   /** Modo de combate: 'shooter' (Disparo) o 'combo' (Melé). Cambia los botones, sus rótulos y el HUD con una animación corta. `char` = Huésped (para los iconos de HAB.1/2/3). */
   setMode(m, char) {
@@ -135,6 +137,12 @@ export class TouchControls {
     const src = fuentes(this.char, this.mode); ['mov', 'esp', 's3'].forEach((id, i) => set(id, ICONO_SRC[src[i]] || '•', !settings().advanced ? 'PODER' : `HAB.${i + 1}`));
     if (!settings().advanced) { const power = essentialPower(this.mode, settings().essentialPowers?.[`${this.char}:${this.mode}`]); set(power, '✦', this.ctx?.ult ? 'PODER · ULTI' : 'PODER'); } else set('ability', '✚', 'EQUIPO');
     if (this.skillLevel != null) { set('esp', '✦', 'APOYO'); set('ult', '◆', 'ULTI'); }
+    for (const action of combatSkills(this.char, this.mode, this.skillLevel)) {
+      const el = this.$(`[data-a="${action.key}"]`); if (!el) continue;
+      const icon = el.querySelector('.ic'); if (icon) { icon.innerHTML = `<img src="${skillImage(action.id)}" alt="" draggable="false">`; icon.dataset.skill = action.id; }
+      el.setAttribute('aria-label', action.name); el.setAttribute('aria-disabled', String(!!action.locked)); el.dataset.locked = action.locked ? action.unlock : '';
+      const label = el.querySelector('small'); if (label) label.textContent = action.short;
+    }
     const M = MODOS[this.mode]; set('mode', M.icono, 'MODO'); const mb = this.$('[data-a="mode"]'); if (mb) mb.setAttribute('aria-label', `Modo ${M.nombre}: tocá para cambiar`);
   }
   /** Animación corta al cambiar de modo: los botones nuevos «brotan». */
@@ -157,7 +165,7 @@ export class TouchControls {
     if (!this.enabled) return; e.preventDefault();
     const btnEl = e.target.closest ? e.target.closest('.tc-btn') : null;
     if (this.editing) { if (btnEl) this.editDown(e, btnEl); return; }
-    if (btnEl && btnEl.classList.contains('tc-off')) return;
+    if (btnEl && (btnEl.classList.contains('tc-off') || btnEl.getAttribute('aria-disabled') === 'true')) return;
     const W = innerWidth, id = e.pointerId, now = e.timeStamp || performance.now();
     const p = { x: e.clientX, y: e.clientY, ox: e.clientX, oy: e.clientY, t: now, hist: [] };
     if (btnEl) {
@@ -168,6 +176,8 @@ export class TouchControls {
     { const wi = this.weaponAt(e.clientX, e.clientY, false); if (wi >= 0) { p.kind = 'wbar'; p.last = wi; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ } this.weapon = wi; return; } } // barra de armas: tocar elige, deslizar cambia
     if (e.clientX < W * 0.5) { // zona izquierda: SÓLO palanca
       if ([...this.ptrs.values()].some((q) => q.kind === 'move')) return;
+      if (now - (this.lastMoveTap || -1000) < 300 && Math.hypot(e.clientX - (this.lastMoveX || 0), e.clientY - (this.lastMoveY || 0)) < 55) this.jumpUntil = performance.now() + 160;
+      this.lastMoveTap = now; this.lastMoveX = e.clientX; this.lastMoveY = e.clientY;
       p.kind = 'move'; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ }
       this.stick.style.left = `${e.clientX}px`; this.stick.style.top = `${e.clientY}px`; this.stick.classList.remove('hidden'); this.knob.style.transform = 'translate(-50%,-50%)'; return;
     }
@@ -264,11 +274,10 @@ export class TouchControls {
 
   /** Entrada de este cuadro (los acumulados de giro se consumen). */
   read() {
-    const s = this.st, combo = this.mode === 'combo', atk = s.fire || s.fireL, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: !combo && atk, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: !combo && s.melee, reload: !combo && s.reload, evo: s.evo, ads: s.ads, crouch: s.crouch, a1: combo && atk, a2: combo && s.reload, hab: false, mode: this.mode };   // Melé: el botón grande es A1 y el pequeño A2; HAB.3 (s3) la traduce la simulación
+    const s = this.st, combo = this.mode === 'combo', atk = s.fire || s.fireL, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump || performance.now() < (this.jumpUntil || 0), fire: !combo && atk, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: !combo && s.melee, reload: !combo && s.reload, evo: s.evo, ads: s.ads, crouch: s.crouch, a1: combo && atk, a2: combo && s.reload, hab: false, mode: this.mode };   // Melé: el botón grande es A1 y el pequeño A2; HAB.3 (s3) la traduce la simulación
     this.dyaw = this.dpitch = 0; this.weapon = -1;
-    if (this.skillLevel != null) { const held = performance.now() - (this.heldSince?.fire ?? performance.now()); if (combo && i.a1 && held >= 360) { i.a1 = false; i.a2 = true; } return i; }
-    if (settings().advanced) return i;
-    const now = performance.now(), held = Object.fromEntries(Object.entries(this.heldSince || {}).map(([k,t]) => [k, now-t]));
-    return expandEssentialInput(i, held, this.mode, essentialPower(this.mode, settings().essentialPowers?.[`${this.char}:${this.mode}`]));
+    const held = performance.now() - (this.heldSince?.fire ?? performance.now());
+    if (combo && i.a1 && held >= 360) { i.a1 = false; i.a2 = true; }
+    return i;
   }
 }

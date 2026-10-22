@@ -28,19 +28,16 @@ test('four combat actions in both modes, interaction replaces power, pause remai
   assert.equal(DEFAULTS.simple,false,'manual attack is the default');
 });
 
-test('TouchControls applies essentials and restores complete actions in both modes', () => {
+test('TouchControls has four fixed combat actions, even with advanced preference', () => {
   const t=Object.create(TouchControls.prototype), elements=new Map();
   Object.assign(t,{host:new Element(),ctx:{},editing:false,relabel(){},$:s=>{if(!elements.has(s)) elements.set(s,new Element());return elements.get(s);}});
   const visible=id=>!t.$(`[data-a="${id}"]`).classes.has('tc-off');
-  for (const mode of ['shooter','combo']) {
-    t.mode=mode; settings().advanced=false; t.applyLayout();
-    assert.ok(visible(mode==='combo'?'s3':'esp')); assert.ok(!visible('reload')); assert.ok(!visible('ult'));
-    t.st={esp:true,s3:false,use:false}; t.setContext({use:true}); assert.ok(!visible('use'),'power is stable while held'); assert.equal(t.st.esp,true,'held input is not cancelled'); t.st.esp=false; t.setContext({use:true});
-    assert.ok(visible('use')); assert.ok(!visible('esp')); assert.ok(!visible('s3'));
-    assert.equal(t.st.esp,false); assert.equal(t.st.s3,false);
-    settings().advanced=true; t.applyLayout();
-    for(const id of ['mov','esp','s3','reload','use']) assert.ok(visible(id),id);
-    t.ctx={};
+  for (const mode of ['shooter','combo']) for(const advanced of [false,true]) {
+    t.mode=mode; settings().advanced=advanced; t.applyLayout();
+    for(const key of ['fire','mov','esp','ult']) assert.ok(visible(key),key);
+    for(const key of ['fireL','reload','s3','jump','ability','evo','melee','ads']) assert.ok(!visible(key),key);
+    t.st={esp:true}; t.setContext({use:true}); assert.ok(visible('use')); assert.equal(t.st.esp,true);
+    t.setContext({use:false}); assert.ok(!visible('use')); assert.ok(visible('esp'));
   }
   settings().advanced=false;
 });

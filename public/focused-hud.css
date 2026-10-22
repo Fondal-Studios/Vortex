@@ -60,3 +60,42 @@ body:has(#tutorial:not(.hidden)) #touch { visibility:hidden!important; pointer-e
 body.reward-focus #hud > :not(#cards):not(#tutorial) { visibility:hidden!important; }
 body.reward-focus :is(#trophies,#npchint,#botin-toasts,#botin-prompt,#tactical-hud,#metaflecha) { visibility:hidden!important; }
 body.reward-focus #cards { background:#100c24f5; }
+
+/* Four illustrated combat actions. Navigation and contextual use stay outside the cluster. */
+body .hq { right:20px; bottom:20px; width:auto; display:grid; grid-template-columns:repeat(4,84px); gap:8px; }
+body .hq .hn, body .hq .hm, body .hq .hb, body .hq .hs.s3 { display:none!important; }
+body .hq:not(.touch) .hs.basic, body .hq:not(.touch) .hs.mov,
+body .hq:not(.touch) .hs.esp, body .hq:not(.touch) .hs.ult { display:flex!important; flex-direction:column; gap:3px; padding:6px; min-height:100px; width:84px; box-sizing:border-box; background:#101624f2; }
+body .hq .hs .skill-art { width:40px; height:40px; object-fit:contain; }
+body .hq .hs span { max-width:100%; font-size:10px; white-space:normal; text-align:center; }
+body .hq .hs kbd { position:absolute; left:4px; top:4px; padding:0 3px; font-size:9px; }
+body .hq .hs em { font-size:11px; text-align:center; }
+body .hq.touch { display:none!important; }
+body .hq .hs.locked { opacity:.55; }
+#touch.four-actions .tc-btn:is(.tc-fire,.tc-mov,.tc-esp,.tc-ult) { left:auto!important; top:auto!important; transform:none!important; margin:0; width:64px!important; height:64px!important; border-radius:16px; bottom:calc(20px + env(safe-area-inset-bottom))!important; background:#101624ed; opacity:1; }
+#touch.four-actions .tc-btn.tc-fire { right:calc(16px + env(safe-area-inset-right))!important; width:80px!important; height:80px!important; border-color:#ff88ad; }
+#touch.four-actions .tc-btn.tc-mov { right:calc(106px + env(safe-area-inset-right))!important; border-color:#63dcff; }
+#touch.four-actions .tc-btn.tc-esp { right:calc(180px + env(safe-area-inset-right))!important; border-color:#b7a0ff; }
+#touch.four-actions .tc-btn.tc-ult { right:calc(254px + env(safe-area-inset-right))!important; border-color:#ffd36c; }
+#touch.four-actions .tc-btn .ic img { display:block; width:36px; height:36px; object-fit:contain; pointer-events:none; }
+#touch.four-actions .tc-fire .ic img { width:46px; height:46px; }
+#touch.four-actions .tc-btn small { font-size:9px; line-height:12px; letter-spacing:.02em; }
+#touch.four-actions .tc-btn[data-ring]::before { border-radius:18px; }
+#touch.four-actions .tc-btn[data-cd]::after { content:attr(data-cd) 's'; position:absolute; inset:0; display:grid; place-items:center; border-radius:16px; background:#080f20b8; color:white; font:800 22px system-ui; }
+#touch.four-actions .tc-ult[data-charge]::after { content:attr(data-charge); position:absolute; top:-23px; left:0; right:0; height:20px; background:#101624e8; border-radius:6px; font:700 12px system-ui; text-align:center; }
+#touch.four-actions .tc-btn[data-locked]:not([data-locked=""])::after { content:attr(data-locked); position:absolute; inset:0; height:auto; display:grid; place-items:center; border-radius:16px; background:#080f20d9; color:#e1e8f7; font:700 11px system-ui; }
+#touch.four-actions .tc-btn.tc-mode { top:calc(8px + env(safe-area-inset-top))!important; bottom:auto!important; right:calc(58px + env(safe-area-inset-right))!important; left:auto!important; width:44px!important; height:44px!important; transform:none!important; border-radius:10px; }
+#touch.four-actions .tc-btn.tc-pause { top:calc(8px + env(safe-area-inset-top))!important; right:calc(8px + env(safe-area-inset-right))!important; width:44px!important; height:44px!important; }
+#touch.four-actions .tc-btn.tc-use { left:50%!important; right:auto!important; bottom:108px!important; top:auto!important; transform:translateX(-50%)!important; width:56px!important; height:48px!important; border-radius:12px; }
+body.hud-focused #combohud, body.hud-focused #estilohud, body.hud-focused #ability { display:none!important; }
+body.hud-focused #banner, body.hud-focused #banner.long { top:98px; font-size:12px; width:min(340px,55vw); padding:5px 10px; pointer-events:none; }
+@media(max-width:500px) { #touch.four-actions .tc-btn:is(.tc-mov,.tc-esp,.tc-ult) { bottom:calc(116px + env(safe-area-inset-bottom))!important; } #touch.four-actions .tc-btn.tc-mov { right:16px!important; } #touch.four-actions .tc-btn.tc-esp { right:90px!important; } #touch.four-actions .tc-btn.tc-ult { right:164px!important; } }
+#touch.four-actions .tc-btn.tc-pause { left:auto!important; }
+#touch.four-actions .tc-btn.ready { box-shadow:none; animation:none; }
+#touch.four-actions .tc-btn[data-ring]::before { inset:-2px; opacity:.6; }
+body.hud-focused:not(.between-waves) #evohud { display:none!important; }
+body.hud-focused:not(.between-waves) #banner.long { display:none!important; }
+body.hud-focused:not(.between-waves) #trophies { display:none!important; }
+body.hud-focused #weapons { right:auto; left:20px; bottom:18px; display:flex; gap:4px; max-width:calc(100vw - 410px); }
+body.hud-focused.touch-ui #weapons { left:160px!important; right:auto!important; width:min(220px,calc(100vw - 510px)); max-width:none; transform:none!important; }
+body.hud-focused.touch-ui #weapons div { overflow:hidden; }
