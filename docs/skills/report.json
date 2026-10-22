@@ -1,0 +1,16 @@
+{
+  "desktop-low": "locked -> explained support -> explained ultimate",
+  "desktop-high": "locked -> explained support -> explained ultimate",
+  "touchActions": [
+    "fire",
+    "jump",
+    "esp",
+    "ult",
+    "use",
+    "mode",
+    "pause"
+  ],
+  "touch-low": "locked -> explained support -> explained ultimate",
+  "touch-high": "locked -> explained support -> explained ultimate",
+  "errors": []
+}

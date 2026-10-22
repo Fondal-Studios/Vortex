@@ -1,0 +1,26 @@
+# 4 bots: oleada 4, estado playing, 40839 ticks (11.3 min de juego), pico 24 criaturas, 63/2/40 bajas
+✖ 4 bots por WebSocket (200 ms de latencia en dos de ellos): 3+ oleadas sin desincronizar, reconexión y salida de un jugador (117220.414491ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 117491.620499
+
+✖ failing tests:
+
+test at ../../../../tmp/vortex-baseline/tests/coop4.test.js:80:1
+✖ 4 bots por WebSocket (200 ms de latencia en dos de ellos): 3+ oleadas sin desincronizar, reconexión y salida de un jugador (117220.414491ms)
+  AssertionError [ERR_ASSERTION]: hay snapshots en común
+      at TestContext.<anonymous> (file:///tmp/vortex-baseline/tests/coop4.test.js:116:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

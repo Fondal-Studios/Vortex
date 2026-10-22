@@ -1,0 +1,41 @@
+✔ roles: 4 roles distintos, cada uno con habilidad y recarga; se asignan por orden o por elección (8.702674ms)
+✔ habilidad Vanguardia: la cúpula reduce 40 % el daño adentro y destruye proyectiles enemigos; entra en recarga (22.17318ms)
+✔ habilidad Soporte: cura a los cercanos y reanima al instante a un caído a ≤ 4 u (2.808094ms)
+✔ habilidad Ingeniero: torreta que dispara sola a las criaturas y desaparece; Explorador: marca (+30 % de daño) (59.944249ms)
+✔ objetivo Ancla: se carga sólo con alguien adentro, las criaturas la roen, se cumple y premia al equipo (52.010106ms)
+✔ objetivo Ancla: si las criaturas la destruyen o se acaba el tiempo, falla y el Vórtice se enfurece (110.643201ms)
+✔ objetivo Sintonía (coop): hay que pisar TODAS las placas a la vez 3 s; con una sola no avanza (25.168448ms)
+✔ objetivo Sintonía (solo): la placa queda viva tras salir y se puede resolver corriendo de una a otra (7.73589ms)
+✔ objetivo Núcleo: se recoge, se lleva (−25 % de velocidad, sin disparar), se pasa con E y se entrega en el altar (2.057761ms)
+✔ Coloso: el Rayo del Vacío marca un pilar; si alguien lo sintoniza, el escudo estalla y el jefe queda aturdido recibiendo más daño (31.023669ms)
+✔ Coloso: si nadie sintoniza el pilar marcado, el pilar cae y el escudo sigue (14.236898ms)
+✔ Director: con estrés alto espacia las apariciones y suelta botiquines de alivio; con calma mete especiales (8.749683ms)
+✔ Ping: marca lo que apuntás (enemigo / objeto / punto), dura ~7 s y viaja en el snapshot (16.586021ms)
+✔ Caídos: se desangran (25 s); un compañero cerca los reanima en 3 s (Soporte 1,5 s); si nadie llega quedan fuera hasta la próxima oleada (50.750498ms)
+✔ snapshot del director: roles, objetos, objetivo, pings y estado del jefe viajan al cliente (JSON) (1.136455ms)
+✔ objetivo: repone el arsenal equipado de vesper, conserva munición infinita y respeta mejoras (7.009422ms)
+✔ objetivo: repone el arsenal equipado de micelio, conserva munición infinita y respeta mejoras (0.419301ms)
+✔ núcleos migrados son números y la recompensa suma, no concatena (2.83221ms)
+✔ núcleos inválidos no contaminan el perfil ni permiten saldos negativos (0.732967ms)
+✔ catálogo: iniciales = Axioma, Vesper y Micelio; el resto de los Huéspedes se compra y tiene precio (1.528856ms)
+✔ stock rotativo: determinista, cambia con el día y con las partidas, precios coherentes (4.016776ms)
+✔ precios: la rareza y la calidad suben el precio; vender paga menos que comprar (0.51236ms)
+✔ migración: quien ya usaba un Huésped lo conserva; el resto de los pagos queda cerrado (0.383398ms)
+✔ requisitos: Colmena pide rango 3 con otro Huésped; Singular también; Danzante no pide nada (0.305513ms)
+✔ perfil: un perfil previo con maestría abre con ese Huésped incluido; uno nuevo sólo con los 3 iniciales (1.149434ms)
+✔ comprar Huésped: gasta el precio justo, no se repite, respeta el requisito y nunca deja núcleos negativos (0.597917ms)
+✔ renglones: materiales, planos y objetos llegan al perfil; cada renglón se compra una vez por tanda (0.961455ms)
+✔ renglones: sin núcleos no se compra, con el depósito lleno o el inventario lleno tampoco, y no se cobra (0.854867ms)
+✔ servicios: botiquín (tope 5), reinicio de árbol completo, retirada de tirada, cambio de esencias (1.438823ms)
+✔ vender: materiales al 35 %, sobrantes sin tocar lo protegido, y no se puede vender lo que no se tiene (0.644706ms)
+✔ cada partida terminada cambia el stock; el Huésped elegido de antes de la tienda se conserva (0.387895ms)
+✔ botiquín en la simulación: la primera caída te levanta con la mitad de la vida; la segunda ya no (6.374471ms)
+✔ un Huésped que no es tuyo no evoluciona ni gasta puntos de árbol; el que sí es tuyo sí (0.448605ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 611.259836

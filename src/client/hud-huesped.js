@@ -4,6 +4,7 @@
 // En PC dibuja un panel a la derecha; en táctil dibuja una tira compacta arriba a la izquierda y pone el anillo de enfriamiento
 // (variable CSS --p, clases .ready/.act, número en data-cd) sobre los botones .tc-mov .tc-esp .tc-s3 .tc-ult .tc-melee.
 // Las TRES habilidades se ven SIEMPRE (slots HAB.1/2/3); en Melé el slot 3 es la habilidad principal de Combo (src/sim/modos.js).
+import { SUPPORT } from '../shared/skill-path.js';
 import { CHARACTERS, HABILIDADES } from '../sim/data.js';
 import { habSlots, MODOS } from '../sim/modos.js';   // las 3 habilidades por modo (Disparo / Melé)
 
@@ -85,8 +86,10 @@ export function createHuespedHud(rootEl) {
     const C = me && CHARACTERS[me.char];
     if (!C || !hudVisible || me.dead) { el.style.display = 'none'; am.style.display = 'none'; ch.classList.remove('on'); return; }
     el.style.display = ''; el.classList.toggle('touch', !!touch);
+    el.classList.toggle('learning', me.sk != null); el.dataset.skills = String(me.sk ?? '');
+    doc.body.classList.toggle('learning-skills', me.sk != null);
     me0 = me; const combo = !!me.md; doc.body.classList.toggle('modo-combo', combo);   // en Combo no hay barra de armas ni munición
-    const key = `${me.char}|${touch}|${combo}`; if (key !== built) { built = key; build(C, touch, combo); }
+    const key = `${me.char}|${touch}|${combo}|${me.sk}`; if (key !== built) { built = key; build(C, touch, combo); }
     const cd = (sec, frac, def) => (sec != null ? +sec || 0 : (+frac || 0) * (def ? def.cd : 0));
     const mc = cd(me.mc, me.mv, C.mov), ec = cd(me.ec, me.es, C.esp), s3c = +me.s3c || 0, ul = +me.ul || 0, ua = +me.ua || 0, cmb = Math.max(0, Math.min(3, me.cmb | 0)), bf = me.bf | 0;
     const ultMax = (C.ult && C.ult.charge) || 100;
@@ -107,6 +110,19 @@ export function createHuespedHud(rootEl) {
       if (cache.ult !== sig) { cache.ult = sig; row.r.classList.toggle('ready', ready); row.r.classList.toggle('act', active); row.em.textContent = active ? `${Math.ceil(ua)} s` : ready ? '¡LISTA!' : `${Math.floor(ul)}%`; row.bar.style.transform = `scaleX(${p})`; }
       setBtn('.tc-ult', p, active ? '#ff66c4' : RING.ult, 0, ready, active, C.ult ? C.ult.name : '');
       const b = doc.querySelector('.tc-ult'); if (b) { if (active) b.dataset.cd = String(Math.ceil(ua)); else delete b.dataset.cd; }
+    }
+    if (me.sk != null) {
+      const source = SUPPORT[me.char] || 'esp', def = C[source];
+      skill('esp', source === 's3' ? s3c : ec, def);
+      rows.esp.r.querySelector('span').textContent = def?.name || 'Apoyo';
+      const kb = rows.esp.r.querySelector('kbd'); if (kb) kb.textContent = 'Q';
+      rows.esp.r.title = def?.desc || '';
+      rows.ult.r.title = C.ult?.desc || '';
+      if (me.sk < 1) { rows.esp.em.textContent = 'Oleada 1'; rows.esp.r.classList.remove('ready'); rows.esp.bar.style.transform = 'scaleX(0)'; }
+      if (me.sk < 2) { rows.ult.em.textContent = 'Oleada 3'; rows.ult.r.classList.remove('ready','act'); rows.ult.bar.style.transform = 'scaleX(0)'; }
+      rows.esp.r.classList.toggle('locked', me.sk < 1); rows.ult.r.classList.toggle('locked', me.sk < 2);
+      // Touch labels and rings always describe the physical support, independent of mode.
+      const button = doc.querySelector('.tc-esp small'); if (button) button.textContent = 'APOYO';
     }
     { // contador de combo grande (modo Combo): ×N, nombre del último golpe y barra de la ventana
       const n = combo ? (me.cn | 0) : 0, w = combo ? +me.cw || 0 : 0, on = n > 0 && w > 0, cp = me.char === 'danzante' ? ((me.bf | 0) >> 16) & 7 : 0, sig = `${on}|${n}|${me.cnm}|${cp}`;   // cp = compás de la Danzante (bits 16-18 de bf)

@@ -1,0 +1,1414 @@
+{
+  "version": "18b1e1e",
+  "scope": "20 m1 shooter mechanics probes; no renderer, UI, tutorial, prologue, profile progression, human reading or retention; bots know routes and mechanics; skill only affects aim; all use same host; stops at death/win or 300 gameplay seconds; no m2 transition modeled",
+  "results": [
+    {
+      "probe": 1,
+      "seed": 1001,
+      "skill": 0.35,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 148,
+      "hp": 100,
+      "firstKill": 8.55,
+      "maxCombatGap": 17.05,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 26.63,
+        "3": 75.37,
+        "4": 125.22,
+        "5": 182.82,
+        "6": 247.6
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 26.63
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 71.3
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 125.22
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 131.75
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 182.82
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 189.23
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 247.6
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 261.13
+        }
+      ]
+    },
+    {
+      "probe": 2,
+      "seed": 1002,
+      "skill": 0.35,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 166,
+      "hp": 100,
+      "firstKill": 8.75,
+      "maxCombatGap": 11.45,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 32.47,
+        "3": 77.68,
+        "4": 134.07,
+        "5": 194.35,
+        "6": 264.47
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 32.47
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 73.62
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 134.07
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 141
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 194.35
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 201.53
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 264.47
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 276.42
+        }
+      ]
+    },
+    {
+      "probe": 3,
+      "seed": 1003,
+      "skill": 0.35,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 142,
+      "hp": 100,
+      "firstKill": 8.72,
+      "maxCombatGap": 10.62,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 26.9,
+        "3": 72.88,
+        "4": 117.87,
+        "5": 179.43,
+        "6": 263.17
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 26.9
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 68.82
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 117.87
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 123.13
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 179.43
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 186.17
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 263.17
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 277.53
+        }
+      ]
+    },
+    {
+      "probe": 4,
+      "seed": 1004,
+      "skill": 0.35,
+      "char": "axioma",
+      "state": "lost",
+      "seconds": 226.62,
+      "wave": 5,
+      "kills": 138,
+      "hp": 0,
+      "firstKill": 8.92,
+      "maxCombatGap": 10.55,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 30.45,
+        "3": 70.9,
+        "4": 117.85,
+        "5": 169.35
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 30.45
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 66.83
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 117.85
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 124.3
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 169.35
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 177
+        }
+      ]
+    },
+    {
+      "probe": 5,
+      "seed": 1005,
+      "skill": 0.35,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 135,
+      "hp": 100,
+      "firstKill": 8.37,
+      "maxCombatGap": 13.73,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 30.52,
+        "3": 73.57,
+        "4": 129.4,
+        "5": 210.5,
+        "6": 291.9
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 30.52
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 69.4
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 129.4
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 136.47
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 210.5
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 217.58
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 291.9
+        }
+      ]
+    },
+    {
+      "probe": 6,
+      "seed": 1006,
+      "skill": 0.65,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 168,
+      "hp": 100,
+      "firstKill": 8.55,
+      "maxCombatGap": 8.27,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 31.4,
+        "3": 73.67,
+        "4": 121.4,
+        "5": 170.55,
+        "6": 236.42
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 31.4
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 69.6
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 121.4
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 128.03
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 170.55
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 177.48
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 236.42
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 251.02
+        }
+      ]
+    },
+    {
+      "probe": 7,
+      "seed": 1007,
+      "skill": 0.65,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 167,
+      "hp": 100,
+      "firstKill": 8.6,
+      "maxCombatGap": 11.98,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 32.13,
+        "3": 75.08,
+        "4": 123.13,
+        "5": 193.77,
+        "6": 256.5
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 32.13
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 71.02
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 123.13
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 129.27
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 193.77
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 200.47
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 256.5
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 269.58
+        }
+      ]
+    },
+    {
+      "probe": 8,
+      "seed": 1008,
+      "skill": 0.65,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 159,
+      "hp": 100,
+      "firstKill": 8.17,
+      "maxCombatGap": 7.88,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 28.12,
+        "3": 67.7,
+        "4": 116.67,
+        "5": 169.7,
+        "6": 240.67
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 28.12
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 63.63
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 116.67
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 122.77
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 169.7
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 176.83
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 240.67
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 254.13
+        }
+      ]
+    },
+    {
+      "probe": 9,
+      "seed": 1009,
+      "skill": 0.65,
+      "char": "axioma",
+      "state": "lost",
+      "seconds": 205.2,
+      "wave": 5,
+      "kills": 124,
+      "hp": 0,
+      "firstKill": 8.75,
+      "maxCombatGap": 8.2,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 30.13,
+        "3": 70.08,
+        "4": 113.28,
+        "5": 171.63
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 30.13
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 66.02
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 113.28
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 118.28
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 171.63
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 178.4
+        }
+      ]
+    },
+    {
+      "probe": 10,
+      "seed": 1010,
+      "skill": 0.65,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 174,
+      "hp": 100,
+      "firstKill": 8.82,
+      "maxCombatGap": 8.78,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 30.07,
+        "3": 69.48,
+        "4": 116.1,
+        "5": 181.37,
+        "6": 254.17
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 30.07
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 65.42
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 116.1
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 121.7
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 181.37
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 188.7
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 254.17
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 267.75
+        }
+      ]
+    },
+    {
+      "probe": 11,
+      "seed": 1011,
+      "skill": 1,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 175,
+      "hp": 100,
+      "firstKill": 8.28,
+      "maxCombatGap": 7.47,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 31.58,
+        "3": 74.93,
+        "4": 122.08,
+        "5": 188.4,
+        "6": 258.62
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 31.58
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 70.85
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 122.08
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 128.27
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 188.4
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 195.53
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 258.62
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 272.65
+        }
+      ]
+    },
+    {
+      "probe": 12,
+      "seed": 1012,
+      "skill": 1,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 179,
+      "hp": 100,
+      "firstKill": 8.38,
+      "maxCombatGap": 7.88,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 30.5,
+        "3": 70.38,
+        "4": 119.8,
+        "5": 179.52,
+        "6": 246.57
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 30.5
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 66.32
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 119.8
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 126.23
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 179.52
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 186.08
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 246.57
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 259.98
+        }
+      ]
+    },
+    {
+      "probe": 13,
+      "seed": 1013,
+      "skill": 1,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 187,
+      "hp": 100,
+      "firstKill": 8.68,
+      "maxCombatGap": 8.4,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 26.78,
+        "3": 69.22,
+        "4": 118.02,
+        "5": 167.17,
+        "6": 231.6
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 26.78
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 65.15
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 118.02
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 124.18
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 167.17
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 174.83
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 231.6
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 244.13
+        }
+      ]
+    },
+    {
+      "probe": 14,
+      "seed": 1014,
+      "skill": 1,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 164,
+      "hp": 100,
+      "firstKill": 8.68,
+      "maxCombatGap": 9.12,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 28.12,
+        "3": 68.13,
+        "4": 116.85,
+        "5": 173.55,
+        "6": 243.22
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 28.12
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 64.07
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 116.85
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 123.12
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 173.55
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 180.45
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 243.22
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 256.45
+        }
+      ]
+    },
+    {
+      "probe": 15,
+      "seed": 1015,
+      "skill": 1,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 162,
+      "hp": 100,
+      "firstKill": 8.32,
+      "maxCombatGap": 8.13,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 31.68,
+        "3": 71.5,
+        "4": 121.13,
+        "5": 163.02,
+        "6": 218.33
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 31.68
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 67.43
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 121.13
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 127.3
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 163.02
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 169.6
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 218.33
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 232.7
+        }
+      ]
+    },
+    {
+      "probe": 16,
+      "seed": 1016,
+      "skill": 1.2,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 162,
+      "hp": 100,
+      "firstKill": 8.2,
+      "maxCombatGap": 8.73,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 28.12,
+        "3": 70.43,
+        "4": 119.7,
+        "5": 169.28,
+        "6": 233.92
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 28.12
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 66.37
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 119.7
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 126
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 169.28
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 177.03
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 233.92
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 247.08
+        }
+      ]
+    },
+    {
+      "probe": 17,
+      "seed": 1017,
+      "skill": 1.2,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 160,
+      "hp": 100,
+      "firstKill": 8.15,
+      "maxCombatGap": 9.47,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 32.85,
+        "3": 72.05,
+        "4": 119.47,
+        "5": 169.53,
+        "6": 239.37
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 32.85
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 67.98
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 119.47
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 124.92
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 169.53
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 176.38
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 239.37
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 252.73
+        }
+      ]
+    },
+    {
+      "probe": 18,
+      "seed": 1018,
+      "skill": 1.2,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 171,
+      "hp": 100,
+      "firstKill": 8.65,
+      "maxCombatGap": 12.5,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 26.65,
+        "3": 68.93,
+        "4": 111.38,
+        "5": 163.32,
+        "6": 238.33
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 26.65
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 64.87
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 111.38
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 116.9
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 163.32
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 169.98
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 238.33
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 251.85
+        }
+      ]
+    },
+    {
+      "probe": 19,
+      "seed": 1019,
+      "skill": 1.2,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 152,
+      "hp": 100,
+      "firstKill": 8.47,
+      "maxCombatGap": 16.65,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 26.55,
+        "3": 69.9,
+        "4": 115.95,
+        "5": 174,
+        "6": 253.52
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 26.55
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 65.83
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 115.95
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 122.08
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 174
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 181.33
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 253.52
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 265.67
+        }
+      ]
+    },
+    {
+      "probe": 20,
+      "seed": 1020,
+      "skill": 1.2,
+      "char": "axioma",
+      "state": "playing",
+      "seconds": 300,
+      "wave": 6,
+      "kills": 181,
+      "hp": 100,
+      "firstKill": 8.22,
+      "maxCombatGap": 10.33,
+      "waves": {
+        "0": 0.02,
+        "1": 6.02,
+        "2": 26.5,
+        "3": 66.42,
+        "4": 116.4,
+        "5": 167.35,
+        "6": 232.28
+      },
+      "objectives": [
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "active",
+          "time": 26.5
+        },
+        {
+          "wave": 2,
+          "type": "ancla",
+          "state": "done",
+          "time": 62.35
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "active",
+          "time": 116.4
+        },
+        {
+          "wave": 4,
+          "type": "sintonia",
+          "state": "done",
+          "time": 122.53
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "active",
+          "time": 167.35
+        },
+        {
+          "wave": 5,
+          "type": "nucleo",
+          "state": "done",
+          "time": 174.5
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "active",
+          "time": 232.28
+        },
+        {
+          "wave": 6,
+          "type": "secuencia",
+          "state": "done",
+          "time": 245.18
+        }
+      ]
+    }
+  ]
+}

@@ -65,3 +65,8 @@ Zonas de arenas: legibilidad7, materiales/luz7, coherencia8, costo incremental8.
 ## HUD táctico y Cuenta — PASA incremental (2026-10-22)
 
 Rol: orientación por siluetas, reanimación contextual y acceso legible a cuentas. Formas distintas para huésped, aliados, caídos, enemigo, élite, jefe, objetivo y misión. Capturas Chromium Baja/Alta/escritorio y 844×390 con controles táctiles en `docs/tactical/`. Revisión independiente: `docs/tactical/review.md`, mínimo 7/10 aplicable. Costo: Canvas2D10Hz/DOM, cero draw calls WebGL añadidas. Corregidos solapamientos táctiles y propagación de release. No aprueba el arte/HUD global ni rendimiento de iPhone físico.
+
+
+### Aprendizaje de dos habilidades · gate incremental
+
+PASA, mínimo 7. Apoyo tras oleada 1 y ulti tras oleada 3; panel de explicación pausado, dos controles separados, enfriamiento/carga y bloqueos legibles. Capturas PC/móvil Baja/Alta y revisión independiente: `docs/skills/review.md`. Sin geometría ni luces nuevas; no sustituye el gate global del juego.

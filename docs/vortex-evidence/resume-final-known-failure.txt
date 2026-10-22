@@ -1,0 +1,25 @@
+✖ resume después del final recupera sólo el botín del jugador autenticado (2085.481085ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2233.510556
+
+✖ failing tests:
+
+test at tools/audit/coop-resume-result.repro.js:19:1
+✖ resume después del final recupera sólo el botín del jugador autenticado (2085.481085ms)
+  AssertionError [ERR_ASSERTION]: debe recuperar el resultado que perdió durante el corte
+      at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tools/audit/coop-resume-result.repro.js:53:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

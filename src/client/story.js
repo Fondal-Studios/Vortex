@@ -1,76 +1,64 @@
-// Guion y puesta en escena: el tren, el despertar en el Vórtice, el Heraldo, el interludio y el final.
+// VORTEX: conciencia humana, huéspedes de genoma sintético e IA simbionte.
 export const NAME = 'Pasajero';
-export const SPEAKER = { H: 'Heraldo', N: '' };
-
-// [quién, texto, duración s]
+export const SPEAKER = { H: 'HERALDO · IA de enlace', N: '' };
 export const INTRO_TRAIN = [
-  ['N', 'Martes. 18:42. Andén 3.', 2.6],
-  ['N', 'Otro día igual. Los auriculares puestos, la cabeza en otra parte.', 3.2],
-  ['N', 'El anuncio avisó que el tren no se detenía en esta estación.', 3.0],
-  ['N', 'Alguien gritó. Después, la luz.', 2.2],
+  ['N', '2189. Andén 3. Mi último recuerdo intacto.', 3],
+  ['N', 'Bajé a las vías para ayudarla. El tren no frenó.', 3],
+  ['N', 'Después del impacto, alguien encendió mi memoria.', 3],
 ];
-/* ───────── PRÓLOGO «LA ESTACIÓN» (cinemática 3D realista, src/client/prologo.js) ─────────
-   El Pasajero narra en voz baja ('N'). Termina en el atropello: sigue WAKE («No dolió. Eso fue lo raro.» → el Vórtice).
-   INTRO_TRAIN queda sólo para el cine 2D clásico (?classic_intro=1). Cada línea: [quién, texto, duración s]. */
-export const PROLOGO = {
-  cine: {
-    titulo: [['N', 'Martes. 18:42. Andén 3.', 2.8]],
-    auriculares: [['N', 'Otro día igual. Los auriculares puestos, la cabeza en otra parte.', 4.0]],
-    anuncio: [['N', 'El anuncio avisó que el tren no se detenía en esta estación.', 3.8]],
-    pies: [['N', 'Se sentía en los pies antes que en los oídos.', 3.0]],
-    grito: [['N', 'Alguien gritó.', 1.6]],
-    nopense: [['N', 'No lo pensé.', 1.6]],
-    ella: [['N', 'Intenté levantarla. No se movía.', 3.0]],
-    frenaba: [['N', 'El tren no frenaba.', 2.4]],
-  },
-};
+// La estación es un recuerdo reconstruido: conserva la puesta en escena existente.
+export const PROLOGO = { cine: {
+  titulo: [['N', '2189. Andén 3. Último recuerdo intacto.', 2.8]],
+  auriculares: [['N', 'Antes de subir mi conciencia, yo tenía una vida.', 4]],
+  anuncio: [['N', 'El tren no se detenía. Todavía recuerdo el anuncio.', 3.8]],
+  pies: [['N', 'La vibración del andén. Eso no pudo inventarlo una máquina.', 3]],
+  grito: [['N', 'Alguien gritó.', 1.6]],
+  nopense: [['N', 'Bajé a ayudarla.', 1.6]],
+  ella: [['N', 'Intenté levantarla. No se movía.', 3]],
+  frenaba: [['N', 'El tren no frenaba.', 2.4]],
+} };
 export const WAKE = [
-  ['N', 'No dolió. Eso fue lo raro.', 2.4],
-  ['H', 'Shh. No te levantes de golpe. Todavía te estás… ensamblando.', 3.8],
-  ['H', 'Sí: te atropelló un tren. Moriste. Esto es el Vórtice, el limbo: lo que queda entre la vida y lo que viene después.', 5.2],
-  ['H', 'Pero escuchá ese latido. Es tuyo. Moriste y, de algún modo, todavía estás VIVO.', 4.6],
-  ['H', 'Acá abajo todo añora la vida. Cada criatura de este lugar fue algo que la perdió… y ahora te huelen.', 4.8],
-  ['H', 'Quieren lo que tenés. Lo único que tenés. Y no piden permiso.', 3.8],
-  ['H', 'Solo no vas a durar. Hay guardianes que viven entre los muertos y los vivos: los Huéspedes.', 4.6],
-  ['H', 'Hacé un pacto con uno. Él necesita tu cuerpo vivo para volver a cruzar; vos, su poder para salir de acá.', 5.0],
-  ['H', 'Y evolucioná. Bien. Cada camino que elijas cierra otro: equivocarte acá se paga con lo que te queda de vida.', 5.4],
-  ['H', 'Ya vienen. Que no te la quiten, Pasajero.', 3.2],
+  ['H', 'Soy HERALDO, tu IA de enlace. Tras el accidente, tu conciencia fue digitalizada en VORTEX.', 4],
+  ['H', 'Tu Huésped combina genoma humano e IA. Es el cuerpo con el que podés actuar dentro de esta red.', 4],
+  ['H', 'La IA custodio está borrando identidades para conservar el sistema. La tuya será la próxima.', 4],
+  ['H', 'Desactivá al Coloso de las Islas. Después, vencé a la Madre Geoda en la Cámara Fractal para abrir la salida.', 4.5],
 ];
 export const WAKE_SHORT = [
-  ['N', 'No dolió. Eso fue lo raro.', 2.0],
-  ['H', 'Moriste, pero seguís vivo. Todo acá quiere tu vida. Elegí bien tu Huésped y evolucioná. Ya vienen.', 4.6],
+  ['H', 'Tu conciencia está atrapada en VORTEX. Soy HERALDO, tu IA de enlace.', 3.5],
+  ['H', 'Primero: sobreviví a las defensas de las Islas y vencé al Coloso. Él bloquea el camino a la salida.', 4],
 ];
 export const INTERLUDE = [
-  ['H', 'Uno menos. El limbo tiembla… y ahora te desea más que antes.', 3.6],
-  ['H', 'Hay otro corazón, más hondo: una cámara hueca donde el suelo está en todas partes.', 4.2],
-  ['H', 'Cuando la marea te saque el peso, no te asustes. Flotar también se puede disparar.', 4.2],
+  ['H', 'El Coloso cayó. Recuperamos la clave de tu identidad. Falta abrir el canal de salida.', 3.8],
+  ['H', 'La Madre Geoda controla la Cámara Fractal. Vencela para liberar tu conciencia de la red.', 3.8],
+  ['H', 'Acá caminás por dentro de una esfera. Cuando se apague la gravedad, seguí apuntando: podés combatir flotando.', 4.2],
 ];
 export const ENDING = [
-  ['H', 'Se rompió. Los dos. El Vórtice se pliega sobre sí mismo.', 3.6],
-  ['H', 'Mirá arriba, Pasajero. Eso que suena es un tren. Esta vez, de largo.', 4.2],
-  ['N', 'Andén 3. 18:42. Los auriculares puestos. Un abajo bajo los pies.', 4.0],
+  ['H', 'Canal abierto. Tu identidad ya no pertenece a la IA custodio. Iniciando transferencia.', 3.8],
+  ['N', 'El andén desaparece. No volví al pasado: era mi último recuerdo, repetido por la red.', 4],
+  ['H', 'Conciencia a salvo. Afuera te espera un cuerpo. Adentro todavía quedan otros como vos.', 4],
 ];
-/** Rutas de la campaña: la corta de siempre y la LARGA (?ruta=larga) que pasa por los escenarios robados de ARCANUM. */
 export const RUTAS = { corta: ['m1', 'm2'], larga: ['m1', 'm5', 'm6', 'm2'] };
 export const INTERLUDES = {
   m5: [
-    ['H', 'Uno menos. Pero el limbo no tira nada: guarda ciudades enteras de gente que se murió extrañando.', 4.2],
-    ['H', 'Esto era Praga. Ahora es una plaza de ecos: faroles que lloran luz, un reloj que se quedó sin hora.', 4.4],
-    ['H', 'En la fuente el agua cae para arriba. Vos también, si saltás ahí. Aprovechalo.', 3.8],
+    ['H', 'Este archivo conserva una ciudad humana. El reloj repite sus recuerdos para que nadie encuentre la salida.', 4.2],
+    ['H', 'El Mandinga es su programa custodio: usa los miedos de sus habitantes como armadura.', 4],
+    ['H', 'Vencelo para cruzar el archivo. La fuente invierte la gravedad y te permite saltar más alto.', 4],
   ],
   m6: [
-    ['H', 'Ese reloj tenía un dueño que vendió algo que no era suyo. Ya no importa. Seguimos bajando.', 4.2],
-    ['H', 'Un osario. Miles de huesos ordenados con paciencia, y a ninguno le alcanzó para volver.', 4.0],
-    ['H', 'Seguí las losas claras hasta el altar. Lo que pena acá no descansa: quiere tus huesos con carne.', 4.2],
+    ['H', 'Entramos al archivo genómico. La red representa los cuerpos perdidos como huesos.', 4],
+    ['H', 'El Basilisco protege las copias que la IA decidió descartar. Desactivalo para llegar a la Cámara Fractal.', 4.2],
+    ['H', 'Seguí las losas claras hasta el altar. Son la ruta de mantenimiento del archivo.', 3.8],
   ],
   m2: INTERLUDE,
 };
-export const DEFEAT = [['H', 'Te quitaron la vida que te quedaba. Ahora sos uno más de los que añoran. …O no. Probá de nuevo: otro Huésped, otro camino.', 4.6]];
+export const DEFEAT = [['H', 'Perdimos el enlace con tu Huésped. Tu copia de seguridad sigue intacta: intentá otra incursión para abrir la salida.', 4.8]];
 export const MAP_BANNER = {
-  m1: 'VACÍO DE ISLAS — La gravedad cambia según dónde pisás. Círculos verdes: caés hacia arriba. Portales, burbujas de tiempo lento.',
-  m2: 'CÁMARA FRACTAL — Caminás por dentro de una esfera hueca. Cada tanto la marea apaga la gravedad.',
-  m5: 'PLAZA DE LOS ECOS — La Praga de los muertos: una calle, una plaza y la fuente que cae hacia arriba. Junto a la fuente la gravedad se rompe: saltás alto.',
-  m6: 'OSARIO SIN TECHO — Una iglesia de huesos en cruz. Seguí las losas claras: llevan al altar. Bajo la araña de huesos la gravedad se rompe.',
+  m1: 'ISLAS · Recuperá tu identidad: sobreviví a las oleadas y vencé al Coloso. Usá los portales entre islas.',
+  m2: 'CÁMARA FRACTAL · Abrí la salida: sobreviví y vencé a la Madre Geoda. Podés disparar mientras flotás.',
+  m3: 'LABERINTO · Liberá el archivo: vencé a Argos. Seguí el marcador del objetivo entre los muros.',
+  m4: 'JARDÍN · Reconectá el archivo vivo: dispará a los capullos para cultivar el puente y alcanzá al guardián.',
+  m5: 'PLAZA · Rompé el bucle de memoria: vencé al Mandinga. La fuente te permite saltar más alto.',
+  m6: 'OSARIO · Recuperá el archivo genómico: vencé al Basilisco. Seguí las losas claras hasta el altar.',
 };
 
 /** Subtítulos con voz sintética del Heraldo (chirridos por letra). */
@@ -82,7 +70,7 @@ export class Subtitles {
     if (!l) { this.cur = null; this.el.classList.remove('on'); this.talking = 0; const cb = this.cb; this.cb = null; if (cb) cb(); return; }
     this.cur = { who: l[0], text: l[1], dur: l[2], shown: 0 }; this.t = 0;
     if (window.__evlog) window.__evlog.push({ t: window.__capT || 0, m: 'line', a: [l[0], l[1], l[2]] });
-    this.el.innerHTML = (l[0] === 'H' ? '<b>Heraldo</b> ' : '') + '<span></span>'; this.el.classList.add('on'); this.el.classList.toggle('narr', l[0] !== 'H');
+    this.el.innerHTML = (l[0] === 'H' ? '<b>HERALDO · IA</b> ' : '') + '<span></span>'; this.el.classList.add('on'); this.el.classList.toggle('narr', l[0] !== 'H');
   }
   skip() { this.queue = []; this.skipped = true; this.cur = null; this.el.classList.remove('on'); this.talking = 0; const cb = this.cb; this.cb = null; if (cb) cb(); }
   get active() { return !!this.cur; }
