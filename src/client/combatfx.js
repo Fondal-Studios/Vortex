@@ -139,8 +139,8 @@ export class CombatFx {
     for (const p of state.projectiles) {
       seen.add(p.id); let pr = this.proj.get(p.id); const pos = V(p.p), vel = V(p.v);
       if (!pr) {
-        pr = { w: -1, owner: p.o, k: p.k, last: pos.clone(), age: 0 };
-        if (p.o === 'p') {
+        pr = { w: Number.isInteger(p.w) ? p.w : -1, owner: p.o, k: p.k, last: pos.clone(), age: 0 };
+        if (p.o === 'p' && pr.w < 0) {
           let best = 14; for (const s of this.shots) if (PROJ_W.has(s.w) && s.o.distanceTo(pos) < best) { best = s.o.distanceTo(pos); pr.w = s.w; }
           if (pr.w < 0) for (const s of this.skills) { if (s.id === 'cohete' && s.p.distanceTo(pos) < 14) pr.w = 100; else if (s.id === 'singularidad' && s.p.distanceTo(pos) < 14) pr.w = 101; }
           if (pr.w < 0 && p.k === 'mina') pr.w = 19; if (pr.w < 0 && p.k === 'lanza') pr.w = 12; if (pr.w < 0 && p.k === 'swarm') pr.w = 9; if (pr.w < 0) pr.w = 3;
@@ -170,6 +170,23 @@ export class CombatFx {
       const sn = pr.k === 'beam', c = sn ? 0x66f0ff : 0xff4fd8;
       if (sn) fx.line(L, p, c, 0.22, 0.3, { shrink: 0.9, a0: 0.9, a1: 0.9 }); else fx.line(L, p, c, 0.3, 0.28, { shrink: 0.9, a0: 0.8, a1: 0.8 });
       fx.spray(p, c, 1.2, 1.5, 0.45, 0.7, { grow: -0.8, drag: 3, c2: sn ? 0x2a60ff : 0x7a1a90 }); return;
+    }
+    // Independent of refresh rate: at most one signature per projectile per 90/150 ms.
+    if (pr.age >= (pr.signatureAt || 0)) {
+      pr.signatureAt = pr.age + (tier === 0 || this.reduced ? 0.15 : 0.09);
+      const c = WEAPON_COLORS[w] || 0xff9a2a;
+      if (w === 12) { // crystalline lance: narrow spearhead, no round plasma silhouette
+        fx.line(p, p.clone().addScaledVector(dir, 1.5), c, 0.10, 0.12, { a0: 1, a1: 0, shrink: 0.8 });
+      } else if (w === 11 || w === 101) { // void: contracting orbital collars
+        fx.ring(p, dir, c, 0.18, 0.3, { r0: 0.85, th: 0.06, op: 0.6 });
+      } else if (w === 9) { // swarm: paired wings around the flight axis
+        perp(dir, _u, _w);
+        for (const sign of [-1, 1]) fx.line(p, p.clone().addScaledVector(_u, sign * 0.45).addScaledVector(dir, -0.65), c, 0.07, 0.16, { a0: 0.8, a1: 0, shrink: 0.8 });
+      } else if (w === 10) { // comet: compression rings
+        fx.ring(p, dir, c, 0.7, 0.22, { r0: 0.15, th: 0.05, op: 0.45 });
+      } else if (w === 3 || w === 100) { // rocket: exhaust thrust, short and directional
+        fx.line(p, p.clone().addScaledVector(dir, -1.3), c, 0.25, 0.12, { a0: 0.7, a1: 0, shrink: 0.7 });
+      } else if (w === 19) fx.ring(p, this.up, c, 0.65, 0.35, { r0: 0.2, th: 0.06, op: 0.5 });
     }
     switch (w) {
       case 3: fx.spray(p, 0xffa040, 2, 3, 0.4, 1.0, { grow: 0.5, drag: 3, c2: 0x8a1a10 }); fx.spray(p, 0x3a2030, 1, 1.5, 0.9, 1.0, { smoke: true, grow: 1.6, drag: 2, shape: SHAPE.smoke, c2: 0x1a1020, spin: 2 }); fx.sparks(p, 0xffd080, 1, 6, 0.3, { dir: _t.copy(dir).negate(), cone: 1, grav: 6 }); break;
@@ -399,7 +416,7 @@ export class CombatFx {
     const sh = at && at.shot ? at.shot : null, nrm = sh ? _d.copy(sh.o).sub(p).normalize().clone() : (this.cam ? _d.copy(this.cam.position).sub(p).normalize().clone() : new THREE.Vector3(0, 1, 0));
     const dmg = e.d || 1, base = (w >= 0 && WEAPONS[w] ? WEAPONS[w].dmg : 20) * (at && at.arc ? 0.7 : 1);
     let mul = base > 0 ? dmg / base : 1; if (sh && sh.pid === this.myId && this.me && this.me.ug && Array.isArray(this.me.ug)) { const i = this.me.sl ? this.me.sl.indexOf(w) : -1, u = i >= 0 ? this.me.ug[i] : 0; if (Array.isArray(u) && u[0]) mul /= 1 + 0.22 * u[0]; }
-    const crit = !e.arm && mul >= 1.9, boost = !e.arm && !crit && mul >= 1.22, heavy = dmg >= 90, k = clamp(0.6 + Math.log10(dmg + 1) * 0.45 + (crit ? 0.5 : 0), 0.6, 2.4);
+    const crit = !!e.cr, boost = !e.arm && !crit && mul >= 1.22, heavy = dmg >= 90, k = clamp(0.6 + Math.log10(dmg + 1) * 0.45 + (crit ? 0.5 : 0), 0.6, 2.4);
     // marca para la animación de muerte (cómo lo mataron)
     this.lastHit.set(e.id, { style, w, t: this.t, nrm, p });
     // capa 1: el material de la criatura reacciona
@@ -410,11 +427,11 @@ export class CombatFx {
     else { fx.spray(p, mc, 5 * k, 6, 0.6, 0.8, { c2: 0xffffff, grow: 0.5 }); fx.ring(p, nrm, mc, 1.6 * k, 0.28, { r0: 0.2, shock: true, op: 0.7 }); }
     // capa 2: el arma deja su firma
     if (!e.arm) this.impact(style, p, nrm, WEAPON_COLORS[w] || mc, k * 0.8, true);
-    fx.flash(p, mc, 1.5 * k, 0.15, { op: 0.9 }); // brillo del material herido (se ve a distancia)
+    fx.flash(p, mc, 0.8 * k, 0.12, { op: 0.5 }); // brillo del material herido (se ve a distancia)
     const mineHit = sh ? sh.pid === this.myId : true;
     if (crit) { // crítico: estallido dorado grande, onda con color separado, estrellas, golpe de FOV y sacudida chica
-      fx.flash(p, 0xffe27a, 4.4, 0.22, { burst: true }); fx.flash(p, 0xffffff, 2.4, 0.12); fx.ring(p, null, 0xffe27a, 4.6, 0.4, { r0: 0.3, shock: true }); fx.ringChroma(p, null, 3.4, 0.34, { r0: 0.3, op: 0.8 });
-      fx.sparks(p, 0xffe9a0, 14, 16, 0.5, { c2: 0xff8a2a, w: 0.08 }); fx.spray(p, 0xffe27a, 6, 8, 0.6, 0.8, { shape: SHAPE.star, spin: 4, c2: 0xff8a2a, raw: true });
+      fx.flash(p, 0xffe27a, 1.6, 0.13, { burst: true, op: 0.6 }); fx.flash(p, 0xffe9a0, 0.6, 0.07, { op: 0.5 }); fx.ring(p, null, 0xffe27a, 2.8, 0.32, { r0: 0.3, shock: true }); if (!this.reduced && this.tier > 0) fx.ringChroma(p, null, 2.1, 0.28, { r0: 0.3, op: 0.4 });
+      fx.sparks(p, 0xffe9a0, this.tier === 0 || this.reduced ? 5 : 10, 16, 0.5, { c2: 0xff8a2a, w: 0.08 }); fx.spray(p, 0xffe27a, this.tier === 0 || this.reduced ? 2 : 4, 8, 0.6, 0.8, { shape: SHAPE.star, spin: 4, c2: 0xff8a2a, raw: true });
       if (mineHit) { this.K.fov = Math.min(this.K.fov + 0.7, 3.2); this.addShake(0.12); }
     }
     else if (heavy) { fx.ring(p, nrm, WEAPON_COLORS[w] || mc, 3.2, 0.35, { r0: 0.3, shock: true }); }

@@ -142,9 +142,21 @@ export function createComboFx(renderer) {
       fx.sparks(P, 0xffffff, Math.round(clamp(5 + peso * 5, 6, 22) * b), 14 + peso * 3, 0.42, { dir: _d.copy(h).negate(), cone: 1.4, c2: pal.c });
       if (peso >= 1.5) fx.ring(P.clone().addScaledVector(up, -0.3), up, pal.c, 2 + peso * 1.2, 0.38, { th: 0.12, shock: true });
     }
+    if (C.fin && hit) {
+      const side = new THREE.Vector3().crossVectors(up, h).normalize();
+      const ground = o.clone().addScaledVector(up, 0.08);
+      const spin = d.a === 'giro', reach = 2.4 + Math.min(peso, 2);
+      const count = lv ? 4 : 8;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count - 0.5) * (spin ? Math.PI * 2 : Math.PI * 0.8);
+        const z = ((i + 1) / count - 0.5) * (spin ? Math.PI * 2 : Math.PI * 0.8);
+        const point = (ang) => ground.clone().addScaledVector(h, Math.cos(ang) * reach).addScaledVector(side, Math.sin(ang) * reach);
+        fx.line(point(a), point(z), pal.c, 0.10, 0.32, { a0: 0.65, a1: 0.1, shrink: 0.8 });
+      }
+    }
     if (C.fin) { // REMATE: onda grande en el suelo, columna de chispas y destello del color del Huésped
-      fx.ring(o.clone().addScaledVector(up, 0.05), up, pal.a, 5 + peso, 0.5, { th: 0.16, shock: true }); fx.ring(o.clone().addScaledVector(up, 0.05), up, pal.c, 3.2, 0.36, { th: 0.1 });
-      fx.flash(P, pal.a, 3.2, 0.22, { burst: true }); fx.sparks(P, pal.a, Math.round(20 * b), 18, 0.55, { c2: 0xffffff }); fx.spray(P, pal.c, Math.round(6 * b), 6, 0.6, 0.6, { c2: pal.a, up: 3, grow: -0.4 });
+      fx.ring(o.clone().addScaledVector(up, 0.05), up, pal.c, 4 + peso, 0.4, { th: 0.10, shock: true, op: 0.45 }); fx.ring(o.clone().addScaledVector(up, 0.05), up, pal.c, 3.2, 0.36, { th: 0.1 });
+      fx.flash(P, pal.c, 1.4, 0.14, { burst: true, op: 0.55 }); fx.sparks(P, pal.a, Math.round(10 * b), 14, 0.55, { c2: 0xffffff }); fx.spray(P, pal.c, Math.round(6 * b), 6, 0.6, 0.6, { c2: pal.a, up: 3, grow: -0.4 });
     }
     // sensación en el atacante: hit-stop (visual) y cámara
     const frames = lv === 2 ? 0 : lv === 1 ? Math.max(0, Math.round(d.hs * 0.4)) : d.hs;

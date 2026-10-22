@@ -474,7 +474,7 @@ export class Game {
     if (w0.per > 0 && p.ammo[p.weapon] < w0.per) { // sin munición → Haz
       p.weapon = 0; return;
     }
-    p.cd = Math.max(p.cd, -this.dt) + w0.rate / st.rate;
+    p.cd = Math.max(p.cd, -this.dt) + w0.rate / st.rate / (p.bn?.attackSpeed || 1);
     if (st.forma === 'alba') { p.albaN = (p.albaN || 0) + 1; if (p.albaN % 5 === 0 && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + 4); } // arrastra el sobrante: la cadencia no se redondea al tick
     if (w0.per > 0) p.ammo[p.weapon] -= w0.per;
     if (this.magazines) p.clip[p.weapon]--;
@@ -853,7 +853,7 @@ export class Game {
         id: m.id, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,
         s: m.vis || m.state, o: !!m.open, pr: r2(m.pressure || 0), mk: this.time < (m.markUntil || 0), c: !!m.cloak, el: !!m.elite, af: m.affix || undefined, ef: (this.time < (m.slowUntil || 0) ? 1 : 0) | (this.time < (m.dotUntil || 0) ? (m.dotKind === 'poison' ? 2 : 4) : 0), h: m.hurt > 0, t: r2(m.t), a: m.aim ? a3(m.aim) : null, sd: this.time < (m.shieldUntil || 0) || (!!m.shield && !jefeNucleo(m)), st: !!m.stun || (m.stagger || 0) > 0 || jefeNucleo(m),
       })),
-      projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, p: a3(q.pos), v: a3(q.vel), r: q.r })),
+      projectiles: this.projectiles.map((q) => ({ id: q.id, k: q.kind, o: q.owner, w: q.wid, pid: q.pid, p: a3(q.pos), v: a3(q.vel), r: q.r })),
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),
       ...(this.loot.length ? { lt: lootSnap(this) } : {}),
       objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, nk: o.kind || undefined, ow: o.owner || 0, l: r2(o.life || 0) })),

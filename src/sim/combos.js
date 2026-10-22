@@ -115,7 +115,7 @@ function fire(g, p, name, power, moves, W) {
   if (fin && kk > 0 && ac.refund && !p.dead) { const n = Math.min(kk, 5); heal(p, 4 * n); p.habCd = Math.max(0, p.habCd - 1.2 * n); }   // Remate cobrador
   const M = meleeSet(p), base = mv.w === 'h' ? M.heavy : M.light;
   const fr = g.time < p.frenzyUntil ? 0.75 : 1, over = p.ultId === 'sobrecarga' ? 0.6 : 1;
-  cb.rec = Math.max(0.12, base.cd * mv.cdr * W.cd * fr * over * (hasPath(p, 'velocidad') ? 0.92 : 1)); cb.rec *= dzRec(p); cb.cd = cb.rec;
+  cb.rec = Math.max(0.12, base.cd * mv.cdr * W.cd * fr * over * (hasPath(p, 'velocidad') ? 0.92 : 1)); cb.rec *= dzRec(p) / (p.bn?.attackSpeed || 1); cb.cd = cb.rec;
   cb.cancel = ac.cancel ? Math.min(mv.cancel || COMBO_RULES.cancel, ac.cancel) : mv.cancel || COMBO_RULES.cancel; cb.last = mv.id; cb.lastName = mv.name;   // cancel = fracción de la recuperación que ya pasó para aceptar el golpe siguiente (menor = antes)
   if (cb.xc && ac.execCancel) cb.cd = 0;   // Sentencia: ejecutar cancela la recuperación
   if (last) { cb.buf = []; cb.win = cb.rec + 0.2; cb.nEnd = cb.n; cb.n = last ? 0 : cb.n; }
@@ -138,6 +138,9 @@ function resolve(g, p, mv0, power, W, last, fin) {
   const arcv = base.arc * mv.arc * (mv.ranged ? 1 : side.arc * ac.arc), full = mv.arc >= 2 || meta;
   const cosT = full ? -1 : Math.max(-1, 1 - arcv * (heavy ? 1.1 : 1));
   const o = g.eyePos(p), dir0 = norm(g.aimDir(p)), h = flat(p);
+  const critical = fin && heavy && !mv.ranged && cb.n >= 3;
+  if (critical) dmg *= 1.2;
+  const crit0 = g.critNow; g.critNow = critical;
   const s0 = g.dmgSrc; g.dmgSrc = 'melee'; p.inMelee = true; g.pierceNow = !!(base.pierce || ac.pen);
   let hits = 0; const killed = [], bud = { left: dmg * ARRASE_PRESUPUESTO };   // bud = tope de daño EXTRA por golpe (arrasar sin romper el balance)
   try {
@@ -196,7 +199,7 @@ function resolve(g, p, mv0, power, W, last, fin) {
     }
     if (fin && ac.fin) finisherArea(g, p, ac.fin, bud, dmg, o, dir0);   // Aniquilación en Área: el remate barre
     if (!mv.ranged) faunaMelee(g, p, o, dir0, range, heavy || last);   // fauna: el remate (golpe pesado o último del combo) devora y suelta el golpe elemental de la forma
-  } finally { g.dmgSrc = s0; p.inMelee = false; g.pierceNow = false; }
+  } finally { g.critNow = crit0; g.dmgSrc = s0; p.inMelee = false; g.pierceNow = false; }
   return hits;
 }
 

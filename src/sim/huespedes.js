@@ -120,7 +120,7 @@ function strike(g, p, M, heavy) {
   if (heavy && (prevCmb >= 2 || ((p.lastCmbN || 0) >= 2 && g.time - (p.lastLightT || -9) < 1.8))) { spin = true; kind = 'spin'; dmg *= 1.2; range += 1; }
   if (heavy) p.lastCmbN = 0;
   if (air) { kind = 'air'; p.slam = 3; p.vel = madd(p.vel, p.up, -42); dmg *= 1.2; }
-  p.meleeCd = def.cd * (over ? 0.6 : 1);
+  p.meleeCd = def.cd * (over ? 0.6 : 1) / (p.bn?.attackSpeed || 1);
   const o = g.eyePos(p), d = g.aimDir(p), dir0 = norm(d);
   let hits = 0;
   const cosT = meta || spin ? -1 : 1 - arc * (heavy ? 1.1 : 1);
