@@ -40,3 +40,8 @@
 - Reconocer que un poder equipado no tiene la misma versatilidad que todos accesibles.
   No asignar puntuación final de balance sin juego humano.
 - Subir protocolo al cambiar tipos/campos del objetivo; cliente y servidor juntos.
+
+
+## 2026-10-22 — Principiante y alfa 2
+
+Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro acciones estables, poderes conservados en controles completos; segunda pasada corrige nombres de jefe, avisos y bloqueo táctil del resumen. 107 pruebas seleccionadas y verificaciones de navegador; 20 sondas con 16 supervivencias al corte y cuatro derrotas. Puntuaciones hipotéticas aún no cumplen todas >80. Pendiente balance sin poderes, compatibilidad de recompensas, orientación en combate, campaña completa y alfa humana/Safari físico. Sin merge ni despliegue.

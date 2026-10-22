@@ -1,3 +1,4 @@
+import { BOSS_NAMES } from './campaign-names.js';
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
 import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS, evoPathsFor, STYLES, AFFIX_IDS, LINEAGE } from './data.js';
 import { MAPS } from './maps.js';
@@ -289,7 +290,7 @@ export class Game {
 
   spawnMonster(kind, pos, extra = {}) {
     if (this.monsters.length >= LIMITS.monsters) return null;
-    const def = MONSTERS[kind];
+    const baseDef = MONSTERS[kind], def = baseDef.boss ? { ...baseDef, name: BOSS_NAMES[this.mapId] || baseDef.name } : baseDef;
     const w = Math.max(1, this.wave);
     const pm = def.boss ? 1 + 0.7 * (this.players.length - 1) : 1;
     let elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5 + (this.evEliteBoost || 0);

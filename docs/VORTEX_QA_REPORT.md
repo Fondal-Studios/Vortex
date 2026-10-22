@@ -100,3 +100,8 @@ Reconexión: fixtures de posiciones en seis mapas, solo/coop; rutas y plazo sin
 playtest. Caza: finaliza oleada al matar el blanco, sin recompensas por acompañantes;
 desaparición del blanco falla sin premio y sin bloqueo. Sin doble pago al repetir update.
 Build y diff --check correctos. Gate de navegador/iPhone continúa pendiente.
+
+
+## 2026-10-22 — Principiante y alfa 2
+
+Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro acciones estables, poderes conservados en controles completos; segunda pasada corrige nombres de jefe, avisos y bloqueo táctil del resumen. 107 pruebas seleccionadas y verificaciones de navegador; 20 sondas con 16 supervivencias al corte y cuatro derrotas. Puntuaciones hipotéticas aún no cumplen todas >80. Pendiente balance sin poderes, compatibilidad de recompensas, orientación en combate, campaña completa y alfa humana/Safari físico. Sin merge ni despliegue.

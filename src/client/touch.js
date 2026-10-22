@@ -132,7 +132,7 @@ export class TouchControls {
     const set = (id, ic, label) => { const el = this.$(`[data-a="${id}"]`); if (!el) return; const i = el.querySelector('.ic'), sm = el.querySelector('small'); if (i && i.textContent !== ic) i.textContent = ic; if (sm && label && sm.textContent !== label) sm.textContent = label; };
     for (const [id, [ic, label]] of Object.entries(POR_MODO[this.mode])) { set(id, ic, label); const el = this.$(`[data-a="${id}"]`); if (el && el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label); }
     const src = fuentes(this.char, this.mode); ['mov', 'esp', 's3'].forEach((id, i) => set(id, ICONO_SRC[src[i]] || '•', !settings().advanced ? 'PODER' : `HAB.${i + 1}`));
-    if (!settings().advanced) { const power = essentialPower(this.mode, settings().essentialPowers?.[`${this.char}:${this.mode}`]); set(power, '✦', this.ctx?.ult ? 'PODER · ULTI' : 'PODER'); } else set('ability', '✚', 'EQUIPO');
+    if (!settings().advanced) { const power = essentialPower(this.mode, settings().essentialPowers?.[`${this.char}:${this.mode}`]); set(power, '✦', 'PODER'); } else set('ability', '✚', 'EQUIPO');
     const M = MODOS[this.mode]; set('mode', M.icono, 'MODO'); const mb = this.$('[data-a="mode"]'); if (mb) mb.setAttribute('aria-label', `Modo ${M.nombre}: tocá para cambiar`);
   }
   /** Animación corta al cambiar de modo: los botones nuevos «brotan». */
@@ -192,7 +192,7 @@ export class TouchControls {
     this.st[a] = true;
   }
   /** Sensibilidad efectiva: multiplicador según estemos apuntando (ADS) o con mira óptica. */
-  mul() { const s = settings(); return this.st.ads ? (this.zoomKind === 2 ? s.scopeMul : s.adsMul) : 1; }
+  mul() { const s = settings(); return s.advanced && this.st.ads ? (this.zoomKind === 2 ? s.scopeMul : s.adsMul) : 1; }
   move(e) {
     const p = this.ptrs.get(e.pointerId); if (!p) { if (this.editing) this.editMove(e); return; } e.preventDefault();
     if (p.kind === 'edit') { this.editMove(e); return; } // editor: arrastrar el botón elegido

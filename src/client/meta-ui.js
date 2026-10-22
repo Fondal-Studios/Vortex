@@ -70,7 +70,7 @@ export function createMetaHud(host, ctx = {}) {
       if (!m) { goal.style.display = 'none'; mision.classList.add('hidden'); flecha.classList.add('hidden'); ocultarGuia(); return; }
       goal.style.display = ''; goal.dataset.kind = m.kind;
       let next = m.next; const mm = ctx.solo ? metaMapa(state.map) : null;
-      if (mm && m.kind === 'espera' && !state.wave) next = `Meta del mapa: vencé a ${mm.jefe} y liberá ${mm.nombre}`;
+      // Initial chapter purpose comes from metaActual; do not overwrite it with territory lore.
       if (mm && m.kind === 'jefe') next = `Premio: liberás ${mm.nombre} y elegís una bendición`;
       const key = m.main + '|' + next;
       if (key !== cache) { cache = key; gMain.textContent = m.main; gNext.textContent = next; }

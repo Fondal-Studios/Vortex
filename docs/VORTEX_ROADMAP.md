@@ -35,3 +35,8 @@ secundario, movilidad y definitiva; selección de poder por huésped/modo.
 Siguiente gate: recorridos humanos por arena y huésped, especialmente plazos,
 lectura del blanco, carga de Seraf y ventana de Danzante. Comparar esencial/completo
 por supervivencia y uso accidental, no sólo por equivalencia de acciones.
+
+
+## 2026-10-22 — Principiante y alfa 2
+
+Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro acciones estables, poderes conservados en controles completos; segunda pasada corrige nombres de jefe, avisos y bloqueo táctil del resumen. 107 pruebas seleccionadas y verificaciones de navegador; 20 sondas con 16 supervivencias al corte y cuatro derrotas. Puntuaciones hipotéticas aún no cumplen todas >80. Pendiente balance sin poderes, compatibilidad de recompensas, orientación en combate, campaña completa y alfa humana/Safari físico. Sin merge ni despliegue.

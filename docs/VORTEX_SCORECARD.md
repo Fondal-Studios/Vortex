@@ -43,3 +43,8 @@
 
 ## Objetivos de salida
 Jugabilidad 90; objetivos 95; controles 90; combate 90; niveles 85; arte 90; estabilidad 95; global 90. Requieren observación humana, hardware real y QA reproducible. Una nota de código no satisface estos objetivos.
+
+
+## 2026-10-22 — Principiante y alfa 2
+
+Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro acciones estables, poderes conservados en controles completos; segunda pasada corrige nombres de jefe, avisos y bloqueo táctil del resumen. 107 pruebas seleccionadas y verificaciones de navegador; 20 sondas con 16 supervivencias al corte y cuatro derrotas. Puntuaciones hipotéticas aún no cumplen todas >80. Pendiente balance sin poderes, compatibilidad de recompensas, orientación en combate, campaña completa y alfa humana/Safari físico. Sin merge ni despliegue.

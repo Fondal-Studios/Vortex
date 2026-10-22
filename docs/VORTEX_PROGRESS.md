@@ -70,3 +70,8 @@ versatilidad del kit y ergonomía pendientes de sesiones humanas.
 ## 2026-10-22 — Alfa simulada, 20 perfiles
 
 Informe: `VORTEX_ALPHA_SIMULATED.md`. 20 valoraciones editoriales ficticias separadas de 20 sondas headless de m1 (hasta 300 s). 18 siguen en oleada 6; dos derrotas en oleada 5. No hubo humanos, campaña completa ni validación visual. Hallazgos nuevos: WAKE_SHORT contradictorio al llegar a m2, restos del final anterior y omisión de WAKE al saltar prólogo. Pendientes de corregir; sin cambios de gameplay en este ciclo. Datos y script guardados para reproducción.
+
+
+## 2026-10-22 — Principiante y alfa 2
+
+Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro acciones estables, poderes conservados en controles completos; segunda pasada corrige nombres de jefe, avisos y bloqueo táctil del resumen. 107 pruebas seleccionadas y verificaciones de navegador; 20 sondas con 16 supervivencias al corte y cuatro derrotas. Puntuaciones hipotéticas aún no cumplen todas >80. Pendiente balance sin poderes, compatibilidad de recompensas, orientación en combate, campaña completa y alfa humana/Safari físico. Sin merge ni despliegue.

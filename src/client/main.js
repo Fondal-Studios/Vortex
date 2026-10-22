@@ -1,4 +1,4 @@
-import { thirdForMode, essentialInteraction, essentialPower } from './essential-controls.js';
+import { thirdForMode, essentialInteraction, essentialPower, expandEssentialInput } from './essential-controls.js';
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS, GAME_MODES, HABILIDADES } from '../sim/data.js';
@@ -172,8 +172,8 @@ const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = local
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
-  const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
+  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(settings().advanced ? ti : expandEssentialInput(ti, {}, gameMode())); } // (las tarjetas de mejora también se eligen tocando)
+  const zm = renderer.zoomKind || 0, adsM = settings().advanced && (keys.has('KeyX') || mouse.ads) ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(), style: settings().style,
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
@@ -187,7 +187,7 @@ function readInput() {
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
-    i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.dpitch += g.dpitch * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.ads = i.ads || g.ads;
+    i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw * (settings().advanced && g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.dpitch += g.dpitch * (settings().advanced && g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.ads = i.ads || g.ads;
     i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.mov = i.mov || g.mov; i.esp = i.esp || g.esp; i.s3 = i.s3 || g.s3; i.ult = i.ult || g.ult; i.reload = i.reload || g.reload; i.melee = i.melee || g.melee; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
     if (g.next && !padLatch.next) i.weapon = (((session ? session.mySlot || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.mySlot || 0 : 0) - 1) % 5 + 5) % 5;
     if (cardsOpen) { if (g.next && !padLatch.next) pickReq = 1; if (g.prev && !padLatch.prev) pickReq = 0; if (g.jump && !padLatch.jump) pickReq = 2; if (pickReq >= 0) i.pick = pickReq; }
@@ -197,7 +197,7 @@ function readInput() {
     if (i.mode === 'combo') { i.a1 = i.a1 || g.fire; i.a2 = i.a2 || g.melee || g.ads; i.fire = false; }   // mando en Melé: RT ataque 1 · B o LT ataque 2 · LB/RB/cruceta ↑ = HAB.1/2/3 (igual que en Disparo)
     if (g.mode && !padLatch.mode) cambiarModo(); padLatch.mode = g.mode;   // Select/Back = cambiar de modo
   }
-  return npcInput(i);
+  return npcInput(settings().advanced ? i : expandEssentialInput(i, {}, gameMode()));
 }
 const padLatch = { next: false, prev: false, pause: false, jump: false, mode: false }; let padDt = 0.016;
 
@@ -227,6 +227,7 @@ function assistAim(inp, state, me, dt, firing = false) {
 
 /** MODO SIMPLE (para quien nunca jugó un shooter): si hay un enemigo bajo la mira, dispara solo; si lo tenés encima, golpea solo. El jugador sólo mueve y mira. */
 function simpleAssist(inp, state, me) {
+  if (!settings().advanced) return;
   if (!settings().simple || !me || me.dead || session.paused) return;
   if (me.md) { comboAssist(inp, state, me, { onTarget: session.onTarget }); return; }   // modo Combo: el ataque 1 se encadena solo (combo-assist.js)
   const h = v3(...me.h), st = settings().style || 'disparo'; let close = false;
@@ -293,7 +294,7 @@ function beginIntro(kind) {
     const total = Story.INTRO_TRAIN.reduce((a, l) => a + l[2], 0);
     cine = Story.trainCine($('cine'), total, () => { const f = $('flash'); f.classList.add('on'); sound.heartbeat(); later(() => f.classList.remove('on'), 1200); }, CAP);
     subs.play(Story.INTRO_TRAIN, () => later(() => { if (session && session.intro) startWake(Story.WAKE); }, 900));
-  } else startWake(Story.WAKE_SHORT);
+  } else startWake(Story.wakeForMap(session.map));
 }
 function startWake(lines) {
   if (!session || !session.intro) return;
@@ -301,24 +302,25 @@ function startWake(lines) {
   renderer.setGuide(true); renderer.startWake(4); sound.heartbeat();
   subs.play(lines, finishIntro);
 }
-function skipIntro(force) { if (!session || !session.intro || (session.prologo && !force)) return; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
+function skipIntro(force) { if (!session || !session.intro || (session.prologo && !force)) return; subs.cb = null; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
 /** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). Pausa en solitario; en cooperativo la sala continúa. */
 function showTutorial(force = false) {
   let seen = false; try { seen = localStorage.getItem('cristal.tut.v2') === '1'; } catch { /* ok */ }
   if ((seen && !force) || !session || session.headless) return;
   const touchUI = !!session.touch, el = $('tutorial');
   const rows = touchUI
-    ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Derecha: girar la cámara.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['SALTO / PODER', 'mantener 0,36 s', 'SALTO: mantener activa movilidad. PODER: mantener pide definitiva cargada. Elegí tu poder en pausa.'], ['MODO', 'Disparo ↔ Melé', 'Disparo en primera persona; espada en tercera. Pausa → controles completos para más acciones.']]
-    : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['G / Z', 'poder del Huésped', 'G en Disparo; Z en Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
-  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Tu conciencia está atrapada en VORTEX. <b>Vencé al guardián de este archivo para avanzar.</b> Seguí el objetivo de arriba y elegí una mejora entre oleadas.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
-  const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();
-  el.classList.remove('hidden'); const close = () => { if (session === tutSession && session.mode === 'solo') session.paused = wasPaused; el.classList.add('hidden'); if (session === tutSession) { if (wasPaused) $('pause').classList.remove('hidden'); else if (!session.touch && !NOLOCK) lockPointer(); } try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
+    ? [['ATACAR', 'mantener', 'Disparo: disparás. Espada: repetís el ataque básico. Soltá para parar.'], ['SALTAR', 'tocar', 'Solo salta. Mantener no activa otro poder.'], ['USAR', 'cerca de algo', 'Interactuá con objetos o ayudá a un aliado. El botón no cambia de función.'], ['MODO', 'Disparo ↔ Espada', 'Disparo en primera persona; espada en tercera. Movete y mirá con los dos pulgares.']]
+    : [['ATACAR', 'clic izquierdo', 'Mantené para atacar; soltá para parar. WASD: caminar. Ratón: mirar.'], ['SALTAR', 'Espacio', 'Solo salta.'], ['USAR', 'E', 'Interactuá de cerca con objetos o aliados.'], ['MODO', 'Tab', 'Disparo en primera persona; espada en tercera.']];
+  const chapter = Story.chapterBrief(session.map);
+  el.innerHTML = `<h4>${chapter.title}</h4><p>${chapter.context}</p><p><b>${chapter.task}</b></p><p>Al lograrlo: ${chapter.reward}</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><p>${settings().advanced ? 'Controles completos activos: los poderes adicionales siguen disponibles.' : 'Principiante: cuatro acciones, sin poderes ocultos. Recargás automáticamente al vaciar el arma.'} Podés volver a leer esto desde Pausa → Misión y controles.</p><button id="tutok" type="button">Jugar</button>`;
+  const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (session.touch) touch.show(false); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();
+  el.classList.remove('hidden'); const close = () => { if (session === tutSession && session.mode === 'solo') session.paused = wasPaused; el.classList.add('hidden'); if (session === tutSession) { if (session.touch && !wasPaused) touch.show(true); if (wasPaused) $('pause').classList.remove('hidden'); else if (!session.touch && !NOLOCK) lockPointer(); } try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
   $('tutok').onclick = close;
 }
 function finishIntro() {
   if (!session) return; session.intro = null; renderer.setGuide(false); renderer.wakeT = renderer.wakeDur = 0; $('hud').classList.remove('hidden');
   if (session.touch) touch.show(true); else if (!session.headless && !NOLOCK && !params.get('auto') && !locked) lockPointer();
-  banner(Story.MAP_BANNER[session.map] || '', 6000); later(() => showTutorial(), 1200);
+  banner(Story.MAP_BANNER[session.map] || '', 6000); showTutorial(!!session.campaign);
 }
 
 function buildWeaponHud() {
@@ -527,7 +529,7 @@ function floraDescubre() {
   for (const id of renderer.flfx.cerca) {
     if (session.floraVistas.has(id)) continue; session.floraVistas.add(id);
     const S = ESPECIES_FLORA[id]; if (!S) continue;
-    try { const r = Perfil.verPlanta(id); if (r.nuevo) { sound.flora('descubre', null); banner(`🌿 Nueva planta en el Herbario: ${S.nombre} (${FN_FLORA[S.fn].toLowerCase()})\n${S.desc}`, 3400); for (const h of r.hitos) later(() => banner(`📖 Herbario: «${HITOS_FLORA[h].nombre}» (${HITOS_FLORA[h].txt})`, 2800), 3500); } } catch { /* sin perfil */ }
+    try { const r = Perfil.verPlanta(id); if (r.nuevo) { sound.flora('descubre', null); banner(settings().advanced ? `🌿 Nueva planta en el Herbario: ${S.nombre} (${FN_FLORA[S.fn].toLowerCase()})\n${S.desc}` : `Herbario: ${S.nombre} · ${FN_FLORA[S.fn].toLowerCase()}`, 2400); for (const h of r.hitos) later(() => banner(`📖 Herbario: «${HITOS_FLORA[h].nombre}» (${HITOS_FLORA[h].txt})`, 2800), 3500); } } catch { /* sin perfil */ }
   }
 }
 function faunaEvento(e, mine, me) {
@@ -789,7 +791,7 @@ function endGame(state, me) {
     renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap }); });
     return;
   }
-  if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', 'De vuelta al andén', 'Completá la historia', sound); showEnd(true, stats, 'VOLVISTE AL MUNDO DE LOS VIVOS'); }); return; }
+  if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', Story.VICTORY.trophy, 'Completá la historia', sound); showEnd(true, stats, Story.VICTORY.title); }); return; }
   if (!won) { subs.play(Story.DEFEAT, () => showEnd(false, stats)); return; }
   showEnd(true, stats + (terrNuevo ? `\n\nTERRITORIO LIBERADO: ${terrNuevo.nombre}. Elegí su bendición en el menú › Territorios.` : ''));
 }
@@ -797,7 +799,7 @@ function endGame(state, me) {
 function maestriaTxt() { const m = session && session.mae; if (!m) return ''; const a = m.arbol, pc = a ? a.combo + a.disparo : 0; return `\nMaestría +${m.ganada} XP` + (m.subio ? ` · ¡RANGO ${m.rangoDespues}: ${TITULOS[m.rangoDespues]}!` : '') + (pc ? `\nPuntos de ${a.combo ? 'combo' : 'disparo'} +${pc} (gastalos en Huésped › Progresión)` : ''); }
 function showEnd(won, stats, title) {
   $('endtitle').textContent = title || (won ? 'VÓRTICE ROTO' : 'ATRAPADO EN EL VÓRTICE');
-  $('endstats').textContent = stats + (won && title ? '\n\nUn abajo bajo los pies. El tren pasó de largo.' : '');
+  $('endstats').textContent = stats + (won && title ? '\n\n' + Story.VICTORY.epilogue : '');
   $('end').classList.remove('hidden'); document.body.classList.remove('playing');
   { const tb = $('tobase'); if (tb) tb.classList.toggle('hidden', !settings().baseAlTerminar); }   // «Entrar a la Base» (docs/BASE.md): primera opción si el ajuste está en «sí»
 }
@@ -846,7 +848,7 @@ function bindTouchSettings() {
   if (powerSelect) {
     powerSelect.addEventListener('change', () => { const key = `${myChar()}:${gameMode()}`; setSetting('essentialPowers', { ...(settings().essentialPowers || {}), [key]: powerSelect.value }); touch.reset(); touch.applyLayout(); });
   }
-  const syncAdv = () => { document.body.classList.toggle('hud-focused', !settings().advanced); const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Controles: ${settings().advanced ? 'completos' : 'esenciales (4 botones)'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
+  const syncAdv = () => { touch.reset(); keyHint(); document.body.classList.toggle('hud-focused', !settings().advanced); const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Controles: ${settings().advanced ? 'completos' : 'principiante (4 acciones)'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
   const syncCam = () => { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; };
   const setCam = (on) => { renderer.setThird(on); setSetting('third', !!on); syncCam(); };
   const cb = $('camtoggle'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); setCam(!renderer.third); }); syncCam();
@@ -897,7 +899,7 @@ function keyHint(aviso = false) {
   let el = $('keyhint'); if (!el) { el = document.createElement('div'); el.id = 'keyhint'; $('hud').appendChild(el); }
   const on = !!settings().showKeys && !(session && session.touch), combo = gameMode() === 'combo';
   el.classList.toggle('on', on);
-  el.textContent = combo ? 'Clic izq. ATAQUE 1 · Clic der. ATAQUE 2 · F/1 HAB.1 · G/2 HAB.2 · Z/Q/3 HAB.3 · T ulti · E usar · Tab → Disparo · K ocultar'
+  el.textContent = !settings().advanced ? 'WASD mover · Ratón mirar · Clic atacar · Espacio saltar · E usar · Tab cambiar modo' : combo ? 'Clic izq. ATAQUE 1 · Clic der. ATAQUE 2 · F/1 HAB.1 · G/2 HAB.2 · Z/Q/3 HAB.3 · T ulti · E usar · Tab → Disparo · K ocultar'
     : 'Clic izq. disparar · F HAB.1 · G/clic der. HAB.2 · Z HAB.3 · T ulti · R recargar · V melé · Tab → Melé · K ocultar';
   if (aviso && !(session && session.touch)) banner(on ? 'Pista de teclas: activada (K la oculta)' : 'Pista de teclas: oculta (K la muestra)', 1200);
 }

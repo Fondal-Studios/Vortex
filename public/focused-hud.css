@@ -37,3 +37,16 @@ body.hud-focused[data-essential-power="esp"] .hq .hs.esp,
 body.hud-focused[data-essential-power="s3"] .hq .hs.s3 { display:flex !important; }
 body.hud-focused:not([data-essential-power="ability"]) #ability { display:none !important; }
 #essentialpower { min-height:44px; max-width:100%; }
+
+/* Beginner scheme: retired skills are still available in complete controls. */
+body.hud-focused .hq .hs, body.hud-focused[data-essential-power] .hq .hs,
+body.hud-focused[data-essential-power="esp"] .hq .hs.esp,
+body.hud-focused[data-essential-power="s3"] .hq .hs.s3,
+body.hud-focused #ability, body.hud-focused #skills { display:none !important; }
+#tutorial { max-height:85dvh; overflow-y:auto; overscroll-behavior:contain; }
+
+/* Discoveries stay peripheral instead of covering the reticle. */
+body.hud-focused #banner, body.hud-focused #banner.long { top:90px; left:50% !important; right:auto; transform:translateX(-50%); width:min(340px,55vw); max-width:55vw; padding:6px 10px; font-size:12px; line-height:1.35; letter-spacing:0; background:#101624ed; border-radius:6px; pointer-events:none; }
+body.hud-focused #banner:empty { display:none; }
+
+#tutorial { z-index:60; background:#0b1020fa; }

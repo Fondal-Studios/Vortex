@@ -6,8 +6,8 @@ import { startServer } from '../server/server.js';
 const out=process.argv[2] || 'shots/essential'; fs.mkdirSync(out,{recursive:true});
 const server=await startServer({port:0,silencio:true}); let browser;
 try {
- browser=await launch();
  for(const [name,width,height,touch] of [['pc',1280,720,false],['iphoneSE',667,375,true],['iphone13',844,390,true],['tablet',1024,768,true]]) {
+  browser=await launch();
   const context=await browser.newContext({viewport:{width,height},hasTouch:touch,isMobile:touch});
   const page=await context.newPage(), errors=[]; page.on('pageerror',e=>errors.push(e.message));
   await context.addInitScript(()=>localStorage.setItem('cristal.tut.v2','1'));
@@ -29,6 +29,6 @@ try {
    await page.screenshot({path:`${out}/${name}-${mode}.png`});
    console.log(`${name} ${mode}: camera ok; ${report.actions} actions; bounds ok`);
   }
-  assert.deepEqual(errors,[],name); await context.close();
+  assert.deepEqual(errors,[],name); await context.close(); await browser.close(); browser=null;
  }
 } finally {if(browser) await browser.close();await server.close();}

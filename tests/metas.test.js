@@ -80,7 +80,7 @@ test('metaActual: oleada normal, objetivo, respiro, mejora y jefe', () => {
   assert.equal(metaActual(snap(), {}).main, 'Oleada 3/8 · Eliminá 12 criaturas');
   assert.equal(metaActual(snap({ left: 1 }), {}).main, 'Oleada 3/8 · Eliminá 1 criatura');
   const o = metaActual(snap({ obj: { type: 'nucleo', state: 'active', prog: 0.3, title: 'x' } }), { carry: 4 });
-  assert.match(o.main, /^Oleada 3\/8 · Llevá el núcleo al altar/); assert.equal(o.kind, 'objetivo');
+  assert.match(o.main, /^Llevá el núcleo al altar/); assert.equal(o.kind, 'objetivo');
   assert.match(metaActual(snap({ obj: { type: 'ancla', state: 'active', prog: 0.5 } }), {}).main, /Ancla.*50 %/);
   assert.match(metaActual(snap({ phase: 'intermission' }), {}).main, /Respiro .* oleada 4\/8 en 5 s/);
   assert.equal(metaActual(snap({ phase: 'intermission' }), { cards: [[1]] }).kind, 'mejora');
