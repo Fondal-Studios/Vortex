@@ -1,0 +1,346 @@
+{
+  "kind": "editorial fictional personas; not real participants, not measured retention",
+  "scale": "1-100; 50 major friction, 70 usable with gaps, 90 clear and polished; subjective ordinal ratings; means descriptive only",
+  "categories": [
+    "Historia",
+    "Comprensión de historia",
+    "Comprensión de campaña",
+    "Objetivos",
+    "Manejo",
+    "HUD",
+    "Primeros 5 minutos",
+    "Intención de volver"
+  ],
+  "means": [
+    72.2,
+    63.9,
+    62.5,
+    62.2,
+    60.3,
+    58.6,
+    63.0,
+    59.6
+  ],
+  "profiles": [
+    {
+      "id": "01",
+      "profile": "Principiante absoluto · PC",
+      "scores": {
+        "Historia": 70,
+        "Comprensión de historia": 52,
+        "Comprensión de campaña": 48,
+        "Objetivos": 50,
+        "Manejo": 42,
+        "HUD": 48,
+        "Primeros 5 minutos": 50,
+        "Intención de volver": 45
+      },
+      "hypothetical_review": "La premisa intriga, pero moverme, mirar y leer a la vez me supera.",
+      "hypothetical_exit": "Abandonaría si no puedo practicar antes de recibir daño."
+    },
+    {
+      "id": "02",
+      "profile": "Principiante · móvil",
+      "scores": {
+        "Historia": 72,
+        "Comprensión de historia": 55,
+        "Comprensión de campaña": 52,
+        "Objetivos": 51,
+        "Manejo": 40,
+        "HUD": 45,
+        "Primeros 5 minutos": 48,
+        "Intención de volver": 44
+      },
+      "hypothetical_review": "Cuatro botones ayudan; las pulsaciones largas siguen siendo varias reglas.",
+      "hypothetical_exit": "Abandonaría por activar otra acción sin querer."
+    },
+    {
+      "id": "03",
+      "profile": "Jugador de puzles · poco 3D",
+      "scores": {
+        "Historia": 76,
+        "Comprensión de historia": 69,
+        "Comprensión de campaña": 59,
+        "Objetivos": 57,
+        "Manejo": 46,
+        "HUD": 53,
+        "Primeros 5 minutos": 55,
+        "Intención de volver": 52
+      },
+      "hypothetical_review": "Me interesa rescatar una conciencia; me cuesta orientarme entre islas.",
+      "hypothetical_exit": "Abandonaría si la flecha no explica cómo llegar."
+    },
+    {
+      "id": "04",
+      "profile": "Casual · sesiones de cinco minutos",
+      "scores": {
+        "Historia": 67,
+        "Comprensión de historia": 50,
+        "Comprensión de campaña": 52,
+        "Objetivos": 55,
+        "Manejo": 54,
+        "HUD": 56,
+        "Primeros 5 minutos": 49,
+        "Intención de volver": 43
+      },
+      "hypothetical_review": "Quiero una tarea pequeña y terminarla rápido.",
+      "hypothetical_exit": "Abandonaría si interrumpir la campaña implica repetir demasiado."
+    },
+    {
+      "id": "05",
+      "profile": "Casual · omite diálogos",
+      "scores": {
+        "Historia": 55,
+        "Comprensión de historia": 30,
+        "Comprensión de campaña": 42,
+        "Objetivos": 55,
+        "Manejo": 60,
+        "HUD": 59,
+        "Primeros 5 minutos": 57,
+        "Intención de volver": 48
+      },
+      "hypothetical_review": "Entiendo que hay que sobrevivir, pero no por qué.",
+      "hypothetical_exit": "Abandonaría si saltar el prólogo me deja sin contexto."
+    },
+    {
+      "id": "06",
+      "profile": "Casual · lee toda la historia",
+      "scores": {
+        "Historia": 80,
+        "Comprensión de historia": 76,
+        "Comprensión de campaña": 70,
+        "Objetivos": 67,
+        "Manejo": 58,
+        "HUD": 62,
+        "Primeros 5 minutos": 67,
+        "Intención de volver": 66
+      },
+      "hypothetical_review": "Entiendo la amenaza de la IA; el recordatorio del Coloso me contradice.",
+      "hypothetical_exit": "Abandonaría si los objetivos contradicen lo que ya hice."
+    },
+    {
+      "id": "07",
+      "profile": "Aficionado a ciencia ficción",
+      "scores": {
+        "Historia": 83,
+        "Comprensión de historia": 80,
+        "Comprensión de campaña": 73,
+        "Objetivos": 69,
+        "Manejo": 63,
+        "HUD": 65,
+        "Primeros 5 minutos": 72,
+        "Intención de volver": 75
+      },
+      "hypothetical_review": "La conciencia digital y el huésped tienen potencial; falta dramatizarlos.",
+      "hypothetical_exit": "Abandonaría si la historia se reduce a instrucciones de combate."
+    },
+    {
+      "id": "08",
+      "profile": "Explorador · ignora la misión",
+      "scores": {
+        "Historia": 77,
+        "Comprensión de historia": 68,
+        "Comprensión de campaña": 60,
+        "Objetivos": 50,
+        "Manejo": 65,
+        "HUD": 58,
+        "Primeros 5 minutos": 68,
+        "Intención de volver": 63
+      },
+      "hypothetical_review": "Quiero investigar el mundo sin sentir que estoy fallando un cronómetro.",
+      "hypothetical_exit": "Abandonaría si explorar solo demora la misma oleada."
+    },
+    {
+      "id": "09",
+      "profile": "Jugador de acción · mando habitual",
+      "scores": {
+        "Historia": 71,
+        "Comprensión de historia": 65,
+        "Comprensión de campaña": 65,
+        "Objetivos": 64,
+        "Manejo": 50,
+        "HUD": 61,
+        "Primeros 5 minutos": 62,
+        "Intención de volver": 57
+      },
+      "hypothetical_review": "El cambio de perspectiva es interesante, pero debo reaprender entradas.",
+      "hypothetical_exit": "Abandonaría si mi dispositivo habitual no tiene un manejo comprobado."
+    },
+    {
+      "id": "10",
+      "profile": "Jugador móvil habitual",
+      "scores": {
+        "Historia": 72,
+        "Comprensión de historia": 65,
+        "Comprensión de campaña": 65,
+        "Objetivos": 64,
+        "Manejo": 62,
+        "HUD": 58,
+        "Primeros 5 minutos": 65,
+        "Intención de volver": 61
+      },
+      "hypothetical_review": "Hay menos botones; necesito distinguir siempre qué hará el tercero.",
+      "hypothetical_exit": "Abandonaría por cambios contextuales poco previsibles."
+    },
+    {
+      "id": "11",
+      "profile": "Experto en shooters rápidos",
+      "scores": {
+        "Historia": 65,
+        "Comprensión de historia": 67,
+        "Comprensión de campaña": 70,
+        "Objetivos": 72,
+        "Manejo": 78,
+        "HUD": 68,
+        "Primeros 5 minutos": 72,
+        "Intención de volver": 68
+      },
+      "hypothetical_review": "El combate llega rápido después de la introducción; quiero lectura limpia.",
+      "hypothetical_exit": "Abandonaría por perseguir enemigos residuales o perderlos entre efectos."
+    },
+    {
+      "id": "12",
+      "profile": "Experto en shooters tácticos",
+      "scores": {
+        "Historia": 65,
+        "Comprensión de historia": 70,
+        "Comprensión de campaña": 72,
+        "Objetivos": 73,
+        "Manejo": 73,
+        "HUD": 65,
+        "Primeros 5 minutos": 67,
+        "Intención de volver": 61
+      },
+      "hypothetical_review": "Quiero decidir cuándo atacar y ver amenazas antes de recibir daño.",
+      "hypothetical_exit": "Abandonaría si el ruido visual impide tomar decisiones."
+    },
+    {
+      "id": "13",
+      "profile": "Experto en melee y combos",
+      "scores": {
+        "Historia": 73,
+        "Comprensión de historia": 67,
+        "Comprensión de campaña": 69,
+        "Objetivos": 67,
+        "Manejo": 66,
+        "HUD": 64,
+        "Primeros 5 minutos": 70,
+        "Intención de volver": 69
+      },
+      "hypothetical_review": "Cambiar a tercera persona encaja; A1 antes de A2 puede quitar precisión.",
+      "hypothetical_exit": "Abandonaría si una pulsación larga compromete un ataque no deseado."
+    },
+    {
+      "id": "14",
+      "profile": "Veterano de roguelites",
+      "scores": {
+        "Historia": 71,
+        "Comprensión de historia": 68,
+        "Comprensión de campaña": 70,
+        "Objetivos": 73,
+        "Manejo": 77,
+        "HUD": 67,
+        "Primeros 5 minutos": 74,
+        "Intención de volver": 75
+      },
+      "hypothetical_review": "Las tareas cambian, pero quiero decisiones y recompensas distintas.",
+      "hypothetical_exit": "Abandonaría si las variantes siguen sintiéndose como limpiar oleadas."
+    },
+    {
+      "id": "15",
+      "profile": "Competitivo · busca dominio",
+      "scores": {
+        "Historia": 62,
+        "Comprensión de historia": 65,
+        "Comprensión de campaña": 68,
+        "Objetivos": 71,
+        "Manejo": 70,
+        "HUD": 63,
+        "Primeros 5 minutos": 67,
+        "Intención de volver": 60
+      },
+      "hypothetical_review": "La equivalencia de daño no demuestra igualdad de control entre esquemas.",
+      "hypothetical_exit": "Abandonaría por limitaciones poco claras del esquema simplificado."
+    },
+    {
+      "id": "16",
+      "profile": "Indie experimental · tolera extrañeza",
+      "scores": {
+        "Historia": 87,
+        "Comprensión de historia": 78,
+        "Comprensión de campaña": 72,
+        "Objetivos": 68,
+        "Manejo": 72,
+        "HUD": 65,
+        "Primeros 5 minutos": 81,
+        "Intención de volver": 83
+      },
+      "hypothetical_review": "La identidad surrealista justifica cierta desorientación, no objetivos ambiguos.",
+      "hypothetical_exit": "Abandonaría si simplificar borra la personalidad del mundo."
+    },
+    {
+      "id": "17",
+      "profile": "Narrativo · prioriza personajes",
+      "scores": {
+        "Historia": 81,
+        "Comprensión de historia": 77,
+        "Comprensión de campaña": 68,
+        "Objetivos": 62,
+        "Manejo": 54,
+        "HUD": 60,
+        "Primeros 5 minutos": 65,
+        "Intención de volver": 65
+      },
+      "hypothetical_review": "Tengo una premisa, pero todavía poca relación emocional con HERALDO.",
+      "hypothetical_exit": "Abandonaría si el final contradice el recorrido."
+    },
+    {
+      "id": "18",
+      "profile": "Lector lento · interfaz accesible",
+      "scores": {
+        "Historia": 74,
+        "Comprensión de historia": 48,
+        "Comprensión de campaña": 51,
+        "Objetivos": 54,
+        "Manejo": 48,
+        "HUD": 43,
+        "Primeros 5 minutos": 47,
+        "Intención de volver": 42
+      },
+      "hypothetical_review": "Necesito controlar el ritmo del texto y distinguir una instrucción principal.",
+      "hypothetical_exit": "Abandonaría si un subtítulo desaparece antes de entenderlo."
+    },
+    {
+      "id": "19",
+      "profile": "Experto móvil · pantalla pequeña",
+      "scores": {
+        "Historia": 69,
+        "Comprensión de historia": 65,
+        "Comprensión de campaña": 65,
+        "Objetivos": 63,
+        "Manejo": 59,
+        "HUD": 51,
+        "Primeros 5 minutos": 60,
+        "Intención de volver": 54
+      },
+      "hypothetical_review": "Pausar para cambiar el poder y sostener botones exige precisión táctil.",
+      "hypothetical_exit": "Abandonaría si dedos y efectos ocultan información clave."
+    },
+    {
+      "id": "20",
+      "profile": "Veterano que vuelve tras una pausa",
+      "scores": {
+        "Historia": 74,
+        "Comprensión de historia": 62,
+        "Comprensión de campaña": 58,
+        "Objetivos": 60,
+        "Manejo": 69,
+        "HUD": 62,
+        "Primeros 5 minutos": 65,
+        "Intención de volver": 62
+      },
+      "hypothetical_review": "Necesito recordar capítulo, objetivo y modo sin volver a estudiar el sistema.",
+      "hypothetical_exit": "Abandonaría si retomar obliga a reconstruir el contexto."
+    }
+  ]
+}

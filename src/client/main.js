@@ -1,3 +1,5 @@
+import { SUPPORT } from '../shared/skill-path.js';
+import { thirdForMode, essentialInteraction, essentialPower } from './essential-controls.js';
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS, GAME_MODES, HABILIDADES } from '../sim/data.js';
@@ -27,7 +29,7 @@ import * as Territorios from '../sim/bendiciones.js';
 import { TITULOS } from '../sim/maestria.js';
 import { createCaida } from './caida.js';
 import { createBaseHud, recolectarDatos } from './base-hud.js';   // La Base (docs/BASE.md): HUD propio, mapa-hub en src/sim/base.js + src/client/env/base.js
-import { MODOS, MODO_ESPERA } from '../sim/modos.js';   // Disparo ↔ Melé en partida (docs/CONTROLES.md)
+import { MODOS, MODO_ESPERA, habSlots } from '../sim/modos.js';   // Disparo ↔ Melé en partida (docs/CONTROLES.md)
 import { createBotin, nombreBotin } from './botin-hud.js';   // botín en partida (docs/INVENTARIO.md)
 import { parseEq } from './items-vis.js';
 import { MAPS } from '../sim/maps.js';
@@ -105,6 +107,7 @@ let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), 
 addEventListener('keydown', (e) => {
   if (typeof ui !== 'undefined' && (!session || session.menuAbierto) && ui.handleKey(e)) return;
   if (session && session.base && baseHud && baseHud.handleKey(e)) { e.preventDefault(); return; }   // La Base: panelitos (opciones 1-3, Esc/E cierran)
+  if (session && !$('tutorial').classList.contains('hidden')) { if (['Enter', 'Space', 'Escape'].includes(e.code)) { e.preventDefault(); if (!e.repeat) ($('skillok') || $('tutok'))?.click(); } return; }
   keys.add(e.code);
   if (npcPanel && npcPanel.open) { // panel de un NPC: 1 / 2 eligen la oferta, Esc o E lo cierran (no se cambia de arma ni de tarjeta)
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { npcPanel.choose(+e.code.slice(5) - 1); return; }
@@ -130,8 +133,8 @@ let cardsOpen = false;
 addEventListener('wheel', (e) => { if (session && gameMode() !== 'combo') wantWeapon = (((session.mySlot || 0) + (e.deltaY > 0 ? 1 : -1)) % 5 + 5) % 5; });
 addEventListener('mousemove', (e) => { if (locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
-  if (NOLOCK) return; locked = document.pointerLockElement === canvas;
-  if (session && !session.ended && !session.touch) $('pause').classList.toggle('hidden', locked || session.headless || !!session.intro || !!session.menuAbierto || !!(baseHud && baseHud.open));
+  if (NOLOCK) return; locked = document.pointerLockElement === canvas; if (!locked && session) syncModeUI();
+  if (session && !session.ended && !session.touch) $('pause').classList.toggle('hidden', locked || session.headless || !!session.intro || !!session.menuAbierto || !$('tutorial').classList.contains('hidden') || !!(baseHud && baseHud.open));
 });
 const lockPointer = () => { try { canvas.requestPointerLock(); } catch { /* sin pointer lock */ } };
 
@@ -174,8 +177,15 @@ const fxSel = $('fxsel'); if (fxSel) { try { fxSel.value = localStorage.getItem(
 const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = localStorage.getItem('cristal.reduceMotion') === '1' ? '1' : '0'; } catch { /* ok */ } motionSel.addEventListener('change', () => { try { localStorage.setItem('cristal.reduceMotion', motionSel.value); } catch { /* ok */ } }); }
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
+function learnedInput(i) {
+  if (session?.mode === 'solo' && session.game.skillLevel !== null) {
+    i.support = session.touch ? !!i.esp : !!(keys.has('KeyQ') || keys.has('KeyG') || i.padSupport);
+    for (const k of ['mov','esp','s3','hab','ability']) i[k] = false;
+  }
+  return i;
+}
 function readInput() {
-  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.interact ||= tacticalHUD.held(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.interact ||= tacticalHUD.held(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return learnedInput(npcInput(ti)); } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(), style: settings().style,
@@ -190,6 +200,7 @@ function readInput() {
   mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
+    i.padSupport = g.esp;
     i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.dpitch += g.dpitch * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.ads = i.ads || g.ads;
     i.fire = i.fire || g.fire; i.jump = i.jump || g.jump; i.dash = i.dash || g.dash; i.ability = i.ability || g.ability; i.mov = i.mov || g.mov; i.esp = i.esp || g.esp; i.s3 = i.s3 || g.s3; i.ult = i.ult || g.ult; i.reload = i.reload || g.reload; i.melee = i.melee || g.melee; i.interact = i.interact || g.interact; i.ping = i.ping || g.ping;
     if (g.next && !padLatch.next) i.weapon = (((session ? session.mySlot || 0 : 0) + 1) % 5 + 5) % 5; if (g.prev && !padLatch.prev) i.weapon = (((session ? session.mySlot || 0 : 0) - 1) % 5 + 5) % 5;
@@ -200,7 +211,7 @@ function readInput() {
     if (i.mode === 'combo') { i.a1 = i.a1 || g.fire; i.a2 = i.a2 || g.melee || g.ads; i.fire = false; }   // mando en Melé: RT ataque 1 · B o LT ataque 2 · LB/RB/cruceta ↑ = HAB.1/2/3 (igual que en Disparo)
     if (g.mode && !padLatch.mode) cambiarModo(); padLatch.mode = g.mode;   // Select/Back = cambiar de modo
   }
-  return npcInput(i);
+  return learnedInput(npcInput(i));
 }
 const padLatch = { next: false, prev: false, pause: false, jump: false, mode: false }; let padDt = 0.016;
 
@@ -250,11 +261,11 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 function startSolo(mapId, opts = {}) {
   asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
-  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId) });
+  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0 });
   const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode(), kit: opts.practice ? 0 : Tienda.usarBotiquin() }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
-  session = { practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
+  session = { initialSkills: game.skillLevel, practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
   enter(mapId);
   if (intro) beginIntro(opts.campaign && opts.campaign !== 'm1' ? 'short' : 'full'); else finishIntro();
 }
@@ -276,7 +287,7 @@ function enter(mapId) {
   document.body.classList.toggle('en-base', mapId === 'base'); if (baseHud && mapId !== 'base') baseHud.mostrar(false);
   $('menu').classList.add('hidden'); $('end').classList.add('hidden'); $('hud').classList.remove('hidden'); document.body.classList.add('playing');
   sound.init(); sound.resume(); sound.startMusic(mapId);
-  renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : !!settings().third);
+  renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : mapId === 'base' || thirdForMode(gameMode()));
   buildWeaponHud();
   touch.show(!!session.touch); touch.setMode(gameMode(), myChar()); keyHint();
   if (!session.touch && !session.headless && !NOLOCK && !params.get('auto')) lockPointer(); // requiere gesto del usuario
@@ -305,17 +316,28 @@ function startWake(lines) {
   subs.play(lines, finishIntro);
 }
 function skipIntro(force) { if (!session || !session.intro || (session.prologo && !force)) return; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
-/** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). No pausa la partida. */
+/** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). Pausa en solitario; en cooperativo la sala continúa. */
+function explainSkill(level) {
+  const C = CHARACTERS[myChar()], power = level === 1 ? C[SUPPORT[myChar()]] : C.ult;
+  if (!power) return;
+  const el = $('tutorial'), current = session; current.paused = true; touch.reset(); keys.clear(); mouse.fire = mouse.esp = false;
+  if (!current.touch && !NOLOCK) document.exitPointerLock?.();
+  el.innerHTML = `<h4>${level === 1 ? 'APOYO DESBLOQUEADO' : 'ULTI DESBLOQUEADA'}</h4><p><b>${power.name}</b></p><p>${power.desc || ''}</p><p>${level === 1 ? 'Usalo para preparar un grupo de enemigos y continuar con disparos o melee. Se recupera después de cada uso.' : 'Se carga durante el combate. Al llegar al 100%, activala en un momento difícil; después tendrás que volver a cargarla.'}</p><p><b>${current.touch ? (level === 1 ? 'Tocá APOYO' : 'Tocá ULTI') : (level === 1 ? 'Q o G · apoyo / mando RB' : 'T · ulti / mando cruceta ↓')}</b> · El mismo poder en ambos modos.</p><button id="skillok" type="button">Entendido · continuar</button>`;
+  el.classList.remove('hidden');
+  $('skillok').onclick = () => { el.classList.add('hidden'); if (session === current) { current.paused = false; current.skillExplained = level; touch.reset(); if (!current.touch && !NOLOCK) lockPointer(); } };
+}
 function showTutorial(force = false) {
   let seen = false; try { seen = localStorage.getItem('cristal.tut.v2') === '1'; } catch { /* ok */ }
   if ((seen && !force) || !session || session.headless) return;
   const touchUI = !!session.touch, el = $('tutorial');
   const rows = touchUI
-    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARAR', 'botón grande', 'Disparo: tocá o mantené · en Melé es ATAQUE 1 y encadena el combo'], ['HAB.1 · HAB.2 · HAB.3', 'arco alrededor', 'tus tres habilidades, siempre a mano (tocá una para ver su nombre)'], ['MODO', '⌖ ⇄ ⚔', 'pasa de Disparo a Melé al instante y cambia los botones'], ['RECARGAR', 'ATAQUE 2', 'el botón chico: recargar (Disparo) o ataque 2 (Melé)'], ['ULTI', 'USAR · EVOLUC.', 'aparecen solos cuando sirven'], ['‹ ›', 'o tocá la barra', 'cambiar de arma (Disparo)']]
-    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar (Melé: ATAQUE 1, mantené para encadenar)'], ['F · G · Z', '(Melé: 1 · 2 · 3)', 'HAB.1 · HAB.2 · HAB.3'], ['Clic der.', 'G', 'Disparo: HAB.2 · Melé: ATAQUE 2'], ['Tab', 'Select (mando)', 'cambiar de Disparo a Melé y viceversa'], ['T', 'R · V', 'definitiva · recargar · melé rápido (Disparo)'], ['E', 'Q · B', 'usar · habilidad de equipo · señalar'], ['1–5', 'rueda · K', 'cambiar de arma (Disparo) · pista de teclas']];
-  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Sobreviví las oleadas. Tu <b>meta actual</b> siempre está en la línea de arriba. Cumplí el objetivo de cada oleada y elegí una <b>mejora de arma</b> al terminarla.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
-  el.classList.remove('hidden'); const close = () => { el.classList.add('hidden'); try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
-  $('tutok').onclick = close; later(close, force ? 20000 : 16000);
+    ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Derecha: girar la cámara.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['APOYO / ULTI', 'se desbloquean jugando', 'Tras la primera oleada: apoyo. Tras la tercera: ulti. Cada uno tendrá su propio botón y explicación.'], ['MODO', 'Disparo ↔ Melé', 'Disparo en primera persona; melee en tercera. Los dos poderes sirven en ambos modos.']]
+    : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['Q / T', 'apoyo / ulti', 'Apoyo tras la primera oleada; ulti tras la tercera. Mismos poderes en Disparo y Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
+  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Tu conciencia está atrapada en VORTEX. <b>Vencé al guardián de este archivo para avanzar.</b> Seguí el objetivo de arriba y elegí una mejora entre oleadas.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
+  if (force && session.game?.skillLevel != null) { const C = CHARACTERS[myChar()], level = session.game.skillLevel; const info = document.createElement('div'); for (const [n,def,key] of [[1,C[SUPPORT[myChar()]],'Q / APOYO'],[2,C.ult,'T / ULTI']]) { if (!def) continue; const p = document.createElement('p'); p.textContent = `${def.name} · ${level >= n ? key + ': ' + def.desc : 'Se desbloquea tras la oleada ' + (n === 1 ? 1 : 3)}`; info.appendChild(p); } el.insertBefore(info, $('tutok')); }
+  const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();
+  el.classList.remove('hidden'); const close = () => { if (session === tutSession && session.mode === 'solo') session.paused = wasPaused; el.classList.add('hidden'); if (session === tutSession) { if (wasPaused) $('pause').classList.remove('hidden'); else if (!session.touch && !NOLOCK) lockPointer(); } try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
+  $('tutok').onclick = close;
 }
 function finishIntro() {
   if (!session) return; session.intro = null; renderer.setGuide(false); renderer.wakeT = renderer.wakeDur = 0; $('hud').classList.remove('hidden');
@@ -342,7 +364,7 @@ function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; 
 let bannerSeq = 0;
 const jfxCtx = { banner, flash: () => flash(), sound, get pid() { return session ? session.pid : 0; } };   // lo que necesita jefes-fx.js para avisar y sonar
 
-function pauseTouch(on) { if (!session) return; session.paused = on; $('pausehint').textContent = 'Tocá «Continuar» para seguir'; $('pause').classList.toggle('hidden', !on); if (on) touch.reset(); }
+function pauseTouch(on) { if (!session) return; syncModeUI(); session.paused = on; $('pausehint').textContent = 'Tocá «Continuar» para seguir'; $('pause').classList.toggle('hidden', !on); if (on) touch.reset(); }
 
 /* ───────── modo de prueba de rendimiento ───────── */
 const HORDE_KINDS = ['astilla', 'geoda', 'prisma', 'lente', 'cuarzo', 'espejo', 'racimo', 'graviton', 'obelisco', 'aurora', 'ariete', 'espiral'];
@@ -434,6 +456,7 @@ function frame(now) {
   if (!session) { for (const a of pad.menuEvents(dt)) ui.act(a); menuSpin(dt); return; }
   if (session.base) { baseFrame(dt); return; }   // La Base: su propio cuadro, sin oleadas ni HUD de combate
   if (session && !session.touch && (!locked || session.ended) && !session.headless) for (const a of pad.menuEvents(dt)) { if (a === 'ok' && !$('pause').classList.contains('hidden')) lockPointer(); if (a === 'back' && !$('end').classList.contains('hidden')) location.reload(); }
+  if (!$('tutorial').classList.contains('hidden')) { for (const action of pad.menuEvents(dt)) if (action === 'ok' || action === 'back') { ($('skillok') || $('tutok'))?.click(); break; } }
   auto.tick(dt, level);
   let state = null;
   if (session.mode === 'solo') {
@@ -454,6 +477,7 @@ function frame(now) {
       }
     } else if (session.intro) { g.time += 0; }
     state = g.snapshot();
+    if (g.skillLevel !== null && !session.practice) Perfil.guardarHabilidades(g.skillLevel);
     if (paused) state.events = [];
     if (!session.bot && !session.intro && !params.get('look')) session.look = soloLook(g, session.pid);
   } else {
@@ -471,6 +495,10 @@ function frame(now) {
     if (session.sendT > 1 / 30) { net.send({ t: 'in', i: { ...inp, dyaw: session.inAcc.dyaw, dpitch: session.inAcc.dpitch } }); session.inAcc = { dyaw: 0, dpitch: 0 }; session.sendT = 0; }
   }
   const me = state.players.find((p) => p.id === session.pid) || state.players[0];
+  if (me && me.sk != null && !session.intro && !session.headless && !session.paused && session.game?.phase === 'intermission' && $('tutorial').classList.contains('hidden')) {
+    session.skillExplained ??= session.initialSkills || 0;
+    if (me.sk > session.skillExplained) explainSkill(session.skillExplained + 1);
+  }
   if (me) { session.lastMe = me; session.lastWave = state.wave; } // para guardar los núcleos y la maestría al salir (bankProfile)
   if (params.get('look') === 'boss' && me) {
     const b = state.monsters.find((m) => m.k === 'coloso' || m.k === 'madre' || m.k === 'argos');
@@ -659,9 +687,9 @@ function audioAndHud(state, me, dt) {
 }
 
 /* ───────── HUD del director: objetivo, habilidad, jefe, ping, caído ───────── */
-const OBJ_ICON = { ancla: '⚓', sintonia: '◈', nucleo: '✦', cultivo: '✿' };
+const OBJ_ICON = { secuencia: '▣', caza: '⌖', ancla: '⚓', sintonia: '◈', nucleo: '✦', cultivo: '✿' };
 function objectiveEvent(e) {
-  if (e.ph === 'start') { banner(`${e.title}: ${e.desc}`, 5200); sound.objective(true); }
+  if (e.ph === 'start') { banner(e.title, 1800); sound.objective(true); }
   else if (e.ph === 'done') {
     sound.objective(true); trophy('obj', 'Trabajo en equipo', 'Completá un objetivo de oleada', sound);
     banner('¡OBJETIVO CUMPLIDO! Munición, vida y +25 % de daño del equipo', 3200);
@@ -671,6 +699,7 @@ function objectiveEvent(e) {
 }
 let metaHud = null; const metaCtx = { solo: true, sinGuia: false };
 function hudDirector(state, me) {
+  document.body.classList.toggle('between-waves', state.phase === 'intermission');
   const o = state.obj, box = $('objective');
   if (o && o.state === 'active') {
     box.classList.remove('hidden', 'done', 'fail'); if (session.objKey !== o.type + state.wave) { session.objKey = o.type + state.wave; session.objT0 = performance.now(); } box.classList.toggle('compact', performance.now() - session.objT0 > 9000);
@@ -728,8 +757,9 @@ function hudDirector(state, me) {
   }
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
-    const use = !!((state.obj && state.obj.state === 'active') || me.carry || (state.objs || []).some((o) => near(o.p, 7)) || state.players.some((q) => q.id !== me.id && q.dead && near(q.pos, 7)) || (state.lt || []).some((o) => o[2] >= 2 && (!o[6] || o[6] === me.id) && near([o[3], o[4], o[5]], 4.6)) || session.faunaCerca || session.floraUsar);   // + botín épico/legendario cerca (USAR lo recoge) + un bicho de la fauna a mano (USAR lo come)
+    const use = essentialInteraction(state, me, { npc: !!npcCtx.npc, fauna: session.faunaCerca, flora: session.floraUsar });
     const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ul || 0) >= (C.ult.charge || 100) - 0.01 || (+me.ua || 0) > 0.05));
+    touch.setSkillLevel(me.sk);
     touch.setContext({ ult: ultOn, use, evo: me.co != null && me.evn != null && me.co >= me.evn });
     const mp = Math.min(1, (performance.now() - modoT) / (MODO_ESPERA * 1000)); if (mp < 1 || session.modeP == null || session.modeP < 1) touch.setModeCd(mp); session.modeP = mp;   // anillo de espera del botón MODO
   }
@@ -845,7 +875,11 @@ function bindTouchSettings() {
   bind('tadsm', () => S.adsMode, (v) => setSetting('adsMode', v));
   bind('tfing', () => String(S.fingers), (v) => touch.setFingers(+v));
   bind('tadv', () => (S.advanced ? '1' : '0'), (v) => { setSetting('advanced', v === '1'); syncAdv(); });
-  const syncAdv = () => { const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Habilidades: ${settings().advanced ? 'sí' : 'no'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
+  const powerSelect = $('essentialpower');
+  if (powerSelect) {
+    powerSelect.addEventListener('change', () => { const key = `${myChar()}:${gameMode()}`; setSetting('essentialPowers', { ...(settings().essentialPowers || {}), [key]: powerSelect.value }); touch.reset(); touch.applyLayout(); });
+  }
+  const syncAdv = () => { document.body.classList.toggle('hud-focused', !settings().advanced); const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Controles: ${settings().advanced ? 'completos' : 'esenciales (4 botones)'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
   const syncCam = () => { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; };
   const setCam = (on) => { renderer.setThird(on); setSetting('third', !!on); syncCam(); };
   const cb = $('camtoggle'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); setCam(!renderer.third); }); syncCam();
@@ -872,13 +906,14 @@ function bindTouchSettings() {
 bindTouchSettings();
 /* ───── selector de MODO DE JUEGO (Shooter / Combo): menú principal, Huésped, Opciones y Pausa ───── */
 function syncModeUI() {
+  const select = $('essentialpower'); if (select) { select.closest('label')?.classList.toggle('hidden', session?.game?.skillLevel != null); select.value = essentialPower(gameMode(), settings().essentialPowers?.[`${myChar()}:${gameMode()}`]); const slots = habSlots(myChar(), gameMode()); for (const option of select.options) { option.textContent = option.value === 'ability' ? 'Poder de equipo' : slots[option.value === 'esp' ? 1 : 2]?.name || option.value; } }
   const m = settings().mode === 'combo' ? 'combo' : 'shooter', G = GAME_MODES[m], note = m === 'combo' && gameMode() !== 'combo' ? ' (sólo con Huéspedes)' : '';
   const mi = $('modeitem'); if (mi) { mi.dataset.mode = m; mi.querySelector('b').textContent = `Modo de juego: ${G.icon} ${G.name}`; mi.querySelector('small').textContent = (m === 'combo' ? 'Dos ataques encadenados + una habilidad' : 'Disparás, apuntás y usás habilidades') + note; }
   const hb = $('hsmode'); if (hb) { hb.textContent = `Modo: ${G.icon} ${G.name}`; hb.title = G.desc + note; }
   const sel = $('modesel'); if (sel) sel.value = m;
   const pb = $('modetoggle'); if (pb) pb.querySelector('b').textContent = `Modo de juego: ${G.icon} ${G.name}`;
 }
-function setGameMode(m) { const mm = m === 'combo' ? 'combo' : 'shooter'; settings().modes[myChar()] = mm; setSetting('mode', mm); syncModeUI(); touch.setMode(gameMode(), myChar()); if (session) keyHint(); }
+function setGameMode(m) { const mm = m === 'combo' ? 'combo' : 'shooter'; settings().modes[myChar()] = mm; setSetting('mode', mm); if (session && !session.base) renderer.setThird(thirdForMode(gameMode())); syncModeUI(); touch.setMode(gameMode(), myChar()); if (session) keyHint(); }
 /** Botón MODO (táctil), Tab (PC) o Select (mando): alterna Disparo ↔ Melé al instante, sin pausar. Hay una espera corta para no cambiar sin querer. */
 let modoT = -1e9;
 function cambiarModo() {
@@ -897,6 +932,7 @@ function keyHint(aviso = false) {
   el.classList.toggle('on', on);
   el.textContent = combo ? 'Clic izq. ATAQUE 1 · Clic der. ATAQUE 2 · F/1 HAB.1 · G/2 HAB.2 · Z/Q/3 HAB.3 · T ulti · E usar · Tab → Disparo · K ocultar'
     : 'Clic izq. disparar · F HAB.1 · G/clic der. HAB.2 · Z HAB.3 · T ulti · R recargar · V melé · Tab → Melé · K ocultar';
+  if (session?.game?.skillLevel != null) el.textContent = `Clic izq. ${combo ? 'golpe ligero · clic der. golpe fuerte' : 'disparar · V melee'} · Espacio saltar · Q/G apoyo (oleada 1) · T ulti (oleada 3) · E usar · Tab cambiar modo · K ocultar`;
   if (aviso && !(session && session.touch)) banner(on ? 'Pista de teclas: activada (K la oculta)' : 'Pista de teclas: oculta (K la muestra)', 1200);
 }
 const toggleMode = (e) => { if (e) e.stopPropagation(); setGameMode(settings().mode === 'combo' ? 'shooter' : 'combo'); sound.ui('ok'); };

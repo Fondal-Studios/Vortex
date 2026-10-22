@@ -1,0 +1,53 @@
+/* HUD esencial. Los controles completos se recuperan en pausa. */
+body.hud-focused #mision, body.hud-focused #score,
+body.hud-focused #objective, body.hud-focused .chud .kf,
+body.hud-focused .chud .st, body.hud-focused .chud .pp,
+body.hud-focused .chud .splat { display:none !important; }
+body.hud-focused #top { top:calc(12px + env(safe-area-inset-top)); left:62px; right:62px; }
+body.hud-focused #goal { max-width:600px; }
+body.hud-focused #goal .g-main { border-radius:8px; background:#101624ed; border:1px solid #dce9f866; padding:7px 12px; line-height:1.3; white-space:normal; overflow:visible; text-overflow:clip; }
+body.hud-focused #goal .g-next { display:block; font-size:12px; color:#e0e8ef; background:#101624d9; width:fit-content; margin:3px auto; padding:3px 8px; border-radius:4px; }
+body.hud-focused #bossbar { top:104px; }
+body.hud-focused #banner { font-size:clamp(15px,3vw,25px); letter-spacing:.02em; }
+body.hud-focused .bar.hp b { background:#e75468; }
+body.hud-focused .bar.sh b { background:#65bce0; }
+body.hud-focused #camquick { display:none; }
+#touch.essential .tc-fire { right:calc(20px + env(safe-area-inset-right)); bottom:calc(24px + env(safe-area-inset-bottom)); width:88px; height:88px; }
+#touch.essential .tc-jump { right:calc(124px + env(safe-area-inset-right)); bottom:calc(24px + env(safe-area-inset-bottom)); width:62px; height:62px; }
+#touch.essential .tc-esp, #touch.essential .tc-s3, #touch.essential .tc-use { right:calc(26px + env(safe-area-inset-right)); left:auto; top:auto; bottom:calc(128px + env(safe-area-inset-bottom)); width:62px; height:62px; }
+#touch.essential .tc-mode { right:calc(124px + env(safe-area-inset-right)); left:auto; top:auto; bottom:calc(106px + env(safe-area-inset-bottom)); width:62px; height:62px; }
+#touch.essential .tc-pause { width:44px; height:44px; }
+body.hud-focused .chud .vig { box-shadow:none; }
+@media(max-height:460px) {
+ body.hud-focused #goal .g-main { font-size:12px; padding:4px 8px; }
+ body.hud-focused #goal .g-next { font-size:11px; }
+ body.hud-focused #bossbar { top:88px; }
+}
+body.hud-focused #skills, body.hud-focused #estilohud,
+body.hud-focused .hq .hs.mov, body.hud-focused .hq .hs.ult,
+body.hud-focused .hq .hm, body.hud-focused .hq .hn small,
+body.hud-focused:not(.modo-combo) .hq .hs.s3,
+body.hud-focused.modo-combo .hq .hs.esp { display:none !important; }
+body.hud-focused.between-waves #mision { display:block !important; }
+body.hud-focused.between-waves #mision.hidden { display:none !important; }
+body.hud-focused.modo-combo #cross { opacity:.35; }
+#touch.essential .tc-ability { right:calc(26px + env(safe-area-inset-right)); left:auto; top:auto; bottom:calc(128px + env(safe-area-inset-bottom)); width:62px; height:62px; }
+body.hud-focused[data-essential-power] .hq .hs { display:none !important; }
+body.hud-focused[data-essential-power="esp"] .hq .hs.esp,
+body.hud-focused[data-essential-power="s3"] .hq .hs.s3 { display:flex !important; }
+body.hud-focused:not([data-essential-power="ability"]) #ability { display:none !important; }
+#essentialpower { min-height:44px; max-width:100%; }
+
+/* Progression overrides the legacy three-slot HUD; locked powers explain the next milestone. */
+body.learning-skills .hq.learning .hs { display:none!important; }
+body.learning-skills .hq.learning .hs.esp, body.learning-skills .hq.learning .hs.ult { display:flex!important; }
+body.learning-skills .hq.learning .hs.locked { opacity:.6; box-shadow:none; animation:none; }
+body.learning-skills .hq.learning.touch .hs { display:none!important; }
+body.learning-skills #ability { display:none!important; }
+body.learning-skills #touch .tc-ult { right:calc(204px + env(safe-area-inset-right)); left:auto; top:auto; bottom:calc(110px + env(safe-area-inset-bottom)); width:62px; height:62px; }
+body.learning-skills #touch .tc-use { right:calc(204px + env(safe-area-inset-right)); bottom:calc(28px + env(safe-area-inset-bottom)); }
+body:has(#tutorial:not(.hidden)) #cards { visibility:hidden; pointer-events:none; }
+#skillok { min-height:44px; padding:8px 24px; margin-top:8px; border-radius:22px; border:1px solid #ffe27a; background:#25203e; color:#fff; font:700 14px system-ui; cursor:pointer; }
+#tutorial { max-height:calc(100dvh - 24px); overflow-y:auto; box-sizing:border-box; }
+body:has(#tutorial:not(.hidden)) :is(#trophies,#npchint,#botin-toasts,#botin-prompt,#banner,#guia,#gravmsg) { visibility:hidden!important; }
+#tutorial { z-index:45; background:#100c24fa; box-shadow:0 0 0 100vmax #04020e88,0 10px 50px #000c; }

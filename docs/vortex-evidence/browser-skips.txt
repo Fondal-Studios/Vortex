@@ -1,0 +1,12 @@
+﹣ cooperativo en navegador: invitar por enlace ?sala=, lobby, 200 ms de latencia, recarga y errores en español (0.624546ms) # SKIP
+﹣ e2e: un humano (teclas + ratón) se mueve, apunta, cambia de arma, dispara y el HUD responde (0.672107ms) # SKIP
+﹣ e2e coop: dos navegadores reales (crear sala / unirse con código) comparten partida y se ven en el HUD (0.122181ms) # SKIP
+﹣ e2e iPhone (emulado): calidad Baja automática, palanca, mirar, disparar, cambiar de arma y pausa con controles táctiles (0.506832ms) # SKIP
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 4
+ℹ todo 0
+ℹ duration_ms 177.00116

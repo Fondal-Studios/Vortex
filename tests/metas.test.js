@@ -11,19 +11,19 @@ import { WAVE_PLANS } from '../src/sim/data.js';
 const ola = (n, mapId = 'm1', seed = 3) => { const g = new Game({ mapId, seed }); const p = g.addPlayer('t'); p.hp = 1e6; g.startWave(n, WAVE_PLANS[mapId]); return { g, p }; };
 
 test('misionDe: ciclo determinista; el élite sólo desde la oleada 3', () => {
-  assert.deepEqual([1, 2, 3, 4, 5, 6].map(misionDe), ['melee', 'intacto', 'elite', 'melee', 'intacto', 'elite']);
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(misionDe), ['asalto', 'intacto', 'elite', 'melee', 'intacto', 'elite']);
   for (const k of Object.keys(MISIONES)) assert.ok(MISIONES[k].nombre);
 });
 
 test('cada oleada normal tiene su misión en el snapshot; el jefe y la práctica no', () => {
   const { g } = ola(1);
-  const s = g.snapshot(); assert.equal(s.mis.k, 'melee'); assert.equal(s.mis.st, 'active'); assert.ok(s.mis.rc > 0 && s.mis.n >= 3);
+  const s = g.snapshot(); assert.equal(s.mis.k, 'asalto'); assert.equal(s.mis.st, 'active'); assert.ok(s.mis.rc > 0 && s.mis.n >= 3);
   const j = ola(new Game({ mapId: 'm1' }).waveTotal); assert.equal(j.g.snapshot().mis, null, 'sin misión en el jefe');
   const pr = new Game({ mapId: 'm1', practice: true }); assert.equal(pr.snapshot().mis, null);
 });
 
 test('misión melé: sólo cuentan las bajas con golpe cuerpo a cuerpo y paga núcleos', () => {
-  const { g, p } = ola(1); const antes = p.cores;
+  const { g, p } = ola(1); g.mision.k = 'melee'; const antes = p.cores;
   const mata = (melee) => { const m = g.spawnMonster('astilla', p.pos, { noElite: true }); p.inMelee = melee; g.killMonster(m, p); p.inMelee = false; };
   mata(false); assert.equal(g.mision.p, 0, 'un disparo no cuenta');
   for (let i = 0; i < g.mision.n; i++) mata(true);

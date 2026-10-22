@@ -1,0 +1,21 @@
+ID,Perfil,Historia,Comprensión de historia,Comprensión de campaña,Objetivos,Manejo,HUD,Primeros 5 minutos,Intención de volver,Reseña hipotética,Motivo hipotético de abandono
+01,Principiante absoluto · PC,70,52,48,50,42,48,50,45,"La premisa intriga, pero moverme, mirar y leer a la vez me supera.",Abandonaría si no puedo practicar antes de recibir daño.
+02,Principiante · móvil,72,55,52,51,40,45,48,44,Cuatro botones ayudan; las pulsaciones largas siguen siendo varias reglas.,Abandonaría por activar otra acción sin querer.
+03,Jugador de puzles · poco 3D,76,69,59,57,46,53,55,52,Me interesa rescatar una conciencia; me cuesta orientarme entre islas.,Abandonaría si la flecha no explica cómo llegar.
+04,Casual · sesiones de cinco minutos,67,50,52,55,54,56,49,43,Quiero una tarea pequeña y terminarla rápido.,Abandonaría si interrumpir la campaña implica repetir demasiado.
+05,Casual · omite diálogos,55,30,42,55,60,59,57,48,"Entiendo que hay que sobrevivir, pero no por qué.",Abandonaría si saltar el prólogo me deja sin contexto.
+06,Casual · lee toda la historia,80,76,70,67,58,62,67,66,Entiendo la amenaza de la IA; el recordatorio del Coloso me contradice.,Abandonaría si los objetivos contradicen lo que ya hice.
+07,Aficionado a ciencia ficción,83,80,73,69,63,65,72,75,La conciencia digital y el huésped tienen potencial; falta dramatizarlos.,Abandonaría si la historia se reduce a instrucciones de combate.
+08,Explorador · ignora la misión,77,68,60,50,65,58,68,63,Quiero investigar el mundo sin sentir que estoy fallando un cronómetro.,Abandonaría si explorar solo demora la misma oleada.
+09,Jugador de acción · mando habitual,71,65,65,64,50,61,62,57,"El cambio de perspectiva es interesante, pero debo reaprender entradas.",Abandonaría si mi dispositivo habitual no tiene un manejo comprobado.
+10,Jugador móvil habitual,72,65,65,64,62,58,65,61,Hay menos botones; necesito distinguir siempre qué hará el tercero.,Abandonaría por cambios contextuales poco previsibles.
+11,Experto en shooters rápidos,65,67,70,72,78,68,72,68,El combate llega rápido después de la introducción; quiero lectura limpia.,Abandonaría por perseguir enemigos residuales o perderlos entre efectos.
+12,Experto en shooters tácticos,65,70,72,73,73,65,67,61,Quiero decidir cuándo atacar y ver amenazas antes de recibir daño.,Abandonaría si el ruido visual impide tomar decisiones.
+13,Experto en melee y combos,73,67,69,67,66,64,70,69,Cambiar a tercera persona encaja; A1 antes de A2 puede quitar precisión.,Abandonaría si una pulsación larga compromete un ataque no deseado.
+14,Veterano de roguelites,71,68,70,73,77,67,74,75,"Las tareas cambian, pero quiero decisiones y recompensas distintas.",Abandonaría si las variantes siguen sintiéndose como limpiar oleadas.
+15,Competitivo · busca dominio,62,65,68,71,70,63,67,60,La equivalencia de daño no demuestra igualdad de control entre esquemas.,Abandonaría por limitaciones poco claras del esquema simplificado.
+16,Indie experimental · tolera extrañeza,87,78,72,68,72,65,81,83,"La identidad surrealista justifica cierta desorientación, no objetivos ambiguos.",Abandonaría si simplificar borra la personalidad del mundo.
+17,Narrativo · prioriza personajes,81,77,68,62,54,60,65,65,"Tengo una premisa, pero todavía poca relación emocional con HERALDO.",Abandonaría si el final contradice el recorrido.
+18,Lector lento · interfaz accesible,74,48,51,54,48,43,47,42,Necesito controlar el ritmo del texto y distinguir una instrucción principal.,Abandonaría si un subtítulo desaparece antes de entenderlo.
+19,Experto móvil · pantalla pequeña,69,65,65,63,59,51,60,54,Pausar para cambiar el poder y sostener botones exige precisión táctil.,Abandonaría si dedos y efectos ocultan información clave.
+20,Veterano que vuelve tras una pausa,74,62,58,60,69,62,65,62,"Necesito recordar capítulo, objetivo y modo sin volver a estudiar el sistema.",Abandonaría si retomar obliga a reconstruir el contexto.

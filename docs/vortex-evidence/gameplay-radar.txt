@@ -1,0 +1,49 @@
+{
+  "fixture": "2 enemigos reales + 2 ecos falsos de niebla",
+  "visibleMarkers": 4,
+  "markedAsLast": 4,
+  "distances": [
+    "26 m",
+    "30 m",
+    "36 m",
+    "40 m"
+  ],
+  "objectivePlans": {
+    "m1": {
+      "2": "ancla",
+      "4": "sintonia",
+      "5": "nucleo",
+      "6": "ancla"
+    },
+    "m2": {
+      "2": "sintonia",
+      "3": "ancla",
+      "4": "nucleo",
+      "6": "sintonia"
+    },
+    "m3": {
+      "2": "ancla",
+      "3": "sintonia",
+      "5": "nucleo",
+      "6": "ancla"
+    },
+    "m4": {
+      "2": "cultivo",
+      "3": "ancla",
+      "5": "nucleo",
+      "6": "ancla"
+    },
+    "m5": {
+      "2": "sintonia",
+      "3": "ancla",
+      "5": "nucleo",
+      "6": "ancla"
+    },
+    "m6": {
+      "2": "ancla",
+      "3": "nucleo",
+      "5": "sintonia",
+      "6": "ancla"
+    }
+  }
+}

@@ -84,7 +84,7 @@ export function createMetaHud(host, ctx = {}) {
     evento(e, banner, sound) {
       mision.classList.remove('pop'); void mision.offsetWidth; mision.classList.add('pop');
       if (e.ph === 'done') { sound.objective(true); banner(`¡MISIÓN CUMPLIDA! +${e.rc} núcleos`, 2600); }
-      else if (e.ph === 'failed') banner('Misión opcional perdida', 1600);
+      // No interrumpir el combate para anunciar un desafío opcional fallido.
     },
   };
 }
