@@ -1,3 +1,4 @@
+import { applyCosmeticMaterials } from './cosmetic-material.js';
 // CUERPO UNIFICADO de los Huéspedes (docs/HUESPEDES_ARTE.md): humano de ARCANUM (esqueleto y animaciones reales) + kit de armadura/mutación anclado a los huesos
 // (huesped-armor.js) + diseño de cada Huésped (src/client/huesped/<id>.js) + evolución por camino (`pth`) + órganos (`cg`) + arma melee fusionada (`mw`) + aspecto regional.
 //   const b = createHostBody(THREE, kit, player, { quality, camera, map });          // kit = await loadHumanKit(...)  (humans.js) · player = jugador del snapshot { char, evo, pth, cg, mw, dead }
@@ -62,6 +63,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
   const human = createHuman(kit, { char: p.char, name: p.name || p.char, color: L.glow, accent: L.glow, noGear: true, weapon: null, hands: false, overrides: { body: NEUTRAL } });
   holder.add(human.object); holder.visible = false; // hasta que el kit esté armado no se muestra (si no, se vería el humano desnudo)
   let fk = 0, fkT = 0, fId = '', fHex = null, fVis = 0, itemW = [], shownEvo = -1, shape = { g: 1, x: 1, y: 1, z: 1 }, lean = 0, lastPath = '', ak = null, bodyGeo = null, map = opts.map || null, key = '', ready = false, disposed = false, time = Math.random() * 10, act = null, clip = '', fade = 1, fadeMats = [], weapon = null, organs = null, extra = {}, sigil = null;
+  let cosmetic = opts.cosmetic || null;
   const camera = opts.camera || null, presence = createPresence(T, { glow: L.glow, quality, camera }); object.add(presence.object);
 
   async function loadBodyGeometry() {
@@ -69,7 +71,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     for (const [k, a] of Object.entries(m.attrs)) { if (k === 'index') g.setIndex(a.clone()); else g.setAttribute(k, a.clone()); }
     g.computeBoundingSphere(); return g;
   }
-  const keyOf = (pl, mp) => `${pl.mr | 0}|${pl.evo | 0}|${(pl.pth || []).join()}|${pl.mw || ''}|${(pl.cg || []).join()}|${mp}|${pl.eq || ''}`;
+  const keyOf = (pl, mp) => `${pl.mr | 0}|${pl.evo | 0}|${(pl.pth || []).join()}|${pl.mw || ''}|${(pl.cg || []).join()}|${mp}|${pl.eq || ''}|${cosmetic || ''}`;
   function teardown() {
     if (weapon) { weapon.dispose(); weapon = null; } for (const w of itemW) w.dispose(); itemW = []; if (organs) { organs.dispose(); organs = null; }
     if (ak) { ak.dispose(); ak = null; } extra = {};
@@ -78,7 +80,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
   function assemble(pl) {
     teardown();
     const evo = pl.evo | 0, path = pathOf(p.char, evo, pl.pth), region = map ? (REGION[map] || null) : null;
-    const rimC = new T.Color(L.glow).lerp(new T.Color(region ? region.accent : L.glow), 0.45); if (evo > 0) rimC.lerp(new T.Color(pathColor(path[evo - 1], L.glow)), 0.5); // la luz de borde toma el color del último camino
+    const rimC = new T.Color(L.glow).lerp(new T.Color(region ? region.accent : L.glow), 0.12); if (evo > 0) rimC.lerp(new T.Color(pathColor(path[evo - 1], L.glow)), 0.18); // la luz de borde toma el color del último camino
     ak = createArmorKit(human, kit, { quality, accent: L.ember, rim: rimC, crack: L.ember, belly: D.BELLY ?? 0, skin: L.skin });
     curPath = path; shape = bodyScale(evo, path); holder.scale.set(L.scale * shape.x, L.scale * shape.y, L.scale * shape.z); // el cuerpo crece con cada nivel y cambia de proporciones según el camino
     const up = shownEvo >= 0 && evo > shownEvo; shownEvo = evo; lastPath = path[evo - 1] || '';
@@ -89,6 +91,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     const reg = addRegion(ak, ctx, { t: tools(ak) }), own = extra.update; extra.update = (dt, tt, c) => { if (own) own(dt, tt, c); reg.update(dt, tt, c); };
     ak.keepAll(); addEquipmentArmor(ak, eq);
     ak.finish({ bodyGeometry: bodyGeo });
+    applyCosmeticMaterials(ak, p.char, cosmetic);
     for (const r of ak.extraRoots) object.add(r);
     ak.setObject(object);
     if (evo >= 4) { // forma final: sello brillante en el suelo (2 anillos que giran)
@@ -138,6 +141,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     formaEvent(e) { if (e.ph !== 'come') return; const F = formaPorIndice(e.f); presence.burst(F ? parseInt(F.color.slice(1), 16) : L.glow, 1.5); },
     event(e) { if (e.t === 'evolve') { presence.burst(pathColor(e.path || lastPath, L.glow)); return; } act = { k: e.t === 'melee' ? 'punch' : 'cast', t: e.t === 'melee' ? 0.6 : 1.0 }; },
     pose(n) { if (n === 'melee' || n === 'skill') api.event({ t: n }); },
+    setCosmetic(id) { cosmetic = id || null; },
     setMap(m) { map = m || null; },
     stats() { return ak ? ak.stats() : { calls: 0, tris: 0 }; },
     update(dt, pl = p, ctx = {}) {

@@ -1,0 +1,303 @@
+{
+  "hosts": {
+    "axioma": {
+      "calls": 13,
+      "tris": 15084,
+      "meshes": [
+        [
+          "kit-cuerpo",
+          3668
+        ],
+        [
+          "kit-metal",
+          3820
+        ],
+        [
+          "kit-gold",
+          1678
+        ],
+        [
+          "kit-bone",
+          2574
+        ],
+        [
+          "kit-dark",
+          84
+        ],
+        [
+          "kit-light",
+          206
+        ],
+        [
+          "kit-ember",
+          2490
+        ],
+        [
+          "kit-crystal",
+          8
+        ],
+        [
+          "kit-leather",
+          372
+        ],
+        [
+          "kit-spirit",
+          64
+        ]
+      ]
+    },
+    "vesper": {
+      "calls": 12,
+      "tris": 14602,
+      "meshes": [
+        [
+          "kit-cuerpo",
+          3668
+        ],
+        [
+          "kit-bone",
+          3942
+        ],
+        [
+          "kit-crystal",
+          1268
+        ],
+        [
+          "kit-dark",
+          2098
+        ],
+        [
+          "kit-light",
+          1752
+        ],
+        [
+          "kit-metal",
+          616
+        ],
+        [
+          "kit-ember",
+          678
+        ],
+        [
+          "kit-leather",
+          452
+        ]
+      ]
+    },
+    "micelio": {
+      "calls": 10,
+      "tris": 15216,
+      "meshes": [
+        [
+          "kit-cuerpo",
+          3668
+        ],
+        [
+          "kit-bark",
+          5780
+        ],
+        [
+          "kit-dark",
+          212
+        ],
+        [
+          "kit-light",
+          1996
+        ],
+        [
+          "kit-bone",
+          2284
+        ],
+        [
+          "kit-crystal",
+          440
+        ],
+        [
+          "kit-ember",
+          582
+        ],
+        [
+          "kit-stone",
+          160
+        ]
+      ]
+    },
+    "umbra": {
+      "calls": 10,
+      "tris": 12578,
+      "meshes": [
+        [
+          "kit-cuerpo",
+          3668
+        ],
+        [
+          "kit-dark",
+          860
+        ],
+        [
+          "kit-light",
+          1828
+        ],
+        [
+          "kit-mirror",
+          3332
+        ],
+        [
+          "kit-ember",
+          2322
+        ],
+        [
+          "kit-crystal",
+          8
+        ],
+        [
+          "kit-spirit",
+          288
+        ]
+      ]
+    },
+    "seraf": {
+      "calls": 11,
+      "tris": 15454,
+      "meshes": [
+        [
+          "kit-cuerpo",
+          3668
+        ],
+        [
+          "kit-gold",
+          6516
+        ],
+        [
+          "kit-marble",
+          2388
+        ],
+        [
+          "kit-light",
+          1370
+        ],
+        [
+          "kit-crystal",
+          16
+        ],
+        [
+          "kit-cloth",
+          624
+        ],
+        [
+          "kit-spirit",
+          284
+        ],
+        [
+          "kit-ember",
+          354
+        ]
+      ]
+    },
+    "colmena": {
+      "calls": 7,
+      "tris": 13556,
+      "meshes": [
+        [
+          "kit-cuerpo",
+          3668
+        ],
+        [
+          "kit-dark",
+          3666
+        ],
+        [
+          "kit-marble",
+          3468
+        ],
+        [
+          "kit-light",
+          1294
+        ],
+        [
+          "kit-crystal",
+          916
+        ],
+        [
+          "kit-ember",
+          480
+        ]
+      ]
+    },
+    "danzante": {
+      "calls": 11,
+      "tris": 12244,
+      "meshes": [
+        [
+          "kit-cuerpo",
+          3668
+        ],
+        [
+          "kit-bone",
+          2192
+        ],
+        [
+          "kit-dark",
+          168
+        ],
+        [
+          "kit-light",
+          5004
+        ],
+        [
+          "kit-ember",
+          432
+        ],
+        [
+          "kit-gold",
+          216
+        ],
+        [
+          "kit-cloth",
+          360
+        ],
+        [
+          "kit-leather",
+          120
+        ]
+      ]
+    },
+    "singular": {
+      "calls": 7,
+      "tris": 12416,
+      "meshes": [
+        [
+          "kit-cuerpo",
+          3668
+        ],
+        [
+          "kit-mirror",
+          656
+        ],
+        [
+          "kit-light",
+          770
+        ],
+        [
+          "kit-ember",
+          2568
+        ],
+        [
+          "kit-stone",
+          4260
+        ],
+        [
+          "kit-spirit",
+          58
+        ],
+        [
+          "kit-crystal",
+          436
+        ]
+      ]
+    }
+  },
+  "screens": [],
+  "errors": [],
+  "status": "pass"
+}

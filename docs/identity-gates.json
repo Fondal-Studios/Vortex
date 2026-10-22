@@ -1,0 +1,301 @@
+{
+  "version": 1,
+  "incrementalReview": "docs/ARTGATE_REGISTRY.md",
+  "pieces": [
+    {
+      "id": "axioma",
+      "type": "host",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente: falta combate/contextos y rendimiento móvil",
+      "scores": {
+        "silueta": null,
+        "rol": 7,
+        "material": 7,
+        "feedback": null,
+        "costo": 6,
+        "cosmeticos": 8
+      },
+      "evidence": {
+        "rol": "src/shared/identity.js",
+        "material": "docs/identity/acabados-1.jpg",
+        "costo": "docs/identity/report.json",
+        "cosmeticos": "tests/identity-market.test.js"
+      }
+    },
+    {
+      "id": "vesper",
+      "type": "host",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente: falta combate/contextos y rendimiento móvil",
+      "scores": {
+        "silueta": null,
+        "rol": 7,
+        "material": 7,
+        "feedback": null,
+        "costo": 8,
+        "cosmeticos": 8
+      },
+      "evidence": {
+        "rol": "src/shared/identity.js",
+        "material": "docs/identity/acabados-1.jpg",
+        "costo": "docs/identity/report.json",
+        "cosmeticos": "tests/identity-market.test.js"
+      }
+    },
+    {
+      "id": "micelio",
+      "type": "host",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente: falta combate/contextos y rendimiento móvil",
+      "scores": {
+        "silueta": null,
+        "rol": 7,
+        "material": 7,
+        "feedback": null,
+        "costo": 6,
+        "cosmeticos": 8
+      },
+      "evidence": {
+        "rol": "src/shared/identity.js",
+        "material": "docs/identity/acabados-1.jpg",
+        "costo": "docs/identity/report.json",
+        "cosmeticos": "tests/identity-market.test.js"
+      }
+    },
+    {
+      "id": "umbra",
+      "type": "host",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente: falta combate/contextos y rendimiento móvil",
+      "scores": {
+        "silueta": null,
+        "rol": 7,
+        "material": 7,
+        "feedback": null,
+        "costo": 8,
+        "cosmeticos": 8
+      },
+      "evidence": {
+        "rol": "src/shared/identity.js",
+        "material": "docs/identity/acabados-1.jpg",
+        "costo": "docs/identity/report.json",
+        "cosmeticos": "tests/identity-market.test.js"
+      }
+    },
+    {
+      "id": "seraf",
+      "type": "host",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente: falta combate/contextos y rendimiento móvil",
+      "scores": {
+        "silueta": null,
+        "rol": 7,
+        "material": 7,
+        "feedback": null,
+        "costo": 6,
+        "cosmeticos": 8
+      },
+      "evidence": {
+        "rol": "src/shared/identity.js",
+        "material": "docs/identity/acabados-2.jpg",
+        "costo": "docs/identity/report.json",
+        "cosmeticos": "tests/identity-market.test.js"
+      }
+    },
+    {
+      "id": "colmena",
+      "type": "host",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente: falta combate/contextos y rendimiento móvil",
+      "scores": {
+        "silueta": null,
+        "rol": 7,
+        "material": 7,
+        "feedback": null,
+        "costo": 8,
+        "cosmeticos": 8
+      },
+      "evidence": {
+        "rol": "src/shared/identity.js",
+        "material": "docs/identity/acabados-2.jpg",
+        "costo": "docs/identity/report.json",
+        "cosmeticos": "tests/identity-market.test.js"
+      }
+    },
+    {
+      "id": "danzante",
+      "type": "host",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente: falta combate/contextos y rendimiento móvil",
+      "scores": {
+        "silueta": null,
+        "rol": 7,
+        "material": 7,
+        "feedback": null,
+        "costo": 8,
+        "cosmeticos": 8
+      },
+      "evidence": {
+        "rol": "src/shared/identity.js",
+        "material": "docs/identity/acabados-2.jpg",
+        "costo": "docs/identity/report.json",
+        "cosmeticos": "tests/identity-market.test.js"
+      }
+    },
+    {
+      "id": "singular",
+      "type": "host",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente: falta combate/contextos y rendimiento móvil",
+      "scores": {
+        "silueta": null,
+        "rol": 7,
+        "material": 7,
+        "feedback": null,
+        "costo": 8,
+        "cosmeticos": 8
+      },
+      "evidence": {
+        "rol": "src/shared/identity.js",
+        "material": "docs/identity/acabados-2.jpg",
+        "costo": "docs/identity/report.json",
+        "cosmeticos": "tests/identity-market.test.js"
+      }
+    },
+    {
+      "id": "m1",
+      "type": "arena",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente de recorrido real; imágenes iniciales y fixtures",
+      "scores": {
+        "orientacion": null,
+        "regla": null,
+        "objetivo": 7,
+        "contraste": null,
+        "costo": 8
+      },
+      "evidence": {
+        "objetivo": "src/shared/identity.js",
+        "costo": "docs/identity/arenas-report.json"
+      }
+    },
+    {
+      "id": "m2",
+      "type": "arena",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente de recorrido real; imágenes iniciales y fixtures",
+      "scores": {
+        "orientacion": null,
+        "regla": null,
+        "objetivo": 7,
+        "contraste": null,
+        "costo": 8
+      },
+      "evidence": {
+        "objetivo": "src/shared/identity.js",
+        "costo": "docs/identity/arenas-report.json"
+      }
+    },
+    {
+      "id": "m3",
+      "type": "arena",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente de recorrido real; imágenes iniciales y fixtures",
+      "scores": {
+        "orientacion": null,
+        "regla": null,
+        "objetivo": 7,
+        "contraste": null,
+        "costo": 8
+      },
+      "evidence": {
+        "objetivo": "src/shared/identity.js",
+        "costo": "docs/identity/arenas-report.json"
+      }
+    },
+    {
+      "id": "m4",
+      "type": "arena",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente de recorrido real; imágenes iniciales y fixtures",
+      "scores": {
+        "orientacion": null,
+        "regla": null,
+        "objetivo": 7,
+        "contraste": null,
+        "costo": 8
+      },
+      "evidence": {
+        "objetivo": "src/shared/identity.js",
+        "costo": "docs/identity/arenas-report.json"
+      }
+    },
+    {
+      "id": "m5",
+      "type": "arena",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente de recorrido real; imágenes iniciales y fixtures",
+      "scores": {
+        "orientacion": null,
+        "regla": null,
+        "objetivo": 7,
+        "contraste": null,
+        "costo": 8
+      },
+      "evidence": {
+        "objetivo": "src/shared/identity.js",
+        "costo": "docs/identity/arenas-report.json"
+      }
+    },
+    {
+      "id": "m6",
+      "type": "arena",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "Gate completo pendiente de recorrido real; imágenes iniciales y fixtures",
+      "scores": {
+        "orientacion": null,
+        "regla": null,
+        "objetivo": 7,
+        "contraste": null,
+        "costo": 8
+      },
+      "evidence": {
+        "objetivo": "src/shared/identity.js",
+        "costo": "docs/identity/arenas-report.json"
+      }
+    },
+    {
+      "id": "vortex",
+      "type": "game",
+      "author": "Codex",
+      "reviewedBy": "visual_review",
+      "scope": "No aprobado para lanzamiento comercial",
+      "scores": {
+        "primera_partida": null,
+        "navegacion": 7,
+        "accesibilidad": null,
+        "no_pay_to_win": 9,
+        "regresion": 7
+      },
+      "evidence": {
+        "navegacion": "tools/check-identity-market.mjs",
+        "no_pay_to_win": "tests/identity-market.test.js",
+        "regresion": "docs/IDENTITY_PRODUCTION.md"
+      }
+    }
+  ]
+}

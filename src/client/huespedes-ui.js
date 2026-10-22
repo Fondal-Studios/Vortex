@@ -1,3 +1,4 @@
+import { HOST_IDENTITY } from '../shared/identity.js';
 // Pantalla «ELEGÍ TU HUÉSPED» (previa a la partida). Se engancha en el menú (ui.js: pantalla `huesped`).
 //   · riel con los 5 Huéspedes + sección secundaria «Veteranos» (los 6 héroes anteriores, `legacy`)
 //   · escenario 3D propio (canvas, src/client/huespedes-view.js): gira solo, se arrastra para girarlo
@@ -124,7 +125,7 @@ export function buildHuespedScreen(menu) {
       }
       if (hs.sel !== id || tok !== hs.tok) return;
       const pp = Perfil.paraPartida(id), pl = { char: id, name: CHARACTERS[id].name, evo: pp.evo || 0, pth: pp.path || [], cg: pp.corg || [], mw: pp.melee || '', mr: pp.maestria || 1 };
-      const b = hs.hk.mod.createHostBody(hs.THREE, hs.hk.kit, pl, { quality: hs.quality, camera: hs.cam, map: hs.region });
+      const b = hs.hk.mod.createHostBody(hs.THREE, hs.hk.kit, pl, { quality: hs.quality, camera: hs.cam, map: hs.region, cosmetic: Perfil.perfil().cosmetics?.equipped?.[id] });
       hs.scene.add(b.object); await b.ready;
       if (hs.sel !== id || tok !== hs.tok) { hs.scene.remove(b.object); b.dispose(); return; }
       if (hs.host) { hs.scene.remove(hs.host.group); hs.host.dispose(); }
@@ -137,7 +138,6 @@ export function buildHuespedScreen(menu) {
   }
   /** Etiqueta del aspecto regional (rota cada ~5 s entre los mapas: así se ven las variaciones del Huésped por folclore). */
   function regionLabel() { const el = $('#hsregion'); if (el) el.textContent = hs.host && hs.host.map && REGIONS[hs.host.map] ? `Aspecto: ${REGIONS[hs.host.map].name} · ${REGIONS[hs.host.map].note}` : ''; }
-  const REG_ORDER = ['m1', 'm2', 'm3', 'm4', 'm5'];
   let last = 0;
   function loop(now) {
     if (!root.classList.contains('on') || document.hidden) { hs.running = false; return; }
@@ -147,7 +147,6 @@ export function buildHuespedScreen(menu) {
     if (!hs.renderer || !hs.host || $('#hscanvas').hidden) return;
     hs.idle += dt; if (!hs.drag && hs.idle > 2.5) hs.user += dt * 0.35;
     hs.host.group.rotation.y = -0.3 + hs.user + (hs.drag ? 0 : Math.sin(t * 0.5) * 0.12);
-    hs.regionT = (hs.regionT || 0) + dt; if (hs.regionT > 5 && hs.host.setMap) { hs.regionT = 0; hs.region = REG_ORDER[(REG_ORDER.indexOf(hs.region) + 1) % REG_ORDER.length]; hs.host.setMap(hs.region); regionLabel(); }
     tickMenuBeat(t); hs.host.update(dt, t); hs.ring.rotation.z += dt * 0.4; hs.ring2.rotation.z -= dt * 0.25; hs.pad.material.opacity = 0.14 + Math.sin(t * 2) * 0.05;
     hs.renderer.render(hs.scene, hs.cam);
   }
@@ -196,7 +195,7 @@ export function buildHuespedScreen(menu) {
     const keys = C.host ? STAT_KEYS : ['dano', 'resistencia', 'movilidad', 'control', 'utilidad'].filter((k) => k in S);
     const bars = keys.map((k) => `<div class="hs-stat${k === 'dificultad' ? ' hs-sd' : ''}"><span class="hs-sl">${STAT_ES[k]}</span><span class="hs-bar"><b style="width:${S[k] * 10}%"></b>${C.host && k !== 'dificultad' ? `<u style="left:${avg[k] * 10}%" title="Promedio de los Huéspedes"></u>` : ''}</span><em>${S[k]}/10</em></div>`).join('');
     const abs = abilitiesOf(id).map(([tag, a, cd, kind]) => `<button class="hs-ab" type="button" data-kind="${kind}"><span class="hs-at">${tag}</span><span class="hs-ax"><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>${cd ? `<small>${esc(cd)}</small>` : ''}</span></button>`).join('');
-    $('#hsinfo').innerHTML = `<p class="hs-story">${esc(story)}</p>${C.host ? maestriaHtml(id) + progresionHtml(id) : ''}<h4>Estadísticas</h4><div class="hs-stats">${bars}</div>${C.host ? '<p class="hs-legend"><u></u> promedio de los 5 Huéspedes</p>' : '<p class="hs-legend">Veterano: vista y datos del héroe anterior.</p>'}<h4>Habilidades</h4><div class="hs-abs">${abs}</div>`;
+    $('#hsinfo').innerHTML = `${HOST_IDENTITY[id] ? `<section class="identity-summary"><b>${esc(HOST_IDENTITY[id].verb)}</b><p>${esc(HOST_IDENTITY[id].tip)}</p><small>${esc(HOST_IDENTITY[id].silhouette)}</small></section>` : ''}<p class="hs-story">${esc(story)}</p>${C.host ? maestriaHtml(id) + progresionHtml(id) : ''}<h4>Estadísticas</h4><div class="hs-stats">${bars}</div>${C.host ? '<p class="hs-legend"><u></u> promedio de los 5 Huéspedes</p>' : '<p class="hs-legend">Veterano: vista y datos del héroe anterior.</p>'}<h4>Habilidades</h4><div class="hs-abs">${abs}</div>`;
     $('#hsinfo').scrollTop = 0;
     const keep = () => { const y = $('#hsinfo').scrollTop; renderInfo(id); $('#hsinfo').scrollTop = y; };
     root.querySelectorAll('[data-pgtab]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); hs.pgTab = b.dataset.pgtab; menu.sound.ui('tick'); keep(); }));
