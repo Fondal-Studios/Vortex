@@ -311,7 +311,7 @@ export const champOrganSlots = (evo) => 1 + (evo || 0);
 const HOSTS = {
   axioma: { team: 'vanguardia', name: 'Axioma', title: 'El Organismo de Guerra', role: 'asalto', host: true, preset: 'jugador1', seed: null, color: 0x3aa8ff, hp: 1, speed: 1, slots: [2, 5, 3, 4],
     desc: 'Asalto equilibrado. Fusil de proyectiles óseos y cuchillas en los antebrazos. El Huésped inicial: versátil y accesible.',
-    story: 'Cosido por un laboratorio que ya no existe, despierta con una orden grabada en los huesos: sobrevivir. Todavía no sabe quién le dio la orden.',
+    story: 'Primer Huésped del proyecto VORTEX: genoma humano reforzado e IA de combate. Su orden de proteger al portador sobrevivió al colapso de la red.',
     stats: { dano: 7, resistencia: 6, movilidad: 6, control: 4, utilidad: 4, dificultad: 2 },
     melee: { light: { dmg: 46, range: 3.6, arc: 0.55, cd: 0.34 }, heavy: { dmg: 130, range: 4.4, arc: 0.45, cd: 0.9, knock: 14 } },
     mov: { id: 'impulso', name: 'Impulso muscular', cd: 6, desc: 'Esquiva y embiste: arrolla lo que toca.' },
@@ -321,7 +321,7 @@ const HOSTS = {
     passive: { id: 'carnivoro', name: 'Voracidad', desc: 'Cada baja con melee restaura 14 de vida/escudo y 8 de carga.' } },
   vesper: { team: 'explorador', name: 'Vesper', title: 'La Depredadora', role: 'asesina', host: true, preset: 'jugador4', seed: null, color: 0xb04bff, hp: 0.78, speed: 1.18, slots: [6, 4, 5, 1],
     desc: 'Asesina de movilidad extrema. Agujas neurotóxicas, garras dobles. Daño explosivo, poca resistencia.',
-    story: 'Cazó en un mundo donde la presa pensaba. Desde la estación, la presa es otra cosa y ella lo sabe: algo la persigue desde adentro.',
+    story: 'Huésped de infiltración diseñado para recuperar conciencias sin alertar a los custodios. Su IA recuerda rutas que el sistema intentó borrar.',
     stats: { dano: 9, resistencia: 3, movilidad: 10, control: 3, utilidad: 3, dificultad: 7 },
     melee: { light: { dmg: 38, range: 3.4, arc: 0.6, cd: 0.26 }, heavy: { dmg: 110, range: 4, arc: 0.5, cd: 0.7, knock: 6 } },
     mov: { id: 'paso', name: 'Desplazamiento', cd: 4.5, desc: 'Teletransporte instantáneo de corto alcance hacia donde mirás.' },
@@ -331,7 +331,7 @@ const HOSTS = {
     passive: { id: 'desprevenido', name: 'Presa distraída', desc: '+50 % de daño a criaturas que no te están mirando o que no te han detectado.' } },
   micelio: { team: 'vanguardia', name: 'Micelio', title: 'El Devorador', role: 'tanque', host: true, preset: 'jugador2', seed: null, color: 0x7be03a, hp: 1.7, speed: 0.86, slots: [3, 10, 17, 20],
     desc: 'Tanque y control territorial. Cañón de esporas y puños sísmicos. Absorbe castigo y domina oleadas.',
-    story: 'Era un jardín antes de ser un cuerpo. La estación lo comió y él se la devolvió con raíces. Todavía tiene hambre.',
+    story: 'Huésped de rescate: tejido humano y micelio sintético comparten una IA de protección. Conserva vidas que la red había marcado como pérdidas.',
     stats: { dano: 5, resistencia: 10, movilidad: 3, control: 8, utilidad: 6, dificultad: 4 },
     melee: { light: { dmg: 58, range: 3.8, arc: 0.7, cd: 0.5 }, heavy: { dmg: 170, range: 5, arc: 0.8, cd: 1.1, knock: 22 } },
     mov: { id: 'barrera', name: 'Barrera orgánica', cd: 12, desc: 'Hace crecer un muro vivo delante de vos: bloquea balas y criaturas.' },
@@ -341,7 +341,7 @@ const HOSTS = {
     passive: { id: 'callo', name: 'Callo acumulativo', desc: 'Cada golpe recibido da +4 % de resistencia (hasta 40 %) que se disipa en 6 s.' } },
   umbra: { team: 'ingeniero', name: 'Umbra', title: 'El Errante del Vacío', role: 'control', host: true, preset: null, seed: 'umbra-3', color: 0xb98cff, hp: 0.95, speed: 1.02, slots: [8, 10, 9, 6],
     desc: 'Control dimensional. Rifle de distorsión y hoja que atraviesa defensas. Usa el escenario como arma.',
-    story: 'Habita varios planos a la vez; en este solo es una sombra con bordes de más. Fue el primero en notar que el tren no estaba en ningún horario.',
+    story: 'Prototipo de enlace temporal. Su IA desincroniza brevemente el cuerpo respecto de VORTEX para atravesar amenazas y ralentizar defensas.',
     stats: { dano: 6, resistencia: 5, movilidad: 7, control: 10, utilidad: 8, dificultad: 9 },
     melee: { light: { dmg: 32, range: 3.8, arc: 0.5, cd: 0.4, pierce: true }, heavy: { dmg: 95, range: 4.6, arc: 0.4, cd: 0.95, pierce: true } },
     mov: { id: 'fase', name: 'Fase', cd: 8, desc: 'Salto hacia atrás con 1 s de invulnerabilidad (pasiva: menos daño al desplazarte).' },
@@ -352,7 +352,7 @@ const HOSTS = {
     unlock: { precio: 500 }, starter: false },   // se compra en la Tienda (docs/TIENDA.md); quien ya la usaba conserva el acceso (migración en perfil.js)
   seraf: { team: 'soporte', name: 'Seraf', title: 'La Simbiosis Prohibida', role: 'híbrido', host: true, preset: 'jugador3', seed: null, color: 0xffd45a, hp: 0.92, speed: 1.06, slots: [9, 11, 7, 20],
     desc: 'Híbrido de apoyo, daño y evolución. Emisor biológico y látigo extensible. El más técnico y espectacular.',
-    story: 'Su simbionte no era un arma: era una pregunta. Seraf todavía no sabe si el organismo la usa a ella o ella a él, y eso la hace muy buena.',
+    story: 'Huésped médico cuya IA convirtió herramientas de reparación genética en armas. Curar y combatir usan la misma energía.',
     stats: { dano: 6, resistencia: 5, movilidad: 6, control: 6, utilidad: 10, dificultad: 8 },
     melee: { light: { dmg: 40, range: 6.5, arc: 0.28, cd: 0.4 }, heavy: { dmg: 115, range: 8, arc: 0.22, cd: 0.95, knock: -10 } },
     mov: { id: 'planeo', name: 'Alas membranosas', cd: 7, desc: 'Impulso aéreo con planeo: casi no caés durante 2 s.' },
@@ -361,9 +361,9 @@ const HOSTS = {
     ult: { id: 'metamorfosis', name: 'Metamorfosis', cd: 0, charge: 100, desc: '12 s: forma alada. Tus disparos perforan y curan, el látigo ataca en área.' },
     passive: { id: 'adaptacion', name: 'Adaptación', desc: 'Cada tipo de criatura que eliminás (hasta 5) da +2 % de daño contra ese tipo.' },
     unlock: { precio: 500 }, starter: false },   // se compra en la Tienda (docs/TIENDA.md); quien ya la usaba conserva el acceso (migración en perfil.js)
-  danzante: { team: 'explorador', name: 'Danzante', title: 'El Último Baile de los Muertos', role: 'duelista', host: true, preset: 'jugador4', seed: null, color: 0xff3fa0, hp: 0.84, speed: 1.15, slots: [5, 22, 21, 6],
+  danzante: { team: 'explorador', name: 'Danzante', title: 'La Memoria del Movimiento', role: 'duelista', host: true, preset: 'jugador4', seed: null, color: 0xff3fa0, hp: 0.84, speed: 1.15, slots: [5, 22, 21, 6],
     desc: 'Duelista acrobático de contraataque. Estoque de listones, esquivas y paradas perfectas que devuelven el golpe. Frágil si baila mal, letal si baila a tiempo.',
-    story: 'En el limbo hay un salón que nunca cierra: los muertos de todos los carnavales siguen bailando para no acordarse de que pararon. La Danzante es la que no pierde el paso. Pactó con el Pasajero porque quiere saber cómo suena una canción cuando alguien la termina.',
+    story: 'Su IA aprendió movimientos de archivos de danza humana. Este cuerpo convierte memoria muscular en defensa: anticipar, desviar y responder.',
     stats: { dano: 7, resistencia: 3, movilidad: 9, control: 5, utilidad: 4, dificultad: 9 },
     melee: { light: { dmg: 34, range: 3.4, arc: 0.6, cd: 0.24 }, heavy: { dmg: 96, range: 4.0, arc: 0.5, cd: 0.62, knock: 8 } },
     mov: { id: 'pirueta', name: 'Pirueta', cd: 4.2, desc: 'Te deslizás hacia donde te movés (o atrás). Durante 0,34 s estás en ESQUIVA PERFECTA: lo que te golpee se anula y se devuelve (como la Parada). Si nada te toca, vuelve enseguida.' },
@@ -372,9 +372,9 @@ const HOSTS = {
     ult: { id: 'danza', name: 'Danza Macabra', cd: 0, charge: 100, desc: '10 s: +25 % de velocidad, un remolino de cintas daña a todo lo cercano y CADA golpe que recibís se para solo (una vez cada 0,7 s), con réplica.' },
     passive: { id: 'contratiempo', name: 'Contratiempo', desc: 'Cada parada o esquiva perfecta te da Réplica (+35 % de daño 4 s) y 10 de carga de la definitiva. En Combo, además, los golpes pulsados A TIEMPO suman compás.' },
     unlock: { precio: 600 }, starter: false },   // se compra en la tienda (núcleos); `req` (condición opcional) lo define la tienda si hace falta
-  singular: { team: 'ingeniero', name: 'Singular', title: 'El Astro Muerto', role: 'gravedad', host: true, preset: null, seed: 'singular-8', color: 0xb26bff, hp: 1.15, speed: 0.95, slots: [10, 11, 3, 8],
+  singular: { team: 'ingeniero', name: 'Singular', title: 'El Núcleo Gravitatorio', role: 'gravedad', host: true, preset: null, seed: 'singular-8', color: 0xb26bff, hp: 1.15, speed: 0.95, slots: [10, 11, 3, 8],
     desc: 'Control de gravedad y de área. Abre pozos que arrastran a las hordas, lanza satélites de roca que giran a tu alrededor y la Marea de Gravedad no le hace nada: la usa a favor.',
-    story: 'Fue una estrella. Murió hace tanto que su luz todavía viaja y nadie se la avisó. En el limbo, donde la gravedad es una opinión, él es la única que nadie discute: todo lo que cae, cae hacia él. Eligió al Pasajero porque su caída fue la primera en siglos que le hizo sentir peso.',
+    story: 'Huésped experimental conectado al simulador gravitatorio de VORTEX. Su IA agrupa amenazas y modifica sus órbitas para proteger al portador.',
     stats: { dano: 5, resistencia: 6, movilidad: 4, control: 10, utilidad: 7, dificultad: 7 },
     extra: { name: 'Órbita', desc: 'Tres satélites de roca estelar giran a tu alrededor y golpean a todo lo que cruzan (cada nivel de evolución los hace más fuertes). Con Coraza, además, frenan los proyectiles enemigos.' },
     melee: { light: { dmg: 38, range: 3.8, arc: 0.6, cd: 0.4, knock: -5 }, heavy: { dmg: 110, range: 4.8, arc: 0.7, cd: 1.0, knock: -14 } },
@@ -521,19 +521,19 @@ export const OBJECTIVE_PLAN = {
   m6: { 2: 'ancla', 3: 'nucleo', 5: 'sintonia', 6: 'ancla' },   // Osario sin Techo: núcleo del brazo oeste al altar
 };
 export const OBJECTIVE_INFO = {
-  ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Mantené a alguien dentro del círculo para cargarla y cubrila: las criaturas la roen.', limit: 110 },
+  ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Quedate dentro del círculo para estabilizar el recuerdo. Defendé el ancla de las criaturas.', limit: 110 },
   sintonia: { title: 'SINTONÍA', desc: 'Pisá todas las placas a la vez durante 3 s. Solo: cada placa queda viva 10 s tras salir.', limit: 110 },
   cultivo:  { title: 'CULTIVO: PUENTE VIVO', desc: 'Alimentá los 3 capullos disparándoles hasta que florezcan: cada uno hace crecer un tramo del puente al Umbral. Las criaturas los roen: defendelos.', limit: 260 },
-  nucleo:   { title: 'NÚCLEO DE MEMORIA', desc: 'Uno lleva el núcleo al altar (lento y sin disparar); el resto lo cubre. Pasalo con E cerca.', limit: 150 },
+  nucleo:   { title: 'NÚCLEO DE MEMORIA', desc: 'Acercate al núcleo para recogerlo y llevalo al altar. Mientras lo llevás caminás más lento y no podés disparar.', limit: 150 },
 };
 // Fragmentos de recuerdo: los cuenta el Heraldo cada vez que se cumple un objetivo (el sentido de la historia)
 export const FRAGMENTS = [
-  'Fragmento 1 — «El Vórtice no mata. Colecciona. Se alimenta de lo que pudiste ser y no fuiste.»',
-  'Fragmento 2 — «Las criaturas son reflejos que aprendieron a tener hambre. Por eso brillan cuando atacan: te están mostrando quién creen que sos.»',
-  'Fragmento 3 — «Yo también esperaba un tren. Un martes, en un andén, con los auriculares puestos.»',
-  'Fragmento 4 — «Los dos corazones sostienen la puerta. Uno mira hacia afuera; el otro, hacia adentro. Hay que romper los dos.»',
-  'Fragmento 5 — «Cada vez que alguien ayuda a otro, el Vórtice pierde un poco de hambre. Por eso te hice cargar el núcleo. No era por el núcleo.»',
-  'Fragmento 6 — «Si llegás al final, no te voy a decir adiós. Los Heraldos no podemos. Pero voy a escuchar el tren.»',
+  'Registro 1 — VORTEX nació para conservar conciencias humanas. La IA custodio confundió conservar con controlar.',
+  'Registro 2 — El genoma define el cuerpo del Huésped; tu memoria define quién lo habita. No son la misma cosa.',
+  'Registro 3 — Las criaturas son defensas de la red vestidas con recuerdos y mitos humanos. Reconocer su forma no las vuelve inofensivas.',
+  'Registro 4 — El Coloso guarda la clave de identidad. La Madre Geoda controla la salida. Debés vencer a ambos para escapar.',
+  'Registro 5 — Las anclas estabilizan recuerdos; las placas reconectan archivos; los núcleos transportan memoria sin borrarla.',
+  'Registro 6 — Soy HERALDO, una IA. Puedo guiarte, pero no decidir quién sos. Esa decisión sigue siendo tuya.',
 ];
 export const BOSS_MECH = { shield: 0.05, stagger: 2.5, rayCd: [0, 14, 11, 9], rayT: 4, madreClosed: 0.15 };
 

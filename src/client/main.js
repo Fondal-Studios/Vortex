@@ -1,3 +1,4 @@
+import { thirdForMode } from './essential-controls.js';
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS, GAME_MODES, HABILIDADES } from '../sim/data.js';
@@ -100,6 +101,7 @@ let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), 
 addEventListener('keydown', (e) => {
   if (typeof ui !== 'undefined' && (!session || session.menuAbierto) && ui.handleKey(e)) return;
   if (session && session.base && baseHud && baseHud.handleKey(e)) { e.preventDefault(); return; }   // La Base: panelitos (opciones 1-3, Esc/E cierran)
+  if (session && !$('tutorial').classList.contains('hidden') && ['Enter', 'Space', 'Escape'].includes(e.code)) { e.preventDefault(); $('tutok').click(); return; }
   keys.add(e.code);
   if (npcPanel && npcPanel.open) { // panel de un NPC: 1 / 2 eligen la oferta, Esc o E lo cierran (no se cambia de arma ni de tarjeta)
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { npcPanel.choose(+e.code.slice(5) - 1); return; }
@@ -126,7 +128,7 @@ addEventListener('wheel', (e) => { if (session && gameMode() !== 'combo') wantWe
 addEventListener('mousemove', (e) => { if (locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => {
   if (NOLOCK) return; locked = document.pointerLockElement === canvas;
-  if (session && !session.ended && !session.touch) $('pause').classList.toggle('hidden', locked || session.headless || !!session.intro || !!session.menuAbierto || !!(baseHud && baseHud.open));
+  if (session && !session.ended && !session.touch) $('pause').classList.toggle('hidden', locked || session.headless || !!session.intro || !!session.menuAbierto || !$('tutorial').classList.contains('hidden') || !!(baseHud && baseHud.open));
 });
 const lockPointer = () => { try { canvas.requestPointerLock(); } catch { /* sin pointer lock */ } };
 
@@ -271,7 +273,7 @@ function enter(mapId) {
   document.body.classList.toggle('en-base', mapId === 'base'); if (baseHud && mapId !== 'base') baseHud.mostrar(false);
   $('menu').classList.add('hidden'); $('end').classList.add('hidden'); $('hud').classList.remove('hidden'); document.body.classList.add('playing');
   sound.init(); sound.resume(); sound.startMusic(mapId);
-  renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : !!settings().third);
+  renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : mapId === 'base' || thirdForMode(gameMode()));
   buildWeaponHud();
   touch.show(!!session.touch); touch.setMode(gameMode(), myChar()); keyHint();
   if (!session.touch && !session.headless && !NOLOCK && !params.get('auto')) lockPointer(); // requiere gesto del usuario
@@ -300,17 +302,18 @@ function startWake(lines) {
   subs.play(lines, finishIntro);
 }
 function skipIntro(force) { if (!session || !session.intro || (session.prologo && !force)) return; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
-/** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). No pausa la partida. */
+/** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). Pausa en solitario; en cooperativo la sala continúa. */
 function showTutorial(force = false) {
   let seen = false; try { seen = localStorage.getItem('cristal.tut.v2') === '1'; } catch { /* ok */ }
   if ((seen && !force) || !session || session.headless) return;
   const touchUI = !!session.touch, el = $('tutorial');
   const rows = touchUI
-    ? [['🕹️', 'Palanca izquierda', 'caminar'], ['👆', 'Arrastrá a la derecha', 'mirar'], ['DISPARAR', 'botón grande', 'Disparo: tocá o mantené · en Melé es ATAQUE 1 y encadena el combo'], ['HAB.1 · HAB.2 · HAB.3', 'arco alrededor', 'tus tres habilidades, siempre a mano (tocá una para ver su nombre)'], ['MODO', '⌖ ⇄ ⚔', 'pasa de Disparo a Melé al instante y cambia los botones'], ['RECARGAR', 'ATAQUE 2', 'el botón chico: recargar (Disparo) o ataque 2 (Melé)'], ['ULTI', 'USAR · EVOLUC.', 'aparecen solos cuando sirven'], ['‹ ›', 'o tocá la barra', 'cambiar de arma (Disparo)']]
-    : [['WASD', 'Shift', 'caminar · correr'], ['Ratón', 'clic izq.', 'apuntar · disparar (Melé: ATAQUE 1, mantené para encadenar)'], ['F · G · Z', '(Melé: 1 · 2 · 3)', 'HAB.1 · HAB.2 · HAB.3'], ['Clic der.', 'G', 'Disparo: HAB.2 · Melé: ATAQUE 2'], ['Tab', 'Select (mando)', 'cambiar de Disparo a Melé y viceversa'], ['T', 'R · V', 'definitiva · recargar · melé rápido (Disparo)'], ['E', 'Q · B', 'usar · habilidad de equipo · señalar'], ['1–5', 'rueda · K', 'cambiar de arma (Disparo) · pista de teclas']];
-  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Sobreviví las oleadas. Tu <b>meta actual</b> siempre está en la línea de arriba. Cumplí el objetivo de cada oleada y elegí una <b>mejora de arma</b> al terminarla.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
-  el.classList.remove('hidden'); const close = () => { el.classList.add('hidden'); try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
-  $('tutok').onclick = close; later(close, force ? 20000 : 16000);
+    ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Derecha: girar la cámara.'], ['ATACAR', 'botón grande', 'Vos decidís cuándo atacar. Melé encadena golpes al mantener.'], ['SALTO / PODER', 'dos botones', 'Saltá obstáculos o usá el poder de tu Huésped. USAR aparece cerca de objetos.'], ['MODO', 'Disparo ↔ Melé', 'Disparo en primera persona; espada en tercera. Pausa → controles completos para más acciones.']]
+    : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['G / Z', 'poder del Huésped', 'G en Disparo; Z en Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
+  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Tu conciencia está atrapada en VORTEX. <b>Vencé al guardián de este archivo para avanzar.</b> Seguí el objetivo de arriba y elegí una mejora entre oleadas.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
+  const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();
+  el.classList.remove('hidden'); const close = () => { if (session === tutSession && session.mode === 'solo') session.paused = wasPaused; el.classList.add('hidden'); if (session === tutSession) { if (wasPaused) $('pause').classList.remove('hidden'); else if (!session.touch && !NOLOCK) lockPointer(); } try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
+  $('tutok').onclick = close;
 }
 function finishIntro() {
   if (!session) return; session.intro = null; renderer.setGuide(false); renderer.wakeT = renderer.wakeDur = 0; $('hud').classList.remove('hidden');
@@ -655,7 +658,7 @@ function audioAndHud(state, me, dt) {
 /* ───────── HUD del director: objetivo, habilidad, jefe, ping, caído ───────── */
 const OBJ_ICON = { ancla: '⚓', sintonia: '◈', nucleo: '✦', cultivo: '✿' };
 function objectiveEvent(e) {
-  if (e.ph === 'start') { banner(`${e.title}: ${e.desc}`, 5200); sound.objective(true); }
+  if (e.ph === 'start') { banner(e.title, 1800); sound.objective(true); }
   else if (e.ph === 'done') {
     sound.objective(true); trophy('obj', 'Trabajo en equipo', 'Completá un objetivo de oleada', sound);
     banner('¡OBJETIVO CUMPLIDO! Munición, vida y +25 % de daño del equipo', 3200);
@@ -665,6 +668,7 @@ function objectiveEvent(e) {
 }
 let metaHud = null; const metaCtx = { solo: true, sinGuia: false };
 function hudDirector(state, me) {
+  document.body.classList.toggle('between-waves', state.phase === 'intermission');
   const o = state.obj, box = $('objective');
   if (o && o.state === 'active') {
     box.classList.remove('hidden', 'done', 'fail'); if (session.objKey !== o.type + state.wave) { session.objKey = o.type + state.wave; session.objT0 = performance.now(); } box.classList.toggle('compact', performance.now() - session.objT0 > 9000);
@@ -838,7 +842,7 @@ function bindTouchSettings() {
   bind('tadsm', () => S.adsMode, (v) => setSetting('adsMode', v));
   bind('tfing', () => String(S.fingers), (v) => touch.setFingers(+v));
   bind('tadv', () => (S.advanced ? '1' : '0'), (v) => { setSetting('advanced', v === '1'); syncAdv(); });
-  const syncAdv = () => { const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Habilidades: ${settings().advanced ? 'sí' : 'no'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
+  const syncAdv = () => { document.body.classList.toggle('hud-focused', !settings().advanced); const b = $('advtoggle'); if (b) b.querySelector('b').textContent = `Controles: ${settings().advanced ? 'completos' : 'esenciales (4 botones)'}`; const t = $('tadv'); if (t) t.value = settings().advanced ? '1' : '0'; };
   const syncCam = () => { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; };
   const setCam = (on) => { renderer.setThird(on); setSetting('third', !!on); syncCam(); };
   const cb = $('camtoggle'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); setCam(!renderer.third); }); syncCam();
@@ -871,7 +875,7 @@ function syncModeUI() {
   const sel = $('modesel'); if (sel) sel.value = m;
   const pb = $('modetoggle'); if (pb) pb.querySelector('b').textContent = `Modo de juego: ${G.icon} ${G.name}`;
 }
-function setGameMode(m) { const mm = m === 'combo' ? 'combo' : 'shooter'; settings().modes[myChar()] = mm; setSetting('mode', mm); syncModeUI(); touch.setMode(gameMode(), myChar()); if (session) keyHint(); }
+function setGameMode(m) { const mm = m === 'combo' ? 'combo' : 'shooter'; settings().modes[myChar()] = mm; setSetting('mode', mm); if (session && !session.base) renderer.setThird(thirdForMode(gameMode())); syncModeUI(); touch.setMode(gameMode(), myChar()); if (session) keyHint(); }
 /** Botón MODO (táctil), Tab (PC) o Select (mando): alterna Disparo ↔ Melé al instante, sin pausar. Hay una espera corta para no cambiar sin querer. */
 let modoT = -1e9;
 function cambiarModo() {

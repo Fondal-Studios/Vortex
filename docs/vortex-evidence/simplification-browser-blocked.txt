@@ -1,0 +1,16 @@
+node:fs:1631
+  const result = binding.readdir(
+                         ^
+
+Error: ENOENT: no such file or directory, scandir '/opt/pw-browsers'
+    at Object.readdirSync (node:fs:1631:26)
+    at launch (file:///workspace/scratch/e7854c87413a/vortex/tools/browser.js:5:18)
+    at file:///workspace/scratch/e7854c87413a/vortex/tools/check-essential-ui.js:9:16
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'scandir',
+  path: '/opt/pw-browsers'
+}
+
+Node.js v24.19.0

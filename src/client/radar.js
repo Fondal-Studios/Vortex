@@ -12,7 +12,7 @@ export function createRadar(host) {
       if (!state || !me || me.dead || !camera) { for (const a of arrows) a.style.display = 'none'; return; }
       camera.getWorldPosition(cam);
       const ultimas = state.left <= 6 && !state.boss;   // últimas criaturas de la oleada: SIEMPRE marcadas (incluso camufladas), con distancia
-      const list = state.monsters.filter((m) => ultimas || !m.c).concat((falsos || []).map((f) => ({ p: f }))).map((m) => ({ m, d: Math.hypot(m.p[0] - me.pos[0], m.p[1] - me.pos[1], m.p[2] - me.pos[2]) })).sort((a, b) => a.d - b.d);
+      const list = state.monsters.filter((m) => ultimas || !m.c).concat((ultimas ? [] : falsos || []).map((f) => ({ p: f }))).map((m) => ({ m, d: Math.hypot(m.p[0] - me.pos[0], m.p[1] - me.pos[1], m.p[2] - me.pos[2]) })).sort((a, b) => a.d - b.d);
       let k = 0; const W = innerWidth, H = innerHeight, few = ultimas || list.length <= 4;
       for (const { m, d } of list) {
         if (k >= N) break;

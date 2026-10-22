@@ -29,3 +29,28 @@
 5. Ejecutar primera partida real PC/iPhone; luego reducir espera inicial y simplificar aprendizaje.
 
 Notas: los logs en docs/vortex-evidence son pruebas locales sin datos personales. Los números de scorecard son juicios provisionales del commit base, no pruebas de satisfacción.
+
+## Ciclo 1 — Simplificación autorizada, 22/10/2026
+El usuario autorizó modificar el juego y la historia con libertad creativa.
+Base recuperada de GitHub: 1e2dbf8 (PR #1, abierto y borrador).
+
+Implementado:
+- Historia de conciencia digitalizada, genoma humano e IA; dos guardianes y una salida.
+  Guion recuperable: VORTEX_STORY.md. Biografías de los ocho huéspedes reescritas.
+- Controles táctiles esenciales: atacar, salto, poder, modo; pausa separada.
+  USAR reemplaza poder cerca de interacción. Preset completo recuperable en pausa.
+  Melé esencial conserva ataque primario; ataque secundario y poderes adicionales siguen en completo.
+- Disparo entra en primera persona; Melé en tercera. Cambiar modo cambia cámara.
+  Base conserva tercera persona y la opción manual de cámara sigue disponible.
+- Disparo automático desactivado por defecto en perfiles nuevos; preferencias guardadas se respetan.
+- HUD esencial prioriza una misión, tiempo del objetivo y enemigos; oculta panel duplicado,
+  puntuación, feed de bajas, salpicaduras y habilidades adicionales. Desafíos se muestran entre oleadas.
+- Tutorial acortado a cuatro filas, confirmación explícita y pausa de simulación en solo.
+- Radar sin ecos falsos en cierre de oleada; barras de élite más anchas y borde ámbar.
+- Instrucción de placas distingue solo/coop, texto de núcleo sin exigir compañero ni tecla táctil.
+
+No integrado: no merge ni despliegue. Falta prueba visual/hardware antes de aprobarlo.
+No se corrigió en esta entrega navegación de rezagados, colisiones especiales,
+variedad de objetivos, balance de modo esencial, crecimiento de enemigos ni cámara lenta.
+La suite de HUD se actualizó al contrato nuevo (cuatro acciones); el antiguo
+`tools/shot-hud.js` conserva expectativas históricas y no es el gate de esta versión.

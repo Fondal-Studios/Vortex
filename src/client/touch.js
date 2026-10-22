@@ -10,6 +10,7 @@
 //  · el pequeño de arriba es RECARGAR (Disparo) o ATAQUE 2 (Melé); HAB.1, HAB.2 y HAB.3 se ven siempre, en arco alrededor del ataque.
 // Todo se guarda en settings.js. La cámara depende sólo de píxeles recorridos (no de los FPS).
 import { settings, setSetting, save, resetLayout } from './settings.js';
+import { essentialActions } from './essential-controls.js';
 import { fuentes, MODOS } from '../sim/modos.js';   // qué habilidad hay en cada slot según el modo (Disparo / Melé)
 
 const BTN = [
@@ -32,7 +33,8 @@ const BTN = [
   ['mode', 'tc-mode', '⌖', 'MODO', 'tap', false],           // alterna Disparo ↔ Melé al instante (con una pequeña espera)
   ['pause', 'tc-pause', '❚❚', '', 'tap', false],
 ];
-// Disparo (por defecto): ataque, recargar, melé rápido, salto, HAB.1/2/3 y MODO (+ pausa). Melé: ataque 1, ataque 2, salto, HAB.1/2/3 y MODO.
+// Esencial: ataque, salto, un poder y MODO (+ pausa). USAR sustituye al poder.
+// El preset completo conserva los ataques y habilidades adicionales de ambos modos.
 //  · contextuales (CTX): aparecen sólo cuando sirven (definitiva cargada, algo para usar, evolución lista);
 //  · modo avanzado (setting `advanced`, sólo Disparo): apuntar, agachar, equipo y señalar.
 // Correr es automático (palanca al máximo) y el arma se cambia tocando/deslizando la barra de armas de abajo (sólo Disparo).
@@ -94,9 +96,10 @@ export class TouchControls {
 
   /* ───── diseño personalizado ───── */
   applyLayout() {
-    const s = settings(), vis = new Set(SHOW(s.fingers, !!s.advanced, this.mode === 'combo'));
+    const s = settings(), basic = !s.advanced, vis = new Set(basic ? essentialActions(this.mode, this.ctx) : SHOW(s.fingers, true, this.mode === 'combo'));
+    this.relabel(); this.host.classList.toggle('essential', basic); document.body.classList.toggle('hud-focused', basic);
     this.host.style.setProperty('--hud-op', String(s.hudOpacity)); this.host.style.setProperty('--hud-s', String(s.hudScale));
-    for (const [id] of BTN) { const el = this.$(`[data-a="${id}"]`), l = s.layout[id] || {}; if (!el) continue; el.style.setProperty('--dx', `${l.dx || 0}px`); el.style.setProperty('--dy', `${l.dy || 0}px`); el.style.setProperty('--s', String((l.s || 1) * s.hudScale)); el.classList.toggle('tc-off', CTX.includes(id) ? !(this.ctx[id] || this.editing || this.ctxForce) : !(vis.has(id) || this.editing && this.mode !== 'combo' && ADV.includes(id) && s.advanced)); el.classList.toggle('tc-ctx', CTX.includes(id)); }
+    for (const [id] of BTN) { const el = this.$(`[data-a="${id}"]`), l = s.layout[id] || {}; if (!el) continue; el.style.setProperty('--dx', `${l.dx || 0}px`); el.style.setProperty('--dy', `${l.dy || 0}px`); el.style.setProperty('--s', String((l.s || 1) * s.hudScale)); el.classList.toggle('tc-off', basic ? !vis.has(id) : CTX.includes(id) ? !(this.ctx[id] || this.editing || this.ctxForce) : !(vis.has(id) || this.editing && this.mode !== 'combo' && ADV.includes(id) && s.advanced)); el.classList.toggle('tc-ctx', CTX.includes(id)); }
     const op = this.$('#tcOp'); if (op) op.value = Math.round(s.hudOpacity * 100);
   }
   edit(on) {
@@ -109,7 +112,7 @@ export class TouchControls {
   /** Botones contextuales: { ult, use, evo } = ¿sirven ahora? Sólo repinta cuando algo cambia. */
   setContext(c) {
     this.ctx = this.ctx || {}; let ch = false; for (const k of CTX) { const v = !!c[k]; if (this.ctx[k] !== v) { this.ctx[k] = v; ch = true; if (!v && this.st[k]) { this.st[k] = false; this.host.querySelector(`[data-a="${k}"]`)?.classList.remove('on'); } } }
-    if (ch) this.applyLayout();
+    if (ch) { if (!settings().advanced) { this.st.esp = this.st.s3 = this.st.use = false; } this.applyLayout(); }
   }
   /** Modo de combate: 'shooter' (Disparo) o 'combo' (Melé). Cambia los botones, sus rótulos y el HUD con una animación corta. `char` = Huésped (para los iconos de HAB.1/2/3). */
   setMode(m, char) {
@@ -124,7 +127,7 @@ export class TouchControls {
   relabel() {
     const set = (id, ic, label) => { const el = this.$(`[data-a="${id}"]`); if (!el) return; const i = el.querySelector('.ic'), sm = el.querySelector('small'); if (i && i.textContent !== ic) i.textContent = ic; if (sm && label && sm.textContent !== label) sm.textContent = label; };
     for (const [id, [ic, label]] of Object.entries(POR_MODO[this.mode])) { set(id, ic, label); const el = this.$(`[data-a="${id}"]`); if (el && el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label); }
-    const src = fuentes(this.char, this.mode); ['mov', 'esp', 's3'].forEach((id, i) => set(id, ICONO_SRC[src[i]] || '•', `HAB.${i + 1}`));
+    const src = fuentes(this.char, this.mode); ['mov', 'esp', 's3'].forEach((id, i) => set(id, ICONO_SRC[src[i]] || '•', !settings().advanced ? 'PODER' : `HAB.${i + 1}`));
     const M = MODOS[this.mode]; set('mode', M.icono, 'MODO'); const mb = this.$('[data-a="mode"]'); if (mb) mb.setAttribute('aria-label', `Modo ${M.nombre}: tocá para cambiar`);
   }
   /** Animación corta al cambiar de modo: los botones nuevos «brotan». */

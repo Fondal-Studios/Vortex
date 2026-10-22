@@ -19,3 +19,14 @@
 |¿Qué sobra?|Hipótesis: espera de forja y exposición simultánea de demasiadas capas; ocultar/probar antes de eliminar.|
 |¿Qué impide publicar?|Guardado y premios sin garantías, test de balance rojo, gates incompletos, sin sesión visual/hardware certificada.|
 |¿Próximo ciclo?|Bloque 1: persistencia idempotente, fallo WebGL explicable, controles seguros; luego primer combate ≤30 s.|
+
+## Ciclo 1 — 22/10/2026
+- Autorización explícita para implementar simplificación y reescritura creativa.
+- Adoptar conciencia digital + genoma humano + IA sin presentar recuerdos como ADN.
+- Reutilizar estación y folclore como reconstrucciones de memoria; no cambiar IDs ni guardados.
+- Separar objetivo final (salir de VORTEX) de acción inmediata (instrucción del HUD).
+- Conservar salto hasta adaptar geometría; cuatro botones esenciales no equivalen aún
+  a un rediseño balanceado de todas las habilidades. Completo sigue disponible en pausa.
+- Ataque manual por defecto; respetar accesibilidad previamente elegida.
+- No aplicar cámara lenta a la simulación cooperativa ni agrandar hitboxes sin pruebas de navegación.
+- No asignar nueva puntuación de diversión sin jugar. Retener el borrador hasta validar visualmente.

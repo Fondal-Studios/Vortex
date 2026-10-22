@@ -20,3 +20,11 @@ Leer PROGRESS/DECISIONS y estado remoto; crear rama propia desde base identifica
 
 ## Suite de aceptación humana propuesta
 Al menos un novato PC, un jugador shooter y un usuario iPhone 13 Pro/Safari. Registrar tiempo a primer movimiento, ataque, objetivo y mejora; errores de control, ayudas solicitadas, caídas, cierres, temperatura percibida y deseo de repetir. No presentar 4/5 como dato obtenido: es un criterio futuro.
+
+## Ajuste de producción — 22/10/2026
+Por instrucción del usuario, se implementó una entrega transversal de Bloques 1 y 3:
+controles esenciales, cámara por modo, HUD centrado en objetivo y nueva narrativa.
+Antes de la próxima entrega: ejecutar `node tools/check-essential-ui.js`, verificar
+primera partida y tutorial en PC y Safari/iPhone; revisar diferencias de poder entre
+esencial/completo. Después: recuperación de enemigos rezagados y una misión distintiva
+por arena. La implementación actual no declara terminados Bloques 1, 2 ni 3.

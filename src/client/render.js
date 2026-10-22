@@ -363,12 +363,12 @@ export class Renderer {
       const g = new THREE.Group(), mk = (c, o, ro) => { const mt = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthTest: false, depthWrite: false }); const q = new THREE.Mesh(this.barGeo, mt); q.renderOrder = ro; return q; };
       g.userData = { bg: mk(0x05030f, 0.7, 996), fill: mk(0x66ff88, 0.95, 997), edge: mk(0xffffff, 0.0, 995) }; g.add(g.userData.edge, g.userData.bg, g.userData.fill); this.barRoot.add(g); e.bar = g;
     }
-    const g = e.bar, u = g.userData, w = Math.max(1.4, Math.min(4.6, m.r * 1.7)), hh = Math.max(0.16, w * 0.085), frac = Math.max(0, Math.min(1, m.hp / m.mh));
+    const g = e.bar, u = g.userData, w = Math.max(1.4, Math.min(m.el ? 5.2 : 4.6, m.r * (m.el ? 2.1 : 1.7))), hh = Math.max(0.16, w * 0.085), frac = Math.max(0, Math.min(1, m.hp / m.mh));
     g.visible = true; g.quaternion.copy(this.camera.quaternion);
     g.position.copy(V(m.p)).addScaledVector(V(m.u), m.r * 1.25 + 0.9);
     u.edge.scale.set(w + hh * 0.5, hh * 1.5, 1); u.bg.scale.set(w, hh, 1); u.fill.scale.set(Math.max(0.001, w * frac), hh * 0.8, 1); u.fill.position.set(-w * (1 - frac) / 2, 0, 0.001);
     u.fill.material.color.setHex(m.ef & 4 ? 0xff9a3a : m.ef & 2 ? 0xa6ff4a : frac > 0.6 ? 0x66ff88 : frac > 0.3 ? 0xffd23f : 0xff4a5a);
-    u.edge.material.opacity = m.el ? 0.8 : 0; u.edge.material.color.setHex(0xff3a5a);
+    u.edge.material.opacity = m.el ? 0.8 : 0; u.edge.material.color.setHex(0xffc857);
   }
   /** Afijo de élite (AFFIXES): UN sprite de halo del color del afijo + UNA etiqueta con el nombre (textura compartida por texto). Sólo élites, así que cuesta poco. */
   setAffix(e, af) {

@@ -64,3 +64,28 @@ El avance acelerado de una simulación no es una sesión humana de 5/15/30 minut
 - E2E real obligatorio (no omisión silenciosa) y build publicados desde una sola rama.
 - Validación de primera partida PC y Safari/iPhone; evidencia por commit.
 - Este ciclo prepara PR borrador; no merge ni despliegue.
+
+## Ciclo 1 — Simplificación, 22/10/2026
+- Instalación npm ci completada y build estático correcto (48,4 MB).
+- Grupo seleccionado de controles, radar, objetivos, modos, director y recompensas:
+  **43/43 aprobadas, cero omitidas**. `simplification-tests.txt`.
+- Núcleo existente `npm run test:fast`: **59/59 aprobadas, cero omitidas**.
+  `simplification-fast-tests.txt`. No equivale a toda la suite del repositorio.
+- Radar con fixture 2 reales + 2 ecos: ahora 2 marcadores finales, antes 4.
+  DOM simulado y cámara Three.js sin render: no es playtest visual.
+- Pruebas de controles usan métodos reales de TouchControls con DOM simulado:
+  cuatro acciones, reemplazo contextual, retorno a completos, disparo manual,
+  entrada de ataque Melé. No prueban precisión del pulgar ni solapes CSS.
+- Prueba de metas diferencia placas solo/cooperativo y muestra plazo del objetivo.
+- Comprobación de sintaxis y git diff --check correctas.
+- Nuevo gate visual reproducible: `node tools/check-essential-ui.js`.
+  PC, iPhone SE/13 emulados y tablet; ambos modos, número/tamaño/solape de botones,
+  cámara y capturas. Intentado: bloqueado por ausencia de /opt/pw-browsers.
+  Descarga de Chromium falló por ZIP truncado/inválido. Evidencia adjunta.
+- Suite HUD: **2 omitidas, cero ejecutadas**. No interpretar como aprobación.
+- Tutorial y barras de élite inspeccionados en código; falta ejecutar su interacción
+  y revisar apariencia. Sin validación Safari, iPhone físico ni partida humana.
+- Persisten fallos de baseline consignados en Bloque 0. Sin nueva puntuación de diversión.
+
+Gate de integración: ejecutar navegador sin omisiones, revisar capturas y primera
+partida real; después autorizar merge. Esta entrega queda en el PR borrador.

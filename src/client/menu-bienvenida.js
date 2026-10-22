@@ -2,9 +2,9 @@
 // En pruebas automáticas (navigator.webdriver) no sale, salvo con ?bienvenida=1 (así los tests de navegador no chocan con el cartel).
 const CLAVE = 'vortex.bienvenida.v1';
 export const PASOS = [
-  { n: '1', titulo: 'Elegí tu Huésped', texto: 'Tu Huésped es el cuerpo con el que peleás. Empezás con Axioma y lo cambiás cuando quieras en HUÉSPEDES.', extra: { go: 'huesped', t: 'Elegir ahora' } },
-  { n: '2', titulo: 'Jugá', texto: 'Tocá JUGAR: sobrevivís a las oleadas, ganás núcleos y botín. ¿Querés otro mapa? Usá «Elegir partida».' },
-  { n: '3', titulo: 'Volvé a la Base', texto: 'Entre partida y partida, en la Base forjás, cultivás y comprás. Es tu casa en el Vórtice.' },
+  { n: '1', titulo: 'Elegí tu Huésped', texto: 'Tu conciencia habita un cuerpo de genoma humano e IA: el Huésped. Empezás con Axioma y lo cambiás cuando quieras en HUÉSPEDES.', extra: { go: 'huesped', t: 'Elegir ahora' } },
+  { n: '2', titulo: 'Jugá', texto: 'En Historia, vencé al Coloso para recuperar tu identidad y a la Madre Geoda para abrir la salida de VORTEX. El objetivo actual aparece arriba.' },
+  { n: '3', titulo: 'Volvé a la Base', texto: 'Entre incursiones, mejorá tu Huésped en la Base. No necesitás dominar todos sus sistemas para volver a combatir.' },
 ];
 export function debeSaludar(search = location.search, vio = null) {
   if (/[?&]bienvenida=1/.test(search)) return true;
