@@ -83,7 +83,10 @@ test('4 bots por WebSocket (200 ms de latencia en dos de ellos): 3+ oleadas sin 
   try {
     for (let i = 0; i < 4; i++) cs.push(await cliente(srv.port, { lag: i >= 2 ? 200 : 0 }));   // dos con 200 ms de ida y vuelta
     const bytes = cs.map(() => ({ crudo: 0, comp: 0, n: 0 }));
-    cs.forEach((c, i) => { const f = c.onMessage.bind(c); c.onMessage = (m, b) => { if (m.t === 'snap') { bytes[i].crudo += b; bytes[i].comp += zlib.deflateRawSync(JSON.stringify(m), { level: 3 }).length; bytes[i].n++; } f(m, b); }; });
+    // Audit history must span the artificial 200 ms lag at 6x simulation speed.
+    // The 12-frame interpolation buffer is intentionally too short for that comparison.
+    const history = cs.map(() => new Map());
+    cs.forEach((c, i) => { const f = c.onMessage.bind(c); c.onMessage = (m, b) => { if (m.t === 'snap') { bytes[i].crudo += b; bytes[i].comp += zlib.deflateRawSync(JSON.stringify(m), { level: 3 }).length; bytes[i].n++; } f(m, b); if (m.t === 'snap') { history[i].set(c.cur.tick, structuredClone(c.cur)); if (history[i].size > 256) history[i].delete(history[i].keys().next().value); } }; });
     cs[0].send({ t: 'create', lobby: true, map: 'm1', name: 'J0', char: HUESPEDES[0] }); assert.ok(await until(() => cs[0].room));
     for (let i = 1; i < 4; i++) { cs[i].send({ t: 'join', room: cs[0].room, name: 'J' + i, char: HUESPEDES[i], mode: i === 1 ? 'combo' : 'shooter' }); }
     assert.ok(await until(() => cs[0].lobby.players.length === 4)); for (const c of cs.slice(1)) c.send({ t: 'ready' });
@@ -111,7 +114,7 @@ test('4 bots por WebSocket (200 ms de latencia en dos de ellos): 3+ oleadas sin 
     assert.ok(g.wave >= 3, `llegaron a la oleada ${g.wave}`);
     // sincronía: en un tick común, los clientes conectados ven EXACTAMENTE lo mismo
     await sleep(500); const vivos = cs.slice(0, 3);
-    const ticks = vivos.map((c) => new Map(c.buf.map((x) => [x.s.tick, x.s])));
+    const ticks = history.slice(0, 3);
     const comun = [...ticks[0].keys()].filter((t) => ticks.every((m) => m.has(t)));
     assert.ok(comun.length > 0, 'hay snapshots en común'); const t = comun[comun.length - 1];
     for (const m of ticks.slice(1)) assert.deepEqual({ ...m.get(t), events: 0 }, { ...ticks[0].get(t), events: 0 }, 'las vistas coinciden en el tick ' + t);

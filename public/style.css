@@ -557,3 +557,28 @@ body.touch-ui #estilohud, body.touch-ui.cam3 #estilohud { top: calc(env(safe-are
 .lb-list li.yo { border-color: #7fb2ff; } .lb-list li.vacio { opacity: .35; justify-content: center; }
 .lb-list .nom { flex: 1; font-weight: 600; } .lb-list .det { opacity: .75; font-size: 12px; } .lb-list .ok { color: #8be3a4; } .lb-list .no { color: #ffd37a; } .lb-list .ausente { color: #ff8f8f; }
 #netstat { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; padding: 4px 12px; border-radius: 999px; background: #000a; color: #ffd37a; font-size: 12px; pointer-events: none; }
+
+/* Tactical layer: independent of the combat HUD, no WebGL resources. */
+#tactical-hud[hidden], .revive-action[hidden]{display:none!important}
+.tactical-map{position:absolute;right:max(16px,env(safe-area-inset-right));top:135px;width:180px;background:#0c1424e8;border:1px solid #7891a366;border-radius:12px;color:#edf2ff;font:11px system-ui;pointer-events:auto;text-shadow:none;overflow:hidden}
+.tactical-title{padding:9px 10px 0;font-size:10px;letter-spacing:.08em}.tactical-title span{display:block;color:#bac9d5;letter-spacing:0;margin-top:3px}
+.tactical-map canvas{display:block;width:100%;height:auto}.tactical-map details{padding:0 10px 9px}.tactical-map summary{cursor:pointer;min-height:26px;align-content:center}.tactical-map label{display:block;margin:8px 0}.tactical-map input{width:100%}.tactical-map small{display:block;color:#b7c6d5}.tactical-legend{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.revive-action{position:absolute;left:50%;bottom:25%;transform:translateX(-50%);display:grid;gap:7px;min-width:220px;min-height:76px;padding:12px 18px;border:1px solid #8cead2;background:#112a30ee;color:#effffb;border-radius:12px;pointer-events:auto;touch-action:none;font:13px system-ui}.revive-action strong{font-size:18px}.revive-action progress{width:100%;height:6px;accent-color:#8cead2}
+@media(max-width:700px),(max-height:500px){.tactical-map{top:95px;right:max(8px,env(safe-area-inset-right));width:130px}.tactical-title{font-size:8px;padding:7px 7px 0}.tactical-map details{padding:0 7px 5px;font-size:10px}.revive-action{bottom:27%;min-width:190px;padding:8px 12px}}
+.account-launch{position:absolute;right:max(20px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));z-index:15;padding:10px 18px;border:1px solid #96abc488;border-radius:8px;background:#101a2eee;color:#edf2ff;cursor:pointer}
+.account-dialog{box-sizing:border-box;width:min(470px,94vw);max-height:90dvh;overflow:auto;padding:28px;border:1px solid #96abc488;border-radius:16px;background:#101a2e;color:#edf2ff;font:14px system-ui;box-shadow:0 20px 80px #0009}.account-dialog::backdrop{background:#030716bb;backdrop-filter:blur(6px)}.account-dialog h2{font-size:24px;margin:0 24px 8px 0}.account-dialog p,.account-dialog small{color:#bdcbdc;line-height:1.5}.account-dialog label{display:grid;gap:6px;margin:14px 0}.account-dialog input{box-sizing:border-box;width:100%;padding:12px;background:#08101e;border:1px solid #75899f;color:white;border-radius:6px;font:inherit}.account-dialog button{padding:11px 16px;margin:8px 5px 8px 0;border:1px solid #8cead288;border-radius:6px;background:#213c43;color:#effffb;cursor:pointer;font:inherit}.account-dialog button:disabled{opacity:.4;cursor:default}.account-dialog .account-close{position:absolute;right:12px;top:8px;background:transparent}.account-dialog details{margin-top:18px}.account-recovery{padding:15px;border:1px solid #e5dd9c;background:#e5dd9c0b}.account-recovery code{display:block;overflow-wrap:anywhere;user-select:all;font-size:16px;color:#e5dd9c}.account-status{min-height:24px}.account-dialog [hidden]{display:none!important}
+.tactical-map{overflow:visible}.tactical-settings{position:absolute;right:calc(100% + 8px);top:0;box-sizing:border-box;width:190px;padding:12px;background:#0c1424;border:1px solid #7891a366;border-radius:10px}.tactical-map:not(:has(details[open])) .tactical-settings{display:none}
+@media(max-height:500px){.tactical-map{top:85px;width:115px}.tactical-settings{width:170px}}
+@media(max-width:700px),(max-height:500px){
+ .tactical-map{left:max(12px,env(safe-area-inset-left));right:auto;top:130px;width:110px}
+ .tactical-settings{left:calc(100% + 8px);right:auto;width:170px}
+ .revive-action{bottom:7%;min-height:66px;padding:8px 12px;font-size:11px}.revive-action strong{font-size:16px}
+ .touch-ui .tactical-map{left:auto;right:max(8px,env(safe-area-inset-right));top:75px}
+ .touch-ui .tactical-settings{left:auto;right:calc(100% + 8px)}
+}
+
+#tactical-hud{position:fixed;inset:0;z-index:6;pointer-events:none}
+@media(max-width:700px),(max-height:500px){
+ .touch-ui .tactical-map{top:60px;width:90px}
+ .touch-ui .tactical-title,.touch-ui .tactical-map details{display:none}
+}

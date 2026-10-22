@@ -13,6 +13,7 @@ import { createNpcPanel, npcNear, dealText } from './mundo-vivo.js';
 import { NPC_INFO } from '../sim/npcs.js';
 import { JEFES } from '../sim/jefe-data.js';
 import { jefeMemoria } from '../sim/jefes.js';   // jefes por arena (nombres, fases, cuerpo): jefes-fx.js
+import { createTacticalHUD } from './tactical-hud.js';
 import { createRadar } from './radar.js';
 import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
@@ -96,6 +97,10 @@ for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEv
 let lastTap = 0; document.addEventListener('touchend', (e) => { const n = Date.now(); if (n - lastTap < 350) e.preventDefault(); lastTap = n; }, { passive: false });
 const mouse = { dx: 0, dy: 0, fire: false, ping: false, esp: false, ads: false }; let pickReq = -1;
 const NOLOCK = params.get('nolock') === '1';
+const tacticalHUD = createTacticalHUD(document.body);
+const minimapOpacity = document.getElementById('minimap-opacity');
+minimapOpacity.value = Math.round((settings().minimapOpacity || .85) * 100);
+minimapOpacity.oninput = () => setSetting('minimapOpacity', Number(minimapOpacity.value) / 100);
 let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), mouseSens = 0.0022;
 addEventListener('keydown', (e) => {
   if (typeof ui !== 'undefined' && (!session || session.menuAbierto) && ui.handleKey(e)) return;
@@ -170,12 +175,12 @@ const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = local
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.interact ||= tacticalHUD.held(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(), style: settings().style,
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: (evoWant(keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held())), evoChoice ? evoChoice.value() : 0), organ: organInput(), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: (evoWant(keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held())), evoChoice ? evoChoice.value() : 0), organ: organInput(), pick: pickReq, interact: keys.has('KeyE') || tacticalHUD.held(), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   i.mode = gameMode();   // Disparo: clic izq. dispara · clic der. o G = HAB.2 · F = HAB.1 · Z = HAB.3 · Q = equipo
   if (i.mode === 'combo') {   // Melé: clic izq. = ATAQUE 1 · clic der. = ATAQUE 2 · F/1 = HAB.1 · G/2 = HAB.2 · Z/Q/3 = HAB.3 (la simulación traduce HAB.3); E sigue siendo USAR
@@ -424,6 +429,7 @@ function frame(now) {
   { const q = $('camquick'); if (q) { q.classList.toggle('hidden', !session || !!session.intro || !!session.paused); q.classList.toggle('third', !!renderer.third); } }
   window.__fps = (window.__fps || 60) * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;
   uTime.value += 0; subs.update(dt); padDt = dt;
+  if (!session || session.base || session.prologo || session.intro || session.ended || session.paused || (!locked && !session.touch)) tacticalHUD.update(null, null, false);
   if (session && session.prologo) { if (!params.get('prologo_manual')) session.prologo.tick(dt); return; } // prólogo 3D: dibuja él mismo
   if (!session) { for (const a of pad.menuEvents(dt)) ui.act(a); menuSpin(dt); return; }
   if (session.base) { baseFrame(dt); return; }   // La Base: su propio cuadro, sin oleadas ni HUD de combate
@@ -707,6 +713,7 @@ function hudDirector(state, me) {
   huespedHud.update(me, !!(session && session.touch), !(session && session.intro));
   if (!evoHud) { try { evoHud = createEvoHud($('hud')); } catch (err) { console.warn('HUD de evolución no disponible', err.message); evoHud = { update() {}, celebrate() {}, held() { return false; } }; } }
   if (session) session.lastMe = me;
+  tacticalHUD.update(session && !session.intro && !session.ended && !session.paused && (locked || session.touch) ? state : null, me, session?.mode === 'coop', MAPS[session?.map]);
   try { if (!window.__radar) window.__radar = createRadar(document.body); window.__radar.update(session && !session.intro ? state : null, me, renderer.camera, renderer.nfx ? renderer.nfx.ecos : null); } catch (err) { /* el radar nunca debe romper el HUD */ }
   evoHud.update(me, !!(session && session.touch), !(session && session.intro));
   try { // META: línea de objetivo, misión opcional, flecha y guía (meta-ui.js); nunca debe romper el HUD

@@ -146,7 +146,7 @@ test('Espiral (atractor): carga y arrastra al jugador hacia sí durante ~2.6 s',
 test('Coop: un compañero cerca reanima al caído en 3 s (50 de vida, en el lugar)', () => {
   const { g, p } = arena('m1', { hp: 100 }); const q = g.addPlayer('b'); q.pos = { x: p.pos.x + 20, y: p.pos.y, z: p.pos.z };
   g.hurtPlayer(q, 1e4); assert.ok(q.dead); run(g, 2); assert.ok(q.dead, 'aún no: lejos');
-  q.pos = { ...q.pos }; p.pos = { x: q.pos.x - 2, y: q.pos.y, z: q.pos.z }; run(g, 2.5); assert.ok(q.dead, '2.5 s no alcanza'); run(g, 1);
+  g.setInput(p.id, { interact: true }); q.pos = { ...q.pos }; p.pos = { x: q.pos.x - 2, y: q.pos.y, z: q.pos.z }; run(g, 2.5); assert.ok(q.dead, '2.5 s no alcanza'); run(g, 1);
   assert.ok(!q.dead && q.hp === 50, 'revivió');
   const ev = g.drainEvents(); assert.ok(ev.some((e) => e.t === 'revive'));
 });

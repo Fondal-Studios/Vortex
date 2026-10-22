@@ -1,0 +1,16 @@
+{
+  "account": "register/save/logout/login via UI",
+  "revive": "held UI button revived authoritative player",
+  "touchRevive": true,
+  "hiddenOutOfRange": true,
+  "mobile": "844x390 with touch controls enabled",
+  "errors": [],
+  "sceneHigh": {
+    "frame": 407,
+    "calls": 230,
+    "triangles": 289182,
+    "points": 3478,
+    "lines": 16
+  },
+  "sceneNote": "Full scene measurements from desktop high capture; HUD adds no WebGL draws."
+}

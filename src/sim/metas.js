@@ -65,7 +65,7 @@ export function misionFin(g) {
   if (mi.k === 'intacto') { mi.p = 1; pagar(g, null); }
   else { mi.st = 'failed'; g.emit({ t: 'mision', ph: 'failed', k: mi.k }); }
 }
-export const misionSnap = (g) => (g.mision ? { k: g.mision.k, n: g.mision.n, p: g.mision.p, st: g.mision.st, rc: g.mision.rc } : null);
+export const misionSnap = (g) => (g.mision ? { k: g.mision.k, n: g.mision.n, p: g.mision.p, st: g.mision.st, rc: g.mision.rc, targets: g.mision.st !== 'active' ? [] : (g.mision.k === 'alimento' ? (g.fa?.list || []).filter(f => f.sp.rara && f.vida > 0) : g.monsters.filter(m => !m.dead && (g.mision.k === 'elite' ? m.elite : g.mision.k === 'melee'))).map(m => [m.pos.x, m.pos.y, m.pos.z]) } : null);
 
 /** Punto del mundo al que apunta el objetivo activo (para la flecha del HUD), o null si no hay un lugar concreto. */
 export function puntoObjetivo(g) {
