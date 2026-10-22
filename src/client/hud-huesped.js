@@ -3,7 +3,8 @@
 // cmb (combo melee 0..3), bf (máscara de estados). Si un campo falta se trata como 0 (y mv/es, los antiguos, sirven de respaldo).
 // En PC dibuja un panel a la derecha; en táctil dibuja una tira compacta arriba a la izquierda y pone el anillo de enfriamiento
 // (variable CSS --p, clases .ready/.act, número en data-cd) sobre los botones .tc-mov .tc-esp .tc-s3 .tc-ult .tc-melee.
-// Las TRES habilidades se ven SIEMPRE (slots HAB.1/2/3); en Melé el slot 3 es la habilidad principal de Combo (src/sim/modos.js).
+// Visible combat strip: basic attack + physical movement/defence, support and ultimate. Legacy rows stay hidden.
+import { combatSkills, skillImage } from './skill-images.js';
 import { SUPPORT } from '../shared/skill-path.js';
 import { CHARACTERS, HABILIDADES } from '../sim/data.js';
 import { habSlots, MODOS } from '../sim/modos.js';   // las 3 habilidades por modo (Disparo / Melé)
@@ -66,9 +67,12 @@ export function createHuespedHud(rootEl) {
     const keys = combo ? ['F·1', 'G·2', 'Z·3'] : ['F', 'G', 'Z'];
     const sk = (id, cls, key, name) => `<div class="hs ${cls}" data-k="${id}">${touch ? '' : `<kbd>${key}</kbd>`}<span>${name}</span><em></em><i></i></div>`;
     el.innerHTML = `<div class="hn"><b>${(C.name || '').toUpperCase()}</b><small>${C.title || ''}</small><span class="hmode">${M.icono} ${M.nombre.toUpperCase()} · Tab</span><span class="tcm"></span></div>` +
-      ['mov', 'esp', 's3'].map((k, i) => sk(k, k, keys[i], S[i].name)).join('') + sk('ult', 'ult', 'T', C.ult ? C.ult.name : 'Definitiva') +
+      `<div class="hs basic" data-k="fire"><kbd>Clic</kbd><span>Atacar</span><em></em><i></i></div>` + ['mov', 'esp', 's3'].map((k, i) => sk(k, k, keys[i], S[i].name)).join('') + sk('ult', 'ult', 'T', C.ult ? C.ult.name : 'Definitiva') +
       `<div class="hm"><kbd>${combo ? 'A1·A2' : 'V'}</kbd><span>${combo ? 'Combo' : 'Melé'}<span class="pips"></span></span></div><div class="hb"></div>`;
-    for (const k of ['mov', 'esp', 's3', 'ult']) { const r = el.querySelector(`[data-k="${k}"]`); rows[k] = { r, em: r.querySelector('em'), bar: r.querySelector('i') }; }
+    for (const k of ['fire', 'mov', 'esp', 's3', 'ult']) { const r = el.querySelector(`[data-k="${k}"]`); rows[k] = { r, em: r.querySelector('em'), bar: r.querySelector('i') }; }
+    for (const action of combatSkills(me0.char, combo ? 'combo' : 'shooter', me0.sk)) {
+      const row = rows[action.key].r; row.insertAdjacentHTML('afterbegin', `<img class="skill-art" src="${skillImage(action.id)}" alt="">`); row.title = `${action.name || action.short}: ${action.desc || ''}`; row.querySelector('span').textContent = action.name || action.short; row.querySelector('kbd')?.replaceChildren(action.hotkey);
+    }
     rows.pips = el.querySelector('.hm .pips'); rows.tcm = el.querySelector('.tcm'); rows.hb = el.querySelector('.hb'); rows.hm = el.querySelector('.hm'); rows.slots = S;
     const pips = '<span class="pip"></span><span class="pip"></span><span class="pip"></span>';
     rows.pips.innerHTML = pips; rows.tcm.innerHTML = pips; cache = {};
@@ -111,18 +115,25 @@ export function createHuespedHud(rootEl) {
       setBtn('.tc-ult', p, active ? '#ff66c4' : RING.ult, 0, ready, active, C.ult ? C.ult.name : '');
       const b = doc.querySelector('.tc-ult'); if (b) { if (active) b.dataset.cd = String(Math.ceil(ua)); else delete b.dataset.cd; }
     }
-    if (me.sk != null) {
+    { // Four-action HUD always depicts physical powers, independent of melee slot routing.
       const source = SUPPORT[me.char] || 'esp', def = C[source];
+      skill('mov', mc, C.mov);
       skill('esp', source === 's3' ? s3c : ec, def);
       rows.esp.r.querySelector('span').textContent = def?.name || 'Apoyo';
       const kb = rows.esp.r.querySelector('kbd'); if (kb) kb.textContent = 'Q';
       rows.esp.r.title = def?.desc || '';
       rows.ult.r.title = C.ult?.desc || '';
-      if (me.sk < 1) { rows.esp.em.textContent = 'Oleada 1'; rows.esp.r.classList.remove('ready'); rows.esp.bar.style.transform = 'scaleX(0)'; }
-      if (me.sk < 2) { rows.ult.em.textContent = 'Oleada 3'; rows.ult.r.classList.remove('ready','act'); rows.ult.bar.style.transform = 'scaleX(0)'; }
-      rows.esp.r.classList.toggle('locked', me.sk < 1); rows.ult.r.classList.toggle('locked', me.sk < 2);
+      if (me.sk != null && me.sk < 1) { rows.esp.em.textContent = 'Oleada 1'; rows.esp.r.classList.remove('ready'); rows.esp.bar.style.transform = 'scaleX(0)'; }
+      if (me.sk != null && me.sk < 2) { rows.ult.em.textContent = 'Oleada 3'; rows.ult.r.classList.remove('ready','act'); rows.ult.bar.style.transform = 'scaleX(0)'; }
+      rows.esp.r.classList.toggle('locked', me.sk != null && me.sk < 1); rows.ult.r.classList.toggle('locked', me.sk != null && me.sk < 2);
       // Touch labels and rings always describe the physical support, independent of mode.
-      const button = doc.querySelector('.tc-esp small'); if (button) button.textContent = 'APOYO';
+      for (const action of combatSkills(me.char, combo ? 'combo' : 'shooter', me.sk)) {
+        const b = doc.querySelector(`.tc-${action.key}`); if (!b) continue;
+        b.dataset.locked = action.locked ? action.unlock : '';
+        b.setAttribute('aria-disabled', String(!!action.locked));
+        if (action.locked) { b.classList.remove('ready','act'); delete b.dataset.cd; b.style.setProperty('--p','0'); }
+      }
+      const ub = doc.querySelector('.tc-ult'); if (ub) ub.dataset.charge = ua > .05 ? `${Math.ceil(ua)}s` : ul >= ultMax ? 'LISTA' : `${Math.floor(ul)}%`;
     }
     { // contador de combo grande (modo Combo): ×N, nombre del último golpe y barra de la ventana
       const n = combo ? (me.cn | 0) : 0, w = combo ? +me.cw || 0 : 0, on = n > 0 && w > 0, cp = me.char === 'danzante' ? ((me.bf | 0) >> 16) & 7 : 0, sig = `${on}|${n}|${me.cnm}|${cp}`;   // cp = compás de la Danzante (bits 16-18 de bf)
@@ -131,6 +142,12 @@ export function createHuespedHud(rootEl) {
       if (!combo) ch.classList.remove('on');
       // Melé: el anillo del botón de ataque 1 muestra cuánto falta para que se corte la cadena (ventana de encadenado)
       const fb = doc.querySelector('.tc-fire'); if (fb) { if (combo && on) setBtn('.tc-fire', Math.min(1, w / 0.9), '#ffd23f', 0, false, false); else if (fb.dataset.ring) { delete fb.dataset.ring; fb.classList.remove('ready', 'act'); } }
+    }
+    { // Primary action cooldown is authoritative (fire cadence, melee recovery, or reload).
+      const sec = +me.ac || 0, b = doc.querySelector('.tc-fire');
+      const text = sec > .05 ? (sec < 1 ? sec.toFixed(1) : String(Math.ceil(sec))) : '';
+      if (b) { if (text) b.dataset.cd = text; else delete b.dataset.cd; }
+      rows.fire.em.textContent = text ? text + ' s' : 'ATACAR';
     }
     { // rango de estilo (D → S) y bajas del multi-kill en curso: mínimo, arriba a la derecha del combo
       const rk = combo ? me.rk | 0 : 0, mk = me.mk | 0, rp = combo ? +me.rp || 0 : 0, on = combo && (rk > 0 || rp > 0.05 || mk >= 2), sig = `${on}|${rk}|${mk}`;

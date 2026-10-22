@@ -1,11 +1,11 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {Game} from '../src/sim/game.js';import {SUPPORT,cleanSkillLevel} from '../src/shared/skill-path.js';import {CHARACTERS} from '../src/sim/data.js';
-for(const char of Object.keys(SUPPORT))for(const mode of ['combo','shooter'])test(`${char} ${mode}: exactly support + ultimate, locked until earned`,()=>{
+for(const char of Object.keys(SUPPORT))for(const mode of ['combo','shooter'])test(`${char} ${mode}: defence from start, support + ultimate locked until earned`,()=>{
  const g=new Game({skillLevel:0}),p=g.addPlayer('Test',null,{char,mode});
  const all={support:true,mov:true,esp:true,s3:true,hab:true,ability:true,ult:true,jump:true,a1:true};
- g.setInput(p.id,all);for(const k of ['mov','esp','s3','hab','ability','ult'])assert.equal(p.input[k],false);assert.equal(p.input.jump,true);
+ g.setInput(p.id,all);for(const k of ['esp','s3','hab','ability','ult'])assert.equal(p.input[k],false);assert.equal(p.input.jump,true);assert.equal(p.input.mov,true);
  g.skillLevel=1;g.setInput(p.id,all);assert.equal(p.input[SUPPORT[char]],true);assert.equal(p.input.ult,false);
- g.skillLevel=2;g.setInput(p.id,all);assert.equal(p.input.ult,true);assert.deepEqual(['mov','esp','s3','hab','ability'].filter(k=>p.input[k]),[SUPPORT[char]]);assert.ok(CHARACTERS[char][SUPPORT[char]].desc);
+ g.skillLevel=2;g.setInput(p.id,all);assert.equal(p.input.ult,true);assert.deepEqual(['mov','esp','s3','hab','ability'].filter(k=>p.input[k]),['mov',SUPPORT[char]]);assert.ok(CHARACTERS[char][SUPPORT[char]].desc);
  g.setInput(p.id,{esp:true,s3:true});assert.equal(p.input[SUPPORT[char]],false,'legacy keys cannot bypass adapter');assert.equal(g.snapshot().players[0].sk,2);
 });
 test('actual cleared waves earn skills; starting a wave does not',()=>{const g=new Game({skillLevel:0});g.addPlayer();for(const n of [1,2,3]){g.wave=n;g.phase='wave';g.phaseT=0;g.queue=[];g.omens=[];g.monsters=[];g.objective=null;g.step(1/60);assert.equal(g.skillLevel,n>=3?2:1);} });

@@ -85,3 +85,8 @@ Se integró el historial del alfa 2. Los controles que retiraban los poderes que
 ## 2026-10-22 — Principiante y alfa 2
 
 Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro acciones estables, poderes conservados en controles completos; segunda pasada corrige nombres de jefe, avisos y bloqueo táctil del resumen. 107 pruebas seleccionadas y verificaciones de navegador; 20 sondas con 16 supervivencias al corte y cuatro derrotas. Puntuaciones hipotéticas aún no cumplen todas >80. Pendiente balance sin poderes, compatibilidad de recompensas, orientación en combate, campaña completa y alfa humana/Safari físico. Sin merge ni despliegue.
+
+
+## HUD de cuatro acciones — 2026-10-22
+
+Implementación y validación en `VORTEX_FOUR_ACTION_HUD.md`: ataque + defensa/apoyo/ulti ilustrados, cooldown autoritativo, limpieza visual y protocolo 4. Conserva apoyo tras oleada 1 y ulti tras oleada 3; defensa desde el inicio. Pendiente Safari físico y balance humano longitudinal.
