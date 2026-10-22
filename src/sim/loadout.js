@@ -24,34 +24,39 @@ export const modsFor = (wid) => Object.keys(WEAPON_MODS).filter((m) => !((m === 
 
 /** Tres tarjetas para el jugador: [{w, k:'dmg'|'rate'|'mag'|'mod', mod?}] */
 export function makeCards(g, p) {
-  const cards = [], tries = 40;
+  const cards = [], tries = 40, learning = g.skillLevel !== null && g.skillLevel !== undefined && g.wave <= 3;
   const wl = p.slots.slice();
-  // evolución de 2.º nivel: con una mutación elegida y algo de práctica, el arma ofrece dos ramas excluyentes
-  const elig = wl.filter((w) => { const u = p.upg[w]; return u && u.mod && !u.mut && u.dmg + u.rate >= 2 && WEAPON_MUTS[u.mod]; });
-  if (elig.length && g.rng.next() < 0.6) { const w = g.rng.pick(elig), br = WEAPON_MUTS[p.upg[w].mod]; for (const b of br) cards.push({ w, k: 'mut', mod: p.upg[w].mod, mut: b.id }); }
-  // LINAJE: un arma a nivel 3 con mutación y un órgano ofrece DOS formas finales excluyentes
+  // One complete pair of branches at a time; never create an unreachable fourth choice.
   const lin = wl.filter((w) => { const u = p.upg[w]; return u && !u.forma && u.dmg + u.rate + u.mag >= LINEAGE.req.lvl && u.mod && ((p.worg && p.worg[w]) || []).length >= 1; });
-  if (lin.length && g.rng.next() < 0.7) { const w = g.rng.pick(lin); for (const f of Object.keys(LINEAGE.forms)) cards.push({ w, k: 'forma', forma: f }); }
+  if (!learning && lin.length && g.rng.next() < 0.7) { const w = g.rng.pick(lin); for (const f of Object.keys(LINEAGE.forms)) cards.push({ w, k: 'forma', forma: f }); }
+  const elig = wl.filter((w) => { const u = p.upg[w]; return u && u.mod && !u.mut && u.dmg + u.rate >= 2 && WEAPON_MUTS[u.mod]; });
+  if (!learning && !cards.length && elig.length && g.rng.next() < 0.6) { const w = g.rng.pick(elig), br = WEAPON_MUTS[p.upg[w].mod]; for (const b of br) cards.push({ w, k: 'mut', mod: p.upg[w].mod, mut: b.id }); }
+  // A free upgrade for the equipped gun makes the early reward immediately useful.
+  if (!cards.length && g.skillLevel != null) {
+    const w = wl.includes(p.weapon) ? p.weapon : wl[0], u = upgOf(p,w);
+    const k = ['dmg','rate'].find(k=>u[k] < UPGRADE_KINDS[k].max);
+    if (k) cards.push({w,k});
+  }
   // ÓRGANOS como tarjetas: si hay esencias para alguno, se ofrece UNO (elegirlo descarta las otras tarjetas: selección excluyente)
-  if (p.ess && g.rng.next() < 0.7) {
+  if (!learning && p.ess && cards.length < 3 && g.rng.next() < 0.7) {
     const can = (x) => Object.entries(x.cost).every(([k, n]) => (p.ess[k] || 0) >= n);
     const pool = [];
     for (const w of wl) for (const [id, O] of Object.entries(WEAPON_ORGANS)) if (can(O) && !organError(p, 'w', w, id)) pool.push({ w, k: 'organ', t: 'w', id });
-    for (const [id, O] of Object.entries(CHAMP_ORGANS)) if (can(O) && !organError(p, 'c', 0, id)) pool.push({ w: wl[0], k: 'organ', t: 'c', id });
+    for (const [id, O] of Object.entries(CHAMP_ORGANS)) if (!(id === 'espiraculo' && g.skillLevel != null && g.skillLevel < 2) && can(O) && !organError(p, 'c', 0, id)) pool.push({ w: wl[0], k: 'organ', t: 'c', id });
     if (pool.length) cards.push(g.rng.pick(pool));
   }
   for (let i = 0; i < tries && cards.length < 3; i++) {
     const w = g.rng.pick(wl), u = upgOf(p, w), r = g.rng.next();
     let c;
-    if (r < 0.2 && !u.mod && modsFor(w).length) c = { w, k: 'mod', mod: g.rng.pick(modsFor(w)) };
+    if (!learning && r < 0.2 && !u.mod && modsFor(w).length) c = { w, k: 'mod', mod: g.rng.pick(modsFor(w)) };
     else { const k = g.rng.pick(['dmg', 'dmg', 'rate', 'rate', 'mag']); if (WEAPONS[w].max === Infinity && k === 'mag') continue; if (u[k] >= UPGRADE_KINDS[k].max) continue; c = { w, k }; }
     if (cards.some((x) => x.w === c.w && x.k === c.k)) continue;
     cards.push(c);
   }
-  return cards;
+  return cards.sort((a,b)=>(a.k==='organ')-(b.k==='organ')).slice(0,3);
 }
 export function applyCard(p, c, g = null) {
-  if (c.k === 'organ') { if (g) buyOrgan(g, p, c.t, c.w, c.id); return; }
+  if (c.k === 'organ') return !!g && buyOrgan(g, p, c.t, c.w, c.id);
   if (c.k === 'forma') { upgOf(p, c.w).forma = c.forma; if (g) g.emit({ t: 'forma', pid: p.id, w: c.w, forma: c.forma }); return; }
   const u = upgOf(p, c.w);
   if (c.k === 'mut') u.mut = c.mut; else if (c.k === 'mod') u.mod = c.mod; else u[c.k] = Math.min(UPGRADE_KINDS[c.k].max, u[c.k] + 1);

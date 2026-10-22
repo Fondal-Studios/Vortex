@@ -307,7 +307,7 @@ function beginIntro(kind) {
     const total = Story.INTRO_TRAIN.reduce((a, l) => a + l[2], 0);
     cine = Story.trainCine($('cine'), total, () => { const f = $('flash'); f.classList.add('on'); sound.heartbeat(); later(() => f.classList.remove('on'), 1200); }, CAP);
     subs.play(Story.INTRO_TRAIN, () => later(() => { if (session && session.intro) startWake(Story.WAKE); }, 900));
-  } else startWake(Story.WAKE_SHORT);
+  } else startWake(Story.wakeForMap(session.map));
 }
 function startWake(lines) {
   if (!session || !session.intro) return;
@@ -315,7 +315,7 @@ function startWake(lines) {
   renderer.setGuide(true); renderer.startWake(4); sound.heartbeat();
   subs.play(lines, finishIntro);
 }
-function skipIntro(force) { if (!session || !session.intro || (session.prologo && !force)) return; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
+function skipIntro(force) { if (!session || !session.intro || (session.prologo && !force)) return; subs.cb = null; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
 /** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). Pausa en solitario; en cooperativo la sala continúa. */
 function explainSkill(level) {
   const C = CHARACTERS[myChar()], power = level === 1 ? C[SUPPORT[myChar()]] : C.ult;
@@ -333,7 +333,8 @@ function showTutorial(force = false) {
   const rows = touchUI
     ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Derecha: girar la cámara.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['APOYO / ULTI', 'se desbloquean jugando', 'Tras la primera oleada: apoyo. Tras la tercera: ulti. Cada uno tendrá su propio botón y explicación.'], ['MODO', 'Disparo ↔ Melé', 'Disparo en primera persona; melee en tercera. Los dos poderes sirven en ambos modos.']]
     : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['Q / T', 'apoyo / ulti', 'Apoyo tras la primera oleada; ulti tras la tercera. Mismos poderes en Disparo y Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
-  el.innerHTML = `<h4>CÓMO SE JUEGA</h4><p>Tu conciencia está atrapada en VORTEX. <b>Vencé al guardián de este archivo para avanzar.</b> Seguí el objetivo de arriba y elegí una mejora entre oleadas.</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
+  const chapter = Story.chapterBrief(session.map);
+  el.innerHTML = `<h4>${chapter.title}</h4><p>${chapter.context}</p><p><b>${chapter.task}</b></p><p>Al lograrlo: ${chapter.reward}</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   if (force && session.game?.skillLevel != null) { const C = CHARACTERS[myChar()], level = session.game.skillLevel; const info = document.createElement('div'); for (const [n,def,key] of [[1,C[SUPPORT[myChar()]],'Q / APOYO'],[2,C.ult,'T / ULTI']]) { if (!def) continue; const p = document.createElement('p'); p.textContent = `${def.name} · ${level >= n ? key + ': ' + def.desc : 'Se desbloquea tras la oleada ' + (n === 1 ? 1 : 3)}`; info.appendChild(p); } el.insertBefore(info, $('tutok')); }
   const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();
   el.classList.remove('hidden'); const close = () => { if (session === tutSession && session.mode === 'solo') session.paused = wasPaused; el.classList.add('hidden'); if (session === tutSession) { if (wasPaused) $('pause').classList.remove('hidden'); else if (!session.touch && !NOLOCK) lockPointer(); } try { localStorage.setItem('cristal.tut.v2', '1'); } catch { /* ok */ } };
@@ -342,7 +343,7 @@ function showTutorial(force = false) {
 function finishIntro() {
   if (!session) return; session.intro = null; renderer.setGuide(false); renderer.wakeT = renderer.wakeDur = 0; $('hud').classList.remove('hidden');
   if (session.touch) touch.show(true); else if (!session.headless && !NOLOCK && !params.get('auto') && !locked) lockPointer();
-  banner(Story.MAP_BANNER[session.map] || '', 6000); later(() => showTutorial(), 1200);
+  banner(Story.MAP_BANNER[session.map] || '', 6000); showTutorial(!!session.campaign);
 }
 
 function buildWeaponHud() {
@@ -653,6 +654,7 @@ function audioAndHud(state, me, dt) {
       case 'bridge': if (e.ph === 'open') { sound.objective(true); banner('¡EL PUENTE AL UMBRAL ESTÁ COMPLETO! Cruzá hasta la isla del este', 3600); flash(); } else if (e.ph === 'start') sound.gravity(e.p); break;
       case 'hint': banner(e.lvl === 1 ? 'Pista: un capullo está marcado. Disparale para alimentarlo' : e.lvl === 2 ? 'Pista: cada capullo que florece hace crecer un tramo del puente entre la Cámara del Latido (este) y el Umbral' : 'Pista: el puente nacerá en el lugar marcado, entre la Cámara del Latido y el Umbral', 4200); break;
       case 'tshot': break;
+      case 'rewardUnavailable': if (mine) banner('No se pudo comprar: revisá tus esencias y elegí otra mejora.', 2400); break;
       case 'skill': if (mine && !(renderer.hostfx && renderer.hostfx.handles(e))) { sound.ability(); } break; // las de los Huéspedes suenan desde hostfx.js
       case 'upgrade': if (mine) { sound.pickup(); banner('¡Arma mejorada!', 1400); } break;
       case 'gaze': sound.ray(); banner('¡ARGOS TE MIRA! Cubrite detrás de un muro', 2200); break;
@@ -714,6 +716,7 @@ function hudDirector(state, me) {
     set('skm', C.mov.name, me.mv, touchUI ? '' : 'F'); set('ske', C.esp.name, me.es, touchUI ? '' : 'CLIC DER');
   }
   const wantCards = !!(me && me.cards && me.cards.length && state.phase === 'intermission');
+  document.body.classList.toggle('reward-focus', wantCards && session.mode === 'solo');
   if (wantCards !== cardsOpen) { cardsOpen = wantCards; $('cards').classList.toggle('hidden', !wantCards); session.cardKey = ''; document.body.classList.toggle('cards-open', wantCards); if (wantCards && session.touch) touch.reset(); }
   if (wantCards) {
     const key = JSON.stringify(me.cards) + me.sl.join(',');
@@ -722,10 +725,10 @@ function hudDirector(state, me) {
       $('cardlist').innerHTML = me.cards.map((c, i) => {
         const [w, k, mod, mod0] = c, W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.ug[idx] || [0, 0, 0, null], isForma = k === 'forma', FM = isForma ? (LINEAGE.forms[mod] || { name: mod, desc: '' }) : null, isOrg = k === 'organ', OG = isOrg ? ((mod0 === 'c' ? CHAMP_ORGANS : WEAPON_ORGANS)[mod] || { name: mod, desc: '' }) : null, isMut = k === 'mut', isMod = k === 'mod' || isMut, MU = isMut ? ((WEAPON_MUTS[mod0] || []).find((x) => x.id === mod) || { name: mod, desc: '' }) : null;
         const ix = { dmg: 0, rate: 1, mag: 2 }[k], cur = isMod ? 0 : (u[ix] || 0), eff = { dmg: `daño ${Math.round(W.dmg * (1 + 0.22 * cur))} → ${Math.round(W.dmg * (1 + 0.22 * (cur + 1)))}`, rate: `${(1 / (W.rate / (1 + 0.14 * cur))).toFixed(1)} → ${(1 / (W.rate / (1 + 0.14 * (cur + 1)))).toFixed(1)} disparos/s`, mag: W.max === Infinity ? 'munición ∞' : `máx. ${Math.ceil(W.max * (1 + 0.3 * cur))} → ${Math.ceil(W.max * (1 + 0.3 * (cur + 1)))}` }[k];
-        return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${isOrg && mod0 === 'c' ? 'TU CUERPO' : W.name}</div><div class="un">${isForma ? '✦ ' + FM.name : isOrg ? '🧬 ' + OG.name : isMut ? MU.name : isMod ? (WEAPON_MODS[mod] || { name: mod }).name : UPGRADE_KINDS[k].name}</div><div class="ud">${isForma ? FM.desc : isOrg ? OG.desc : isMut ? MU.desc : isMod ? (WEAPON_MODS[mod] || { desc: '' }).desc : eff}</div><div class="lv">${isForma ? '✦ LINAJE FINAL (excluyente)' : isOrg ? '🧬 ÓRGANO (usa esencias)' : isMut ? '★★ EVOLUCIÓN (excluyente)' : isMod ? '★ ESPECIAL' : `NIVEL ${cur} → ${cur + 1}`}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
+        return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${isOrg && mod0 === 'c' ? 'TU CUERPO' : 'DISPARO · ' + W.name}</div><div class="un">${isForma ? '✦ ' + FM.name : isOrg ? '🧬 ' + OG.name : isMut ? MU.name : isMod ? (WEAPON_MODS[mod] || { name: mod }).name : UPGRADE_KINDS[k].name}</div><div class="ud">${isForma ? FM.desc : isOrg ? OG.desc : isMut ? MU.desc : isMod ? (WEAPON_MODS[mod] || { desc: '' }).desc : eff}</div><div class="lv">${isForma ? '✦ LINAJE FINAL (excluyente)' : isOrg ? 'Costo: ' + Object.entries(OG.cost || {}).map(([k,n]) => `${n} ${k}`).join(' + ') : isMut ? '★★ EVOLUCIÓN (excluyente)' : isMod ? '★ ESPECIAL' : `NIVEL ${cur} → ${cur + 1}`}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
       }).join('');
       $('cardlist').querySelectorAll('.ucard').forEach((b) => b.addEventListener('pointerdown', () => { pickReq = +b.dataset.i; }));
-      $('cardhint').textContent = session.mode === 'solo' ? 'La partida espera tu elección. El arma mejorada se ve distinta en tu mano.' : 'Elegí rápido: si no elegís, se aplica la primera. El arma mejorada se ve distinta en tu mano.';
+      $('cardhint').textContent = session.mode === 'solo' ? 'Elegí una: las otras se descartan. Disparo mejora el arma; cuerpo mejora al Huésped. Los órganos indican su costo.' : 'Elegí rápido: si no elegís, se aplica la primera. El arma mejorada se ve distinta en tu mano.';
     }
   }
   const ab = $('ability');
@@ -822,7 +825,7 @@ function endGame(state, me) {
     renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap }); });
     return;
   }
-  if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', 'De vuelta al andén', 'Completá la historia', sound); showEnd(true, stats, 'VOLVISTE AL MUNDO DE LOS VIVOS'); }); return; }
+  if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', Story.VICTORY.trophy, 'Completá la historia', sound); showEnd(true, stats, Story.VICTORY.title); }); return; }
   if (!won) { subs.play(Story.DEFEAT, () => showEnd(false, stats)); return; }
   showEnd(true, stats + (terrNuevo ? `\n\nTERRITORIO LIBERADO: ${terrNuevo.nombre}. Elegí su bendición en el menú › Territorios.` : ''));
 }
@@ -830,7 +833,7 @@ function endGame(state, me) {
 function maestriaTxt() { const m = session && session.mae; if (!m) return ''; const a = m.arbol, pc = a ? a.combo + a.disparo : 0; return `\nMaestría +${m.ganada} XP` + (m.subio ? ` · ¡RANGO ${m.rangoDespues}: ${TITULOS[m.rangoDespues]}!` : '') + (pc ? `\nPuntos de ${a.combo ? 'combo' : 'disparo'} +${pc} (gastalos en Huésped › Progresión)` : ''); }
 function showEnd(won, stats, title) {
   $('endtitle').textContent = title || (won ? 'VÓRTICE ROTO' : 'ATRAPADO EN EL VÓRTICE');
-  $('endstats').textContent = stats + (won && title ? '\n\nUn abajo bajo los pies. El tren pasó de largo.' : '');
+  $('endstats').textContent = stats + (won && title ? '\n\n' + Story.VICTORY.epilogue : '');
   $('end').classList.remove('hidden'); document.body.classList.remove('playing');
   { const tb = $('tobase'); if (tb) tb.classList.toggle('hidden', !settings().baseAlTerminar); }   // «Entrar a la Base» (docs/BASE.md): primera opción si el ajuste está en «sí»
 }

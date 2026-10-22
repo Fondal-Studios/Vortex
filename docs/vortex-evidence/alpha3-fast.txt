@@ -1,0 +1,74 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> cristal-vortex@0.1.0 test:fast
+> node --expose-gc --test tests/weapons.test.js tests/physics.test.js tests/ai.test.js tests/waves.test.js tests/limits.test.js
+
+✔ bestiario: 12 criaturas + 3 jefes, cada una con IA propia y rol distinto (1.625864ms)
+✔ Astilla (corredor): persigue rápido, muerde y salta para cerrar distancia (80.774067ms)
+✔ Geoda (tanque): rueda cerrada y se abre en ciclos; cerrada es más veloz y blindada (144.570899ms)
+✔ Prisma (volador): orbita en alto, avisa (wind) y pica (dive) causando daño (96.220848ms)
+✔ Lente (a distancia): se aleja a rango, avisa con "aim" y dispara proyectiles esquivables (40.543631ms)
+✔ Cuarzo (invocador): invoca Astillas hijas (máx. 4 vivas) y huye (255.674433ms)
+✔ Espejo (emboscador): invisible a distancia, se revela al recibir daño y parpadea detrás del jugador (26.892919ms)
+✔ Racimo (explosivo): detona al contacto dañando al jugador y a los vecinos (9.314578ms)
+✔ Gravitón (El Familiar) FUERA de la Marea: atrae y dispara, pero NO invierte la gravedad (40.088178ms)
+✔ Gravitón (El Familiar) DENTRO de la Marea de Gravedad: carga y luego invierte la gravedad del jugador unos segundos (27.521226ms)
+✔ Coloso (jefe M1): 3 fases por vida, lluvia de orbes, invoca refuerzos, invierte gravedad y es derrotable (343.558236ms)
+✔ Madre Geoda (jefe M2): se purga en las válvulas (sólo entonces se abre), lanza espirales, invoca Racimos y es derrotable (181.010222ms)
+✔ Obelisco (francotirador): se aleja, traza línea 1.6 s, fija el blanco y dispara un rayo veloz que se puede esquivar (67.024156ms)
+✔ Aurora (sanadora): cura 30 % y escuda (daño ×0.5) a las criaturas cercanas (34.765757ms)
+✔ Ariete (embestidor): avisa 1 s, carga en línea recta, empuja al jugador y queda aturdido (×1.5 de daño) (14.331159ms)
+✔ Espiral (atractor): carga y arrastra al jugador hacia sí durante ~2.6 s (16.139575ms)
+✔ Coop: un compañero cerca reanima al caído en 3 s (50 de vida, en el lugar) (9.446179ms)
+# pico de entidades (4 jugadores, dificultad 2.5): {"m":78,"p":31,"k":40}
+# crecimiento de heap tras 3 partidas: -0.1 MB
+✔ límites de entidades: proyectiles, pickups y eventos están acotados (24.475013ms)
+✔ limpieza: proyectiles y pickups vencen; los muertos se purgan (289.103102ms)
+✔ partida larga con horda al máximo: arreglos acotados todo el tiempo y sin NaN (8384.497117ms)
+✔ memoria: tres partidas completas seguidas no hacen crecer el heap de forma sostenida (1959.420445ms)
+✔ M1: el jugador queda apoyado sobre la isla central (grounded, y≈0.9) (35.996952ms)
+✔ M1: saltar sube y vuelve a caer a la isla (10.229813ms)
+✔ M1: zona de gravedad invertida (ascensor): el jugador "cae" hacia arriba y camina por el techo (11.027453ms)
+✔ M1: zona sin gravedad: se conserva la velocidad y no hay caída (4.98986ms)
+✔ M1: planetoide con gravedad propia: se camina alrededor sin caerse (21.100962ms)
+✔ M1: caer al vacío resta vida y reaparece en la isla central (20.759533ms)
+✔ M1: portales teletransportan y el enfriamiento evita el rebote infinito (1.396913ms)
+✔ M1: burbuja de tiempo lento reduce la velocidad de las criaturas dentro (30%) (12.044458ms)
+✔ M1: los proyectiles se detienen contra la geometría y fuera del mapa (19.242772ms)
+✔ M2: se camina por el interior de la esfera: el radio se conserva y el "arriba" apunta al centro (143.745635ms)
+✔ M2: la marea apaga la gravedad en la ventana programada y avisa antes (0.681696ms)
+✔ M2: en marea cero-G el jugador flota (no cae) y puede nadar con 3D (15.163319ms)
+✔ M2: las colinas son sólidas (no se atraviesan) (2.244847ms)
+✔ fuzz: entradas aleatorias durante 60 s nunca producen NaN/Infinity en ninguna mapa (810.639174ms)
+✔ determinismo: misma semilla y mismas entradas ⇒ mismo estado (base del servidor autoritativo) (251.726197ms)
+✔ m1: la dificultad sube oleada a oleada (presupuesto de criaturas creciente) (14.657184ms)
+✔ m1: sólo aparecen criaturas habilitadas para esa oleada y el jefe llega al final (1.961044ms)
+✔ m2: la dificultad sube oleada a oleada (presupuesto de criaturas creciente) (10.428584ms)
+✔ m2: sólo aparecen criaturas habilitadas para esa oleada y el jefe llega al final (4.53398ms)
+✔ el bestiario completo se usa entre los dos mapas (8 criaturas + 2 jefes) (1.814655ms)
+✔ más jugadores ⇒ hordas más grandes (escalado cooperativo) (3.275234ms)
+✔ ciclo de oleada: calma inicial → spawn en goteo → oleada limpia → respiro → siguiente (212.271323ms)
+✔ victoria: matar al jefe de la oleada final termina la partida en "won"; perder a todos en "lost" (32.522842ms)
+✔ cooperativo: el jugador caído revive al comenzar la siguiente oleada (2.974155ms)
+✔ límite duro de criaturas vivas aun con spawns forzados (2.147392ms)
+✔ Haz: un disparo hitscan daña a la criatura apuntada exactamente su daño (25.312261ms)
+✔ cada arma hitscan (Haz, Prisma, Ráfaga, Aguja) hace daño y respeta su tope (4.811083ms)
+✔ la cadencia limita los disparos: Ráfaga ≈ 1/0.085 por segundo (23.086783ms)
+✔ consumo de munición: Prisma gasta 1 por disparo; Haz es infinito (2.18ms)
+✔ sin munición el arma cae al Haz (0.746283ms)
+✔ Aguja atraviesa (pierce) a varias criaturas; Haz sólo a la primera (1.504333ms)
+✔ la geometría bloquea los disparos (una criatura bajo la isla no recibe daño) (0.467467ms)
+✔ Nova: proyectil con daño en área y caída por distancia; sin daño propio (9.485674ms)
+✔ escudo absorbe primero, después la vida; el escudo se regenera tras la demora (29.718841ms)
+✔ muerte: al llegar a 0 de vida el jugador cae y, sin más jugadores, la partida se pierde (0.824319ms)
+✔ blindaje: Geoda cerrada recibe 20% del daño; abierta 100% (0.507327ms)
+✔ matar da puntos y bajas al jugador que disparó (1.572835ms)
+✔ recoger botiquín y munición respeta los topes (0.707054ms)
+ℹ tests 59
+ℹ suites 0
+ℹ pass 59
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11143.105969

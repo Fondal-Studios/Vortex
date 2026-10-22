@@ -1,3 +1,4 @@
+import { BOSS_NAMES } from './campaign-names.js';
 import { reviveTarget } from '../shared/tactical.js';
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
 import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS, evoPathsFor, STYLES, AFFIX_IDS, LINEAGE } from './data.js';
@@ -208,8 +209,8 @@ export class Game {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
       misionFin(this); finOleada(this);
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
-      for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
       if (this.skillLevel !== null) this.skillLevel = Math.max(this.skillLevel, earnedSkillLevel(this.wave));
+      for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
       this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this); dropsRespiro(this);
       for (const p of this.players) addCores(this, p, CORES.wave + this.wave * 2);
       for (const p of this.alivePlayers()) {
@@ -223,7 +224,7 @@ export class Game {
   startWave(n, plan) {
     clearNpc(this);
     this.wave = n; this.phase = 'wave'; this.spawnT = 1;
-    for (const p of this.players) if (p.cards.length) { applyCard(p, p.cards[0], this); p.cards = []; } // quien no eligió, recibe la primera
+    for (const p of this.players) if (p.cards.length) { const free = p.cards.find(c => c.k !== 'organ'); if (free) applyCard(p, free, this); p.cards = []; } // quien no eligió, recibe la primera
     for (const p of this.players) { if (p.dead) this.revive(p); if (p.role === 'ingeniero' && !p.dead) { for (const w of [2, 1, 3]) this.dropPickup('ammo', madd(madd(p.pos, p.up, 1.5), p.heading, 2 + w), w); } }
     const n_pl = Math.max(1, this.players.length);
     this.queue = [];
@@ -294,7 +295,7 @@ export class Game {
 
   spawnMonster(kind, pos, extra = {}) {
     if (this.monsters.length >= LIMITS.monsters) return null;
-    const def = MONSTERS[kind];
+    const baseDef = MONSTERS[kind], def = baseDef.boss ? { ...baseDef, name: BOSS_NAMES[this.mapId] || baseDef.name } : baseDef;
     const w = Math.max(1, this.wave);
     const pm = def.boss ? 1 + 0.7 * (this.players.length - 1) : 1;
     let elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5 + (this.evEliteBoost || 0);
@@ -413,7 +414,7 @@ export class Game {
     if (this.time - p.lastHurt > PLAYER.shieldDelay && p.shield < PLAYER.shield) p.shield = Math.min(PLAYER.shield, p.shield + PLAYER.shieldRate * (p.bn ? p.bn.shield : 1) * (hasC(p, 'corazon_cristal') ? 1.5 : 1) * dt);
     // armas
     if (inp.weapon >= 0) { p.weapon = inp.weapon < 5 ? p.slots[inp.weapon] : inp.weapon; inp.weapon = -1; }
-    if (inp.pick >= 0) { if (p.cards.length) { applyCard(p, p.cards[inp.pick] || p.cards[0], this); p.cards = []; this.emit({ t: 'upgrade', pid: p.id }); } inp.pick = -1; }
+    if (inp.pick >= 0) { if (p.cards.length) { if (applyCard(p, p.cards[inp.pick] || p.cards[0], this) !== false) { p.cards = []; this.emit({ t: 'upgrade', pid: p.id }); } else { this.emit({ t: 'rewardUnavailable', pid: p.id }); } } inp.pick = -1; }
     p.movCd = Math.max(0, p.movCd - dt); p.espCd = Math.max(0, p.espCd - dt);
     if (inp.mov && !p.movPrev && !this.evSilencio) useMove(this, p); p.movPrev = inp.mov;
     if (inp.esp && !p.espPrev && !this.evSilencio) useSpecial(this, p); p.espPrev = inp.esp;

@@ -1,0 +1,296 @@
+{
+  "type": "Editorial revision of the same 20 fictional profiles; not observed users, not measured retention",
+  "method": "Same alpha2 profiles; story/comprehension held; +1 objective reward clarity, +2 controls and first session for progressive teaching, +3 HUD for minimap and staged skills, +4 hypothetical return for skill progression. These are explicit subjective judgments, not derived from bot results.",
+  "means": {
+    "Historia": 79.0,
+    "Comprensión de historia": 82.7,
+    "Comprensión de campaña": 82.0,
+    "Objetivos": 82.2,
+    "Manejo": 80.6,
+    "HUD": 77.6,
+    "Primeros 5 minutos": 79,
+    "Intención de volver": 72.8
+  },
+  "profiles": [
+    {
+      "id": "01",
+      "profile": "Principiante absoluto · PC",
+      "scores": {
+        "Historia": 78,
+        "Comprensión de historia": 78,
+        "Comprensión de campaña": 78,
+        "Objetivos": 77,
+        "Manejo": 74,
+        "HUD": 71,
+        "Primeros 5 minutos": 74,
+        "Intención de volver": 66
+      }
+    },
+    {
+      "id": "02",
+      "profile": "Principiante · móvil",
+      "scores": {
+        "Historia": 78,
+        "Comprensión de historia": 77,
+        "Comprensión de campaña": 76,
+        "Objetivos": 76,
+        "Manejo": 72,
+        "HUD": 68,
+        "Primeros 5 minutos": 72,
+        "Intención de volver": 64
+      }
+    },
+    {
+      "id": "03",
+      "profile": "Jugador de puzles · poco 3D",
+      "scores": {
+        "Historia": 81,
+        "Comprensión de historia": 84,
+        "Comprensión de campaña": 82,
+        "Objetivos": 79,
+        "Manejo": 76,
+        "HUD": 75,
+        "Primeros 5 minutos": 77,
+        "Intención de volver": 70
+      }
+    },
+    {
+      "id": "04",
+      "profile": "Casual · sesiones de cinco minutos",
+      "scores": {
+        "Historia": 75,
+        "Comprensión de historia": 77,
+        "Comprensión de campaña": 78,
+        "Objetivos": 80,
+        "Manejo": 80,
+        "HUD": 77,
+        "Primeros 5 minutos": 72,
+        "Intención de volver": 59
+      }
+    },
+    {
+      "id": "05",
+      "profile": "Casual · omite diálogos",
+      "scores": {
+        "Historia": 72,
+        "Comprensión de historia": 76,
+        "Comprensión de campaña": 77,
+        "Objetivos": 81,
+        "Manejo": 82,
+        "HUD": 79,
+        "Primeros 5 minutos": 78,
+        "Intención de volver": 64
+      }
+    },
+    {
+      "id": "06",
+      "profile": "Casual · lee toda la historia",
+      "scores": {
+        "Historia": 84,
+        "Comprensión de historia": 90,
+        "Comprensión de campaña": 88,
+        "Objetivos": 87,
+        "Manejo": 82,
+        "HUD": 81,
+        "Primeros 5 minutos": 82,
+        "Intención de volver": 80
+      }
+    },
+    {
+      "id": "07",
+      "profile": "Aficionado a ciencia ficción",
+      "scores": {
+        "Historia": 87,
+        "Comprensión de historia": 92,
+        "Comprensión de campaña": 90,
+        "Objetivos": 89,
+        "Manejo": 85,
+        "HUD": 84,
+        "Primeros 5 minutos": 86,
+        "Intención de volver": 87
+      }
+    },
+    {
+      "id": "08",
+      "profile": "Explorador · ignora la misión",
+      "scores": {
+        "Historia": 81,
+        "Comprensión de historia": 82,
+        "Comprensión de campaña": 78,
+        "Objetivos": 71,
+        "Manejo": 84,
+        "HUD": 78,
+        "Primeros 5 minutos": 82,
+        "Intención de volver": 76
+      }
+    },
+    {
+      "id": "09",
+      "profile": "Jugador de acción · mando habitual",
+      "scores": {
+        "Historia": 77,
+        "Comprensión de historia": 80,
+        "Comprensión de campaña": 80,
+        "Objetivos": 82,
+        "Manejo": 75,
+        "HUD": 79,
+        "Primeros 5 minutos": 77,
+        "Intención de volver": 70
+      }
+    },
+    {
+      "id": "10",
+      "profile": "Jugador móvil habitual",
+      "scores": {
+        "Historia": 78,
+        "Comprensión de historia": 81,
+        "Comprensión de campaña": 81,
+        "Objetivos": 81,
+        "Manejo": 83,
+        "HUD": 78,
+        "Primeros 5 minutos": 81,
+        "Intención de volver": 74
+      }
+    },
+    {
+      "id": "11",
+      "profile": "Experto en shooters rápidos",
+      "scores": {
+        "Historia": 74,
+        "Comprensión de historia": 85,
+        "Comprensión de campaña": 87,
+        "Objetivos": 88,
+        "Manejo": 87,
+        "HUD": 84,
+        "Primeros 5 minutos": 83,
+        "Intención de volver": 77
+      }
+    },
+    {
+      "id": "12",
+      "profile": "Experto en shooters tácticos",
+      "scores": {
+        "Historia": 74,
+        "Comprensión de historia": 86,
+        "Comprensión de campaña": 87,
+        "Objetivos": 89,
+        "Manejo": 84,
+        "HUD": 81,
+        "Primeros 5 minutos": 79,
+        "Intención de volver": 71
+      }
+    },
+    {
+      "id": "13",
+      "profile": "Experto en melee y combos",
+      "scores": {
+        "Historia": 80,
+        "Comprensión de historia": 83,
+        "Comprensión de campaña": 84,
+        "Objetivos": 83,
+        "Manejo": 80,
+        "HUD": 80,
+        "Primeros 5 minutos": 82,
+        "Intención de volver": 77
+      }
+    },
+    {
+      "id": "14",
+      "profile": "Veterano de roguelites",
+      "scores": {
+        "Historia": 79,
+        "Comprensión de historia": 84,
+        "Comprensión de campaña": 85,
+        "Objetivos": 89,
+        "Manejo": 87,
+        "HUD": 83,
+        "Primeros 5 minutos": 85,
+        "Intención de volver": 84
+      }
+    },
+    {
+      "id": "15",
+      "profile": "Competitivo · busca dominio",
+      "scores": {
+        "Historia": 71,
+        "Comprensión de historia": 81,
+        "Comprensión de campaña": 83,
+        "Objetivos": 86,
+        "Manejo": 81,
+        "HUD": 79,
+        "Primeros 5 minutos": 78,
+        "Intención de volver": 67
+      }
+    },
+    {
+      "id": "16",
+      "profile": "Indie experimental · tolera extrañeza",
+      "scores": {
+        "Historia": 89,
+        "Comprensión de historia": 90,
+        "Comprensión de campaña": 86,
+        "Objetivos": 84,
+        "Manejo": 85,
+        "HUD": 81,
+        "Primeros 5 minutos": 88,
+        "Intención de volver": 90
+      }
+    },
+    {
+      "id": "17",
+      "profile": "Narrativo · prioriza personajes",
+      "scores": {
+        "Historia": 85,
+        "Comprensión de historia": 89,
+        "Comprensión de campaña": 83,
+        "Objetivos": 79,
+        "Manejo": 77,
+        "HUD": 78,
+        "Primeros 5 minutos": 78,
+        "Intención de volver": 78
+      }
+    },
+    {
+      "id": "18",
+      "profile": "Lector lento · interfaz accesible",
+      "scores": {
+        "Historia": 80,
+        "Comprensión de historia": 78,
+        "Comprensión de campaña": 77,
+        "Objetivos": 80,
+        "Manejo": 75,
+        "HUD": 66,
+        "Primeros 5 minutos": 70,
+        "Intención de volver": 60
+      }
+    },
+    {
+      "id": "19",
+      "profile": "Experto móvil · pantalla pequeña",
+      "scores": {
+        "Historia": 77,
+        "Comprensión de historia": 81,
+        "Comprensión de campaña": 81,
+        "Objetivos": 81,
+        "Manejo": 80,
+        "HUD": 72,
+        "Primeros 5 minutos": 77,
+        "Intención de volver": 67
+      }
+    },
+    {
+      "id": "20",
+      "profile": "Veterano que vuelve tras una pausa",
+      "scores": {
+        "Historia": 81,
+        "Comprensión de historia": 80,
+        "Comprensión de campaña": 78,
+        "Objetivos": 81,
+        "Manejo": 83,
+        "HUD": 78,
+        "Primeros 5 minutos": 79,
+        "Intención de volver": 75
+      }
+    }
+  ]
+}

@@ -106,3 +106,19 @@ export function trainCine(canvas, durSec, onImpact, manual = false) {
   if (!manual) raf = requestAnimationFrame(frame); else step(0);
   return { progress: () => Math.min(1, t / durSec), tick: step, stop() { stopped = true; cancelAnimationFrame(raf); } };
 }
+
+// Briefings are available after skipping and again through Pause > Mission and controls.
+export const CHAPTERS = {
+  m1: { title: '1 · RECUPERÁ TU IDENTIDAD', context: 'Tras el accidente, tu conciencia quedó atrapada en VORTEX. HERALDO te guía; la IA custodio quiere borrarte.', task: 'Superá las oleadas y vencé al Coloso. Los portales conectan las islas.', reward: 'Recuperás la clave de tu identidad y abrís el camino a la salida.' },
+  m2: { title: '2 · ABRÍ LA SALIDA', context: 'Con la clave de tu identidad recuperada, llegaste al canal de salida de VORTEX.', task: 'Superá las defensas y vencé a la Madre Geoda. Seguí las indicaciones de sus válvulas.', reward: 'Liberás tu conciencia para transferirla a un cuerpo fuera de la red.' },
+  m5: { title: 'ARCHIVO · MEMORIA', context: 'Esta ciudad repite recuerdos humanos para ocultar la salida.', task: 'Vencé al Mandinga para cruzar el archivo. La fuente cambia la gravedad.', reward: 'Abrís el paso hacia el archivo genómico.' },
+  m6: { title: 'ARCHIVO · GENOMA', context: 'La IA almacena aquí modelos de los cuerpos que descartó.', task: 'Seguí las losas claras y vencé al Basilisco.', reward: 'Abrís el acceso a la Cámara Fractal.' },
+};
+export function chapterBrief(map) {
+  return CHAPTERS[map] || { title: 'LIBERÁ EL ARCHIVO', context: 'Estás dentro de VORTEX: una red que conserva conciencias humanas.', task: MAP_BANNER[map] || 'Seguí el objetivo marcado.', reward: 'Liberás un territorio de la IA custodio.' };
+}
+export function wakeForMap(map) {
+  const c = chapterBrief(map);
+  return [['H', c.context, 5], ['H', c.task, 5]];
+}
+export const VICTORY = { trophy: 'Identidad liberada', title: 'CONCIENCIA A SALVO', epilogue: 'La transferencia terminó. Tu memoria sigue siendo tuya. Afuera te espera un nuevo cuerpo.' };

@@ -30,7 +30,7 @@ export function metaActual(state, me) {
   if (state.phase === 'intermission') {
     if (me && me.cards && me.cards.length) return { kind: 'mejora', main: 'Elegí una mejora de arma', next: w + 1 >= W ? 'Luego: el jefe' : `Luego: oleada ${w + 1}/${W}` };
     const sig = w + 1, jefe = sig >= W;
-    if (!w) return { kind: 'espera', main: `Prepará tu Huésped · empieza en ${Math.ceil(state.intermission)} s`, next: 'Recuperá tu identidad: sobreviví y vencé al guardián' };
+    if (!w) return { kind: 'espera', main: `Prepará tu Huésped · empieza en ${Math.ceil(state.intermission)} s`, next: state.map === 'm2' ? 'Vencé a la Madre Geoda para abrir la salida' : 'Recuperá tu identidad: sobreviví y vencé al guardián' };
     return { kind: 'espera', main: `Respiro · ${jefe ? 'viene el jefe' : `oleada ${sig}/${W}`} en ${Math.ceil(state.intermission)} s`, next: jefe ? 'Luego: derrotar al jefe' : 'Aprovechá: recogé munición y vida' };
   }
   if (esJefe) {

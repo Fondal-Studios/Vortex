@@ -1,3 +1,4 @@
+import { BOSS_NAMES } from './campaign-names.js';
 // Territorios del limbo y sus BENDICIONES (docs/MUNDO_VIVO.md). Datos puros y deterministas: sin azar, sin DOM, sin perfil.
 // Cada territorio (mapa) tiene 2 bendiciones EXCLUYENTES: al liberarlo se elige una y la otra queda cerrada para siempre en ese territorio.
 // La simulación sólo recibe la lista de ids (opts.bend de addPlayer) y la convierte en multiplicadores pequeños (p.bn).
@@ -6,12 +7,12 @@
 export const BN_NEUTRO = Object.freeze({ attackSpeed: 1, spd: 1, gun: 1, melee: 1, skill: 1, dmgIn: 1, ult: 1, shield: 1, ess: 1, cores: 1, cd: 1, heal: 0, kheal: 0 });
 
 export const TERRITORIOS = {
-  m1: { id: 'm1', nombre: 'Vacío de Islas', folclore: 'Ánimas y luces malas: las almas que se perdieron entre islas buscan un suelo que no las suelte.', jefe: 'El Mandinga', requiere: [], color: '#7fd0ff' },
-  m2: { id: 'm2', nombre: 'Cámara Fractal', folclore: 'Espejos y ecos: lo que dijiste vuelve distinto, y lo que fuiste te mira desde el cascarón.', jefe: 'La Madre de las Ánimas', requiere: ['m1'], color: '#c58bff' },
-  m3: { id: 'm3', nombre: 'Laberinto Celestial', folclore: 'Cantos y silbidos: el Silbón enseña a los muros a llamar a quien se anima a escuchar.', jefe: 'El Basilisco', requiere: ['m2'], color: '#ffe27a' },
-  m4: { id: 'm4', nombre: 'Jardín de Carne', folclore: 'Raíces y carne: lo que se enterró sin nombre brota acá, hambriento y paciente.', jefe: 'Argos, el Ojo Primordial', requiere: ['m3'], color: '#ff6f8e' },
-  m5: { id: 'm5', nombre: 'Plaza de los Ecos', folclore: 'Una ciudad muerta de noche con las luces prendidas; el relojero firmó un pacto para que el reloj no parara.', jefe: 'El Mandinga', requiere: ['m1'], color: '#ffb36b' },
-  m6: { id: 'm6', nombre: 'Osario sin Techo', folclore: 'Huesos que no descansan: la bóveda cayó hacia arriba y el camposanto sigue contando a sus muertos.', jefe: 'El Basilisco', requiere: ['m5'], color: '#d8d8c8' },
+  m1: { id: 'm1', nombre: 'Vacío de Islas', folclore: 'Ánimas y luces malas: las almas que se perdieron entre islas buscan un suelo que no las suelte.', jefe: BOSS_NAMES.m1, requiere: [], color: '#7fd0ff' },
+  m2: { id: 'm2', nombre: 'Cámara Fractal', folclore: 'Espejos y ecos: lo que dijiste vuelve distinto, y lo que fuiste te mira desde el cascarón.', jefe: BOSS_NAMES.m2, requiere: ['m1'], color: '#c58bff' },
+  m3: { id: 'm3', nombre: 'Laberinto Celestial', folclore: 'Cantos y silbidos: el Silbón enseña a los muros a llamar a quien se anima a escuchar.', jefe: BOSS_NAMES.m3, requiere: ['m2'], color: '#ffe27a' },
+  m4: { id: 'm4', nombre: 'Jardín de Carne', folclore: 'Raíces y carne: lo que se enterró sin nombre brota acá, hambriento y paciente.', jefe: BOSS_NAMES.m4, requiere: ['m3'], color: '#ff6f8e' },
+  m5: { id: 'm5', nombre: 'Plaza de los Ecos', folclore: 'Una ciudad muerta de noche con las luces prendidas; el relojero firmó un pacto para que el reloj no parara.', jefe: BOSS_NAMES.m5, requiere: ['m1'], color: '#ffb36b' },
+  m6: { id: 'm6', nombre: 'Osario sin Techo', folclore: 'Huesos que no descansan: la bóveda cayó hacia arriba y el camposanto sigue contando a sus muertos.', jefe: BOSS_NAMES.m6, requiere: ['m5'], color: '#d8d8c8' },
 };
 export const TERRITORIO_IDS = Object.keys(TERRITORIOS);
 
