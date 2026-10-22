@@ -1,0 +1,36 @@
+# m1: 2867 muestras, peor hundimiento 20 % del radio (prisma)
+# m2: 22851 muestras, peor hundimiento 20 % del radio (prisma)
+# m3: 12889 muestras, peor hundimiento 20 % del radio (prisma)
+# m4: 8707 muestras, peor hundimiento 20 % del radio (prisma)
+# m5: 4375 muestras, peor hundimiento 10 % del radio (cuarzo)
+# m6: 3995 muestras, peor hundimiento 20 % del radio (aurora)
+# 1131 criaturas lanzadas a 60 m/s contra paredes/coberturas/esferas: 0 atravesaron
+# m1: salto máx 0.88 m/tick (astilla), emboscadas avisadas 3
+# m2: salto máx 1.00 m/tick (cuarzo), emboscadas avisadas 7
+# m3: salto máx 0.88 m/tick (astilla), emboscadas avisadas 8
+# m4: salto máx 0.70 m/tick (racimo), emboscadas avisadas 3
+# m5: salto máx 0.80 m/tick (astilla), emboscadas avisadas 2
+# m6: salto máx 1.00 m/tick (cuarzo), emboscadas avisadas 0
+# m3: rezagados llegaron a < 26 m del jugador en 1, 38, 42, 47 s; desintegradas 0
+# m5: rezagados llegaron a < 26 m del jugador en 2, 7, 10, 11 s; desintegradas 0
+# m6: rezagados llegaron a < 26 m del jugador en 1, 7, 9, 9 s; desintegradas 0
+# m3: 90 criaturas → 1.13 ms/tick
+# m6: 88 criaturas → 1.16 ms/tick
+✔ colisión: en las 6 arenas, con bots jugando oleadas, ninguna criatura queda dentro de un muro, cobertura, isla o techo (6065.978547ms)
+✔ colisión: criaturas LANZADAS a 60 m/s contra cada pared/cobertura no la atraviesan (suelo y aire, las 6 arenas) (685.071971ms)
+✔ colisión: empujar() (esquiva del Pombero, arrastre de la niebla cian) también barre: un desplazamiento de 8 m no cruza un muro (0.893105ms)
+✔ colisión: nadie nace metido en una pared; las invocadas no aparecen del otro lado de un muro (3.819345ms)
+✔ sin teletransportes: durante oleadas completas con bots nadie se mueve más de 2,5 m en un tick (salvo la emboscada avisada) (8977.726751ms)
+✔ rezagados: las últimas criaturas lejanas NO se teletransportan; acosan al jugador y llegan en ≤ 80 s (m3, m5, m6) (876.619653ms)
+✔ rezagados: una criatura que no puede llegar (otra isla / fuera del mapa) se DESINTEGRA a la vista, sin botín, y la oleada puede cerrar (6.715842ms)
+✔ Pombero: avisa ≥ 0,9 s con marca y rastro; al final de la oleada ya no se teletransporta ni se camufla (14.026887ms)
+✔ colisión: el radio de colisión sigue al del modelo (élites más grandes) y es < radio visual para no trabarse (2.554269ms)
+✔ rendimiento: colisión + antenas con 90 criaturas sobre muros (m3 y m6) ≤ 6 ms por tick de media (3986.843005ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20869.431713

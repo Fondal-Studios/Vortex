@@ -1,0 +1,104 @@
+✔ Colmena: ficha completa (invocadora, 6.º Huésped), se COMPRA en la tienda y no es inicial (1.381049ms)
+✔ evolución: 4 niveles × 2 caminos excluyentes PROPIOS (ids nuevas); el perfil sólo vale con sus ids (32.680763ms)
+✔ invocaciones con LÍMITE: zánganos por jugador y en total, nidos por jugador; el snapshot queda acotado (12.427898ms)
+✔ los zánganos atacan SOLOS, el daño cuenta como del dueño y NO carga su definitiva (53.575894ms)
+✔ Cría viva (pasiva): nace un zángano gratis cada 6 s (hasta 2) y cada uno suma +3 % de daño (80.963323ms)
+✔ caminos: Criador +2 límite, Plaga +4 y cría al matar, Aguijón envenena y pega más, Cohabitación, Nidos vivos, la Reina (44.835597ms)
+✔ Marabunta (definitiva): frenesí del enjambre, más límite, un zángano por segundo y −20 % de daño recibido (37.434606ms)
+✔ habilidades del modo Shooter: Zumbido, Criar enjambre y Nido-torreta (11.391742ms)
+✔ modo Combo: los golpes con fx «orden» mandan atacar al enjambre y la habilidad «Llamado» lo hace brotar y lo enfurece (60.727605ms)
+✔ Colmena cambia de Huésped o muere: no deja unidades huérfanas (2.17706ms)
+✔ determinismo: dos partidas iguales dan los mismos snapshots y enjambre.js no usa g.rng ni Math.random (106.5282ms)
+✔ bot de partidas con Colmena (evolucionada al máximo): 90 s sin caídas, con las unidades y el snapshot siempre acotados (518.190168ms)
+✔ Danzante: ficha completa, no es inicial, se compra (unlock) y tiene 8 golpes y habilidad principal propios (2.574661ms)
+✔ Parada perfecta: dentro de la ventana el golpe se anula, se devuelve ×3 en área y queda la Réplica; fuera de ella duele (75.809887ms)
+✔ Parada: si nadie te golpea la habilidad vuelve en la mitad de tiempo; la ventana es corta (11.745327ms)
+✔ Pirueta: te desliza, abre una esquiva perfecta de 0,34 s y devuelve el golpe (8.067299ms)
+✔ Lazo de cintas: daña, enreda, arrastra y marca; sin criaturas cerca no se gasta (3.504289ms)
+✔ Danza Macabra: +25 % de velocidad, remolino de cintas, y cada golpe que recibís se para solo (una vez cada 0,7 s) (86.371694ms)
+✔ Combo · compás: tocar A1 con ritmo suma compás (daño +4 % y recuperación −2,5 % por punto); mantener o aporrear no (48.005659ms)
+✔ Combo · Contrapaso: ventana de guardia perfecta, devuelve y sube el compás; si falla vuelve a la mitad del tiempo (9.864776ms)
+✔ Combo · golpes con efecto: Parada y réplica (A2) abre ventana; Quiebre (A1→A2, nivel 1) retrocede y esquiva (2.221286ms)
+✔ determinista: dos partidas iguales dan exactamente lo mismo (sin g.rng) (77.32422ms)
+✔ caminos de evolución: Coraza alarga la ventana de parada, Depredador alarga la Réplica, Resonancia suma 2 de compás por golpe a tiempo (2.586398ms)
+matriz de equilibrio {"axioma":{"dps":73,"ehp":100,"spd":1},"vesper":{"dps":129,"ehp":78,"spd":1.18},"micelio":{"dps":70,"ehp":170,"spd":0.86},"umbra":{"dps":24,"ehp":95,"spd":1.02},"seraf":{"dps":21,"ehp":92,"spd":1.06},"danzante":{"dps":80,"ehp":84,"spd":1.15},"singular":{"dps":62,"ehp":115,"spd":0.95},"colmena":{"dps":33,"ehp":90,"spd":1}}
+✔ los 5 Huéspedes tienen todo lo pedido: melee, 3 habilidades, definitiva, pasiva, stats e historia (1.616498ms)
+✔ melee: golpe ligero al soltar, combo de 3 con el tercero reforzado, pesado al mantener, sin gastar munición (61.663774ms)
+✔ melee: golpea sólo dentro del alcance y del arco; ejecuta a criaturas casi muertas y cura (4.794077ms)
+✔ melee de todos los Huéspedes daña y tiene enfriamiento propio (23.500052ms)
+✔ golpe descendente: en el aire mirando abajo cae y aplasta en área (10.50368ms)
+✔ Axioma: impulso embiste, espinas perforan en línea, caparazón absorbe y la definitiva acelera; pasiva cura con melee (100.049701ms)
+✔ Vesper: desplazamiento instantáneo, camuflaje pierde a las criaturas y da golpe crítico, marca +40 %, frenesí salta (18.74363ms)
+✔ Micelio: barrera detiene proyectiles enemigos, esporas ralentizan, biomasa cura, floración, callo acumulativo (23.160873ms)
+✔ Umbra: fase, campo gravitatorio, distorsión temporal ralentiza al 25 %, colapso; pasiva Desfase (10.85804ms)
+✔ Seraf: alas (planeo), pulso vital, simbionte ataca solo, metamorfosis; pasiva Adaptación con tope (32.685845ms)
+✔ definitiva: se carga con daño y bajas, no antes; enfriamientos de habilidades; el estado viaja en el snapshot (37.179067ms)
+✔ equilibrio: matriz por Huésped; ninguno domina en todo y todos aguantan una oleada contra 8 criaturas (612.892241ms)
+✔ evolución de armas: mutación → dos ramas excluyentes que cambian cómo se combate (5.902088ms)
+✔ evolución de armas: precisión da críticos y devuelve munición; tóxica envenena; implosiva arrastra; parásito devuelve munición (5.204431ms)
+✔ catálogo cuerpo a cuerpo: espadas, hachas, martillos, lanzas y dagas; todas con stats y poder especial (0.244052ms)
+✔ equipar un arma cambia el estilo: el martillo pega más fuerte y más lento que la daga; la afinidad suma daño (2.89844ms)
+✔ núcleos: se ganan matando, completando oleadas y jefes; evolucionar los gasta, niveles 1–4 con efectos reales (0.990309ms)
+✔ evolución: cada nivel es una bifurcación EXCLUYENTE y cada camino cambia el juego de verdad (7.620957ms)
+✔ fusión: el poder especial del arma sólo despierta al evolucionar (nivel 1+) y cambia el combate (5.33759ms)
+✔ perfil: se pasa a la partida el arma equipada y el nivel; setLoadout/addPlayer los validan (0.703083ms)
+✔ cámara en 3ª persona: el disparo va hacia donde cruza la retícula, no paralelo a la cámara (0.577346ms)
+✔ órganos: toda criatura da una esencia, los jefes también; matar absorbe (elite y jefe más) (0.704596ms)
+✔ órganos de arma: cuestan esencias, máx. 3 por arma, un órgano por grupo; cambian el daño, la cadencia y el cargador (1.060433ms)
+✔ órganos de arma: efectos reales en el combate (veneno, ardor, perforar, vida, arrastre) (1.116456ms)
+✔ órganos de campeón: slots = 1 + nivel de evolución; efectos reales (10.217289ms)
+✔ órganos: compra por input (UI) y carga desde el perfil con las mismas reglas; el input no se repite (1.274371ms)
+✔ órganos como tarjetas: con esencias se ofrece un órgano entre las 3 tarjetas; elegirlo lo hace crecer y descarta las otras (0.960335ms)
+✔ melee con más posibilidades: estocada en carrera, giro tras combo, bloqueo al cargar (5.403097ms)
+✖ las últimas criaturas vienen a buscarte (no hay que cazarlas por el mapa) (20.792154ms)
+✔ misionDe: ciclo determinista; el élite sólo desde la oleada 3 (1.921691ms)
+✔ cada oleada normal tiene su misión en el snapshot; el jefe y la práctica no (22.345664ms)
+✔ misión melé: sólo cuentan las bajas con golpe cuerpo a cuerpo y paga núcleos (3.687551ms)
+✔ misión intocable: el primer daño la pierde; si no, se cumple al superar la oleada (8.316348ms)
+✔ misión élite: siempre se puede cumplir (el primer bicho es élite) y da esencia (0.919364ms)
+✔ misión no cumplida al terminar la oleada queda perdida (2.964969ms)
+✔ determinismo: dos partidas iguales dan el mismo snapshot con misiones (47.319507ms)
+✔ snapshot.obj.tg: el punto del objetivo es un lugar o null (14.419283ms)
+✔ núcleo: la flecha apunta al núcleo y, cuando alguien lo lleva, al altar (5.673809ms)
+✔ metaActual: oleada normal, objetivo, respiro, mejora y jefe (1.144348ms)
+✔ textoMision y metaMapa: textos en español con premio (0.540392ms)
+✔ Singular está completo: datos, tienda y rol de gravedad (1.982271ms)
+✔ Pozo gravitatorio: tira de las criaturas hacia el centro, las daña, se acota a 3 y colapsa al terminar (139.507635ms)
+✔ Pozo: se come los proyectiles enemigos y lo de adentro recibe +20 % de daño (2.047417ms)
+✔ Honda gravitatoria: sin pozo salta y deja uno chico; con pozo lo rodea y le da cuerda (8.509416ms)
+✔ Reflujo de marea: los pozos escupen hacia afuera (empuja, daña y frena); sin pozos, onda alrededor (3.403064ms)
+✔ Satélites: giran alrededor, golpean lo que cruzan, crecen con la evolución y Coraza frena proyectiles (29.21104ms)
+✔ Supernova: un pozo enorme que te sigue, satélites ×2, −25 % de daño y estalla al terminar (47.834851ms)
+✔ Horizonte: la gravedad no se le invierte en la Marea; la Marea refuerza pozos y satélites; los demás sí se invierten (66.079722ms)
+✔ Anomalía: cada baja tira de los vecinos hacia el cadáver (sin azar) (2.29874ms)
+✔ Combo: el set de 8 golpes, ARRASTRA con A1 y la habilidad Colapso gravitatorio abre un pozo (19.628142ms)
+✔ determinismo y límites: dos partidas iguales dan lo mismo; los objetos no pasan de 40 y no hay NaN (218.282733ms)
+✔ bot: una partida con Singular (nivel 4, todas las habilidades) no revienta: sin NaN, entidades acotadas y usa pozos (526.862506ms)
+ℹ tests 75
+ℹ suites 0
+ℹ pass 74
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1283.631349
+
+✖ failing tests:
+
+test at tests/huespedes.test.js:297:1
+✖ las últimas criaturas vienen a buscarte (no hay que cazarlas por el mapa) (20.792154ms)
+  AssertionError [ERR_ASSERTION]: la rezagada se acercó (77)
+      at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/huespedes.test.js:301:21)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
