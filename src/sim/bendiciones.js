@@ -4,7 +4,7 @@ import { BOSS_NAMES } from './campaign-names.js';
 // La simulación sólo recibe la lista de ids (opts.bend de addPlayer) y la convierte en multiplicadores pequeños (p.bn).
 
 /** Efectos posibles (todos multiplicadores 1 = sin efecto, salvo `heal` y `kheal` que suman vida). */
-export const BN_NEUTRO = Object.freeze({ spd: 1, gun: 1, melee: 1, skill: 1, dmgIn: 1, ult: 1, shield: 1, ess: 1, cores: 1, cd: 1, heal: 0, kheal: 0 });
+export const BN_NEUTRO = Object.freeze({ attackSpeed: 1, spd: 1, gun: 1, melee: 1, skill: 1, dmgIn: 1, ult: 1, shield: 1, ess: 1, cores: 1, cd: 1, heal: 0, kheal: 0 });
 
 export const TERRITORIOS = {
   m1: { id: 'm1', nombre: 'Vacío de Islas', folclore: 'Ánimas y luces malas: las almas que se perdieron entre islas buscan un suelo que no las suelte.', jefe: BOSS_NAMES.m1, requiere: [], color: '#7fd0ff' },

@@ -14,9 +14,9 @@
 test at tests/objective-ammo.test.js:9:3
 ✖ objetivo: repone el arsenal equipado de vesper, conserva munición infinita y respeta mejoras (7.862277ms)
   AssertionError [ERR_ASSERTION]: vesper: munición del arma 2
-  
+
   108 !== 0
-  
+
       at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/objective-ammo.test.js:27:14)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1382:25)
@@ -33,9 +33,9 @@ test at tests/objective-ammo.test.js:9:3
 test at tests/objective-ammo.test.js:9:3
 ✖ objetivo: repone el arsenal equipado de micelio, conserva munición infinita y respeta mejoras (0.511729ms)
   AssertionError [ERR_ASSERTION]: micelio: munición del arma 1
-  
+
   15 !== 0
-  
+
       at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/objective-ammo.test.js:27:14)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1382:25)

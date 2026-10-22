@@ -14,9 +14,9 @@
 test at tests/perfil-currency.test.js:6:1
 ✖ núcleos migrados son números y la recompensa suma, no concatena (2.450846ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
+
   '1005' !== 105
-  
+
       at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/perfil-currency.test.js:9:10)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1382:25)
@@ -33,9 +33,9 @@ test at tests/perfil-currency.test.js:6:1
 test at tests/perfil-currency.test.js:12:1
 ✖ núcleos inválidos no contaminan el perfil ni permiten saldos negativos (0.329399ms)
   AssertionError [ERR_ASSERTION]: -5
-  
+
   -5 !== 0
-  
+
       at TestContext.<anonymous> (file:///workspace/scratch/e7854c87413a/vortex/tests/perfil-currency.test.js:15:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1382:25)

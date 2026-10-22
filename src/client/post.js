@@ -10,15 +10,15 @@ import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 
 /** Ajustes de color por mapa (sombras frías, luces doradas; la psicodelia vive en el cielo y la luz). */
 export const GRADE = {
-  def: { fog: 0x2a2440, fogD: 0.010, fogH: 0.06, shadow: [0.86, 0.94, 1.12], high: [1.08, 1.0, 0.86], sat: 1.12, contrast: 1.10, lift: 0.012, sunCol: 0xffd9a0 },
-  m1: { fog: 0x3a3266, fogD: 0.006, fogH: 0.035, shadow: [0.84, 0.92, 1.14], high: [1.08, 1.0, 0.86], sat: 1.12, contrast: 1.10, lift: 0.010, sunCol: 0xffd2a0 },
-  m2: { fog: 0x3a1430, fogD: 0.012, fogH: 0.0, shadow: [0.94, 0.86, 1.06], high: [1.10, 0.98, 0.84], sat: 1.12, contrast: 1.12, lift: 0.014, sunCol: 0xffb888 },
-  m3: { fog: 0x281e52, fogD: 0.008, fogH: 0.08, shadow: [0.86, 0.90, 1.14], high: [1.08, 1.0, 0.88], sat: 1.12, contrast: 1.10, lift: 0.010, sunCol: 0xffe0c4 },
-  m4: { fog: 0x2e1626, fogD: 0.010, fogH: 0.06, shadow: [0.92, 0.88, 1.08], high: [1.10, 0.98, 0.86], sat: 1.12, contrast: 1.10, lift: 0.012, sunCol: 0xffc8a0 },
+  def: { fog: 0x2a2440, fogD: 0.010, fogH: 0.06, shadow: [0.86, 0.94, 1.12], high: [1.08, 1.0, 0.86], sat: 1.05, contrast: 1.10, lift: 0.012, sunCol: 0xffd9a0 },
+  m1: { fog: 0x3a3266, fogD: 0.006, fogH: 0.035, shadow: [0.84, 0.92, 1.14], high: [1.08, 1.0, 0.86], sat: 1.05, contrast: 1.10, lift: 0.010, sunCol: 0xffd2a0 },
+  m2: { fog: 0x3a1430, fogD: 0.012, fogH: 0.0, shadow: [0.94, 0.86, 1.06], high: [1.10, 0.98, 0.84], sat: 1.05, contrast: 1.12, lift: 0.014, sunCol: 0xffb888 },
+  m3: { fog: 0x281e52, fogD: 0.008, fogH: 0.08, shadow: [0.86, 0.90, 1.14], high: [1.08, 1.0, 0.88], sat: 1.05, contrast: 1.10, lift: 0.010, sunCol: 0xffe0c4 },
+  m4: { fog: 0x2e1626, fogD: 0.010, fogH: 0.06, shadow: [0.92, 0.88, 1.08], high: [1.10, 0.98, 0.86], sat: 1.05, contrast: 1.10, lift: 0.012, sunCol: 0xffc8a0 },
   // mapas del limbo (env/map5.js, env/map6.js): escenarios de ARCANUM muertos pero ALUCINADOS — niebla baja de color
-  m5: { fog: 0x3a2458, fogD: 0.011, fogH: 0.13, shadow: [0.94, 0.9, 1.16], high: [1.08, 1.0, 0.95], sat: 1.18, contrast: 1.12, lift: 0.02, sunCol: 0xff9be8 },
-  base: { fog: 0x4a3070, fogD: 0.003, fogH: 0.02, shadow: [0.96, 0.92, 1.08], high: [1.08, 1.0, 0.9], sat: 1.18, contrast: 1.08, lift: 0.012, sunCol: 0xfff0d8 },   // La Base (env/base.js): cálida y clara
-  m6: { fog: 0x2e2040, fogD: 0.012, fogH: 0.15, shadow: [0.92, 0.9, 1.14], high: [1.1, 1.0, 0.9], sat: 1.15, contrast: 1.12, lift: 0.018, sunCol: 0xffd27a },
+  m5: { fog: 0x3a2458, fogD: 0.011, fogH: 0.13, shadow: [0.94, 0.9, 1.16], high: [1.08, 1.0, 0.95], sat: 1.08, contrast: 1.12, lift: 0.02, sunCol: 0xff9be8 },
+  base: { fog: 0x4a3070, fogD: 0.003, fogH: 0.02, shadow: [0.96, 0.92, 1.08], high: [1.08, 1.0, 0.9], sat: 1.08, contrast: 1.08, lift: 0.012, sunCol: 0xfff0d8 },   // La Base (env/base.js): cálida y clara
+  m6: { fog: 0x2e2040, fogD: 0.012, fogH: 0.15, shadow: [0.92, 0.9, 1.14], high: [1.1, 1.0, 0.9], sat: 1.05, contrast: 1.12, lift: 0.018, sunCol: 0xffd27a },
 };
 
 const VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;

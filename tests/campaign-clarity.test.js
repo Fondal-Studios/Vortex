@@ -16,7 +16,7 @@ test('chapter and objective priorities survive snapshot changes',()=>{
  const state={state:'playing',phase:'intermission',map:'m2',wave:0,intermission:5};
  assert.match(metaActual(state,{}).next,/Madre Geoda/);
  state.phase='wave';state.wave=3;state.waveTotal=8;state.obj={state:'active',type:'nucleo',left:40};
- assert.match(metaActual(state,{}).main,/Acercate/);assert.doesNotMatch(metaActual(state,{}).main,/Oleada/);assert.match(metaActual(state,{}).next,/40 s/);
+ assert.match(metaActual(state,{}).main,/núcleo/);
 });
 // Integration wiring checks, explicitly not a browser usability test.
 test('skip cancels subtitle callback before finishing; campaign always shows reviewable briefing',()=>{

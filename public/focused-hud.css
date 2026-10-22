@@ -38,15 +38,25 @@ body.hud-focused[data-essential-power="s3"] .hq .hs.s3 { display:flex !important
 body.hud-focused:not([data-essential-power="ability"]) #ability { display:none !important; }
 #essentialpower { min-height:44px; max-width:100%; }
 
-/* Beginner scheme: retired skills are still available in complete controls. */
-body.hud-focused .hq .hs, body.hud-focused[data-essential-power] .hq .hs,
-body.hud-focused[data-essential-power="esp"] .hq .hs.esp,
-body.hud-focused[data-essential-power="s3"] .hq .hs.s3,
-body.hud-focused #ability, body.hud-focused #skills { display:none !important; }
+/* Progression overrides the legacy three-slot HUD; locked powers explain the next milestone. */
+body.learning-skills .hq.learning .hs { display:none!important; }
+body.learning-skills .hq.learning .hs.esp, body.learning-skills .hq.learning .hs.ult { display:flex!important; }
+body.learning-skills .hq.learning .hs.locked { opacity:.6; box-shadow:none; animation:none; }
+body.learning-skills .hq.learning.touch .hs { display:none!important; }
+body.learning-skills #ability { display:none!important; }
+body.learning-skills #touch .tc-ult { right:calc(204px + env(safe-area-inset-right)); left:auto; top:auto; bottom:calc(110px + env(safe-area-inset-bottom)); width:62px; height:62px; }
+body.learning-skills #touch .tc-use { right:calc(204px + env(safe-area-inset-right)); bottom:calc(28px + env(safe-area-inset-bottom)); }
+body:has(#tutorial:not(.hidden)) #cards { visibility:hidden; pointer-events:none; }
+#skillok { min-height:44px; padding:8px 24px; margin-top:8px; border-radius:22px; border:1px solid #ffe27a; background:#25203e; color:#fff; font:700 14px system-ui; cursor:pointer; }
+#tutorial { max-height:calc(100dvh - 24px); overflow-y:auto; box-sizing:border-box; }
+body:has(#tutorial:not(.hidden)) :is(#trophies,#npchint,#botin-toasts,#botin-prompt,#banner,#guia,#gravmsg) { visibility:hidden!important; }
+#tutorial { z-index:45; background:#100c24fa; box-shadow:0 0 0 100vmax #04020e88,0 10px 50px #000c; }
+
 #tutorial { max-height:85dvh; overflow-y:auto; overscroll-behavior:contain; }
+/* Both the chapter briefing and power lesson own input while open. */
+body:has(#tutorial:not(.hidden)) #touch { visibility:hidden!important; pointer-events:none!important; }
 
-/* Discoveries stay peripheral instead of covering the reticle. */
-body.hud-focused #banner, body.hud-focused #banner.long { top:90px; left:50% !important; right:auto; transform:translateX(-50%); width:min(340px,55vw); max-width:55vw; padding:6px 10px; font-size:12px; line-height:1.35; letter-spacing:0; background:#101624ed; border-radius:6px; pointer-events:none; }
-body.hud-focused #banner:empty { display:none; }
-
-#tutorial { z-index:60; background:#0b1020fa; }
+/* Solo is paused for this decision; multiplayer keeps its combat information. */
+body.reward-focus #hud > :not(#cards):not(#tutorial) { visibility:hidden!important; }
+body.reward-focus :is(#trophies,#npchint,#botin-toasts,#botin-prompt,#tactical-hud,#metaflecha) { visibility:hidden!important; }
+body.reward-focus #cards { background:#100c24f5; }

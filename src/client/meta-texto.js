@@ -13,7 +13,7 @@ export function textoObjetivo(o, me, solo = false) {
     case 'caza': return o.target == null ? 'Localizá al custodio cuando aparezca' : 'Eliminá al custodio marcado para terminar la oleada';
     case 'ancla': return `Cargá el Ancla: quedate dentro del círculo (${pct(o.prog)})`;
     case 'sintonia': return solo ? `Pisá cada placa antes de que se apague (${pct(o.prog)})` : `Ocupen todas las placas a la vez (${pct(o.prog)})`;
-    case 'nucleo': return carga ? 'Llevá el núcleo al altar' : (o.prog > 0.02 ? 'Llevá el núcleo al altar (alguien lo lleva)' : 'Acercate al núcleo para recogerlo; llevalo al altar marcado');
+    case 'nucleo': return carga ? 'Llevá el núcleo al altar' : (o.prog > 0.02 ? 'Llevá el núcleo al altar (alguien lo lleva)' : 'Recogé el núcleo y llevalo al altar');
     case 'cultivo': return 'Alimentá los capullos disparándoles hasta que florezcan';
     default: return o.title || 'Cumplí el objetivo';
   }
@@ -30,7 +30,7 @@ export function metaActual(state, me) {
   if (state.phase === 'intermission') {
     if (me && me.cards && me.cards.length) return { kind: 'mejora', main: 'Elegí una mejora de arma', next: w + 1 >= W ? 'Luego: el jefe' : `Luego: oleada ${w + 1}/${W}` };
     const sig = w + 1, jefe = sig >= W;
-    if (!w) return { kind: 'espera', main: `Movete y probá tu ataque · empieza en ${Math.ceil(state.intermission)} s`, next: state.map === 'm2' ? 'Meta: vencer a la Madre Geoda y abrir la salida' : state.map && state.map !== 'm1' ? 'Meta: vencer al guardián y liberar este archivo' : 'Meta: vencer al Coloso y recuperar tu identidad' };
+    if (!w) return { kind: 'espera', main: `Prepará tu Huésped · empieza en ${Math.ceil(state.intermission)} s`, next: state.map === 'm2' ? 'Vencé a la Madre Geoda para abrir la salida' : 'Recuperá tu identidad: sobreviví y vencé al guardián' };
     return { kind: 'espera', main: `Respiro · ${jefe ? 'viene el jefe' : `oleada ${sig}/${W}`} en ${Math.ceil(state.intermission)} s`, next: jefe ? 'Luego: derrotar al jefe' : 'Aprovechá: recogé munición y vida' };
   }
   if (esJefe) {
@@ -39,7 +39,7 @@ export function metaActual(state, me) {
   }
   const quedan = state.left || 0;
   const o = state.obj && state.obj.state === 'active' ? state.obj : null;
-  if (o) return { kind: 'objetivo', main: textoObjetivo(o, me, state.players?.length === 1), next: `Seguí el marcador · ${Math.ceil(o.left || 0)} s · ${tag}` };
+  if (o) return { kind: 'objetivo', main: `${tag} · ${textoObjetivo(o, me, state.players?.length === 1)}`, next: `Tiempo: ${Math.ceil(o.left || 0)} s · ${plural(quedan, 'enemigo', 'enemigos')}` };
   return { kind: 'oleada', main: quedan ? `${tag} · Eliminá ${plural(quedan, 'criatura', 'criaturas')}` : `${tag} · Casi: ya no queda ninguna`, next: w + 1 >= W ? 'Luego: el jefe' : 'Luego: respiro y mejora' };
 }
 

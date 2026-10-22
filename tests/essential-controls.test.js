@@ -16,12 +16,12 @@ class Element {
 globalThis.document={createElement:()=>new Element(),body:new Element()};
 globalThis.innerWidth=844; globalThis.innerHeight=390;
 
-test('four combat actions in both modes, interaction stays in the same slot, pause remains accessible', () => {
+test('four combat actions in both modes, interaction replaces power, pause remains accessible', () => {
   for (const mode of ['shooter','combo']) for (const use of [false,true]) {
     const actions=essentialActions(mode,{use,ult:true,evo:true});
     assert.equal(actions.filter(x=>x!=='pause').length,4);
     for (const x of ['fire','jump','mode','pause']) assert.ok(actions.includes(x));
-    assert.ok(actions.includes('use')); assert.ok(!actions.includes('esp'));
+    assert.ok(actions.includes(use?'use':mode==='combo'?'s3':'esp'));
   }
   assert.equal(thirdForMode('shooter'),false);
   assert.equal(thirdForMode('combo'),true);
@@ -34,10 +34,11 @@ test('TouchControls applies essentials and restores complete actions in both mod
   const visible=id=>!t.$(`[data-a="${id}"]`).classes.has('tc-off');
   for (const mode of ['shooter','combo']) {
     t.mode=mode; settings().advanced=false; t.applyLayout();
-    assert.ok(visible('use')); assert.ok(!visible('esp')); assert.ok(!visible('s3')); assert.ok(!visible('ult'));
-    t.st={}; t.setContext({use:true}); assert.ok(visible('use'));
-    t.setContext({use:false}); assert.ok(visible('use'),'use never changes its function or location');
-    settings().advanced=true; t.ctx.use=true; t.applyLayout();
+    assert.ok(visible(mode==='combo'?'s3':'esp')); assert.ok(!visible('reload')); assert.ok(!visible('ult'));
+    t.st={esp:true,s3:false,use:false}; t.setContext({use:true}); assert.ok(!visible('use'),'power is stable while held'); assert.equal(t.st.esp,true,'held input is not cancelled'); t.st.esp=false; t.setContext({use:true});
+    assert.ok(visible('use')); assert.ok(!visible('esp')); assert.ok(!visible('s3'));
+    assert.equal(t.st.esp,false); assert.equal(t.st.s3,false);
+    settings().advanced=true; t.applyLayout();
     for(const id of ['mov','esp','s3','reload','use']) assert.ok(visible(id),id);
     t.ctx={};
   }

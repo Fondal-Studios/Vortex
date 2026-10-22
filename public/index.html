@@ -11,6 +11,7 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css"><link rel="stylesheet" href="/public/territorios.css"><link rel="stylesheet" href="/public/inventario.css"><link rel="stylesheet" href="/public/graficos.css"><link rel="stylesheet" href="/public/tienda.css"><link rel="stylesheet" href="/public/menu.css">
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
+<link rel="stylesheet" href="/public/identity.css">
 <link rel="stylesheet" href="/public/focused-hud.css">
 </head>
 <body>
@@ -38,7 +39,7 @@
   <div id="allies"></div>
   <div id="pings"></div>
   <div id="skills"><div class="sk" id="skm"><b>F</b><span></span><i></i></div><div class="sk" id="ske"><b>CLIC DER</b><span></span><i></i></div></div>
-  <div id="cards" class="hidden"><div class="cards-in"><h3>MEJORÁ UN ARMA</h3><div id="cardlist"></div><p id="cardhint"></p></div></div>
+  <div id="cards" class="hidden"><div class="cards-in"><h3>ELEGÍ UNA MEJORA</h3><div id="cardlist"></div><p id="cardhint"></p></div></div>
 </div>
 <div id="touch" class="hidden"></div>
 <div id="rotate" class="hidden"><p>📱↻</p><p>Girá el teléfono en horizontal para jugar</p></div>
@@ -155,6 +156,8 @@
       <label>Controles <select id="ctrlsel"><option value="auto">Automático</option><option value="touch">Táctil</option><option value="kb">Teclado, ratón y mando</option></select></label>
       <label>Ayuda de puntería <select id="aimsel"><option value="0">Apagada</option><option value="1">Baja</option><option value="2" selected>Media</option><option value="3">Alta</option></select></label>
       <label>Sensibilidad <input id="sens0" type="range" min="2" max="10" value="5"></label>
+      <label>Opacidad del minimapa <input id="minimap-opacity" aria-label="Opacidad del minimapa" type="range" min="20" max="100" step="5" value="85"></label>
+      <p class="hint">Minimapa: ▲ vos · ● aliado · ✚ caído · × enemigo · ◆ élite · ★ jefe · ■ objetivo · ⚑ misión. Arriba es tu frente; ↑/↓ indica otra altura.</p>
       <label>Volumen <input id="vol" type="range" min="0" max="10" value="6"></label>
       <label>Subtítulos <select id="subsel"><option value="1">Sí</option><option value="0">No</option></select></label>
       <label>Al terminar una partida <select id="basesel"><option value="1">Entrar a la Base</option><option value="0">Volver al menú</option></select></label>
@@ -213,7 +216,7 @@
   <button class="item" id="modetoggle"><b>Modo de juego: Shooter</b></button>
   <button class="item" id="gfxopen"><b>Gráficos</b></button>
   <details class="item pmas" id="pmas"><summary><b>Controles y cámara</b></summary><div class="list pmas-in">
-  <button class="item" id="showctl"><b>Misión y controles</b></button>
+  <button class="item" id="showctl"><b>Ver controles</b></button>
   <button class="item" id="editctl"><b>Editar botones</b></button>
   <label class="item sel">Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label>
   <button class="item" id="camtoggle"><b>Cámara: primera persona</b></button>
@@ -223,7 +226,7 @@
   <button class="item" id="claridad"><b>Claridad: Normal</b></button>
   <button class="item" id="styletoggle"><b>Estilo de combate: Disparo 🎯</b></button>
   <button class="item" id="simpletoggle"><b>Modo simple (dispara solo): sí</b></button>
-
+  <label class="item">Poder esencial <select id="essentialpower"><option value="esp">Habilidad 2</option><option value="s3">Habilidad 3 / principal Melé</option><option value="ability">Poder de equipo</option></select><small>Mantener PODER activa la definitiva cuando está cargada.</small></label>
   <button class="item" id="advtoggle"><b>Habilidades: no</b></button>
   <button class="item" id="evoopen"><b>Evolución (órganos y esencias)</b></button>
   <label class="item sel" hidden style="display:none"><select id="qsel2"></select></label></div></details>

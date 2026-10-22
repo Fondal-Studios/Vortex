@@ -281,7 +281,7 @@ export function createHostMelee(renderer, D) {
   }
   function worldImpact(h, P, n, pal, heavy, exec, up, iw) { // chispas, destello y marca en el mundo (también lo ven los demás)
     const k = exec ? 1.7 : heavy ? 1.25 : 1, c = pal.c, a = pal.a;
-    fx.flash(P, 0xffffff, 1.5 * k, 0.12, { burst: true }); fx.flash(P, exec ? 0xff7a3a : c, 2.4 * k, 0.2); // flashes contenidos: el impacto no debe tapar a la criatura
+    fx.flash(P, 0xffffff, 0.7 * k, 0.09, { burst: true, op: 0.4 }); fx.flash(P, exec ? 0xff7a3a : c, 1.3 * k, 0.16, { op: 0.5 }); // flashes contenidos: el impacto no debe tapar a la criatura
     switch (h) {
       case 'vesper': D.sparks(P, 0xffffff, 8 * k, 16, 0.4, { dir: n, cone: 1.6, c2: a }); for (let i = 0; i < (heavy ? 4 : 3); i++) { _a.copy(P).addScaledVector(up, 0.5 - i * 0.28).addScaledVector(_c.copy(n).cross(up).normalize(), -0.5); _b.copy(_a).addScaledVector(_c, 1.0).addScaledVector(up, -0.5); fx.line(_a, _b, i === 1 ? 0xffffff : a, 0.09, 0.22, { a0: 1, a1: 0, shrink: 0.6 }); } break;
       case 'micelio': D.ring(P.clone().addScaledVector(up, -0.4), up, 0.4, 3.2 * k, 0.4, c, { th: 0.14 }); D.spray(P, 0x6a5a2a, 6 * k, 5, 0.9, 1.2, { smoke: true, shape: SHAPE.smoke, grow: 1.4, c2: 0x241c0c }); D.spray(P, a, 8 * k, 8, 0.8, 0.6, { shape: SHAPE.bubble, up: 2, c2: c }); D.sparks(P, a, 5 * k, 9, 0.4, { dir: n, cone: 1.4 }); break;

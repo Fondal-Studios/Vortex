@@ -96,8 +96,9 @@ export class TouchControls {
   show(on) { this.enabled = on; this.host.classList.toggle('hidden', !on); document.body.classList.toggle('touch-ui', !!on); if (!on) { this.reset(); this.edit(false); } }
 
   /* ───── diseño personalizado ───── */
+  setSkillLevel(level) { if (this.skillLevel !== level) { this.skillLevel = level; this.reset(); this.applyLayout(); } }
   applyLayout() {
-    const s = settings(), basic = !s.advanced, vis = new Set(basic ? essentialActions(this.mode, this.ctx, s.essentialPowers?.[`${this.char}:${this.mode}`]) : SHOW(s.fingers, true, this.mode === 'combo'));
+    const s = settings(), basic = this.skillLevel != null || !s.advanced, vis = new Set(this.skillLevel != null ? ['fire','jump','mode','pause', ...(this.ctx?.use ? ['use'] : []), ...(this.skillLevel >= 1 ? ['esp'] : []), ...(this.skillLevel >= 2 ? ['ult'] : [])] : basic ? essentialActions(this.mode, this.ctx, s.essentialPowers?.[`${this.char}:${this.mode}`]) : SHOW(s.fingers, true, this.mode === 'combo'));
     document.body.dataset.essentialPower = essentialPower(this.mode, s.essentialPowers?.[`${this.char}:${this.mode}`]);
     this.relabel(); this.host.classList.toggle('essential', basic); document.body.classList.toggle('hud-focused', basic);
     this.host.style.setProperty('--hud-op', String(s.hudOpacity)); this.host.style.setProperty('--hud-s', String(s.hudScale));
@@ -132,7 +133,8 @@ export class TouchControls {
     const set = (id, ic, label) => { const el = this.$(`[data-a="${id}"]`); if (!el) return; const i = el.querySelector('.ic'), sm = el.querySelector('small'); if (i && i.textContent !== ic) i.textContent = ic; if (sm && label && sm.textContent !== label) sm.textContent = label; };
     for (const [id, [ic, label]] of Object.entries(POR_MODO[this.mode])) { set(id, ic, label); const el = this.$(`[data-a="${id}"]`); if (el && el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label); }
     const src = fuentes(this.char, this.mode); ['mov', 'esp', 's3'].forEach((id, i) => set(id, ICONO_SRC[src[i]] || '•', !settings().advanced ? 'PODER' : `HAB.${i + 1}`));
-    if (!settings().advanced) { const power = essentialPower(this.mode, settings().essentialPowers?.[`${this.char}:${this.mode}`]); set(power, '✦', 'PODER'); } else set('ability', '✚', 'EQUIPO');
+    if (!settings().advanced) { const power = essentialPower(this.mode, settings().essentialPowers?.[`${this.char}:${this.mode}`]); set(power, '✦', this.ctx?.ult ? 'PODER · ULTI' : 'PODER'); } else set('ability', '✚', 'EQUIPO');
+    if (this.skillLevel != null) { set('esp', '✦', 'APOYO'); set('ult', '◆', 'ULTI'); }
     const M = MODOS[this.mode]; set('mode', M.icono, 'MODO'); const mb = this.$('[data-a="mode"]'); if (mb) mb.setAttribute('aria-label', `Modo ${M.nombre}: tocá para cambiar`);
   }
   /** Animación corta al cambiar de modo: los botones nuevos «brotan». */
@@ -192,7 +194,7 @@ export class TouchControls {
     this.st[a] = true;
   }
   /** Sensibilidad efectiva: multiplicador según estemos apuntando (ADS) o con mira óptica. */
-  mul() { const s = settings(); return s.advanced && this.st.ads ? (this.zoomKind === 2 ? s.scopeMul : s.adsMul) : 1; }
+  mul() { const s = settings(); return this.st.ads ? (this.zoomKind === 2 ? s.scopeMul : s.adsMul) : 1; }
   move(e) {
     const p = this.ptrs.get(e.pointerId); if (!p) { if (this.editing) this.editMove(e); return; } e.preventDefault();
     if (p.kind === 'edit') { this.editMove(e); return; } // editor: arrastrar el botón elegido
@@ -264,6 +266,7 @@ export class TouchControls {
   read() {
     const s = this.st, combo = this.mode === 'combo', atk = s.fire || s.fireL, i = { mx: this.mx, mz: this.mz, dyaw: this.dyaw, dpitch: this.dpitch, jump: s.jump, fire: !combo && atk, dash: s.dash || !!this.dashStick, weapon: this.weapon, ability: s.ability, interact: s.use, ping: s.ping, mov: s.mov, esp: s.esp, s3: s.s3, ult: s.ult, melee: !combo && s.melee, reload: !combo && s.reload, evo: s.evo, ads: s.ads, crouch: s.crouch, a1: combo && atk, a2: combo && s.reload, hab: false, mode: this.mode };   // Melé: el botón grande es A1 y el pequeño A2; HAB.3 (s3) la traduce la simulación
     this.dyaw = this.dpitch = 0; this.weapon = -1;
+    if (this.skillLevel != null) { const held = performance.now() - (this.heldSince?.fire ?? performance.now()); if (combo && i.a1 && held >= 360) { i.a1 = false; i.a2 = true; } return i; }
     if (settings().advanced) return i;
     const now = performance.now(), held = Object.fromEntries(Object.entries(this.heldSince || {}).map(([k,t]) => [k, now-t]));
     return expandEssentialInput(i, held, this.mode, essentialPower(this.mode, settings().essentialPowers?.[`${this.char}:${this.mode}`]));

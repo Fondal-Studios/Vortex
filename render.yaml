@@ -9,6 +9,8 @@ services:
     startCommand: node server/server.js
     healthCheckPath: /health        # Render lo consulta para saber que el servidor está sano
     autoDeploy: true                # cada vez que subís cambios a la rama, se actualiza solo
+    # Cuentas: definir DATABASE_URL como secreto con la URL interna de una base persistente.
+    # Propuesta y costo pendientes: docs/TACTICAL_ACCOUNTS.md. No usar disco efímero.
     envVars:
       - key: NODE_VERSION
         value: "22"

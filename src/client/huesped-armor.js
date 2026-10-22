@@ -213,7 +213,7 @@ function spectralMaterial(color, rim, ember, belly = 0, F = null) {
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         { float fr = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.4);
           float c1 = abs(n_(vRest * 30.0) - 0.5) * 2.0, c2 = abs(n_(vRest * 14.0 + 4.0) - 0.5) * 2.0;
-          float crack = smoothstep(0.07, 0.0, min(c1, c2 * 1.3)) * smoothstep(0.35, 0.65, n_(vRest * 4.0 + 9.0)) * (0.65 + 0.7 * uBeat);
+          float crack = smoothstep(0.07, 0.0, min(c1, c2 * 1.3)) * smoothstep(0.35, 0.65, n_(vRest * 4.0 + 9.0)) * (0.5 + 0.45 * uBeat + 0.45 * pow(0.5 + 0.5 * sin(vRest.y * 7.0 - uTime * 3.0 + vRest.x * 2.0), 4.0));
           float belly = smoothstep(1.0, 1.06, vRest.y) * smoothstep(1.215, 1.15, vRest.y) * smoothstep(0.12, 0.05, abs(vRest.x)) * uBelly;
           totalEmissiveRadiance += uRim * fr * (1.3 + 1.0 * uClar) * uK + uEmber * (crack * 1.6 + belly * (1.1 + 0.7 * uBeat) * (0.6 + 0.8 * n_(vRest * 12.0 + uTime * 0.6))) * uK; }
         if (uFK > 0.001) totalEmissiveRadiance += formaEm(vRest, normalize(normal), normalize(vViewPosition)) * uFK;`);

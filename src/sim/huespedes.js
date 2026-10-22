@@ -120,7 +120,7 @@ function strike(g, p, M, heavy) {
   if (heavy && (prevCmb >= 2 || ((p.lastCmbN || 0) >= 2 && g.time - (p.lastLightT || -9) < 1.8))) { spin = true; kind = 'spin'; dmg *= 1.2; range += 1; }
   if (heavy) p.lastCmbN = 0;
   if (air) { kind = 'air'; p.slam = 3; p.vel = madd(p.vel, p.up, -42); dmg *= 1.2; }
-  p.meleeCd = def.cd * (over ? 0.6 : 1);
+  p.meleeCd = def.cd * (over ? 0.6 : 1) / (p.bn?.attackSpeed || 1);
   const o = g.eyePos(p), d = g.aimDir(p), dir0 = norm(d);
   let hits = 0;
   const cosT = meta || spin ? -1 : 1 - arc * (heavy ? 1.1 : 1);
@@ -183,7 +183,7 @@ export function meleeAfter(g, p, sp, heavy, dir, o, dmg, strong) {
   if (sp === 'onda' && heavy) g.addProjectile({ owner: 'p', pid: p.id, kind: 'lanza', pos: madd(o, dir, 1.6), vel: mul(dir, 42), dmg: dmg * 0.5 * strong, splash: 0, r: 0.9, life: 0.7, pierce: true, hit: [] });
   if (sp === 'sismo' && heavy) {
     for (const m of g.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < 7 + m.r) { g.damageMonster(m, dmg * 0.4 * strong, p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 12); } }
-    g.emit({ t: 'boom', p: a3(p.pos), r: 7 });
+    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 7 });
   }
   if (sp === 'estocada' && heavy) p.ext = madd(p.ext, flat(p), 30);
   if (sp === 'destello' && heavy) { p.ext = madd(p.ext, flat(p), 46); p.invulUntil = Math.max(p.invulUntil, g.time + 0.3); g.emit({ t: 'blink', p: a3(p.pos) }); }
@@ -192,7 +192,7 @@ export function meleeAfter(g, p, sp, heavy, dir, o, dmg, strong) {
 function slamLand(g, p) {
   let n = 0;
   for (const m of g.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < 6.5 + m.r) { g.damageMonster(m, 95 * (1 - 0.4 * d / (6.5 + m.r)), p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 14); n++; } }
-  g.emit({ t: 'melee', pid: p.id, kind: 'air', p: a3(p.pos), d: a3(mul(p.up, -1)), hit: n, land: true }); g.emit({ t: 'boom', p: a3(p.pos), r: 6.5 });
+  g.emit({ t: 'melee', pid: p.id, kind: 'air', p: a3(p.pos), d: a3(mul(p.up, -1)), hit: n, land: true }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 6.5 });
 }
 
 /* ───────── habilidades 1 y 2 de los nuevos ids (las llama characters.js) ───────── */

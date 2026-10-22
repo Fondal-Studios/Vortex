@@ -42,6 +42,16 @@
 - Subir protocolo al cambiar tipos/campos del objetivo; cliente y servidor juntos.
 
 
+## 2026-10-22 — Alfa 3 sobre PR #5 integrado
+
+Ver `VORTEX_ALPHA_3.md`. Conserva apoyo/ulti progresivos; corrige límite de tres tarjetas, ramas completas, mejoras tempranas gratuitas, precio de órganos y elección fallida/automática. Recupera continuidad sin sobrescribir controles del PR #5. 20 sondas antes +20 después: 18 activas/2 derrotas en ambas variantes, 4→6 llegan a oleada 7. Son bots, no usuarios ni retención. Puntuaciones hipotéticas separadas. Rama `codex/vortex-alpha3-balance`, base main09dfac8. Pendientes melee exclusivo, campaña completa, Safari físico y alfa humana.
+
+
+## Integración de PR #1 y #6 — 2026-10-22
+
+Se integró el historial del alfa 2. Los controles que retiraban los poderes quedan superados por PR #5 y el balance del alfa 3: se preservan apoyo tras oleada 1 y definitiva tras oleada 3. Se conservan minimapa, cuentas, recompensas y narrativa actuales. Evidencia histórica: VORTEX_ALPHA_2.md; evaluación vigente: VORTEX_ALPHA_3.md.
+
+
 ## 2026-10-22 — Principiante y alfa 2
 
 Ver `VORTEX_ALPHA_2.md`: continuidad por capítulo, resumen al saltar, cuatro acciones estables, poderes conservados en controles completos; segunda pasada corrige nombres de jefe, avisos y bloqueo táctil del resumen. 107 pruebas seleccionadas y verificaciones de navegador; 20 sondas con 16 supervivencias al corte y cuatro derrotas. Puntuaciones hipotéticas aún no cumplen todas >80. Pendiente balance sin poderes, compatibilidad de recompensas, orientación en combate, campaña completa y alfa humana/Safari físico. Sin merge ni despliegue.

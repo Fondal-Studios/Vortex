@@ -3,17 +3,17 @@ export const HOLD_MS = 360;
 export function essentialPower(mode, choice) {
   return ['esp', 's3', 'ability'].includes(choice) ? choice : mode === 'combo' ? 's3' : 'esp';
 }
-export function essentialActions() {
-  return ['fire', 'jump', 'use', 'mode', 'pause'];
+export function essentialActions(mode, context = {}, choice) {
+  return ['fire', 'jump', context.use ? 'use' : essentialPower(mode, choice), 'mode', 'pause'];
 }
 export const thirdForMode = (mode) => mode === 'combo';
 
-/** Beginner inputs have no hold alternatives. Advanced skills stay in the complete scheme. */
-export function expandEssentialInput(input, held = {}, mode = 'shooter') {
+/** Una pulsación comienza inmediatamente; mantener agrega la alternativa, sin daño/cooldown extra. */
+export function expandEssentialInput(input, held = {}, mode = 'shooter', power = essentialPower(mode)) {
   const out = { ...input };
-  for (const key of ['a2','mov','esp','s3','ability','ult','dash','melee','ads','crouch','autoc']) out[key] = false;
-  if (mode === 'combo') { out.a1 = !!(input.a1 || input.fire); out.fire = false; }
-  else { out.fire = !!input.fire; out.a1 = false; }
+  if (mode === 'combo' && input.a1 && held.fire >= HOLD_MS) { out.a1 = false; out.a2 = true; }
+  if (input.jump && held.jump >= HOLD_MS) { out.jump = false; out.mov = true; }
+  if (input[power] && held[power] >= HOLD_MS) { out[power] = false; out.ult = true; }
   return out;
 }
 
