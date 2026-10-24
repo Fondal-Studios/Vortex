@@ -68,7 +68,7 @@ export function refrescarInicio(menu) {
   let p; try { p = Perfil.perfil(); } catch { return; }
   const a = avisos(p), puertas = avisosPuertas(a), r = menu.root;
   r.querySelectorAll('[data-aviso-puerta]').forEach((d) => { const n = puertas[d.dataset.avisoPuerta] || 0; d.hidden = !n; d.title = n ? `${n} novedad${n === 1 ? '' : 'es'}` : ''; });
-  const c = CHARACTERS[Equipo.char], u = continuarDe(leerUltimo(), c ? c.name : '');
+  const c = CHARACTERS[Equipo.char], u = continuarDe(leerUltimo(), c ? c.name : '', p.campaign);
   const cont = r.querySelector('#continuar'); if (cont) { cont.querySelector('b').textContent = u.titulo; cont.querySelector('small').textContent = u.sub; }
   const sal = r.querySelector('#saldo'); if (sal) sal.innerHTML = `<span>Núcleos</span><b>${p.cores}</b><i aria-hidden="true">◆</i>`;
   const hu = r.querySelector('[data-door="huespedes"] small'); if (hu && c) hu.textContent = `Ahora: ${c.name} · elegir, evolucionar, comprar`;

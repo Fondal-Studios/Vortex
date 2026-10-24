@@ -1,0 +1,92 @@
+[
+  {
+    "name": "desktop",
+    "screen": "modes",
+    "overflowX": 0,
+    "chapters": [],
+    "missions": [
+      "practica"
+    ]
+  },
+  {
+    "name": "desktop",
+    "screen": "story",
+    "overflowX": 0,
+    "chapters": [
+      "m1",
+      "m3",
+      "m4",
+      "m5",
+      "m6",
+      "m2"
+    ],
+    "missions": []
+  },
+  {
+    "name": "desktop",
+    "screen": "arenas",
+    "overflowX": 0,
+    "chapters": [],
+    "missions": [
+      "m1",
+      "m3",
+      "m4",
+      "m5",
+      "m6",
+      "m2"
+    ]
+  },
+  {
+    "name": "desktop",
+    "checkpointReload": true,
+    "defeatPreservesCheckpoint": true,
+    "individualDoesNotAdvance": true,
+    "fullCampaignTransitionFixture": true,
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "screen": "modes",
+    "overflowX": 0,
+    "chapters": [],
+    "missions": [
+      "practica"
+    ]
+  },
+  {
+    "name": "mobile",
+    "screen": "story",
+    "overflowX": 0,
+    "chapters": [
+      "m1",
+      "m3",
+      "m4",
+      "m5",
+      "m6",
+      "m2"
+    ],
+    "missions": []
+  },
+  {
+    "name": "mobile",
+    "screen": "arenas",
+    "overflowX": 0,
+    "chapters": [],
+    "missions": [
+      "m1",
+      "m3",
+      "m4",
+      "m5",
+      "m6",
+      "m2"
+    ]
+  },
+  {
+    "name": "mobile",
+    "checkpointReload": true,
+    "defeatPreservesCheckpoint": true,
+    "individualDoesNotAdvance": true,
+    "fullCampaignTransitionFixture": true,
+    "errors": []
+  }
+]

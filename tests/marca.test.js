@@ -45,8 +45,8 @@ test('menú: los puntitos sólo salen donde hay una acción útil', () => {
   assert.deepEqual(avisosPuertas(avisos({ cores: 0, inventario: [], menu: { iv: 0, tv: '' }, terr: {}, arb: {} })).coleccion, 0);
 });
 test('menú: Continuar y avisos salen del perfil', () => {
-  assert.deepEqual(continuarDe(null, 'Axioma'), { tipo: 'story', titulo: 'Jugar', sub: 'Empezar la Historia · con Axioma' });
-  assert.equal(continuarDe({ k: 'arena', id: 'm3' }).id, 'm3'); assert.equal(continuarDe({ k: 'arena', id: 'zzz' }).tipo, 'story');
+  assert.deepEqual(continuarDe(null, 'Axioma'), { tipo: 'modes', titulo: 'Jugar', sub: 'Campaña o misiones individuales · con Axioma' });
+  assert.equal(continuarDe({ k: 'arena', id: 'm3' }).id, 'm3'); assert.equal(continuarDe({ k: 'arena', id: 'zzz' }).tipo, 'modes');
   const a = avisos({ cores: 700, inventario: [{ u: 'u5' }, { u: 'u2' }], menu: { iv: 4 }, terr: { m1: { bend: null } }, arb: { axioma: { combo: { pc: 5, nodos: [] } } } });
   assert.equal(a.botin, 1, 'sólo lo que llegó después de abrir el Inventario'); assert.equal(a.puntos, 1); assert.ok(a.huesped >= 1, 'hay un Huésped comprable'); assert.equal(a.bendicion, 1);
   assert.equal(avisos({ cores: 0, menu: { iv: 0, tv: '' } }).huesped, 0);

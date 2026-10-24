@@ -169,3 +169,16 @@
 #arenas .operation-card, #arena-codex .operation-card { height:auto; min-height:340px; text-align:left; }
 .operation-card ol { padding-left:20px; font-size:14px; line-height:1.6; color:#b9fbe6; }
 .operation-card small { white-space:normal; line-height:1.5; }
+
+#modes, #story { flex-direction:column; gap:18px; }
+#modes .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;flex-shrink:0; }
+.campaign-actions { display:flex; flex-wrap:wrap;gap:12px;flex-shrink:0; }
+.campaign-route { list-style:none; padding:0 0 40px; margin:0; display:grid;gap:16px; }
+.campaign-route li { display:flex;gap:20px;padding:18px;background:#0b1423;border:1px solid #a7c1dd35;border-radius:14px; }
+.campaign-route li[data-state="next"] { border-color:#6fffd6; }
+.campaign-route li[data-state="done"] { border-color:#8cbf7c; }
+.campaign-route img { width:150px; height:110px;object-fit:cover;border-radius:8px; }
+.campaign-route h4 { font-size:20px;margin:8px 0;color:#e9fff9; }
+.campaign-route p { line-height:1.5; margin:8px 0; }
+.campaign-route small, .chapter-goal { color:#b9ebdb; }
+@media(max-width:600px) { .campaign-route li { flex-direction:column; } .campaign-route img { width:100%;height:130px; } .campaign-actions .btn { white-space:normal;max-width:100%; } }

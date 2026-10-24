@@ -1,3 +1,5 @@
+import { CAMPAIGN_ORDER, CAMPAIGN_LINKS, CAMPAIGN_BOSSES } from '../sim/campaign.js';
+import { OPERATIONS } from '../sim/operations.js';
 // VORTEX: conciencia humana, huéspedes de genoma sintético e IA simbionte.
 export const NAME = 'Pasajero';
 export const SPEAKER = { H: 'HERALDO · IA de enlace', N: '' };
@@ -21,11 +23,11 @@ export const WAKE = [
   ['H', 'Soy HERALDO, tu IA de enlace. Tras el accidente, tu conciencia fue digitalizada en VORTEX.', 4],
   ['H', 'Tu Huésped combina genoma humano e IA. Es el cuerpo con el que podés actuar dentro de esta red.', 4],
   ['H', 'La IA custodio está borrando identidades para conservar el sistema. La tuya será la próxima.', 4],
-  ['H', 'Desactivá al Coloso de las Islas. Después, vencé a la Madre Geoda en la Cámara Fractal para abrir la salida.', 4.5],
+  ['H', 'Reconectá el refugio, protegé el ancla y recuperá tu memoria. El Coloso guarda la clave que abre los demás archivos.', 4.5],
 ];
 export const WAKE_SHORT = [
   ['H', 'Tu conciencia está atrapada en VORTEX. Soy HERALDO, tu IA de enlace.', 3.5],
-  ['H', 'Primero: sobreviví a las defensas de las Islas y vencé al Coloso. Él bloquea el camino a la salida.', 4],
+  ['H', 'Primero estabilizá tu identidad. Seguí cada objetivo marcado y después desactivá al Coloso.', 4],
 ];
 export const INTERLUDE = [
   ['H', 'El Coloso cayó. Recuperamos la clave de tu identidad. Falta abrir el canal de salida.', 3.8],
@@ -37,20 +39,11 @@ export const ENDING = [
   ['N', 'El andén desaparece. No volví al pasado: era mi último recuerdo, repetido por la red.', 4],
   ['H', 'Conciencia a salvo. Afuera te espera un cuerpo. Adentro todavía quedan otros como vos.', 4],
 ];
-export const RUTAS = { corta: ['m1', 'm2'], larga: ['m1', 'm5', 'm6', 'm2'] };
-export const INTERLUDES = {
-  m5: [
-    ['H', 'Este archivo conserva una ciudad humana. El reloj repite sus recuerdos para que nadie encuentre la salida.', 4.2],
-    ['H', 'El Mandinga es su programa custodio: usa los miedos de sus habitantes como armadura.', 4],
-    ['H', 'Vencelo para cruzar el archivo. La fuente invierte la gravedad y te permite saltar más alto.', 4],
-  ],
-  m6: [
-    ['H', 'Entramos al archivo genómico. La red representa los cuerpos perdidos como huesos.', 4],
-    ['H', 'El Basilisco protege las copias que la IA decidió descartar. Desactivalo para llegar a la Cámara Fractal.', 4.2],
-    ['H', 'Seguí las losas claras hasta el altar. Son la ruta de mantenimiento del archivo.', 3.8],
-  ],
-  m2: INTERLUDE,
-};
+export const RUTAS = { principal: CAMPAIGN_ORDER, corta: CAMPAIGN_ORDER, larga: CAMPAIGN_ORDER };
+export const INTERLUDES = Object.fromEntries(CAMPAIGN_ORDER.slice(1).map((id, i) => [id, [
+  ['H', CAMPAIGN_LINKS[CAMPAIGN_ORDER[i]].after, 4.5],
+  ['H', CAMPAIGN_LINKS[id].before, 4.5],
+]]));
 export const DEFEAT = [['H', 'Perdimos el enlace con tu Huésped. Tu copia de seguridad sigue intacta: intentá otra incursión para abrir la salida.', 4.8]];
 export const MAP_BANNER = {
   m1: 'ISLAS · Recuperá tu identidad: sobreviví a las oleadas y vencé al Coloso. Usá los portales entre islas.',
@@ -108,12 +101,11 @@ export function trainCine(canvas, durSec, onImpact, manual = false) {
 }
 
 // Briefings are available after skipping and again through Pause > Mission and controls.
-export const CHAPTERS = {
-  m1: { title: '1 · RECUPERÁ TU IDENTIDAD', context: 'Tras el accidente, tu conciencia quedó atrapada en VORTEX. HERALDO te guía; la IA custodio quiere borrarte.', task: 'Superá las oleadas y vencé al Coloso. Los portales conectan las islas.', reward: 'Recuperás la clave de tu identidad y abrís el camino a la salida.' },
-  m2: { title: '2 · ABRÍ LA SALIDA', context: 'Con la clave de tu identidad recuperada, llegaste al canal de salida de VORTEX.', task: 'Superá las defensas y vencé a la Madre Geoda. Seguí las indicaciones de sus válvulas.', reward: 'Liberás tu conciencia para transferirla a un cuerpo fuera de la red.' },
-  m5: { title: 'ARCHIVO · MEMORIA', context: 'Esta ciudad repite recuerdos humanos para ocultar la salida.', task: 'Vencé al Mandinga para cruzar el archivo. La fuente cambia la gravedad.', reward: 'Abrís el paso hacia el archivo genómico.' },
-  m6: { title: 'ARCHIVO · GENOMA', context: 'La IA almacena aquí modelos de los cuerpos que descartó.', task: 'Seguí las losas claras y vencé al Basilisco.', reward: 'Abrís el acceso a la Cámara Fractal.' },
-};
+export const CHAPTERS = Object.fromEntries(CAMPAIGN_ORDER.map((id, i) => {
+ const op = OPERATIONS[id], boss = CAMPAIGN_BOSSES[id];
+ return [id, { title: `${i + 1}/6 · ${op.title.toUpperCase()}`, context: op.before,
+  task: op.steps.map(s => s.title).join(' → ') + (boss ? ` → Derrotá a ${boss}.` : '.'), reward: op.reward }];
+}));
 export function chapterBrief(map) {
   return CHAPTERS[map] || { title: 'LIBERÁ EL ARCHIVO', context: 'Estás dentro de VORTEX: una red que conserva conciencias humanas.', task: MAP_BANNER[map] || 'Seguí el objetivo marcado.', reward: 'Liberás un territorio de la IA custodio.' };
 }

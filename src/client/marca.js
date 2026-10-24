@@ -9,7 +9,7 @@ export const MARCA = {
   legal: 'Acción psicodélica en 3D · PC · iPhone · 1–4 jugadores',
   /** Nombre del mundo: el limbo donde pasa todo. */
   mundo: 'el Vórtice',
-  descripcion: 'Una conciencia humana. Un Huésped de genoma e IA. Una salida de VORTEX.',
+  descripcion: 'Tu conciencia está atrapada en una red digital. Enlazá un Huésped de genoma humano e IA, recuperá tu identidad y abrí la salida.',
 };
 /** Escribe la marca en el documento (título de la pestaña, logo, pantalla de carga). Se llama una vez al arrancar el menú. */
 export function aplicarMarca(doc = document) {

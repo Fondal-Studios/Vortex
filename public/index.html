@@ -60,7 +60,7 @@
       <div class="playrow">
         <!-- «Continuar / Jugar»: qué abre lo decide menu-hubs.js según lo último que jugaste -->
         <button id="continuar" class="continuar" type="button"><i class="glyph x" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></i><span><b>Continuar</b><small></small></span></button>
-        <button id="elegir" class="elegir" type="button" data-go="arenas" title="Historia, Misiones, Campo de pruebas y Cooperativo"><i class="dot" data-aviso-puerta="partidas" hidden></i><span class="el-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></span><span class="el-t">Elegir misión</span></button>
+        <button id="elegir" class="elegir" type="button" data-go="modes" title="Campaña, Misiones individuales, Cooperativo y Campo de pruebas"><i class="dot" data-aviso-puerta="partidas" hidden></i><span class="el-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></span><span class="el-t">Modos de juego</span></button>
       </div>
       <button id="proximo" class="proximo" type="button" hidden><em>Próximo paso</em><span></span><i aria-hidden="true">›</i></button>
       <nav id="mainlist" class="doors" aria-label="Menú principal"></nav>
@@ -70,11 +70,8 @@
   <section id="tienda" class="screen" data-screen="tienda"></section>
   <!-- ═════ HISTORIA ═════ -->
   <section id="story" class="screen" data-screen="story">
-    <h3 class="stitle">Historia</h3>
-    <div class="cards">
-      <button id="campaign" class="card big" data-art="historia"><img src="/public/art/historia.jpg" alt=""><div><b>Nueva partida</b><small>Recuperá tu identidad · Abrí la salida · 2 capítulos</small></div></button>
-    </div>
-    <p class="storytxt">Te atropella un tren. Despertás en el Vórtice —lo que hay entre vivir y no— con armas en las manos y un bicho extraño que te explica la única regla: sobrevivir a todo para volver al mundo de los vivos.</p>
+    <h3 class="stitle">Campaña</h3>
+    <!-- Campaign route and actions are built from shared campaign data. -->
   </section>
   <!-- ═════ ARENAS ═════ -->
   <section id="arenas" class="screen" data-screen="arenas">

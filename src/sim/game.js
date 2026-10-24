@@ -1,3 +1,4 @@
+import { CAMPAIGN_BOSSES } from './campaign.js';
 import { OPERATIONS } from './operations.js';
 import { BOSS_NAMES } from './campaign-names.js';
 import { reviveTarget } from '../shared/tactical.js';
@@ -46,7 +47,7 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null, operation = false } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null, operation = false, campaign = false } = {}) {
     this.skillLevel = skillLevel === null ? null : cleanSkillLevel(skillLevel);
     this.jefeMem = jefeMem;   // memoria del intento anterior contra el jefe (jefeMemoria): adaptación suave entre intentos
     this.magazines = !!magazines;   // cargadores y recarga (el juego real los usa; las pruebas viejas no)
@@ -55,7 +56,8 @@ export class Game {
     if (!this.map) throw new Error('mapa desconocido: ' + mapId);
     if (this.map.instance) this.map = this.map.instance(); // mapas que cambian durante la partida (mapa 4: el puente crece)
     this.mapId = mapId;
-    this.operation = operation && !practice ? OPERATIONS[mapId] || null : null;
+    this.campaign = !!campaign && !practice;
+    this.operation = (operation || this.campaign) && !practice ? OPERATIONS[mapId] || null : null;
     this.rng = makeRng(seed); this.seed = seed;
     this.difficulty = difficulty * (mapId === 'm2' ? 1.35 : 1); // la Cámara Fractal es más exigente (el bot ganaba 8/8)
     this.tick = 0; this.time = 0; this.dt = 1 / 60;
@@ -63,7 +65,7 @@ export class Game {
     this.events = [];
     this.nextId = 1;
     this.state = 'playing'; // playing | won | lost
-    this.wave = 0; this.waveTotal = this.operation ? this.operation.steps.length : (WAVE_PLANS[mapId] || []).length + 1;
+    this.wave = 0; this.waveTotal = this.operation ? this.operation.steps.length + (this.campaign && CAMPAIGN_BOSSES[mapId] ? 1 : 0) : (WAVE_PLANS[mapId] || []).length + 1;
     this.phase = 'intermission'; this.phaseT = calm; // calma inicial (la historia usa más)
     this.queue = []; this.omens = []; this.spawnT = 0; this.spawnGap = 1.5;
     this.boss = null; this.mision = null; this.forceElite = false;
@@ -230,7 +232,7 @@ export class Game {
     for (const p of this.players) { if (p.dead) this.revive(p); if (p.role === 'ingeniero' && !p.dead) { for (const w of [2, 1, 3]) this.dropPickup('ammo', madd(madd(p.pos, p.up, 1.5), p.heading, 2 + w), w); } }
     const n_pl = Math.max(1, this.players.length);
     this.queue = [];
-    const isBoss = !this.operation && n === this.waveTotal;
+    const isBoss = n === this.waveTotal && (!this.operation || (this.campaign && !!CAMPAIGN_BOSSES[this.mapId]));
     const types = plan[Math.min(n, plan.length) - 1]; this.curTypes = types;
     this.objective = isBoss ? null : makeObjective(this, n, this.operation?.steps[n - 1]); this.objective0 = this.objective;
     iniciarMision(this, n, isBoss);
@@ -854,7 +856,7 @@ export class Game {
     const boss = this.monsters.find((m) => m.def.boss && !m.dead);
     return {
       tick: this.tick, time: r2(this.time), map: this.mapId, state: this.state, phase: this.phase,
-      operation: this.operation ? { title: this.operation.title, step: this.operation.steps[this.wave - 1]?.title || '', next: this.operation.steps[this.wave]?.title || '', failure: this.operationFailure || null } : null,
+      operation: this.operation ? { campaign: this.campaign, boss: this.campaign && !!CAMPAIGN_BOSSES[this.mapId] && this.wave === this.waveTotal, chapter: this.operation.chapter, title: this.operation.title, step: this.operation.steps[this.wave - 1]?.title || '', next: this.operation.steps[this.wave]?.title || (this.campaign && CAMPAIGN_BOSSES[this.mapId] ? `Derrotá a ${CAMPAIGN_BOSSES[this.mapId]}` : ''), failure: this.operationFailure || null } : null,
       wave: this.wave, waveTotal: this.waveTotal, left: this.queue.length + this.omens.length + this.monsters.length, om: this.omens.map((o) => [...a3(o.pos), o.k, r2(o.at - this.time)]), intermission: r2(Math.max(0, this.phaseT)),
       fx: this.map.fx(this.time),
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0, ...jefeSnap(boss) } : null,

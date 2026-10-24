@@ -1,0 +1,56 @@
+✔ chapter m1: context, actionable goal and reward (0.908079ms)
+✔ chapter m3: context, actionable goal and reward (0.244648ms)
+✔ chapter m4: context, actionable goal and reward (0.153532ms)
+✔ chapter m5: context, actionable goal and reward (0.081984ms)
+✔ chapter m6: context, actionable goal and reward (0.117787ms)
+✔ chapter m2: context, actionable goal and reward (0.074643ms)
+✔ final keeps the transfer premise (0.201654ms)
+✔ chapter and objective priorities survive snapshot changes (0.352582ms)
+✔ skip cancels subtitle callback before finishing; campaign always shows reviewable briefing (0.860568ms)
+✔ arena boss identity agrees in simulation snapshots and territory descriptions (26.864045ms)
+✔ one six-chapter route provides causal links and ends at the exit (0.89578ms)
+✔ progress is sequential, idempotent, recoverable and rejects chapter skips (1.025115ms)
+✔ campaign retains its two guardians; individual versions end at the third objective (32.185306ms)
+✔ existing profiles keep inventory/currency; chapter checkpoint survives reload; restart only resets campaign (2.210422ms)
+✔ marca: el nombre es VORTEX y el logo se arma con las mismas palabras (0.982732ms)
+✔ marca: index, tarjeta final y manifest dicen lo mismo que la constante y no queda el nombre viejo (2.057973ms)
+✔ marca: aplicarMarca escribe título, logo, subtítulo y carga en el documento (0.310518ms)
+✔ menú: 5 puertas, 4 secciones con pestañas, cada pantalla a ≤ 2 pasos del inicio (docs/MENU.md) (1.0085ms)
+✔ menú: los puntitos sólo salen donde hay una acción útil (0.62361ms)
+✔ menú: Continuar y avisos salen del perfil (0.658392ms)
+✔ two real WebSocket clients receive identical operation and objective snapshots (208.998956ms)
+✔ sequences on six maps: only the indicated terminal advances; solo and coop retain progress (21.71277ms)
+✔ seed changes terminal order reproducibly without consuming combat RNG (2.228139ms)
+✔ hunt uses an existing wave spawn; target marked, killing it ends reinforcements without rewarding escorts (11.786196ms)
+✔ despawning target is failure, never a free reward or permanent wave lock (0.584281ms)
+✔ sequence timeout cleans objects and fails once (0.340904ms)
+✔ first optional mission accepts chosen attack style and pays once (3.388458ms)
+✔ all six operations complete only after three objectives, solo and four players (46.944093ms)
+✔ contested defense stops progress and destruction loses mission without rewards (1.057844ms)
+✔ timeout fails once and a new game resets operation progress (0.426643ms)
+✔ rescue survives carrier death and disconnection; no duplicate completion reward (0.7097ms)
+✔ campaign and practice retain old pacing; codex contains arenas, play menu missions (2.699239ms)
+﹣ recorrido 844x390 táctil: cada función a ≤ 3 toques desde el inicio (y Esc/Volver vuelve en 1) (0.572373ms) # SKIP
+﹣ recorrido 1280x720 PC: cada función a ≤ 3 toques desde el inicio (y Esc/Volver vuelve en 1) (0.121453ms) # SKIP
+﹣ recorrido 390x844 táctil: cada función a ≤ 3 toques desde el inicio (y Esc/Volver vuelve en 1) (0.087982ms) # SKIP
+﹣ teclado y mando: Q/E cambian de pestaña dentro de la sección, Esc vuelve; foco visible (0.168974ms) # SKIP
+﹣ bienvenida de la primera vez: 3 pasos, se salta y no vuelve (0.134543ms) # SKIP
+✔ pausa simple: Continuar · Modo · Gráficos · Controles y cámara · Salir (los ids que usa main.js siguen) (1.235202ms)
+✔ m1: la dificultad sube oleada a oleada (presupuesto de criaturas creciente) (8.96296ms)
+✔ m1: sólo aparecen criaturas habilitadas para esa oleada y el jefe llega al final (1.57881ms)
+✔ m2: la dificultad sube oleada a oleada (presupuesto de criaturas creciente) (4.460464ms)
+✔ m2: sólo aparecen criaturas habilitadas para esa oleada y el jefe llega al final (3.893859ms)
+✔ el bestiario completo se usa entre los dos mapas (8 criaturas + 2 jefes) (1.127399ms)
+✔ más jugadores ⇒ hordas más grandes (escalado cooperativo) (0.681848ms)
+✔ ciclo de oleada: calma inicial → spawn en goteo → oleada limpia → respiro → siguiente (100.612855ms)
+✔ victoria: matar al jefe de la oleada final termina la partida en "won"; perder a todos en "lost" (14.698526ms)
+✔ cooperativo: el jugador caído revive al comenzar la siguiente oleada (2.121748ms)
+✔ límite duro de criaturas vivas aun con spawns forzados (1.16753ms)
+ℹ tests 48
+ℹ suites 0
+ℹ pass 43
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+ℹ duration_ms 1971.206289
