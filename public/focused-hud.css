@@ -143,3 +143,12 @@ body.hud-focused #banner { max-width:38vw; }
 body #bars .bar.sh span { position:static!important; width:auto!important; white-space:nowrap; transform:none!important; }
 
 .tc-tip { max-width: min(240px, calc(100vw - 16px)); white-space: normal; text-align: center; box-sizing: border-box; }
+
+/* Táctil: armas arriba a la izquierda; el pulgar de movimiento queda libre abajo. */
+body.hud-focused.touch-ui #weapons {
+  top:calc(64px + env(safe-area-inset-top, 0px))!important;
+  bottom:auto!important;
+  left:calc(20px + env(safe-area-inset-left, 0px))!important;
+  right:auto!important;
+}
+body.hud-focused.touch-ui #weapons div.sel { min-height:44px; }
