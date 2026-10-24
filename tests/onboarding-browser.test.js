@@ -18,7 +18,7 @@ const PILOTO = () => {
     const aim = (q) => { const dx = q[0] - p.pos.x, dz = q[2] - p.pos.z; return { err: Math.atan2(p.heading.x * dz - p.heading.z * dx, p.heading.x * dx + p.heading.z * dz), d: Math.hypot(dx, dz) }; };
     if (s.id === 'mover') inp.mz = 1; else if (s.id === 'mirar') inp.dyaw = 0.05; else if (s.id === 'saltar') inp.jump = (k % 40) < 5;
     else if ((s.id === 'atacar' || s.id === 'rematar') && s.mp) { const a = aim(s.mp); inp.dyaw = cl(a.err, 0.2); inp.dpitch = cl(Math.atan2(s.mp[1] - p.pos.y - 0.7, a.d) - p.pitch, 0.1); if (p.mode === 'combo') { if (a.d > 4.6) inp.mz = 1; inp.a1 = (k % 20) < 8; } else { inp.fire = true; if (a.d > 25) inp.mz = 1; } }
-    else if (s.id === 'habilidad') inp.mov = (k % 60) < 10; else if (s.id === 'esquivar') inp.mx = 1;
+    else if (s.id === 'habilidad') inp.mov = (k % 60) < 10; else if (s.id === 'esquivar') inp.mx = s.zona && Math.hypot(p.pos.x - s.zona.p[0], p.pos.z - s.zona.p[2]) < s.zona.r + 1.2 ? 1 : 0;   // sale del círculo y se detiene (no sigue hasta un portal)
     else if ((s.id === 'usar' || s.id === 'curar') && s.mp) { const a = aim(s.mp); inp.dyaw = cl(a.err, 0.2); if (a.d > 2.5) inp.mz = 1; inp.interact = (k % 30) < 3 && a.d < 3.4; }
     return inp;
   };

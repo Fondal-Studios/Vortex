@@ -101,7 +101,7 @@ function bot(char, mode, seed = 3, maxS = 400) {
     const cl = (v, m) => Math.max(-m, Math.min(m, v));
     if (s.id === 'mover') inp.mz = 1; else if (s.id === 'mirar') inp.dyaw = 0.05; else if (s.id === 'saltar') inp.jump = (k % 40) < 5;
     else if ((s.id === 'atacar' || s.id === 'rematar') && s.mp) { const t = tgt(s.mp); inp.dyaw = cl(t.err, 0.2); inp.dpitch = cl(Math.atan2(s.mp[1] - p.pos.y - 0.7, t.d) - p.pitch, 0.1); if (mode === 'combo') { if (t.d > 4.6) inp.mz = 1; inp.a1 = (k % 20) < 8; } else { inp.fire = true; if (t.d > 25) inp.mz = 1; } }
-    else if (s.id === 'habilidad') inp.mov = (k % 60) < 10; else if (s.id === 'esquivar') inp.mx = 1;
+    else if (s.id === 'habilidad') inp.mov = (k % 60) < 10; else if (s.id === 'esquivar') inp.mx = s.zona && Math.hypot(p.pos.x - s.zona.p[0], p.pos.z - s.zona.p[2]) < s.zona.r + 1.2 ? 1 : 0;   // sale del círculo y se detiene (no sigue hasta un portal)
     else if ((s.id === 'usar' || s.id === 'curar') && s.mp) { const t = tgt(s.mp); inp.dyaw = cl(t.err, 0.2); if (t.d > 2.5) inp.mz = 1; inp.interact = (k % 30) < 3 && t.d < 3.4; }
     g.setInput(p.id, inp); g.step(1 / 60); if (pasos[pasos.length - 1] !== s.id) pasos.push(s.id);
   }
@@ -127,4 +127,14 @@ test('tutorial: tras terminar, la oleada 1 empieza y la 2.ª habilidad sigue blo
   const r = bot('axioma', 'shooter'); const g = r.g;
   for (let k = 0; k < 60 * 8; k++) { g.setInput(1, { compact: true }); g.step(1 / 60); }
   assert.equal(g.wave, 1); assert.equal(g.skillLevel, 0, 'la habilidad de apoyo y la definitiva se desbloquean por oleada');
+});
+
+test('tutorial: ningún blanco/objeto está junto a un portal de Islas (causa del teletransporte de Micelio) y Micelio en Melé lo completa', async () => {
+  const { MAPS } = await import('../src/sim/maps.js'); const map = MAPS.m1.instance ? MAPS.m1.instance() : MAPS.m1;
+  for (const [nombre, a] of Object.entries(TU.ANCLAS_M1)) for (const po of map.portals) for (const e of [po.a, po.b]) {
+    assert.ok(Math.hypot(a[0] - e.x, a[2] - e.z) > po.r + 3, `${nombre} a ${Math.hypot(a[0] - e.x, a[2] - e.z).toFixed(1)} m de un portal`);
+  }
+  const r = bot('micelio', 'combo', 3, 400);
+  assert.equal(r.g.tutorial.fin, true, 'Micelio/Melé termina: ' + r.pasos.join(',') + ' pos ' + [r.p.pos.x, r.p.pos.z].map((v) => v.toFixed(1)) + ' hp ' + (r.g.monsters.find((m) => m.tut) || {}).hp); assert.ok(!r.g.events.some((e) => e.t === 'portal'), 'sin teletransportes involuntarios');
+  assert.ok(r.p.pos.y > -5, 'no se cayó de la isla');
 });

@@ -272,7 +272,7 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 function startSolo(mapId, opts = {}) {
   asegurarHuesped(true);   // el Huésped tiene que ser tuyo (inicial o desbloqueado); un enlace directo sin Huésped inicial recibe el actual
   // Sprint 1: la primera vez que se juega «Islas — Despertar» hay cinemática de transferencia + tutorial jugable (se guarda; ?tutorial=1 lo fuerza, ?tutorial=0 lo apaga)
-  const conTutorial = !opts.practice && !opts.horde && !opts.bot && params.get('tutorial') !== '0' && (params.get('tutorial') === '1' || (opts.campaign === 'm1' && !params.get('auto') && Perfil.tutorialPendiente()));
+  const conTutorial = !opts.practice && !opts.horde && !opts.bot && params.get('tutorial') !== '0' && (params.get('tutorial') === '1' || opts.tutorial || (opts.campaign === 'm1' && !params.get('auto') && Perfil.tutorialPendiente()));
   const conCine = conTutorial && !Perfil.tutorialEstado().cine && !params.get('skipintro') && params.get('cine') !== '0';
   const intro = (opts.intro !== false && !params.get('auto') && !params.get('skipintro')) || conCine;
   const game = new Game({ mapId, campaign: !!opts.campaign, operation: !opts.practice && !opts.horde, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0, tutorial: conTutorial ? { desde: Perfil.tutorialEstado().paso } : false });
@@ -953,7 +953,9 @@ function bindTouchSettings() {
   const syncClar = () => { const b = $('claridad'); if (b) b.querySelector('b').textContent = `Claridad: ${settings().claridad === 'alta' ? 'Alta (más luz sobre vos y los enemigos)' : 'Normal'}`; };
   const cl = $('claridad'); if (cl) cl.addEventListener('click', (e) => { e.stopPropagation(); const v = settings().claridad === 'alta' ? 'normal' : 'alta'; setSetting('claridad', v); renderer.applyClaridad(v); syncClar(); }); syncClar();
   const syncAuto = () => { const b = $('camauto'); if (b) b.querySelector('b').textContent = `Cámara automática por modo: ${settings().camAuto ? 'sí (Melé 3.ª · Disparo 1.ª)' : 'no'}`; };
-  const ca = $('camauto'); if (ca) ca.addEventListener('click', (e) => { e.stopPropagation(); setSetting('camAuto', !settings().camAuto); syncAuto(); }); syncAuto();
+  { const cs = $('camautosel'); if (cs) { cs.value = settings().camAuto ? '1' : '0'; cs.addEventListener('change', () => { setSetting('camAuto', cs.value === '1'); syncAuto(); }); } }
+  { const tr = $('tutrep'); if (tr) tr.addEventListener('click', () => { Perfil.tutorialReiniciar(); sound.ui('ok'); conPrimerHuesped(() => loadAnd(() => startSolo('m1', { tutorial: true, intro: false }))); }); }   // Ajustes › «Repetir tutorial»: Islas con el tutorial (no toca el avance de la campaña)
+  const ca = $('camauto'); if (ca) ca.addEventListener('click', (e) => { e.stopPropagation(); setSetting('camAuto', !settings().camAuto); syncAuto(); const cs2 = $('camautosel'); if (cs2) cs2.value = settings().camAuto ? '1' : '0'; }); syncAuto();
   const syncSide = () => { const b = $('camside'); if (b) b.querySelector('b').textContent = `Hombro de la cámara: ${(settings().camSide || 1) > 0 ? 'derecho' : 'izquierdo'}`; };
   const sb = $('camside'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); setSetting('camSide', (settings().camSide || 1) > 0 ? -1 : 1); syncSide(); }); syncSide();
   for (const [id, key, dflt] of [['camdist', 'camDist', 3.6], ['camfov', 'camFov', 78]]) { const el = $(id); if (!el) continue; el.value = settings()[key] || dflt; el.addEventListener('input', () => setSetting(key, +el.value)); el.addEventListener('pointerdown', (e) => e.stopPropagation()); }

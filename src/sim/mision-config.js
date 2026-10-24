@@ -137,7 +137,7 @@ export const MISIONES = Object.freeze({
       mecanismo('nucleo', { plan: 3, tier: 2.6, title: 'Recuperar el vínculo genómico' }),
       combate({ plan: 4, tier: 3.0, span: 80 }),
       evento({ plan: 4, tier: 3.4, span: 80 }),
-      jefe({ plan: 5, tier: 3.8 }),
+      jefe({ plan: 4, tier: 3.8 }),
     ],
   },
   m2: {

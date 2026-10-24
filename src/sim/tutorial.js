@@ -19,7 +19,7 @@ export const ZONA = { r: 4.2, total: 3.2, reintento: 1.2 };
 export const MIN_PASO = 1.5;          // un paso nunca se completa antes de este tiempo (se alcanza a leer)
 export const PAUSA_OK = 1.1;          // «¡Bien!» antes de pasar al siguiente
 /** Blancos del tutorial en la arena de Islas (isla central: radio 26, suelo en y = 0). */
-export const ANCLAS_M1 = Object.freeze({ blanco: [2, 1.4, -14], terminal: [14, 0.9, 6], botiquin: [-12, 0.9, 6] });
+export const ANCLAS_M1 = Object.freeze({ blanco: [-7, 1.4, -6], terminal: [10, 0.9, -2], botiquin: [-12, 0.9, 6] });
 
 /** Los pasos y sus textos (español). `pc` / `touch` según el dispositivo; `combo` cuando el texto cambia en modo Melé. */
 export const PASOS = Object.freeze([
@@ -129,13 +129,14 @@ export function tickTutorial(g, dt) {
       const E = T.ent; if (E.suelo && !p.grounded && I.jump) E.n++; E.suelo = !!p.grounded; T.prog = Math.min(1, E.n / SALTOS); listo = E.n >= SALTOS; break;
     }
     case 'atacar': {
-      const m = dummy(g, T) || crearBlanco(g, T); if (!m) break;
-      const daño = Math.max(0, 1 - m.hp / m.maxhp); T.prog = Math.min(1, daño / 0.15); listo = daño >= 0.15; break;
+      const m = dummy(g, T) || (T.dummyId ? null : crearBlanco(g, T));   // si un golpe fuerte lo destruyó de una (combo pesado), cuenta como daño completo
+      const daño = m ? Math.max(0, 1 - m.hp / m.maxhp) : T.dummyId ? 1 : 0; if (!m && !T.dummyId) break; T.prog = Math.min(1, daño / 0.15); listo = daño >= 0.15; break;
     }
     case 'rematar': {
-      const m = dummy(g, T) || crearBlanco(g, T); if (!m) break;
-      const meta = 1 - DUMMY_GOAL, daño = Math.max(0, 1 - m.hp / m.maxhp); T.prog = Math.min(1, daño / meta);
-      if (daño >= meta) { quitarBlanco(g, T, true); listo = true; }
+      const m = dummy(g, T) || (T.dummyId ? null : crearBlanco(g, T));
+      if (!m && !T.dummyId) break;
+      const meta = 1 - DUMMY_GOAL, daño = m ? Math.max(0, 1 - m.hp / m.maxhp) : 1; T.prog = Math.min(1, daño / meta);
+      if (daño >= meta) { quitarBlanco(g, T, !!m); listo = true; }
       break;
     }
     case 'habilidad': { const E = T.ent; listo = p.movCd > 0.3 && E.prev <= 0.3; E.prev = p.movCd; T.prog = listo ? 1 : 0; break; }
