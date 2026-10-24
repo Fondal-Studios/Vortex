@@ -358,3 +358,5 @@ nice -n 19 node tools/audit/medicion-capitulos.mjs all all 1 <salida.jsonl>   # 
 - `npm audit`, escaneo de secretos del historial, rendimiento en dispositivos y latencia real **no** se midieron.
 - Números de línea corresponden al árbol de trabajo en `62244b6` + archivos sin versionar; pueden moverse tras los siguientes commits.
 - `tools/audit/medicion-capitulos.mjs` y `tools/audit/coop-resume-result.repro.js` aparecen sin versionar en el árbol; esta auditoría no los creó ni modificó.
+
+> **Actualización Sprint 1-D (24-oct):** hallazgos 11 (AC-07), 14 (CI/despliegue sin compuertas) y 15 (test heredado rojo, `WAKE_SHORT`, nombres) tienen arreglo escrito en el árbol de trabajo (sin push, sin ver el CI real). Detalle y límites en `docs/OPERATIONS.md`.

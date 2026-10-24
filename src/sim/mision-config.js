@@ -24,7 +24,7 @@ export const MODOS_APARTE = Object.freeze({
 /** Límites duros por defecto (s de simulación). Una misión puede declarar los suyos en `limites`. */
 export const LIMITES = Object.freeze({
   etapa: 150,       // etapa de combate/evento sin objetivo: pasado el tope la red «se repliega» (se desintegra a los rezagados) y se pasa a la siguiente
-  jefe: 330,        // el encuentro final: al agotarse, derrota «Tiempo agotado»
+  jefe: 450,        // el encuentro final: al agotarse, derrota «Tiempo agotado»
   mision: 1500,     // la misión completa (25 min de reloj de simulación): al agotarse, derrota «Tiempo agotado»
   elegirMejora: 20, // en solitario el intermedio espera tu elección como máximo esto; luego se elige sola (nadie puede congelar la partida)
 });
@@ -66,7 +66,7 @@ const jefe = (o) => ({ kind: 'jefe', objective: null, title: 'Encuentro final', 
  */
 export const MISIONES = Object.freeze({
   m1: {
-    duracion: [8, 12], boss: { kind: 'coloso', enrageT: 150, enrageCoop: 30 },
+    duracion: [8, 12], boss: { kind: 'coloso', enrageT: 90, enrageCoop: 30 },
     victoria: 'Superá las ocho oleadas, recuperá tu identidad y derrotá al Coloso.',
     derrota: DERROTA,
     stages: [
@@ -81,7 +81,7 @@ export const MISIONES = Object.freeze({
     ],
   },
   m3: {
-    duracion: [8, 12], boss: { kind: 'argos', enrageT: 150, enrageCoop: 30 },
+    duracion: [8, 12], boss: { kind: 'argos', enrageT: 90, enrageCoop: 30 },
     victoria: 'Apagá la vigilancia del Laberinto, superá las ocho oleadas y derrotá a Argos.',
     derrota: DERROTA,
     stages: [
@@ -96,7 +96,7 @@ export const MISIONES = Object.freeze({
     ],
   },
   m4: {
-    duracion: [8, 12], boss: { kind: 'argos', enrageT: 150, enrageCoop: 30 },
+    duracion: [8, 12], boss: { kind: 'argos', enrageT: 90, enrageCoop: 30 },
     victoria: 'Hacé crecer el puente vivo, extraé el archivo, superá las ocho oleadas y derrotá a Argos, el Ojo Primordial.',
     derrota: DERROTA,
     stages: [
@@ -111,7 +111,7 @@ export const MISIONES = Object.freeze({
     ],
   },
   m5: {
-    duracion: [8, 12], boss: { kind: 'coloso', enrageT: 150, enrageCoop: 30 },
+    duracion: [8, 12], boss: { kind: 'coloso', enrageT: 90, enrageCoop: 30 },
     victoria: 'Restaurá la grabación de Praga, superá las ocho oleadas y derrotá al Mandinga del Reloj.',
     derrota: DERROTA,
     stages: [
@@ -126,7 +126,7 @@ export const MISIONES = Object.freeze({
     ],
   },
   m6: {
-    duracion: [8, 12], boss: { kind: 'argos', enrageT: 150, enrageCoop: 30 },
+    duracion: [8, 12], boss: { kind: 'argos', enrageT: 90, enrageCoop: 30 },
     victoria: 'Recuperá el vínculo genómico del Osario, superá las ocho oleadas y derrotá al Basilisco.',
     derrota: DERROTA,
     stages: [
@@ -141,7 +141,7 @@ export const MISIONES = Object.freeze({
     ],
   },
   m2: {
-    duracion: [8, 12], boss: { kind: 'madre', enrageT: 150, enrageCoop: 30 },
+    duracion: [8, 12], boss: { kind: 'madre', enrageT: 90, enrageCoop: 30 },
     victoria: 'Abrí el canal de salida, superá las ocho oleadas y derrotá a la Madre Geoda.',
     derrota: DERROTA,
     stages: [

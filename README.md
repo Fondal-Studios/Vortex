@@ -43,7 +43,7 @@ Elegí **▶ Historia** (campaña con la intro del tren) o una **Arena**, y hac�
 `demo/cristal-vortice-demo.mp4`: título y menú PS5, la intro del tren, el despertar con el Heraldo, los dos capítulos, los dos jefes y el bestiario. Se regenera con `node tools/make-video.js && bash tools/assemble-video.sh` (tarda: el render es por CPU).
 
 ## Los mapas
-1. **Vacío de Islas** — islas flotantes: ascensores de gravedad invertida, planetoides, zonas sin peso, burbujas de tiempo lento, portales. Jefe: *Coloso Prismático* (ojo-colmena leviatán).
+1. **Vacío de Islas** — islas flotantes: ascensores de gravedad invertida, planetoides, zonas sin peso, burbujas de tiempo lento, portales. Jefe: *Coloso Prismático* (ojo-colmena leviatán). Es la arena del capítulo 1 de la campaña, «Islas — Despertar».
 2. **Cámara Fractal** — por dentro de una esfera hueca; el suelo está en todas partes y cada 60 s «la marea» apaga la gravedad. Jefe: *Madre Geoda* (flor-útero).
 
 ## Pruebas

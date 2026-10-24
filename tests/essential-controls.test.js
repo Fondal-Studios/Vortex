@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { essentialActions, thirdForMode } from '../src/client/essential-controls.js';
+import { essentialActions, thirdForMode, camaraInicial } from '../src/client/essential-controls.js';
 import { TouchControls } from '../src/client/touch.js';
 import { settings, DEFAULTS } from '../src/client/settings.js';
 import { metaActual } from '../src/client/meta-texto.js';
@@ -23,7 +23,7 @@ test('four combat actions in both modes, interaction replaces power, pause remai
     for (const x of ['fire','jump','mode','pause']) assert.ok(actions.includes(x));
     assert.ok(actions.includes(use?'use':mode==='combo'?'s3':'esp'));
   }
-  assert.equal(thirdForMode('shooter'),false);
+  assert.equal(thirdForMode('shooter'),false);assert.equal(camaraInicial('shooter'),true,'3.ª persona inicial en todos los modos');assert.equal(camaraInicial('shooter',true),false);
   assert.equal(thirdForMode('combo'),true);
   assert.equal(DEFAULTS.simple,false,'manual attack is the default');
 });

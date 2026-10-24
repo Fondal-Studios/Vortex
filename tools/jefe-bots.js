@@ -42,7 +42,7 @@ function botiquin(g, p, wish) {
 export function botEstilo(g, pid, estilo0, { seed = 1, skill = 1.2 } = {}) {
   let estilo = estilo0;
   const base = makeBot(g, pid, { seed, skill }), rng = makeRng(seed * 4099 + 7);
-  let ciclo = 0, modoMix = 0, tModo = 0, strafe = 1, strafeT = 0, a2 = false;
+  let sinSalir = 0, ciclo = 0, modoMix = 0, tModo = 0, strafe = 1, strafeT = 0, a2 = false;
   const think = function think(dt) {
     const p = g.players.find((q) => q.id === pid);
     const jefe = g.monsters.find((m) => !m.dead && m.def.boss);
@@ -113,7 +113,10 @@ export function botEstilo(g, pid, estilo0, { seed = 1, skill = 1.2 } = {}) {
     if (est === 'skills' || est === 'powers') {
       // sólo habilidades: usa cada una apenas se recarga (el daño del jefe viene de ellas)
       if (err < 0.35) { inp.esp = p.espCd <= 0; inp.s3 = p.s3Cd <= 0; inp.mov = p.movCd <= 0 && dd > 14; inp.ult = (p.ul || 0) >= 100; }
-      inp.fire = est === 'skills' && err < 0.12 && p.espCd > 0 && p.s3Cd > 0;   // entre una habilidad y otra dispara (un jugador de poderes también tiene arma)
+      // entre una habilidad y otra dispara (un jugador de poderes también tiene arma). Si una habilidad NO sale (bloqueada por el nivel de campaña, silencio del jefe)
+      // su recarga queda en 0 y el bot nunca disparaba: un jugador real usaría el arma. Pasado 1,5 s «lista» sin salir, dispara igual.
+      sinSalir = p.espCd <= 0 && p.s3Cd <= 0 ? sinSalir + dt : 0;
+      inp.fire = est === 'skills' && err < 0.12 && (g.skillLevel != null || (p.espCd > 0 && p.s3Cd > 0) || sinSalir > 1.5);   // en campaña (nivel de habilidades limitado) el arma es parte del estilo
     } else inp.fire = false;   // esquivador: no ataca
     const ev = mecEvitar(g, p); if (ev) wish = add(mul(ev, 4), mul(wish, 0.3));
     for (const q of g.projectiles) { if (q.owner !== 'm') continue; const to = sub(p.pos, q.pos), d2 = len(to); if (d2 < 24 && d2 > 1 && dot(norm(q.vel), mul(to, 1 / d2)) > 0.93) { const side = norm(cross(norm(q.vel), p.up)); wish = add(wish, mul(side, dot(side, cross(p.heading, p.up)) >= 0 ? 3 : -3)); } }

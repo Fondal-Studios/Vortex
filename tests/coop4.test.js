@@ -137,6 +137,12 @@ test('fin de partida: cada jugador recibe SU botín del servidor; "otra vez" vue
     for (const p of g.players) p.hp = 0, p.dead = true;   // derrota inmediata
     assert.ok(await until(() => a.fin && b.fin, 3000), 'los dos reciben «fin»');
     assert.equal(a.fin.estado, 'lost'); assert.ok(Array.isArray(a.fin.bag));
+    assert.match(a.fin.matchId, /^[A-Za-z0-9_-]{8,64}$/); assert.equal(a.fin.matchId, b.fin.matchId, 'todos cobran con el mismo matchId');
+    assert.equal(a.fin.resumen.estado, 'lost'); assert.equal(a.fin.resumen.jugadores.length, 2); assert.ok(a.fin.recompensa.mult >= 0.5 && a.fin.recompensa.mult <= 1.25);
+    // corte de red después del final: al reanudar llega de nuevo el MISMO resultado (V02) y no se duplica ningún jugador
+    const idFin = a.fin.matchId; a.fin = null; a.ws.close(4000);   // cierre "raro": el cliente reconecta solo
+    assert.ok(await until(() => a.fin && a.estado === 'conectado', 8000), 'el resultado vuelve tras reconectar');
+    assert.equal(a.fin.matchId, idFin); assert.equal([...srv.rooms.values()][0].game.players.length, 2); assert.equal([...srv.rooms.values()][0].members.length, 2);
     a.send({ t: 'restart' }); assert.ok(await until(() => a.lobby.fase === 'lobby' && !a.lobby.players[0].ready, 3000), 'vuelve al lobby');
   } finally { await srv.close(); }
 });

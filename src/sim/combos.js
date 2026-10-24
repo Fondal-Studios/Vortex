@@ -188,6 +188,9 @@ function resolve(g, p, mv0, power, W, last, fin) {
         else if (ac.mark && !m.dead && !(g.time < (m.markUntil || 0) && (m.markMul || 0) >= 1.15)) { m.markUntil = g.time + 4; m.markMul = 1.15; }   // Marca de sentencia
       }
       for (const [m] of sel) if (m.dead) killed.push(m);
+      // Objetos hostiles (capullos del Cultivo, ojos de Argos, huevos de la Madre): el Combo los ignoraba y sólo el golpe rápido (huespedes.js) los alcanzaba.
+      // Un jugador Melé quedaba sin poder completar el Cultivo del Jardín.
+      for (const ob of [...g.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, o) < range + ob.r && dot(norm(sub(ob.pos, o)), dir0) > cosT) { g.damageObject(ob, dmg, p, ob.pos); hits++; }
       if ((M.item || (p.evo || 0) >= 1) && M.special) meleeAfter(g, p, M.special, heavy || last, dir0, o, dmg, strong);
       if (IS.onda) meleeAfter(g, p, 'onda', true, dir0, o, dmg, strong);
       if (mv.dash) p.ext = madd(p.ext, h, mv.dash * 2.2);

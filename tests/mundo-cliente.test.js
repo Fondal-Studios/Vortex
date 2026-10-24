@@ -73,7 +73,7 @@ test('cableado: render, objetos, main y el arma usan el módulo (chequeo de fuen
   assert.match(src('render.js'), /setAffix\(e, m\.af\)/); assert.match(src('render.js'), /vm\.setLineage\(/);
   assert.match(src('objects.js'), /buildNpc\(d\)/); assert.match(src('objects.js'), /o\.t === 'npc'/);
   assert.match(src('weapons-vm.js'), /setLineage\(st\)/);
-  const m = src('main.js'); assert.match(m, /npcInput\(ti\)/); assert.match(m, /return npcInput\(i\)/); assert.match(m, /case 'npcdeal'/); assert.match(m, /npcPanel\.choose/);
+  const m = src('main.js'); assert.match(m, /npcInput\(ti\)/); assert.match(m, /return (?:learnedInput\()?npcInput\(i\)/);   /* el input pasa por learnedInput (aprendizaje de controles) antes de salir */ assert.match(m, /case 'npcdeal'/); assert.match(m, /npcPanel\.choose/);
   assert.ok(fs.readFileSync(new URL('../public/style.css', import.meta.url), 'utf8').includes('#npcpanel'));
   void ahead;
 });

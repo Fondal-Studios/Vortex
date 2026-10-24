@@ -30,6 +30,7 @@ import { Director } from './director.js';
 import { initArenas, tickArenas, arSnap, arTargets, arExplosion, arKill, arVel, arDanio, danarOrgano } from './arenas-vivas.js'; // arenas vivas (src/sim/arenas-vivas.js)
 import { initNieblas, tickNieblas, ngSnap, ngVel, ngDanio, ngRecibe, ngOculta, ngMonstruoRecibe, ngDeforma } from './nieblas.js';   // nieblas de colores con función (src/sim/nieblas.js)
 import { initFlora, tickFlora, flSnap, flVel, flRecibe, floraRayo, floraExplosion, applyHerb } from './flora.js';   // flora interactiva (src/sim/flora.js)
+import { crearTutorial, tickTutorial } from './tutorial.js';
 import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, limitarCaida, forzarEvento } from './eventos.js';
 import { initFauna, initFaunaPlayer, tickFauna, shapeFauna, faunaSnap, faunaPlayerSnap } from './fauna.js';   // fauna consumible y metamorfosis (src/sim/fauna.js, docs/FAUNA.md)
 import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
@@ -48,7 +49,8 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null, operation = false, campaign = false } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null, operation = false, campaign = false, tutorial = false } = {}) {
+    this.tutorial = null; this.tutorialT = 0;   // Sprint 1: tutorial jugable de Islas (src/sim/tutorial.js); mientras dura no empiezan las oleadas
     this.skillLevel = skillLevel === null ? null : cleanSkillLevel(skillLevel);
     this.jefeMem = jefeMem;   // memoria del intento anterior contra el jefe (jefeMemoria): adaptación suave entre intentos
     this.magazines = !!magazines;   // cargadores y recarga (el juego real los usa; las pruebas viejas no)
@@ -83,6 +85,7 @@ export class Game {
     initDrops(this, seed);                                // botín: g.drRng derivado de la semilla (nunca usa g.rng)
     if (this.map.base) initBase(this);                    // La Base: estaciones y personajes fijos (src/sim/base.js)
     initEventos(this);                                    // eventos de oleada (src/sim/eventos.js): la gravedad invertida vive dentro de uno de ellos
+    if (tutorial && !practice && mapId !== 'base') this.tutorial = crearTutorial(this, typeof tutorial === 'object' ? tutorial : {});   // sólo en misiones de combate
   }
 
   /* ─────────── jugadores ─────────── */
@@ -163,9 +166,10 @@ export class Game {
     this.tick++; this.time += dt; this.dt = dt;
     if (this.state !== 'playing') { if (this.loot.length) flushLoot(this); return; }
     this.director.update(this, dt);
-    if (this.cfg && this.time > this.cfg.limites.mision) { this.agotarTiempo('mision', `Tiempo agotado: la misión superó el límite de ${Math.round(this.cfg.limites.mision / 60)} minutos.`); return; }
+    if (this.cfg && this.time - this.tutorialT > this.cfg.limites.mision) { this.agotarTiempo('mision', `Tiempo agotado: la misión superó el límite de ${Math.round(this.cfg.limites.mision / 60)} minutos.`); return; }
     this.updateWaves(dt); this.updateOmens(); tickArenas(this, dt); tickNieblas(this, dt); tickFlora(this, dt); tickFauna(this, dt);
     for (const p of this.players) this.updatePlayer(p, dt);
+    if (this.tutorial) tickTutorial(this, dt);
     updateObjective(this, dt); this.updateObjects(dt); if (this.cult) tickCultivo(this, dt);
     if (this.pings.length) this.pings = this.pings.filter((q) => q.until > this.time);
     for (const m of this.monsters) this.updateMonster(m, dt);
@@ -194,6 +198,7 @@ export class Game {
   updateWaves(dt) {
     if (this.map.base) return stepBase(this);
     if (this.practice) return this.updatePractice(dt);
+    if (this.tutorial && !this.tutorial.fin) return;   // tutorial en curso: el combate real espera
     const plan = WAVE_PLANS[this.mapId];
     if (this.phase === 'intermission') {
       const choosing = this.wave > 0 && this.players.some((p) => !p.dead && p.cards.length), L = this.cfg ? this.cfg.limites : LIMITES, quick = this.cfg ? this.cfg.descanso.rapido : 4;
@@ -916,6 +921,7 @@ export class Game {
     const boss = this.monsters.find((m) => m.def.boss && !m.dead);
     return {
       tick: this.tick, time: r2(this.time), map: this.mapId, state: this.state, phase: this.phase,
+      tut: this.tutorial ? this.tutorial.snap() : undefined,
       operation: this.operation ? this.operationSnap() : null,
       wave: this.wave, waveTotal: this.waveTotal, left: this.queue.length + this.omens.length + this.monsters.length, om: this.omens.map((o) => [...a3(o.pos), o.k, r2(o.at - this.time)]), intermission: r2(Math.max(0, this.phaseT)),
       fx: this.map.fx(this.time),

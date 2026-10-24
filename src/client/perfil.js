@@ -419,6 +419,8 @@ function cerrarBotin(char, jugador, info) {
   if (jugador.sg && SIGNATURES[char] && (!info.regla || info.regla.firma)) { if (!p.sigs[char]) botin.firma.push(SIGNATURES[char]); p.sigs[char] = 1; }
   botin.pity = { ...p.pity };
 }
+/** Líneas del botín de la última partida para la pantalla de resultados (sin el encabezado). */
+export const botinLineas = () => botinTexto().split('\n').map((x) => x.trim()).filter((x) => x && !x.startsWith('BOTÍN'));
 /** Texto en español del botín de la última partida (pantalla final). */
 export function botinTexto() {
   const b = botin, nm = b ? Object.keys(b.mats || {}) : []; if (!b || (!b.items.length && !b.madura.length && !nm.length && !(b.planos || []).length)) return '';

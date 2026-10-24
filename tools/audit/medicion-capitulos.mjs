@@ -71,6 +71,7 @@ function jugar(cap, estilo, seed) {
       else if (e.t === 'clear') tl.push(['clear', e.wave, +g.time.toFixed(1)]);
     }
     g.events.length = 0;
+    if (process.env.DEBUG_JEFE && g.tick % 1800 === 0) { const b = g.monsters.find((m) => m.def.boss); if (b) console.log('  jefe', g.time.toFixed(0), 'hp', Math.round(b.hp), b.ia && b.ia.st, 'enr', b.ia && b.ia.enr, 'p', Math.round(p.hp + p.shield), 'sk', g.skillLevel, 'ul', p.ul | 0, 'mons', g.monsters.length, 'dist', Math.round(Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z)), 'by', Math.round(b.pos.y), 'py', Math.round(p.pos.y)); }
     const o = g.objective, s = [g.wave, g.phase, g.queue.length, g.monsters.length, o ? Math.round(o.prog * 50) + (o.stage || 0) : -1, g.monsters.filter((m) => m.def.boss).map((m) => Math.round(m.hp / 50)).join()].join('|');
     if (s !== sig) { sig = s; lastChange = g.time; } maxStall = Math.max(maxStall, g.time - lastChange);
     minHp = Math.min(minHp, p.hp + p.shield);

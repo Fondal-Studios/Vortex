@@ -6,7 +6,9 @@ export function essentialPower(mode, choice) {
 export function essentialActions(mode, context = {}, choice) {
   return ['fire', 'jump', context.use ? 'use' : essentialPower(mode, choice), 'mode', 'pause'];
 }
-export const thirdForMode = (mode) => mode === 'combo';
+export const thirdForMode = (mode) => mode === 'combo';   // sólo se usa con el ajuste «Cámara automática por modo» (apagado por defecto)
+/** Cámara con la que empieza una partida: tercera persona para TODOS los modos (GDD 2.1). Con «Cámara automática por modo» activo: Melé = tercera, Disparo = primera. */
+export const camaraInicial = (mode, auto = false) => (auto ? thirdForMode(mode) : true);
 
 /** Una pulsación comienza inmediatamente; mantener agrega la alternativa, sin daño/cooldown extra. */
 export function expandEssentialInput(input, held = {}, mode = 'shooter', power = essentialPower(mode)) {
@@ -21,7 +23,7 @@ export function expandEssentialInput(input, held = {}, mode = 'shooter', power =
 export function essentialInteraction(state, me, extra = {}) {
   if (!state || !me || me.dead) return false;
   const near = (p, r) => Array.isArray(p) && Math.hypot(p[0]-me.pos[0],p[1]-me.pos[1],p[2]-me.pos[2]) < r;
-  return !!(extra.npc || extra.fauna || extra.flora ||
+  return !!(extra.npc || extra.fauna || extra.flora || extra.tutorial ||
     (state.players || []).some(q=>q.id!==me.id && ((q.dead && near(q.pos,3)) || (q.carry && near(q.pos,2.8)))) ||
     (state.lt || []).some(o=>o[2]>=2 && (!o[6] || o[6]===me.id) && near([o[3],o[4],o[5]],4.6)));
 }

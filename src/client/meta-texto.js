@@ -14,7 +14,8 @@ export function textoObjetivo(o, me, solo = false) {
     case 'ancla': return `Cargá el Ancla: quedate dentro del círculo (${pct(o.prog)})`;
     case 'sintonia': return solo ? `Pisá cada placa antes de que se apague (${pct(o.prog)})` : `Ocupen todas las placas a la vez (${pct(o.prog)})`;
     case 'nucleo': return carga ? 'Llevá el núcleo al altar' : (o.prog > 0.02 ? 'Llevá el núcleo al altar (alguien lo lleva)' : 'Recogé el núcleo y llevalo al altar');
-    case 'cultivo': return 'Alimentá los capullos disparándoles hasta que florezcan';
+    case 'cultivo': return 'Alimentá los capullos (disparo o golpes) hasta que florezcan';
+    case 'resistir': return `Resistí el asedio: faltan ${Math.ceil(o.left - 15)} s`;
     default: return o.title || 'Cumplí el objetivo';
   }
 }
@@ -27,8 +28,8 @@ export function metaActual(state, me) {
   if (!state || state.state === 'won' || state.state === 'lost') return null;
   if (state.operation && !(state.operation.boss && state.phase === 'wave')) {
     const op = state.operation, o = state.obj;
-    if (state.phase === 'intermission') return { kind: me?.cards?.length ? 'mejora' : 'espera', main: me?.cards?.length ? 'Elegí una mejora para la próxima etapa' : `${op.title} · preparación ${Math.ceil(state.intermission)} s`, next: `Siguiente: ${op.next}` };
-    return { kind: 'objetivo', main: `Etapa ${state.wave}/${state.waveTotal} · ${op.step}`, next: o?.state === 'active' ? `${textoObjetivo(o, me, state.players?.length === 1)} · ${Math.ceil(o.left)} s${o.integrity == null ? '' : ` · Integridad ${o.integrity}% · despejá la zona`}` : 'Objetivo cumplido · preparando siguiente etapa' };
+    if (state.phase === 'intermission') return { kind: me?.cards?.length ? 'mejora' : 'espera', main: me?.cards?.length ? 'Elegí una mejora para la próxima oleada' : `${op.title} · preparación ${Math.ceil(state.intermission)} s`, next: `Siguiente: ${op.next}` };
+    return { kind: 'objetivo', main: `Oleada ${state.wave}/${state.waveTotal} · ${op.step}`, next: o?.state === 'active' ? `${textoObjetivo(o, me, state.players?.length === 1)} · ${Math.ceil(o.left)} s${o.integrity == null ? '' : ` · Integridad ${o.integrity}% · despejá la zona`}` : 'Objetivo cumplido · preparando siguiente etapa' };
   }
   const w = state.wave || 0, W = state.waveTotal || 1, esJefe = w >= W && state.phase === 'wave';
   const tag = `Oleada ${Math.max(1, w)}/${W}`;
@@ -40,7 +41,7 @@ export function metaActual(state, me) {
   }
   if (esJefe) {
     const b = state.boss;
-    return { kind: 'jefe', main: b ? `Derrotá a ${b.name} (${Math.max(0, Math.round(100 * b.hp / (b.max || 1)))} % de su vida)` : 'Derrotá al jefe', next: 'Liberá este archivo de la red' };
+    return { kind: 'jefe', main: b ? `Oleada ${W}/${W} · Derrotá a ${b.name} (${Math.max(0, Math.round(100 * b.hp / (b.max || 1)))} % de su vida)` : `Oleada ${W}/${W} · Derrotá al jefe`, next: 'Liberá este archivo de la red' };
   }
   const quedan = state.left || 0;
   const o = state.obj && state.obj.state === 'active' ? state.obj : null;

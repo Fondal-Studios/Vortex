@@ -22,6 +22,7 @@ import { MAPS } from '../src/sim/maps.js';
 import { CHARACTERS } from '../src/sim/data.js';
 import { cleanEquip } from '../src/sim/items.js';
 import { cleanArbol } from '../src/sim/progresion.js';
+import { repartoCoop } from '../src/sim/recompensas.js';   // recompensa base + bono por contribución (docs/RECOMPENSAS.md)
 import { PROTOCOLO, MAX_JUGADORES, ALFABETO_SALA, normalizarCodigo, ERRORES, compactar, crearEmisor } from '../src/sim/red.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -158,7 +159,7 @@ export async function startServer(opts = {}) {
   }
   function empezar(room) {
     room.game = new Game({ mapId: room.mapId, operation: true, seed: crypto.randomInt(1e9), calm: room.lobby ? 10 : 16, magazines: true });
-    room.finEnviado = false; room.em = crearEmisor(); room.acc = 0; room.last = Date.now(); stats.partidas++;
+    room.finEnviado = false; room.fin = null; room.matchId = crypto.randomUUID(); room.em = crearEmisor(); room.acc = 0; room.last = Date.now(); stats.partidas++;
     const keep = [];
     for (const m of room.members) { if (addAlJuego(room, m)) keep.push(m); else if (m.ws) error(m.ws, 'sala_llena'); }
     room.members = keep; room.phase = 'juego'; room.cuenta = 0;
@@ -245,7 +246,7 @@ export async function startServer(opts = {}) {
         if (!me) return error(ws, 'token');
         if (me.ws && me.ws !== ws) { const viejo = me.ws; viejo.miembro = null; me.ws = null; try { viejo.close(1000, 'reemplazado'); } catch { /* ya cerrado */ } }
         me.ws = ws; ws.miembro = me; me.away = 0; if (r.game) { const p = r.game.players.find(p => p.id === me.pid); if (p) p.aw = false; }
-        if (r.phase === 'juego') bienvenida(r, me, { reanudado: true }); difundirLobby(r);
+        if (r.phase === 'juego') { bienvenida(r, me, { reanudado: true }); if (r.finEnviado && r.fin) send(me.ws, finDe(r, me)); } difundirLobby(r);   // si la partida ya terminó, el resultado (mismo matchId) se reenvía: no se pierde por un corte
         log(`sala ${r.code}: un jugador volvió`);
         return;
       }
@@ -307,10 +308,16 @@ export async function startServer(opts = {}) {
     const msg = JSON.stringify({ t: 'snap', s: snapshotDe(room, completo) }); room.forzarCompleto = false;
     for (const m of room.members) send(m.ws, msg);
   }
+  /** Mensaje `fin` de UN jugador: su botín (nunca el de otro), el matchId de la partida y su parte de la recompensa. Se reenvía al reanudar (V02). */
+  function finDe(room, m) {
+    const F = room.fin, p = room.game.players.find((q) => q.id === m.pid);
+    return { t: 'fin', matchId: F.matchId, estado: F.estado, oleada: F.oleada, total: F.resumen.total, bag: p ? botinDe(p) : (m.botinFin || []), resumen: F.resumen, recompensa: F.reparto[m.pid] || { base: 1, bono: 0, mult: 1, aporte: 0, afk: false }, yo: m.pid };
+  }
   function terminar(room) {
-    room.finEnviado = true; difundirSnap(room, true);
-    const g = room.game;
-    for (const m of room.members) { const p = g.players.find((q) => q.id === m.pid); send(m.ws, { t: 'fin', estado: g.state, oleada: g.wave, bag: p ? botinDe(p) : [] }); }
+    room.finEnviado = true; difundirSnap(room, true); room.ultimo = Date.now();
+    const g = room.game, resumen = g.resumen();
+    room.fin = { matchId: room.matchId, estado: g.state, oleada: g.wave, resumen, reparto: repartoCoop(resumen.jugadores) };
+    for (const m of room.members) send(m.ws, finDe(room, m));
     log(`sala ${room.code}: terminó (${g.state}, oleada ${g.wave})`);
   }
   function pasoSala(room) {
@@ -351,7 +358,7 @@ export async function startServer(opts = {}) {
   latido = setInterval(() => {
     for (const ws of wss.clients) { if (!ws.vivo && (ws.perdidos = (ws.perdidos || 0) + 1) >= 3) { ws.terminate(); continue; } if (ws.vivo) ws.perdidos = 0; ws.vivo = false; try { ws.ping(); } catch { /* cerrado */ } }   // 3 pings sin respuesta (~1 min) = conexión muerta
     const now = Date.now();
-    for (const room of [...rooms.values()]) if (room.phase !== 'juego' && !conectados(room).length && now - room.ultimo > cfg.graciaMs) { rooms.delete(room.code); log(`sala ${room.code} cerrada (sin nadie conectado)`); }
+    for (const room of [...rooms.values()]) if ((room.phase !== 'juego' || room.finEnviado) && !conectados(room).length && now - room.ultimo > cfg.graciaMs) { rooms.delete(room.code); log(`sala ${room.code} cerrada (sin nadie conectado)`); }
   }, 20000);
   latido.unref && latido.unref();
 

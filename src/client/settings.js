@@ -23,7 +23,8 @@ export const DEFAULTS = Object.freeze({
   simple: false,       // MODO SIMPLE: ayuda de puntería alta, dispara solo al tener un enemigo en la mira y golpea solo cuando lo tenés encima
   claridad: 'normal', // CLARIDAD visual (quality.js · CLARIDAD): 'normal' | 'alta' (más luz de relleno y contorno de luz sobre el Huésped y los enemigos)
   baseAlTerminar: true, // al terminar una partida se ofrece «Entrar a la Base» en vez de volver al menú (docs/BASE.md)
-  third: false,        // cámara en tercera persona sobre el hombro (verte a vos mismo)
+  camAuto: false,      // «Cámara automática por modo» (Sprint 1): si está activo, Melé pasa a 3.ª persona y Disparo a 1.ª al cambiar de modo; apagado = la cámara sólo la cambia el botón
+  third: true,        // cámara en tercera persona sobre el hombro (verte a vos mismo)
   camDist: 3.6, camSide: 1, camFov: 78,   // distancia, hombro (1 derecha / -1 izquierda) y campo de visión de la 3ª persona
   adsMode: 'mantener', // 'mantener' | 'alternar'
   layout: {},         // { botón: { dx, dy, s } }: posiciones y tamaños personalizados

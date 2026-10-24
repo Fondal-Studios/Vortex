@@ -9,10 +9,11 @@ const SIN_GUIA = /[?&]guia=0\b/.test(typeof location !== 'undefined' ? location.
 
 export function createMetaHud(host, ctx = {}) {
   const top = host.querySelector('#top') || host;
-  const goal = document.createElement('div'); goal.id = 'goal'; goal.innerHTML = '<div class="g-main"></div><div class="g-next"></div>';
+  const goal = document.createElement('div'); goal.id = 'goal'; goal.innerHTML = '<div class="g-main"></div><div class="g-clock"></div><div class="g-next"></div>';
   const mision = document.createElement('div'); mision.id = 'mision'; mision.className = 'hidden';
   top.prepend(mision); top.prepend(goal);   // la meta va primero (arriba de todo)
-  const gMain = goal.querySelector('.g-main'), gNext = goal.querySelector('.g-next');
+  const gMain = goal.querySelector('.g-main'), gNext = goal.querySelector('.g-next'), gClock = goal.querySelector('.g-clock');
+  let clockCache = '';
   const guia = document.createElement('div'); guia.id = 'guia'; guia.className = 'hidden'; guia.innerHTML = '<span class="gu-txt"></span><button type="button" class="gu-skip">Saltar guía</button>';
   host.appendChild(guia);
   const flecha = document.createElement('div'); flecha.id = 'metaflecha'; flecha.className = 'hidden'; flecha.innerHTML = '<i>➤</i><span></span>';
@@ -43,7 +44,7 @@ export function createMetaHud(host, ctx = {}) {
     else if (state.phase === 'wave' && state.obj && state.obj.state === 'active') p = quiere('objetivo');
     else if (state.phase === 'wave' && w >= state.waveTotal) p = quiere('jefe');
     if (p && state.operation) {
-      const txt = { meta: 'Seguí las tres etapas de la misión. El objetivo marcado es obligatorio; eliminar enemigos no lo reemplaza.', mejora: 'Entre etapas elegís una mejora. Prepará tu equipo para el próximo objetivo.', objetivo: 'Seguí la flecha y las instrucciones de arriba. Si perdés el objetivo o se agota su tiempo, la misión fracasa.' }[p.id];
+      const txt = { meta: 'Seguí las oleadas de la misión hasta el jefe final. El objetivo marcado es obligatorio; eliminar enemigos no lo reemplaza.', mejora: 'Entre etapas elegís una mejora. Prepará tu equipo para el próximo objetivo.', objetivo: 'Seguí la flecha y las instrucciones de arriba. Si perdés el objetivo o se agota su tiempo, la misión fracasa.' }[p.id];
       if (txt) mostrarPaso({ ...p, txt }, touch);
     } else if (p) mostrarPaso(p, touch);
   }
@@ -81,6 +82,7 @@ export function createMetaHud(host, ctx = {}) {
       if (key !== cache) { cache = key; gMain.textContent = m.main; gNext.textContent = next; }
       const mi = textoMision(state.mis), mk = mi ? mi.cls + mi.txt : '';
       if (mk !== misCache) { misCache = mk; if (mi) { mision.textContent = mi.txt; mision.className = mi.cls; } else mision.className = 'hidden'; }
+      { const c = state.operation ? `⏱ ${Math.floor(state.time / 60)}:${String(Math.floor(state.time % 60)).padStart(2, '0')}` : ''; if (c !== clockCache) { clockCache = c; gClock.textContent = c; } }   // reloj de misión pequeño (sin botones)
       apuntar(state, me, camera);
       if (guiaOn && performance.now() > guiaT) ocultarGuia();
       else pasoGuia(state, me, touch);

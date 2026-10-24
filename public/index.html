@@ -11,7 +11,7 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/public/style.css"><link rel="stylesheet" href="/public/huespedes.css"><link rel="stylesheet" href="/public/evolucion.css"><link rel="stylesheet" href="/public/territorios.css"><link rel="stylesheet" href="/public/inventario.css"><link rel="stylesheet" href="/public/graficos.css"><link rel="stylesheet" href="/public/tienda.css"><link rel="stylesheet" href="/public/menu.css">
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
-<link rel="stylesheet" href="/public/identity.css">
+<link rel="stylesheet" href="/public/identity.css"><link rel="stylesheet" href="/public/onboarding.css">
 <link rel="stylesheet" href="/public/focused-hud.css?v=weapons-top-2">
 </head>
 <body>
@@ -209,6 +209,7 @@
   <button class="item" id="editctl"><b>Editar botones</b></button>
   <label class="item sel">Sensibilidad <input id="sens" type="range" min="2" max="10" value="5"></label>
   <button class="item" id="camtoggle"><b>Cámara: primera persona</b></button>
+  <button class="item" id="camauto"><b>Cámara automática por modo: no</b></button>
   <button class="item" id="camside"><b>Hombro de la cámara: derecho</b></button>
   <label class="item sel">Distancia de cámara <input id="camdist" type="range" min="2" max="6" step="0.2" value="3.6"></label>
   <label class="item sel">Campo de visión <input id="camfov" type="range" min="60" max="100" step="2" value="78"></label>
@@ -221,7 +222,7 @@
   <label class="item sel" hidden style="display:none"><select id="qsel2"></select></label></div></details>
   <button class="item" id="pbase"><b>Salir a la Base</b></button>
   <button class="item" id="quit"><b>Salir al menú</b></button></div></div></div>
-<div id="end" class="hidden ps"><div class="pbox"><h2 id="endtitle"></h2><pre id="endstats"></pre><div class="list"><button class="item hidden" id="tobase"><b>Entrar a la Base</b></button><button class="item" id="again"><b>Jugar de nuevo</b></button><button class="item" id="tomenu"><b>Menú principal</b></button></div></div></div>
+<div id="end" class="hidden ps"><div class="pbox"><h2 id="endtitle"></h2><pre id="endstats"></pre><div class="list"><button class="item hidden" id="tobase"><b>Entrar a la Base</b></button><button class="item" id="again"><b>Reintentar</b></button><button class="item" id="tomenu"><b>Menú principal</b></button></div></div></div>
 <script type="module" src="/src/client/main.js"></script>
 </body>
 </html>

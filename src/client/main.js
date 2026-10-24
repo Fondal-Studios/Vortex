@@ -1,7 +1,8 @@
-import { CAMPAIGN_ORDER, campaignNext } from '../sim/campaign.js';
+import { CAMPAIGN_ORDER, CAMPAIGN_BOSSES, campaignNext } from '../sim/campaign.js';
+import { nombreHuesped } from '../sim/desbloqueos.js';
 import { OPERATIONS } from '../sim/operations.js';
 import { SUPPORT } from '../shared/skill-path.js';
-import { thirdForMode, essentialInteraction, essentialPower } from './essential-controls.js';
+import { camaraInicial, essentialInteraction, essentialPower } from './essential-controls.js';
 import { Game } from '../sim/game.js';
 import { makeBot } from '../sim/bot.js';
 import { WEAPONS, MONSTERS, ROLES, FRAGMENTS, CHARACTERS, UPGRADE_KINDS, WEAPON_MODS, WEAPON_MUTS, GAME_MODES, HABILIDADES } from '../sim/data.js';
@@ -23,6 +24,9 @@ import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
 import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE, EVENTOS, ARENAS_VIVAS } from '../sim/data.js';
 import * as Perfil from './perfil.js';
+import { nuevoMatchId } from '../sim/ledger.js';   // cada partida lleva un matchId: cobrarla dos veces no suma (docs/RECOMPENSAS.md)
+import { modeloResultados } from '../sim/resultados.js';
+import { dibujarResultados } from './resultados-ui.js';   // pantalla final única (solo y coop)
 import { ESPECIES as ESPECIES_FLORA, especieDe as especieDeFlora, HITOS as HITOS_FLORA, FN as FN_FLORA } from '../sim/flora-data.js';   // flora interactiva y Herbario (docs/FLORA.md)
 import { MATERIALS, CALIDADES } from '../sim/items.js';
 import { FAUNA, especiePorIndice, formaPorIndice } from '../sim/fauna-data.js';   // fauna consumible (carteles, sonido y Códice: faunaEvento)
@@ -47,6 +51,9 @@ import { nieblaPorIndice as NIEBLAS_T } from '../sim/nieblas.js';   // nieblas d
 import * as Graficos from './graficos-ui.js';   // menú «Gráficos»: presets, resolución, efectos, FPS (graficos.js es la parte pura)
 import { TouchControls } from './touch.js';
 import * as Story from './story.js';
+import { mostrarPrimerHuesped } from './primer-huesped.js';   // Sprint 1: «Elegí tu primer Huésped»
+import { iniciarTransferencia } from './transferencia.js';   // Sprint 1: cinemática de transferencia (20–30 s)
+import { crearTutorialUI } from './tutorial-ui.js';   // Sprint 1: capa de interfaz del tutorial jugable (lógica en src/sim/tutorial.js)
 import { uTime } from './shaders.js';
 import { MenuUI, showLoading, trophy } from './ui.js';
 import { Pad } from './gamepad.js';
@@ -263,22 +270,25 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 
 /* ───────── sesión y campaña ───────── */
 function startSolo(mapId, opts = {}) {
-  asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
-  const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
-  const game = new Game({ mapId, campaign: !!opts.campaign, operation: !opts.practice && !opts.horde, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0 });
+  asegurarHuesped(true);   // el Huésped tiene que ser tuyo (inicial o desbloqueado); un enlace directo sin Huésped inicial recibe el actual
+  // Sprint 1: la primera vez que se juega «Islas — Despertar» hay cinemática de transferencia + tutorial jugable (se guarda; ?tutorial=1 lo fuerza, ?tutorial=0 lo apaga)
+  const conTutorial = !opts.practice && !opts.horde && !opts.bot && params.get('tutorial') !== '0' && (params.get('tutorial') === '1' || (opts.campaign === 'm1' && !params.get('auto') && Perfil.tutorialPendiente()));
+  const conCine = conTutorial && !Perfil.tutorialEstado().cine && !params.get('skipintro') && params.get('cine') !== '0';
+  const intro = (opts.intro !== false && !params.get('auto') && !params.get('skipintro')) || conCine;
+  const game = new Game({ mapId, campaign: !!opts.campaign, operation: !opts.practice && !opts.horde, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0, tutorial: conTutorial ? { desde: Perfil.tutorialEstado().paso } : false });
   const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode(), kit: opts.practice ? 0 : Tienda.usarBotiquin() }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
-  session = { initialSkills: game.skillLevel, practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null };
+  session = { matchId: nuevoMatchId(), initialSkills: game.skillLevel, practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null, tutorial: conTutorial };
   enter(mapId);
-  if (intro) beginIntro(opts.campaign && opts.campaign !== 'm1' ? 'short' : 'full'); else finishIntro();
+  if (conCine) beginIntro('transfer'); else if (intro) beginIntro(opts.campaign && opts.campaign !== 'm1' ? 'short' : 'full'); else finishIntro();
 }
 
 /** La sala empieza (o se reconecta): coop-ui.js entrega la red ya conectada. */
 function startCoopGame(net, m) {
   if (session && session.mode === 'coop' && session.net === net) { session.pid = m.pid; renderer.camInit = false; session.look = null; return; }   // volvió tras un corte: sigue la misma partida
   asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
-  session = { mode: 'coop', net, pid: m.pid, map: m.map, ended: false, look: null, touch: useTouch(), intro: null };
+  session = { matchId: nuevoMatchId(), mode: 'coop', net, pid: m.pid, map: m.map, ended: false, look: null, touch: useTouch(), intro: null };
   net.welcomed = (w) => { session.map = w.map; session.pid = w.pid; renderer.camInit = false; session.look = null; session.ended = false; $('end').classList.add('hidden'); };
   net.onFin = () => { if (session && session.bankWait) { session.bankWait = false; bankProfile(session.lastMe, session.lastState); endGame(session.lastState, session.lastMe); } };
   net.onError = (msg) => banner(msg, 4000);
@@ -291,7 +301,7 @@ function enter(mapId) {
   document.body.classList.toggle('en-base', mapId === 'base'); if (baseHud && mapId !== 'base') baseHud.mostrar(false);
   $('menu').classList.add('hidden'); $('end').classList.add('hidden'); $('hud').classList.remove('hidden'); document.body.classList.add('playing');
   sound.init(); sound.resume(); sound.startMusic(mapId);
-  renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : mapId === 'base' || thirdForMode(gameMode()));
+  renderer.setMap(mapId); renderer.collMap = (session && session.game) ? session.game.map : null; renderer.camInit = false; renderer.setThird(params.get('cam') ? params.get('cam') === 'third' : mapId === 'base' || camaraInicial(gameMode(), !!settings().camAuto));
   buildWeaponHud();
   touch.show(!!session.touch); touch.setMode(gameMode(), myChar()); keyHint();
   if (!session.touch && !session.headless && !NOLOCK && !params.get('auto')) lockPointer(); // requiere gesto del usuario
@@ -302,6 +312,7 @@ function enter(mapId) {
 let cine = null;
 function beginIntro(kind) {
   session.intro = kind; $('hud').classList.add('hidden'); if (session.touch) touch.show(false);
+  if (kind === 'transfer') { const cur = session; renderer.setGuide(true); cine = iniciarTransferencia({ char: myChar(), subs, sound, onDone: () => { cine = null; if (session !== cur) return; renderer.setGuide(false); Perfil.cineVista(); finishIntro(); } }); return; }
   if (kind === 'full') startWake(Story.WAKE);
   else startWake(Story.wakeForMap(session.map));
 }
@@ -311,7 +322,8 @@ function startWake(lines) {
   renderer.setGuide(true); renderer.startWake(4); sound.heartbeat();
   subs.play(lines, finishIntro);
 }
-function skipIntro(force) { if (!session || !session.intro || (session.prologo && !force)) return; subs.cb = null; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
+/** (la transferencia tiene su propio «Saltar» con confirmación) */
+function skipIntro(force) { if (!session || !session.intro || session.intro === 'transfer' || (session.prologo && !force)) return; subs.cb = null; subs.skip(); if (cine) { cine.stop(); cine = null; } $('cine').classList.add('hidden'); finishIntro(); }
 /** Ayuda de controles: aparece la primera vez (y desde Pausa > Ver controles). Pausa en solitario; en cooperativo la sala continúa. */
 function explainSkill(level) {
   const C = CHARACTERS[myChar()], power = level === 1 ? C[SUPPORT[myChar()]] : C.ult;
@@ -340,7 +352,8 @@ function showTutorial(force = false) {
 function finishIntro() {
   if (!session) return; session.intro = null; renderer.setGuide(false); renderer.wakeT = renderer.wakeDur = 0; $('hud').classList.remove('hidden');
   if (session.touch) touch.show(true); else if (!session.headless && !NOLOCK && !params.get('auto') && !locked) lockPointer();
-  banner(session.game?.operation ? `${session.game.operation.title} · ${session.game.operation.steps[0].title}` : Story.MAP_BANNER[session.map] || '', 6000); showTutorial(!!session.campaign);
+  banner(session.game?.operation ? `${session.game.operation.title} · ${session.game.operation.steps[0].title}` : Story.MAP_BANNER[session.map] || '', 6000); if (!session.tutorial) showTutorial(!!session.campaign);   // con tutorial jugable no hace falta la tarjeta de controles
+  if (session.tutorial && !session.tutUI) session.tutUI = crearTutorialUI({ THREE, renderer, sound, onSaltar: () => { const g = session && session.game; if (g && g.tutorial) g.tutorial.saltar(); } });
 }
 
 function buildWeaponHud() {
@@ -376,7 +389,7 @@ function hordeTopUp(g) {
 let baseHud = null;
 /** Entra a la Base: un mapa-hub caminable, sin oleadas ni enemigos. USAR (E) en una estación abre la pantalla de siempre (Forja, Tienda, Huésped…). */
 function startBase() {
-  asegurarHuesped();
+  asegurarHuesped(true);
   const game = new Game({ mapId: 'base', seed: 1, calm: 0 });
   const pp = Perfil.paraPartida(Equipo.char); pp.equip = (pp.equip || []).filter((e) => e.s !== 'melee' && e.s !== 'gun'); pp.melee = undefined;   // en la Base no hay armas desplegadas: se ve la armadura y las reliquias, no el arma
   const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...pp, style: settings().style, mode: 'shooter' });
@@ -510,6 +523,7 @@ function frame(now) {
   touch.zoomKind = renderer.zoomKind || 0;
   renderer.guideTalk = subs.talking;
   renderer.firing = !!(session.touch ? touch.fire : mouse.fire) && gameMode() !== 'combo';
+  if (session.tutUI) session.tutUI.update(state.tut, dt, { touch: !!session.touch, combo: gameMode() === 'combo' });
   renderer.render(state, dt, session.pid, session.look);
   try { if (!botin) botin = createBotin(THREE, renderer.scene, $('hud')); botin.update(state, me, dt); } catch (err) { if (!window.__botinErr) { window.__botinErr = err; console.warn('Botín:', err.message); } botin = botin || { update() {}, event() {} }; }
   audioAndHud(state, me, dt);
@@ -607,8 +621,8 @@ function audioAndHud(state, me, dt) {
       case 'hurt': if (mine) { sound.hurt(); const v = $('vignette'); v.classList.add('hurt'); setTimeout(() => v.classList.remove('hurt'), 120); if (navigator.vibrate) navigator.vibrate(30); pad.rumble(120, 0.6); } break;
       case 'pickup': if (mine) sound.pickup(); break;
       case 'revive': trophy('rev', 'Mano amiga', 'Reanimá a un compañero', sound); sound.pickup(); banner(mine ? '¡Te reanimaron!' : 'Compañero reanimado', 1800); break;
-      case 'wave': if (!session.intro) { sound.wave(); banner(state.operation && !e.boss ? `ETAPA ${e.n} · ${state.operation.step}` : e.boss ? '¡EL CORAZÓN DEL VÓRTICE!' : `OLEADA ${e.n}`, 2500); } break;
-      case 'clear': banner(state.operation ? 'Etapa completada' : 'Oleada superada', 2200); if (e.wave >= 3) trophy('w3', 'Resistente', 'Superá 3 oleadas', sound); break;
+      case 'wave': if (!session.intro) { sound.wave(); banner(state.operation && !e.boss ? `OLEADA ${e.n}/${state.waveTotal} · ${state.operation.step}` : e.boss ? '¡EL CORAZÓN DEL VÓRTICE!' : `OLEADA ${e.n}`, 2500); } break;
+      case 'clear': banner('Oleada superada', 2200); if (e.wave >= 3) trophy('w3', 'Resistente', 'Superá 3 oleadas', sound); break;
       case 'gravity': sound.gravity(e.p); trophy('flip', 'Cabeza abajo', 'Sentí la gravedad invertida', sound); if (me && me.flip) banner('¡LA GRAVEDAD SE INVIERTE!', 1500); flash(); break;
       case 'pull': sound.gravity(e.p); break;
       case 'heal': sound.pickup(); break;
@@ -652,6 +666,10 @@ function audioAndHud(state, me, dt) {
       case 'bridge': if (e.ph === 'open') { sound.objective(true); banner('¡EL PUENTE AL UMBRAL ESTÁ COMPLETO! Cruzá hasta la isla del este', 3600); flash(); } else if (e.ph === 'start') sound.gravity(e.p); break;
       case 'hint': banner(e.lvl === 1 ? 'Pista: un capullo está marcado. Disparale para alimentarlo' : e.lvl === 2 ? 'Pista: cada capullo que florece hace crecer un tramo del puente entre la Cámara del Latido (este) y el Umbral' : 'Pista: el puente nacerá en el lugar marcado, entre la Cámara del Latido y el Umbral', 4200); break;
       case 'tshot': break;
+      case 'tutpaso': if (mine || !e.pid) { try { Perfil.tutorialPaso(e.n); } catch { /* sin perfil */ } } break;   // el paso queda guardado: si recargás, retomás ahí
+      case 'tutok': sound.objective(true); break;
+      case 'tutonda': if (e.ok) sound.pickup(); else sound.hurt(); sound.boom(e.p); break;
+      case 'tutfin': try { Perfil.tutorialListo(); } catch { /* sin perfil */ } if (session.tutUI) { session.tutUI.dispose(); session.tutUI = null; } banner(e.saltado ? 'Tutorial saltado. El combate empieza en 5 segundos.' : '¡Tutorial completo! El combate real empieza en 5 segundos.', 4200); if (!e.saltado) subs.play([['H', 'Bien hecho. Tu segunda habilidad se activa al superar la primera oleada; la definitiva, tras la tercera. Reconectá el refugio.', 5.5]]); break;
       case 'rewardUnavailable': if (mine) banner('No se pudo comprar: revisá tus esencias y elegí otra mejora.', 2400); break;
       case 'skill': if (mine && !(renderer.hostfx && renderer.hostfx.handles(e))) { sound.ability(); } break; // las de los Huéspedes suenan desde hostfx.js
       case 'upgrade': if (mine) { sound.pickup(); banner('¡Arma mejorada!', 1400); } break;
@@ -668,7 +686,7 @@ function audioAndHud(state, me, dt) {
   canvas.classList.toggle('tide', !!(state.fx && (state.fx.zero || state.fx.warn)));
   if (state.fx && state.fx.warn && !session.tideWarned && !state.ev) { session.tideWarned = true; banner('LA MAREA SE APROXIMA… sin gravedad', 2500); }
   if (state.fx && !state.fx.warn) session.tideWarned = false;
-  $('wave').textContent = state.phase === 'intermission' ? (state.wave ? 'RESPIRO' : 'PREPARATE') : `${state.operation ? 'ETAPA' : 'OLEADA'} ${state.wave} / ${state.waveTotal}`;
+  $('wave').textContent = state.phase === 'intermission' ? (state.wave ? 'RESPIRO' : 'PREPARATE') : `OLEADA ${state.wave} / ${state.waveTotal}`;
   $('left').textContent = state.phase === 'intermission' ? `siguiente en ${Math.ceil(state.intermission)}s` : `${state.left} criaturas`;
   const pr = $('practice');
   if (session.practice && me) { pr.classList.remove('hidden'); pr.innerHTML = `<b>CAMPO DE PRUEBAS</b> · Héroe: <i>${CHARACTERS[me.char] ? CHARACTERS[me.char].name : '—'}</i> (H) · Arma: <i>${WEAPONS[me.w].name}</i> ( , . ) · munición y vida ilimitadas`; } else pr.classList.add('hidden');
@@ -760,7 +778,7 @@ function hudDirector(state, me) {
   }
   if (session && session.touch && me) { // botones contextuales: sólo aparecen cuando sirven
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[1], p[2] - me.pos[2]) < r;
-    const use = essentialInteraction(state, me, { npc: !!npcCtx.npc, fauna: session.faunaCerca, flora: session.floraUsar });
+    const use = essentialInteraction(state, me, { npc: !!npcCtx.npc, fauna: session.faunaCerca, flora: session.floraUsar, tutorial: !!(state.tut && state.tut.usar) });
     const C = CHARACTERS[me.char], ultOn = !!(C && C.ult && ((+me.ud || 0) <= 0 || (+me.ua || 0) > 0.05));
     touch.setSkillLevel(me.sk);
     touch.setContext({ ult: ultOn, use, evo: me.co != null && me.evn != null && me.co >= me.evn });
@@ -809,7 +827,17 @@ function flash() { const f = $('flash'); f.classList.add('on'); const my = ++fla
 /* ───────── final / campaña ───────── */
 /** Suma los núcleos de la partida al banco del perfil y guarda la evolución (una sola vez por partida solitaria). */
 let botin = null;
-function bankProfile(me, state) { if (!session || (session.mode !== 'solo' && session.mode !== 'coop') || session.base || session.banked || !me) return; if (session.mode === 'coop' && session.net && session.net.fin) session.bag = session.net.fin.bag.map((b) => ({ id: b.id, q: b.q, n: b.n || 1, r: b.r })); /* en cooperativo el botín lo dice el SERVIDOR al terminar */ session.banked = true; try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { bag: session.bag, wave: state ? state.wave : session.lastWave, won: !!state && state.state === 'won' }); } catch (err) { console.warn('Perfil: no se pudo guardar', err.message); } }
+function bankProfile(me, state) {
+  if (!session || (session.mode !== 'solo' && session.mode !== 'coop') || session.base || session.banked || !me) return;
+  const fin = session.mode === 'coop' && session.net && session.net.fin;
+  if (fin) session.bag = fin.bag.map((b) => ({ id: b.id, q: b.q, n: b.n || 1, r: b.r }));   // en cooperativo el botín lo dice el SERVIDOR al terminar
+  const won = !!state && state.state === 'won';
+  let resumen = null; try { resumen = fin ? fin.resumen : session.game ? session.game.resumen() : null; } catch { resumen = null; }
+  if (resumen && !state) resumen = { ...resumen, estado: 'abandono' };
+  session.banked = true; session.resumen = resumen;
+  try { session.mae = Perfil.cerrarPartida(Equipo.char, me, { matchId: fin && fin.matchId ? fin.matchId : session.matchId, bag: session.bag, wave: state ? state.wave : session.lastWave, won, resumen, coop: fin && fin.recompensa ? { mult: fin.recompensa.mult } : null }); session.coopRec = fin && fin.recompensa ? fin.recompensa : null; }
+  catch (err) { console.warn('Perfil: no se pudo guardar', err.message); session.mae = { guardado: false, pendiente: false, mensaje: 'No se pudo guardar tu progreso.' }; }
+}
 /** Adaptación suave ENTRE intentos: el jefe recuerda (un poco) cómo peleaste la última vez en esta arena (jefe-ia.js → iaMemoria). */
 function leerMemoriaJefe(mapId) { try { const m = JSON.parse(localStorage.getItem('arcanum.jefeMem.' + mapId) || 'null'); return m && typeof m.s === 'string' ? { s: m.s, c: +m.c || 0, n: +m.n || 0 } : null; } catch { return null; } }
 function guardarMemoriaJefe() { try { const g = session && session.game; if (!g || !g.boss || !g.boss.ia || session.practice) return; const m = jefeMemoria(g.boss); if (m && g.boss.ia.t > 15) localStorage.setItem('arcanum.jefeMem.' + session.map, JSON.stringify(m)); } catch { /* sin almacenamiento */ } }
@@ -819,8 +847,22 @@ function endGame(state, me) {
   let terrNuevo = null; if (state.state === 'won' && session.mode === 'solo' && !session.practice) { try { if (Perfil.liberarTerritorio(session.map)) terrNuevo = Territorios.TERRITORIOS[session.map]; } catch (err) { console.warn('Territorios: no se pudo guardar', err.message); } } // ganar el mapa libera el territorio (perfil.js)
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);
   const won = state.state === 'won'; window.__ended = state.state;
-  const stats = `${state.operation ? state.operation.title + '\nEtapa' : 'Oleada'} ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n') + maestriaTxt() + Perfil.botinTexto();
+  let stats = `${state.operation ? state.operation.title + '\nOleada' : 'Oleada'} ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n') + maestriaTxt();   // texto plano de respaldo (#endstats); la pantalla real la dibuja resultados-ui.js
   if (session.mode === 'solo' && session.campaign && won) Perfil.completarCapitulo(session.campaign);
+  let nuevosHuespedes = [];
+  { // Sprint 1: desbloqueos por campaña y por desafío (docs/ONBOARDING.md). No cuentan las partidas de práctica ni las cooperativas.
+    let nuevos = []; try {
+      if (session.mode === 'solo' && !session.practice && !session.horde) {
+        if (session.campaign && won) nuevos = Perfil.desbloqueosRecientes();
+        const jefe = won && session.campaign && CAMPAIGN_BOSSES[session.map] ? session.map : '';
+        nuevos = nuevos.concat(Perfil.registrarDesafios({ won, map: session.map, boss: jefe, kills: me ? me.kills : 0, mode: gameMode(), time: state.time, wave: state.wave, campaign: !!session.campaign }));
+      }
+    } catch (err) { console.warn('Desbloqueos: no se pudieron guardar', err.message); }
+    nuevosHuespedes = [...new Set(nuevos)];
+    if (nuevos.length) { stats += `\n\n¡HUÉSPED DESBLOQUEADO: ${[...new Set(nuevos)].map(nombreHuesped).join(' y ')}! Elegilo antes de la próxima misión en Huéspedes.`; try { sound.objective(true); } catch { /* sin audio */ } }
+  }
+  session.desbloqueos = []; for (const id of nuevosHuespedes) session.desbloqueos.push(`¡Huésped desbloqueado: ${nombreHuesped(id)}! Elegilo antes de la próxima misión.`); if (terrNuevo) session.desbloqueos.push(`Territorio liberado: ${terrNuevo.nombre}. Elegí su bendición en el Códice.`); if (session.mode === 'solo' && session.campaign && won) session.desbloqueos.push('Avance de capítulo de la campaña');
+  if (session.mae && session.mae.subio) session.desbloqueos.push(`Maestría: ¡rango ${session.mae.rangoDespues} · ${TITULOS[session.mae.rangoDespues]}!`);
   const nextCap = session.campaign ? CAMPAIGN_ORDER[CAMPAIGN_ORDER.indexOf(session.campaign) + 1] : null;
   if (session.mode === 'solo' && session.campaign && won && nextCap) { // → interludio y el capítulo siguiente
     renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap, intro: false }); });
@@ -836,6 +878,11 @@ function maestriaTxt() { const m = session && session.mae; if (!m) return ''; co
 function showEnd(won, stats, title) {
   $('endtitle').textContent = title || (won ? 'VÓRTICE ROTO' : 'ATRAPADO EN EL VÓRTICE');
   $('endstats').textContent = stats + (won && title === Story.VICTORY.title ? '\n\n' + Story.VICTORY.epilogue : '');
+  try {   // pantalla de resultados completa (única para solo y coop; reemplaza al texto plano y al resumen de botín)
+    const g = Perfil.estadoGuardado(), rc = Perfil.ultimoRecibo(), m = session && session.mae;
+    const modelo = modeloResultados({ won, resumen: session && session.resumen, yo: session && session.pid, recibo: rc, mae: m, botin: Perfil.botinLineas(), desbloqueos: session && session.desbloqueos, coop: session && session.coopRec, guardado: m && m.guardado === false ? { ok: false, mensaje: m.mensaje, pendientes: g.pendientes } : { ok: true } });
+    dibujarResultados($('end'), modelo, { Perfil, extra: won && title === Story.VICTORY.title ? Story.VICTORY.epilogue : '' });
+  } catch (err) { console.warn('Resultados:', err.message); $('endstats').hidden = false; }
   $('end').classList.remove('hidden'); document.body.classList.remove('playing');
   { const tb = $('tobase'); if (tb) tb.classList.toggle('hidden', !settings().baseAlTerminar); }   // «Entrar a la Base» (docs/BASE.md): primera opción si el ajuste está en «sí»
 }
@@ -850,15 +897,23 @@ function menuSpin(dt) {
 /* ───────── menú (estilo PS5) ───────── */
 const pad = new Pad();
 const loadAnd = (fn) => (params.get('cap') ? fn() : showLoading(1900, fn));
+/** Sprint 1: un jugador NUEVO elige su primer Huésped (una vez) antes de cualquier partida; después sigue lo que iba a hacer. */
+function conPrimerHuesped(siguiente) {
+  if (!Perfil.necesitaPrimerHuesped() || params.get('auto')) { siguiente(); return; }
+  mostrarPrimerHuesped({ sound, preseleccion: 'axioma', onElegir: (id) => {
+    Perfil.elegirInicial(id); Equipo.char = id; saveEquipo(); try { ui.refreshHuesped(); } catch { /* menú no listo */ }
+    siguiente();
+  } });
+}
 const ui = new MenuUI({ sound, actions: {
-  story: (fresh = false) => {
+  story: (fresh = false) => conPrimerHuesped(() => {
     if (fresh) Perfil.nuevaCampana();
     const id = campaignNext(Perfil.perfil().campaign);
     if (!id) { ui.go('story'); return; }
     loadAnd(() => startSolo(id, { campaign: id }));
-  },
-  base: () => loadAnd(() => startBase()),
-  arena: (m) => loadAnd(() => (m === 'practica' ? startSolo('m1', { intro: false, practice: true }) : startSolo(m, { intro: false }))),
+  }),
+  base: () => conPrimerHuesped(() => loadAnd(() => startBase())),
+  arena: (m) => conPrimerHuesped(() => loadAnd(() => (m === 'practica' ? startSolo('m1', { intro: false, practice: true }) : startSolo(m, { intro: false })))),
 } });
 $('pause').addEventListener('click', (e) => { if (e.target.closest('.item.sel') || e.target.closest('.pmas') || e.target.id === 'quit') return; if (session && session.touch) return; lockPointer(); });
 $('resume').addEventListener('click', () => { if (session && session.touch) pauseTouch(false); else lockPointer(); });
@@ -896,6 +951,8 @@ function bindTouchSettings() {
   const gx = $('gfxopen'); if (gx) gx.addEventListener('click', (e) => { e.stopPropagation(); Graficos.abrirEnPausa(sound); });   // Pausa › Gráficos
   const syncClar = () => { const b = $('claridad'); if (b) b.querySelector('b').textContent = `Claridad: ${settings().claridad === 'alta' ? 'Alta (más luz sobre vos y los enemigos)' : 'Normal'}`; };
   const cl = $('claridad'); if (cl) cl.addEventListener('click', (e) => { e.stopPropagation(); const v = settings().claridad === 'alta' ? 'normal' : 'alta'; setSetting('claridad', v); renderer.applyClaridad(v); syncClar(); }); syncClar();
+  const syncAuto = () => { const b = $('camauto'); if (b) b.querySelector('b').textContent = `Cámara automática por modo: ${settings().camAuto ? 'sí (Melé 3.ª · Disparo 1.ª)' : 'no'}`; };
+  const ca = $('camauto'); if (ca) ca.addEventListener('click', (e) => { e.stopPropagation(); setSetting('camAuto', !settings().camAuto); syncAuto(); }); syncAuto();
   const syncSide = () => { const b = $('camside'); if (b) b.querySelector('b').textContent = `Hombro de la cámara: ${(settings().camSide || 1) > 0 ? 'derecho' : 'izquierdo'}`; };
   const sb = $('camside'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); setSetting('camSide', (settings().camSide || 1) > 0 ? -1 : 1); syncSide(); }); syncSide();
   for (const [id, key, dflt] of [['camdist', 'camDist', 3.6], ['camfov', 'camFov', 78]]) { const el = $(id); if (!el) continue; el.value = settings()[key] || dflt; el.addEventListener('input', () => setSetting(key, +el.value)); el.addEventListener('pointerdown', (e) => e.stopPropagation()); }
@@ -923,7 +980,9 @@ function syncModeUI() {
   const sel = $('modesel'); if (sel) sel.value = m;
   const pb = $('modetoggle'); if (pb) pb.querySelector('b').textContent = `Modo de juego: ${G.icon} ${G.name}`;
 }
-function setGameMode(m) { const mm = m === 'combo' ? 'combo' : 'shooter'; settings().modes[myChar()] = mm; setSetting('mode', mm); if (session && !session.base) renderer.setThird(thirdForMode(gameMode())); syncModeUI(); touch.setMode(gameMode(), myChar()); if (session) keyHint(); }
+function syncCamLabel() { const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; }
+/** Cambiar de modo ya NO fuerza la cámara (salvo el ajuste «Cámara automática por modo»). */
+function setGameMode(m) { const mm = m === 'combo' ? 'combo' : 'shooter'; settings().modes[myChar()] = mm; setSetting('mode', mm); if (session && !session.base && settings().camAuto) { renderer.setThird(camaraInicial(gameMode(), true)); setSetting('third', renderer.third); syncCamLabel(); } syncModeUI(); touch.setMode(gameMode(), myChar()); if (session) keyHint(); }
 /** Botón MODO (táctil), Tab (PC) o Select (mando): alterna Disparo ↔ Melé al instante, sin pausar. Hay una espera corta para no cambiar sin querer. */
 let modoT = -1e9;
 function cambiarModo() {
@@ -983,6 +1042,6 @@ const coopUI = createCoopUI({
   onEmpezar: startCoopGame, banner, enPartida: () => !!(session && session.mode === 'coop'),
   volverAlLobby: () => location.reload(),   // «Otra vez» tras el final: se recarga y el enlace ?sala= devuelve a la sala de espera
 });
-ui.actions.coop = () => coopUI.mostrar();
+{ const _coop = () => coopUI.mostrar(); ui.actions.coop = () => conPrimerHuesped(_coop); }
 window.__coop = coopUI;
 if (params.get('sala')) setTimeout(() => coopUI.autoUnirse(), 0);

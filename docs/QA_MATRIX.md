@@ -24,6 +24,7 @@
 | `node --check src/sim/game.js`, `node --check server/server.js` | OK (2026-10-24) | este documento |
 | `npm test` completo local | **Invalidado** por ediciones ajenas concurrentes en el árbol (suites que fallan al importar por un export faltante en `eventos.js`). Solo es citable el `not ok` visto antes: `tests/arsenal.test.js` «personajes: 10 (5 Huéspedes + 5 veteranos)…» (espera 10, hay 13). PENDIENTE: ver log; repetir sobre árbol limpio | `/tmp/claude-0/vortex-npmtest.log` |
 | CI de GitHub, run `40056119035` | 809 tests, 734 pass, **9 fail**, 66 skipped | Consulta de la sesión de auditoría (no re-consultada por este agente) |
+| Sprint 1-D (24-oct): arreglo de los 9 rojos del CI, CI en `unit`+`browser`, compuerta de Pages, AC-07 | Pruebas individuales verdes tras el arreglo: `arsenal`, `colmena`, `estilos`, `huespedes`, `inventario` (parte de equilibrio), `limbo-mapas`, `map4`, `mundo-cliente`, `impacto` (8 nuevas), `server-origenes` (2 nuevas). **`npm run test:ci` completo NO se corrió** y el CI real de GitHub **no se ha visto** (solo se ve tras un push). | docs/OPERATIONS.md (sección Sprint 1-D) |
 
 ## 2. Matriz de criterios de aceptación AC-01…AC-12
 
