@@ -62,7 +62,7 @@ Columnas: **ID** · requisito · **Estado** · evidencia (ruta:línea / doc / te
 
 | ID | Requisito | Estado | Evidencia | Riesgo | Sprint | Notas |
 |---|---|---|---|---|---|---|
-| GDD-2.1-01 | Auditar e integrar todos los huéspedes con calidad suficiente, sin tope arbitrario de 4; inventariar huecos | Parcial | 8 huéspedes jugables (`data.js` `HOST_IDS`), `docs/HUESPEDES.md`, `docs/INVENTARIO.md`; ningún inventario de huecos con evidencia | P2 | 1 | Falta tabla huésped × (modelo, ataques, habilidades, animaciones, VO) → AC-04. |
+| GDD-2.1-01 | Auditar e integrar todos los huéspedes con calidad suficiente, sin tope arbitrario de 4; inventariar huecos | Parcial | 8 huéspedes jugables (`data.js` `HOST_IDS`), `docs/HUESPEDES.md`, `docs/INVENTARIO.md`; ningún inventario de huecos con evidencia | P2 | 1 | Ver `docs/audit/INVENTARIO_HUESPEDES.md` (tabla huésped × dimensión) → AC-04. |
 | GDD-2.1-02 | Campaña de 6 capítulos / 6 arenas | Parcial | `src/sim/campaign.js:2` (`CAMPAIGN_ORDER` m1,m3,m4,m5,m6,m2), `src/sim/maps.js` (6 mapas) | P2 | 3 | Los 6 existen y están encadenados; contenido muy corto (2.1-03). |
 | GDD-2.1-03 | 8–12 min por capítulo | Parcial (muy por debajo) | Medición bots: 0,7–3,2 min por capítulo (tabla del resumen); `tools/audit/medicion-capitulos.mjs` | P1 | 3 | Sin medición con humanos. Sprint 3 pide «duración medida 8–12 min». |
 | GDD-2.1-04 | Capítulo 1 se llama «Islas — Despertar» | Ausente | `src/sim/operations.js` (m1 = «Refugio de la conciencia», arena «Vacío de Islas»); `src/client/story.js` `CHAPTERS` títulos `1/6 · REFUGIO DE LA CONCIENCIA`; grep «Islas — Despertar» sin resultados | P2 | 1 | Renombrar es trivial; el contenido (2.1-05..08) es el trabajo. |
@@ -266,3 +266,95 @@ Conclusión: **no se encontró ninguna misión o campaña que pueda quedar en ol
 | AUD-03 | Impacto Combo con ataque a distancia sin confirmar | **Roto (potencial)** | `combo-fx.js:134` `near = hit \|\| C.ranged`, `:170` `snd.comboHit(...)` si `near` | P1 | 2 |
 | AUD-04 | Test automático «atacar al aire no suena hit» | Ausente | `tests/` sin pruebas de sonido; `tools/audio-combatfx-test.js` solo mide que cada síntesis no sea muda | P1 | 2 |
 
+
+## 4. Criterios de aceptación AC-01 … AC-12 (estado actual)
+
+Estados: Cumple / Parcial / No cumple / No verificable. «Cumple» exigiría además evidencia ejecutada; esta auditoría no corrió pruebas, así que ningún AC se declara «Cumple» sin reservas.
+
+| AC | Estado actual | Evidencia concreta | Qué falta |
+|---|---|---|---|
+| **AC-01** Repositorio, rama y estado reales inventariados | Parcial | Rama `claude/vortex-fase0-sprint1` desde `claude/larga-con-eso-s43nfe` @ `62244b6` (`git log`); `docs/VORTEX_AUDIT.md`, `VORTEX_DECISIONS.md` (Ciclo 0: «Base canónica… commit 9b7d54a… No renombrar ni asumir main»); este archivo. | `AUDIT.md` con SHA, inventario de archivos, hosts y modos según GDD §14; limpiar nombres heredados (`README.md` «Shower-psico», `render.yaml` `arcanum-coop`, `docs/TACTICAL_ACCOUNTS.md` `shower-psico-coop`, `public/config.json`). Hay archivos sin versionar (`tools/audit/*`). |
+| **AC-02** Misión finita termina inequívocamente tras X/Y oleadas y objetivo final | Parcial | `game.js:68,213` (`waveTotal`, `state='won'`); `tests/waves.test.js`, `tests/operations.test.js`, `tests/mission-network.test.js` (no ejecutados aquí); medición: 17 de 18 corridas de bots terminan en `won` (13) o `lost` (4) en 0,2–4,4 min. Ver §2: sin modos infinitos en misiones. | Mostrar «Oleada X/Y» (hoy «ETAPA»); jefe/desafío final en m3–m6 y en misiones independientes/coop; tope de tiempo para pelea de jefe (caso `m1 skills` 25 min); prueba E2E por modo (solo/coop/campaña). |
+| **AC-03** Tutorial → combate → victoria/derrota → recompensas → siguiente capítulo | Parcial | Combate→resultado→recompensa→siguiente capítulo: `main.js:815-833` (`completarCapitulo`, `INTERLUDES`, `startSolo(nextCap)`), `tests/campaign-route.test.js`, `docs/campaign-evidence/browser.json` (victorias/derrotas **inyectadas** en el navegador, `CAMPAIGN_AUDIT.md`). | Tutorial jugable (no existe); recorrido completo con humano o E2E sin inyección; cinemática inicial/de cierre. |
+| **AC-04** Huéspedes inventariados; todo huésped incluido tiene carga, ataques, habilidad y animaciones mínimas | Parcial | 8 huéspedes (`HOST_IDS`) + 5 clases heredadas (13 `CHARACTER_IDS`); `docs/HUESPEDES.md`, `docs/gate/armeria-0-14.md`, `docs/gate/manos.md`, `tests/huespedes.test.js`, `tests/huesped-cuerpo.test.js`. | Inventario hecho en paralelo: `docs/audit/INVENTARIO_HUESPEDES.md` (p. ej. Danzante sin `ANIM_GOLPE`/`ANIM_HAB` propias, según ese documento; no re-verificado aquí). Falta cerrar: animaciones 1.ª/3.ª por huésped; decidir qué hacer con las 5 clases heredadas; `tests/arsenal.test.js` espera 10 personajes (hay 13): test heredado rojo. |
+| **AC-05** Cambio manual 1.ª/3.ª sin bloquear control ni romper colisiones | Parcial | Botón `#camquick`/`#camtoggle`/tecla P (`main.js:127,891-900`); colisión de cámara con paredes en 3.ª (`render.js:327-332`, `blocked`); `settings.third`. | Test de conmutación en pleno combo/disparo/habilidad; cámara inicial = 3.ª por defecto (hoy depende del modo); desacoplar cámara de modo (`main.js:924`). |
+| **AC-06** HUD móvil/escritorio sin solapamientos; objetivo, progreso, barras, botones y minimapa legibles | No verificable | `tools/check-clean-hud.mjs`, `tools/check-four-action-hud.mjs`, `tests/hud-safe-point.test.js`, `docs/VORTEX_CLEAN_HUD.md` (3 tamaños Chromium). | Prueba de solapamiento automatizada en matriz de viewports, dispositivo físico iPhone/Android (`VORTEX_QA_REPORT.md:50-59` «Pendiente humana»), reloj de partida, «Oleada X/Y». |
+| **AC-07** Sonido de impacto solo con colisión confirmada | Parcial (riesgo) | Bien: `game.js:622` emite `hit` solo al dañar; `main.js:592` reproduce `sound.hit` por evento; `hostfx-melee.js:263` no suena si `!hit`; `audio.js:291` distingue swing/impacto. Mal: `combo-fx.js:134,170` (`near = hit \|\| C.ranged` ⇒ `comboHit` en ataques a distancia/«arco/carga/apertura» sin impacto). | Corregir condición (usar solo `e.hit>0`); test que simule ataque al aire (sim + `Sound` stub) y afirme 0 llamadas a `hit/comboHit/hitmark`; cubrir 1.ª y 3.ª persona y coop. |
+| **AC-08** Coop 1–4: sala/código, entrada, salida, caída, bot, reconexión, resultados | Parcial | `server/server.js` (salas, códigos, `join`, `salir`, `resume`), `tests/coop.test.js`, `tests/coop4.test.js` (4 bots WebSocket, 200 ms), `tests/coop-browser.test.js` (se omite sin Chromium), `tools/audit/coop-resume-result.repro.js` (**falla**: resultado ausente al reanudar). | Bots de producto y bot sustituto (no existen), espectador, resultados idempotentes al reanudar, ensayo con clientes reales, caída simultánea y host/servidor caído. |
+| **AC-09** Progreso/recompensas sobreviven cierre/reapertura; ledger evita duplicación por reintentos | No cumple (persistencia sí, ledger no) | Persistencia: `localStorage` (`perfil.js:88`) + respaldo manual (`server/accounts.js:45`, `revision` optimista). Ledger: **ausente**; `bankProfile` se protege solo con `session.banked` en memoria (`main.js:810`); `fin` no se reenvía al reanudar (`server.js:229-240,300-306`); `docs/VORTEX_DECISIONS.md` (Ciclo 0) rechaza reenvío sin idempotencia. | `RewardsLedger` en servidor con `id` de partida/jugador e idempotencia; resultado persistente por sala; migraciones/versionado de perfil; tests de reintento y de cierre a mitad de `fin`. |
+| **AC-10** Todos los capítulos publicados con inicio, objetivos, final y duración medida; sin bloquear progreso por secundarios | Parcial | Inicio/objetivos/cierre en `story.js` `CHAPTERS`/`INTERLUDES`; secundarios opcionales (`metas.js`); duración medida solo con bots (`tools/audit/medicion-capitulos.mjs`: 0,7–3,2 min). | Medición con humanos; subir a 8–12 min; final con jefe/desafío por capítulo; los bots `m4 melee/skills` y `m2 melee/skills` pierden/ no avanzan: revisar objetivos «cultivo» y «caza». |
+| **AC-11** No comercio en demo; nada funcional exclusivo por dinero | Parcial (cumple lo literal) | No hay comercio P2P, cobros ni moneda premium (grep); `COSMETIC_COMMERCE.md:4-6,11`; cosméticos solo visuales (`shared/cosmetics.js`). Pero huéspedes, planos, botiquín y esencias se compran con núcleos en la Tienda (`tienda.js`). | Decisión de propietario (C1): sacar huéspedes/ventajas de la tienda o convertirlos en desbloqueos de campaña; mantener núcleos no comprables con dinero. |
+| **AC-12** Sin P0/P1; puntuación ≥80/100 sustentada; matriz de 20 perfiles simulados etiquetada; go/no-go | No cumple | Puntuación vigente 60,95/100 (`docs/VORTEX_SCORECARD.md`, Ciclo 0, provisional); alfas con 20 sondas/perfiles **hipotéticos** etiquetados (`VORTEX_ALPHA_SIMULATED.md`, `VORTEX_ALPHA_3.md`) pero sobre commits anteriores; P0/P1 abiertos (ver §6). | Ejecutar suite completa y E2E, sesiones humanas (prohibido afirmarlas si no ocurrieron), puntaje por rúbrica del GDD §12, nueva matriz de 20 perfiles sobre la versión candidata, recomendación go/no-go. |
+
+## 5. Contradicciones GDD vs decisiones/estado del propietario
+
+| # | Tema | GDD dice | Estado actual / decisión del propietario | Evidencia | Propuesta (a decidir por el propietario) |
+|---|---|---|---|---|---|
+| C1 | Tienda con núcleos vs «desbloqueos jugables jugando, sin pagar» | Compras solo estéticas; desbloqueos jugables por campaña, desafíos, exploración o eventos; no exigir tienda en la demo (§1, §2.1, §9) | Existe la **Tienda del Cambista** con precios fijos en núcleos: huéspedes 500/500/600/750/600, planos (90–560), objetos (30–800), botiquín 35, reinicio de árbol 80, retirada de tirada, cambio de esencias; huésped extra con requisito de maestría 3. Los núcleos se ganan jugando y **no** se compran con dinero real, pero el acceso a huéspedes depende de ahorrar y gastar. | `src/sim/tienda.js:38-65,70-127`, `data.js:353,364,375,387`, `docs/TIENDA.md`, `COSMETIC_COMMERCE.md:4` | Mantener núcleos como moneda ganada (no p2w), pero mover el **desbloqueo de huéspedes** a campaña/desafíos y dejar la tienda para consumibles y cosméticos; ocultar la tienda en la demo si no se aprueba. |
+| C2 | Base 3D | «Sin base 3D explorable obligatoria» | **El Santuario** (mapa-hub caminable) existe: primera puerta del menú, destino por defecto tras cada partida (`baseAlTerminar: true`), con tutorial propio. No es obligatoria (el menú sigue completo). | `src/sim/base.js:26`, `docs/BASE.md:3-8`, `settings.js:25`, `main.js:838` | Dejarlo opcional; poner `baseAlTerminar:false` por defecto y ocultarlo de la demo hasta pasar QA. |
+| C3 | Huésped inicial | Elegir **un** huésped inicial; resto desbloqueable | Hoy hay **tres** iniciales (axioma, vesper, micelio) y cinco comprables. | `tienda.js:38-40` (`starter!==false`), `data.js:353-387` | Definir cuál es el huésped inicial por narrativa del cap. 1 y qué evento desbloquea los demás. |
+| C4 | Cámara | Botón; tercera persona inicial | Botón sí; inicial según modo (Disparo = 1.ª, Melé = 3.ª); Tab/modo cambia la cámara. | `essential-controls.js:9`, `main.js:293,924`, `settings.js:19` | Cámara independiente del modo; 3.ª por defecto. |
+| C5 | Esquema de combate | 1 básico + 2 habilidades + 1 definitiva | HUD de 4 acciones (ataque, movilidad/defensa, apoyo, ulti): **coincide en número**, pero la capa de datos tiene 3 slots de habilidad HAB.1-3 + ulti, Melé usa 2 botones de ataque + 1 habilidad y el modo «Completo» en pausa los expone. Decisión del propietario: «cuatro botones esenciales no equivalen aún a un rediseño balanceado» (`VORTEX_DECISIONS.md` ciclo 1). | `docs/VORTEX_FOUR_ACTION_HUD.md`, `src/sim/modos.js:1-14,17-25`, `data.js:147-151` | Fijar contrato: 1 básico + 2 habilidades + ulti; reasignar la 3.ª habilidad (`s3`) a evolución/maestría o eliminarla del HUD. |
+| C6 | Contador | «Oleada X/Y» | «ETAPA x / y» (pasos de operación), «RESPIRO» entre medias. | `main.js:669` | Unificar vocabulario (Oleada) y distinguir etapa de oleada. |
+| C7 | Intro | Cinemática de transferencia 20–30 s que reemplaza el tren | Tren retirado del flujo (stub), narrativa nueva «última conciencia humana en el futuro» (PR #14); docs aún dicen tren. Narrativa del propietario habla de **cuerpo sintético / huéspedes de genoma sintético**; el GDD habla de **huéspedes biológicos**. | `prologo.js`, `story.js:1-4,24-26`, `CAMPAIGN_AUDIT.md`, `README.md` | Alinear canon (biológico vs sintético) antes de escribir la cinemática; actualizar README/docs. |
+| C8 | Nombre del cap. 1 | «Islas — Despertar» | «Refugio de la conciencia» (arena «Vacío de Islas»). | `operations.js` m1 | Renombrar título y briefing. |
+| C9 | Duración | 8–12 min por capítulo; misiones 5–15 min | 0,7–3,2 min medidos con bots. | tabla de medición | Aumentar etapas/oleadas (más de 3), añadir jefes/desafíos y subtramas. |
+| C10 | Cambio de huésped | Elegir antes de cada misión, sin cambio libre durante la partida | `loadout` permite cambiar huésped/equipo entre oleadas (también en coop). | `server.js:272-279`, `game.js` `setLoadout` | Bloquear tras iniciar; reservar transferencia narrativa. |
+| C11 | Maestría | No «simplemente daño extra» | Rango = multiplicadores pequeños de daño/bendiciones + cosméticos. | `maestria.js:3-4` | Cambiar a desbloqueos/capacidades o dejar el bonus mínimo documentado. |
+| C12 | Descanso | 10–20 s; contador coop sincronizado | 12 s solo (espera elección) / 22 s coop. | `game.js:215,194-197` | Ajustar a ≤20 s o hacerlo configurable. |
+| C13 | Progreso de conciencia | Árbol permanente compartido + herencia | Todo es por huésped; solo `skillLevel` es global. | `perfil.js:87,176-215` | Definir árbol de conciencia mínimo o reformular. |
+| C14 | Retorno | Retorno limitado en frontera de oleada o por objetivo | Revive automático al empezar cada oleada, ilimitado. | `game.js:232` | Añadir límite de usos y modo espectador. |
+| C15 | Despliegue público | «Activar despliegue público solo con autorización y criterios cumplidos» (§11 Sprint 6, §15) | `pages.yml` publica cada push a la rama canónica; Render `autoDeploy: true`; ninguna compuerta de CI. | `pages.yml:3-6`, `render.yaml:11`, `VORTEX_DECISIONS.md` Ciclo 0 | Proteger ramas, `needs: test` en Pages, autodeploy desactivado o `Manual`. |
+| C16 | Autoridad de servidor | Servidor autoritativo para recompensas, inventario y progreso | Sim autoritativa de combate; perfil y premios en cliente. | `TACTICAL_ACCOUNTS.md`, `server.js:35-49` | Ledger en servidor (Sprint 5). |
+| C17 | Final por capítulo | Encuentro final en cada capítulo | Solo cap. 1 (Coloso) y cap. 6 (Madre Geoda); el resto termina en un objetivo. | `campaign.js:4` | Un jefe/desafío por capítulo (existen `argos`, `coloso`, `madre`, `BOSS_OF` en `data.js:502`). |
+| C18 | Bots | Opcionales en coop, sustitutos de desconectados | Solo para pruebas. | `bot.js`, `main.js:271` | Integrar `bot.js` en servidor con comportamientos mínimos (seguir, atacar, revivir). |
+| C19 | Estado del proyecto | «No inventar estado»; distinguir diseñado/implementado/probado/mergeado/desplegado | Docs históricas mezclan nombres (Shower Psycho / Duelo Arcano / VORTEX) y cifras antiguas (p.ej. «seis arenas, dos en campaña normal» en `VORTEX_ROADMAP.md` ya superado por `CAMPAIGN_AUDIT.md`). | `README.md`, `docs/*` | Mantener un único `AUDIT.md`/`QA_MATRIX.md` vivo. |
+
+## 6. Riesgos P0–P3 (ordenados)
+
+| Orden | Nivel | Riesgo | Por qué importa | Evidencia | Sprint |
+|---|---|---|---|---|---|
+| 1 | **P0** | Pérdida o duplicación de premios/progreso: sin `RewardsLedger`; premios y perfil viven en el cliente; `fin` no se reenvía al reanudar; `session.banked` solo en memoria | Contradice AC-09 y §10; un cierre de pestaña pierde el resultado; el perfil es editable | `perfil.js:92-104`, `main.js:810`, `server.js:229-240,300-306`, `tools/audit/coop-resume-result.repro.js`, `accounts.js:45` | 1 (mitigar) / 5 |
+| 2 | **P0/P1** | Persistencia solo en `localStorage` con respaldo manual y cuentas dependientes de PostgreSQL pendiente de costo | Borrar datos del navegador pierde todo; en producción `accounts.enabled=false` si falta `DATABASE_URL` | `perfil.js:88`, `TACTICAL_ACCOUNTS.md` («Activación… pendiente de costo»), `accounts.js:16` | 5 |
+| 3 | P1 | Despliegue sin compuertas (Pages por push a rama canónica; Render autodeploy; CI sin navegador ni lint) | Una regresión llega a público; Chromium ausente ⇒ tests de UI se omiten | `pages.yml`, `render.yaml:11`, `ci.yml`, `tools/browser.js:4` | 1/6 |
+| 4 | P1 | Sin cinemática de transferencia ni tutorial jugable | Primer minuto sin claridad; incumple Sprint 1 y AC-03 | `prologo.js`, `main.js:324` | 1 |
+| 5 | P1 | Capítulos de 1–3 min frente a 8–12 y sin jefe en m3–m6 | La demo se agota; AC-10; mide solo con bots | medición, `campaign.js:4` | 3 |
+| 6 | P1 | Coop sin bots ni espectador; desconexión deja un cuerpo inmóvil | Una sala con ausentes es injugable; AC-08 | `server.js:196-206,315`, `bot.js` | 4 |
+| 7 | P1 | Falso impacto sonoro en ataques a distancia del modo Combo; sin test | AC-07 | `combo-fx.js:134,170` | 2 |
+| 8 | P1 | Desbloqueo de huéspedes por compra con núcleos; 3 iniciales | AC-11 / principio «sin pagar» (decisión pendiente) | `tienda.js`, `data.js` | 5 |
+| 9 | P1 | Seguridad: CORS/Origin abiertos por defecto, sin CSP/HSTS, perfil JSON libre en respaldo, cliente decide su progreso | Abuso/cheat; GDD §10 | `server.js:87`, `accounts.js:45` | 6 |
+| 10 | P1 | Calidad global no certificada: 60,95/100 provisional; test heredado rojo (`arsenal`), fallos de rezagado y balance de Vesper; sin dispositivos reales | AC-12 | `VORTEX_SCORECARD.md`, `VORTEX_QA_REPORT.md:126` | 6 |
+| 11 | P2 | Pelea de jefe sin tope ni garantía de victoria (bot `skills` 25 min en m1); bots de m4/m2 pierden en etapa 1 | Posible bucle de partida; objetivos «cultivo/caza» frágiles | medición | 3 |
+| 12 | P2 | Contenido muerto: `WAVE_PLANS` 4–6 inalcanzable en misiones/campaña; dos catálogos de personajes (8 huéspedes + 5 heredados) | Esfuerzo de arte/diseño sin uso; AC-04 | `data.js:447`, `data.js` `CHARACTERS` | 3 |
+| 13 | P2 | Cámara dependiente del modo, sin prueba de conmutación en combo | AC-05 | `essential-controls.js:9`, `main.js:924` | 2 |
+| 14 | P2 | Sin telemetría ni opciones de accesibilidad avanzadas (daltonismo, texto, remapeo) | No se puede medir ni cumplir §12 | grep | 2/5 |
+| 15 | P2 | Resultados pobres (texto plano), logros/códice incompletos | §4, §5 | `main.js:815-838` | 5 |
+| 16 | P3 | Atajos de depuración en producción (`?horde`, `?wave`, `?god`, `?auto`, `?bot`) | Superficie de trampas/confusión | `main.js:269,968` | 6 |
+| 17 | P3 | Documentación desalineada (tren, nombres antiguos, servicios Render) | Confusión de agentes y equipo | `README.md`, `CAMPAIGN_AUDIT.md`, `render.yaml` | 1 |
+
+## 7. Comandos usados en esta auditoría (todos de solo lectura)
+
+```
+cat /tmp/claude-0/gdd1/out.txt                       # GDD completo (156 líneas)
+ls / wc -l / head sobre src/ server/ tests/ tools/ docs/ .github/workflows
+git log --oneline | head -3 ; git status --short     # 62244b6; sin cambios salvo docs/audit/ y tools/audit/ (sin versionar)
+grep -rniE "endless|infinit|sin fin|interminable" src server docs
+grep -n "waveTotal|WAVE_PLANS|state = 'won'|startWave|isBoss" src/sim/game.js
+grep -n "horde|practice|operation:" src/client/main.js server/server.js
+grep -rn "comboHit|sound.hit|hitmark" src tests ; sed -n 95,135p src/client/combo-fx.js
+grep -rniE "telemetr|analytics|sendBeacon|gtag" src server public tools
+grep -rniE "stripe|paypal|checkout|premium|gems" src server
+grep -rn "makeBot" src server ; grep -rn "\.aw\b" src/sim
+node --input-type=module -e "import ... HUESPEDES_INICIALES, HUESPEDES_TIENDA, precioHuesped ..."   # 3 iniciales / 5 tienda
+node -e "import('./src/sim/data.js')..."             # 13 personajes, 8 huéspedes, 15 monstruos, 6 afijos
+node --check src/sim/game.js && node --check server/server.js
+nice -n 19 node tools/audit/medicion-capitulos.mjs all all 1 <salida.jsonl>   # sim pura, 37 s CPU, 18 partidas de bots
+```
+
+## 8. Limitaciones y reservas
+
+- **No se ejecutó** `npm test` ni pruebas de navegador (hay una suite corriendo en la máquina); los estados «Implementado (lectura)» provienen de leer el código y los docs, no de ejecución.
+- La medición de capítulos usa **bots** (1 semilla, 3 estilos); no representa tiempos humanos. Un resultado `playing 25min` (m1 skills) es un caso aislado.
+- `npm audit`, escaneo de secretos del historial, rendimiento en dispositivos y latencia real **no** se midieron.
+- Números de línea corresponden al árbol de trabajo en `62244b6` + archivos sin versionar; pueden moverse tras los siguientes commits.
+- `tools/audit/medicion-capitulos.mjs` y `tools/audit/coop-resume-result.repro.js` aparecen sin versionar en el árbol; esta auditoría no los creó ni modificó.
