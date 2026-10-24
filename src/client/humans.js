@@ -1,4 +1,4 @@
-// Personas humanas 3D para Cristal Vórtice: el Pasajero/a (una persona común atropellada por un tren que despierta en el
+// Personas humanas 3D para Cristal Vórtice: el Pasajero/a (un avatar humano reconstruido en el
 // Vórtice) y los 4 jugadores del coop con sus roles. Trasplante de la «NPC Factory» de ARCANUM (src/arcanum/, assets CC0
 // en assets/arcanum/) + equipo propio (src/arcanum/gear.js), animación por capas, arma en la mano y gestos.
 //

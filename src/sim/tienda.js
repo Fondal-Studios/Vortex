@@ -9,7 +9,7 @@ import { rangoDeXp } from './maestria.js';
 export const CAMBISTA = {
   nombre: 'El Cambista de Almas',   // el mismo mercader que aparece en las partidas (src/sim/npcs.js)
   titulo: 'Mercader del Vórtice',
-  saludo: 'Todo se cambia. Hasta lo que ya no tenés. Pasá, pasá: en el limbo se paga con núcleos, y yo prefiero núcleos.',
+  saludo: 'Todo se cambia. Hasta lo que ya no tenés. Pasá, pasá: en VORTEX se paga con núcleos, y yo prefiero núcleos.',
   frases: {
     comprado: ['Hecho. Que te rinda.', 'Trato cerrado. No se devuelve, ni en esta vida ni en la otra.', 'Buena elección. Casi siempre las hacés buenas.', 'Eso ya es tuyo. Cuidalo.'],
     pobre: ['Con ese bolsillo no se compra ni una sombra. Volvé con más núcleos.', 'Faltan núcleos. Los muertos no fían.'],

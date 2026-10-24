@@ -1,4 +1,4 @@
-// NPCs del limbo: almas que ya no atacan. Aparecen en el respiro entre oleadas cerca del jugador; se les habla con input `npc: {offer: 0|1}` (el cliente
+// NPCs de VORTEX: interfaces de IA con máscaras del archivo humano. Aparecen en el respiro entre oleadas cerca del jugador; se les habla con input `npc: {offer: 0|1}` (el cliente
 // muestra las ofertas: NPC_INFO). Contrato: docs/MUNDO_VIVO.md. Todo determinista y validado por la simulación.
 import { madd, dist, norm, cross } from './math.js';
 import { ESS_KEYS } from './organos.js';
@@ -11,7 +11,7 @@ export const NPC_KINDS = ['cambista', 'sanadora', 'herrero'];
 export const NPC_INFO = {
   cambista: { name: 'El Cambista de Almas', says: 'Todo se cambia. Hasta lo que ya no tenés.', offers: [
     { text: 'Pagás 30 núcleos → 4 esencias de la que menos tenés', cost: '30 núcleos' }, { text: 'Pagás 6 de tu esencia más abundante → 25 núcleos', cost: '6 esencias' }] },
-  sanadora: { name: 'La Sanadora', says: 'Descansá, vivo. A los muertos nos gusta ver latir algo.', offers: [
+  sanadora: { name: 'La Sanadora', says: 'Descansá. Soy una interfaz médica del archivo; tu conciencia todavía necesita este cuerpo.', offers: [
     { text: 'Curación total de vida y escudo', cost: '3 carne' }, { text: 'Bendición: +10 % de daño durante la próxima oleada', cost: '5 cristal' }] },
   herrero: { name: 'El Herrero de Huesos', says: 'Lo que no sirve se funde y se vuelve a forjar.', offers: [
     { text: 'Volver a sortear tus tarjetas (1 vez por respiro)', cost: '10 núcleos' }, { text: 'Forjar tarjetas de órgano con tus esencias', cost: '20 núcleos' }],
