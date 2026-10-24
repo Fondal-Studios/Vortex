@@ -70,6 +70,7 @@ function jugar(cap, estilo, seed) {
       if (e.t === 'wave') { tl.push(['wave', e.n, +g.time.toFixed(1)]); waveStart[e.n] = +g.time.toFixed(1); }
       else if (e.t === 'objective') { tl.push(['obj', e.ph, e.kind, +g.time.toFixed(1)]); objRes.push(e.ph + ':' + e.kind); }
       else if (e.t === 'clear') tl.push(['clear', e.wave, +g.time.toFixed(1)]);
+      else if (e.t === 'desint') tl.push(['desint', e.k, e.why, +g.time.toFixed(1)]);
     }
     g.events.length = 0;
     if (process.env.DEBUG_HP && g.tick % 300 === 0 && g.time > +process.env.DEBUG_HP) console.log('  t', g.time.toFixed(0), 'w', g.wave, g.phase, 'hp', Math.round(p.hp + p.shield), 'mons', g.monsters.length, 'carry', p.carry, 'obj', g.objective && g.objective.type, g.objective && Math.round(g.objective.prog * 100), 'dead', p.dead);

@@ -58,7 +58,7 @@ test('onboarding E2E: menú → elegir primer Huésped → cinemática saltable 
     await pg.click('#transfer .tr-skip'); await pg.waitForFunction(() => !document.getElementById('transfer'), null, { timeout: 20000 });
     assert.equal(await pg.evaluate(() => window.__transfer.skipped), true);
     // 4) tutorial jugable dentro de Islas
-    await pg.waitForSelector('#tutpanel:not([hidden])', { timeout: 60000 }); assert.match(await pg.textContent('#tutpanel'), /Caminar/);
+    await pg.waitForSelector('#tutpanel:not([hidden])', { timeout: 60000 }); await pg.waitForFunction(() => /Caminar/.test((document.getElementById('tutpanel') || {}).textContent || ''), null, { timeout: 60000 });
     assert.equal(await pg.evaluate(() => window.__api.session.game.wave), 0, 'el combate real no empezó');
     await pg.screenshot({ path: OUT + '07-tutorial-caminar.png' });
     // entrada real de teclado: caminar con W
