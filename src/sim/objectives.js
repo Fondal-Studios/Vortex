@@ -50,7 +50,9 @@ export function updateObjective(g, dt) {
     if (o.stage >= terminals.length) return finish(g, o, true);
   } else if (o.type === 'caza') {
     if (o.prog >= 1) return finish(g, o, true);
-    if (o.target != null && !g.monsters.some((m) => m.id === o.target && !m.dead)) return finish(g, o, false);
+    // Si el custodio desaparece sin que lo mate un jugador (un Fuego Fatuo que explota contra alguien, una desintegración) el bloqueo igual cae:
+    // antes la misión se PERDÍA por algo que nadie pudo evitar (medido: bots de Melé en m6 y m3).
+    if (o.target != null && !g.monsters.some((m) => m.id === o.target && !m.dead)) return finish(g, o, true);
   } else if (o.type === 'ancla') {
     const a = objs(g, o)[0]; if (!a) return finish(g, o, false);
     const inside = alive.filter((p) => dist(p.pos, a.pos) < a.r).length; a.on = inside > 0;
