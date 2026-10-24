@@ -476,7 +476,8 @@ function frame(now) {
     if (!paused && !session.ended) {
       // La entrada se lee UNA vez por cuadro y se entrega al simulador enseguida (acumula el giro hasta el próximo paso fijo):
       // el giro nunca espera a que toque un paso de 60 Hz y la cámara lo muestra en el mismo cuadro (ver soloLook).
-      if (!session.bot) { const inp = readInput(); if (L) { assistAim(inp, L, L.players[0], dt, inp.fire); simpleAssist(inp, L, L.players[0]); } g.setInput(session.pid, inp); }
+      if (!session.bot) { const inp = readInput(); if (window.__botInput) Object.assign(inp, window.__botInput(g));   /* gancho SÓLO de pruebas (tests/onboarding-browser.test.js): un piloto automático decide la entrada */
+        if (L) { assistAim(inp, L, L.players[0], dt, inp.fire); simpleAssist(inp, L, L.players[0]); } g.setInput(session.pid, inp); }
       session.acc += dt;
       while (session.acc >= SIM_DT) {
         session.acc -= SIM_DT;

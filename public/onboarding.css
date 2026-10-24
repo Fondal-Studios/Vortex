@@ -48,3 +48,5 @@ body.tr-on #sub { z-index: 9450; }
 body.tut-on #objective { display: none !important; }
 @media (max-width: 700px) { #tutpanel { top: 44px; padding: 8px 10px; } #tutpanel h4 { font-size: 16px; } #tutpanel p { font-size: 13.5px; } }
 @media (prefers-reduced-motion: reduce) { #tutpanel .tp-bar b { transition: none; } }
+.ph-foot { position: sticky; bottom: 0; width: 100%; padding: 14px 0 6px; background: linear-gradient(to bottom, transparent, #070611 38%); }
+@media (max-height: 700px) { .ph-img { height: 120px; } .ph-root { padding-top: 10px; } .ph-sub { margin-bottom: 8px; } }
