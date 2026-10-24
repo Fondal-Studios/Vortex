@@ -26,7 +26,7 @@ export function metaActual(state, me) {
   const w = state.wave || 0, W = state.waveTotal || 1, esJefe = w >= W && state.phase === 'wave';
   const tag = `Oleada ${Math.max(1, w)}/${W}`;
   if (state.phase === 'intermission') {
-    if (me && me.cards && me.cards.length) return { kind: 'mejora', main: 'Elegí una mejora de arma', next: w + 1 >= W ? 'Luego: el jefe' : `Luego: oleada ${w + 1}/${W}` };
+    if (me && me.cards && me.cards.length) return { kind: 'mejora', main: 'Elegí una mejora', next: w + 1 >= W ? 'Luego: el jefe' : `Luego: oleada ${w + 1}/${W}` };
     const sig = w + 1, jefe = sig >= W;
     if (!w) return { kind: 'espera', main: `Prepará tu Huésped · empieza en ${Math.ceil(state.intermission)} s`, next: 'Meta: sobrevivir cada oleada y vencer al jefe' };
     return { kind: 'espera', main: `Respiro · ${jefe ? 'viene el jefe' : `oleada ${sig}/${W}`} en ${Math.ceil(state.intermission)} s`, next: jefe ? 'Luego: derrotar al jefe' : 'Aprovechá: recogé munición y vida' };

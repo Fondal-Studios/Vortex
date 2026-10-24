@@ -557,3 +557,10 @@ body.touch-ui #estilohud, body.touch-ui.cam3 #estilohud { top: calc(env(safe-are
 .lb-list li.yo { border-color: #7fb2ff; } .lb-list li.vacio { opacity: .35; justify-content: center; }
 .lb-list .nom { flex: 1; font-weight: 600; } .lb-list .det { opacity: .75; font-size: 12px; } .lb-list .ok { color: #8be3a4; } .lb-list .no { color: #ffd37a; } .lb-list .ausente { color: #ff8f8f; }
 #netstat { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; padding: 4px 12px; border-radius: 999px; background: #000a; color: #ffd37a; font-size: 12px; pointer-events: none; }
+
+/* Tarjetas por estilo: rarezas, clase y relanzar (docs/EVOLUCION.md → «Tarjetas») */
+.ucard.rar1 { box-shadow: 0 0 26px color-mix(in srgb, var(--c) 70%, transparent), inset 0 0 14px color-mix(in srgb, var(--c) 30%, transparent); }
+.ucard.rar2 { box-shadow: 0 0 34px var(--c), inset 0 0 22px color-mix(in srgb, var(--c) 55%, transparent); background: linear-gradient(160deg, #2a1470f0, #120a40f0); }
+.ucard .rz { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; opacity: .85; margin-top: 2px; }
+#cardreroll { min-height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid #ffffff55; background: #1a1050cc; color: #fff; font: 700 12px/1 system-ui, sans-serif; cursor: pointer; }
+#cardreroll:disabled { opacity: .45; cursor: default; }

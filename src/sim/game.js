@@ -1,5 +1,5 @@
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
-import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, EVO_PATHS, evoPathsFor, STYLES, AFFIX_IDS, LINEAGE } from './data.js';
+import { MONSTER_PACE, BOSS_PACE, G, LIMITS, WEAPONS, MONSTERS, WAVE_PLANS, BOSS_OF, PLAYER, BOSS_MECH, CHARACTERS, CHARACTER_IDS, HOST_IDS, WAVE_SCALE, MELEE_WEAPONS, CORES, evoSemilla, EVO_PATHS, evoPathsFor, STYLES, AFFIX_IDS, LINEAGE } from './data.js';
 import { MAPS } from './maps.js';
 import { collide, blocked } from './physics.js';
 import { AI } from './ai.js';
@@ -19,7 +19,8 @@ import { enrutar } from './modos.js';   // slots de habilidad por modo (Disparo 
 import { initDrops, initPity, updateLoot, flushLoot, lootSnap, dropsKill, dropsJefe, dropsRespiro } from './drops.js';   // dropeo de objetos (docs/INVENTARIO.md): rng propio g.drRng
 import { applyEquip, itemsSnap, shapeItemGun, ensureGunSlot } from './items-fx.js';
 import { initHost, addCores, updateHost, hostDamageIn, hostOut, hostDamaged, hostHit, hostSnap, hostKill, hostObject, inWall, inChrono } from './huespedes.js';
-import { cleanSlots, upgOf, wstat, ammoMax, makeCards, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
+import { cu as cuT, cerrarUso, costoReroll } from './tarjetas.js';
+import { cleanSlots, upgOf, wstat, ammoMax, makeCards, relanzar, applyCard, shapeWeapon, anyMut, clipOf, reloadTime } from './loadout.js';
 import { Director } from './director.js';
 import { initArenas, tickArenas, arSnap, arTargets, arExplosion, arKill, arVel, arDanio, danarOrgano } from './arenas-vivas.js'; // arenas vivas (src/sim/arenas-vivas.js)
 import { initNieblas, tickNieblas, ngSnap, ngVel, ngDanio, ngRecibe, ngOculta, ngMonstruoRecibe, ngDeforma } from './nieblas.js';   // nieblas de colores con función (src/sim/nieblas.js)
@@ -91,7 +92,7 @@ export class Game {
     };
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style] && opts.style !== 'combo') p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo, p.char); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     if (opts.mode === 'combo') p.mode = 'combo';
-    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyHerb(p, opts.herb); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
+    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyHerb(p, opts.herb); applyMaestria(p, opts.maestria); p.cores = Math.max(p.cores, evoSemilla(p.mastery)); applyArbol(p, opts.arbol); // (semilla de evolución según el rango) // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
     p.kit = Math.max(0, Math.min(2, opts.kit | 0));   // botiquines iniciales de la Tienda (docs/TIENDA.md): una segunda oportunidad cada uno
     initFaunaPlayer(p, opts.fauna); initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
     this.players.push(p);
@@ -113,11 +114,11 @@ export class Game {
     }
     if (inp.cam && typeof inp.cam === 'object') p.cam = { third: !!inp.cam.third, side: inp.cam.side < 0 ? -1 : 1, dist: clamp(+inp.cam.dist || 3.6, 1.5, 7) }; else if (inp.cam === false) p.cam = null;
     if (Number.isInteger(inp.weapon) && inp.weapon >= 0 && inp.weapon < WEAPONS.length) i.weapon = inp.weapon;
-    if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 3) i.pick = inp.pick;
+    if (Number.isInteger(inp.pick) && inp.pick >= 0 && inp.pick < 5) i.pick = inp.pick; if (inp.reroll) i.rerollQ = true;   // relanzar tarjetas: se guarda hasta que el tick lo cobra
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo, p.char); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); applyArbol(p, prof.arbol ?? p.arb); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
+  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo, p.char); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); p.cores = Math.max(p.cores, evoSemilla(p.mastery)); applyArbol(p, prof.arbol ?? p.arb); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -204,11 +205,11 @@ export class Game {
       if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
       misionFin(this); finOleada(this);
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
-      for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
+      for (const p of this.players) { p.rrN = 0; p.flawlessCards = p.lastHurt < (this.waveT0 || 0) && !p.dead; p.cards = this.wave < this.waveTotal ? makeCards(this, p, { flawless: p.flawlessCards }) : []; cerrarUso(p); }   // cerrarUso: la próxima mano mira lo que uses de ahora en más
       this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this); dropsRespiro(this);
-      for (const p of this.players) addCores(this, p, CORES.wave + this.wave * 2);
+      for (const p of this.players) addCores(this, p, CORES.wave + this.wave * CORES.waveK + (p.lastHurt < (this.waveT0 || 0) && !p.dead ? CORES.flawless + this.wave * CORES.flawlessK : 0));   // fin de oleada + bono por oleada SIN recibir daño
       for (const p of this.alivePlayers()) {
-        p.hp = Math.min(PLAYER.hp, p.hp + 40 + (p.bn ? p.bn.heal : 0)); // respiro entre oleadas (+ bendición Raíz)
+        p.hp = Math.min(PLAYER.hp, p.hp + 40 + (p.bn ? p.bn.heal : 0) + 4 * cuT(p, 'vigor')); // respiro entre oleadas (+ bendición Raíz)
         this.dropPickup('hp', madd(p.pos, p.up, 2));
         for (const [i, w] of [p.slots[2], p.slots[1], p.slots[3]].entries()) this.dropPickup('ammo', madd(madd(p.pos, p.up, 2), p.heading, 4 + i), w);
       }
@@ -217,7 +218,7 @@ export class Game {
 
   startWave(n, plan) {
     clearNpc(this);
-    this.wave = n; this.phase = 'wave'; this.spawnT = 1;
+    this.wave = n; this.phase = 'wave'; this.spawnT = 1; this.waveT0 = this.time;
     for (const p of this.players) if (p.cards.length) { applyCard(p, p.cards[0], this); p.cards = []; } // quien no eligió, recibe la primera
     for (const p of this.players) { if (p.dead) this.revive(p); if (p.role === 'ingeniero' && !p.dead) { for (const w of [2, 1, 3]) this.dropPickup('ammo', madd(madd(p.pos, p.up, 1.5), p.heading, 2 + w), w); } }
     const n_pl = Math.max(1, this.players.length);
@@ -402,9 +403,10 @@ export class Game {
     }
     if (this.map.outOfBounds(p.pos) || !finite(p.pos)) this.playerFell(p);
     // escudo
-    if (this.time - p.lastHurt > PLAYER.shieldDelay && p.shield < PLAYER.shield) p.shield = Math.min(PLAYER.shield, p.shield + PLAYER.shieldRate * (p.bn ? p.bn.shield : 1) * (hasC(p, 'corazon_cristal') ? 1.5 : 1) * dt);
+    if (this.time - p.lastHurt > PLAYER.shieldDelay && p.shield < PLAYER.shield) p.shield = Math.min(PLAYER.shield, p.shield + PLAYER.shieldRate * (p.bn ? p.bn.shield : 1) * (1 + 0.2 * cuT(p, 'escudo')) * (hasC(p, 'corazon_cristal') ? 1.5 : 1) * dt);
     // armas
     if (inp.weapon >= 0) { p.weapon = inp.weapon < 5 ? p.slots[inp.weapon] : inp.weapon; inp.weapon = -1; }
+    if (inp.rerollQ) { if (p.cards.length && this.phase === 'intermission') relanzar(this, p); inp.rerollQ = false; }   // relanzar las tarjetas pagando núcleos
     if (inp.pick >= 0) { if (p.cards.length) { applyCard(p, p.cards[inp.pick] || p.cards[0], this); p.cards = []; this.emit({ t: 'upgrade', pid: p.id }); } inp.pick = -1; }
     p.movCd = Math.max(0, p.movCd - dt); p.espCd = Math.max(0, p.espCd - dt);
     if (inp.mov && !p.movPrev && !this.evSilencio) useMove(this, p); p.movPrev = inp.mov;
@@ -603,6 +605,7 @@ export class Game {
     mul_ *= ngMonstruoRecibe(this, m, by);           // niebla ámbar: la criatura de adentro también recibe +30 % · niebla blanca: disparar desde adentro te delata
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
     m.hp -= dmg * mul_; m.hurt = 0.12;
+    if (by && by.input) { const sr = this.dmgSrc || (by.inMelee ? 'melee' : 'gun'), db = by.dmgBy || (by.dmgBy = { melee: 0, gun: 0, skill: 0 }); db[sr] = (db[sr] || 0) + Math.min(dmg * mul_, m.hp + dmg * mul_); }   // daño por fuente (melee / gun / skill): lo que el jugador USA pesa en las tarjetas
     if (by && by.input && this.boss) jefeGolpe(this, m, by, dmg * mul_);   // perfil de estilo del jugador (jefe-ia.js)
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
     if (m.affix === 'llorón' && !m.dead && this.time >= (m.weepAt || 0) && (m.kids || 0) < 3) { m.weepAt = this.time + 3; const k = this.spawnMonster('astilla', madd(m.pos, norm(this.rng.unit()), 3), { parent: m.id, noElite: true }); if (k) m.kids = (m.kids || 0) + 1; }
@@ -847,7 +850,7 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0, ...jefeSnap(boss) } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.id || c.mod || '', c.mod || c.t || '', c.r | 0]), rr: costoReroll(p) ?? 0, cuu: p.cu || {}, mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,

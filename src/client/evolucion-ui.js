@@ -69,6 +69,7 @@ export function buildEvolucionScreen(menu) {
         <div class="ev-evolve" id="evevolve">
           <div class="ev-cores" id="evcoresrow"><span class="ev-core-n"><i aria-hidden="true">${CORE}</i> <b id="evcores">0</b> núcleos</span><span class="ev-bar" aria-hidden="true"><b id="evbar"></b></span></div>
           <div class="ev-next" id="evnext"></div>
+          <div class="ev-req" id="evreq" hidden></div>
           <div class="ev-actions"><button class="ev-btn ev-nav" type="button" id="evpeek" aria-pressed="false">Ver nivel siguiente</button><button class="ev-btn ev-main ev-nav" type="button" id="evbtn">Evolucionar</button></div>
         </div>
       </section>
@@ -226,14 +227,17 @@ export function buildEvolucionScreen(menu) {
     $('#evcores').textContent = String(cores);
     $('#evbar').style.width = (max ? 100 : Math.min(100, (cores / cost) * 100)) + '%';
     if (max) {
-      $('#evnext').innerHTML = `<b>Forma final alcanzada.</b> <span>${esc(EVO_TIERS[4].desc)}</span>`; btn.textContent = 'Nivel máximo'; btn.disabled = true; $('#evpeek').hidden = true;
+      $('#evnext').innerHTML = `<b>Forma final alcanzada.</b> <span>${esc(EVO_TIERS[4].desc)}</span>`; btn.textContent = 'Nivel máximo'; btn.disabled = true; $('#evpeek').hidden = true; $('#evreq').hidden = true;
     } else {
       const n = evo + 1, T = EVO_TIERS[n];
       $('#evnext').innerHTML = `<b>Nivel ${n} · ${esc(T.name)}</b> <span>${esc(T.desc)}</span> <em>Verás: ${esc(EVO_VISUAL[ev.char][n])}</em>`;
-      btn.disabled = cores < cost; btn.textContent = cores >= cost ? `Evolucionar · ${cost} ${CORE}` : `Faltan ${cost - cores} ${CORE}`; $('#evpeek').hidden = false;
+      const E = Perfil.estadoEvolucion(ev.char), listo = E.motivo === '';
+      btn.disabled = !listo; btn.textContent = listo ? `Evolucionar · ${cost} ${CORE}` : E.motivo === 'rango' ? `Necesitás rango ${E.rangoReq} de maestría` : `Faltan ${E.faltanNucleos} ${CORE}`; $('#evpeek').hidden = false;
+      // qué falta, con las dos condiciones a la vista (núcleos Y rango): el rango no se compra, se gana jugando con este Huésped
+      $('#evreq').innerHTML = `<span class="${E.nucleos >= E.coste ? 'ok' : 'no'}">${E.nucleos >= E.coste ? '✓' : '✗'} Núcleos: ${E.nucleos} / ${E.coste}</span> <span class="${E.faltanRangos ? 'no' : 'ok'}">${E.faltanRangos ? '✗' : '✓'} Rango de maestría: ${E.rango} / ${E.rangoReq}</span>${E.motivo === 'rango' ? ` <em>Bloqueado: te falta${E.faltanRangos > 1 ? 'n' : ''} ${E.faltanRangos} rango${E.faltanRangos > 1 ? 's' : ''}. El rango se gana jugando partidas con ${esc(CHARACTERS[ev.char].name)} (no se compra).</em>` : ''}${E.semilla ? ` <em>Semilla de evolución: empezás cada partida con ${E.semilla} ${CORE}.</em>` : ''}`; $('#evreq').hidden = false;
     }
     $('#evpeek').setAttribute('aria-pressed', ev.peek ? 'true' : 'false'); $('#evpeek').textContent = ev.peek ? 'Volver al nivel actual' : 'Ver nivel siguiente'; $('#evpeektag').hidden = !ev.peek;
-    $('#evcoresrow').classList.toggle('ready', !max && cores >= cost);
+    $('#evcoresrow').classList.toggle('ready', !max && Perfil.estadoEvolucion(ev.char).motivo === '');
   }
   const listFor = (tab) => (tab === 'innata' ? Object.values(NATIVE_MELEE) : Object.keys(MELEE_WEAPONS).filter((k) => MELEE_WEAPONS[k].type === tab));
   function state(d) { // 'equipada' | 'tuya' | 'comprable'

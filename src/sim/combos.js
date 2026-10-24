@@ -9,7 +9,7 @@ import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clone } from './m
 import { PLAYER, COMBO_SETS, COMBO_WEAPON, COMBO_RULES, COMBO_CHARGE, COMBO_TUNE, HABILIDADES } from './data.js';
 import { blocked } from './physics.js';
 import { hasC } from './organos.js';
-import { cdef, isHost, meleeSet, hasPath, evoMeleeMul, cdMul, applyMeleeSpecial, meleeAfter } from './huespedes.js';
+import { cdef, isHost, meleeSet, hasPath, evoMeleeMul, cdMul, applyMeleeSpecial, meleeAfter, evoSkillFx } from './huespedes.js';
 import { ordenar, nubeArea, spawnUnits, llamado } from './enjambre.js';   // Colmena: el enjambre ataca con tus golpes (fx 'orden' | 'nube' | 'cria') y 'llamado'
 import { addPozo, singularFx, singularHab, SING } from './singular.js';   // Singular: pozos de gravedad y satélites (fx 'atrae' | 'pozo' | 'orbita', habilidad 'gravedad', remate 'pozo')
 import { NEUTRO_C, ARRASE_PRESUPUESTO, progHit, progSnap } from './progresion.js';   // árbol de combos permanente (docs/EVOLUCION.md): p.ac = efectos de los nodos
@@ -20,7 +20,14 @@ import { dzInit, dzOpen, dzBeat, dzDmg, dzRec, dzChain, dzContrapaso } from './d
 const r2 = (n) => Math.round(n * 100) / 100;
 const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
 const flat = (p) => norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.heading);
-const AC = (p) => p.ac || NEUTRO_C;
+/** Efectos del árbol de combos + las tarjetas de melé (p.cu): ventana/buffer, alcance/arco/blancos, remate y cadena del arma. Se arma una vez por combinación (caché en p._acc). */
+const AC = (p) => {
+  const a = p.ac || NEUTRO_C, u = p.cu; if (!u || !(u.ventana || u.area || u.arma || u.remate)) return a;
+  const key = `${u.ventana || 0}|${u.area || 0}|${u.arma || 0}|${u.remate || 0}`;
+  if (p._acc && p._acc.a === a && p._acc.key === key) return p._acc.o;
+  const o = { ...a, win: a.win * (1 + 0.12 * (u.ventana || 0)), buf: a.buf * (1 + 0.1 * (u.ventana || 0)), chain: a.chain + Math.floor((u.arma || 0) / 2), rng: a.rng * (1 + 0.04 * (u.area || 0)), arc: a.arc * (1 + 0.06 * (u.area || 0)), maxT: Math.max(a.maxT, 4 + Math.round(u.area || 0)), finMul: a.finMul * (1 + 0.15 * (u.remate || 0) + 0.08 * (u.arma || 0)) };
+  p._acc = { a, key, o }; return o;
+};
 const bufT = (p) => COMBO_RULES.buffer * AC(p).buf;
 const heal = (q, n) => { q.hp = Math.min(PLAYER.hp, q.hp + n); };
 
@@ -115,7 +122,7 @@ function fire(g, p, name, power, moves, W) {
   if (fin && kk > 0 && ac.refund && !p.dead) { const n = Math.min(kk, 5); heal(p, 4 * n); p.habCd = Math.max(0, p.habCd - 1.2 * n); }   // Remate cobrador
   const M = meleeSet(p), base = mv.w === 'h' ? M.heavy : M.light;
   const fr = g.time < p.frenzyUntil ? 0.75 : 1, over = p.ultId === 'sobrecarga' ? 0.6 : 1;
-  cb.rec = Math.max(0.12, base.cd * mv.cdr * W.cd * fr * over * (hasPath(p, 'velocidad') ? 0.92 : 1)); cb.rec *= dzRec(p); cb.cd = cb.rec;
+  cb.rec = Math.max(0.12, base.cd * mv.cdr * W.cd * fr * over * (hasPath(p, 'velocidad') ? 0.9 : 1) * (1 - 0.03 * (p.evo || 0)) * (1 - 0.04 * ((p.cu && p.cu.reflejos) || 0))); cb.rec *= dzRec(p); cb.cd = cb.rec;
   cb.cancel = ac.cancel ? Math.min(mv.cancel || COMBO_RULES.cancel, ac.cancel) : mv.cancel || COMBO_RULES.cancel; cb.last = mv.id; cb.lastName = mv.name;   // cancel = fracción de la recuperación que ya pasó para aceptar el golpe siguiente (menor = antes)
   if (cb.xc && ac.execCancel) cb.cd = 0;   // Sentencia: ejecutar cancela la recuperación
   if (last) { cb.buf = []; cb.win = cb.rec + 0.2; cb.nEnd = cb.n; cb.n = last ? 0 : cb.n; }
@@ -131,7 +138,7 @@ function resolve(g, p, mv0, power, W, last, fin) {
   if (W.spinAt && cb.n >= W.spinAt && !mv.ranged) mv = { ...mv, arc: 2, kind: 'spin', dmg: mv.dmg * 1.15, hits: 1 };   // hacha: el 3.º golpe es un giro
   const heavy = mv.w === 'h', base = heavy ? M.heavy : M.light;
   const side = mv.seq[mv.seq.length - 1] === 'a2' ? W.a2 : W.a1;
-  const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis', strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
+  const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis', strong = hasPath(p, 'simbiosis') ? 1.6 : 1;
   const frenzy = g.time < p.frenzyUntil, IS = itemStrike(p), exT = execThreshold(p) + ac.exec;
   let dmg = base.dmg * mv.dmg * W.dmg * (mv.charge ? power : 1) * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1) * (frenzy ? 1.2 : 1) * (last && W.fin ? W.fin : 1) * (fin ? ac.finMul : 1) * (COMBO_TUNE[p.char] || 1) * IS.mul * (mv.ranged ? p.irng || 1 : 1) * dzDmg(p);
   const range = base.range * mv.rng * (mv.ranged ? 1 : side.rng * ac.rng) * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1);
@@ -298,10 +305,10 @@ function applyFx(g, p, mv, dmg, o, dir) {
 }
 
 /* ───────── habilidad principal ───────── */
-const habScale = (p) => 1 + 0.06 * (p.evo || 0);
+const habScale = (p) => 1 + 0.1 * (p.evo || 0);   // la habilidad principal crece 10 % por nivel (radio y daño)
 function useHab(g, p, H) {
   if (!H || p.dead || p.carry || p.habCd > 0 || p.habPend) return false;
-  p.habCd = H.cd * cdMul(p) * (1 - 0.05 * (p.evo || 0)); p.habMax = p.habCd;
+  p.habCd = H.cd * cdMul(p); p.habMax = p.habCd;   // cdMul ya trae el enfriamiento por nivel (data.js → EVO_POWER.cd)
   p.habPend = { id: H.id, t: H.wind }; p.cb.cd = Math.min(p.cb.cd, 0.1);   // la habilidad cancela la recuperación del golpe
   if (H.id === 'baluarte') { p.guardUntil = g.time + H.wind + 4.5 * (hasPath(p, 'coraza') ? 1.3 : 1) * (p.evo >= 3 ? 1.2 : 1); p.baluarteUntil = p.guardUntil; }   // el escudo ya está arriba mientras se prepara
   g.emit({ t: 'hab', pid: p.id, id: H.id, ph: 'cast', p: a3(p.pos), r: r2(H.r * habScale(p)), dur: H.wind });
@@ -352,6 +359,7 @@ function resolveHab(g, p, id) {
     }
     g.emit({ t: 'hab', pid: p.id, id, ph: 'go', p: a3(p.pos), r: r2(r) });
   } finally { g.dmgSrc = s0; p.inHab = false; }
+  evoSkillFx(g, p, 'hab');   // efectos de nivel de la habilidad principal
 }
 /** Eclipse de Umbra: daño continuo dentro de la zona (la lentitud la da el objeto 'chrono'). */
 function eclipseTick(g, p, dt) {

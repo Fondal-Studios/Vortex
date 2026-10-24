@@ -32,7 +32,7 @@ export const isSing = (p) => !!p && p.char === 'singular';
 /** ¿Está activa la Marea para este jugador? (la pasiva Horizonte la enciende mientras dura el evento o el pulso de un jefe). */
 export const mareaOn = (g, p) => g.time < (p.mareaUntil || 0);
 const mk = (g, p) => (mareaOn(g, p) ? SING.marea : 1);
-const evoK = (p) => 1 + 0.06 * (p.evo || 0);
+const evoK = (p) => 1 + 0.1 * (p.evo || 0);
 const supernova = (p) => p.ultId === 'supernova';
 
 /* ───────── satélites ───────── */

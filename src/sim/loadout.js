@@ -2,6 +2,8 @@
 import { organMuls, organError, buyOrgan } from './organos.js';
 import { WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE } from './data.js';
 import { WEAPON_MUTS, WEAPONS, UPGRADE_KINDS, WEAPON_MODS } from './data.js';
+import { TARJETAS, MANO, CLASE_DE_ESTILO, estiloDe, pesosLibres, disponibles, rarezaAl, aplicarTarjeta, textoTarjeta, costoReroll, cuInit, claseDe } from './tarjetas.js';   // tarjetas por estilo (melé / habilidad / Huésped)
+export { claseDe, estiloDe };
 
 export const DEFAULT_SLOTS = [0, 1, 2, 3, 4];
 /** Ranuras válidas: 5 armas distintas; la ranura 0 es siempre el Haz (munición infinita, red de seguridad). */
@@ -17,40 +19,86 @@ export const upgOf = (p, wid) => (p.upg[wid] ||= emptyUpg());
 export function wstat(p, wid) {
   const u = p.upg[wid] || emptyUpg();
   const O = organMuls(p, wid), IG = p.ig && p.ig.wid === wid ? p.ig : null;   // IG = arma de disparo de un objeto (docs/INVENTARIO.md)
-  return { dmg: (1 + 0.22 * u.dmg) * O.dmg * (u.forma === 'alba' ? 1.25 : 1) * (IG ? IG.dmg : 1), rate: (1 + 0.14 * u.rate) * O.rate * (u.forma === 'ocaso' ? 1.4 : 1) * (IG ? IG.rate : 1), mag: (1 + 0.3 * u.mag) * (p.path && p.path.includes('artilleria') ? 1.3 : 1) * (IG ? IG.mag : 1), mod: u.mod, mut: u.mut, forma: u.forma };
+  return { dmg: (1 + 0.22 * u.dmg) * O.dmg * (u.forma === 'alba' ? 1.25 : 1) * (IG ? IG.dmg : 1), rate: (1 + 0.14 * u.rate) * O.rate * (u.forma === 'ocaso' ? 1.4 : 1) * (IG ? IG.rate : 1), mag: (1 + 0.3 * u.mag) * (p.path && p.path.includes('artilleria') ? 1.4 : 1) * (IG ? IG.mag : 1), mod: u.mod, mut: u.mut, forma: u.forma };
 }
 export const ammoMax = (p, wid) => { const w = WEAPONS[wid]; return w.max === Infinity ? Infinity : Math.ceil(w.max * wstat(p, wid).mag); };
 export const modsFor = (wid) => Object.keys(WEAPON_MODS).filter((m) => !((m === 'precision' || m === 'toxica') && WEAPONS[wid].kind !== 'hitscan') && !(m === 'precision' && WEAPONS[wid].pellets > 3) && !(m === 'perfora' && (WEAPONS[wid].pierce)) && !(m === 'cadena' && WEAPONS[wid].chain) && !(m === 'explosiva' && WEAPONS[wid].splash));
 
-/** Tres tarjetas para el jugador: [{w, k:'dmg'|'rate'|'mag'|'mod', mod?}] */
-export function makeCards(g, p) {
-  const cards = [], tries = 40;
-  const wl = p.slots.slice();
-  // evolución de 2.º nivel: con una mutación elegida y algo de práctica, el arma ofrece dos ramas excluyentes
+/** Una tarjeta de DISPARO al azar (mejora de daño / cadencia / munición, o un mod especial). Prefiere el arma que el jugador lleva en la mano. */
+function cartaDisparo(g, p, evitar) {
+  const wl = p.slots.slice(), pool = p.slots.includes(p.weapon) ? wl.concat([p.weapon, p.weapon]) : wl;
+  for (let i = 0; i < 40; i++) {
+    const w = g.rng.pick(pool), u = upgOf(p, w), r = g.rng.next();
+    let c;
+    if (r < 0.2 && !u.mod && modsFor(w).length) c = { w, k: 'mod', mod: g.rng.pick(modsFor(w)) };
+    else { const k = g.rng.pick(['dmg', 'dmg', 'rate', 'rate', 'mag']); if (WEAPONS[w].max === Infinity && k === 'mag') continue; if (u[k] >= UPGRADE_KINDS[k].max) continue; c = { w, k }; }
+    if (evitar.some((x) => x.w === c.w && x.k === c.k)) continue;
+    return c;
+  }
+  return null;
+}
+/** Una tarjeta nueva de melé / habilidad / Huésped que todavía no está al tope, con su rareza. */
+function cartaNueva(g, p, clase, evitar) {
+  const ids = disponibles(p, clase).filter((id) => !evitar.some((x) => x.id === id)); if (!ids.length) return null;
+  const id = g.rng.pick(ids); return { w: p.slots[0], k: clase, id, r: rarezaAl(g.rng.next()) };
+}
+const cartaDe = (g, p, clase, evitar) => (clase === 'disparo' ? cartaDisparo(g, p, evitar) : cartaNueva(g, p, clase, evitar));
+const pickPeso = (g, W) => { const ks = Object.keys(W), t = ks.reduce((a, k) => a + W[k], 0); let r = g.rng.next() * t; for (const k of ks) { r -= W[k]; if (r <= 0) return k; } return ks[0]; };
+
+/**
+ * Las tarjetas del respiro: 3 (o 4) con composición GARANTIDA por estilo (docs/EVOLUCION.md → «Tarjetas»):
+ *   A) una de la clase de TU estilo (Disparo → armas; Melé → combos y arma fusionada; Habilidades → recarga, potencia, área);
+ *   B) una de habilidades o del Huésped (cuerpo);
+ *   C) una LIBRE: pesa tu estilo, lo que USASTE las últimas oleadas (daño por fuente) y siempre una pizca de todo; o un órgano si tenés esencias.
+ * Las ramas excluyentes (mutación / linaje de un arma) entran de a PAR y suman una 4.ª tarjeta; una oleada sin que te peguen también regala la 4.ª.
+ * opt.flawless: true si el jugador no recibió daño en la oleada.
+ */
+export function makeCards(g, p, opt = {}) {
+  cuInit(p);
+  const wl = p.slots.slice(), est = estiloDe(p), cl = CLASE_DE_ESTILO[est], hand = [];
+  const lleva = (c) => hand.some((x) => x.w === c.w && x.k === c.k && x.id === c.id && x.forma === c.forma && x.mut === c.mut && x.mod === c.mod);
+  const add = (c) => { if (c && !lleva(c)) { hand.push(c); return true; } return false; };
+  const dos = (cs) => { for (const c of cs) add(c); };
+  // 1) ramas excluyentes: mutación de 2.º nivel o linaje (forma final) de un arma
+  let par = null;
   const elig = wl.filter((w) => { const u = p.upg[w]; return u && u.mod && !u.mut && u.dmg + u.rate >= 2 && WEAPON_MUTS[u.mod]; });
-  if (elig.length && g.rng.next() < 0.6) { const w = g.rng.pick(elig), br = WEAPON_MUTS[p.upg[w].mod]; for (const b of br) cards.push({ w, k: 'mut', mod: p.upg[w].mod, mut: b.id }); }
-  // LINAJE: un arma a nivel 3 con mutación y un órgano ofrece DOS formas finales excluyentes
-  const lin = wl.filter((w) => { const u = p.upg[w]; return u && !u.forma && u.dmg + u.rate + u.mag >= LINEAGE.req.lvl && u.mod && ((p.worg && p.worg[w]) || []).length >= 1; });
-  if (lin.length && g.rng.next() < 0.7) { const w = g.rng.pick(lin); for (const f of Object.keys(LINEAGE.forms)) cards.push({ w, k: 'forma', forma: f }); }
-  // ÓRGANOS como tarjetas: si hay esencias para alguno, se ofrece UNO (elegirlo descarta las otras tarjetas: selección excluyente)
-  if (p.ess && g.rng.next() < 0.7) {
+  const pPar = est === 'disparo' ? 0.65 : 0.2;
+  if (elig.length && g.rng.next() < pPar) { const w = g.rng.pick(elig); par = WEAPON_MUTS[p.upg[w].mod].map((b) => ({ w, k: 'mut', mod: p.upg[w].mod, mut: b.id })); }
+  else {
+    const lin = wl.filter((w) => { const u = p.upg[w]; return u && !u.forma && u.dmg + u.rate + u.mag >= LINEAGE.req.lvl && u.mod && ((p.worg && p.worg[w]) || []).length >= 1; });
+    if (lin.length && g.rng.next() < pPar) { const w = g.rng.pick(lin); par = Object.keys(LINEAGE.forms).map((f) => ({ w, k: 'forma', forma: f })); }
+  }
+  // 2) un órgano si hay esencias para alguno
+  let org = null;
+  if (p.ess && g.rng.next() < 0.5) {
     const can = (x) => Object.entries(x.cost).every(([k, n]) => (p.ess[k] || 0) >= n);
     const pool = [];
     for (const w of wl) for (const [id, O] of Object.entries(WEAPON_ORGANS)) if (can(O) && !organError(p, 'w', w, id)) pool.push({ w, k: 'organ', t: 'w', id });
     for (const [id, O] of Object.entries(CHAMP_ORGANS)) if (can(O) && !organError(p, 'c', 0, id)) pool.push({ w: wl[0], k: 'organ', t: 'c', id });
-    if (pool.length) cards.push(g.rng.pick(pool));
+    if (pool.length) org = g.rng.pick(pool);
   }
-  for (let i = 0; i < tries && cards.length < 3; i++) {
-    const w = g.rng.pick(wl), u = upgOf(p, w), r = g.rng.next();
-    let c;
-    if (r < 0.2 && !u.mod && modsFor(w).length) c = { w, k: 'mod', mod: g.rng.pick(modsFor(w)) };
-    else { const k = g.rng.pick(['dmg', 'dmg', 'rate', 'rate', 'mag']); if (WEAPONS[w].max === Infinity && k === 'mag') continue; if (u[k] >= UPGRADE_KINDS[k].max) continue; c = { w, k }; }
-    if (cards.some((x) => x.w === c.w && x.k === c.k)) continue;
-    cards.push(c);
-  }
-  return cards;
+  const otras = ['disparo', 'melee', 'habilidad', 'huesped'];
+  const conFallback = (clase) => { for (const c of [clase, ...otras.filter((x) => x !== clase)]) { const card = cartaDe(g, p, c, hand); if (card) return card; } return null; };
+  // A) la de tu estilo (o el par excluyente, si tu estilo es Disparo)
+  if (par && est === 'disparo') dos(par); else add(conFallback(cl));
+  // B) habilidad o Huésped (si tu estilo es Habilidades, mejor del cuerpo)
+  add(conFallback(est === 'habilidad' ? (g.rng.next() < 0.6 ? 'huesped' : 'habilidad') : (g.rng.next() < 0.55 ? 'habilidad' : 'huesped')));
+  // C) libre: el par excluyente (otros estilos), un órgano, o por pesos (estilo + uso reciente + diversidad)
+  if (par && est !== 'disparo') dos(par); else if (org && g.rng.next() < 0.7) add(org); else add(conFallback(pickPeso(g, pesosLibres(p))));
+  // oleada perfecta (o par que dejó la mano corta): una más de tu estilo hasta 4
+  if (opt.flawless && hand.length < MANO.max) add(conFallback(cl));
+  while (hand.length < MANO.base) { if (!add(conFallback(pickPeso(g, pesosLibres(p))))) break; }
+  return hand.slice(0, MANO.max);
+}
+/** Relanza las tarjetas pagando núcleos (15 / 30 / 45). Devuelve true si se hizo. */
+export function relanzar(g, p) {
+  const c = costoReroll(p); if (c === null || p.cores < c || !p.cards.length) return false;
+  p.cores -= c; p.rrN = (p.rrN || 0) + 1; p.cards = makeCards(g, p, { flawless: !!p.flawlessCards });
+  if (g && g.emit) g.emit({ t: 'reroll', pid: p.id, n: p.rrN });
+  return true;
 }
 export function applyCard(p, c, g = null) {
+  if (c.k === 'melee' || c.k === 'habilidad' || c.k === 'huesped') { aplicarTarjeta(p, c); return; }
   if (c.k === 'organ') { if (g) buyOrgan(g, p, c.t, c.w, c.id); return; }
   if (c.k === 'forma') { upgOf(p, c.w).forma = c.forma; if (g) g.emit({ t: 'forma', pid: p.id, w: c.w, forma: c.forma }); return; }
   const u = upgOf(p, c.w);
@@ -59,7 +107,7 @@ export function applyCard(p, c, g = null) {
 }
 /** Texto corto de una tarjeta (menú) */
 export function cardText(c) {
-  const w = WEAPONS[c.w]; if (c.k === 'forma') return `${w.name} ${LINEAGE.forms[c.forma].name}`; if (c.k === 'organ') return c.t === 'c' ? `Órgano: ${CHAMP_ORGANS[c.id].name}` : `${w.name}: ${WEAPON_ORGANS[c.id].name}`; if (c.k === 'mut') return `${w.name}: ${WEAPON_MUTS[c.mod].find((b) => b.id === c.mut).name}`; return c.k === 'mod' ? `${w.name}: ${WEAPON_MODS[c.mod].name}` : `${w.name}: ${UPGRADE_KINDS[c.k].name}`;
+  if (c.k === 'melee' || c.k === 'habilidad' || c.k === 'huesped') return textoTarjeta(c).name; const w = WEAPONS[c.w]; if (c.k === 'forma') return `${w.name} ${LINEAGE.forms[c.forma].name}`; if (c.k === 'organ') return c.t === 'c' ? `Órgano: ${CHAMP_ORGANS[c.id].name}` : `${w.name}: ${WEAPON_ORGANS[c.id].name}`; if (c.k === 'mut') return `${w.name}: ${WEAPON_MUTS[c.mod].find((b) => b.id === c.mut).name}`; return c.k === 'mod' ? `${w.name}: ${WEAPON_MODS[c.mod].name}` : `${w.name}: ${UPGRADE_KINDS[c.k].name}`;
 }
 
 /** Aplica a un disparo las mutaciones del arma (nivel 1 y rama de nivel 2). Modifica y devuelve `w`. */

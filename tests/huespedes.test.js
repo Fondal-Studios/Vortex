@@ -172,22 +172,25 @@ test('equipar un arma cambia el estilo: el martillo pega más fuerte y más lent
 
 test('núcleos: se ganan matando, completando oleadas y jefes; evolucionar los gasta, niveles 1–4 con efectos reales', () => {
   const { g, p } = mk('axioma'); const k = g.spawnMonster('geoda', ahead(p, 6)); g.killMonster(k, p);
-  assert.ok(p.cores >= 6, `núcleos por baja ${p.cores}`);
+  assert.ok(p.cores >= Math.round(k.def.cost * CORES.perCost), `núcleos por baja ${p.cores}`);
   assert.equal(evolve(g, p), false, 'sin núcleos suficientes no evoluciona'); assert.equal(p.evo, 0);
-  p.cores = 40; assert.equal(evolve(g, p, 0), true); assert.equal(p.evo, 1); assert.equal(p.cores, 0);
-  p.cores = 1000; evolve(g, p); evolve(g, p); evolve(g, p); assert.equal(p.evo, 4); assert.equal(evolve(g, p), false, 'tope en 4'); assert.equal(1000 - p.cores, EVO_COST[2] + EVO_COST[3] + EVO_COST[4]);
+  p.cores = EVO_COST[1]; assert.equal(evolve(g, p, 0), true); assert.equal(p.evo, 1); assert.equal(p.cores, 0);
+  p.cores = 5000; assert.equal(evolve(g, p), true); assert.equal(p.evo, 2, 'con rango 1 se llega al nivel 2');
+  assert.equal(evolve(g, p), false, 'el nivel 3 pide rango 3: con rango 1 NO evoluciona aunque sobren núcleos'); assert.equal(p.evo, 2);
+  p.mastery = 3; assert.equal(evolve(g, p), true); assert.equal(p.evo, 3); assert.equal(evolve(g, p), false, 'el nivel 4 pide rango 6'); assert.equal(p.evo, 3);
+  p.mastery = 6; assert.equal(evolve(g, p), true); assert.equal(p.evo, 4); assert.equal(evolve(g, p), false, 'tope en 4'); assert.equal(5000 - p.cores, EVO_COST[2] + EVO_COST[3] + EVO_COST[4]);
   const s = g.snapshot().players[0]; assert.equal(s.evo, 4); assert.ok('co' in s && 'evn' in s && 'mw' in s);
 });
 
 test('evolución: cada nivel es una bifurcación EXCLUYENTE y cada camino cambia el juego de verdad', () => {
-  const { g, p } = mk('axioma'); p.cores = 1000;
+  const { g, p } = mk('axioma'); p.cores = 5000;
   assert.equal(evolve(g, p, 1), true); assert.deepEqual(p.path, ['coraza']); assert.equal(p.evo, 1);
   assert.equal(evolve(g, p, 0), true); assert.deepEqual(p.path, ['coraza', 'velocidad'], 'el otro camino del nivel 1 quedó cerrado');
   const s = g.snapshot().players[0]; assert.deepEqual(s.pth, ['coraza', 'velocidad']);
   const golpe = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; const m = target(g, p, 'astilla', 3, 1e5); m.passive = true; tap(g, p, 'melee'); run(g, 0.3); return 1e5 - m.hp; };
-  assert.ok(golpe(['depredador']) > golpe([]) * 1.15, 'Depredador: melee +20 %'); assert.ok(Math.abs(golpe(['coraza']) - golpe([])) < 1, 'Coraza no toca el melee');
+  assert.ok(golpe(['depredador']) > golpe(['x']) * 1.15, 'Depredador: melee +20 % (contra el mismo nivel sin camino)'); assert.ok(Math.abs(golpe(['coraza']) - golpe(['x'])) < 1, 'Coraza no toca el melee');
   const recibido = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; p.hp = 100; p.shield = 0; g.hurtPlayer(p, 20); return 100 - p.hp; };
-  assert.ok(recibido(['coraza']) < recibido([]) * 0.85, 'Coraza: −18 % de daño'); assert.ok(Math.abs(recibido(['depredador']) - recibido([])) < 0.01);
+  assert.ok(recibido(['coraza']) < recibido(['x']) * 0.8, 'Coraza: −25 % de daño (contra el mismo nivel sin camino)'); assert.ok(Math.abs(recibido(['depredador']) - recibido(['x'])) < 0.01);
   const cd = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; tap(g, p, 's3'); return p.s3Cd; }; assert.ok(cd(['coraza', 'velocidad']) < cd(['coraza', 'resonancia']) * 0.9, 'Velocidad: habilidades más rápidas');
   const ulT = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; p.ul = 100; tap(g, p, 'ult'); return p.ultT; }; assert.ok(ulT(['coraza', 'resonancia']) > ulT(['coraza', 'velocidad']) * 1.2, 'Resonancia: definitiva más larga');
   const carga = (path) => { const { g, p } = mk('axioma'); p.evo = path.length; p.path = path; const m = target(g, p, 'astilla', 5, 1e5); g.damageMonster(m, 500, p); return p.ul; }; assert.ok(carga(['coraza', 'resonancia']) > carga(['coraza', 'velocidad']) * 1.3);

@@ -2,7 +2,7 @@
 import { dist, add, sub, mul, madd, norm, dot, cross, v3, clone, len } from './math.js';
 import { CHARACTERS, PLAYER } from './data.js';
 import { blocked } from './physics.js';
-import { hostMove, hostSpecial, cdMul } from './huespedes.js';
+import { hostMove, hostSpecial, cdMul, evoP, evoSkillFx } from './huespedes.js';
 
 const a3 = (v) => [Math.round(v.x * 100) / 100, Math.round(v.y * 100) / 100, Math.round(v.z * 100) / 100];
 const flatDir = (p) => norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.heading);
@@ -14,7 +14,7 @@ function useMove0(g, p) {
   switch (id) {
     case 'embestida': {
       p.ext = madd(p.ext, h, 42);
-      for (const m of g.monsters) { if (m.dead) continue; const d = sub(m.pos, p.pos), t = dot(d, h); if (t < -1 || t > 13) continue; const side = len(sub(d, mul(h, t))); if (side < m.r + 2.2) { g.damageMonster(m, 75, p, m.pos); m.vel = madd(m.vel, h, 14); } }
+      for (const m of g.monsters) { if (m.dead) continue; const d = sub(m.pos, p.pos), t = dot(d, h); if (t < -1 || t > 13 * evoP(p, 'area')) continue; const side = len(sub(d, mul(h, t))); if (side < m.r + 2.2 * evoP(p, 'area')) { g.damageMonster(m, 75, p, m.pos); m.vel = madd(m.vel, h, 14); } }
       break;
     }
     case 'paso': {
@@ -29,6 +29,7 @@ function useMove0(g, p) {
     default: if (!hostMove(g, p, id)) return false;
   }
   p.movCd = C.mov.cd * cdMul(p); g.emit({ t: 'skill', pid: p.id, k: 'mov', id, p: a3(p.pos) });
+  evoSkillFx(g, p, 'mov');
   return true;
 }
 
@@ -38,7 +39,7 @@ function useSpecial0(g, p) {
   const id = C.esp.id, o = g.eyePos(p), d = g.aimDir(p);
   switch (id) {
     case 'onda': {
-      for (const m of g.monsters) { if (m.dead) continue; const to = sub(m.pos, p.pos), l = len(to); if (l > 20 + m.r) continue; if (dot(norm(to), d) < 0.5) continue; g.damageMonster(m, 120, p, m.pos); m.vel = madd(m.vel, norm(to), 22); }
+      for (const m of g.monsters) { if (m.dead) continue; const to = sub(m.pos, p.pos), l = len(to); if (l > 20 * evoP(p, 'area') + m.r) continue; if (dot(norm(to), d) < 0.5 - 0.06 * (p.evo | 0)) continue; g.damageMonster(m, 120, p, m.pos); m.vel = madd(m.vel, norm(to), 22); }
       g.emit({ t: 'boom', p: a3(madd(o, d, 5)), r: 8 });
       break;
     }
@@ -49,7 +50,7 @@ function useSpecial0(g, p) {
       g.emit({ t: 'beam', pid: p.id, o: a3(o), to: a3(end), c: 'heal' });
       break;
     }
-    case 'cohete': g.addProjectile({ owner: 'p', pid: p.id, kind: 'nova', pos: madd(o, d, 1.5), vel: mul(d, 60), dmg: 240, splash: 9, r: 0.7, life: 4, cluster: 6 }); break;
+    case 'cohete': g.addProjectile({ owner: 'p', pid: p.id, kind: 'nova', pos: madd(o, d, 1.5), vel: mul(d, 60), dmg: 240, splash: 9 * evoP(p, 'area'), r: 0.7, life: 4, cluster: 6 + 2 * (p.evo | 0) }); break;
     case 'riel': {
       const w = { dmg: 210, range: 420, pierce: true };
       const hitIds = g.monsters.filter((m) => !m.dead && len(sub(m.pos, o)) < 420 && len(sub(sub(m.pos, o), mul(d, dot(sub(m.pos, o), d)))) < m.r * 1.1 && dot(sub(m.pos, o), d) > 0).map((m) => m);
@@ -60,14 +61,15 @@ function useSpecial0(g, p) {
     }
     case 'rafaga': {
       const right = cross(p.heading, p.up), w = { dmg: 22, range: 95 }, tips = [];
-      for (let i = 0; i < 14; i++) { const dd = norm(add(add(d, mul(right, g.rng.gauss() * 0.07)), mul(cross(d, right), g.rng.gauss() * 0.05))); tips.push(g.hitscan(p, o, dd, w)); }
+      for (let i = 0, N = 14 + 3 * (p.evo | 0); i < N; i++) { const dd = norm(add(add(d, mul(right, g.rng.gauss() * 0.07)), mul(cross(d, right), g.rng.gauss() * 0.05))); tips.push(g.hitscan(p, o, dd, w)); }
       g.emit({ t: 'shot', pid: p.id, w: 1, o: a3(o), to: tips.slice(0, 3).map(a3) });
       break;
     }
-    case 'singularidad': g.addProjectile({ owner: 'p', pid: p.id, kind: 'nova', pos: madd(o, d, 1.5), vel: mul(d, 30), dmg: 110, splash: 10, r: 0.7, life: 3, well: 4 }); break;
+    case 'singularidad': g.addProjectile({ owner: 'p', pid: p.id, kind: 'nova', pos: madd(o, d, 1.5), vel: mul(d, 30), dmg: 110, splash: 10 * evoP(p, 'area'), r: 0.7, life: 3, well: 4 + 0.5 * (p.evo | 0) }); break;
     default: if (!hostSpecial(g, p, id)) return false;
   }
   p.espCd = C.esp.cd * cdMul(p); g.emit({ t: 'skill', pid: p.id, k: 'esp', id, p: a3(p.pos) });
+  evoSkillFx(g, p, 'esp');
   return true;
 }
 void clone; void v3;

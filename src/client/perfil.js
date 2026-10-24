@@ -1,5 +1,5 @@
 // Perfil del jugador (se guarda en el navegador): núcleos ahorrados, evolución de cada Huésped y arma cuerpo a cuerpo equipada.
-import { EVO_COST, evoPathsFor, MELEE_WEAPONS, CHARACTERS, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
+import { EVO_COST, EVO_RANK_REQ, evoSemilla, evoPathsFor, MELEE_WEAPONS, CHARACTERS, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
 import { TERRITORIOS, BENDICIONES, cleanBend, hermana } from '../sim/bendiciones.js';
 import { ESPECIES as FLORA_ESP, HITOS, hitosCumplidos } from '../sim/flora-data.js';   // Herbario y materiales vegetales (docs/FLORA.md)
 import { organError } from '../sim/organos.js';
@@ -100,8 +100,16 @@ export function cerrarPartida(char, jugador, info = {}) {
   guardar(); return mae;
 }
 export const costeSiguiente = (char) => { const t = perfil().evo[char] || 0; return t >= 4 ? 0 : EVO_COST[t + 1]; };
+/** Rango de maestría que pide el próximo nivel de ese Huésped (0 en el máximo). */
+export const rangoSiguiente = (char) => { const t = perfil().evo[char] || 0; return t >= 4 ? 0 : EVO_RANK_REQ[t + 1]; };
+/** Estado de la evolución de un Huésped para la pantalla: qué falta y por qué está bloqueada. motivo: '' (se puede) | 'max' | 'rango' | 'nucleos'. */
+export function estadoEvolucion(char) {
+  const p = perfil(), nivel = p.evo[char] || 0, coste = costeSiguiente(char), rangoReq = rangoSiguiente(char), rango = rangoMaestria(char);
+  const motivo = nivel >= 4 ? 'max' : rango < rangoReq ? 'rango' : p.cores < coste ? 'nucleos' : '';
+  return { nivel, coste, nucleos: p.cores, faltanNucleos: Math.max(0, coste - p.cores), rango, rangoReq, faltanRangos: Math.max(0, rangoReq - rango), motivo, semilla: evoSemilla(rango) };
+}
 export function evolucionar(char, pick = 0) {
-  const p = perfil(), c = costeSiguiente(char); if (!CHARACTERS[char] || !c || p.cores < c || !poseeHuesped(p, char)) return false;   // sólo se evoluciona un Huésped que es tuyo (Tienda)
+  const p = perfil(), c = costeSiguiente(char); if (!CHARACTERS[char] || !c || p.cores < c || !poseeHuesped(p, char) || rangoMaestria(char) < rangoSiguiente(char)) return false;   // núcleos Y rango de maestría;  sólo se evoluciona un Huésped que es tuyo (Tienda)
   const opts = evoPathsFor(char)[(p.evo[char] || 0) + 1]; if (!opts) return false;
   p.cores -= c; p.evo[char] = (p.evo[char] || 0) + 1; (p.path[char] ||= []).push(opts[pick === 1 ? 1 : 0].id); guardar(); return true;
 }

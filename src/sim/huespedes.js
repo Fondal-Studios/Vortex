@@ -1,6 +1,6 @@
 // Los Huéspedes: melee, 3 habilidades, definitiva y pasiva de cada uno. Todo determinista y sin DOM. Contrato: docs/HUESPEDES.md
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clone } from './math.js';
-import { CHARACTERS, PLAYER, MELEE_WEAPONS, MELEE_AFFINITY, EVO_COST, EVO_PATHS, evoPathsFor, CORES, STYLES, STYLE_NEUTRAL } from './data.js';
+import { CHARACTERS, PLAYER, MELEE_WEAPONS, MELEE_AFFINITY, EVO_COST, EVO_PATHS, EVO_RANK_REQ, EVO_POWER, evoPathsFor, CORES, STYLES, STYLE_NEUTRAL } from './data.js';
 import { blocked } from './physics.js';
 import { initOrgans, champTick, absorb, hasC } from './organos.js';
 import { floraMelee } from './flora.js';   // flora interactiva (circular a propósito: sólo se usa dentro de funciones)
@@ -11,6 +11,7 @@ import { singularTick, singularMove, singularSpecial, singularReflujo, singularU
 import { enjambreTick, enjambreObject, enjambreOut, enjambreIn, enjambreKill, enjambreSkill, enjambreSnap } from './enjambre.js';   // Colmena: zánganos, nidos y la Reina (src/sim/enjambre.js)
 import { faunaSpd, faunaJump, faunaOut, faunaDamageIn, faunaHit, faunaMelee } from './fauna.js';   // fauna consumible: metamorfosis temporal (src/sim/fauna.js, docs/FAUNA.md)
 import { MODO_K } from './modos.js';   // Melé: HAB.1 y HAB.2 no suman el ×1,5 de habilidad del estilo Combo (sólo la principal)
+import { cu } from './tarjetas.js';   // tarjetas por estilo: p.cu (melé / habilidad / Huésped)
 import { progStep } from './progresion.js';   // progresión permanente: multi-kills y rango de estilo (docs/EVOLUCION.md)
 import { itemOut, itemDamageIn, itemHit, itemKill, itemTick, itemMeleeSet, execThreshold, itemStrike } from './items-fx.js';   // objetos equipados (docs/INVENTARIO.md)   // modo Combo (circular a propósito: sólo se usan dentro de funciones)
 
@@ -48,7 +49,7 @@ export function updateHost(g, p, dt) {
     if (p.ultId === 'colapso') { /* la singularidad vive como objeto */ }
     if (p.ultT <= 0) { g.emit({ t: 'ultend', pid: p.id, id: p.ultId }); p.ultId = ''; p.ultT = 0; }
   }
-  p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1) * (hasPath(p, 'velocidad') ? 1.12 : 1) * (p.bn ? p.bn.spd : 1) * (g.time < (p.frenzyUntil || 0) ? 1.3 : 1);
+  p.spdMul = (C ? C.speed || 1 : 1) * (p.ultId === 'sobrecarga' ? 1.35 : 1) * (g.time < p.cloakUntil ? 1.1 : 1) * (hasPath(p, 'velocidad') ? 1.15 : 1) * evoP(p, 'spd') * (1 + 0.03 * cu(p, 'ligereza')) * (p.bn ? p.bn.spd : 1) * (g.time < (p.frenzyUntil || 0) ? 1.3 : 1);
   champTick(g, p, dt); itemTick(g, p, dt);
   p.spdMul *= faunaSpd(g, p); p.jumpMul *= faunaJump(g, p);   // metamorfosis de fauna: velocidad y salto de la forma activa
   if (p.char === 'colmena') enjambreTick(g, p, dt);   // Colmena: Cría viva, Marabunta, Nidos vivos y la Reina
@@ -89,13 +90,24 @@ export function meleeSet(p) {
   return { ...((C && C.melee) || DEFAULT_MELEE), type: 'innata', special: null, id: '', aff: true };
 }
 export const hasPath = (p, id) => !!(p.path && p.path.includes(id));
-export const evoMeleeMul = (p) => (1 + (hasPath(p, 'depredador') ? 0.2 : 0) + (hasPath(p, 'simbiosis') ? 0.15 : 0) + (hasPath(p, 'apoteosis') ? 0.1 : 0));
-export const cdMul = (p) => ((p.bn ? p.bn.cd : 1)) * ((STYLES[p.style] || STYLE_NEUTRAL).cd) * (hasPath(p, 'velocidad') ? 0.85 : 1) * (hasC(p, 'adrenal') ? 0.92 : 1);
+/** Poder del nivel de evolución (data.js → EVO_POWER) para una magnitud: 'dmg' | 'skill' | 'take' | 'spd' | 'cd' | 'ult' | 'area'. */
+export const evoP = (p, k) => EVO_POWER[k][Math.max(0, Math.min(4, p.evo | 0))] * (k === 'area' ? 1 + 0.08 * cu(p, 'efecto') : 1);
+export const evoMeleeMul = (p) => (1 + (hasPath(p, 'depredador') ? 0.2 : 0) + (hasPath(p, 'simbiosis') ? 0.25 : 0));   // (Apoteosis +20 % a TODO el daño ya está en hostOut: no se cuenta dos veces)
+export const cdMul = (p) => ((p.bn ? p.bn.cd : 1)) * ((STYLES[p.style] || STYLE_NEUTRAL).cd) * (hasPath(p, 'velocidad') ? 0.8 : 1) * evoP(p, 'cd') * (1 - 0.06 * cu(p, 'enfria')) * (hasC(p, 'adrenal') ? 0.92 : 1);
 export const evoCost = (p) => ((p.evo || 0) >= 4 ? 0 : EVO_COST[(p.evo || 0) + 1]);
+/** Rango de maestría que pide el SIGUIENTE nivel (0 en el máximo). */
+export const evoRankReq = (p) => ((p.evo || 0) >= 4 ? 0 : EVO_RANK_REQ[(p.evo || 0) + 1]);
+/** ¿Por qué no se puede evolucionar ahora? '' = se puede; 'max' | 'rango' | 'nucleos' | 'muerto'. El rango pesa más que los núcleos: es lo que no se compra. */
+export function evoBloqueo(p) {
+  if (!p || p.dead) return 'muerto';
+  if ((p.evo || 0) >= 4) return 'max';
+  if ((p.mastery || 1) < evoRankReq(p)) return 'rango';
+  return p.cores < evoCost(p) ? 'nucleos' : '';
+}
 /** Gasta núcleos para subir un nivel de evolución. */
 /** Sube un nivel ELIGIENDO uno de los dos caminos (pick = 0 o 1). El otro queda cerrado para siempre. */
 export function evolve(g, p, pick = 0) {
-  const c = evoCost(p); if (!c || p.cores < c || p.dead) return false;
+  const c = evoCost(p); if (!c || p.cores < c || p.dead || evoBloqueo(p)) return false;   // núcleos Y rango de maestría (EVO_RANK_REQ)
   const opts = evoPathsFor(p.char)[p.evo + 1]; if (!opts) return false;   // cada Huésped puede tener sus propios caminos (Colmena)
   const chosen = opts[pick === 1 ? 1 : 0];
   p.cores -= c; p.evo++; p.path.push(chosen.id);
@@ -108,8 +120,8 @@ function strike(g, p, M, heavy) {
   const air = !p.grounded && p.pitch < -0.45;
   const def = heavy ? M.heavy : M.light;
   const over = p.ultId === 'sobrecarga', meta = p.ultId === 'metamorfosis';
-  let dmg = def.dmg * evoMeleeMul(p) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1), range = def.range * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1), arc = def.arc;
-  const fused = M.special && ((p.evo || 0) >= 1 || M.item), strong = hasPath(p, 'simbiosis') ? 1.5 : 1;
+  let dmg = def.dmg * evoMeleeMul(p) * (heavy ? 1 + 0.15 * cu(p, 'remate') : 1) * (M.aff ? 1.15 : 1) * (hasC(p, 'tentaculo') ? 1.1 : 1) * (g.evMeleeMul || 1), range = def.range * (meta ? 1.35 : 1) * (hasC(p, 'tentaculo') ? 1.2 : 1) * (1 + 0.04 * cu(p, 'area')), arc = def.arc * (1 + 0.06 * cu(p, 'area'));
+  const fused = M.special && ((p.evo || 0) >= 1 || M.item), strong = hasPath(p, 'simbiosis') ? 1.6 : 1;
   const IS = itemStrike(p), exT = execThreshold(p); dmg *= IS.mul * (M.dual && !heavy ? M.dual : 1);   // objetos: Eco, segunda hoja, umbral de ejecución
   let kind = heavy ? 'heavy' : 'light';
   const prevCmb = p.cmb, speed = len(sub(p.vel, mul(p.up, dot(p.vel, p.up))));
@@ -120,7 +132,7 @@ function strike(g, p, M, heavy) {
   if (heavy && (prevCmb >= 2 || ((p.lastCmbN || 0) >= 2 && g.time - (p.lastLightT || -9) < 1.8))) { spin = true; kind = 'spin'; dmg *= 1.2; range += 1; }
   if (heavy) p.lastCmbN = 0;
   if (air) { kind = 'air'; p.slam = 3; p.vel = madd(p.vel, p.up, -42); dmg *= 1.2; }
-  p.meleeCd = def.cd * (over ? 0.6 : 1);
+  p.meleeCd = def.cd * (over ? 0.6 : 1) * (1 - 0.04 * cu(p, 'reflejos'));
   const o = g.eyePos(p), d = g.aimDir(p), dir0 = norm(d);
   let hits = 0;
   const cosT = meta || spin ? -1 : 1 - arc * (heavy ? 1.1 : 1);
@@ -195,6 +207,25 @@ function slamLand(g, p) {
   g.emit({ t: 'melee', pid: p.id, kind: 'air', p: a3(p.pos), d: a3(mul(p.up, -1)), hit: n, land: true }); g.emit({ t: 'boom', p: a3(p.pos), r: 6.5 });
 }
 
+/** Efectos de NIVEL de toda habilidad de un Huésped (movimiento, especial, HAB.3, principal del modo Combo). Nivel 2: ralentiza lo cercano; nivel 3: además estalla (daño en área);
+ *  nivel 4: además devuelve 15 % de recarga a las OTRAS habilidades y suma escudo. `kind`: 'mov' | 'esp' | 's3' | 'hab'. */
+export function evoSkillFx(g, p, kind) {
+  const ev = p.evo | 0, ef = cu(p, 'efecto'); if ((ev < 2 && ef < 2) || p.dead) return;   // Eco de poder (tarjeta, 2+ niveles) da el efecto de ralentizar aunque aún no hayas evolucionado
+  const R = 6.5 * evoP(p, 'area'), s0 = g.dmgSrc; g.dmgSrc = 'skill'; let n = 0;
+  try {
+    for (const m of g.monsters) {
+      if (m.dead || dist(m.pos, p.pos) > R + m.r) continue;
+      m.slowUntil = Math.max(m.slowUntil || 0, g.time + 1.2 + 0.4 * ev);
+      if (ev >= 3 && n < 8) { g.damageMonster(m, 30 * (ev - 1), p, m.pos); if (!m.dead && !m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 6); n++; }
+    }
+  } finally { g.dmgSrc = s0; }
+  if (ev >= 3) g.emit({ t: 'boom', p: a3(p.pos), r: r2(R) });
+  if (ev >= 4) {
+    if (kind !== 'mov') p.movCd *= 0.85; if (kind !== 'esp') p.espCd *= 0.85; if (kind !== 's3') p.s3Cd *= 0.85; if (kind !== 'hab') p.habCd = (p.habCd || 0) * 0.85;
+    p.shield = Math.min(PLAYER.shield, p.shield + 8);
+  }
+}
+
 /* ───────── habilidades 1 y 2 de los nuevos ids (las llama characters.js) ───────── */
 export function hostMove(g, p, id) {
   const h = flat(p);
@@ -202,7 +233,7 @@ export function hostMove(g, p, id) {
     case 'zumbido': return enjambreSkill(g, p, id);   // Colmena
     case 'impulso': {
       p.ext = madd(p.ext, h, 40); p.invulUntil = Math.max(p.invulUntil, g.time + 0.3);
-      for (const m of g.monsters) { if (m.dead) continue; const d = sub(m.pos, p.pos), t = dot(d, h); if (t < -1 || t > 11) continue; if (len(sub(d, mul(h, t))) < m.r + 2) { g.damageMonster(m, 55, p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, h, 16); } }
+      for (const m of g.monsters) { if (m.dead) continue; const d = sub(m.pos, p.pos), t = dot(d, h); if (t < -1 || t > 11 * evoP(p, 'area')) continue; if (len(sub(d, mul(h, t))) < m.r + 2 * evoP(p, 'area')) { g.damageMonster(m, 55, p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, h, 16); } }
       return true;
     }
     case 'barrera': {
@@ -226,23 +257,23 @@ export function hostSpecial(g, p, id) {
     case 'cria': return enjambreSkill(g, p, id);   // Colmena
     case 'espinas': {
       const right = cross(p.heading, p.up);
-      for (const s of [-1, 0, 1]) {
+      for (const s of (p.evo >= 3 ? [-2, -1, 0, 1, 2] : [-1, 0, 1])) {   // nivel 3: cinco espinas
         const dd = norm(add(d, mul(right, s * 0.04)));
         const end = g.hitscan(p, o, dd, { dmg: 70, range: 75, pierce: true });
         g.emit({ t: 'beam', pid: p.id, o: a3(o), to: a3(end), c: 'spine' });
       }
       return true;
     }
-    case 'camuflaje': p.cloakUntil = g.time + 5; p.cloakBonus = true; return true;
+    case 'camuflaje': p.cloakUntil = g.time + 5 * (1 + 0.15 * (p.evo | 0)); p.cloakBonus = true; return true;
     case 'esporas': {
       const pos = madd(p.pos, flat(p), 8);
-      g.addObject('spores', pos, { owner: p.id, life: 6, r: 7 });
+      g.addObject('spores', pos, { owner: p.id, life: 6 * (1 + 0.1 * (p.evo | 0)), r: 7 * evoP(p, 'area') });
       return true;
     }
     case 'pulso': {
       let n = 0;
-      for (const m of g.monsters) { if (m.dead) continue; const dd = dist(m.pos, p.pos); if (dd < 8 + m.r) { g.damageMonster(m, 36, p, m.pos); n++; } }
-      p.hp = Math.min(PLAYER.hp, p.hp + 20 + Math.min(n, 5) * 4); p.shield = Math.min(PLAYER.shield, p.shield + 20); p.ul = Math.min(100, p.ul + 5 + n * 2);
+      for (const m of g.monsters) { if (m.dead) continue; const dd = dist(m.pos, p.pos); if (dd < 8 * evoP(p, 'area') + m.r) { g.damageMonster(m, 36, p, m.pos); n++; } }
+      p.hp = Math.min(PLAYER.hp, p.hp + (20 + Math.min(n, 5) * 4) * (1 + 0.15 * (p.evo | 0))); p.shield = Math.min(PLAYER.shield, p.shield + 20); p.ul = Math.min(100, p.ul + 5 + n * 2);
       g.emit({ t: 'pulse', pid: p.id, p: a3(p.pos) });
       return true;
     }
@@ -257,39 +288,40 @@ function useS30(g, p) {
   const C = cdef(p); if (!C || !C.s3 || p.dead || p.s3Cd > 0 || p.carry) return false;
   const id = C.s3.id, o = g.eyePos(p), d = g.aimDir(p);
   switch (id) {
-    case 'caparazon': p.guardUntil = g.time + 4; break;
+    case 'caparazon': p.guardUntil = g.time + 4 * (1 + 0.12 * (p.evo | 0)); break;
     case 'marca': {
       let best = null, bt = 70;
       for (const m of g.monsters) { if (m.dead) continue; const oc = sub(m.pos, o), t = dot(oc, d); if (t < 0 || t > bt) continue; if (len(sub(oc, mul(d, t))) < m.r * 1.6 + 1) { bt = t; best = m; } }
       if (!best) return false;                             // sin blanco no se gasta
-      best.markUntil = g.time + 8; best.markMul = 1.4; g.emit({ t: 'mark', pid: p.id, p: a3(best.pos), id: best.id });
+      best.markUntil = g.time + 8 + 1.5 * (p.evo | 0); best.markMul = 1.4 + 0.05 * (p.evo | 0); g.emit({ t: 'mark', pid: p.id, p: a3(best.pos), id: best.id });
       break;
     }
     case 'biomasa': {
       let n = 0;
-      for (const m of g.monsters) { if (m.dead || n >= 6) continue; if (dist(m.pos, p.pos) < 9 + m.r) { g.damageMonster(m, 75, p, m.pos); n++; } }
+      for (const m of g.monsters) { if (m.dead || n >= 6) continue; if (dist(m.pos, p.pos) < 9 * evoP(p, 'area') + m.r) { g.damageMonster(m, 75, p, m.pos); n++; } }
       p.hp = Math.min(PLAYER.hp, p.hp + 8 + n * 9); p.shield = Math.min(PLAYER.shield, p.shield + n * 6);
       break;
     }
-    case 'tiempo': g.addObject('chrono', clone(p.pos), { owner: p.id, life: 5, r: 11 }); break;
+    case 'tiempo': g.addObject('chrono', clone(p.pos), { owner: p.id, life: 5 * (1 + 0.1 * (p.evo | 0)), r: 11 * evoP(p, 'area') }); break;
     case 'reflujo': singularReflujo(g, p); break;
     case 'cintas': if (!dzCintas(g, p)) return false; break;
     case 'nido': enjambreSkill(g, p, 'nido'); break;   // Colmena
     case 'simbionte': {
       for (const q of g.objects.filter((x) => x.type === 'symb' && x.owner === p.id)) g.removeObject(q);
-      g.addObject('symb', madd(p.pos, p.up, 2), { owner: p.id, life: 10, r: 1.4, cd: 0.4 });
+      g.addObject('symb', madd(p.pos, p.up, 2), { owner: p.id, life: 10 + (p.evo | 0), r: 1.4, cd: Math.max(0.2, 0.4 - 0.05 * (p.evo | 0)) });
       break;
     }
     default: return false;
   }
   p.s3Cd = C.s3.cd * cdMul(p); g.emit({ t: 'skill', pid: p.id, k: 's3', id, p: a3(p.pos) });
+  evoSkillFx(g, p, 's3');
   return true;
 }
 
 /* ───────── definitiva ───────── */
 function useUlt0(g, p) {
   const C = cdef(p); if (!C || !C.ult || p.dead || p.carry || p.ul < C.ult.charge || p.ultT > 0) return false;
-  const id = C.ult.id; p.ul = 0; p.ultId = id; p.ultT = (ULT_DUR[id] || 8) * (hasPath(p, 'apoteosis') ? 1.3 : 1) * (hasPath(p, 'resonancia') ? 1.25 : 1) * (hasC(p, 'espiraculo') ? 1.2 : 1);
+  const id = C.ult.id; p.ul = 0; p.ultId = id; p.ultT = (ULT_DUR[id] || 8) * (hasPath(p, 'apoteosis') ? 1.4 : 1) * (hasPath(p, 'resonancia') ? 1.3 : 1) * (p.evo >= 3 ? 1.15 : 1) * (p.evo >= 4 ? 1.1 : 1) * (hasC(p, 'espiraculo') ? 1.2 : 1);
   if (id === 'supernova') singularUlt(g, p);
   if (id === 'colapso') {
     const pos = madd(p.pos, flat(p), 12);
@@ -297,8 +329,18 @@ function useUlt0(g, p) {
     g.addObject('chrono', clone(pos), { owner: p.id, life: 6, r: 14 });
   }
   if (id === 'frenesi') p.movCd = 0;
+  evoUlt(g, p);
   g.emit({ t: 'skill', pid: p.id, k: 'ult', id, p: a3(p.pos) });
   return true;
+}
+/** La DEFINITIVA cambia con el nivel: nivel 3 → al activarla te curás 30 % y recargás el escudo; nivel 4 → además estalla al activarse (daño en área grande, empuje) y 1 s de invulnerabilidad. */
+function evoUlt(g, p) {
+  const ev = p.evo | 0; if (ev < 3) return;
+  p.hp = Math.min(PLAYER.hp, p.hp + PLAYER.hp * 0.3); p.shield = PLAYER.shield;
+  if (ev < 4) return;
+  p.invulUntil = Math.max(p.invulUntil, g.time + 1);
+  for (const m of g.monsters) { if (m.dead || dist(m.pos, p.pos) > 13 + m.r) continue; g.damageMonster(m, 160, p, m.pos); if (!m.dead && !m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 18); }
+  g.emit({ t: 'boom', p: a3(p.pos), r: 13 });
 }
 function zoneTick(g, p, dt) {
   const s0 = g.dmgSrc; g.dmgSrc = 'skill'; try { zoneTick0(g, p, dt); } finally { g.dmgSrc = s0; }
@@ -318,7 +360,8 @@ export function hostDamageIn(g, p, dmg) {
   if (C.hp) dmg /= C.hp;
   dmg *= (STYLES[p.style] || STYLE_NEUTRAL).taken;
   if (p.meleeHold > 0.12 && !p.dead) { dmg *= 0.5; if (g.time > (p.blockFx || 0)) { p.blockFx = g.time + 0.3; g.emit({ t: 'pblock', pid: p.id }); } }   // cargar el golpe pesado = BLOQUEAR (mitad de daño)
-  if (hasPath(p, 'coraza')) dmg *= 0.82;
+  if (hasPath(p, 'coraza')) dmg *= 0.75;
+  dmg *= evoP(p, 'take') * (1 - 0.04 * cu(p, 'coraza'));
   if (hasC(p, 'placas')) dmg *= 0.88;
   if (p.bn) dmg *= p.bn.dmgIn;
   dmg = itemDamageIn(g, p, dmg);   // Sombra y Espinas de los objetos
@@ -347,8 +390,9 @@ export function hostOut(g, p, m) {
   if (p.cloakBonus && g.time < p.cloakUntil) k *= 1.8;
   if (p.ultId === 'metamorfosis') k *= 1.25;
   if (p.ultId === 'sobrecarga') k *= 1.1;
-  if (hasPath(p, 'apoteosis')) k *= 1.1;
-  if (hasPath(p, 'artilleria') && !p.inMelee) k *= 1.15;
+  if (hasPath(p, 'apoteosis')) k *= 1.2;
+  if (hasPath(p, 'artilleria') && !p.inMelee) k *= 1.25;
+  k *= evoP(p, 'dmg') * (src === 'skill' ? evoP(p, 'skill') * (1 + 0.09 * cu(p, 'potencia')) : 1) * (src === 'melee' ? 1 + 0.07 * cu(p, 'filo') : 1);   // el NIVEL de evolución sube todo el daño (y más el de habilidades)
   if (p.blessWave && p.blessWave === g.wave) k *= 1.1;
   if (hasC(p, 'ojo_extra')) k *= 1.12;
   if (p.char === 'singular') k *= singularOut(g, p, m);   // +20 % a lo que está dentro de un pozo propio
@@ -358,14 +402,15 @@ export function hostOut(g, p, m) {
 /** Tras un impacto (daño real aplicado): carga de definitiva, vampirismo de Metamorfosis y ruptura del camuflaje. */
 export function hostHit(g, p, m, dealt) {
   itemHit(g, p, m, dealt); faunaHit(g, p, m, dealt);   // fauna: efectos por golpe de la forma (hielo, brasa, rayos…)
-  if (p.ultId === '' && !g.enjDmg) p.ul = Math.min(100, p.ul + dealt * ULT_PER_DMG * (p.bn ? p.bn.ult : 1) * (STYLES[p.style] || STYLE_NEUTRAL).ult * (hasPath(p, 'resonancia') ? 1.4 : 1) * (hasC(p, 'saco_g') ? 1.15 : 1));
+  if (p.ultId === '' && !g.enjDmg) p.ul = Math.min(100, p.ul + dealt * ULT_PER_DMG * (p.bn ? p.bn.ult : 1) * (STYLES[p.style] || STYLE_NEUTRAL).ult * (hasPath(p, 'resonancia') ? 1.5 : 1) * evoP(p, 'ult') * (1 + 0.1 * cu(p, 'ulti')) * (hasC(p, 'saco_g') ? 1.15 : 1));
   if (p.ultId === 'metamorfosis' && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + dealt * 0.04);
   if (p.cloakUntil) { p.cloakUntil = 0; p.cloakBonus = false; }   // atacar rompe el camuflaje (el primer golpe ya cobró el bonus)
 }
 export function hostKill(g, p, m) {
   absorb(p, m); itemKill(g, p, m); if (p.char === 'colmena') enjambreKill(g, p);   // Plaga: cada baja cría un zángano
+  if (cu(p, 'vigor') && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + 0.6 * cu(p, 'vigor'));   // tarjeta Vigor
   if (p.bn && p.bn.kheal && !p.dead) p.hp = Math.min(PLAYER.hp, p.hp + p.bn.kheal); // bendición Descanso Ajeno
-  if (hasPath(p, 'anomalia') && !m.def.boss && g.rng.next() < 0.25) g.explode(m.pos, 5, 0, 70, p, false);
+  if (hasPath(p, 'anomalia') && !m.def.boss && g.rng.next() < 0.3) g.explode(m.pos, 5, 0, 110, p, false);
   if (p.char === 'singular') singularKill(g, p, m);   // Anomalía: tira de los vecinos hacia el cadáver
   addCores(g, p, m.def.cost * CORES.perCost * (m.elite ? CORES.eliteMul : 1) * (g.evCoreMul || 1) + (m.def.boss ? CORES.boss : 0));
   const C = cdef(p); if (!C) return;
@@ -435,7 +480,7 @@ export function hostSnap(g, p) {
   const sy = g.objects.find((o) => o.type === 'symb' && o.owner === p.id);
   if (p.char === 'colmena' && (g.time < (p.swarmUntil || 0) || p.ultId === 'marabunta')) bf |= BF.swarm;   // el enjambre está en frenesí
   if (p.char === 'danzante') bf |= dzBits(g, p);   // bits 12+ (parada, esquiva, réplica, danza y compás 0..5)
-  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, sty: p.style || '', co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), pth: p.path, mw: p.melee || '', mr: p.mastery || 1, ...comboSnap(p), ...singularSnap(g, p), ...enjambreSnap(g, p) };
+  return { mc: r2(p.movCd), ec: r2(p.espCd), s3c: r2(p.s3Cd), ul: Math.round(p.ul), ua: r2(p.ultT), cmb: p.cmb, bf, sy: sy ? a3(sy.pos) : null, ui: p.ultId, cal: p.callo, sty: p.style || '', co: Math.round(p.cores), evo: p.evo || 0, evn: evoCost(p), evr: evoRankReq(p), evb: evoBloqueo(p), pth: p.path, mw: p.melee || '', mr: p.mastery || 1, ...comboSnap(p), ...singularSnap(g, p), ...enjambreSnap(g, p) };
 }
 
 function useS3(g, p) { const s = g.dmgSrc; g.dmgSrc = 'skill'; try { return useS30(g, p); } finally { g.dmgSrc = s; } }

@@ -17,6 +17,7 @@ import { createRadar } from './radar.js';
 import { createMetaHud } from './meta-ui.js';
 import { createEvoMenu } from './evo-menu.js';
 import { ESSENCE_OF, WEAPON_ORGANS, CHAMP_ORGANS, LINEAGE, EVENTOS, ARENAS_VIVAS } from '../sim/data.js';
+import { TARJETAS, textoTarjeta } from '../sim/tarjetas.js';   // tarjetas nuevas: melé / habilidad / Huésped
 import * as Perfil from './perfil.js';
 import { ESPECIES as ESPECIES_FLORA, especieDe as especieDeFlora, HITOS as HITOS_FLORA, FN as FN_FLORA } from '../sim/flora-data.js';   // flora interactiva y Herbario (docs/FLORA.md)
 import { MATERIALS, CALIDADES } from '../sim/items.js';
@@ -94,7 +95,7 @@ const keys = new Set();
 // iPhone: sin zoom por pellizco ni doble toque, sin menú de selección (importante al anclar a la pantalla de inicio)
 for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault());
 let lastTap = 0; document.addEventListener('touchend', (e) => { const n = Date.now(); if (n - lastTap < 350) e.preventDefault(); lastTap = n; }, { passive: false });
-const mouse = { dx: 0, dy: 0, fire: false, ping: false, esp: false, ads: false }; let pickReq = -1;
+const mouse = { dx: 0, dy: 0, fire: false, ping: false, esp: false, ads: false }; let pickReq = -1, rerollReq = false, cardsN = 3;
 const NOLOCK = params.get('nolock') === '1';
 let wantWeapon = -1, locked = NOLOCK, session = null, last = performance.now(), mouseSens = 0.0022;
 addEventListener('keydown', (e) => {
@@ -105,7 +106,8 @@ addEventListener('keydown', (e) => {
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { npcPanel.choose(+e.code.slice(5) - 1); return; }
     if (e.code === 'Escape' || e.code === 'KeyE') { npcPanel.close(); return; }
   }
-  if (e.code >= 'Digit1' && e.code <= 'Digit5') { const n = +e.code.slice(5) - 1; if (cardsOpen && n < 3) pickReq = n; else if (gameMode() !== 'combo') wantWeapon = n; }   // en Melé 1/2/3 son HAB.1/2/3 (no hay barra de armas)
+  if (e.code >= 'Digit1' && e.code <= 'Digit5') { const n = +e.code.slice(5) - 1; if (cardsOpen && n < cardsN) pickReq = n; else if (gameMode() !== 'combo') wantWeapon = n; }   // en Melé 1/2/3 son HAB.1/2/3 (no hay barra de armas)
+  if (e.code === 'KeyR' && cardsOpen && !e.repeat) rerollReq = true;   // R con las tarjetas abiertas = relanzar (cuesta núcleos)
   if (e.code === 'Tab') { e.preventDefault(); if (!e.repeat && session && !session.intro && !session.ended) cambiarModo(); }   // Tab = cambiar Disparo ↔ Melé
   if (e.code === 'KeyK' && session && !e.repeat) { setSetting('showKeys', !settings().showKeys); keyHint(true); }   // K = mostrar/ocultar la pista de teclas
   if (e.code === 'Space') e.preventDefault();
@@ -170,19 +172,19 @@ const motionSel = $('motionsel'); if (motionSel) { try { motionSel.value = local
 /** Datos de la cámara para la simulación (en 3ª persona el disparo converge a la retícula). */
 function camInput() { return renderer.third ? { third: true, side: settings().camSide || 1, dist: settings().camDist || 3.6 } : false; }
 function readInput() {
-  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
+  if (session && session.touch) { touch.setMode(gameMode(), myChar()); const ti = touch.read(); ti.cam = camInput(); ti.style = settings().style; ti.mode = gameMode(); evoWant(ti.evo || (evoHud && evoHud.held())); ti.evo = evoChoice ? evoChoice.value() : 0; ti.organ = organInput(); if (pickReq >= 0) { ti.pick = pickReq; pickReq = -1; } if (rerollReq) { ti.reroll = true; rerollReq = false; } return npcInput(ti); } // (las tarjetas de mejora también se eligen tocando)
   const zm = renderer.zoomKind || 0, adsM = keys.has('KeyX') || mouse.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1, SENS = mouseSens * adsM;
   const i = {
     cam: camInput(), style: settings().style,
     mx: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), mz: (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
-    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: (evoWant(keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held())), evoChoice ? evoChoice.value() : 0), organ: organInput(), pick: pickReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
+    dyaw: mouse.dx * SENS, dpitch: -mouse.dy * SENS, jump: keys.has('Space'), fire: mouse.fire, ability: keys.has('KeyQ'), mov: keys.has('KeyF'), ads: keys.has('KeyX') || mouse.ads, crouch: keys.has('KeyC') || keys.has('ControlLeft'), esp: mouse.esp || keys.has('KeyG'), s3: keys.has('KeyZ'), ult: keys.has('KeyT'), reload: keys.has('KeyR'), melee: keys.has('KeyV'), evo: (evoWant(keys.has(EVO_KEY.code) || !!(evoHud && evoHud.held())), evoChoice ? evoChoice.value() : 0), organ: organInput(), pick: pickReq, reroll: rerollReq, interact: keys.has('KeyE'), ping: keys.has('KeyB') || mouse.ping, dash: keys.has('ShiftLeft') || keys.has('ShiftRight'), weapon: wantWeapon,
   };
   i.mode = gameMode();   // Disparo: clic izq. dispara · clic der. o G = HAB.2 · F = HAB.1 · Z = HAB.3 · Q = equipo
   if (i.mode === 'combo') {   // Melé: clic izq. = ATAQUE 1 · clic der. = ATAQUE 2 · F/1 = HAB.1 · G/2 = HAB.2 · Z/Q/3 = HAB.3 (la simulación traduce HAB.3); E sigue siendo USAR
     i.a1 = mouse.fire; i.a2 = mouse.esp; i.fire = i.ability = false;
     i.mov = keys.has('KeyF') || keys.has('Digit1'); i.esp = keys.has('KeyG') || keys.has('Digit2'); i.s3 = keys.has('KeyZ') || keys.has('KeyQ') || keys.has('Digit3');
   }
-  mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1;
+  mouse.dx = mouse.dy = 0; wantWeapon = -1; pickReq = -1; rerollReq = false;
   const g = pad.read(padDt); // mando (DualSense / Xbox)
   if (g) {
     i.mx = Math.max(-1, Math.min(1, i.mx + g.mx)); i.mz = Math.max(-1, Math.min(1, i.mz + g.mz)); i.dyaw += g.dyaw * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.dpitch += g.dpitch * (g.ads ? (zm === 2 ? settings().scopeMul : settings().adsMul) : 1); i.ads = i.ads || g.ads;
@@ -681,15 +683,22 @@ function hudDirector(state, me) {
   const wantCards = !!(me && me.cards && me.cards.length && state.phase === 'intermission');
   if (wantCards !== cardsOpen) { cardsOpen = wantCards; $('cards').classList.toggle('hidden', !wantCards); session.cardKey = ''; document.body.classList.toggle('cards-open', wantCards); if (wantCards && session.touch) touch.reset(); }
   if (wantCards) {
-    const key = JSON.stringify(me.cards) + me.sl.join(',');
+    cardsN = me.cards.length;
+    const key = JSON.stringify(me.cards) + me.sl.join(',') + '|' + (me.rr || 0) + '|' + ((me.co | 0) >= (me.rr || 1e9) ? 1 : 0);
     if (session.cardKey !== key) {
       session.cardKey = key; const WC = WEAPON_COLORS.map((c) => '#' + c.toString(16).padStart(6, '0'));
       $('cardlist').innerHTML = me.cards.map((c, i) => {
-        const [w, k, mod, mod0] = c, W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.ug[idx] || [0, 0, 0, null], isForma = k === 'forma', FM = isForma ? (LINEAGE.forms[mod] || { name: mod, desc: '' }) : null, isOrg = k === 'organ', OG = isOrg ? ((mod0 === 'c' ? CHAMP_ORGANS : WEAPON_ORGANS)[mod] || { name: mod, desc: '' }) : null, isMut = k === 'mut', isMod = k === 'mod' || isMut, MU = isMut ? ((WEAPON_MUTS[mod0] || []).find((x) => x.id === mod) || { name: mod, desc: '' }) : null;
+        const [w, k, mod, mod0, rar] = c;
+        if (k === 'melee' || k === 'habilidad' || k === 'huesped') {   // tarjetas por estilo (src/sim/tarjetas.js): sin arma, con rareza y nivel acumulado
+          const T = textoTarjeta({ id: mod, r: rar | 0 }), cur = (me.cuu && me.cuu[mod]) || 0, mx = (TARJETAS[mod] || { max: 1 }).max, col = { melee: '#ff7a5a', habilidad: '#b07bff', huesped: '#5ad6a0' }[k], tag = { melee: 'MELÉ · COMBOS', habilidad: 'HABILIDADES', huesped: 'TU CUERPO' }[k];
+          return `<button class="ucard mod rar${rar | 0}" data-i="${i}" style="--c:${col}"><div class="wn">${tag}</div><div class="un">${T.name}</div><div class="ud">${T.desc}</div><div class="lv">${T.rareza.toUpperCase()} · NIVEL ${Math.round(cur * 10) / 10} / ${mx}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
+        }
+        const W = WEAPONS[w], idx = me.sl.indexOf(w), u = me.ug[idx] || [0, 0, 0, null], isForma = k === 'forma', FM = isForma ? (LINEAGE.forms[mod] || { name: mod, desc: '' }) : null, isOrg = k === 'organ', OG = isOrg ? ((mod0 === 'c' ? CHAMP_ORGANS : WEAPON_ORGANS)[mod] || { name: mod, desc: '' }) : null, isMut = k === 'mut', isMod = k === 'mod' || isMut, MU = isMut ? ((WEAPON_MUTS[mod0] || []).find((x) => x.id === mod) || { name: mod, desc: '' }) : null;
         const ix = { dmg: 0, rate: 1, mag: 2 }[k], cur = isMod ? 0 : (u[ix] || 0), eff = { dmg: `daño ${Math.round(W.dmg * (1 + 0.22 * cur))} → ${Math.round(W.dmg * (1 + 0.22 * (cur + 1)))}`, rate: `${(1 / (W.rate / (1 + 0.14 * cur))).toFixed(1)} → ${(1 / (W.rate / (1 + 0.14 * (cur + 1)))).toFixed(1)} disparos/s`, mag: W.max === Infinity ? 'munición ∞' : `máx. ${Math.ceil(W.max * (1 + 0.3 * cur))} → ${Math.ceil(W.max * (1 + 0.3 * (cur + 1)))}` }[k];
         return `<button class="ucard ${isMod ? 'mod' : ''}" data-i="${i}" style="--c:${WC[w % WC.length]}"><div class="wn">${isOrg && mod0 === 'c' ? 'TU CUERPO' : W.name}</div><div class="un">${isForma ? '✦ ' + FM.name : isOrg ? '🧬 ' + OG.name : isMut ? MU.name : isMod ? (WEAPON_MODS[mod] || { name: mod }).name : UPGRADE_KINDS[k].name}</div><div class="ud">${isForma ? FM.desc : isOrg ? OG.desc : isMut ? MU.desc : isMod ? (WEAPON_MODS[mod] || { desc: '' }).desc : eff}</div><div class="lv">${isForma ? '✦ LINAJE FINAL (excluyente)' : isOrg ? '🧬 ÓRGANO (usa esencias)' : isMut ? '★★ EVOLUCIÓN (excluyente)' : isMod ? '★ ESPECIAL' : `NIVEL ${cur} → ${cur + 1}`}</div><kbd>${session.touch ? 'tocá' : 'tecla ' + (i + 1)}</kbd></button>`;
       }).join('');
       $('cardlist').querySelectorAll('.ucard').forEach((b) => b.addEventListener('pointerdown', () => { pickReq = +b.dataset.i; }));
+      const rb = $('cardreroll'); if (rb) { rb.classList.toggle('hidden', !(me.rr > 0)); rb.disabled = !((me.co | 0) >= me.rr); rb.textContent = `🎲 Relanzar tarjetas · ${me.rr} núcleos${session.touch ? '' : ' (R)'}`; rb.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); rerollReq = true; }; }
       $('cardhint').textContent = session.mode === 'solo' ? 'La partida espera tu elección. El arma mejorada se ve distinta en tu mano.' : 'Elegí rápido: si no elegís, se aplica la primera. El arma mejorada se ve distinta en tu mano.';
     }
   }

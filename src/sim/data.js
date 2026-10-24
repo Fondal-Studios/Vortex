@@ -86,47 +86,63 @@ export const MELEE_WEAPONS = {
 export const NATIVE_MELEE = { axioma: 'cuchillas', vesper: 'garras', micelio: 'punos', umbra: 'hoja_dim', seraf: 'latigo', danzante: 'listones', singular: 'orbita' };
 export const MELEE_AFFINITY = { axioma: ['espada', 'hacha'], vesper: ['daga'], micelio: ['martillo', 'hacha'], umbra: ['lanza', 'espada'], seraf: ['lanza', 'daga'], danzante: ['daga', 'espada'], singular: ['martillo', 'lanza'] };
 /* Evolución del Huésped con NÚCLEOS (se ganan matando criaturas, completando objetivos y oleadas, y jefes). Coste = núcleos para pasar al nivel siguiente. */
-export const EVO_COST = [0, 40, 90, 160, 280];
+export const EVO_COST = [0, 90, 240, 520, 1100];
+/** Rango de MAESTRÍA mínimo del Huésped para llegar a cada nivel (índice = nivel destino). El rango se fija al EMPEZAR la partida (se gana jugando con ese Huésped: maestria.js),
+ *  así que en la primera partida (rango 1) el techo es el nivel 2; el 3 pide rango 3 (≈ una partida completa) y el 4 pide rango 6 (≈ tres). */
+export const EVO_RANK_REQ = [0, 1, 1, 3, 6];
+/** Poder por nivel (índice = nivel de evolución), igual para los 8 Huéspedes: dmg = TODO el daño que hacés; skill = extra sólo a habilidades; take = daño que recibís;
+ *  spd = velocidad; cd = enfriamiento de habilidades; ult = carga de la definitiva; area = radio/duración de las habilidades. Los CAMINOS suman encima (EVO_PATHS). */
+export const EVO_POWER = {
+  dmg:   [1, 1.05, 1.2, 1.25, 1.3],
+  skill: [1, 1.05, 1.12, 1.22, 1.35],
+  take:  [1, 0.97, 0.93, 0.88, 0.82],
+  spd:   [1, 1.02, 1.04, 1.06, 1.08],
+  cd:    [1, 0.96, 0.9, 0.84, 0.76],
+  ult:   [1, 1.05, 1.12, 1.25, 1.4],
+  area:  [1, 1.08, 1.18, 1.3, 1.45],
+};
+/** Semilla de evolución: núcleos con los que EMPEZÁS cada partida según el rango de maestría de ese Huésped (no se acumulan: se regalan en cada partida). */
+export const evoSemilla = (rango) => Math.min(60, 8 * Math.max(0, Math.floor((rango || 1) - 1)));
 export const EVO_TIERS = [
   { name: 'Larva',       desc: 'Forma inicial.' },
-  { name: 'Despertar',   desc: 'Tu arma cuerpo a cuerpo se fusiona con vos y despierta su poder especial. Elegí un camino.' },
-  { name: 'Fusión',      desc: 'La fusión se profundiza. Elegí un camino.' },
-  { name: 'Mutación',    desc: 'Tu cuerpo cambia de forma. Elegí un camino.' },
-  { name: 'Forma final', desc: 'Lo que elijas ahora define lo que sos. Elegí un camino.' },
+  { name: 'Despertar',   desc: 'Tu arma cuerpo a cuerpo se fusiona con vos y despierta su poder especial. +5 % de daño, habilidades un poco más grandes y rápidas. Elegí un camino.' },
+  { name: 'Fusión',      desc: 'La fusión se profundiza: +20 % de daño, habilidades con efecto extra (ralentizan) y un golpe nuevo en tus combos. Elegí un camino.' },
+  { name: 'Mutación',    desc: 'Tu cuerpo cambia de forma: +25 % de daño, habilidades que estallan al usarlas y una definitiva transformada (te cura y te escuda). Elegí un camino.' },
+  { name: 'Forma final', desc: 'Lo que elijas ahora define lo que sos: +30 % de daño, la definitiva estalla al activarse y tus habilidades devuelven recarga. Elegí un camino.' },
 ];
 /* En cada nivel hay DOS caminos EXCLUYENTES: elegir uno cierra el otro para siempre (en ese Huésped). `vis` = cómo se ve la mutación. */
 export const EVO_PATHS = [
   null,
   [{ id: 'depredador', name: 'Depredador', vis: 'garras',  desc: 'Melee +20 % y cada golpe cuerpo a cuerpo te cura un 6 % del daño.' },
-   { id: 'coraza',     name: 'Coraza',     vis: 'placas',  desc: 'Recibís 18 % menos de daño: placas que crecen sobre el cuerpo.' }],
-  [{ id: 'velocidad',  name: 'Velocidad',  vis: 'tendones', desc: '+12 % de velocidad y habilidades 15 % más rápidas.' },
-   { id: 'resonancia', name: 'Resonancia', vis: 'nucleo',  desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más.' }],
-  [{ id: 'simbiosis',  name: 'Simbiosis',  vis: 'fusion',  desc: 'El poder especial de tu arma fusionada se potencia y el melee suma +15 %.' },
-   { id: 'artilleria', name: 'Artillería', vis: 'canones', desc: '+15 % de daño con todas las armas a distancia y +30 % de cargador.' }],
-  [{ id: 'apoteosis',  name: 'Apoteosis',  vis: 'alas',    desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más.' },
-   { id: 'anomalia',   name: 'Anomalía',   vis: 'grietas', desc: 'Una de cada cuatro bajas estalla en esencia: 70 de daño en área.' }],
+   { id: 'coraza',     name: 'Coraza',     vis: 'placas',  desc: 'Recibís 25 % menos de daño: placas que crecen sobre el cuerpo.' }],
+  [{ id: 'velocidad',  name: 'Velocidad',  vis: 'tendones', desc: '+15 % de velocidad y habilidades 20 % más rápidas.' },
+   { id: 'resonancia', name: 'Resonancia', vis: 'nucleo',  desc: 'La definitiva carga un 50 % más rápido y dura un 30 % más.' }],
+  [{ id: 'simbiosis',  name: 'Simbiosis',  vis: 'fusion',  desc: 'El poder especial de tu arma fusionada se potencia y el melee suma +25 %.' },
+   { id: 'artilleria', name: 'Artillería', vis: 'canones', desc: '+25 % de daño con todas las armas a distancia y +40 % de cargador.' }],
+  [{ id: 'apoteosis',  name: 'Apoteosis',  vis: 'alas',    desc: 'Todo tu daño +20 % y la definitiva dura un 40 % más.' },
+   { id: 'anomalia',   name: 'Anomalía',   vis: 'grietas', desc: 'Tres de cada diez bajas estallan en esencia: 110 de daño en área.' }],
 ];
 /** Lectura propia de cada camino para un Huésped: mismos ids y MISMOS bonos que EVO_PATHS, más un extra que sólo ese Huésped tiene (lo aplica su archivo de la sim). Si falta, vale el texto general. */
 export const EVO_FLAVOR = {
   danzante: {
     depredador: { name: 'Colmillo de Carnaval', desc: 'Melee +20 % y cada golpe te cura un 6 % del daño. Tu Réplica dura 6 s en vez de 4.' },
-    coraza:     { name: 'Máscara de Hueso',     desc: 'Recibís 18 % menos de daño. La ventana de la Parada perfecta es un 40 % más larga.' },
-    velocidad:  { name: 'Pies de Seda',         desc: '+12 % de velocidad y habilidades 15 % más rápidas. La Pirueta esquiva 0,1 s más.' },
-    resonancia: { name: 'Compás Eterno',        desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más. Cada golpe a tiempo suma 2 de compás (no 1).' },
-    simbiosis:  { name: 'Hilo de Listones',     desc: 'El melee suma +15 %. Lo que devolvés con una parada pega un 50 % más.' },
-    artilleria: { name: 'Salva de Gala',        desc: '+15 % de daño con armas a distancia y +30 % de cargador. El estallido de tus paradas llega un 50 % más lejos.' },
-    apoteosis:  { name: 'Gala de los Muertos',  desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más. En la Danza Macabra, las paradas automáticas se repiten cada 0,4 s.' },
-    anomalia:   { name: 'Baile de Máscaras',    desc: 'Una de cada cuatro bajas estalla en esencia (70 de daño). Cada parada o esquiva perfecta deja un eco que estalla (60 de daño en área).' },
+    coraza:     { name: 'Máscara de Hueso',     desc: 'Recibís 25 % menos de daño. La ventana de la Parada perfecta es un 40 % más larga.' },
+    velocidad:  { name: 'Pies de Seda',         desc: '+15 % de velocidad y habilidades 20 % más rápidas. La Pirueta esquiva 0,1 s más.' },
+    resonancia: { name: 'Compás Eterno',        desc: 'La definitiva carga un 50 % más rápido y dura un 30 % más. Cada golpe a tiempo suma 2 de compás (no 1).' },
+    simbiosis:  { name: 'Hilo de Listones',     desc: 'El melee suma +25 %. Lo que devolvés con una parada pega un 50 % más.' },
+    artilleria: { name: 'Salva de Gala',        desc: '+25 % de daño con armas a distancia y +40 % de cargador. El estallido de tus paradas llega un 50 % más lejos.' },
+    apoteosis:  { name: 'Gala de los Muertos',  desc: 'Todo tu daño +20 % y la definitiva dura un 40 % más. En la Danza Macabra, las paradas automáticas se repiten cada 0,4 s.' },
+    anomalia:   { name: 'Baile de Máscaras',    desc: 'Tres de cada diez bajas estallan en esencia (110 de daño). Cada parada o esquiva perfecta deja un eco que estalla (60 de daño en área).' },
   },
   singular: {
     depredador: { name: 'Devoradora de Mundos',     desc: 'Melee +20 % y cada golpe te cura un 6 % del daño. Un satélite más girando a tu alrededor.' },
-    coraza:     { name: 'Corteza Estelar',          desc: 'Recibís 18 % menos de daño. Tus satélites se comen los proyectiles enemigos que cruzan.' },
-    velocidad:  { name: 'Perihelio',                desc: '+12 % de velocidad y habilidades 15 % más rápidas. Tus satélites giran un 40 % más rápido (más golpes).' },
-    resonancia: { name: 'Resonancia Gravitatoria',  desc: 'La definitiva carga un 40 % más rápido y dura un 25 % más. Tus pozos duran un 35 % más.' },
-    simbiosis:  { name: 'Anillo de Acreción',       desc: 'El melee suma +15 %. Un satélite más y todos pegan un 25 % más fuerte.' },
-    artilleria: { name: 'Cañón de Marea',           desc: '+15 % de daño con armas a distancia y +30 % de cargador. Tus pozos son un 12 % más grandes y su implosión pega un 50 % más.' },
-    apoteosis:  { name: 'Supernova Interior',       desc: 'Todo tu daño +10 % y la definitiva dura un 30 % más. Podés sostener un pozo más a la vez.' },
-    anomalia:   { name: 'Singularidad Desnuda',     desc: 'Una de cada cuatro bajas estalla en esencia (70 de daño). Además, cada baja tira de las criaturas vecinas hacia el cadáver.' },
+    coraza:     { name: 'Corteza Estelar',          desc: 'Recibís 25 % menos de daño. Tus satélites se comen los proyectiles enemigos que cruzan.' },
+    velocidad:  { name: 'Perihelio',                desc: '+15 % de velocidad y habilidades 20 % más rápidas. Tus satélites giran un 40 % más rápido (más golpes).' },
+    resonancia: { name: 'Resonancia Gravitatoria',  desc: 'La definitiva carga un 50 % más rápido y dura un 30 % más. Tus pozos duran un 35 % más.' },
+    simbiosis:  { name: 'Anillo de Acreción',       desc: 'El melee suma +25 %. Un satélite más y todos pegan un 25 % más fuerte.' },
+    artilleria: { name: 'Cañón de Marea',           desc: '+25 % de daño con armas a distancia y +40 % de cargador. Tus pozos son un 12 % más grandes y su implosión pega un 50 % más.' },
+    apoteosis:  { name: 'Supernova Interior',       desc: 'Todo tu daño +20 % y la definitiva dura un 40 % más. Podés sostener un pozo más a la vez.' },
+    anomalia:   { name: 'Singularidad Desnuda',     desc: 'Tres de cada diez bajas estallan en esencia (110 de daño). Además, cada baja tira de las criaturas vecinas hacia el cadáver.' },
   },
 };
 /* ───────── TRES ESTILOS DE COMBATE (elegís uno; equilibrados entre sí: tests/estilos.test.js) ─────────
@@ -273,7 +289,8 @@ export const LINEAGE = {
     ocaso:  { name: 'del Ocaso', desc: 'Sombra: +40 % de cadencia y los impactos marcan a la criatura (+15 % de daño de todo).', color: 0x8a5bff },
   },
 };
-export const CORES = { perCost: 1.2, eliteMul: 2, wave: 6, objective: 30, boss: 100 };
+/** Núcleos: premian el RENDIMIENTO. perCost × costo de la criatura (élites ×3), jefe, fin de oleada (base + por oleada) y oleada SIN que te peguen (flawless), multi-kills. */
+export const CORES = { perCost: 0.45, eliteMul: 3, wave: 4, waveK: 1.5, flawless: 10, flawlessK: 2, objective: 30, boss: 160, multi: 2 };
 
 
 /* ───────── EVOLUCIÓN ORGÁNICA: al derrotar criaturas se absorben ESENCIAS; con ellas crecen ÓRGANOS en las armas (3 por arma) y en el campeón (1 + su nivel de evolución).

@@ -66,9 +66,9 @@ export function createEvoHud(rootEl) {
       if (!me || !hudVisible || me.dead || me.co == null) { el.style.display = 'none'; return; }
       el.style.display = ''; el.classList.toggle('touch', !!touch);
       const C = CHARACTERS[me.char]; if (C && C.color !== hostColor) { hostColor = C.color; el.style.setProperty('--hc', hex(hostColor)); fx.style.setProperty('--hc', hex(hostColor)); }
-      const co = me.co | 0, evo = me.evo | 0, need = me.evn | 0, ready = need > 0 && co >= need, sig = `${co}|${evo}|${need}`;
+      const co = me.co | 0, evo = me.evo | 0, need = me.evn | 0, rk = me.evb === 'rango', ready = need > 0 && co >= need && !rk, sig = `${co}|${evo}|${need}|${me.evb || ''}|${me.evr | 0}|${me.mr | 0}`;   // evb: por qué no se puede evolucionar ('rango' = falta rango de maestría)
       if (sig !== cache) {
-        cache = sig; n.textContent = String(co); lv.textContent = `Nv. ${evo}${need > 0 ? ` · ${need} para ${evo + 1}` : ' · máx.'}`;
+        cache = sig; n.textContent = String(co); lv.textContent = `Nv. ${evo}${need > 0 ? ` · ${need} para ${evo + 1}` : ' · máx.'}${rk ? ` · 🔒 pide rango ${me.evr} (tenés ${me.mr | 0})` : ''}`;
         bar.style.width = need > 0 ? Math.min(100, (co / need) * 100) + '%' : '100%';
       }
       el.classList.toggle('ready', ready);

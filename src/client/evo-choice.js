@@ -18,7 +18,7 @@ export function createEvoChoice(host, { onOpen, onClose } = {}) {
     get open() { return open; },
     /** Abrir con el estado del jugador del snapshot (me). Devuelve false si no hay nada que elegir. */
     show(me) {
-      if (!me || !(me.evn > 0) || (me.co | 0) < me.evn) return false;
+      if (!me || !(me.evn > 0) || (me.co | 0) < me.evn || me.evb === 'rango') return false;   // sin núcleos, o sin el rango de maestría que pide el nivel (EVO_RANK_REQ)
       const EP = evoPathsFor(me.char), FL = EVO_FLAVOR[me.char] || {}, fl = (o) => (FL[o.id] ? { ...o, ...FL[o.id] } : o), tier = (me.evo | 0) + 1, opts = EP[tier] && EP[tier].map(fl); if (!opts) return false;   // EVO_FLAVOR: nombre y texto propios de ese Huésped (mismos ids y bonos)
       const C = CHARACTERS[me.char] || {}, prev = (me.pth || []).map((id, i) => (EP[i + 1] || []).find((o) => o.id === id)).filter(Boolean).map(fl);
       el.innerHTML = `<div class="ec-in"><h3>EVOLUCIÓN · NIVEL ${tier}: ${EVO_TIERS[tier].name.toUpperCase()}</h3>

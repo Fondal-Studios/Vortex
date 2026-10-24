@@ -4,7 +4,7 @@
 // Datos puros y deterministas (sin DOM, sin azar, sin g.rng, sin perfil). El perfil (src/client/perfil.js) guarda los puntos y los nodos
 // elegidos; la simulación sólo recibe los ids (opts.arbol de addPlayer / prof.arbol de setLoadout) y los convierte en efectos (p.ac / p.as).
 // Los nodos de Combo NO tocan Shooter y viceversa: p.ac sólo lo lee combos.js; p.as sólo lo leen firePlayer (game.js) y clipOf/reloadTime (loadout.js).
-import { HOST_IDS, COMBO_SETS } from './data.js';
+import { HOST_IDS, COMBO_SETS, CORES } from './data.js';
 
 /** Costo en puntos de cada nodo de una rama (1.º, 2.º, 3.º). Una rama completa = 195 puntos. */
 export const PC_COSTE = [25, 60, 110];
@@ -248,6 +248,7 @@ export function progStep(g, p, dt) {
 function cerrarMulti(g, p) {
   const s = p.ps, n = s.mk; s.mk = 0; s.mkT = 0;
   if (n < 2) return;
+  p.cores = (p.cores || 0) + Math.round(CORES.multi * (n - 1) * (p.bn ? p.bn.cores : 1));   // los multi-kills dan núcleos extra (rendimiento, no mera supervivencia)
   const st = p.mode === 'combo' ? s.c : s.s; st.m++; st.mm = Math.max(st.mm, n);
   if (p.mode === 'combo') s.pts += 4 * (n - 1);
   g.emit({ t: 'multi', pid: p.id, n, p: a3(p.pos) });

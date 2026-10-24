@@ -22,7 +22,7 @@ export const ENJ = { maraCap: 4, dmg: 6.5, cd: 0.9, life: 20, lifePasiva: 30, ra
 export const unitsOf = (g, p) => g.objects.filter((o) => o.type === 'zangano' && o.owner === p.id);
 const nestsOf = (g, p) => g.objects.filter((o) => o.type === 'nido' && o.owner === p.id);
 export const unitCap = (p) => Math.min(LIMITS.units, 4 + (has(p, 'criador') ? 2 : 0) + (has(p, 'plaga') ? 4 : 0) + (p.ultId === 'marabunta' ? (ENJ.maraCap ?? 4) : 0));
-const evoK = (p) => 1 + 0.06 * (p.evo || 0);
+const evoK = (p) => 1 + 0.1 * (p.evo || 0);
 const unitDmg = (p) => ENJ.dmg * evoK(p) * (has(p, 'aguijon') ? 1.4 : 1) * (has(p, 'reina') ? 1.25 : 1);
 const frenzy = (g, p) => g.time < (p.swarmUntil || 0) || p.ultId === 'marabunta';
 const hot = (p) => !!(p.cb && p.cb.win > 0);   // en Combo: mientras la cadena sigue viva, el enjambre ataca un poco más rápido

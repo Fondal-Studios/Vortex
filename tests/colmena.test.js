@@ -38,7 +38,7 @@ test('evolución: 4 niveles × 2 caminos excluyentes PROPIOS (ids nuevas); el pe
   assert.deepEqual(g.addPlayer('y', null, { char: 'colmena', evo: 3, path: ['coraza', 'nube', 'detonador'] }).path, [], 'una id de otro Huésped no vale');
   assert.deepEqual(g.addPlayer('z', null, { char: 'axioma', evo: 1, path: ['criador'] }).path, [], 'y al revés');
   // evolucionar por la entrada: el camino 2 de cada nivel cierra el 1
-  const { g: g2, p } = mk({}, 0); p.cores = 1000;
+  const { g: g2, p } = mk({}, 0); p.cores = 5000; p.mastery = 6;   // rango 6 de maestría + núcleos de sobra: se puede llegar al nivel 4
   for (const pick of [2, 1, 2, 1]) { g2.setInput(p.id, { evo: pick }); g2.step(T60); g2.setInput(p.id, { evo: 0 }); g2.step(T60); }
   assert.equal(p.evo, 4); assert.deepEqual(p.path, ['aguijon', 'nidos', 'detonador', 'reina']);
 });
