@@ -5,11 +5,11 @@ import { startCultivo, cultivoObjective } from './cultivo.js';
 import { desintegrar } from './rezagados.js';
 import { ammoMax } from './loadout.js';
 
-export function makeObjective(g, n) {
-  let kind = (OBJECTIVE_PLAN[g.mapId] || {})[n];
+export function makeObjective(g, n, step = null) {
+  let kind = step?.kind || (OBJECTIVE_PLAN[g.mapId] || {})[n];
   if (kind && g.map.objectiveFor) kind = g.map.objectiveFor(kind, g); // p. ej. mapa 4: sin puente no hay Núcleo, hay Cultivo
   if (!kind) return null;
-  const info = OBJECTIVE_INFO[kind], sp = g.map.spots, np = g.players.length;
+  const info = step ? { ...OBJECTIVE_INFO[kind], title: step.title, desc: step.desc } : OBJECTIVE_INFO[kind], sp = g.map.spots, np = g.players.length;
   const o = { type: kind, state: 'active', t: 0, limit: info.limit, prog: 0, title: info.title, desc: info.desc, ids: [], solo: np <= 1, sync: 0 };
   if (kind === 'secuencia') {
     o.stage = 0; o.sync = 0;
@@ -54,7 +54,7 @@ export function updateObjective(g, dt) {
     const inside = alive.filter((p) => dist(p.pos, a.pos) < a.r).length; a.on = inside > 0;
     let near = 0; for (const m of g.monsters) if (!m.dead && dist(m.pos, a.pos) < 5) near++;
     a.hp = Math.min(a.maxhp, a.hp - Math.min(near, 8) * 5 * dt + (near ? 0 : 2 * dt));
-    o.prog = clamp(o.prog + (inside > 0 ? (1 / 35) * (1 + 0.35 * (inside - 1)) * dt : 0), 0, 1); a.v = o.prog;
+    o.prog = clamp(o.prog + (inside > 0 && (!g.operation || !near) ? (1 / 35) * (1 + 0.35 * (inside - 1)) * dt : 0), 0, 1); a.v = o.prog;
     if (a.hp <= 0) return finish(g, o, false);
     if (o.prog >= 1) return finish(g, o, true);
   } else if (o.type === 'sintonia') {
@@ -87,7 +87,7 @@ function finish(g, o, ok) {
   o.state = ok ? 'done' : 'failed';
   for (const x of objs(g, o)) { if (x.type === 'core') for (const p of g.players) if (p.carry === x.id) p.carry = 0; g.removeObject(x); }
   if (ok) {
-    if (o.type === 'caza') {
+    if (g.operation || o.type === 'caza') {
       g.queue = []; g.omens = [];
       for (const m of g.monsters) if (!m.dead && !m.def.boss) desintegrar(g, m, 'custodio');
     }
@@ -104,6 +104,10 @@ function finish(g, o, ok) {
     const frag = g.fragments++;
     g.emit({ t: 'objective', ph: 'done', kind: o.type, frag: Math.min(frag, FRAGMENTS.length - 1) });
   } else {
-    g.surge(0.3); g.emit({ t: 'objective', ph: 'failed', kind: o.type });
+    g.emit({ t: 'objective', ph: 'failed', kind: o.type });
+    if (g.operation) {
+      g.operationFailure = o.type === 'ancla' && o.t <= o.limit ? 'La zona segura fue destruida.' : o.t > o.limit ? 'Se agotó el tiempo del objetivo.' : 'Se perdió el objetivo de la misión.';
+      g.state = 'lost'; g.queue = []; g.omens = []; g.emit({ t: 'lost' });
+    } else g.surge(0.3);
   }
 }

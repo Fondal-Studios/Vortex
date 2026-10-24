@@ -1,0 +1,58 @@
+✔ chapter m1: context, actionable goal and reward (1.100089ms)
+✔ chapter m2: context, actionable goal and reward (0.309606ms)
+✔ chapter m5: context, actionable goal and reward (0.118058ms)
+✔ chapter m6: context, actionable goal and reward (0.102184ms)
+✔ final keeps the transfer premise (0.260213ms)
+✔ chapter and objective priorities survive snapshot changes (0.52414ms)
+✔ skip cancels subtitle callback before finishing; campaign always shows reviewable briefing (1.198236ms)
+✔ arena boss identity agrees in simulation snapshots and territory descriptions (26.009134ms)
+✔ cooperativo: crear sala, unirse, ambos clientes ven la misma partida (2 jugadores) (356.744885ms)
+# coop: 105 muestras, divergencia máxima entre las dos vistas 1.00 u; snapshots A=71 B=71 (~20/s)
+✔ cooperativo: cada cliente controla sólo a su jugador; sin desincronización grave entre vistas (3598.270302ms)
+✔ cooperativo: sala llena (5º cliente rechazado), desconexión limpia y sala vacía se elimina (226.550645ms)
+✔ cooperativo: el servidor ignora entradas malformadas y no se cae (387.076371ms)
+# delta: 1333 snapshots, completo 4732 B → delta 1141 B por snapshot (76% menos), hasta 2 criaturas
+✔ delta de snapshots: aplicar(compactar(x)) reconstruye EXACTAMENTE el snapshot completo (4000 ticks, 4 jugadores) (1412.992925ms)
+✔ lobby: crear, unirse, elegir Huésped y modo, listo, sólo el anfitrión empieza, cuenta regresiva sincronizada (3190.367973ms)
+✔ errores claros: versión distinta, sala inexistente, sala llena, mensajes basura (446.466784ms)
+# 4 bots: oleada 3, estado won, 8755 ticks (2.4 min de juego), pico 19 criaturas, 22/1/13 bajas
+# ancho de banda por jugador (bajada): 40.1 KB/s sin comprimir / 18.1 KB/s comprimido | 39.6 KB/s sin comprimir / 17.9 KB/s comprimido | 40.1 KB/s sin comprimir / 18.1 KB/s comprimido
+✔ 4 bots por WebSocket (200 ms de latencia en dos de ellos): 3+ oleadas sin desincronizar, reconexión y salida de un jugador (28093.33495ms)
+✔ fin de partida: cada jugador recibe SU botín del servidor; "otra vez" vuelve al lobby (3104.782521ms)
+✔ seguridad: sin salirse de las carpetas del juego, origen permitido, tope de conexiones por red y salud con CORS (21.141659ms)
+✔ two real WebSocket clients receive identical operation and objective snapshots (196.282388ms)
+✔ sequences on six maps: only the indicated terminal advances; solo and coop retain progress (24.070534ms)
+✔ seed changes terminal order reproducibly without consuming combat RNG (3.178902ms)
+✔ hunt uses an existing wave spawn; target marked, killing it ends reinforcements without rewarding escorts (14.280887ms)
+✔ despawning target is failure, never a free reward or permanent wave lock (0.651623ms)
+✔ sequence timeout cleans objects and fails once (0.400564ms)
+✔ first optional mission accepts chosen attack style and pays once (3.724765ms)
+✔ all six operations complete only after three objectives, solo and four players (47.636028ms)
+✔ contested defense stops progress and destruction loses mission without rewards (0.863462ms)
+✔ timeout fails once and a new game resets operation progress (0.387003ms)
+✔ rescue survives carrier death and disconnection; no duplicate completion reward (0.68293ms)
+✔ campaign and practice retain old pacing; codex contains arenas, play menu missions (1.545229ms)
+﹣ recorrido 844x390 táctil: cada función a ≤ 2 toques desde el inicio (y Esc/Volver vuelve en 1) (0.655989ms) # SKIP
+﹣ recorrido 1280x720 PC: cada función a ≤ 2 toques desde el inicio (y Esc/Volver vuelve en 1) (0.202715ms) # SKIP
+﹣ recorrido 390x844 táctil: cada función a ≤ 2 toques desde el inicio (y Esc/Volver vuelve en 1) (0.100652ms) # SKIP
+﹣ teclado y mando: Q/E cambian de pestaña dentro de la sección, Esc vuelve; foco visible (0.213301ms) # SKIP
+﹣ bienvenida de la primera vez: 3 pasos, se salta y no vuelve (0.168334ms) # SKIP
+✔ pausa simple: Continuar · Modo · Gráficos · Controles y cámara · Salir (los ids que usa main.js siguen) (1.62518ms)
+✔ m1: la dificultad sube oleada a oleada (presupuesto de criaturas creciente) (8.789289ms)
+✔ m1: sólo aparecen criaturas habilitadas para esa oleada y el jefe llega al final (1.549797ms)
+✔ m2: la dificultad sube oleada a oleada (presupuesto de criaturas creciente) (4.21249ms)
+✔ m2: sólo aparecen criaturas habilitadas para esa oleada y el jefe llega al final (3.239143ms)
+✔ el bestiario completo se usa entre los dos mapas (8 criaturas + 2 jefes) (0.840467ms)
+✔ más jugadores ⇒ hordas más grandes (escalado cooperativo) (0.613615ms)
+✔ ciclo de oleada: calma inicial → spawn en goteo → oleada limpia → respiro → siguiente (110.096346ms)
+✔ victoria: matar al jefe de la oleada final termina la partida en "won"; perder a todos en "lost" (18.916888ms)
+✔ cooperativo: el jugador caído revive al comenzar la siguiente oleada (2.282723ms)
+✔ límite duro de criaturas vivas aun con spawns forzados (1.509156ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 41
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+ℹ duration_ms 42965.549427

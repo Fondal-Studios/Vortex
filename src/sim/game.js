@@ -1,3 +1,4 @@
+import { OPERATIONS } from './operations.js';
 import { BOSS_NAMES } from './campaign-names.js';
 import { reviveTarget } from '../shared/tactical.js';
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
@@ -45,7 +46,7 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null, operation = false } = {}) {
     this.skillLevel = skillLevel === null ? null : cleanSkillLevel(skillLevel);
     this.jefeMem = jefeMem;   // memoria del intento anterior contra el jefe (jefeMemoria): adaptación suave entre intentos
     this.magazines = !!magazines;   // cargadores y recarga (el juego real los usa; las pruebas viejas no)
@@ -54,6 +55,7 @@ export class Game {
     if (!this.map) throw new Error('mapa desconocido: ' + mapId);
     if (this.map.instance) this.map = this.map.instance(); // mapas que cambian durante la partida (mapa 4: el puente crece)
     this.mapId = mapId;
+    this.operation = operation && !practice ? OPERATIONS[mapId] || null : null;
     this.rng = makeRng(seed); this.seed = seed;
     this.difficulty = difficulty * (mapId === 'm2' ? 1.35 : 1); // la Cámara Fractal es más exigente (el bot ganaba 8/8)
     this.tick = 0; this.time = 0; this.dt = 1 / 60;
@@ -61,7 +63,7 @@ export class Game {
     this.events = [];
     this.nextId = 1;
     this.state = 'playing'; // playing | won | lost
-    this.wave = 0; this.waveTotal = (WAVE_PLANS[mapId] || []).length + 1;
+    this.wave = 0; this.waveTotal = this.operation ? this.operation.steps.length : (WAVE_PLANS[mapId] || []).length + 1;
     this.phase = 'intermission'; this.phaseT = calm; // calma inicial (la historia usa más)
     this.queue = []; this.omens = []; this.spawnT = 0; this.spawnGap = 1.5;
     this.boss = null; this.mision = null; this.forceElite = false;
@@ -206,7 +208,7 @@ export class Game {
     // rezagados: las últimas criaturas YA NO se teletransportan; se las acosa hacia el jugador y se las marca (src/sim/rezagados.js)
     tickRezagados(this, dt);
     if (!this.queue.length && !this.omens.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
-      if (this.wave >= this.waveTotal) { this.state = 'won'; this.emit({ t: 'won' }); return; }
+      if (this.wave >= this.waveTotal) { if (this.skillLevel !== null) this.skillLevel = Math.max(this.skillLevel, earnedSkillLevel(this.wave)); this.state = 'won'; this.emit({ t: 'won' }); return; }
       misionFin(this); finOleada(this);
       this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
       if (this.skillLevel !== null) this.skillLevel = Math.max(this.skillLevel, earnedSkillLevel(this.wave));
@@ -228,9 +230,9 @@ export class Game {
     for (const p of this.players) { if (p.dead) this.revive(p); if (p.role === 'ingeniero' && !p.dead) { for (const w of [2, 1, 3]) this.dropPickup('ammo', madd(madd(p.pos, p.up, 1.5), p.heading, 2 + w), w); } }
     const n_pl = Math.max(1, this.players.length);
     this.queue = [];
-    const isBoss = n === this.waveTotal;
+    const isBoss = !this.operation && n === this.waveTotal;
     const types = plan[Math.min(n, plan.length) - 1]; this.curTypes = types;
-    this.objective = isBoss ? null : makeObjective(this, n); this.objective0 = this.objective;
+    this.objective = isBoss ? null : makeObjective(this, n, this.operation?.steps[n - 1]); this.objective0 = this.objective;
     iniciarMision(this, n, isBoss);
     let budget = (8 + 8 * n + 1.3 * n * n) * (1 + 0.6 * (n_pl - 1)) * this.difficulty;
     if (isBoss) { budget *= 0.45; this.queue.push(BOSS_OF[this.mapId]); }
@@ -852,6 +854,7 @@ export class Game {
     const boss = this.monsters.find((m) => m.def.boss && !m.dead);
     return {
       tick: this.tick, time: r2(this.time), map: this.mapId, state: this.state, phase: this.phase,
+      operation: this.operation ? { title: this.operation.title, step: this.operation.steps[this.wave - 1]?.title || '', next: this.operation.steps[this.wave]?.title || '', failure: this.operationFailure || null } : null,
       wave: this.wave, waveTotal: this.waveTotal, left: this.queue.length + this.omens.length + this.monsters.length, om: this.omens.map((o) => [...a3(o.pos), o.k, r2(o.at - this.time)]), intermission: r2(Math.max(0, this.phaseT)),
       fx: this.map.fx(this.time),
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0, ...jefeSnap(boss) } : null,
@@ -867,7 +870,7 @@ export class Game {
       pickups: this.pickups.map((k) => ({ id: k.id, t: k.type, w: k.w, p: a3(k.pos) })),
       ...(this.loot.length ? { lt: lootSnap(this) } : {}),
       objs: this.objects.map((o) => ({ id: o.id, t: o.type, p: a3(o.pos), r: o.r, s: o.state || (o.on ? 'on' : 'off'), v: r2(o.v || 0), hp: Math.round(o.hp || 0), mx: Math.round(o.maxhp || 0), c: o.carrier || 0, nk: o.kind || undefined, ow: o.owner || 0, l: r2(o.life || 0) })),
-      obj: this.objective ? { type: this.objective.type, stage: this.objective.stage, total: this.objective.ids.length, target: this.objective.target, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this), targets: this.objective.state === 'active' ? this.objects.filter(o => this.objective.ids.includes(o.id) && !o.on && !o.carrier).map(o => a3(o.pos)) : [] } : null,
+      obj: this.objective ? { integrity: this.objective.type === 'ancla' ? Math.max(0, Math.round(100 * (this.objects.find(x => x.id === this.objective.ids[0])?.hp || 0) / 700)) : null, type: this.objective.type, stage: this.objective.stage, total: this.objective.ids.length, target: this.objective.target, title: this.objective.title, desc: this.objective.desc, prog: r2(this.objective.prog), left: r2(Math.max(0, this.objective.limit - this.objective.t)), state: this.objective.state, tg: puntoObjetivo(this), targets: this.objective.state === 'active' ? this.objects.filter(o => this.objective.ids.includes(o.id) && !o.on && !o.carrier).map(o => a3(o.pos)) : [] } : null,
       mis: misionSnap(this),
       pings: this.pings.map((q) => ({ id: q.id, pid: q.pid, k: q.k, l: q.label, p: a3(q.pos), left: r2(q.until - this.time) })),
       ev: evSnap(this), ar: arSnap(this), ng: ngSnap(this), fl: flSnap(this), fa: faunaSnap(this),

@@ -34,7 +34,7 @@ export function buildTerritoriosScreen(menu) {
     const id = tr.sel, t = TERRITORIOS[id], est = Perfil.estadoTerritorio(id), elegida = Perfil.bendicionElegida(id);
     root.style.setProperty('--c', t.color);
     const falta = t.requiere.filter((r) => !Perfil.liberado(r)).map((r) => TERRITORIOS[r].nombre);
-    const aviso = est === 'bloqueado' ? `Liberá primero: ${falta.map(esc).join(', ')}.` : est === 'disponible' ? `Ganá el mapa (vencé a ${esc(t.jefe)}) para liberarlo.` : elegida ? 'Bendición elegida. Es permanente: la otra quedó cerrada.' : 'Liberado. Elegí UNA bendición: la otra se cierra para siempre.';
+    const aviso = est === 'bloqueado' ? `Liberá primero: ${falta.map(esc).join(', ')}.` : est === 'disponible' ? `Completá la misión de este territorio para liberarlo.` : elegida ? 'Bendición elegida. Es permanente: la otra quedó cerrada.' : 'Liberado. Elegí UNA bendición: la otra se cierra para siempre.';
     const cards = bendicionesDe(id).map((bid) => {
       const b = BENDICIONES[bid], e = Perfil.estadoBendicion(bid);
       const tag = { elegida: 'Elegida', cerrada: 'Cerrada para siempre', elegible: 'Elegir', bloqueada: 'Bloqueada' }[e];
