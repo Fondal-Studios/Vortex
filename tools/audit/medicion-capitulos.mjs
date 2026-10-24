@@ -40,7 +40,8 @@ function estiloBot(g, pid, estilo, seed) {
     // melee sin jefe: acercarse al bicho más cercano y pegar A1/A2 (misma idea que melee() de tools/jefe-bots.js)
     i.mode = 'combo'; i.fire = false;
     const task = taskFor(g, p);
-    if (near && (cultivo || !(task && nd > 7))) {
+    // Con el núcleo en brazos no se puede atacar: un jugador real corre al altar. (Antes el bot melé se acercaba a pegar, no pegaba, y moría.)
+    if (near && !(task && task.carry) && (cultivo || !(task && nd > 7))) {
       const eye = g.eyePos(p), to = norm(sub(near.pos, eye)), tan = norm(project(to, p.up), p.heading);
       const yawErr = Math.atan2(dot(cross(p.heading, tan), p.up), dot(p.heading, tan));
       const pitchErr = Math.asin(Math.max(-1, Math.min(1, dot(to, p.up)))) - p.pitch, mt = 7 * 1.2 * dt;
