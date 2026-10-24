@@ -967,7 +967,7 @@ $('again').addEventListener('click', () => {
   if (session.mode === 'coop') { session.net.send({ t: 'restart' }); return; }
   startSolo(session.campaign || session.map, { campaign: session.campaign, intro: false });
 });
-if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !params.get('auto') && location.hostname !== 'localhost') navigator.serviceWorker.register('./sw.js').catch(() => {});
+if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !params.get('auto') && location.hostname !== 'localhost') navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
 
 // Modos automáticos para pruebas visuales y de rendimiento: ?auto=m1&bot=1&wave=3&god=1
 if (params.get('prologo') && !params.get('auto')) loadAnd(() => startSolo('m1', { campaign: 'm1' })); // ?prologo=1 fuerza el prólogo (entra directo a la campaña)
