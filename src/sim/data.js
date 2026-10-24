@@ -526,6 +526,7 @@ export const OBJECTIVE_INFO = {
   caza: { title: 'CAZA DEL CUSTODIO', desc: 'Eliminá al custodio marcado. Al caer, sus defensas se apagan y termina la oleada.', limit: 110 },
   ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Quedate dentro del círculo para estabilizar el recuerdo. Defendé el ancla de las criaturas.', limit: 110 },
   sintonia: { title: 'SINTONÍA', desc: 'Pisá todas las placas a la vez durante 3 s. Solo: cada placa queda viva 10 s tras salir.', limit: 110 },
+  resistir: { title: 'RESISTIR EL ASEDIO', desc: 'Sobreviví hasta que termine la cuenta regresiva. La red envía criaturas sin pausa.', limit: 120 },
   cultivo:  { title: 'CULTIVO: PUENTE VIVO', desc: 'Alimentá los 3 capullos disparándoles hasta que florezcan: cada uno hace crecer un tramo del puente al Umbral. Las criaturas los roen: defendelos.', limit: 260 },
   nucleo:   { title: 'NÚCLEO DE MEMORIA', desc: 'Acercate al núcleo para recogerlo y llevalo al altar. Mientras lo llevás caminás más lento y no podés disparar.', limit: 150 },
 };

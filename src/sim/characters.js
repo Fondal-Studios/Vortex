@@ -38,8 +38,9 @@ function useSpecial0(g, p) {
   const id = C.esp.id, o = g.eyePos(p), d = g.aimDir(p);
   switch (id) {
     case 'onda': {
-      for (const m of g.monsters) { if (m.dead) continue; const to = sub(m.pos, p.pos), l = len(to); if (l > 20 + m.r) continue; if (dot(norm(to), d) < 0.5) continue; g.damageMonster(m, 120, p, m.pos); m.vel = madd(m.vel, norm(to), 22); }
-      g.emit({ t: 'boom', p: a3(madd(o, d, 5)), r: 8 });
+      let n = 0;
+      for (const m of g.monsters) { if (m.dead) continue; const to = sub(m.pos, p.pos), l = len(to); if (l > 20 + m.r) continue; if (dot(norm(to), d) < 0.5) continue; n++; g.damageMonster(m, 120, p, m.pos); m.vel = madd(m.vel, norm(to), 22); }
+      g.emit({ t: 'boom', p: a3(madd(o, d, 5)), r: 8, hit: n });
       break;
     }
     case 'rayo': {

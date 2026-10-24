@@ -4,7 +4,9 @@ import { createAccounts } from './accounts.js';
 //
 // Se configura con variables de entorno (ver docs/COOP_ONLINE.md):
 //   PORT / HOST             puerto y dirección (Render, Koyeb, Fly... ponen PORT solos)
-//   ALLOWED_ORIGINS         páginas que pueden conectarse, separadas por coma. Ej: https://tuusuario.github.io  (vacío = cualquiera)
+//   ALLOWED_ORIGINS         páginas que pueden conectarse, separadas por coma. Ej: https://tuusuario.github.io
+//                           Vacío: en desarrollo/pruebas acepta cualquiera; en PRODUCCIÓN (NODE_ENV=production o Render) solo acepta
+//                           la página de GitHub Pages del proyecto y el propio sitio del servidor (ver origenesPorDefecto y docs/OPERATIONS.md)
 //   MAX_SALAS, MAX_POR_IP   topes de salas y de conexiones por red
 //   SERVIR_JUEGO=0          no servir los archivos del juego (sólo WebSocket + /health)
 //   TRUST_PROXY=1           detrás de un proxy (Render, Fly, cloudflared): la IP real viene en X-Forwarded-For
@@ -69,6 +71,13 @@ function resolveFile(url) {
   return f;
 }
 
+/** Orígenes permitidos si ALLOWED_ORIGINS está vacío. Fuera de producción: [] = cualquiera (desarrollo y pruebas).
+ *  En producción (NODE_ENV=production, o Render con RENDER=true) NO se acepta cualquiera: solo la página de Pages del proyecto. */
+export const ORIGEN_PAGES = 'https://fondal-studios.github.io';
+export function origenesPorDefecto(env = process.env) {
+  const prod = env.NODE_ENV === 'production' || env.RENDER === 'true';
+  return prod ? [ORIGEN_PAGES] : [];
+}
 const csv = (s) => String(s || '').split(',').map((x) => x.trim().replace(/\/$/, '')).filter(Boolean);
 
 export async function startServer(opts = {}) {
@@ -76,7 +85,7 @@ export async function startServer(opts = {}) {
   const cfg = {
     port: opts.port ?? 8080, host: opts.host ?? '0.0.0.0', autoTick: opts.autoTick ?? true,
     maxSalas: opts.maxSalas ?? (+env.MAX_SALAS || 20), maxPorIp: opts.maxPorIp ?? (+env.MAX_POR_IP || 8),
-    origenes: opts.origenes ?? csv(env.ALLOWED_ORIGINS), servirJuego: opts.servirJuego ?? env.SERVIR_JUEGO !== '0',
+    origenes: opts.origenes ?? (csv(env.ALLOWED_ORIGINS).length ? csv(env.ALLOWED_ORIGINS) : origenesPorDefecto(env)), servirJuego: opts.servirJuego ?? env.SERVIR_JUEGO !== '0',
     trustProxy: opts.trustProxy ?? env.TRUST_PROXY === '1', graciaMs: opts.graciaMs ?? (+env.RECONEXION_MS || 45000),
     maxMsgSeg: opts.maxMsgSeg ?? 90, silencio: opts.silencio ?? !!process.env.NODE_TEST_CONTEXT, velocidad: opts.velocidad ?? 1,   // velocidad: sólo para pruebas (simula más rápido que el reloj)
   };
@@ -84,14 +93,15 @@ export async function startServer(opts = {}) {
   const rooms = new Map(), porIp = new Map();
   const arranque = Date.now();
   const stats = { conexiones: 0, salasCreadas: 0, partidas: 0 };
-  const origenOk = (o) => !cfg.origenes.length || !o || cfg.origenes.includes(String(o).replace(/\/$/, ''));
+  // El propio sitio del servidor (el juego servido desde aquí mismo) siempre puede conectarse: su Origin coincide con el Host de la petición.
+  const origenOk = (o, host) => { if (!cfg.origenes.length || !o) return true; const limpio = String(o).replace(/\/$/, ''); if (cfg.origenes.includes(limpio)) return true; try { return !!host && new URL(limpio).host === host; } catch { return false; } };
   const jugadores = () => { let n = 0; for (const r of rooms.values()) n += r.members.length; return n; };
 
   const accounts = await createAccounts({ databaseUrl: opts.databaseUrl, db: opts.accountDb, trustProxy: cfg.trustProxy });
   const server = http.createServer((req, res) => {
     if (String(req.url).split('?')[0].startsWith('/api/account/')) { void accounts.handle(req, res); return; }
     const url = String(req.url || '/');
-    const cors = {}; const o = req.headers.origin; if (o && origenOk(o)) { cors['Access-Control-Allow-Origin'] = o; cors.Vary = 'Origin'; }
+    const cors = {}; const o = req.headers.origin; if (o && origenOk(o, req.headers.host)) { cors['Access-Control-Allow-Origin'] = o; cors.Vary = 'Origin'; }
     if (req.method === 'OPTIONS') { res.writeHead(204, { ...cors, 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Max-Age': '600' }); return res.end(); }
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
     const ruta = url.split('?')[0];
@@ -112,7 +122,7 @@ export async function startServer(opts = {}) {
   server.on('upgrade', (req, socket, head) => {
     const rechazar = (code, txt) => { socket.write(`HTTP/1.1 ${code} ${txt}\r\nConnection: close\r\n\r\n`); socket.destroy(); };
     if (String(req.url).split('?')[0] !== '/ws') return rechazar(404, 'Not Found');
-    if (!origenOk(req.headers.origin)) return rechazar(403, 'Forbidden');
+    if (!origenOk(req.headers.origin, req.headers.host)) return rechazar(403, 'Forbidden');
     const ip = ipDe(req), n = porIp.get(ip) || 0;
     if (n >= cfg.maxPorIp) return rechazar(429, 'Too Many Requests');
     wss.handleUpgrade(req, socket, head, (ws) => { ws.ip = ip; porIp.set(ip, n + 1); wss.emit('connection', ws, req); });

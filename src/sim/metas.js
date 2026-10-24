@@ -24,10 +24,10 @@ export function misionDe(n) {
 }
 
 /** Crea la misión de la oleada `n` en la partida `g` (null en la del jefe y en el campo de pruebas). */
-export function iniciarMision(g, n, esJefe) {
+export function iniciarMision(g, n, esJefe, forzada = null) {
   g.forceElite = false;
   if (esJefe || g.practice) { g.mision = null; return; }
-  const k = g.fa && OLEADAS_ALIMENTO.includes(n) ? 'alimento' : misionDe(n), M = MISIONES[k];
+  const k = forzada && MISIONES[forzada] ? forzada : g.fa && OLEADAS_ALIMENTO.includes(n) ? 'alimento' : misionDe(n), M = MISIONES[k];
   g.mision = { k, n: M.n(n), p: 0, st: 'active', rc: Math.round(M.cores(n)), re: M.ess ? M.ess[1] : 0, ek: M.ess ? M.ess[0] : null, w: n };
   if (k === 'elite') g.forceElite = true; // el primer bicho que pueda ser élite lo será: la misión siempre se puede cumplir
   if (k === 'alimento') faunaForzarRara(g);   // la rara nace ya, cerca de alguien, y no se va hasta que termine la oleada
@@ -40,7 +40,7 @@ export function misionAlimento(g, sp) {
 
 function pagar(g, m) {
   const mi = g.mision;
-  mi.st = 'done';
+  mi.st = 'done'; if (g.hitos) g.hitos.sec++;
   for (const p of g.alivePlayers()) {
     p.cores += Math.round(mi.rc * (p.bn ? p.bn.cores : 1));
     const k = mi.k === 'elite' && m ? ESSENCE_OF[m.kind] : mi.ek;

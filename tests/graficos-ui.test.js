@@ -6,7 +6,8 @@ import { startServer } from '../server/server.js';
 
 // Pantalla «Gráficos» en un navegador real (Chromium por software): se llega desde el menú principal, los presets y la resolución se aplican EN VIVO,
 // lo elegido se recuerda al recargar, Automático se puede apagar, el medidor de FPS aparece y el botón de la Pausa abre el mismo panel.
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 let srv, browser, base;
 test.before(async () => { if (!hasChromium) return; srv = await startServer({ port: 0 }); browser = await launch(); base = `http://localhost:${srv.port}`; });
 test.after(async () => { if (browser) await browser.close(); if (srv) await srv.close(); });

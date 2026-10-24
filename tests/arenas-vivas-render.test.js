@@ -8,7 +8,8 @@ import { layoutArena, centroOrgano } from '../src/sim/arenas-vivas.js';
 
 // Presupuesto de render de las ARENAS VIVAS en Baja (renderer.info): lo que agregan los órganos y los avisos (= escena con ellos
 // menos escena sin ellos, mismo cuadro y misma cámara) y que no haya errores de consola. Para ver las imágenes: node tools/shot-arenas.js todas
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const PRESUPUESTO = { calls: 16, tris: 6000 };   // por arena, en el peor cuadro (todos los órganos a la vista + 3 avisos de ataque)
 
 let srv, browser, base;

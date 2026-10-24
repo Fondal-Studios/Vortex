@@ -9,7 +9,8 @@ import { MAP_IDS } from '../src/sim/maps.js';
 // (mismo cuadro, misma cámara), en el PEOR caso: 16 marcas de telegrafía a la vez (aros, líneas, haces), escudo y núcleo visibles.
 // Presupuesto: Baja ≤ 16 llamadas de dibujo y ≤ 6 000 triángulos agregados. También: la barra del jefe con sus fases y su postura, sin errores de consola.
 // Para ver las imágenes: node tools/shot-jefes.mjs
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const PRESUPUESTO = { calls: 16, tris: 6000 };
 
 let srv, browser, base;

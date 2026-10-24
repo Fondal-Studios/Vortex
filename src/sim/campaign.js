@@ -1,7 +1,8 @@
 // Una sola cronología para campaña, briefings y selección de misiones.
 export const CAMPAIGN_ORDER = Object.freeze(['m1', 'm3', 'm4', 'm5', 'm6', 'm2']);
 export const CAMPAIGN_NAME = 'La salida de VORTEX';
-export const CAMPAIGN_BOSSES = Object.freeze({ m1: 'Coloso Prismático', m2: 'Madre Geoda' });
+// Un jefe o desafío final por capítulo (cuerpo y enfurecimiento: mision-config.js; nombres en pantalla: campaign-names.js).
+export const CAMPAIGN_BOSSES = Object.freeze({ m1: 'Coloso Prismático', m3: 'Argos', m4: 'Argos, el Ojo Primordial', m5: 'Mandinga del Reloj', m6: 'Basilisco del Osario', m2: 'Madre Geoda' });
 export const CAMPAIGN_LINKS = {
  m1: { before: 'En un futuro remoto, sos la última conciencia humana atrapada en VORTEX. HERALDO necesita un refugio estable para reconstruir tu identidad.', after: 'La clave recuperada abre el Laberinto, pero sus ojos siguen vigilando la ruta.', reward: 'Recuperás tu clave de identidad y el acceso al Laberinto.' },
  m3: { before: 'Con tu clave recuperada, entrás al Laberinto para apagar la vigilancia que bloquea tus fragmentos de memoria.', after: 'La vigilancia cayó. El acceso al Jardín está libre, pero el puente de evacuación todavía no existe.', reward: 'Desactivás la vigilancia y abrís el acceso al Jardín.' },

@@ -33,7 +33,7 @@ Elegí **▶ Historia** (campaña con la intro del tren) o una **Arena**, y hac�
 3. Gratis en internet: **Render Free** (se arma con `render.yaml`, se duerme tras 15 min) y, de respaldo, **tu PC + `cloudflared`**. Comparación y pasos en `docs/COOP_ONLINE.md`.
 4. La dirección del servidor se escribe en `public/config.json`, en **Opciones › Cooperativo** o con `?server=https://…` en el enlace.
 5. Pantalla **Cooperativo**: crear sala (código de 4 caracteres, ej. `K7MQ`), unirse, y sala de espera con nombre, Huésped, modo y «Estoy listo».
-6. **Invitar amigos** copia el enlace `…/Shower-psico/?sala=K7MQ`: al abrirlo se entra solo a la sala.
+6. **Invitar amigos** copia el enlace `…/vortex/?sala=K7MQ`: al abrirlo se entra solo a la sala.
 7. El cartel avisa si el servidor está **encendido**, **dormido** (tarda hasta 1 min en despertar) o **sin conexión**; los errores salen en español (sala llena, inexistente, versión distinta).
 8. Si se corta la conexión o se recarga la página, se vuelve al mismo jugador (45 s de gracia); si alguien se va, la partida sigue.
 9. Al terminar, cada jugador guarda **su** botín, núcleos y maestría en su propio perfil.

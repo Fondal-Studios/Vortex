@@ -7,7 +7,8 @@ import { MAP_IDS } from '../src/sim/maps.js';
 
 // Presupuesto de render de la FLORA en Baja (renderer.info): lo que agrega la flora (= escena sólo con su raíz menos escena vacía, mismo cuadro y misma cámara), en el
 // peor caso (las 2 nubes de esporas visibles) y sin errores de consola. Para ver las imágenes: node tools/shot-flora.mjs todas
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const PRESUPUESTO = { calls: 8, tris: 4000 };   // por arena
 let srv, browser, base;
 test.before(async () => { if (!hasChromium) return; srv = await startServer({ port: 0 }); browser = await launch(); base = `http://localhost:${srv.port}`; });

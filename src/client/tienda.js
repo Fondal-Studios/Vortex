@@ -31,6 +31,7 @@ export function comprarHuesped(id) {
   const p = Perfil.perfil(), est = estadoHuesped(p, id);
   if (!CHARACTERS[id] || !CHARACTERS[id].host) return fallo('Ese Huésped no está en venta.', 'requisito');
   if (est === 'poseido') return fallo('Ya es tuyo.', 'requisito');
+  if (est === 'bloqueado') return fallo('Ese Huésped no se vende: se gana con la campaña o con su desafío.', 'requisito');
   if (est === 'falta requisito') return fallo(reqHuesped(p, id).texto || 'Falta un requisito.', 'requisito');
   if (est !== 'comprable' || !gasta(precioHuesped(id))) return fallo(`Faltan núcleos (cuesta ${precioHuesped(id)}).`);
   p.huespedes = [...new Set([...p.huespedes, id])]; return hecho({ id });

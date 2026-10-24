@@ -7,7 +7,8 @@ import { launch } from '../tools/browser.js';
 import { startServer } from '../server/server.js';
 import { SETS, RECETAS } from '../src/sim/items.js';
 
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const KEY = 'cristal.perfil.v1';
 let srv, browser, base;
 test.before(async () => { if (!hasChromium) return; srv = await startServer({ port: 0 }); browser = await launch(); base = `http://localhost:${srv.port}`; });

@@ -1,17 +1,30 @@
-name: Publicar en GitHub Pages (modo solo, jugable en iPhone)
+name: Publicar en GitHub Pages (manual)
+# La publicación automática vive en ci.yml (trabajo `pages`, con `needs: [unit, browser]`).
+# Este flujo es SOLO la vía manual para re-publicar el commit actual de la rama canónica, y exige que ese commit tenga un CI verde.
 on:
-  push:
-    branches: [main, claude/larga-con-eso-s43nfe]
   workflow_dispatch:
-permissions: { contents: read, pages: write, id-token: write }
+
+permissions: { contents: read, pages: write, id-token: write, actions: read }
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: { name: github-pages, url: '${{ steps.deploy.outputs.page_url }}' }
     steps:
+      - name: Exigir rama canónica y CI verde en este commit
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/claude/larga-con-eso-s43nfe" ]; then echo "Solo se publica desde la rama canónica."; exit 1; fi
+          ok=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ github.sha }}&status=success" --jq '.total_count')
+          if [ "$ok" = "0" ]; then echo "El commit ${{ github.sha }} no tiene un CI verde: no se publica."; exit 1; fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+        with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: node tools/build-static.js
       - uses: actions/configure-pages@v5

@@ -184,8 +184,9 @@ export function applyMeleeSpecial(g, p, m, sp, heavy, dealt, strong) {
 export function meleeAfter(g, p, sp, heavy, dir, o, dmg, strong) {
   if (sp === 'onda' && heavy) g.addProjectile({ owner: 'p', pid: p.id, kind: 'lanza', pos: madd(o, dir, 1.6), vel: mul(dir, 42), dmg: dmg * 0.5 * strong, splash: 0, r: 0.9, life: 0.7, pierce: true, hit: [] });
   if (sp === 'sismo' && heavy) {
-    for (const m of g.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < 7 + m.r) { g.damageMonster(m, dmg * 0.4 * strong, p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 12); } }
-    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 7 });
+    let n = 0;
+    for (const m of g.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < 7 + m.r) { n++; g.damageMonster(m, dmg * 0.4 * strong, p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 12); } }
+    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 7, hit: n });
   }
   if (sp === 'estocada' && heavy) p.ext = madd(p.ext, flat(p), 30);
   if (sp === 'destello' && heavy) { p.ext = madd(p.ext, flat(p), 46); p.invulUntil = Math.max(p.invulUntil, g.time + 0.3); g.emit({ t: 'blink', p: a3(p.pos) }); }
@@ -194,7 +195,7 @@ export function meleeAfter(g, p, sp, heavy, dir, o, dmg, strong) {
 function slamLand(g, p) {
   let n = 0;
   for (const m of g.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < 6.5 + m.r) { g.damageMonster(m, 95 * (1 - 0.4 * d / (6.5 + m.r)), p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 14); n++; } }
-  g.emit({ t: 'melee', pid: p.id, kind: 'air', p: a3(p.pos), d: a3(mul(p.up, -1)), hit: n, land: true }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 6.5 });
+  g.emit({ t: 'melee', pid: p.id, kind: 'air', p: a3(p.pos), d: a3(mul(p.up, -1)), hit: n, land: true }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 6.5, hit: n });
 }
 
 /* ───────── habilidades 1 y 2 de los nuevos ids (las llama characters.js) ───────── */

@@ -39,6 +39,7 @@ import { blocked } from '../sim/physics.js';
 import { rotAround, norm, project, v3, cross, dot, sub, len } from '../sim/math.js';
 import { Renderer } from './render.js';
 import { Sound } from './audio.js';
+import { sonarImpacto, hayMeleeConfirmado } from './impacto.js';   // AC-07: sonido de impacto sólo con colisión confirmada por la simulación
 import { createCoopUI } from './coop-ui.js';   // Cooperativo: servidor, lobby e invitación (docs/COOP_ONLINE.md)
 import { poseeHuesped as poseeHuespedSim } from '../sim/tienda.js';
 import { LEVELS, initialClaridad, AutoQuality, isTouchDevice, isIOS, cfg } from './quality.js';
@@ -583,15 +584,16 @@ function audioAndHud(state, me, dt) {
   sound.intensity += (Math.min(1, state.monsters.length / 25) - sound.intensity) * Math.min(1, dt);
   floraDescubre();
   session.floraUsar = !!(renderer.flfx && renderer.flfx.usar);
+  const meleeOk = hayMeleeConfirmado(state.events);   // AC-07: un golpe cuerpo a cuerpo = un impacto
   for (const e of state.events) {
     const mine = me && e.pid === me.id;
     if (combatHud) combatHud.onEvent(e, me, renderer.camera);
     caida.onEvent(e, me);
     switch (e.t) {
       case 'shot': sound.shot(e.w, mine ? null : e.o); break;
-      case 'hit': sound.hit(e.p); break;
+      case 'hit': sonarImpacto(sound, e, meleeOk); break;
       case 'kill': if (evoHud && evoHud.absorb && ESSENCE_OF[e.k]) { const v = new THREE.Vector3(e.p[0], e.p[1], e.p[2]).project(renderer.camera); if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) evoHud.absorb((v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight, e.k); } sound.voice(e.k, 'die', e.p); trophy('first', 'Primer contacto', 'Derrotá a tu primera criatura', sound); if (e.k === 'coloso') trophy('b1', 'Corazón roto', 'Derrotá al Coloso Prismático', sound); if (e.k === 'argos') trophy('b3', 'Cerré el ojo', 'Derrotá a Argos, el Ojo Primordial', sound); if (e.k === 'madre') trophy('b2', 'El último latido', 'Derrotá a la Madre Geoda', sound); if (e.k === 'geoda') trophy('geoda', 'Paciencia', 'Derrotá una Geoda', sound); break;
-      case 'boom': sound.boom(e.p); break;
+      case 'boom': sonarImpacto(sound, e); break;   // con `hit: 0` (habilidad de área sin blancos) no suena a impacto
       case 'ng': { // nieblas de colores (src/sim/nieblas.js): al entrar a una, cartel con su función (el HUD fijo `#ngchip` queda mientras estés adentro)
         const T = NIEBLAS_T(e.k); if (T && e.ph === 'entra' && e.pid === session.pid && !session.intro) banner(`${T.icono} ${T.nombre}: ${T.corto}`, 2200);
         if (T && e.ph === 'aviso' && T.nocivo && !session.intro && session.lastMe && Math.hypot(e.p[0] - session.lastMe.pos[0], e.p[2] - session.lastMe.pos[2]) < 22) sound.ui && sound.ui('tick');
@@ -599,7 +601,7 @@ function audioAndHud(state, me, dt) {
       case 'flora': floraEvento(e, mine, me); break;   // flora interactiva (src/sim/flora.js): curas, mordidas, esporas, cosecha, plantas raras
       case 'fauna': faunaEvento(e, mine, me); break;   // fauna consumible (src/sim/fauna.js): comer, híbridos, remates, mordidas, rara a la vista
       case 'ar': { const AV = ARENAS_VIVAS[e.m], tx = AV && AV.frases[e.ph]; if (tx && !session.intro) later(() => banner(tx, 2600), e.ph === 'ofrenda' ? 2300 : e.ph === 'roto' || e.ph === 'renace' ? 0 : 2700); break; }   // arenas vivas: «El Corazón de Isla despierta»
-      case 'arhit': sound.hit(e.p); break;
+      case 'arhit': sonarImpacto(sound, e); break;
       case 'arofrenda': sound.pickup(); break;
       case 'arfire': if (e.k >= 2 && !e.fin) sound.boom(e.p); break;   // golpe y pulso ya suenan con su 'boom'
       case 'hurt': if (mine) { sound.hurt(); const v = $('vignette'); v.classList.add('hurt'); setTimeout(() => v.classList.remove('hurt'), 120); if (navigator.vibrate) navigator.vibrate(30); pad.rumble(120, 0.6); } break;
@@ -634,7 +636,7 @@ function audioAndHud(state, me, dt) {
       case 'rango': if (mine) { banner(`ESTILO ${e.r}`, 700); sound.ui('trophy'); } break;   // subió el rango de estilo D/C/B/A/S
       case 'arrasar': if (mine && e.n >= 4) sound.boom(e.p); break;
       case 'pozo': case 'reflujo': sound.gravity(e.p); break;   // Singular: se abre un pozo / reflujo de marea
-      case 'pozoend': case 'orbburst': sound.boom(e.p); break;   // Singular: implosión del pozo / estallido de satélites   // un remate de área barrió a 4+ enemigos
+      case 'pozoend': sound.boom(e.p); break; case 'orbburst': sonarImpacto(sound, e); break;   // Singular: implosión del pozo / estallido de satélites   // un remate de área barrió a 4+ enemigos
       case 'hab': if (e.ph === 'cast') { sound.ability(mine ? null : e.p); if (mine && me && HABILIDADES[me.char]) banner(HABILIDADES[me.char].name.toUpperCase(), 700); } break;   // habilidad principal (telegrafía)
       case 'evolve': if (mine && evoHud) { evoHud.celebrate(e.tier); sound.objective(true); flash(); } break; // evolución: destello, onda y texto (hud-evolucion.js)
       case 'down': sound.down(); if (mine) banner('¡ESTÁS CAÍDO! Pedí ayuda con B', 2200); break;

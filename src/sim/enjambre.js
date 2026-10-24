@@ -70,7 +70,7 @@ function sting(g, p, from, m, dmg) {
 }
 function boom(g, p, pos) {
   const s0 = g.dmgSrc; g.dmgSrc = 'skill';
-  try { g.explode(pos, 4, 0, 55 * evoK(p), p, false); for (const m of g.monsters) if (!m.dead && !m.def.boss && dist(m.pos, pos) < 4 + m.r) m.vel = madd(m.vel, norm(sub(m.pos, pos)), 8); } finally { g.dmgSrc = s0; }
+  try { g.explode(pos, 4, 0, 55 * evoK(p), p, false, true); for (const m of g.monsters) if (!m.dead && !m.def.boss && dist(m.pos, pos) < 4 + m.r) m.vel = madd(m.vel, norm(sub(m.pos, pos)), 8); } finally { g.dmgSrc = s0; }
 }
 
 /** El enjambre ataca junto con un golpe de combo: cada zángano (hasta ENJ.ordenMax) pica a la criatura más cercana a `aim`. Devuelve cuántas picaduras. */
@@ -164,5 +164,5 @@ void clone;
 export function nubeArea(g, p, dmg, big = 1) {
   const c = madd(p.pos, norm(sub(p.heading, mul(p.up, dot(p.heading, p.up))), p.heading), 2.2), s0 = g.dmgSrc; g.dmgSrc = 'skill'; let n = 0;
   try { for (const m of g.monsters) { if (m.dead || n >= 10 || dist(m.pos, c) > 4.2 * big + m.r) continue; n++; g.damageMonster(m, dmg * 0.4, p, m.pos); if (!m.dead) { m.slowUntil = Math.max(m.slowUntil || 0, g.time + 1.5); if (has(p, 'aguijon')) poison(g, p, m); } } } finally { g.dmgSrc = s0; }
-  g.emit({ t: 'boom', p: a3(c), r: 4.2 * big }); return n;
+  g.emit({ t: 'boom', p: a3(c), r: 4.2 * big, hit: n }); return n;
 }

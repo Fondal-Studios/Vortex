@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { startServer } from '../server/server.js';
 
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 
 test('cooperativo en navegador: invitar por enlace ?sala=, lobby, 200 ms de latencia, recarga y errores en español', { skip: !hasChromium, timeout: 900000 }, async () => {
   const { launch } = await import('../tools/browser.js');

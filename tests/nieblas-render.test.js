@@ -9,7 +9,8 @@ import { MAP_IDS } from '../src/sim/maps.js';
 // lo que agregan = escena con ellas menos escena sin ellas (mismo cuadro, misma cámara), en el PEOR caso: el máximo de zonas (9) activas a la vez, todas a la vista.
 // Presupuesto propio de las nieblas: ≤ 6 llamadas de dibujo y ≤ 3 000 triángulos (1 de nubes + aro + disco + ecos; el de las arenas vivas es ≤ 16 / ≤ 6 000 aparte).
 // Para ver las imágenes: node tools/shot-nieblas.mjs
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const PRESUPUESTO = { calls: 6, tris: 3000 };
 
 let srv, browser, base;

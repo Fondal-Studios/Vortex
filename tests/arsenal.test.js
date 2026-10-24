@@ -56,15 +56,17 @@ test('flujo de oleada: tras limpiar se ofrecen tarjetas; en solitario la partida
   const f2 = a.cards[0]; run(c, 25); assert.equal(c.wave, 2, 'coop: no espera para siempre'); assert.equal(a.cards.length, 0); assert.ok(a.upg[f2.w]);
 });
 
-test('personajes: 10 (5 Huéspedes + 5 veteranos), cada uno con desplazamiento y disparo especial propios, con recarga', () => {
-  assert.equal(CHARACTER_IDS.length, 10);
+test('personajes: 13 (5 Huéspedes + 5 veteranos + Colmena, Singular y Danzante), cada uno con desplazamiento y disparo especial propios, con recarga', () => {
+  // Antes eran 10; se añadieron Colmena, Singular y Danzante (src/sim/data.js). El conteo exacto evita altas accidentales.
+  assert.equal(CHARACTER_IDS.length, 13);
+  for (const id of ['colmena', 'singular', 'danzante']) assert.ok(CHARACTER_IDS.includes(id), id);
   for (const id of CHARACTER_IDS) {
     const C = CHARACTERS[id]; assert.ok(C.mov.id && C.esp.id && C.mov.cd > 0 && C.esp.cd > 0 && C.desc);
     const { g, p } = arena(); g.setLoadout(p.id, id); const m = target(g, p, 'geoda', 9); const pos0 = { ...p.pos }, v0 = p.vel.y;
     g.setInput(p.id, { mov: true, esp: true }); g.step(1 / 60); g.setInput(p.id, { mov: false, esp: false });
     assert.ok(p.movCd > 0 && p.espCd > 0, `${id} recarga`);
     run(g, 0.4); const moved = dist(p.pos, pos0) > 1.5 || p.vel.y > v0 + 5 || p.invulUntil > g.time || g.objects.some((o) => o.type === 'wall'); assert.ok(moved, `${id}: el desplazamiento mueve`);
-    assert.ok(m.hp < 5000 || id === 'forja' || id === 'umbra' || id === 'lumen' || id === 'vesper' || id === 'micelio' || m.mark, `${id} dañó`);
+    assert.ok(m.hp < 5000 || id === 'forja' || id === 'umbra' || id === 'lumen' || id === 'vesper' || id === 'micelio' || id === 'danzante' /* Contrapaso solo devuelve daño si alguien te golpea */ || m.mark, `${id} dañó`);
   }
 });
 test('Fase da 1 s de invulnerabilidad; Paso no atraviesa muros', () => {

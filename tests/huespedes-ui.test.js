@@ -6,7 +6,8 @@ import { startServer } from '../server/server.js';
 
 // Pantalla «Elegí tu Huésped» (src/client/huespedes-ui.js): sin errores, elección persistida, sin cortes ni solapes en 4 tamaños,
 // presupuesto 3D por Huésped (≤ 40 llamadas de dibujo y ≤ 15 000 triángulos en Baja) y el Huésped llega a la partida.
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const HOSTS = ['axioma', 'vesper', 'micelio', 'umbra', 'seraf', 'singular', 'colmena'];
 const SIZES = [['844x390', 844, 390, true], ['667x375', 667, 375, true], ['390x844', 390, 844, true], ['1280x720', 1280, 720, false]];
 const KEY = 'cristal.huesped.v1';

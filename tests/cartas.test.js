@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 
 // Las tarjetas de mejora (y los carteles de tutorial, pausa, final y caído) entran SIN recortes en 844×390, 667×375, 390×844, 1280×720 y 1920×1080.
 test('tarjetas de mejora y carteles: ningún elemento queda fuera de la pantalla en 5 tamaños', { skip: !hasChromium, timeout: 1000000 }, () => {

@@ -10,7 +10,7 @@ const { CAMPAIGN_ORDER, CAMPAIGN_BOSSES } = await import('../../src/sim/campaign
 const { makeBot, taskFor, routeTo } = await import('../../src/sim/bot.js');
 const { botEstilo, CHAR_DE, STYLE_DE } = await import('../jefe-bots.js');
 const { v3, add, sub, mul, dot, cross, len, dist, norm, project } = await import('../../src/sim/math.js');
-const Perfil = await import('../../src/client/perfil.js');
+let Perfil = null; try { Perfil = await import('../../src/client/perfil.js'); } catch (e) { console.error('(perfil.js no carga: se omiten las recompensas) ' + e.message.split('\n')[0]); }   // la medición de duración/victorias no depende del perfil
 
 const [capArg = 'all', estArg = 'all', seedArg = '1,2,3', out = null] = process.argv.slice(2);
 const MAX_S = +process.env.MAX_S || 1500;   // tope de reloj de simulación (25 min) para declarar "no concluye"
@@ -79,16 +79,19 @@ function jugar(cap, estilo, seed) {
   const won = g.state === 'won', timedOut = g.state === 'playing';
   const snap = g.snapshot(), me = snap.players[0];
   // --- recompensas al cerrar, con el código real de perfil.js (mismo flujo que main.js: bankProfile → cerrarPartida; completarCapitulo sólo si gana)
-  store.clear(); Perfil.recargar();
-  const antes = { cores: Perfil.perfil().cores, xp: (Perfil.perfil().mae[(CHAR_DE[estilo] || 'axioma')] || { xp: 0 }).xp };
-  const mae = Perfil.cerrarPartida(CHAR_DE[estilo] || 'axioma', me, { wave: snap.wave, won });
-  if (won) Perfil.completarCapitulo(cap);
-  const pf = Perfil.perfil();
+  let premio = null;
+  if (Perfil) {
+    store.clear(); Perfil.recargar();
+    const antes = { cores: Perfil.perfil().cores, xp: (Perfil.perfil().mae[(CHAR_DE[estilo] || 'axioma')] || { xp: 0 }).xp };
+    const mae = Perfil.cerrarPartida(CHAR_DE[estilo] || 'axioma', me, { wave: snap.wave, won });
+    if (won) Perfil.completarCapitulo(cap);
+    const pf = Perfil.perfil();
+    premio = { xpGanada: mae ? mae.ganada : null, coresPerfil: pf.cores - antes.cores, xpPerfil: (pf.mae[(CHAR_DE[estilo] || 'axioma')] || { xp: 0 }).xp - antes.xp, campaignCompleted: pf.campaign.completed.slice(), skillLevelPerfil: pf.skillLevel || 0, terrLiberado: Object.keys(pf.terr) };
+  }
   return {
     cap, estilo, seed, state: g.state, timedOut, simSeconds: +g.time.toFixed(1), simMin: +(g.time / 60).toFixed(2), wave: g.wave, waveTotal: g.waveTotal,
     boss: !!CAMPAIGN_BOSSES[cap], failure: g.operationFailure || null, objetivos: objRes, tl, kills: g.stats.kills, simCores: p.cores, minHp: Math.round(minHp), maxStall: +maxStall.toFixed(1),
-    cpuMs: Math.round(performance.now() - t0),
-    premio: { xpGanada: mae ? mae.ganada : null, coresPerfil: pf.cores - antes.cores, xpPerfil: (pf.mae[(CHAR_DE[estilo] || 'axioma')] || { xp: 0 }).xp - antes.xp, campaignCompleted: pf.campaign.completed.slice(), skillLevelPerfil: pf.skillLevel || 0, terrLiberado: Object.keys(pf.terr) },
+    cpuMs: Math.round(performance.now() - t0), premio,
   };
 }
 const sink = out ? fs.createWriteStream(out, { flags: 'a' }) : null;

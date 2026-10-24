@@ -1,7 +1,8 @@
 // Equipo del jugador: personaje + 4 armas elegidas (el Haz va siempre en la ranura 1). Se guarda en el navegador.
 import { CHARACTER_IDS, WEAPONS } from '../sim/data.js';
 import { poseeHuesped } from '../sim/tienda.js';
-import { perfil } from './perfil.js';
+import { perfil, elegirInicial } from './perfil.js';
+import { esElegibleInicial } from '../sim/desbloqueos.js';
 const KEY = 'cristal.equipo.v1';
 export const Equipo = { char: 'axioma', slots: [0, 1, 2, 3, 4] };
 export const HUESPED_KEY = 'cristal.huesped.v1'; // el Huésped elegido en la pantalla de selección (src/client/huespedes-ui.js)
@@ -15,9 +16,16 @@ export function assignWeapon(slot, id) {
   if (j > 0) Equipo.slots[j] = old;
   Equipo.slots[slot] = id; saveEquipo(); return true;
 }
-/** Si el Huésped elegido no es tuyo (todavía no lo compraste en la Tienda), vuelve a Axioma. Devuelve true si tuvo que cambiarlo. */
-export function asegurarHuesped() {
-  let ok = true; try { ok = poseeHuesped(perfil(), Equipo.char); } catch { /* sin perfil: no se toca */ }
-  if (ok) return false; Equipo.char = 'axioma'; saveEquipo(); return true;
+/** Si el Huésped elegido no es tuyo (todavía no lo desbloqueaste), vuelve al Huésped inicial. Devuelve true si tuvo que cambiarlo.
+ *  Sprint 1: un jugador NUEVO (sin Huésped inicial) no se toca acá: lo decide la pantalla «Elegí tu primer Huésped».
+ *  `forzar` = entradas automáticas (?auto=, pruebas, enlaces directos a una partida): se le asigna el Huésped actual si es inicial (o Axioma) para no frenar el arranque. */
+export function asegurarHuesped(forzar = false) {
+  const p = perfil();
+  if (!p.inicial) {
+    if (!forzar) return false;
+    elegirInicial(esElegibleInicial(Equipo.char) ? Equipo.char : 'axioma');
+  }
+  if (poseeHuesped(perfil(), Equipo.char)) return false;
+  Equipo.char = perfil().inicial; saveEquipo(); return true;
 }
 asegurarHuesped();

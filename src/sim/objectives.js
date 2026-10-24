@@ -6,7 +6,8 @@ import { desintegrar } from './rezagados.js';
 import { ammoMax } from './loadout.js';
 
 export function makeObjective(g, n, step = null) {
-  let kind = step?.kind || (OBJECTIVE_PLAN[g.mapId] || {})[n];
+  let kind = g.cfg ? (step && step.kind) : (step?.kind || (OBJECTIVE_PLAN[g.mapId] || {})[n]);   // misión declarativa: sólo el objetivo de su etapa (null = etapa sin objetivo)
+  if (kind && !OBJECTIVE_INFO[kind]) kind = null;   // un objetivo desconocido jamás puede dejar la etapa sin final
   if (kind && g.map.objectiveFor) kind = g.map.objectiveFor(kind, g); // p. ej. mapa 4: sin puente no hay Núcleo, hay Cultivo
   if (!kind) return null;
   const info = step ? { ...OBJECTIVE_INFO[kind], title: step.title, desc: step.desc } : OBJECTIVE_INFO[kind], sp = g.map.spots, np = g.players.length;
@@ -17,6 +18,7 @@ export function makeObjective(g, n, step = null) {
     const offset = Math.abs((g.seed | 0) + n) % positions.length;
     for (let i = 0; i < positions.length; i++) o.ids.push(g.addObject('plate', clone(positions[(i + offset) % positions.length]), { r: 2.8, hold: 0, on: false, objective: true }).id);
   }
+  if (kind === 'resistir') { o.dur = Math.max(10, step?.dur || 60); o.limit = o.dur + 15; }   // cuenta regresiva: se supera al sobrevivir `dur` s
   if (kind === 'caza') o.target = null; // el primer spawn normal ocupa el presupuesto existente
   if (kind === 'ancla') o.ids.push(g.addObject('ancla', clone(sp.anchor), { hp: 700, maxhp: 700, r: 7, on: false, objective: true }).id);
   if (kind === 'sintonia') {
@@ -80,6 +82,7 @@ export function updateObjective(g, dt) {
     o.prog = clamp(1 - dist(core.pos, altar.pos) / (o.d0 || 1), 0, 1);
   }
   else if (o.type === 'cultivo') { if (cultivoObjective(g, o, dt)) return finish(g, o, true); }
+  else if (o.type === 'resistir') { o.prog = clamp(o.t / o.dur, 0, 1); if (o.t >= o.dur) return finish(g, o, true); }
   if (o.t > o.limit) finish(g, o, false);
 }
 
@@ -100,10 +103,12 @@ function finish(g, o, ok) {
       g.dropPickup('hp', madd(p.pos, p.up, 2));
     }
     g.teamBuffUntil = g.time + 30; // +25 % de daño del equipo
+    if (g.hitos) g.hitos.obj++; for (const p of g.alivePlayers()) if (p.st) p.st.obj++;   // aporte al objetivo (recompensas por contribución)
     for (const q of g.players) q.cores = (q.cores || 0) + 30;
     const frag = g.fragments++;
     g.emit({ t: 'objective', ph: 'done', kind: o.type, frag: Math.min(frag, FRAGMENTS.length - 1) });
   } else {
+    if (g.hitos) g.hitos.objFalla++;
     g.emit({ t: 'objective', ph: 'failed', kind: o.type });
     if (g.operation) {
       g.operationFailure = o.type === 'ancla' && o.t <= o.limit ? 'La zona segura fue destruida.' : o.t > o.limit ? 'Se agotó el tiempo del objetivo.' : 'Se perdió el objetivo de la misión.';

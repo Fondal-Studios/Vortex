@@ -96,6 +96,12 @@ export function planOleada(g, n, isBoss) {
   const id = elegir(g, pool); if (!id) return;
   g.evPlan = { id, at: g.time + demora, wave: n };
 }
+/** Etapa de EVENTO de una misión: si el dado no lo dispuso, se programa uno del mapa igualmente (misma telegrafía y mismos límites). */
+export function forzarEvento(g, n) {
+  if (g.evPlan) return;
+  const id = elegir(g, EVENTOS_MAPA[g.mapId] || {}); if (!id) return;
+  g.evPlan = { id, at: g.time + 8, wave: n };
+}
 /** Se llama al limpiar la oleada: cualquier evento en curso termina (con premio si ya estaba activo). */
 export function finOleada(g) {
   g.evPlan = null;

@@ -9,10 +9,6 @@ export const WAKE = [
   ['H', 'La humanidad desapareció. Las voces de esta red son archivos y ecos; solo vos conservás una conciencia humana. La IA custodio quiere sobrescribirte.', 4],
   ['H', 'Reconectá el refugio, protegé el ancla y recuperá tu memoria. El Coloso guarda la clave que abre los demás archivos.', 4.5],
 ];
-export const WAKE_SHORT = [
-  ['H', 'Sos la última conciencia humana, atrapada en VORTEX en un futuro remoto. Soy HERALDO, tu IA de enlace.', 3.5],
-  ['H', 'Primero estabilizá tu identidad. Seguí cada objetivo marcado y después desactivá al Coloso.', 4],
-];
 export const INTERLUDE = [
   ['H', 'El Coloso cayó. Recuperamos la clave de tu identidad. Falta abrir el canal de salida.', 3.8],
   ['H', 'La Madre Geoda controla la Cámara Fractal. Vencela para liberar tu conciencia de la red.', 3.8],

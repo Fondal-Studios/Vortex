@@ -3,7 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { startServer } from '../server/server.js';
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 
 test('táctil: EVOLUC. abre la elección, elegir el 2.º camino lo aplica; habilidades visibles y usables', { skip: !hasChromium, timeout: 150000 }, async () => {
   const { launch } = await import('../tools/browser.js'); const { devices } = await import('playwright-core');
