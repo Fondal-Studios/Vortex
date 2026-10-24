@@ -25,6 +25,11 @@ export function textoObjetivo(o, me, solo = false) {
  */
 export function metaActual(state, me) {
   if (!state || state.state === 'won' || state.state === 'lost') return null;
+  if (state.operation) {
+    const op = state.operation, o = state.obj;
+    if (state.phase === 'intermission') return { kind: me?.cards?.length ? 'mejora' : 'espera', main: me?.cards?.length ? 'Elegí una mejora para la próxima etapa' : `${op.title} · preparación ${Math.ceil(state.intermission)} s`, next: `Siguiente: ${op.next}` };
+    return { kind: 'objetivo', main: `Etapa ${state.wave}/${state.waveTotal} · ${op.step}`, next: o?.state === 'active' ? `${textoObjetivo(o, me, state.players?.length === 1)} · ${Math.ceil(o.left)} s${o.integrity == null ? '' : ` · Integridad ${o.integrity}% · despejá la zona`}` : 'Objetivo cumplido · preparando siguiente etapa' };
+  }
   const w = state.wave || 0, W = state.waveTotal || 1, esJefe = w >= W && state.phase === 'wave';
   const tag = `Oleada ${Math.max(1, w)}/${W}`;
   if (state.phase === 'intermission') {

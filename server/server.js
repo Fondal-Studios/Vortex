@@ -147,7 +147,7 @@ export async function startServer(opts = {}) {
     return true;
   }
   function empezar(room) {
-    room.game = new Game({ mapId: room.mapId, seed: crypto.randomInt(1e9), calm: room.lobby ? 10 : 16, magazines: true });
+    room.game = new Game({ mapId: room.mapId, operation: true, seed: crypto.randomInt(1e9), calm: room.lobby ? 10 : 16, magazines: true });
     room.finEnviado = false; room.em = crearEmisor(); room.acc = 0; room.last = Date.now(); stats.partidas++;
     const keep = [];
     for (const m of room.members) { if (addAlJuego(room, m)) keep.push(m); else if (m.ws) error(m.ws, 'sala_llena'); }

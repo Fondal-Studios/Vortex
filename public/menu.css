@@ -161,3 +161,11 @@
   .saldo { padding: 0 10px; gap: 6px; } .saldo b { font-size: 16px; }
 }
 .tb-tabs.mas { -webkit-mask-image: linear-gradient(90deg, #000 86%, transparent); mask-image: linear-gradient(90deg, #000 86%, transparent); }
+
+/* Misiones y atlas: el mismo lenguaje visual, texto legible y tarjetas adaptables. */
+#arenas, #arena-codex { overflow-y:auto; flex-direction:column; gap:18px; }
+.operation-lead { font-size:clamp(18px,3vw,28px); margin:8px 0; color:#d9fff6; }
+#arenas .cards, #arena-codex .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:18px; padding-bottom:28px; }
+#arenas .operation-card, #arena-codex .operation-card { height:auto; min-height:340px; text-align:left; }
+.operation-card ol { padding-left:20px; font-size:14px; line-height:1.6; color:#b9fbe6; }
+.operation-card small { white-space:normal; line-height:1.5; }

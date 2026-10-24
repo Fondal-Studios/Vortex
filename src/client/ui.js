@@ -1,3 +1,4 @@
+import { buildOperations } from './operations-ui.js';
 import { buildAccountMenu } from './account-menu.js';
 import { buildIdentityMenu } from './identity-menu.js';
 // Interfaz de acceso estilo PlayStation 5: título → menú principal con tarjetas → sub-pantallas. Teclado, ratón, táctil y mando.
@@ -24,7 +25,7 @@ const $ = (id) => document.getElementById(id);
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); buildIdentityMenu(this); buildAccountMenu(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); buildIdentityMenu(this); buildAccountMenu(this); buildOperations(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
   }
   /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
   addBackButtons() {
@@ -37,7 +38,7 @@ export class MenuUI {
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { mercado: '#mercado .market-nav:not(:disabled)', title: '#pressstart', story: '#story .card', arenas: '#arenas .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
+    const q = { mercado: '#mercado .market-nav:not(:disabled)', title: '#pressstart', story: '#story .card', arenas: '#arenas .card', 'arena-codex': '#arena-codex .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
     if (name === 'tienda' && this.tn && this.tn.dialogoAbierto()) return [...this.root.querySelectorAll('#tnyes, #tnno')];   // con el cartel de confirmación abierto, sólo se navega entre Sí y No
     const l = [...this.root.querySelectorAll(q)];
     return name === 'options' ? l.filter((e) => e.getClientRects().length > 0) : l;   // (los ajustes táctiles plegados no cuentan)
@@ -100,7 +101,7 @@ export class MenuUI {
     const l = this.list(); if (!l.length) return; this.idx = (i + l.length) % l.length;
     l.forEach((e, k) => e.classList.toggle('focus', k === this.idx));
     const el = l[this.idx];
-    if ((this.screen === 'arenas' || this.screen === 'mercado' || this.screen === 'graficos' || this.screen === 'tienda' || this.screen === 'main') && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
+    if ((this.screen === 'arenas' || this.screen === 'arena-codex' || this.screen === 'mercado' || this.screen === 'graficos' || this.screen === 'tienda' || this.screen === 'main') && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
     if (this.screen === 'bestiary') this.selectBeast(this.idx);
     if (!silent) this.sound.ui('tick');
   }

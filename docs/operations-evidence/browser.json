@@ -1,0 +1,58 @@
+[
+  {
+    "name": "desktop",
+    "screen": "arenas",
+    "cards": 7,
+    "overflowX": 0,
+    "buttons": [
+      "Historia",
+      "Misiones",
+      "Cooperativo"
+    ]
+  },
+  {
+    "name": "desktop",
+    "screen": "arena-codex",
+    "cards": 6,
+    "overflowX": 0,
+    "buttons": [
+      "Criaturas",
+      "Fauna",
+      "Herbario",
+      "Arenas",
+      "Territorios"
+    ]
+  },
+  {
+    "name": "desktop",
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "screen": "arenas",
+    "cards": 7,
+    "overflowX": 0,
+    "buttons": [
+      "Historia",
+      "Misiones",
+      "Cooperativo"
+    ]
+  },
+  {
+    "name": "mobile",
+    "screen": "arena-codex",
+    "cards": 6,
+    "overflowX": 0,
+    "buttons": [
+      "Criaturas",
+      "Fauna",
+      "Herbario",
+      "Arenas",
+      "Territorios"
+    ]
+  },
+  {
+    "name": "mobile",
+    "errors": []
+  }
+]

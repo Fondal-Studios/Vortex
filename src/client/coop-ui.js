@@ -1,3 +1,4 @@
+import { OPERATIONS } from '../sim/operations.js';
 // Pantalla de Cooperativo: estado del servidor, crear / unirse, sala de espera (lobby) y enlace para invitar.
 // Lo que pasa DENTRO de la partida sigue en main.js; acá sólo se prepara la sala y se entrega la red cuando todos empiezan.
 import { NetClient } from './net.js';
@@ -173,3 +174,6 @@ export function createCoopUI(ctx) {
   }
   return { mostrar, autoUnirse, salirLocal, setNetStat, get net() { return net; }, get enSala() { return enSala; }, PROTOCOLO };
 }
+
+// Los valores de red siguen siendo mapId; los rótulos representan operaciones.
+for (const o of document.querySelectorAll('#coopscr option')) if (OPERATIONS[o.value]) o.textContent = OPERATIONS[o.value].title;

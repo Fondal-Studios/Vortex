@@ -16,7 +16,7 @@ import { HUESPEDES_TIENDA, estadoHuesped, poseeHuesped, claveOferta, diaDe } fro
 export const PUERTAS = [
   { id: 'base', go: 'base', titulo: 'La Base', icono: 'base', desc: 'Caminá, forjá, cultivá y elegí partida', color: '#ffb35a' },
   { id: 'huespedes', go: 'huesped', titulo: 'Huéspedes', icono: 'huesped', desc: 'Elegir, evolucionar, equipar y comprar', color: '#66ffee' },
-  { id: 'coleccion', go: 'bestiary', titulo: 'Colección', icono: 'coleccion', desc: 'Criaturas, fauna, herbario y territorios', color: '#b98cff' },
+  { id: 'coleccion', go: 'bestiary', titulo: 'Códice', icono: 'coleccion', desc: 'Arenas, criaturas, fauna y territorios', color: '#b98cff' },
   { id: 'coop', go: 'coop', titulo: 'Cooperativo', icono: 'coop', desc: 'Hasta 4 jugadores con un código', color: '#7fb2ff' },
   { id: 'ajustes', go: 'options', titulo: 'Ajustes', icono: 'ajustes', desc: 'Controles, sonido y gráficos', color: '#9fb0d8' },
 ];
@@ -24,14 +24,14 @@ export const PUERTAS = [
 /** Secciones con pestañas. Cada pestaña: { go: pantalla, t: rótulo, aviso?: clave del puntito, btab?: pestaña interna del Bestiario, ivtab?: pestaña interna del Inventario }. */
 export const SECCIONES = {
   partidas: { titulo: 'Partidas', tabs: [
-    { go: 'story', t: 'Historia' }, { go: 'arenas', t: 'Arenas', aviso: 'mision' }, { go: 'coop', t: 'Cooperativo' },
+    { go: 'story', t: 'Historia' }, { go: 'arenas', t: 'Misiones', aviso: 'mision' }, { go: 'coop', t: 'Cooperativo' },
   ] },
   huespedes: { titulo: 'Huéspedes', tabs: [
     { go: 'huesped', t: 'Huésped', aviso: 'puntos' }, { go: 'evolucion', t: 'Evolución' }, { go: 'inventario', t: 'Inventario', ivtab: 'obj', aviso: 'botin' },
     { go: 'inventario', t: 'Forja', ivtab: 'for' }, { go: 'tienda', t: 'Tienda', aviso: 'huesped' }, { go: 'loadout', t: 'Equipo' },
   ] },
-  coleccion: { titulo: 'Colección', tabs: [
-    { go: 'bestiary', t: 'Criaturas', btab: 'c' }, { go: 'bestiary', t: 'Fauna', btab: 'f' }, { go: 'bestiary', t: 'Herbario', btab: 'h' }, { go: 'territorios', t: 'Territorios', aviso: 'bendicion' },
+  coleccion: { titulo: 'Códice', tabs: [
+    { go: 'bestiary', t: 'Criaturas', btab: 'c' }, { go: 'bestiary', t: 'Fauna', btab: 'f' }, { go: 'bestiary', t: 'Herbario', btab: 'h' }, { go: 'arena-codex', t: 'Arenas' }, { go: 'territorios', t: 'Territorios', aviso: 'bendicion' },
   ] },
   ajustes: { titulo: 'Ajustes', tabs: [
     { go: 'options', t: 'Controles y sonido' }, { go: 'graficos', t: 'Gráficos' },
@@ -45,7 +45,7 @@ SECCION_DE.coop = 'partidas';   // Cooperativo: puerta del inicio, pero vive jun
 /** Nombre de cada pantalla (título de la barra) y de quién cuelga: todo cuelga del Inicio (un solo nivel; las pestañas no apilan). */
 export const PANTALLAS = {
   main: { nombre: 'Inicio', padre: null },
-  story: { nombre: 'Historia', padre: 'main' }, arenas: { nombre: 'Arenas', padre: 'main' }, coop: { nombre: 'Cooperativo', padre: 'main' },
+  story: { nombre: 'Historia', padre: 'main' }, arenas: { nombre: 'Misiones', padre: 'main' }, 'arena-codex': { nombre: 'Arenas', padre: 'main' }, coop: { nombre: 'Cooperativo', padre: 'main' },
   huesped: { nombre: 'Huésped', padre: 'main' }, evolucion: { nombre: 'Evolución', padre: 'main' }, inventario: { nombre: 'Inventario', padre: 'main' }, tienda: { nombre: 'Tienda', padre: 'main' }, loadout: { nombre: 'Equipo', padre: 'main' },
   bestiary: { nombre: 'Colección', padre: 'main' }, territorios: { nombre: 'Territorios', padre: 'main' },
   options: { nombre: 'Controles y sonido', padre: 'main' }, graficos: { nombre: 'Gráficos', padre: 'main' },

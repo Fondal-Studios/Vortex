@@ -60,7 +60,7 @@
       <div class="playrow">
         <!-- «Continuar / Jugar»: qué abre lo decide menu-hubs.js según lo último que jugaste -->
         <button id="continuar" class="continuar" type="button"><i class="glyph x" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></i><span><b>Continuar</b><small></small></span></button>
-        <button id="elegir" class="elegir" type="button" data-go="arenas" title="Historia, Arenas, Campo de pruebas y Cooperativo"><i class="dot" data-aviso-puerta="partidas" hidden></i><span class="el-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></span><span class="el-t">Elegir partida</span></button>
+        <button id="elegir" class="elegir" type="button" data-go="arenas" title="Historia, Misiones, Campo de pruebas y Cooperativo"><i class="dot" data-aviso-puerta="partidas" hidden></i><span class="el-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></span><span class="el-t">Elegir misión</span></button>
       </div>
       <button id="proximo" class="proximo" type="button" hidden><em>Próximo paso</em><span></span><i aria-hidden="true">›</i></button>
       <nav id="mainlist" class="doors" aria-label="Menú principal"></nav>
@@ -78,16 +78,7 @@
   </section>
   <!-- ═════ ARENAS ═════ -->
   <section id="arenas" class="screen" data-screen="arenas">
-    <h3 class="stitle">Arenas</h3>
-    <div class="cards">
-      <button class="card" data-start="m1"><img src="/public/art/arena-m1.jpg" alt=""><div><b>Vacío de Islas</b><small>Gravedad rota · portales · tiempo lento<br>Jefe: Coloso Prismático<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Pie de Isla o Luz Mala)</em></small></div></button>
-      <button class="card" data-start="m2"><img src="/public/art/arena-m2.jpg" alt=""><div><b>Cámara Fractal</b><small>Una esfera hueca · la marea sin peso<br>Jefe: Madre Geoda<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Eco o Espejo)</em></small></div></button>
-      <button class="card" data-start="practica"><img src="/public/art/arena-m1.jpg" alt=""><div><b>Campo de pruebas</b><small>Probá héroes y las 25 armas contra blancos · sin riesgo<br>H cambia de héroe · , . cambian de arma</small></div></button>
-      <button class="card" data-start="m3"><img src="/public/art/arena-m3.jpg" alt=""><div><b>Laberinto Celestial</b><small>Muros de cristal · ojos por todas partes<br>Jefe: Argos, el Ojo Primordial<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Silbido o Canto)</em></small></div></button>
-      <button class="card" data-start="m4"><img src="/public/art/arena-m4.jpg" alt=""><div><b>Jardín de Carne</b><small>Un planeta vivo: caminos que crecen · alimentá capullos para abrir el puente<br>Jefe: Argos, el Ojo Primordial<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Hambre o Raíz)</em></small></div></button>
-      <button class="card" data-start="m5"><img src="/public/art/arena-m5.jpg" alt=""><div><b>Plaza de los Ecos</b><small>Un archivo de memoria de Praga: una plaza clara · la fuente cae hacia arriba (gravedad rota)<br>Jefe: El Mandinga<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Hora Detenida o Farol)</em></small></div></button>
-      <button class="card" data-start="m6"><img src="/public/art/arena-m6.jpg" alt=""><div><b>Osario sin Techo</b><small>Una iglesia de huesos en cruz · seguí las losas claras hasta el altar<br>Jefe: El Basilisco<br><em class="meta">Meta: vencé al jefe y liberá el territorio → bendición (Hueso Firme o Descanso Ajeno)</em></small></div></button>
-    </div>
+    <!-- Mission cards are rendered from src/sim/operations.js. -->
   </section>
   <!-- ═════ HUÉSPED: selección previa a la partida (src/client/huespedes-ui.js) ═════ -->
   <section id="huesped" class="screen" data-screen="huesped"></section>

@@ -1,3 +1,4 @@
+import { OPERATIONS } from '../sim/operations.js';
 import { SUPPORT } from '../shared/skill-path.js';
 import { thirdForMode, essentialInteraction, essentialPower } from './essential-controls.js';
 import { Game } from '../sim/game.js';
@@ -263,7 +264,7 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 function startSolo(mapId, opts = {}) {
   asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
-  const game = new Game({ mapId, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0 });
+  const game = new Game({ mapId, operation: !opts.campaign && !opts.practice && !opts.horde, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0 });
   const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode(), kit: opts.practice ? 0 : Tienda.usarBotiquin() }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
@@ -335,7 +336,8 @@ function showTutorial(force = false) {
   const rows = touchUI
     ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Doble toque izquierdo: saltar. Derecha: girar la cámara. Tocá el nombre del arma para cambiarla.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['APOYO / ULTI', 'se desbloquean jugando', 'Tras la primera oleada: apoyo. Tras la tercera: ulti. Cada uno tendrá su propio botón y explicación.'], ['DEFENSA', 'primer poder · disponible desde el inicio', 'Su imagen representa la movilidad o defensa de tu huésped. El número indica segundos de espera. Cambiá Disparo / Melé arriba.']]
     : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['F / Q / T', 'defensa / apoyo / ulti', 'F: movilidad o defensa desde el inicio. Apoyo tras la primera oleada; ulti tras la tercera. Mismos poderes en Disparo y Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
-  const chapter = Story.chapterBrief(session.map);
+  const op = session.game?.operation || session.lastState?.operation && OPERATIONS[session.map];
+  const chapter = op ? { title: op.title, context: op.story, task: op.steps.map((s,i) => `${i+1}. ${s.title}`).join(' → '), reward: 'Rescatás memoria y liberás este territorio. Cada objetivo es obligatorio.' } : Story.chapterBrief(session.map);
   el.innerHTML = `<h4>${chapter.title}</h4><p>${chapter.context}</p><p><b>${chapter.task}</b></p><p>Al lograrlo: ${chapter.reward}</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   if (force && session.game?.skillLevel != null) { const C = CHARACTERS[myChar()], level = session.game.skillLevel; const info = document.createElement('div'); for (const [n,def,key] of [[0,C.mov,'F / DEFENSA'],[1,C[SUPPORT[myChar()]],'Q / APOYO'],[2,C.ult,'T / ULTI']]) { if (!def) continue; const p = document.createElement('p'); p.textContent = `${def.name} · ${level >= n ? key + ': ' + def.desc : 'Se desbloquea tras la oleada ' + (n === 1 ? 1 : 3)}`; info.appendChild(p); } el.insertBefore(info, $('tutok')); }
   const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();
@@ -345,7 +347,7 @@ function showTutorial(force = false) {
 function finishIntro() {
   if (!session) return; session.intro = null; renderer.setGuide(false); renderer.wakeT = renderer.wakeDur = 0; $('hud').classList.remove('hidden');
   if (session.touch) touch.show(true); else if (!session.headless && !NOLOCK && !params.get('auto') && !locked) lockPointer();
-  banner(Story.MAP_BANNER[session.map] || '', 6000); showTutorial(!!session.campaign);
+  banner(session.game?.operation ? `${session.game.operation.title} · ${session.game.operation.steps[0].title}` : Story.MAP_BANNER[session.map] || '', 6000); showTutorial(!!session.campaign);
 }
 
 function buildWeaponHud() {
@@ -611,8 +613,8 @@ function audioAndHud(state, me, dt) {
       case 'hurt': if (mine) { sound.hurt(); const v = $('vignette'); v.classList.add('hurt'); setTimeout(() => v.classList.remove('hurt'), 120); if (navigator.vibrate) navigator.vibrate(30); pad.rumble(120, 0.6); } break;
       case 'pickup': if (mine) sound.pickup(); break;
       case 'revive': trophy('rev', 'Mano amiga', 'Reanimá a un compañero', sound); sound.pickup(); banner(mine ? '¡Te reanimaron!' : 'Compañero reanimado', 1800); break;
-      case 'wave': if (!session.intro) { sound.wave(); banner(e.boss ? '¡EL CORAZÓN DEL VÓRTICE!' : `OLEADA ${e.n}`, 2500); } break;
-      case 'clear': banner('Oleada superada', 2200); if (e.wave >= 3) trophy('w3', 'Resistente', 'Superá 3 oleadas', sound); break;
+      case 'wave': if (!session.intro) { sound.wave(); banner(state.operation ? `ETAPA ${e.n} · ${state.operation.step}` : e.boss ? '¡EL CORAZÓN DEL VÓRTICE!' : `OLEADA ${e.n}`, 2500); } break;
+      case 'clear': banner(state.operation ? 'Etapa completada' : 'Oleada superada', 2200); if (e.wave >= 3) trophy('w3', 'Resistente', 'Superá 3 oleadas', sound); break;
       case 'gravity': sound.gravity(e.p); trophy('flip', 'Cabeza abajo', 'Sentí la gravedad invertida', sound); if (me && me.flip) banner('¡LA GRAVEDAD SE INVIERTE!', 1500); flash(); break;
       case 'pull': sound.gravity(e.p); break;
       case 'heal': sound.pickup(); break;
@@ -672,7 +674,7 @@ function audioAndHud(state, me, dt) {
   canvas.classList.toggle('tide', !!(state.fx && (state.fx.zero || state.fx.warn)));
   if (state.fx && state.fx.warn && !session.tideWarned && !state.ev) { session.tideWarned = true; banner('LA MAREA SE APROXIMA… sin gravedad', 2500); }
   if (state.fx && !state.fx.warn) session.tideWarned = false;
-  $('wave').textContent = state.phase === 'intermission' ? (state.wave ? 'RESPIRO' : 'PREPARATE') : `OLEADA ${state.wave} / ${state.waveTotal}`;
+  $('wave').textContent = state.phase === 'intermission' ? (state.wave ? 'RESPIRO' : 'PREPARATE') : `${state.operation ? 'ETAPA' : 'OLEADA'} ${state.wave} / ${state.waveTotal}`;
   $('left').textContent = state.phase === 'intermission' ? `siguiente en ${Math.ceil(state.intermission)}s` : `${state.left} criaturas`;
   const pr = $('practice');
   if (session.practice && me) { pr.classList.remove('hidden'); pr.innerHTML = `<b>CAMPO DE PRUEBAS</b> · Héroe: <i>${CHARACTERS[me.char] ? CHARACTERS[me.char].name : '—'}</i> (H) · Arma: <i>${WEAPONS[me.w].name}</i> ( , . ) · munición y vida ilimitadas`; } else pr.classList.add('hidden');
@@ -823,13 +825,14 @@ function endGame(state, me) {
   let terrNuevo = null; if (state.state === 'won' && session.mode === 'solo' && !session.practice) { try { if (Perfil.liberarTerritorio(session.map)) terrNuevo = Territorios.TERRITORIOS[session.map]; } catch (err) { console.warn('Territorios: no se pudo guardar', err.message); } } // ganar el mapa libera el territorio (perfil.js)
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);
   const won = state.state === 'won'; window.__ended = state.state;
-  const stats = `Oleada ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n') + maestriaTxt() + Perfil.botinTexto();
+  const stats = `${state.operation ? state.operation.title + '\nEtapa' : 'Oleada'} ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n') + maestriaTxt() + Perfil.botinTexto();
   const ruta = Story.RUTAS[params.get('ruta')] || Story.RUTAS.corta, nextCap = session.campaign ? ruta[ruta.indexOf(session.campaign) + 1] : null; // ?ruta=larga: m1 → m5 → m6 → m2
   if (session.mode === 'solo' && session.campaign && won && nextCap) { // → interludio y el capítulo siguiente
     renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap }); });
     return;
   }
   if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', Story.VICTORY.trophy, 'Completá la historia', sound); showEnd(true, stats, Story.VICTORY.title); }); return; }
+  if (state.operation) { showEnd(won, stats + (state.operation.failure ? '\n' + state.operation.failure : '') + (terrNuevo ? '\nTerritorio liberado. Elegí su bendición en el Códice.' : ''), won ? 'MISIÓN COMPLETADA' : 'MISIÓN FALLIDA'); return; }
   if (!won) { subs.play(Story.DEFEAT, () => showEnd(false, stats)); return; }
   showEnd(true, stats + (terrNuevo ? `\n\nTERRITORIO LIBERADO: ${terrNuevo.nombre}. Elegí su bendición en el menú › Territorios.` : ''));
 }
@@ -837,7 +840,7 @@ function endGame(state, me) {
 function maestriaTxt() { const m = session && session.mae; if (!m) return ''; const a = m.arbol, pc = a ? a.combo + a.disparo : 0; return `\nMaestría +${m.ganada} XP` + (m.subio ? ` · ¡RANGO ${m.rangoDespues}: ${TITULOS[m.rangoDespues]}!` : '') + (pc ? `\nPuntos de ${a.combo ? 'combo' : 'disparo'} +${pc} (gastalos en Huésped › Progresión)` : ''); }
 function showEnd(won, stats, title) {
   $('endtitle').textContent = title || (won ? 'VÓRTICE ROTO' : 'ATRAPADO EN EL VÓRTICE');
-  $('endstats').textContent = stats + (won && title ? '\n\n' + Story.VICTORY.epilogue : '');
+  $('endstats').textContent = stats + (won && title === Story.VICTORY.title ? '\n\n' + Story.VICTORY.epilogue : '');
   $('end').classList.remove('hidden'); document.body.classList.remove('playing');
   { const tb = $('tobase'); if (tb) tb.classList.toggle('hidden', !settings().baseAlTerminar); }   // «Entrar a la Base» (docs/BASE.md): primera opción si el ajuste está en «sí»
 }
