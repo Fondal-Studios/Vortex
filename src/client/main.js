@@ -50,7 +50,6 @@ import { uTime } from './shaders.js';
 import { MenuUI, showLoading, trophy } from './ui.js';
 import { Pad } from './gamepad.js';
 import * as THREE from 'three';
-import { startPrologue } from './prologo.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -298,20 +297,12 @@ function enter(mapId) {
   if (session.touch && screen.orientation && screen.orientation.lock) { try { screen.orientation.lock('landscape').catch(() => {}); } catch { /* iOS no lo permite */ } }
 }
 
-/* ───────── intro: el tren, el despertar, el Heraldo ───────── */
+/* ───────── intro: despertar de la última conciencia humana ───────── */
 let cine = null;
 function beginIntro(kind) {
   session.intro = kind; $('hud').classList.add('hidden'); if (session.touch) touch.show(false);
-  if (kind === 'full' && !params.get('classic_intro')) { // Prólogo 3D «La Estación» (src/client/prologo.js); ?skipprologo=1 lo salta, ?classic_intro=1 vuelve al cine 2D
-    if (params.get('skipprologo')) { startWake(Story.WAKE); return; }
-    const end = (skipped) => { if (!session) return; session.prologo = null; if (skipped) skipIntro(true); else startWake(Story.WAKE); };
-    session.prologo = startPrologue({ THREE, renderer, host: Equipo.char, touch: !!session.touch, sound, manual: true, nolock: NOLOCK, onDone: () => end(false), onSkip: () => end(true) });
-  } else if (kind === 'full') {
-    $('cine').classList.remove('hidden'); sound.train(11);
-    const total = Story.INTRO_TRAIN.reduce((a, l) => a + l[2], 0);
-    cine = Story.trainCine($('cine'), total, () => { const f = $('flash'); f.classList.add('on'); sound.heartbeat(); later(() => f.classList.remove('on'), 1200); }, CAP);
-    subs.play(Story.INTRO_TRAIN, () => later(() => { if (session && session.intro) startWake(Story.WAKE); }, 900));
-  } else startWake(Story.wakeForMap(session.map));
+  if (kind === 'full') startWake(Story.WAKE);
+  else startWake(Story.wakeForMap(session.map));
 }
 function startWake(lines) {
   if (!session || !session.intro) return;

@@ -1,3 +1,5 @@
+> Canon narrativo vigente: [VORTEX_STORY.md](VORTEX_STORY.md). Las decisiones antiguas sobre accidente y limbo están sustituidas.
+
 # Decisiones técnicas y creativas
 
 Formato: **ID · decisión · por qué · alternativa descartada.**

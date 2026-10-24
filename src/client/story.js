@@ -1,32 +1,16 @@
 import { CAMPAIGN_ORDER, CAMPAIGN_LINKS, CAMPAIGN_BOSSES } from '../sim/campaign.js';
 import { OPERATIONS } from '../sim/operations.js';
 // VORTEX: conciencia humana, huéspedes de genoma sintético e IA simbionte.
-export const NAME = 'Pasajero';
+export const NAME = 'Conciencia';
 export const SPEAKER = { H: 'HERALDO · IA de enlace', N: '' };
-export const INTRO_TRAIN = [
-  ['N', '2189. Andén 3. Mi último recuerdo intacto.', 3],
-  ['N', 'Bajé a las vías para ayudarla. El tren no frenó.', 3],
-  ['N', 'Después del impacto, alguien encendió mi memoria.', 3],
-];
-// La estación es un recuerdo reconstruido: conserva la puesta en escena existente.
-export const PROLOGO = { cine: {
-  titulo: [['N', '2189. Andén 3. Último recuerdo intacto.', 2.8]],
-  auriculares: [['N', 'Antes de subir mi conciencia, yo tenía una vida.', 4]],
-  anuncio: [['N', 'El tren no se detenía. Todavía recuerdo el anuncio.', 3.8]],
-  pies: [['N', 'La vibración del andén. Eso no pudo inventarlo una máquina.', 3]],
-  grito: [['N', 'Alguien gritó.', 1.6]],
-  nopense: [['N', 'Bajé a ayudarla.', 1.6]],
-  ella: [['N', 'Intenté levantarla. No se movía.', 3]],
-  frenaba: [['N', 'El tren no frenaba.', 2.4]],
-} };
 export const WAKE = [
-  ['H', 'Soy HERALDO, tu IA de enlace. Tras el accidente, tu conciencia fue digitalizada en VORTEX.', 4],
+  ['H', 'Soy HERALDO, tu IA de enlace. Despertaste en un futuro remoto. Sos la última conciencia humana y estás atrapada en VORTEX.', 4],
   ['H', 'Tu Huésped combina genoma humano e IA. Es el cuerpo con el que podés actuar dentro de esta red.', 4],
-  ['H', 'La IA custodio está borrando identidades para conservar el sistema. La tuya será la próxima.', 4],
+  ['H', 'La humanidad desapareció. Las voces de esta red son archivos y ecos; solo vos conservás una conciencia humana. La IA custodio quiere sobrescribirte.', 4],
   ['H', 'Reconectá el refugio, protegé el ancla y recuperá tu memoria. El Coloso guarda la clave que abre los demás archivos.', 4.5],
 ];
 export const WAKE_SHORT = [
-  ['H', 'Tu conciencia está atrapada en VORTEX. Soy HERALDO, tu IA de enlace.', 3.5],
+  ['H', 'Sos la última conciencia humana, atrapada en VORTEX en un futuro remoto. Soy HERALDO, tu IA de enlace.', 3.5],
   ['H', 'Primero estabilizá tu identidad. Seguí cada objetivo marcado y después desactivá al Coloso.', 4],
 ];
 export const INTERLUDE = [
@@ -36,8 +20,8 @@ export const INTERLUDE = [
 ];
 export const ENDING = [
   ['H', 'Canal abierto. Tu identidad ya no pertenece a la IA custodio. Iniciando transferencia.', 3.8],
-  ['N', 'El andén desaparece. No volví al pasado: era mi último recuerdo, repetido por la red.', 4],
-  ['H', 'Conciencia a salvo. Afuera te espera un cuerpo. Adentro todavía quedan otros como vos.', 4],
+  ['N', 'La red queda atrás. Soy la última conciencia humana. Este futuro también puede ser mío.', 4],
+  ['H', 'Conciencia a salvo. Tu nuevo cuerpo sintético está listo. Los archivos humanos que preservaste viajan con vos.', 4],
 ];
 export const RUTAS = { principal: CAMPAIGN_ORDER, corta: CAMPAIGN_ORDER, larga: CAMPAIGN_ORDER };
 export const INTERLUDES = Object.fromEntries(CAMPAIGN_ORDER.slice(1).map((id, i) => [id, [
@@ -76,30 +60,6 @@ export class Subtitles {
   }
 }
 
-/** Cine 2D del tren: rieles en perspectiva y un faro que crece hasta el impacto. En modo captura se avanza a mano con tick(dt). */
-export function trainCine(canvas, durSec, onImpact, manual = false) {
-  const g = canvas.getContext('2d'); let t = 0, raf = 0, last = performance.now(), hit = false, stopped = false;
-  const W = () => (canvas.width = canvas.clientWidth * Math.min(devicePixelRatio || 1, 1.5)), H = () => (canvas.height = canvas.clientHeight * Math.min(devicePixelRatio || 1, 1.5));
-  W(); H();
-  function step(dt) {
-    t += dt;
-    const w = canvas.width, h = canvas.height, k = Math.min(1, t / durSec), ease = k * k * k;
-    g.fillStyle = '#05040a'; g.fillRect(0, 0, w, h);
-    const hx = w / 2 + Math.sin(t * 40) * ease * 6, hy = h * 0.46;
-    g.strokeStyle = 'rgba(180,170,220,.35)'; g.lineWidth = 2;
-    for (const s of [-1, 1]) { g.beginPath(); g.moveTo(hx + s * 14, hy); g.lineTo(hx + s * w * 0.42, h); g.stroke(); }
-    for (let i = 0; i < 14; i++) { const z = ((i / 14) + t * 0.9) % 1, y = hy + (h - hy) * z * z, wd = 14 + (w * 0.42 - 14) * z * z; g.strokeStyle = `rgba(150,140,190,${0.1 + z * 0.4})`; g.beginPath(); g.moveTo(hx - wd, y); g.lineTo(hx + wd, y); g.stroke(); }
-    const r = 8 + ease * Math.max(w, h) * 0.9, gr = g.createRadialGradient(hx, hy, 0, hx, hy, r);
-    gr.addColorStop(0, 'rgba(255,255,245,1)'); gr.addColorStop(0.25, 'rgba(255,245,220,.8)'); gr.addColorStop(1, 'rgba(255,240,200,0)');
-    g.fillStyle = gr; g.fillRect(0, 0, w, h);
-    if (k >= 1 && !hit) { hit = true; g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); if (onImpact) onImpact(); }
-    if (k < 1) { const v = g.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.9); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = v; g.fillRect(0, 0, w, h); }
-  }
-  function frame(now) { if (stopped) return; raf = requestAnimationFrame(frame); const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; step(dt); }
-  if (!manual) raf = requestAnimationFrame(frame); else step(0);
-  return { progress: () => Math.min(1, t / durSec), tick: step, stop() { stopped = true; cancelAnimationFrame(raf); } };
-}
-
 // Briefings are available after skipping and again through Pause > Mission and controls.
 export const CHAPTERS = Object.fromEntries(CAMPAIGN_ORDER.map((id, i) => {
  const op = OPERATIONS[id], boss = CAMPAIGN_BOSSES[id];
@@ -107,7 +67,7 @@ export const CHAPTERS = Object.fromEntries(CAMPAIGN_ORDER.map((id, i) => {
   task: op.steps.map(s => s.title).join(' → ') + (boss ? ` → Derrotá a ${boss}.` : '.'), reward: op.reward }];
 }));
 export function chapterBrief(map) {
-  return CHAPTERS[map] || { title: 'LIBERÁ EL ARCHIVO', context: 'Estás dentro de VORTEX: una red que conserva conciencias humanas.', task: MAP_BANNER[map] || 'Seguí el objetivo marcado.', reward: 'Liberás un territorio de la IA custodio.' };
+  return CHAPTERS[map] || { title: 'LIBERÁ EL ARCHIVO', context: 'Estás dentro de VORTEX: una red del futuro que retiene la última conciencia humana.', task: MAP_BANNER[map] || 'Seguí el objetivo marcado.', reward: 'Liberás un territorio de la IA custodio.' };
 }
 export function wakeForMap(map) {
   const c = chapterBrief(map);

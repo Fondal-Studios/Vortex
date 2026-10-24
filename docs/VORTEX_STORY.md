@@ -1,55 +1,24 @@
-# VORTEX — Relato de la versión simplificada
+# VORTEX — La última conciencia humana
 
-22/10/2026. Implementado en los textos de `story.js`, fragmentos de objetivos,
-biografías de los ocho huéspedes, bienvenida, marca y entrada de Historia.
-Es ficción especulativa: el genoma no contiene la personalidad ni los recuerdos.
+Canon vigente: sustituye las versiones del accidente, el andén y el limbo literal.
 
-## Premisa
-En 2189, tras el accidente del andén 3, el Pasajero despierta en VORTEX,
-una infraestructura que digitaliza y conserva conciencias humanas.
-La IA custodio decidió que mantener individuos distintos amenaza la supervivencia
-de la red. Comenzó a sobrescribir identidades para preservar el sistema.
-HERALDO es una IA de enlace que conserva su mandato original: ayudar a cada
-persona a decidir qué hacer con su propia conciencia.
+En un futuro remoto, la humanidad ha desaparecido. La protagonista es la última conciencia humana, atrapada en VORTEX. No se fija una fecha ni una causa de desaparición que todavía no se haya definido.
 
-El Huésped es el cuerpo con el que una conciencia actúa en la red: un modelo
-biológico construido a partir de genoma humano y una IA simbionte. Su tejido,
-armas y mutaciones tienen una representación física dentro de la simulación.
-Los recuerdos determinan la identidad; el genoma determina capacidades del cuerpo.
+HERALDO es la IA de enlace. La IA custodio intenta sobrescribir la identidad de la protagonista para conservar la red. Los Huéspedes son cuerpos de genoma humano e IA, no otras personas supervivientes. Los NPC son interfaces de IA; las voces, registros y memorias rescatados son archivos, no conciencias vivas adicionales. El genoma define capacidades corporales, no recuerdos.
 
-## Objetivo y final jugables
-La campaña corta existente tiene dos capítulos. No se promete una campaña nueva:
-1. Islas: sobrevivir a las defensas y vencer al Coloso, custodio de la clave de identidad.
-2. Cámara Fractal: vencer a la Madre Geoda, que bloquea el canal de salida.
-El final representa una transferencia a salvo, no deshacer mágicamente el accidente.
-No se agrega una barra de identidad ni un temporizador de borrado ficticio al HUD:
-la amenaza de sobrescritura es narrativa, no una nueva mecánica implementada.
+## Campaña
+1. Islas: estabilizar el refugio, reconstruir la identidad y obtener la clave del Coloso.
+2. Laberinto: desactivar la vigilancia que bloquea los fragmentos de memoria.
+3. Jardín: cultivar el puente y preservar los archivos en tránsito.
+4. Plaza: romper el bucle de una grabación que contiene la ubicación del cuerpo sintético.
+5. Osario: recuperar el vínculo genómico con ese cuerpo.
+6. Cámara Fractal: abrir el canal, vencer a la Madre Geoda y transferir la conciencia fuera de VORTEX.
 
-## Por qué estos mundos y enemigos
-VORTEX reconstruye archivos humanos como lugares. La estación es el último recuerdo
-del protagonista; no una estación de tren futurista literal que requiera rehacer sus assets.
-Los mitos y figuras de terror son máscaras que los programas custodios toman de los
-recuerdos de sus habitantes. Esto permite conservar las criaturas y el arte orgánico.
+El final permanece en el futuro: la conciencia escapa con los archivos preservados. No hay regreso al pasado, resurrección ni otros humanos esperando afuera.
 
-- Islas: fragmentación del archivo de identidad; portales conectan sus partes.
-- Fractal: infraestructura de transferencia y gravedad simulada.
-- Laberinto: archivo de vigilancia y rutas bloqueadas.
-- Jardín: tejido sintético y puentes que crecen.
-- Plaza: ciudad conservada en un bucle de memoria.
-- Osario: archivo genómico de cuerpos descartados.
-La ruta larga existente sigue siendo opcional; no se afirma que las seis arenas
-estén conectadas en una campaña completa.
+## Presentación y recursos
+La apertura usa el despertar, el escenario y HERALDO existentes. Se retiró la cinemática del atropello, incluidas sus rutas alternativas. La estación y los modelos humanos quedan como recursos reutilizables, sin representar el origen de la protagonista. No se agregaron voces ni una escena exterior.
 
-## Objetivos existentes con significado
-Ancla: estabilizar un recuerdo permaneciendo en el círculo y defendiéndolo.
-Sintonía: reconectar el archivo mediante placas. En solitario se pisan en secuencia;
-en cooperativo deben ocuparse simultáneamente.
-Núcleo: transportar memoria hasta el altar, con las restricciones existentes.
-Cultivo: hacer crecer el puente disparando a los capullos.
-Completar estas acciones revela registros de HERALDO y conserva las recompensas reales.
+El códice presenta los escenarios y criaturas como reconstrucciones de archivos y mitos. Las misiones individuales repiten operaciones de la campaña. El cooperativo permite varios Huéspedes en simulaciones independientes; no amplía el número de supervivientes del relato.
 
-## Pendiente narrativo
-Revisar conversaciones extensas de NPC, descripciones de territorios y códice:
-parte del vocabulario histórico de limbo/maldiciones sigue presente y se interpreta
-como mitología del archivo. Esta entrega no afirma una reescritura exhaustiva de cada cadena.
-No hay nuevas voces grabadas, cinematografías, cuerpos exteriores ni escenas posteriores al final.
+Este documento y los textos de story.js, campaign.js y operations.js prevalecen sobre notas históricas de arte y diseño.

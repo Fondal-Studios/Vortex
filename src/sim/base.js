@@ -113,7 +113,7 @@ export const ESTACIONES = {
   trofeos: { id: 'trofeos', nombre: 'Sala de Trofeos', icono: '🏆', x: -24, z: -30, r: 8, color: 0xffe27a, pantalla: 'inventario', tab: 'obj',
     acciones: [{ id: 'objetos', texto: 'Objetos y armas', pantalla: 'inventario', tab: 'obj' }, { id: 'sets', texto: 'Sets equipados', pantalla: 'inventario', tab: 'set' }, { id: 'bestiario', texto: 'Bestiario', pantalla: 'bestiary' }],
     frase: 'Tus armas legendarias y tus sets, en vitrinas.' },
-  coop: { id: 'coop', nombre: 'Puerta de Cooperativo', icono: '🚪', x: -32, z: 28, r: 6.5, color: 0xb98cff, pantalla: 'coop', frase: 'Hasta 4 Pasajeros con un código de sala. (Acá todavía no se ve a los demás.)' },
+  coop: { id: 'coop', nombre: 'Puerta de Cooperativo', icono: '🚪', x: -32, z: 28, r: 6.5, color: 0xb98cff, pantalla: 'coop', frase: 'Hasta 4 Huéspedes en una simulación cooperativa con un código de sala. (Acá todavía no se ve a los demás.)' },
 };
 export const ESTACION_IDS = Object.keys(ESTACIONES);
 
@@ -122,7 +122,7 @@ export const PERSONAJES = {
   cambista: { id: 'cambista', kind: 'cambista', nombre: 'El Cambista de Almas', x: -30.6, z: -4, r: 3.5, frases: ['Todo se cambia. Hasta lo que ya no tenés.', 'Mis precios son justos. Los tuyos, no tanto.', 'Un Huésped nuevo vale más que mil núcleos viejos.'] },
   herrero: { id: 'herrero', kind: 'herrero', nombre: 'El Herrero de Huesos', x: -30.5, z: 5.5, r: 3.5, frases: ['Lo que no sirve se funde y se vuelve a forjar.', 'La Forja está al norte: las cubas trabajan solas, yo sólo miro.', 'Hueso, quitina, raíz… todo sirve si tiene paciencia.'] },
   sanadora: { id: 'sanadora', kind: 'sanadora', nombre: 'La Sanadora', x: -19, z: -5, r: 3.5, frases: ['Descansá, vivo. A los muertos nos gusta ver latir algo.', 'Acá nadie te lastima. Aprovechá.', 'El Santuario late. ¿Lo sentís?'] },
-  guia: { id: 'guia', kind: 'guia', nombre: 'La Guía del Santuario', x: 6, z: 27, r: 4, frases: ['Bienvenido al Santuario: la base del limbo. Caminá, mirá y usá las estaciones.', 'Al norte, la Forja. Al este, tus Huéspedes. En el centro, la Mesa para elegir destino.', 'Cuando quieras jugar, andá a la Mesa de Territorios, en el centro.'] },
+  guia: { id: 'guia', kind: 'guia', nombre: 'La Guía del Santuario', x: 6, z: 27, r: 4, frases: ['Bienvenido al Santuario: el refugio de VORTEX. Caminá, mirá y usá las estaciones.', 'Al norte, la Forja. Al este, tus Huéspedes. En el centro, la Mesa para elegir destino.', 'Cuando quieras jugar, andá a la Mesa de Territorios, en el centro.'] },
 };
 export const PERSONAJE_IDS = Object.keys(PERSONAJES);
 

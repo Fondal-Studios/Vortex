@@ -322,7 +322,7 @@ const HOSTS = {
     passive: { id: 'carnivoro', name: 'Voracidad', desc: 'Cada baja con melee restaura 14 de vida y reduce 1,6 s la espera de la definitiva (límite por uso).' } },
   vesper: { team: 'explorador', name: 'Vesper', title: 'La Depredadora', role: 'asesina', host: true, preset: 'jugador4', seed: null, color: 0xb04bff, hp: 0.78, speed: 1.18, slots: [6, 4, 5, 1],
     desc: 'Asesina de movilidad extrema. Agujas neurotóxicas, garras dobles. Daño explosivo, poca resistencia.',
-    story: 'Huésped de infiltración diseñado para recuperar conciencias sin alertar a los custodios. Su IA recuerda rutas que el sistema intentó borrar.',
+    story: 'Huésped de infiltración diseñado para recuperar archivos de memoria sin alertar a los custodios. Su IA recuerda rutas que el sistema intentó borrar.',
     stats: { dano: 9, resistencia: 3, movilidad: 10, control: 3, utilidad: 3, dificultad: 7 },
     melee: { light: { dmg: 38, range: 3.4, arc: 0.6, cd: 0.26 }, heavy: { dmg: 110, range: 4, arc: 0.5, cd: 0.7, knock: 6 } },
     mov: { id: 'paso', name: 'Desplazamiento', cd: 4.5, desc: 'Teletransporte instantáneo de corto alcance hacia donde mirás.' },
@@ -531,7 +531,7 @@ export const OBJECTIVE_INFO = {
 };
 // Fragmentos de recuerdo: los cuenta el Heraldo cada vez que se cumple un objetivo (el sentido de la historia)
 export const FRAGMENTS = [
-  'Registro 1 — VORTEX nació para conservar conciencias humanas. La IA custodio confundió conservar con controlar.',
+  'Registro 1 — VORTEX nació para conservar la humanidad. En este futuro remoto, solo queda una conciencia humana: la tuya. La IA custodio confundió conservar con controlar.',
   'Registro 2 — El genoma define el cuerpo del Huésped; tu memoria define quién lo habita. No son la misma cosa.',
   'Registro 3 — Las criaturas son defensas de la red vestidas con recuerdos y mitos humanos. Reconocer su forma no las vuelve inofensivas.',
   'Registro 4 — El Coloso guarda la clave de identidad. La Madre Geoda controla la salida. Debés vencer a ambos para escapar.',

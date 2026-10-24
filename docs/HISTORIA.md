@@ -1,46 +1,24 @@
-# Historia — «Cristal Vórtice»
+# VORTEX — La última conciencia humana
 
-> **CANON (dueño, 2026-10-14):** Moriste y entraste a un **limbo** lleno de **entidades que añoran la vida**. Pero vos, a pesar de estar
-> ahí, **todavía estás vivo**: por eso todas las criaturas quieren **tu vida**. La única forma de sobrevivir es **eligiendo el Huésped
-> correcto** (un ser del limbo que acepta vivir en vos) y **evolucionando perfectamente** (cada camino de evolución cierra otro).
-> **Los Huéspedes** (dueño): guardianes que habitan entre el mundo de los muertos y el de los vivos. Hacés un **pacto** con uno:
-> ellos necesitan tu cuerpo vivo para volver a cruzar; vos necesitás su poder para salir del limbo. **Simbiosis.** Cada mapa del limbo
-> es un lugar robado del mundo (escenarios de ARCANUM) con **su propio folclore**: allí penan las almas de ese lugar.
-> Todo texto nuevo del juego debe respetar esta premisa. El Vórtice = el limbo.
+Canon vigente: sustituye las versiones del accidente, el andén y el limbo literal.
 
-**Tono:** humor seco con un fondo inquietante. Texto corto, mucho ambiente. La rareza visual (OReilly) cuenta lo que las palabras no dicen.
+En un futuro remoto, la humanidad ha desaparecido. La protagonista es la última conciencia humana, atrapada en VORTEX. No se fija una fecha ni una causa de desaparición que todavía no se haya definido.
 
-## Premisa (isekai)
-Un **Pasajero** cualquiera —auriculares puestos, la cabeza en otra parte— espera en el andén 3 a las 18:42. El anuncio avisa que el tren no se detiene en esa estación. Alguien grita. Después, la luz: **lo atropella un tren**.
+HERALDO es la IA de enlace. La IA custodio intenta sobrescribir la identidad de la protagonista para conservar la red. Los Huéspedes son cuerpos de genoma humano e IA, no otras personas supervivientes. Los NPC son interfaces de IA; las voces, registros y memorias rescatados son archivos, no conciencias vivas adicionales. El genoma define capacidades corporales, no recuerdos.
 
-Despierta tirado en un lugar sin «abajo»: el **Vórtice**, lo que queda entre estar vivo y no estarlo. Tiene armas en las manos (el Vórtice es «un anfitrión previsor») y, flotando sobre su cara, un bicho extraño: **el Heraldo**, una medusa-feto con un ojo enorme que habla con chirridos. Le explica la única regla:
+## Campaña
+1. Islas: estabilizar el refugio, reconstruir la identidad y obtener la clave del Coloso.
+2. Laberinto: desactivar la vigilancia que bloquea los fragmentos de memoria.
+3. Jardín: cultivar el puente y preservar los archivos en tránsito.
+4. Plaza: romper el bucle de una grabación que contiene la ubicación del cuerpo sintético.
+5. Osario: recuperar el vínculo genómico con ese cuerpo.
+6. Cámara Fractal: abrir el canal, vencer a la Madre Geoda y transferir la conciencia fuera de VORTEX.
 
-> *«Sobrevivís a TODO lo que venga y volvés al mundo de los vivos. Si no… te quedás. De adorno.»*
+El final permanece en el futuro: la conciencia escapa con los archivos preservados. No hay regreso al pasado, resurrección ni otros humanos esperando afuera.
 
-Hay dos **corazones** que sostienen el Vórtice. Hay que romperlos. Las criaturas del Vórtice no son máquinas ni formas: son **organismos** —mitad carne, mitad cristal— que se alimentan de reflejo y de miedo.
+## Presentación y recursos
+La apertura usa el despertar, el escenario y HERALDO existentes. Se retiró la cinemática del atropello, incluidas sus rutas alternativas. La estación y los modelos humanos quedan como recursos reutilizables, sin representar el origen de la protagonista. No se agregaron voces ni una escena exterior.
 
-## Reparto
-| | |
-|---|---|
-| **Protagonista** | **El Pasajero** (sin nombre ni voz; en coop «Pasajero 1–4»). Una persona común: campera, mochila, auriculares colgando. |
-| **Guía** | **El Heraldo**: sarcástico, cansado de ver gente nueva, secretamente ansioso de que alguien lo logre. |
-| **Corazón 1** | **El Coloso Prismático**: leviatán-ojo flotante sobre el vacío, 3 fases. |
-| **Corazón 2** | **La Madre Geoda**: flor-útero que se cierra para disparar y se abre para parir. |
-| **Las criaturas** | 12 organismos con rol propio (ver `BESTIARIO.md`). |
+El códice presenta los escenarios y criaturas como reconstrucciones de archivos y mitos. Las misiones individuales repiten operaciones de la campaña. El cooperativo permite varios Huéspedes en simulaciones independientes; no amplía el número de supervivientes del relato.
 
-## Estructura (campaña «Historia»)
-1. **Cine del tren** (≈11 s, saltable): rieles, un faro que crece, bocina, impacto, silencio y latido.
-2. **El despertar**: la cámara se levanta del suelo; llega el Heraldo y explica las reglas (≈30 s, saltable con clic/toque/Enter).
-3. **Acto 1 — Vacío de Islas**: 6 oleadas + el Coloso. La gravedad es una opinión.
-4. **Interludio**: «Uno menos. El Vórtice tiembla… y se acuerda de vos.» El Heraldo avisa de la marea.
-5. **Acto 2 — Cámara Fractal**: 6 oleadas + la Madre Geoda. El suelo está en todas partes; la marea apaga la gravedad.
-6. **Final**: «Mirá arriba, Pasajero. Eso que suena es un tren. Esta vez, de largo.» *Andén 3. 18:42. Los auriculares puestos. Un abajo bajo los pies.* Pantalla: **VOLVISTE AL MUNDO DE LOS VIVOS**.
-7. **Derrota**: *«El Vórtice te guarda un lugar. Siempre hay lugar. Probá de nuevo.»*
-
-Las **arenas** (menú) saltan la historia y van directo a un mapa; el **cooperativo** (hasta 4 Pasajeros) usa una versión corta del despertar.
-
-## Guion completo
-Está en `src/client/story.js` (líneas `[quién, texto, segundos]`): `INTRO_TRAIN`, `WAKE`, `WAKE_SHORT`, `INTERLUDE`, `ENDING`, `DEFEAT`. El Heraldo habla con subtítulos y «chirridos» por letra (voz sintetizada, sin actores de voz).
-
-## Nota
-El protagonista es deliberadamente neutro (sin nombre ni género) para que cualquiera se ponga en ese andén.
+Este documento y los textos de story.js, campaign.js y operations.js prevalecen sobre notas históricas de arte y diseño.

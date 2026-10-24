@@ -1,6 +1,6 @@
 // «LA ESTACIÓN» — andén subterráneo REALISTA del prólogo cinematográfico (materiales PBR con mapas de normales y rugosidad
 // generados en canvas, azulejo de metro, vías con balasto, luminarias, cartelería, tren). Nada psicodélico: la
-// estación es creíble hasta el instante del atropello. Pocas mallas fusionadas / instanciadas (presupuesto de la calidad Baja).
+// estación se conserva como escenario de archivo. Pocas mallas fusionadas / instanciadas (presupuesto de la calidad Baja).
 //
 // Coordenadas: el andén A (el nuestro) va de z=0 a z=7, la vía en z≈-2.6 (hueco de 1,25 m), el andén B de z=-5.2 a z=-12.4.
 // La estación mide x∈[-24, 24]. El tren viene del túnel de x=-24 y va hacia +x.

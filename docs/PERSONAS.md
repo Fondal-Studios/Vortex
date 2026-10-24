@@ -1,6 +1,6 @@
 # Personas humanas 3D (trasplante de la NPC Factory de ARCANUM)
 
-Permite crear personas 3D para **Pasajero/a** (protagonista: alguien común atropellado por un tren que despierta en el Vórtice) y los **4 jugadores del coop** (pasajeros comunes con un acento psicodélico emisivo del color de cada jugador).
+Permite crear personas 3D para **Pasajero/a** (protagonista: avatar de la última conciencia humana atrapada en VORTEX) y los **4 jugadores del coop** (pasajeros comunes con un acento psicodélico emisivo del color de cada jugador).
 
 ## Uso
 ```html
