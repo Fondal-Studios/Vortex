@@ -187,7 +187,7 @@ export class TouchControls {
   /** Casilla de la barra de armas (#weapons) bajo el punto, o -1. `loose`: al deslizar, sólo cuenta la posición horizontal. */
   weaponAt(x, y, loose) {
     const bar = document.getElementById('weapons'); if (!bar || bar.offsetParent === null && getComputedStyle(bar).position !== 'fixed') return -1;
-    const br = bar.getBoundingClientRect(); if (br.width < 4 || (!loose && (x < br.left - 4 || x > br.right + 4 || y < br.top - 12 || y > br.bottom + 12))) return -1;
+    const br = bar.getBoundingClientRect(); if (br.width < 4 || (!loose && (x < br.left || x > br.right || y < br.top || y > br.bottom))) return -1;
     let best = -1, bd = 1e9; [...bar.children].forEach((c, i) => { const r = c.getBoundingClientRect(), d = x < r.left ? r.left - x : x > r.right ? x - r.right : 0; if (d < bd) { bd = d; best = +c.dataset.i >= 0 ? +c.dataset.i : i; } });
     return !loose && bd > 6 ? -1 : best;
   }
