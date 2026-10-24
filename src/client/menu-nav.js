@@ -6,6 +6,8 @@
 //     COLECCIÓN  Criaturas · Fauna · Herbario · Territorios
 //     AJUSTES    Controles y sonido · Gráficos
 //   «La Base» no es una pantalla: es el mapa jugable (main.js › startBase). Las pantallas NO cambian de id; sólo se reubican.
+import { campaignNext } from '../sim/campaign.js';
+import { OPERATIONS } from '../sim/operations.js';
 import { TERRITORIOS, TERRITORIO_IDS } from '../sim/bendiciones.js';
 import { gastado } from '../sim/progresion.js';
 import { HOST_IDS } from '../sim/data.js';
@@ -23,8 +25,9 @@ export const PUERTAS = [
 
 /** Secciones con pestañas. Cada pestaña: { go: pantalla, t: rótulo, aviso?: clave del puntito, btab?: pestaña interna del Bestiario, ivtab?: pestaña interna del Inventario }. */
 export const SECCIONES = {
-  partidas: { titulo: 'Partidas', tabs: [
-    { go: 'story', t: 'Historia' }, { go: 'arenas', t: 'Misiones', aviso: 'mision' }, { go: 'coop', t: 'Cooperativo' },
+  partidas: { titulo: 'Modos de juego', tabs: [
+    { go: 'modes', t: 'Modos de juego' },
+    { go: 'story', t: 'Campaña' }, { go: 'arenas', t: 'Misiones', aviso: 'mision' }, { go: 'coop', t: 'Cooperativo' },
   ] },
   huespedes: { titulo: 'Huéspedes', tabs: [
     { go: 'huesped', t: 'Huésped', aviso: 'puntos' }, { go: 'evolucion', t: 'Evolución' }, { go: 'inventario', t: 'Inventario', ivtab: 'obj', aviso: 'botin' },
@@ -45,7 +48,7 @@ SECCION_DE.coop = 'partidas';   // Cooperativo: puerta del inicio, pero vive jun
 /** Nombre de cada pantalla (título de la barra) y de quién cuelga: todo cuelga del Inicio (un solo nivel; las pestañas no apilan). */
 export const PANTALLAS = {
   main: { nombre: 'Inicio', padre: null },
-  story: { nombre: 'Historia', padre: 'main' }, arenas: { nombre: 'Misiones', padre: 'main' }, 'arena-codex': { nombre: 'Arenas', padre: 'main' }, coop: { nombre: 'Cooperativo', padre: 'main' },
+  modes: { nombre: 'Modos de juego', padre: 'main' }, story: { nombre: 'Campaña', padre: 'main' }, arenas: { nombre: 'Misiones', padre: 'main' }, 'arena-codex': { nombre: 'Arenas', padre: 'main' }, coop: { nombre: 'Cooperativo', padre: 'main' },
   huesped: { nombre: 'Huésped', padre: 'main' }, evolucion: { nombre: 'Evolución', padre: 'main' }, inventario: { nombre: 'Inventario', padre: 'main' }, tienda: { nombre: 'Tienda', padre: 'main' }, loadout: { nombre: 'Equipo', padre: 'main' },
   bestiary: { nombre: 'Colección', padre: 'main' }, territorios: { nombre: 'Territorios', padre: 'main' },
   options: { nombre: 'Controles y sonido', padre: 'main' }, graficos: { nombre: 'Gráficos', padre: 'main' },
@@ -70,11 +73,11 @@ export function tabActiva(pantalla, ctx = {}) {
 /* ───────── «Continuar» ───────── */
 export const MAPAS_NOMBRE = { m1: 'Vacío de Islas', m2: 'Cámara Fractal', m3: 'Laberinto Celestial', m4: 'Jardín de Carne', m5: 'Plaza de los Ecos', m6: 'Osario sin Techo', practica: 'Campo de pruebas' };
 /** Qué hace el botón grande de Continuar según lo último que jugaste: { tipo: 'story'|'arena', id?, titulo, sub }. */
-export function continuarDe(ultimo, huesped = '') {
+export function continuarDe(ultimo, huesped = '', campaign = null) {
   const con = huesped ? ` · con ${huesped}` : '';
-  if (ultimo && ultimo.k === 'arena' && MAPAS_NOMBRE[ultimo.id]) return { tipo: 'arena', id: ultimo.id, titulo: 'Seguir jugando', sub: MAPAS_NOMBRE[ultimo.id] + con };
-  if (ultimo && ultimo.k === 'story') return { tipo: 'story', titulo: 'Continuar', sub: 'Historia' + con };
-  return { tipo: 'story', titulo: 'Jugar', sub: 'Empezar la Historia' + con };
+  if (ultimo && ultimo.k === 'arena' && MAPAS_NOMBRE[ultimo.id]) return { tipo: 'arena', id: ultimo.id, titulo: 'Seguir jugando', sub: (OPERATIONS[ultimo.id]?.title || MAPAS_NOMBRE[ultimo.id]) + con };
+  if (ultimo && ultimo.k === 'story') { const id = campaignNext(campaign); return { tipo: 'story', titulo: id ? 'Continuar campaña' : 'Campaña completada', sub: id ? `Capítulo ${OPERATIONS[id].chapter} · ${OPERATIONS[id].title}` + con : 'Ver recorrido o reiniciar' }; }
+  return { tipo: 'modes', titulo: 'Jugar', sub: 'Campaña o misiones individuales' + con };
 }
 
 /* ───────── puntitos de aviso ───────── */

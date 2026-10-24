@@ -13,7 +13,7 @@ try {
  for(const screen of ['arenas','arena-codex']) {
  await page.evaluate(s=>window.__api.ui.show(s),screen);await page.waitForTimeout(400);
  const info=await page.evaluate(s=>{const e=document.getElementById(s);return {screen:s,cards:e.querySelectorAll('.card').length,overflowX:e.scrollWidth-e.clientWidth,buttons:[...document.querySelectorAll('#tbtabs button')].map(b=>b.textContent.trim())};},screen);
- assert.equal(info.cards,screen==='arenas'?7:6);assert.ok(info.overflowX<=2);report.push({name,...info});await page.screenshot({path:`${out}/${name}-${screen}.jpg`,type:'jpeg',quality:75});
+ assert.equal(info.cards,6);assert.ok(info.overflowX<=2);report.push({name,...info});await page.screenshot({path:`${out}/${name}-${screen}.jpg`,type:'jpeg',quality:75});
  }
  await page.evaluate(()=>window.__api.ui.show('arenas'));
  if(touch) await page.setViewportSize({width:844,height:390});

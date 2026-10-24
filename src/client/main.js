@@ -1,3 +1,4 @@
+import { CAMPAIGN_ORDER, campaignNext } from '../sim/campaign.js';
 import { OPERATIONS } from '../sim/operations.js';
 import { SUPPORT } from '../shared/skill-path.js';
 import { thirdForMode, essentialInteraction, essentialPower } from './essential-controls.js';
@@ -264,7 +265,7 @@ const aimEff = () => (settings().simple ? 3 : aimLevel);
 function startSolo(mapId, opts = {}) {
   asegurarHuesped();   // el Huésped tiene que ser tuyo (Tienda)
   const intro = opts.intro !== false && !params.get('auto') && !params.get('skipintro');
-  const game = new Game({ mapId, operation: !opts.campaign && !opts.practice && !opts.horde, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0 });
+  const game = new Game({ mapId, campaign: !!opts.campaign, operation: !opts.practice && !opts.horde, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0 });
   const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode(), kit: opts.practice ? 0 : Tienda.usarBotiquin() }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
@@ -337,7 +338,7 @@ function showTutorial(force = false) {
     ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Doble toque izquierdo: saltar. Derecha: girar la cámara. Tocá el nombre del arma para cambiarla.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['APOYO / ULTI', 'se desbloquean jugando', 'Tras la primera oleada: apoyo. Tras la tercera: ulti. Cada uno tendrá su propio botón y explicación.'], ['DEFENSA', 'primer poder · disponible desde el inicio', 'Su imagen representa la movilidad o defensa de tu huésped. El número indica segundos de espera. Cambiá Disparo / Melé arriba.']]
     : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['F / Q / T', 'defensa / apoyo / ulti', 'F: movilidad o defensa desde el inicio. Apoyo tras la primera oleada; ulti tras la tercera. Mismos poderes en Disparo y Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
   const op = session.game?.operation || session.lastState?.operation && OPERATIONS[session.map];
-  const chapter = op ? { title: op.title, context: op.story, task: op.steps.map((s,i) => `${i+1}. ${s.title}`).join(' → '), reward: 'Rescatás memoria y liberás este territorio. Cada objetivo es obligatorio.' } : Story.chapterBrief(session.map);
+  const chapter = session.campaign ? Story.chapterBrief(session.map) : op ? { title: op.title, context: `Misión individual · capítulo ${op.chapter} de la campaña. ${op.story}`, task: op.steps.map((s,i) => `${i+1}. ${s.title}`).join(' → '), reward: 'Completás una incursión independiente. El avance de la campaña no cambia.' } : Story.chapterBrief(session.map);
   el.innerHTML = `<h4>${chapter.title}</h4><p>${chapter.context}</p><p><b>${chapter.task}</b></p><p>Al lograrlo: ${chapter.reward}</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   if (force && session.game?.skillLevel != null) { const C = CHARACTERS[myChar()], level = session.game.skillLevel; const info = document.createElement('div'); for (const [n,def,key] of [[0,C.mov,'F / DEFENSA'],[1,C[SUPPORT[myChar()]],'Q / APOYO'],[2,C.ult,'T / ULTI']]) { if (!def) continue; const p = document.createElement('p'); p.textContent = `${def.name} · ${level >= n ? key + ': ' + def.desc : 'Se desbloquea tras la oleada ' + (n === 1 ? 1 : 3)}`; info.appendChild(p); } el.insertBefore(info, $('tutok')); }
   const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();
@@ -613,7 +614,7 @@ function audioAndHud(state, me, dt) {
       case 'hurt': if (mine) { sound.hurt(); const v = $('vignette'); v.classList.add('hurt'); setTimeout(() => v.classList.remove('hurt'), 120); if (navigator.vibrate) navigator.vibrate(30); pad.rumble(120, 0.6); } break;
       case 'pickup': if (mine) sound.pickup(); break;
       case 'revive': trophy('rev', 'Mano amiga', 'Reanimá a un compañero', sound); sound.pickup(); banner(mine ? '¡Te reanimaron!' : 'Compañero reanimado', 1800); break;
-      case 'wave': if (!session.intro) { sound.wave(); banner(state.operation ? `ETAPA ${e.n} · ${state.operation.step}` : e.boss ? '¡EL CORAZÓN DEL VÓRTICE!' : `OLEADA ${e.n}`, 2500); } break;
+      case 'wave': if (!session.intro) { sound.wave(); banner(state.operation && !e.boss ? `ETAPA ${e.n} · ${state.operation.step}` : e.boss ? '¡EL CORAZÓN DEL VÓRTICE!' : `OLEADA ${e.n}`, 2500); } break;
       case 'clear': banner(state.operation ? 'Etapa completada' : 'Oleada superada', 2200); if (e.wave >= 3) trophy('w3', 'Resistente', 'Superá 3 oleadas', sound); break;
       case 'gravity': sound.gravity(e.p); trophy('flip', 'Cabeza abajo', 'Sentí la gravedad invertida', sound); if (me && me.flip) banner('¡LA GRAVEDAD SE INVIERTE!', 1500); flash(); break;
       case 'pull': sound.gravity(e.p); break;
@@ -826,9 +827,10 @@ function endGame(state, me) {
   session.ended = true; if (document.exitPointerLock) document.exitPointerLock(); touch.show(false);
   const won = state.state === 'won'; window.__ended = state.state;
   const stats = `${state.operation ? state.operation.title + '\nEtapa' : 'Oleada'} ${state.wave}/${state.waveTotal}\nTiempo ${Math.round(state.time)} s\n` + state.players.map((p) => `${p.name} ${p.id}: ${p.kills} bajas · ${p.score} pts`).join('\n') + maestriaTxt() + Perfil.botinTexto();
-  const ruta = Story.RUTAS[params.get('ruta')] || Story.RUTAS.corta, nextCap = session.campaign ? ruta[ruta.indexOf(session.campaign) + 1] : null; // ?ruta=larga: m1 → m5 → m6 → m2
+  if (session.mode === 'solo' && session.campaign && won) Perfil.completarCapitulo(session.campaign);
+  const nextCap = session.campaign ? CAMPAIGN_ORDER[CAMPAIGN_ORDER.indexOf(session.campaign) + 1] : null;
   if (session.mode === 'solo' && session.campaign && won && nextCap) { // → interludio y el capítulo siguiente
-    renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap }); });
+    renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap, intro: false }); });
     return;
   }
   if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', Story.VICTORY.trophy, 'Completá la historia', sound); showEnd(true, stats, Story.VICTORY.title); }); return; }
@@ -856,7 +858,12 @@ function menuSpin(dt) {
 const pad = new Pad();
 const loadAnd = (fn) => (params.get('cap') ? fn() : showLoading(1900, fn));
 const ui = new MenuUI({ sound, actions: {
-  story: () => loadAnd(() => startSolo('m1', { campaign: 'm1' })),
+  story: (fresh = false) => {
+    if (fresh) Perfil.nuevaCampana();
+    const id = campaignNext(Perfil.perfil().campaign);
+    if (!id) { ui.go('story'); return; }
+    loadAnd(() => startSolo(id, { campaign: id }));
+  },
   base: () => loadAnd(() => startBase()),
   arena: (m) => loadAnd(() => (m === 'practica' ? startSolo('m1', { intro: false, practice: true }) : startSolo(m, { intro: false }))),
 } });

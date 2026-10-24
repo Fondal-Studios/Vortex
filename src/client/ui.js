@@ -1,4 +1,4 @@
-import { buildOperations } from './operations-ui.js';
+import { buildOperations, refreshCampaignMenu } from './operations-ui.js';
 import { buildAccountMenu } from './account-menu.js';
 import { buildIdentityMenu } from './identity-menu.js';
 // Interfaz de acceso estilo PlayStation 5: título → menú principal con tarjetas → sub-pantallas. Teclado, ratón, táctil y mando.
@@ -38,7 +38,7 @@ export class MenuUI {
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { mercado: '#mercado .market-nav:not(:disabled)', title: '#pressstart', story: '#story .card', arenas: '#arenas .card', 'arena-codex': '#arena-codex .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
+    const q = { mercado: '#mercado .market-nav:not(:disabled)', title: '#pressstart', modes: '#modes .card', story: '#story [data-campaign]:not(:disabled):not([hidden])', arenas: '#arenas .card', 'arena-codex': '#arena-codex .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
     if (name === 'tienda' && this.tn && this.tn.dialogoAbierto()) return [...this.root.querySelectorAll('#tnyes, #tnno')];   // con el cartel de confirmación abierto, sólo se navega entre Sí y No
     const l = [...this.root.querySelectorAll(q)];
     return name === 'options' ? l.filter((e) => e.getClientRects().length > 0) : l;   // (los ajustes táctiles plegados no cuentan)
@@ -46,6 +46,7 @@ export class MenuUI {
   show(name, push = true) {
     if (this.screen === 'mercado') this.market?.leave();
     if (push && this.screen !== name && name !== 'title') this.stack.push(this.screen);
+    if (['story', 'modes', 'main'].includes(name)) refreshCampaignMenu(this);
     const antes = this.screen; this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';   // dirección de la transición corta (menu.css)
     this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name));
     dibujarBarra(this, name); this.root.dataset.inicio = name === 'main' ? '1' : '0';   // barra superior única: volver · pestañas · Modo · Gráficos · núcleos
@@ -93,7 +94,8 @@ export class MenuUI {
   }
   /** Botón grande «Continuar»: retoma lo último que jugaste (Historia o la última arena). */
   continuar() {
-    const u = continuarDe(leerUltimo()); this.sound.ui('ok');
+    const u = continuarDe(leerUltimo(), '', Perfil.perfil().campaign); this.sound.ui('ok');
+    if (u.tipo === 'modes') { this.go('modes'); return; }
     if (u.tipo === 'arena') { guardarUltimo({ k: 'arena', id: u.id }); this.actions.arena(u.id); } else { guardarUltimo({ k: 'story' }); this.actions.story(); }
   }
   refocus() { this.focus(this.idx, true); }
@@ -101,7 +103,7 @@ export class MenuUI {
     const l = this.list(); if (!l.length) return; this.idx = (i + l.length) % l.length;
     l.forEach((e, k) => e.classList.toggle('focus', k === this.idx));
     const el = l[this.idx];
-    if ((this.screen === 'arenas' || this.screen === 'arena-codex' || this.screen === 'mercado' || this.screen === 'graficos' || this.screen === 'tienda' || this.screen === 'main') && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
+    if ((this.screen === 'modes' || this.screen === 'story' || this.screen === 'arenas' || this.screen === 'arena-codex' || this.screen === 'mercado' || this.screen === 'graficos' || this.screen === 'tienda' || this.screen === 'main') && !silent && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });   // el panel de Gráficos es largo: seguir el foco con teclado y mando
     if (this.screen === 'bestiary') this.selectBeast(this.idx);
     if (!silent) this.sound.ui('tick');
   }
@@ -127,7 +129,7 @@ export class MenuUI {
     this.root.addEventListener('click', (e) => { if (this.screen === 'title' && this.active) this.confirmTitle(); });
     this.root.querySelectorAll('.card, .btn, #options label').forEach((c) => c.addEventListener('mouseenter', () => { const l = this.list(); const i = l.indexOf(c); if (i >= 0) this.focus(i); }));
     this.root.addEventListener('mouseover', (e) => { const t = e.target.closest && e.target.closest('.tn-nav'); if (t && this.screen === 'tienda') { const l = this.list(), i = l.indexOf(t); if (i >= 0 && i !== this.idx) this.focus(i, true); } });
-    $('story').querySelector('.card').addEventListener('click', () => { guardarUltimo({ k: 'story' }); this.actions.story(); });
+    this.root.querySelectorAll('[data-campaign]').forEach(b => b.addEventListener('click', () => { guardarUltimo({ k: 'story' }); this.actions.story(b.dataset.campaign === 'new'); }));
     this.root.querySelectorAll('[data-start]').forEach((b) => b.addEventListener('click', () => { guardarUltimo({ k: 'arena', id: b.dataset.start }); this.actions.arena(b.dataset.start); }));
     // gesto táctil «atrás»: deslizar desde el borde izquierdo hacia la derecha (igual que el botón Volver, Esc o el botón ○ del mando)
     let sw = null;

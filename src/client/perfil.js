@@ -1,3 +1,4 @@
+import { cleanCampaign, completeChapter } from '../sim/campaign.js';
 import { cleanCosmetics } from '../shared/cosmetics.js';
 // Perfil del jugador (se guarda en el navegador): núcleos ahorrados, evolución de cada Huésped y arma cuerpo a cuerpo equipada.
 import { EVO_COST, evoPathsFor, MELEE_WEAPONS, CHARACTERS, WEAPON_ORGANS, CHAMP_ORGANS } from '../sim/data.js';
@@ -27,7 +28,7 @@ function limpiarBase(b) {
   if (Array.isArray(o.jardin)) o.jardin.slice(0, 6).forEach((m, i) => { if (m && typeof m === 'object' && PLANTAS[m.p]) jardin[i] = { p: m.p, t0: nn(m.t0, 4e12) }; });
   return { vis, tut: o.tut === true, jardin };
 }
-const fresh = () => ({ ver: 2, cosmetics: cleanCosmetics(null), cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1, huespedes: [], tienda: { clave: '', comp: [], rot: 0 }, consum: { botiquin: 0 }, herbario: { vistas: {}, cosechas: {}, hitos: [] }, flora: { semillas: {}, cebos: 0 }, menu: { iv: 0, tv: '' }, base: { vis: {}, tut: false, jardin: [null, null, null, null, null, null] } });
+const fresh = () => ({ ver: 2, campaign: cleanCampaign(null), cosmetics: cleanCosmetics(null), cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1, huespedes: [], tienda: { clave: '', comp: [], rot: 0 }, consum: { botiquin: 0 }, herbario: { vistas: {}, cosechas: {}, hitos: [] }, flora: { semillas: {}, cebos: 0 }, menu: { iv: 0, tv: '' }, base: { vis: {}, tut: false, jardin: [null, null, null, null, null, null] } });
 /* ───── inventario (docs/INVENTARIO.md): v2 del perfil. Los perfiles anteriores (sin `ver`) se abren igual: sólo les falta el inventario, que arranca vacío. ───── */
 const nn = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 /** inv = [{ u (id propio), id (plantilla), q (tirada 0..1), k (bajas), lk (bloqueado), fv (favorito), t }]. Se sanea al cargar: ids desconocidos, uid repetidos y exceso se descartan. */
@@ -77,7 +78,7 @@ function limpiarTienda(t) { const o = t && typeof t === 'object' ? t : {}; retur
 function load() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
   const inv = limpiarInv(o.inventario || o.inv);
-  cache = { ...fresh(), ...o, skillLevel: Number.isInteger(o.skillLevel) && o.skillLevel >= 0 && o.skillLevel <= 2 ? o.skillLevel : 0, cores: Number.isFinite(Number(o.cores)) ? nn(o.cores, Number.MAX_SAFE_INTEGER) : 0, ver: 2, cosmetics: cleanCosmetics(o.cosmetics), inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), fauna: limpiarFauna(o.fauna), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb), huespedes: migrarHuespedes(o, huespedElegido()), tienda: limpiarTienda(o.tienda), consum: { botiquin: nn(o.consum && o.consum.botiquin, 5) }, herbario: limpiarHerbario(o.herbario), flora: limpiarFlora(o.flora), menu: { iv: nn(o.menu && o.menu.iv, 1e9), tv: typeof (o.menu && o.menu.tv) === 'string' ? o.menu.tv.slice(0, 24) : '' }, base: limpiarBase(o.base) };
+  cache = { ...fresh(), ...o, campaign: cleanCampaign(o.campaign), skillLevel: Number.isInteger(o.skillLevel) && o.skillLevel >= 0 && o.skillLevel <= 2 ? o.skillLevel : 0, cores: Number.isFinite(Number(o.cores)) ? nn(o.cores, Number.MAX_SAFE_INTEGER) : 0, ver: 2, cosmetics: cleanCosmetics(o.cosmetics), inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), fauna: limpiarFauna(o.fauna), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb), huespedes: migrarHuespedes(o, huespedElegido()), tienda: limpiarTienda(o.tienda), consum: { botiquin: nn(o.consum && o.consum.botiquin, 5) }, herbario: limpiarHerbario(o.herbario), flora: limpiarFlora(o.flora), menu: { iv: nn(o.menu && o.menu.iv, 1e9), tv: typeof (o.menu && o.menu.tv) === 'string' ? o.menu.tv.slice(0, 24) : '' }, base: limpiarBase(o.base) };
   return cache;
 }
 export const perfil = () => cache || load();
@@ -456,3 +457,6 @@ export function registrarFauna(espId, hibrido = null) {
 }
 /** Lo que viaja a una sala cooperativa: { especie: veces }. */
 export const faunaDeLaSala = () => faunaParaPartida(fauna());
+
+export function completarCapitulo(id) { const p = perfil(); p.campaign = completeChapter(p.campaign, id); guardar(); return p.campaign; }
+export function nuevaCampana() { const p = perfil(); p.campaign = cleanCampaign(null); guardar(); }

@@ -15,9 +15,9 @@ test.after(async () => { if (browser) await browser.close(); if (srv) await srv.
 
 // cada función: cómo llegar (lista de selectores a tocar, en orden), cuántos toques como máximo, y cómo comprobar que se llegó
 const RUTAS = [
-  { f: 'Jugar (Continuar)', max: 1, toques: ['#continuar'], ok: () => window.__llamo === 'story' },
-  { f: 'Elegir otra arena', max: 2, toques: ['#elegir', '[data-start=m3]'], ok: () => window.__llamo === 'arena:m3' },
-  { f: 'Historia', max: 2, toques: ['#elegir', '#tbtabs .tb-tab:has-text("Historia")'], ok: () => document.querySelector('#story.on') },
+  { f: 'Jugar (Modos)', max: 1, toques: ['#continuar'], ok: () => document.querySelector('#modes.on') },
+  { f: 'Elegir misión individual', max: 3, toques: ['#elegir', '#modes [data-go=arenas]', '[data-start=m3]'], ok: () => window.__llamo === 'arena:m3' },
+  { f: 'Historia', max: 2, toques: ['#elegir', '#tbtabs .tb-tab:has-text("Campaña")'], ok: () => document.querySelector('#story.on') },
   { f: 'La Base', max: 1, toques: ['#mainlist [data-door=base]'], ok: () => window.__llamo === 'base' },
   { f: 'Cambiar de Huésped', max: 2, toques: ['#mainlist [data-door=huespedes]', '.hs-chip[data-id=vesper]'], ok: () => localStorage.getItem('cristal.huesped.v1') === 'vesper' },
   { f: 'Evolución', max: 2, toques: ['#mainlist [data-door=huespedes]', '#tbtabs .tb-tab:has-text("Evolución")'], ok: () => document.querySelector('#evolucion.on') },
@@ -38,7 +38,7 @@ const RUTAS = [
 ];
 
 for (const [vn, w, h, touch] of [['844x390 táctil', 844, 390, true], ['1280x720 PC', 1280, 720, false], ['390x844 táctil', 390, 844, true]]) {
-  test(`recorrido ${vn}: cada función a ≤ 2 toques desde el inicio (y Esc/Volver vuelve en 1)`, { skip: !hasChromium, timeout: 900000 }, async () => {
+  test(`recorrido ${vn}: cada función a ≤ 3 toques desde el inicio (y Esc/Volver vuelve en 1)`, { skip: !hasChromium, timeout: 900000 }, async () => {
     const errors = [], ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch }), pg = await ctx.newPage();
     pg.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`)); pg.on('console', (m) => { if (m.type() === 'error' && !/WebGL|GPU|favicon|Failed to load/i.test(m.text())) errors.push(`console: ${m.text()}`); });
     pg.setDefaultTimeout(120000);
@@ -53,7 +53,7 @@ for (const [vn, w, h, touch] of [['844x390 táctil', 844, 390, true], ['1280x720
       let n = 0;
       for (const sel of r.toques) { const b = pg.locator(sel).first(); await b.waitFor({ state: 'visible', timeout: 20000 }); await b.click(); n++; await pg.waitForTimeout(80); }
       await pg.waitForFunction(r.ok, null, { timeout: 20000 }).catch(() => { throw new Error(`${vn}: «${r.f}» no se alcanzó con ${n} toques`); });
-      assert.ok(n <= r.max && n <= 2, `${r.f}: ${n} toques (máximo ${r.max})`); tabla.push(`${r.f.padEnd(32)} ${n}`);
+      assert.ok(n <= r.max && n <= 3, `${r.f}: ${n} toques (máximo ${r.max})`); tabla.push(`${r.f.padEnd(32)} ${n}`);
       // volver: un solo Esc (salvo cuando la función ya arrancó una partida / la Base, que son acciones y no pantallas)
       if (!/Jugar|arena|Elegir otra|Base$|^La Base/.test(r.f) && !(await pg.evaluate(() => window.__llamo))) {
         await pg.keyboard.press('Escape'); await pg.waitForSelector('#main.on', { timeout: 10000 }).catch(() => { throw new Error(`${vn}: Esc desde «${r.f}» no volvió al inicio en 1 paso`); });

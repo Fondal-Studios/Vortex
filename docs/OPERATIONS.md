@@ -1,3 +1,7 @@
+# Actualización: campaña y modos de juego
+
+La evolución vigente de este sistema está documentada en [CAMPAIGN_AUDIT.md](CAMPAIGN_AUDIT.md). El informe siguiente conserva el alcance de la primera entrega, anterior a la campaña de seis capítulos.
+
 # Misiones de conciencia — 23 de octubre de 2026
 
 La selección de arenas ahora es Misiones. Seis operaciones reutilizan los mapas existentes, con tres etapas obligatorias por operación. El atlas de arenas queda en Códice → Arenas. La historia de dos capítulos y el campo de pruebas conservan su funcionamiento.
