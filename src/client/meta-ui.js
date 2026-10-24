@@ -42,7 +42,10 @@ export function createMetaHud(host, ctx = {}) {
     else if (state.phase === 'intermission' && me.cards && me.cards.length) p = quiere('mejora');
     else if (state.phase === 'wave' && state.obj && state.obj.state === 'active') p = quiere('objetivo');
     else if (state.phase === 'wave' && w >= state.waveTotal) p = quiere('jefe');
-    if (p) mostrarPaso(p, touch);
+    if (p && state.operation) {
+      const txt = { meta: 'Seguí las tres etapas de la misión. El objetivo marcado es obligatorio; eliminar enemigos no lo reemplaza.', mejora: 'Entre etapas elegís una mejora. Prepará tu equipo para el próximo objetivo.', objetivo: 'Seguí la flecha y las instrucciones de arriba. Si perdés el objetivo o se agota su tiempo, la misión fracasa.' }[p.id];
+      if (txt) mostrarPaso({ ...p, txt }, touch);
+    } else if (p) mostrarPaso(p, touch);
   }
 
   /** Flecha hacia el punto del objetivo (state.obj.tg). Fuera de pantalla va al borde; en pantalla, sobre el objeto. */
@@ -71,7 +74,7 @@ export function createMetaHud(host, ctx = {}) {
       const m = metaActual(state, me);
       if (!m) { goal.style.display = 'none'; mision.classList.add('hidden'); flecha.classList.add('hidden'); ocultarGuia(); return; }
       goal.style.display = ''; goal.dataset.kind = m.kind;
-      let next = m.next; const mm = ctx.solo ? metaMapa(state.map) : null;
+      let next = m.next; const mm = ctx.solo && !state.operation ? metaMapa(state.map) : null;
       if (mm && m.kind === 'espera' && !state.wave) next = `Meta del mapa: vencé a ${mm.jefe} y liberá ${mm.nombre}`;
       if (mm && m.kind === 'jefe') next = `Premio: liberás ${mm.nombre} y elegís una bendición`;
       const key = m.main + '|' + next;
