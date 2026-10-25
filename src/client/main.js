@@ -54,7 +54,8 @@ import * as Graficos from './graficos-ui.js';   // menú «Gráficos»: presets,
 import { TouchControls } from './touch.js';
 import * as Story from './story.js';
 import { mostrarPrimerHuesped } from './primer-huesped.js';   // Sprint 1: «Elegí tu primer Huésped»
-import { iniciarTransferencia } from './transferencia.js';   // Sprint 1: cinemática de transferencia (20–30 s)
+import { CHAPTER_FILMS } from './campaign-films.js';
+import { iniciarTransferencia } from './transferencia.js';   // Cómic de transferencia: lectura manual, sin WebGL adicional
 import { crearTutorialUI } from './tutorial-ui.js';   // Sprint 1: capa de interfaz del tutorial jugable (lógica en src/sim/tutorial.js)
 import { uTime } from './shaders.js';
 import { MenuUI, showLoading, trophy } from './ui.js';
@@ -275,7 +276,7 @@ function startSolo(mapId, opts = {}) {
   asegurarHuesped(true);   // el Huésped tiene que ser tuyo (inicial o desbloqueado); un enlace directo sin Huésped inicial recibe el actual
   // Sprint 1: la primera vez que se juega «Islas — Despertar» hay cinemática de transferencia + tutorial jugable (se guarda; ?tutorial=1 lo fuerza, ?tutorial=0 lo apaga)
   const conTutorial = !opts.practice && !opts.horde && !opts.bot && params.get('tutorial') !== '0' && (params.get('tutorial') === '1' || opts.tutorial || (opts.campaign === 'm1' && !params.get('auto') && Perfil.tutorialPendiente()));
-  const conCine = conTutorial && !Perfil.tutorialEstado().cine && !params.get('skipintro') && params.get('cine') !== '0';
+  const conCine = (opts.campaign === 'm1' || (conTutorial && !Perfil.tutorialEstado().cine)) && opts.intro !== false && !params.get('auto') && !params.get('skipintro') && params.get('cine') !== '0';
   const intro = (opts.intro !== false && !params.get('auto') && !params.get('skipintro')) || conCine;
   const game = new Game({ mapId, campaign: !!opts.campaign, operation: !opts.practice && !opts.horde, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0, tutorial: conTutorial ? { desde: Perfil.tutorialEstado().paso } : false });
   const charJ = opts.char || Equipo.char, ppJ = Perfil.paraPartida(charJ); if (opts.lab) ppJ.lab = opts.lab;   // Laboratorio › «Probar»: el diseño sin guardar entra al Campo de pruebas (opts.char = 'laboratorio', opts.lab = texto VB1)
@@ -469,6 +470,14 @@ function frame(now) {
   window.__fps = (window.__fps || 60) * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;
   uTime.value += 0; subs.update(dt); padDt = dt;
   if (!session || session.base || session.prologo || session.intro || session.ended || session.paused || (!locked && !session.touch)) tacticalHUD.update(null, null, false);
+  // El cómic cubre toda la pantalla: no renderizar el mundo ni simular bajo las viñetas.
+  if (cine && session?.intro === 'transfer') {
+    for (const a of pad.menuEvents(dt)) {
+      const selector = a === 'ok' || a === 'right' ? '[data-next]' : a === 'left' ? '[data-prev]' : a === 'back' ? '.tr-skip' : null;
+      if (selector) document.querySelector('#transfer ' + selector)?.click();
+    }
+    return;
+  }
   if (session && session.prologo) { if (!params.get('prologo_manual')) session.prologo.tick(dt); return; } // prólogo 3D: dibuja él mismo
   if (!session) { for (const a of pad.menuEvents(dt)) ui.act(a); menuSpin(dt); return; }
   if (session.base) { baseFrame(dt); return; }   // La Base: su propio cuadro, sin oleadas ni HUD de combate
@@ -872,13 +881,20 @@ function endGame(state, me) {
   if (session.mae && session.mae.subio) session.desbloqueos.push(`Maestría: ¡rango ${session.mae.rangoDespues} · ${TITULOS[session.mae.rangoDespues]}!`);
   const nextCap = session.campaign ? CAMPAIGN_ORDER[CAMPAIGN_ORDER.indexOf(session.campaign) + 1] : null;
   if (session.mode === 'solo' && session.campaign && won && nextCap) { // → interludio y el capítulo siguiente
-    renderer.setGuide(true); subs.play(Story.INTERLUDES[nextCap] || Story.INTERLUDE, () => { renderer.setGuide(false); startSolo(nextCap, { campaign: nextCap, intro: false }); });
+    playChapterFilm(session.campaign, () => startSolo(nextCap, { campaign: nextCap, intro: false }));
     return;
   }
-  if (won && session.campaign === 'm2') { renderer.setGuide(true); subs.play(Story.ENDING, () => { renderer.setGuide(false); trophy('end', Story.VICTORY.trophy, 'Completá la historia', sound); showEnd(true, stats, Story.VICTORY.title); }); return; }
+  if (won && session.campaign === 'm2') { playChapterFilm('m2', () => { trophy('end', Story.VICTORY.trophy, 'Completá la historia', sound); showEnd(true, stats, Story.VICTORY.title); }); return; }
   if (state.operation) { showEnd(won, stats + (state.operation.failure ? '\n' + state.operation.failure : '') + (terrNuevo ? '\nTerritorio liberado. Elegí su bendición en el Códice.' : ''), won ? 'MISIÓN COMPLETADA' : 'MISIÓN FALLIDA'); return; }
   if (!won) { subs.play(Story.DEFEAT, () => showEnd(false, stats)); return; }
   showEnd(true, stats + (terrNuevo ? `\n\nTERRITORIO LIBERADO: ${terrNuevo.nombre}. Elegí su bendición en el menú › Territorios.` : ''));
+}
+/** La simulación ya terminó: el interludio no consume tiempo ni concede otra recompensa. */
+function playChapterFilm(id, next) {
+  const cur = session; cur.intro = 'transfer'; $('hud').classList.add('hidden'); touch.show(false);
+  cine = iniciarTransferencia({char: myChar(), subs, sound, film: CHAPTER_FILMS[id], onDone: () => {
+    cine = null; if(session !== cur)return; cur.intro = null; next();
+  }});
 }
 /** Línea de maestría del fin de partida (XP ganada y, si subió, el rango nuevo). */
 function maestriaTxt() { const m = session && session.mae; if (!m) return ''; const a = m.arbol, pc = a ? a.combo + a.disparo : 0; return `\nMaestría +${m.ganada} XP` + (m.subio ? ` · ¡RANGO ${m.rangoDespues}: ${TITULOS[m.rangoDespues]}!` : '') + (pc ? `\nPuntos de ${a.combo ? 'combo' : 'disparo'} +${pc} (gastalos en Huésped › Progresión)` : ''); }

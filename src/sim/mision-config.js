@@ -203,3 +203,11 @@ export function validarMision(id, planes = null) {
   if (!m.victoria || !m.derrota) e.push(`${id}: faltan condiciones de victoria o derrota`);
   return e;
 }
+
+/** Ritmo de campaña: un tramo de combate algo más sostenido, sin tocar jefes/objetivos ni contratos cooperativos. */
+export function campaignConfig(id) {
+  const original = misionConfig(id); if (!original) return null;
+  return { ...original, stages: original.stages.map(s => ['combate', 'evento'].includes(s.kind)
+    ? { ...s, span: Math.min(110, s.span + 15), budget: s.budget * 1.2 }
+    : { ...s }) };
+}

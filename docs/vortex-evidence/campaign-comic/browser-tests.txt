@@ -1,0 +1,11 @@
+✔ cómic: lectura manual, viñetas, teclado, salida única y cuatro tamaños sin desbordes (55251.590161ms)
+✔ campaña: victoria → cómic → siguiente capítulo exactamente una vez; final vuelve a resultados (54261.467174ms)
+✔ campaña y códice: recuerdos por avance, sin spoilers en misiones libres, persistencia y móvil (61293.462925ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 110484.300983
