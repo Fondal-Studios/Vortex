@@ -124,6 +124,14 @@ export function guardar() {
   if (estadoCarga.futuro) return avisar({ ok: false, motivo: 'version', mensaje: MENSAJES.version, at: Date.now() });
   return avisar(escribir(KEY, JSON.stringify(perfil()), true));
 }
+/** Confirma cambios del editor sólo cuando el navegador los guardó. */
+export function guardarLaboratorio(lab) {
+  const p = perfil(), anterior = p.lab;
+  p.lab = limpiarLab(lab);
+  const r = guardar();
+  if (!r.ok) p.lab = anterior;
+  return r;
+}
 /** Para la interfaz: { ok (el último guardado salió bien), motivo, mensaje, pendientes (recompensas esperando), corrupto, at }. */
 export const estadoGuardado = () => ({ ...ultimoGuardado, pendientes: cola.length, corrupto: estadoCarga.corrupto });
 /** Escucha cada guardado (la interfaz muestra el aviso cuando falla). Devuelve la función para dejar de escuchar. */

@@ -47,8 +47,8 @@ export class MenuUI {
   show(name, push = true) {
     if (this.screen === 'mercado') this.market?.leave();
     if (push && this.screen !== name && name !== 'title') this.stack.push(this.screen);
-    if (['story', 'modes', 'main'].includes(name)) refreshCampaignMenu(this);
-    const antes = this.screen; if (antes === 'laboratorio' && name !== 'laboratorio') hideLaboratorio(this); this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';   // dirección de la transición corta (menu.css)
+    if (['story', 'modes', 'main', 'arena-codex'].includes(name)) refreshCampaignMenu(this);
+    const antes = this.screen; if (antes === 'laboratorio' && name !== 'laboratorio') hideLaboratorio(this); this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';
     this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name)); this.root.dataset.pantalla = name;
     dibujarBarra(this, name); this.root.dataset.inicio = name === 'main' ? '1' : '0';   // barra superior única: volver · pestañas · Modo · Gráficos · núcleos
     refrescarInicio(this);   // (núcleos y puntitos de la barra se recalculan en cada pantalla)

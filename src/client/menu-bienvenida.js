@@ -2,7 +2,7 @@
 // En pruebas automáticas (navigator.webdriver) no sale, salvo con ?bienvenida=1 (así los tests de navegador no chocan con el cartel).
 const CLAVE = 'vortex.bienvenida.v1';
 export const PASOS = [
-  { n: '1', titulo: 'Elegí tu Huésped', texto: 'Sos la última conciencia humana en un futuro remoto. Tu conciencia habita un cuerpo de genoma humano e IA: el Huésped. Al tocar HISTORIA elegís tu primer Huésped (uno de tres). Los demás se desbloquean con la campaña, los desafíos y la Tienda.', extra: { go: 'huesped', t: 'Elegir ahora' } },
+  { n: '1', titulo: 'Elegí tu Huésped', texto: 'Despertás sin recuerdos dentro de VORTEX. Tu conciencia habita un cuerpo de genoma humano e IA: el Huésped. Al tocar HISTORIA elegís tu primer Huésped (uno de tres). Los demás se desbloquean con la campaña, los desafíos y la Tienda.', extra: { go: 'huesped', t: 'Elegir ahora' } },
   { n: '2', titulo: 'Jugá', texto: 'En Historia, vencé al Coloso para recuperar tu identidad y a la Madre Geoda para abrir la salida de VORTEX. El objetivo actual aparece arriba.' },
   { n: '3', titulo: 'Volvé a la Base', texto: 'Entre incursiones, mejorá tu Huésped en la Base. No necesitás dominar todos sus sistemas para volver a combatir.' },
 ];

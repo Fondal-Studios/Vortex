@@ -324,7 +324,7 @@ export function buildLaboratorioScreen(menu) {
   function guardar(silencioso = false) {
     const E = L.E, v = E.validacion; if (!v.ok) { aviso(`Todavía no se puede guardar: ${v.errores[0].msg}`, 'tope'); irTab('datos'); return false; }
     const r = guardarDiseno(lab(), E.paraGuardar()); if (!r.ok) { aviso(r.mensaje, 'tope'); return false; }
-    const pl = Perfil.perfil(); pl.lab = elegirActivo(r.lab, r.build.id).lab; Perfil.guardar(); E.marcarLimpio(); E.borrarBorrador(); setActivo(E.build); if (!silencioso) aviso('Diseño guardado y elegido como tu Híbrido activo.', 'ok'); return true;
+    const persistido = Perfil.guardarLaboratorio(elegirActivo(r.lab, r.build.id).lab); if (!persistido.ok) { aviso(persistido.mensaje + ' Conservá este editor abierto y reintentá Guardar.', 'tope'); return false; } E.marcarLimpio(); E.borrarBorrador(); setActivo(E.build); if (!silencioso) aviso('Diseño guardado y elegido como tu Híbrido activo.', 'ok'); return true;
   }
   $('#lbprobar').addEventListener('click', () => probar());
   async function probar() {
@@ -356,14 +356,14 @@ export function buildLaboratorioScreen(menu) {
     };
     dialogo('Mis diseños', ''); pintar();
     $('#lbdcuerpo').onclick = (e) => {
-      const b = e.target.closest('button'); if (!b) return; const d = b.dataset, pl = Perfil.perfil();
+      const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
       if (d.abrir) { const s = lab().slots.find((x) => x.id === d.abrir); if (s) { L.E.cargar(s); L.antesBuild = JSON.parse(JSON.stringify(L.E.build)); cerrarDialogo(); aviso(`Abriste «${s.nombre}».`, 'ok'); irTab(L.tab); } }
-      else if (d.act) { pl.lab = elegirActivo(lab(), d.act).lab; Perfil.guardar(); pintar(); }
+      else if (d.act) { const r = Perfil.guardarLaboratorio(elegirActivo(lab(), d.act).lab); if (r.ok) { const elegido = lab().slots.find(s => s.id === d.act); L.E.cargar(elegido); L.antesBuild = JSON.parse(JSON.stringify(L.E.build)); } pintar(); if (!r.ok) $('#lbimpmsg').textContent = r.mensaje; }
       else if (d.exp) { const s = lab().slots.find((x) => x.id === d.exp); $('#lbtxt').value = exportar(s); $('#lbtxt').select(); $('#lbimpmsg').textContent = 'Copiá este texto para guardarlo o pasárselo a alguien.'; }
-      else if (d.del) { const r = borrarDiseno(lab(), d.del); if (r.ok) { pl.lab = r.lab; Perfil.guardar(); } pintar(); }
+      else if (d.del) { const r = borrarDiseno(lab(), d.del); if (r.ok) { const g = Perfil.guardarLaboratorio(r.lab); pintar(); if (!g.ok) $('#lbimpmsg').textContent = g.mensaje; } }
       else if (b.id === 'lbnuevo') { L.E.cargar({ ...defecto(), id: idNuevo(), nombre: 'Mi Híbrido' }); L.antesBuild = JSON.parse(JSON.stringify(L.E.build)); cerrarDialogo(); irTab('cuerpo'); aviso('Diseño nuevo en blanco. Recordá guardarlo.', 'ok'); }
-      else if (b.id === 'lbimp') { const r = importar($('#lbtxt').value, lab()); if (r.ok) { pl.lab = r.lab; Perfil.guardar(); pintar(); $('#lbimpmsg').textContent = r.mensaje; } else $('#lbimpmsg').textContent = r.mensaje; }
-      else if (b.id === 'lbjugar') { if (!L.E.validacion.ok || !lab().activo) { if (!guardar(true)) return; } Equipo.char = 'laboratorio'; saveEquipo(); cerrarDialogo(); aviso('Tu Híbrido es ahora tu Huésped para jugar.', 'ok'); }
+      else if (b.id === 'lbimp') { const r = importar($('#lbtxt').value, lab()); if (r.ok) { const g = Perfil.guardarLaboratorio(r.lab); pintar(); $('#lbimpmsg').textContent = g.ok ? r.mensaje : g.mensaje; } else $('#lbimpmsg').textContent = r.mensaje; }
+      else if (b.id === 'lbjugar') { if (!guardar(true)) return; Equipo.char = 'laboratorio'; saveEquipo(); cerrarDialogo(); aviso('Tu Híbrido es ahora tu Huésped para jugar.', 'ok'); }
     };
   }
 

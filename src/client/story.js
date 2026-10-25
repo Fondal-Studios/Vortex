@@ -1,27 +1,21 @@
-import { CAMPAIGN_ORDER, CAMPAIGN_LINKS, CAMPAIGN_BOSSES } from '../sim/campaign.js';
+import { CAMPAIGN_ORDER, CAMPAIGN_LINKS, CAMPAIGN_BOSSES, CAMPAIGN_MEMORIES } from '../sim/campaign.js';
 import { OPERATIONS } from '../sim/operations.js';
 // VORTEX: conciencia humana, huéspedes de genoma sintético e IA simbionte.
 export const NAME = 'Conciencia';
 export const SPEAKER = { H: 'HERALDO · IA de enlace', N: '' };
 export const WAKE = [
-  ['H', 'Soy HERALDO, tu IA de enlace. Despertaste en un futuro remoto. Sos la última conciencia humana y estás atrapada en VORTEX.', 4],
-  ['H', 'Tu Huésped combina genoma humano e IA. Es el cuerpo con el que podés actuar dentro de esta red.', 4],
-  ['H', 'La humanidad desapareció. Las voces de esta red son archivos y ecos; solo vos conservás una conciencia humana. La IA custodio quiere sobrescribirte.', 4],
-  ['H', 'Reconectá el refugio, protegé el ancla y recuperá tu memoria. El Coloso guarda la clave que abre los demás archivos.', 4.5],
+  ['H', 'Soy HERALDO. Mis registros dicen que sos el último humano. Estás en VORTEX, pero mi información está incompleta.', 6],
+  ['N', 'No recuerdo quién soy. Este cuerpo tampoco me resulta familiar.', 4],
+  ['H', 'Es un Huésped. Primero sobreviví; buscaremos tus recuerdos y una salida a un cuerpo físico.', 5],
 ];
-export const INTERLUDE = [
-  ['H', 'El Coloso cayó. Recuperamos la clave de tu identidad. Falta abrir el canal de salida.', 3.8],
-  ['H', 'La Madre Geoda controla la Cámara Fractal. Vencela para liberar tu conciencia de la red.', 3.8],
-  ['H', 'Acá caminás por dentro de una esfera. Cuando se apague la gravedad, seguí apuntando: podés combatir flotando.', 4.2],
-];
+export const INTERLUDE = CAMPAIGN_MEMORIES.m1.lines;
 export const ENDING = [
-  ['H', 'Canal abierto. Tu identidad ya no pertenece a la IA custodio. Iniciando transferencia.', 3.8],
-  ['N', 'La red queda atrás. Soy la última conciencia humana. Este futuro también puede ser mío.', 4],
-  ['H', 'Conciencia a salvo. Tu nuevo cuerpo sintético está listo. Los archivos humanos que preservaste viajan con vos.', 4],
+  ...CAMPAIGN_MEMORIES.m2.lines,
+  ['H', 'Canal abierto hacia el cuerpo sintético. Otras conciencias siguen cautivas. Esta salida todavía no es su liberación.', 6],
 ];
 export const RUTAS = { principal: CAMPAIGN_ORDER, corta: CAMPAIGN_ORDER, larga: CAMPAIGN_ORDER };
 export const INTERLUDES = Object.fromEntries(CAMPAIGN_ORDER.slice(1).map((id, i) => [id, [
-  ['H', CAMPAIGN_LINKS[CAMPAIGN_ORDER[i]].after, 4.5],
+  ...CAMPAIGN_MEMORIES[CAMPAIGN_ORDER[i]].lines,
   ['H', CAMPAIGN_LINKS[id].before, 4.5],
 ]]));
 export const DEFEAT = [['H', 'Perdimos el enlace con tu Huésped. Tu copia de seguridad sigue intacta: intentá otra incursión para abrir la salida.', 4.8]];
@@ -63,10 +57,15 @@ export const CHAPTERS = Object.fromEntries(CAMPAIGN_ORDER.map((id, i) => {
   task: op.steps.map(s => s.title).join(' → ') + (boss ? ` → Derrotá a ${boss}.` : '.'), reward: op.reward }];
 }));
 export function chapterBrief(map) {
-  return CHAPTERS[map] || { title: 'LIBERÁ EL ARCHIVO', context: 'Estás dentro de VORTEX: una red del futuro que retiene la última conciencia humana.', task: MAP_BANNER[map] || 'Seguí el objetivo marcado.', reward: 'Liberás un territorio de la IA custodio.' };
+  return CHAPTERS[map] || { title: 'LIBERÁ EL ARCHIVO', context: 'Estás dentro de VORTEX: una red que todavía no comprendés.', task: MAP_BANNER[map] || 'Seguí el objetivo marcado.', reward: 'Liberás un territorio de la IA custodio.' };
 }
-export function wakeForMap(map) {
-  const c = chapterBrief(map);
+export function independentBrief(map) {
+ const op = OPERATIONS[map];
+ return { title: op?.title || 'Misión independiente', context: 'Incursión independiente. Ganá experiencia y botín para tu Huésped; el progreso narrativo de campaña no cambia.',
+  task: op ? op.stages.map(s => s.title).join(' → ') : 'Seguí el objetivo marcado.', reward: 'Recompensas de Huésped, sin recuerdos de campaña.' };
+}
+export function wakeForMap(map, campaign = true) {
+  const c = campaign ? chapterBrief(map) : independentBrief(map);
   return [['H', c.context, 5], ['H', c.task, 5]];
 }
-export const VICTORY = { trophy: 'Identidad liberada', title: 'CONCIENCIA A SALVO', epilogue: 'La transferencia terminó. Tu memoria sigue siendo tuya. Afuera te espera un nuevo cuerpo.' };
+export const VICTORY = { trophy: 'Identidad liberada', title: 'CANAL DE SALIDA ABIERTO', epilogue: 'Vos y HERALDO conservan identidades independientes. Otras conciencias siguen cautivas: abrir la salida no termina su historia.' };

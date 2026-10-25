@@ -10,6 +10,7 @@ const hasChromium = browserAvailable();
 let srv, browser, base;
 const SHOTS = 'shots/editor';
 test.before(async () => { if (!hasChromium) return; fs.mkdirSync(SHOTS, { recursive: true }); srv = await startServer({ port: 0 }); browser = await launch(); base = `http://localhost:${srv.port}`; });
+test.afterEach(async () => { if (browser) for (const ctx of browser.contexts()) await ctx.close(); });
 test.after(async () => { if (browser) await browser.close(); if (srv) await srv.close(); });
 
 const RUIDO = /toNonIndexed/;   // aviso conocido de three al cargar el cuerpo humano en modo móvil (no es del Laboratorio)
@@ -91,16 +92,20 @@ test('EH-09: deshacer/rehacer con teclado y botones, una ráfaga de slider = 1 p
   // ráfaga de 15 valores del mismo slider (menos de 700 ms entre ellos) = 1 paso
   await pg.evaluate(() => { const i = document.querySelector('#lbp-torso'); for (let n = 0; n < 15; n++) { i.value = 0.95 + n * 0.005; i.dispatchEvent(new Event('input', { bubbles: true })); } }); await pg.waitForTimeout(100);
   assert.equal(await pasos(), 1, 'la ráfaga es un paso'); assert.ok((await est(pg)).prop.torso > 1.0);
+
   // piezas por la lista (sin 3D) y deshacer con Ctrl+Z / rehacer con Ctrl+Y y con los botones
   await pg.click('#lbtab-piezas'); await pg.click('[data-ancla="cabeza"]'); await pg.click('[data-poner="cuerno_curvo"]'); await pg.waitForTimeout(500); assert.equal((await est(pg)).partes.length, 1);
   await pg.evaluate(() => document.getElementById('lbcanvas').focus()); await pg.keyboard.press('Control+z'); await pg.waitForTimeout(200); assert.equal((await est(pg)).partes.length, 0, 'Ctrl+Z quita la pieza');
   await pg.keyboard.press('Control+y'); await pg.waitForTimeout(200); assert.equal((await est(pg)).partes.length, 1, 'Ctrl+Y la devuelve');
   await pg.click('#lbundo'); await pg.waitForTimeout(150); assert.equal((await est(pg)).partes.length, 0); await pg.click('#lbredo'); await pg.waitForTimeout(150); assert.equal((await est(pg)).partes.length, 1);
+
   // ida y vuelta completa: la huella vuelve a ser idéntica
   const r = await pg.evaluate(async () => { const H = await import('/src/shared/host-build.js'), E = window.__lab.estado, h1 = H.huella(E.build); let n = 0; while (E.undo()) n++; const h0 = H.huella(E.build); while (E.redo()); return { n, igual: H.huella(E.build) === h1, h0cambia: h0 !== h1 }; });
   assert.ok(r.n >= 2 && r.igual && r.h0cambia);
+
   // copias
   await pg.click('#lbcopias'); await pg.fill('#lbsnapn', 'con cuernos'); await pg.click('#lbsnapok'); assert.equal(await pg.evaluate(() => window.__lab.estado.snapshots.length), 1); await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
+
   // borrador: se recupera tras recargar la página
   await pg.evaluate(() => window.__lab.estado.setNombre('Borrador de prueba')); await pg.waitForTimeout(200);
   await pg.reload({ waitUntil: 'domcontentloaded' }); await pg.waitForFunction(() => window.__api && window.__api.ui); await pg.waitForTimeout(400); await pg.evaluate(() => window.__api.ui.confirmTitle()); await entrar(pg);
@@ -207,4 +212,23 @@ test('EH-16: contraste del texto (WCAG ≥ 4,5 el normal, ≥ 3 el grande), obje
   }
   console.log('problemas de accesibilidad/diseño:', problemas.length, problemas.slice(0, 80));
   assert.deepEqual(problemas, []);
+});
+
+test('guardar: cuota llena conserva borrador; reintento y Jugar usan el diseño editado, incluso con otro activo', { skip: !hasChromium, timeout: 300000 }, async () => {
+  const { ctx, pg, errores } = await abrir(844, 390); await entrar(pg);
+  await pg.evaluate(() => window.__lab.estado.setNombre('Primero'));
+  await pg.click('#lbguardar');
+  await pg.click('#lbdisenos'); await pg.click('#lbnuevo');
+  await pg.evaluate(() => { window.__lab.estado.setNombre('Segundo'); window.__setItem = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v) { if (k === 'cristal.perfil.v1') throw new DOMException('lleno', 'QuotaExceededError'); return window.__setItem.call(this, k, v); }; });
+  await pg.click('#lbguardar');
+  assert.match(await pg.textContent('#lbaviso'), /NO se guardó/);
+  const fallo = await pg.evaluate(async () => { const P = await import('/src/client/perfil.js'); return { nombres: P.perfil().lab.slots.map(s => s.nombre), borrador: !!localStorage.getItem('vortex.lab.borrador.v1'), sucio: window.__lab.estado.sucio }; });
+  assert.deepEqual(fallo.nombres, ['Primero']); assert.ok(fallo.borrador); assert.ok(fallo.sucio);
+  await pg.evaluate(() => { Storage.prototype.setItem = window.__setItem; });
+  await pg.click('#lbdisenos'); await pg.click('#lbjugar');
+  const usado = await pg.evaluate(async () => { const P = await import('/src/client/perfil.js'), E = await import('/src/client/equipo.js'); const p = P.perfil(); return { nombre: p.lab.slots.find(s => s.id === p.lab.activo).nombre, char: E.Equipo.char }; });
+  assert.deepEqual(usado, { nombre: 'Segundo', char: 'laboratorio' });
+  await pg.reload(); await pg.waitForFunction(() => window.__api?.ui);
+  assert.equal(await pg.evaluate(async () => { const p = (await import('/src/client/perfil.js')).perfil(); return p.lab.slots.find(s => s.id === p.lab.activo).nombre; }), 'Segundo');
+  assert.deepEqual(errores.filter(e => !/WebGL|GPU stall|ReadPixels/.test(e)), []); await ctx.close();
 });

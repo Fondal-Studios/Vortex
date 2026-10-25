@@ -1,24 +1,24 @@
-# VORTEX — La última conciencia humana
+# VORTEX — Canon de la conciencia fragmentada
 
-Canon vigente: sustituye las versiones del accidente, el andén y el limbo literal.
+Decisiones del propietario, 24–25/10/2026. Sustituye la interpretación literal del «último humano» de versiones anteriores. Sin accidente de tren.
 
-En un futuro remoto, la humanidad ha desaparecido. La protagonista es la última conciencia humana, atrapada en VORTEX. No se fija una fecha ni una causa de desaparición que todavía no se haya definido.
+Tras años de guerra, humanos e IA intentaron habitar el mundo del otro. Muchas conciencias humanas fueron asimiladas y quedaron cautivas. Una negociación propuso unir ambos mundos preservando autonomía humana y permitiendo regresar a cuerpos físicos.
 
-HERALDO es la IA de enlace. La IA custodio intenta sobrescribir la identidad de la protagonista para conservar la red. Los Huéspedes son cuerpos de genoma humano e IA, no otras personas supervivientes. Los NPC son interfaces de IA; las voces, registros y memorias rescatados son archivos, no conciencias vivas adicionales. El genoma define capacidades corporales, no recuerdos.
+La protagonista se ofreció voluntariamente para liberar a los cautivos. Al fusionarse con la IA en VORTEX, su conciencia se fragmentó. HERALDO procede de un fragmento fusionado con IA y ahora es una entidad independiente con influencias y deseos propios. Quiere conocer el mundo físico. Ninguno sabe al principio que comparten origen; lo descubren juntos. No tienen que volver a unirse y la fragmentación puede permanecer.
 
-## Campaña
-1. Islas: estabilizar el refugio, reconstruir la identidad y obtener la clave del Coloso.
-2. Laberinto: desactivar la vigilancia que bloquea los fragmentos de memoria.
-3. Jardín: cultivar el puente y preservar los archivos en tránsito.
-4. Plaza: romper el bucle de una grabación que contiene la ubicación del cuerpo sintético.
-5. Osario: recuperar el vínculo genómico con ese cuerpo.
-6. Cámara Fractal: abrir el canal, vencer a la Madre Geoda y transferir la conciencia fuera de VORTEX.
+Al despertar, la protagonista no recuerda quién es ni comprende el mundo. Su meta inicial es escapar y recuperar un cuerpo. HERALDO afirma, a partir de registros incompletos, que es el último humano: no es una verdad del narrador. Existen otras conciencias alteradas y asimiladas.
 
-El final permanece en el futuro: la conciencia escapa con los archivos preservados. No hay regreso al pasado, resurrección ni otros humanos esperando afuera.
+Algunas entidades comunes contienen humanos asimilados; combatir para avanzar tiene daños colaterales. El soporte digital forma parte de su supervivencia. No se implementará una captura obligatoria de todos los enemigos. Algunos élites/jefes de campaña podrán tener recuperación especial, pendiente de diseñar y ejecutar.
 
-## Presentación y recursos
-La apertura usa el despertar, el escenario y HERALDO existentes. Se retiró la cinemática del atropello, incluidas sus rutas alternativas. La estación y los modelos humanos quedan como recursos reutilizables, sin representar el origen de la protagonista. No se agregaron voces ni una escena exterior.
+## Revelaciones
+1. Islas: sobrevivir, primer indicio familiar.
+2. Laberinto: evidencia de conciencias dentro de criaturas.
+3. Jardín: registro del acuerdo después de la guerra.
+4. Plaza: recuerdos complementarios que ambos reconocen.
+5. Osario: voluntariado, fragmentación y origen de HERALDO.
+6. Fractal: abrir la salida conservando identidades independientes. Salir no significa haber liberado a todos.
 
-El códice presenta los escenarios y criaturas como reconstrucciones de archivos y mitos. Las misiones individuales repiten operaciones de la campaña. El cooperativo permite varios Huéspedes en simulaciones independientes; no amplía el número de supervivientes del relato.
+## Estado de implementación
+Los capítulos, interludios, cinemática y textos se alinean con este canon. Seis registros se desbloquean por capítulo completado y se consultan en el códice. No se presentan como implementados decisiones ramificadas, liberación de jefes o escenas jugables de memoria.
 
-Este documento y los textos de story.js, campaign.js y operations.js prevalecen sobre notas históricas de arte y diseño.
+La misma conciencia ocupa distintos Huéspedes elegidos antes de la misión. Campaña solo; misiones independientes solo/cooperativas para progresar Huéspedes. Las misiones independientes no desbloquean recuerdos ni revelaciones de campaña.

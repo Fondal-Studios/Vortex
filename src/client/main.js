@@ -318,6 +318,7 @@ let cine = null;
 function beginIntro(kind) {
   session.intro = kind; $('hud').classList.add('hidden'); if (session.touch) touch.show(false);
   if (kind === 'transfer') { const cur = session; renderer.setGuide(true); cine = iniciarTransferencia({ char: myChar(), subs, sound, onDone: () => { cine = null; if (session !== cur) return; renderer.setGuide(false); Perfil.cineVista(); finishIntro(); } }); return; }
+  if (!session.campaign) { startWake(Story.wakeForMap(session.map, false)); return; }
   if (kind === 'full') startWake(Story.WAKE);
   else startWake(Story.wakeForMap(session.map));
 }
@@ -347,7 +348,7 @@ function showTutorial(force = false) {
     ? [['MOVER / MIRAR', 'dos pulgares', 'Izquierda: caminar. Doble toque izquierdo: saltar. Derecha: girar la cámara. Tocá el nombre del arma para cambiarla.'], ['ATACAR', 'tocar / mantener', 'Melé: toque = golpe ligero; mantener = ataque secundario. Disparo: mantener dispara.'], ['APOYO / ULTI', 'se desbloquean jugando', 'Tras la primera oleada: apoyo. Tras la tercera: ulti. Cada uno tendrá su propio botón y explicación.'], ['DEFENSA', 'primer poder · disponible desde el inicio', 'Su imagen representa la movilidad o defensa de tu huésped. El número indica segundos de espera. Cambiá Disparo / Melé arriba.']]
     : [['WASD / RATÓN', 'mover / mirar', 'Clic izquierdo: atacar. Espacio: saltar.'], ['TAB', 'cambiar modo', 'Disparo: primera persona. Melé: tercera persona.'], ['F / Q / T', 'defensa / apoyo / ulti', 'F: movilidad o defensa desde el inicio. Apoyo tras la primera oleada; ulti tras la tercera. Mismos poderes en Disparo y Melé. E: interactuar.'], ['PAUSA', 'más controles', 'Consultá las acciones adicionales y los ajustes cuando los necesites.']];
   const op = session.game?.operation || session.lastState?.operation && OPERATIONS[session.map];
-  const chapter = session.campaign ? Story.chapterBrief(session.map) : op ? { title: op.title, context: `Misión individual · capítulo ${op.chapter} de la campaña. ${op.story}`, task: op.steps.map((s,i) => `${i+1}. ${s.title}`).join(' → '), reward: 'Completás una incursión independiente. El avance de la campaña no cambia.' } : Story.chapterBrief(session.map);
+  const chapter = session.campaign ? Story.chapterBrief(session.map) : Story.independentBrief(session.map);
   el.innerHTML = `<h4>${chapter.title}</h4><p>${chapter.context}</p><p><b>${chapter.task}</b></p><p>Al lograrlo: ${chapter.reward}</p><div class="trows">${rows.map((r) => `<div><b>${r[0]}</b><i>${r[1]}</i><span>${r[2]}</span></div>`).join('')}</div><button id="tutok" type="button">Entendido</button>`;
   if (force && session.game?.skillLevel != null) { const C = CHARACTERS[myChar()], level = session.game.skillLevel; const info = document.createElement('div'); for (const [n,def,key] of [[0,C.mov,'F / DEFENSA'],[1,C[SUPPORT[myChar()]],'Q / APOYO'],[2,C.ult,'T / ULTI']]) { if (!def) continue; const p = document.createElement('p'); p.textContent = `${def.name} · ${level >= n ? key + ': ' + def.desc : 'Se desbloquea tras la oleada ' + (n === 1 ? 1 : 3)}`; info.appendChild(p); } el.insertBefore(info, $('tutok')); }
   const tutSession = session, wasPaused = session.paused; if (session.mode === 'solo') session.paused = true; touch.reset(); if (!session.touch && !NOLOCK && document.exitPointerLock) document.exitPointerLock();

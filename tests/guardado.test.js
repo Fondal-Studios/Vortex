@@ -87,10 +87,30 @@ test('exportar / importar: restaura el progreso sin permitir cobrar de nuevo lo 
   fallar = 'QuotaExceededError'; const e = P.importarProgreso(texto); assert.equal(e.ok, false); fallar = null;
 });
 test('perfiles viejos y dañados: abren, conservan y no se pisan en silencio', () => {
-  fresco(); mem.set(KEY, JSON.stringify({ cores: '100', inv: [], terr: {} })); assert.equal(P.recargar().cores, 100); assert.equal(P.perfil().esq, 1); assert.deepEqual(P.perfil().ledger, []);
+  fresco(); mem.set(KEY, JSON.stringify({ cores: '100', inv: [], terr: {} })); assert.equal(P.recargar().cores, 100); assert.equal(P.perfil().esq, 2); assert.deepEqual(P.perfil().ledger, []);
   P.cerrarPartida('axioma', { co: 5, kills: 0 }, { matchId: 'viejo-0001', wave: 1 }); assert.equal(P.perfil().cores, 105);
   mem.clear(); mem.set(KEY, '{esto no es json'); const p = P.recargar(); assert.equal(p.cores, 0); assert.equal(P.estadoGuardado().corrupto, true);
   assert.equal(mem.get('cristal.perfil.v1.corrupto'), '{esto no es json', 'queda una copia del guardado ilegible');
   mem.clear(); mem.set(KEY, JSON.stringify({ esq: 99, cores: 7 })); P.recargar(); assert.equal(P.guardar().ok, false, 'un guardado de versión futura no se sobrescribe'); assert.equal(JSON.parse(mem.get(KEY)).cores, 7);
   mem.clear(); mem.set(KEY, JSON.stringify({ cores: 12.9, ledger: [{ id: 'x1' }, { id: 'valido-0001', h: 'x', at: 1 }] })); P.recargar(); assert.equal(P.perfil().ledger.length, 1);
+});
+
+
+test('editor: fallo al guardar no confirma ni pierde el diseño anterior; reintento persiste', async () => {
+  fresco();
+  const { defecto } = await import('../src/shared/host-build.js');
+  const { guardarDiseno, elegirActivo } = await import('../src/sim/laboratorio-perfil.js');
+  const b = { ...defecto(), id: 'lab-prueba01', nombre: 'Mi primer cuerpo' };
+  const antes = structuredClone(P.perfil().lab);
+  const cambio = guardarDiseno(antes, b).lab;
+  fallar = 'QuotaExceededError';
+  assert.equal(P.guardarLaboratorio(cambio).ok, false);
+  assert.deepEqual(P.perfil().lab, antes);
+  fallar = null;
+  assert.equal(P.guardarLaboratorio(cambio).ok, true);
+  P.recargar(); assert.equal(P.perfil().lab.slots[0].nombre, b.nombre);
+  fallar = 'SecurityError';
+  assert.equal(P.guardarLaboratorio(elegirActivo(P.perfil().lab, null).lab).ok, false);
+  assert.equal(P.perfil().lab.activo, b.id);
+  fallar = null;
 });

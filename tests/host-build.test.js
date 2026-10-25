@@ -384,7 +384,10 @@ test('huella: estable, no depende del orden de las piezas, de cap, h ni meta; s�
   assert.equal(huella(base([a, b2])), '' + huella(JSON.parse(JSON.stringify(base([a, b2])))));
 });
 test('huella: valores golden (cambiarlos rompe a quien ya guardó diseños: súbase VERSION_BUILD)', () => {
-  assert.equal(huella(defecto()), '1a8a968cb1b80c');
+  // El nombre forma parte del contenido: el catálogo cambió el nombre inicial, no el esquema.
+  // Conservar el vector histórico verifica la compatibilidad de los diseños v1 existentes.
+  assert.equal(huella({ ...defecto(), nombre: 'Híbrido de Laboratorio' }), '1a8a968cb1b80c');
+  assert.equal(huella(defecto()), '16f95819f49d11');
 });
 
 /* ───────── VB1 ───────── */

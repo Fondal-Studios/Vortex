@@ -107,7 +107,7 @@ export async function crearVisor(host, opts = {}) {
     if (body) { scene.remove(body.object); body.dispose(); body = null; }
     const nb = createHostBody(THREE, kit, plBase(), { quality: calidad, camera: cam, lab: b });
     scene.add(nb.object); await nb.ready; if (muerto || tok !== creando) { scene.remove(nb.object); nb.dispose(); return; }
-    body = nb; claveGeo = JSON.stringify([b.base.preset, b.pal, b.partes]); marcarSel(); actualizarEsc(); opts.alListo && opts.alListo();
+    body = nb; claveGeo = JSON.stringify([b.base.preset, b.pal, b.partes]); marcarSel(); actualizarEsc(); if (buildAct && buildAct !== b) setBuild(buildAct, { inmediato: true }); opts.alListo && opts.alListo();
   }
   function actualizarEsc() { escalaY = body && body.lab ? body.lab.prop.altura : (buildAct ? buildAct.prop.altura : 1); }
   function setBuild(b, { inmediato = false } = {}) {

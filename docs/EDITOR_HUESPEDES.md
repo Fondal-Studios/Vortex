@@ -1,3 +1,5 @@
+> Actualización: ver [cierre e integración del editor](EDITOR_CIERRE_2026-10-25.md). Los resultados históricos de abajo describen la rama previa; el fallo de huella ya fue explicado y cubierto por compatibilidad v1.
+
 # VORTEX — Editor 3D de Huéspedes («Laboratorio»): diseño técnico verificado
 
 > **Estado del documento**

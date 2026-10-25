@@ -221,3 +221,12 @@ test('el ledger sigue limpio: los recibos de partida no se tocan al desbloquear 
   const led = P.perfil().ledger; assert.equal(led.length, 1); assert.deepEqual(limpiarLedger(led), led); assert.equal(led[0].id, 'partida-ledg-01');
 });
 void COSMETICAS;
+
+test('exportación v1 histórica: el cambio de nombre del catálogo no invalida diseños existentes', () => {
+  const antiguo = { ...defecto(), nombre: 'Híbrido de Laboratorio' };
+  const texto = L.PREFIJO_HUESPED + b64({ app: 'vortex', esq: 1, at: 0, h: '1a8a968cb1b80c', build: antiguo });
+  const r = L.leerExportado(texto);
+  assert.equal(r.ok, true, r.mensaje);
+  assert.equal(r.build.nombre, antiguo.nombre);
+  assert.equal(huella(r.build), '1a8a968cb1b80c');
+});
