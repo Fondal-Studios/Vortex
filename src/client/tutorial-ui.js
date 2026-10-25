@@ -39,7 +39,7 @@ export function crearTutorialUI({ THREE, renderer, root = document.body, sound =
     if (tut.marca === 'blanco') { mk = tut.mp; txt = 'BLANCO' + (tut.vida != null ? ` · ${Math.round(tut.vida * 100)} %` : ''); }
     else if (tut.marca === 'terminal') { mk = tut.mp; txt = 'TERMINAL' + (tut.usar ? ' · USAR' : ''); }
     else if (tut.marca === 'botiquin') { mk = tut.mp; txt = 'BOTIQUÍN'; }
-    else if (tut.zona) { mk = tut.zona.p; txt = tut.zona.espera ? 'Probá de nuevo' : '¡SALÍ DEL CÍRCULO!'; }
+    // (el círculo a esquivar se ve en el suelo y el panel lo explica: sin marcador flotante que choque con los botones)
     const pr = mk && proyectar(mk);
     if (pr && !pr.atras) { mark.hidden = false; mark.dataset.k = tut.marca || 'zona'; mark.firstChild.textContent = txt; mark.style.left = `${Math.max(40, Math.min(innerWidth - 40, pr.x))}px`; mark.style.top = `${Math.max(90, Math.min(innerHeight - 30, pr.y))}px`; } else mark.hidden = true;
     // objetos del mundo

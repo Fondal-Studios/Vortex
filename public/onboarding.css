@@ -30,7 +30,7 @@
 body.tr-on #sub { z-index: 9450; }
 
 /* tutorial jugable */
-#tutpanel { position: fixed; z-index: 60; left: 50%; top: 56px; transform: translateX(-50%); width: min(520px, calc(100vw - 32px)); background: rgba(8, 8, 26, .82); border: 1px solid rgba(95, 231, 255, .55); border-radius: 12px; padding: 10px 14px 12px; color: #eaf2ff; pointer-events: auto; backdrop-filter: blur(3px); }
+#tutpanel { position: fixed; z-index: 60; left: 50%; top: 56px; transform: translateX(-50%); width: min(440px, calc(100vw - 32px)); background: rgba(8, 8, 26, .82); border: 1px solid rgba(95, 231, 255, .55); border-radius: 12px; padding: 10px 14px 12px; color: #eaf2ff; pointer-events: auto; backdrop-filter: blur(3px); }
 #tutpanel[hidden] { display: none; }
 #tutpanel .tp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #5fe7ff; }
 #tutpanel h4 { margin: 4px 0 2px; font-size: 19px; }

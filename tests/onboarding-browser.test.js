@@ -79,10 +79,11 @@ test('onboarding E2E: menú → elegir primer Huésped → cinemática saltable 
     // 6) segunda vez: el mismo perfil NO ve el selector, ni la cinemática, ni el tutorial
     await pg.evaluate(() => { window.__sinPiloto = true; }); await pg.goto(url); await pg.waitForFunction(() => window.__api && window.__ui, null, { timeout: 90000 });
     await pg.evaluate(() => window.__ui.confirmTitle()); await pg.waitForTimeout(800);
-    await pg.click('#continuar'); await pg.click('#modes .card >> nth=0'); await pg.waitForSelector('#story [data-campaign]:not([hidden])'); await pg.click('#story [data-campaign]:not([hidden]):not(:disabled) >> nth=0');
+    await pg.click('#continuar');   // con la campaña ya empezada, «Continuar» retoma directo (sin selector ni cinemática)
     await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 90000 });
     assert.equal(await pg.locator('#primerhuesped').count(), 0); assert.equal(await pg.locator('#transfer').count(), 0); assert.equal(await pg.evaluate(() => !!window.__api.session.game.tutorial), false, 'sin tutorial la 2.ª vez');
     assert.equal(await pg.evaluate(() => window.__api.renderer.third), true, 'cámara en tercera persona por defecto');
+    await pg.keyboard.press('Enter'); await pg.waitForFunction(() => !window.__api.session.intro, null, { timeout: 60000 });   // la intro de capítulo pausa la simulación: se salta para medir que la cámara no la frena
     // cámara (AC-05 en el navegador): el botón alterna sin frenar la simulación; cambiar de modo NO fuerza la cámara salvo «Cámara automática por modo»
     const cam = await pg.evaluate(async () => {
       const A = window.__api, r = {}; r.ini = A.renderer.third; const t0 = A.session.game.time;

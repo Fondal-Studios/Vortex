@@ -70,7 +70,7 @@ export class Game {
     this.state = 'playing'; // playing | won | lost
     this.cfg = this.operation ? misionConfig(mapId) : null;   // definición declarativa de la misión (src/sim/mision-config.js): etapas, jefe y límites
     this.wave = 0; this.waveTotal = this.cfg ? this.cfg.stages.length : (WAVE_PLANS[mapId] || []).length + 1;
-    this.tier = 1; this.stageT = 0; this.stageLimit = Infinity; this.pickWait = 0;   // tier = intensidad de la etapa; stageT = tiempo en la etapa; pickWait = espera por la elección de mejora
+    this.tier = 0; this.stageT = 0; this.stageLimit = Infinity; this.pickWait = 0;   // tier = intensidad de la etapa; stageT = tiempo en la etapa; pickWait = espera por la elección de mejora
     this.phase = 'intermission'; this.phaseT = calm; // calma inicial (la historia usa más)
     this.queue = []; this.omens = []; this.spawnT = 0; this.spawnGap = 1.5;
     this.boss = null; this.mision = null; this.forceElite = false;
