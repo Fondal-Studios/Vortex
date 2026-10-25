@@ -1,4 +1,4 @@
-// CINEMÁTICA DE TRANSFERENCIA (Sprint 1 · docs/ONBOARDING.md): la última conciencia humana, digitalizada, pasa al Huésped elegido. ~24 s.
+// CINEMÁTICA DE TRANSFERENCIA (Sprint 1 · docs/ONBOARDING.md): una conciencia fragmentada pasa al Huésped elegido. ~24 s.
 // Reemplaza al despertar de 4 líneas. SIN tren ni atropello (canon: docs/VORTEX_STORY.md). Escena 3D propia (canvas aparte, ligera):
 //   0–6 s   vacío de VORTEX: una luz (la conciencia) y datos que caen · HERALDO se presenta
 //   6–14 s  el cuerpo del Huésped aparece en la cápsula; la luz se acerca
@@ -12,7 +12,7 @@ import { CHARACTERS } from '../sim/data.js';
 export const DURACION = 24;   // s (el contrato pide 20–30)
 export const LINEAS = [   // [quién, texto, segundos]  (HERALDO = IA de enlace; el resto es la conciencia, en cursiva)
   ['H', 'Conciencia detectada. Soy HERALDO, tu IA de enlace. Estás despertando en un futuro remoto.', 5.2],
-  ['H', 'Sos la última conciencia humana. Tu cuerpo biológico ya no existe: te guardé en VORTEX para que no te perdieran.', 6.3],
+  ['H', 'Mis registros dicen: «última conciencia humana». No sé por qué estás acá. Mi información está incompleta.', 6.3],
   ['H', 'Iniciando transferencia a tu Huésped: genoma humano e IA en un cuerpo sintético. Con él vas a poder actuar.', 6.2],
   ['H', 'La IA custodio quiere sobrescribirte. Despertá. Primero aprendé a moverte.', 5.0],
 ];

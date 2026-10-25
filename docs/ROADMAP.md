@@ -1,3 +1,5 @@
+> Actualización de continuidad del 25/10/2026: ver [estado real de ramas, pruebas y bloques](AUDIT_CONTINUIDAD_2026-10-25.md). Este documento conserva el registro histórico de Claude; no todas sus tablas representan la última implementación.
+
 # VORTEX — ROADMAP (épicas, sprints 1–6 e issues sugeridos)
 
 > **Estado del documento**
