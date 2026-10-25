@@ -1,0 +1,23 @@
+{
+  "url": "http://localhost:43783",
+  "at": "2026-10-25T21:03:42.000Z",
+  "errors": [],
+  "checks": [
+    "source matches: src/client/laboratorio.js",
+    "source matches: src/client/perfil.js",
+    "source matches: src/client/creatures/heraldo.js",
+    "mobile editor renders; compact camera works; no page errors"
+  ],
+  "modes": "‹\nVolver\nMODOS DE JUEGO\n\nElegí cómo entrar a VORTEX\n\nHISTORIA · SOLITARIO\nCAMPAÑA\nLa salida de VORTEX. Seis capítulos conectados, encuentros finales y avance guardado entre capítulos.\n0/6 capítulos completados · Próximo: Islas — Despertar\n\nVer campaña →\n\nPARTIDA INDEPENDIENTE\nMISIONES INDIVIDUALES\nElegí cualquiera de las seis misiones. Oleadas finitas, objetivos y un encuentro final. Ganá experiencia y botín sin modificar la campaña.\n\nElegir misión →\n\nDE 2 A 4 JUGADORES\nCOOPERATIVO\nCompletá misiones independientes con amigos. El anfitrión elige la misión. Progresá tu Huésped y conseguí botín; el cooperativo no avanza la campaña.\n\nAbrir sala →\n\nENTRENAMIENTO\nCAMPO DE PRUEBAS\nProbá tus huéspedes y armas sin riesgo.\n\nPracticar →",
+  "camera": "perfil",
+  "editor": {
+    "valid": true,
+    "info": {
+      "geometrias": 6,
+      "texturas": 6,
+      "llamadas": 8,
+      "tris": 4226
+    }
+  },
+  "ok": true
+}

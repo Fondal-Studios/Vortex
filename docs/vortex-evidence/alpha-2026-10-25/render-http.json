@@ -1,0 +1,30 @@
+{
+  "url": "https://shower-psico-coop.onrender.com",
+  "commit": "691961a528014681136546983740317d372099b5",
+  "checks": [
+    {
+      "path": "src/client/laboratorio.js",
+      "matches": true,
+      "sha256": "ca0e53e8b680c2a70c34915c3c92b0ab47ad0ce994b3667e11ace50644a42905"
+    },
+    {
+      "path": "src/client/perfil.js",
+      "matches": true,
+      "sha256": "6305a83f1a1c16424d8284dd7da5f2725293d72287c159825d3321454b0e1e48"
+    },
+    {
+      "path": "src/client/creatures/heraldo.js",
+      "matches": true,
+      "sha256": "460be000f0182c5b92d77955ee5f6ab903b8095b583733d4d8082df0ec0e4855"
+    }
+  ],
+  "health": {
+    "ok": true,
+    "accounts": false,
+    "proto": 6,
+    "salas": 0,
+    "jugadores": 0,
+    "max": 10,
+    "up": 248
+  }
+}

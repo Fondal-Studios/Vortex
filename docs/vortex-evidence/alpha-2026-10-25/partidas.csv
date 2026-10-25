@@ -1,0 +1,289 @@
+profile,char,mapId,seed,state,seconds,wave,failure,kills,automaticClears,maxCombatGap
+"principiante","axioma","m1",1,"lost",254.53,3,"Se agotó el tiempo del objetivo.",36,29,59.97
+"principiante","axioma","m1",2,"lost",312.9,3,"Se agotó el tiempo del objetivo.",36,28,86.07
+"principiante","vesper","m1",1,"lost",1081.27,8,"",131,108,118.07
+"principiante","vesper","m1",2,"lost",291.17,3,"Se agotó el tiempo del objetivo.",32,24,74.67
+"principiante","micelio","m1",1,"lost",1133.43,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",107,65,203.1
+"principiante","micelio","m1",2,"lost",1173.3,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",116,53,202.93
+"principiante","umbra","m1",1,"lost",249.2,3,"Se agotó el tiempo del objetivo.",41,35,65.6
+"principiante","umbra","m1",2,"lost",242.47,3,"Se agotó el tiempo del objetivo.",33,20,57.57
+"principiante","seraf","m1",1,"lost",1168.73,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",117,76,136.27
+"principiante","seraf","m1",2,"lost",1173.7,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",112,65,103.97
+"principiante","danzante","m1",1,"lost",1185.5,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",140,100,88.07
+"principiante","danzante","m1",2,"lost",289.8,3,"Se agotó el tiempo del objetivo.",39,30,55.73
+"principiante","singular","m1",1,"lost",1158.2,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",176,74,70.17
+"principiante","singular","m1",2,"lost",1153.3,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",153,72,47.23
+"principiante","colmena","m1",1,"won",936.5,8,"",191,50,29.3
+"principiante","colmena","m1",2,"won",941.8,8,"",152,35,39.73
+"principiante","axioma","m3",1,"lost",557.03,6,"",73,39,116.07
+"principiante","axioma","m3",2,"lost",245.83,2,"Se agotó el tiempo del objetivo.",17,8,77.83
+"principiante","vesper","m3",1,"lost",65.9,1,"",2,0,53.07
+"principiante","vesper","m3",2,"lost",335.93,4,"",33,14,96.1
+"principiante","micelio","m3",1,"lost",371.1,4,"Se agotó el tiempo del objetivo.",41,2,56.4
+"principiante","micelio","m3",2,"lost",1292.77,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",284,51,122.97
+"principiante","umbra","m3",1,"lost",728.9,7,"",138,40,106.03
+"principiante","umbra","m3",2,"lost",838.8,8,"",203,27,59.23
+"principiante","seraf","m3",1,"lost",1255.6,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",222,65,62.97
+"principiante","seraf","m3",2,"lost",259.63,2,"Se agotó el tiempo del objetivo.",19,1,57
+"principiante","danzante","m3",1,"lost",255.53,2,"Se agotó el tiempo del objetivo.",20,3,32.93
+"principiante","danzante","m3",2,"lost",238.97,2,"Se agotó el tiempo del objetivo.",19,5,66.8
+"principiante","singular","m3",1,"lost",1243.83,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",338,35,67.87
+"principiante","singular","m3",2,"lost",1279.4,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",435,45,57.23
+"principiante","colmena","m3",1,"lost",498.43,6,"",129,4,38.53
+"principiante","colmena","m3",2,"lost",670.13,7,"",208,22,41.17
+"principiante","axioma","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,7,46.63
+"principiante","axioma","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,5,43.53
+"principiante","vesper","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,6,35.83
+"principiante","vesper","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",9,6,87.5
+"principiante","micelio","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,2,55.3
+"principiante","micelio","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,4,21.97
+"principiante","umbra","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",9,3,47.17
+"principiante","umbra","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,4,47.23
+"principiante","seraf","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",12,7,26.8
+"principiante","seraf","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",11,4,38.63
+"principiante","danzante","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",9,6,48.7
+"principiante","danzante","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",11,6,33.23
+"principiante","singular","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",9,2,14.97
+"principiante","singular","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",9,3,19.77
+"principiante","colmena","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",13,0,11.3
+"principiante","colmena","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",14,0,16.1
+"principiante","axioma","m5",1,"lost",1263.8,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",179,37,107.2
+"principiante","axioma","m5",2,"lost",555.63,6,"",77,20,78.2
+"principiante","vesper","m5",1,"lost",538.9,6,"",63,22,113.2
+"principiante","vesper","m5",2,"lost",66.13,1,"",3,0,54.63
+"principiante","micelio","m5",1,"lost",1251.43,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",231,28,158.47
+"principiante","micelio","m5",2,"lost",381.07,5,"La zona segura fue destruida.",88,17,28.57
+"principiante","umbra","m5",1,"lost",517.07,6,"",108,21,43.7
+"principiante","umbra","m5",2,"lost",1183.67,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",200,26,149
+"principiante","seraf","m5",1,"lost",480.07,5,"",97,17,101.87
+"principiante","seraf","m5",2,"lost",690.33,7,"",116,18,36.57
+"principiante","danzante","m5",1,"lost",1227.6,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",200,34,45
+"principiante","danzante","m5",2,"lost",1228.43,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",187,27,72.27
+"principiante","singular","m5",1,"lost",1135.77,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",260,30,31.93
+"principiante","singular","m5",2,"lost",1197.2,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",339,31,40.63
+"principiante","colmena","m5",1,"won",972.07,8,"",247,11,25.23
+"principiante","colmena","m5",2,"won",1056.93,8,"",247,14,23.17
+"principiante","axioma","m6",1,"lost",1109.03,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",144,35,90.9
+"principiante","axioma","m6",2,"lost",353.83,3,"Se agotó el tiempo del objetivo.",26,1,95.27
+"principiante","vesper","m6",1,"lost",490.33,6,"",69,19,97.27
+"principiante","vesper","m6",2,"lost",544.07,7,"",69,27,60.67
+"principiante","micelio","m6",1,"lost",288.83,3,"Se agotó el tiempo del objetivo.",27,3,92.5
+"principiante","micelio","m6",2,"lost",1176.3,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",229,28,104.53
+"principiante","umbra","m6",1,"lost",485.9,6,"",82,19,41.67
+"principiante","umbra","m6",2,"lost",297.13,3,"Se agotó el tiempo del objetivo.",31,1,40.87
+"principiante","seraf","m6",1,"lost",298.43,3,"Se agotó el tiempo del objetivo.",32,0,31.13
+"principiante","seraf","m6",2,"lost",748.67,8,"",182,30,79.13
+"principiante","danzante","m6",1,"lost",666,7,"",96,19,38.3
+"principiante","danzante","m6",2,"lost",154.03,1,"Se agotó el tiempo del objetivo.",10,0,18.33
+"principiante","singular","m6",1,"lost",1092.97,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",309,35,31.33
+"principiante","singular","m6",2,"lost",1093.43,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",265,23,42.1
+"principiante","colmena","m6",1,"lost",696.77,8,"",167,18,30.33
+"principiante","colmena","m6",2,"lost",415.63,6,"",83,8,18.73
+"principiante","axioma","m2",1,"lost",308.97,4,"",35,20,172.67
+"principiante","axioma","m2",2,"lost",115.17,2,"",5,2,82.27
+"principiante","vesper","m2",1,"lost",549.97,6,"",87,82,495.03
+"principiante","vesper","m2",2,"lost",264.2,3,"",23,11,247.1
+"principiante","micelio","m2",1,"lost",504.87,6,"",149,53,196.63
+"principiante","micelio","m2",2,"lost",1212.4,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",315,100,181.57
+"principiante","umbra","m2",1,"lost",493.03,6,"",73,34,112.3
+"principiante","umbra","m2",2,"lost",370.9,4,"",56,12,64.93
+"principiante","seraf","m2",1,"lost",677.57,7,"",130,59,69.63
+"principiante","seraf","m2",2,"lost",485.57,6,"",110,57,100.37
+"principiante","danzante","m2",1,"lost",517.37,6,"",123,72,50.57
+"principiante","danzante","m2",2,"lost",267.63,3,"",26,3,79.93
+"principiante","singular","m2",1,"lost",1172.1,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",318,76,40.73
+"principiante","singular","m2",2,"lost",929.27,8,"",276,80,52.53
+"principiante","colmena","m2",1,"lost",777.87,8,"",293,77,23.53
+"principiante","colmena","m2",2,"won",998.4,8,"",273,87,37.43
+"intermedio","axioma","m1",1,"lost",299.27,3,"Se agotó el tiempo del objetivo.",29,16,77.43
+"intermedio","axioma","m1",2,"lost",274.8,3,"Se agotó el tiempo del objetivo.",31,22,108.4
+"intermedio","vesper","m1",1,"lost",246.73,3,"Se agotó el tiempo del objetivo.",29,26,98
+"intermedio","vesper","m1",2,"lost",651.83,7,"",83,61,108.3
+"intermedio","micelio","m1",1,"lost",1176.33,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",130,56,127.9
+"intermedio","micelio","m1",2,"lost",1082,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",104,56,181.03
+"intermedio","umbra","m1",1,"won",966.03,8,"",111,56,104.87
+"intermedio","umbra","m1",2,"won",1042.4,8,"",123,61,65.03
+"intermedio","seraf","m1",1,"lost",1152.2,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",118,53,104.63
+"intermedio","seraf","m1",2,"lost",1170.1,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",99,52,75.37
+"intermedio","danzante","m1",1,"lost",1142.13,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",129,84,125.27
+"intermedio","danzante","m1",2,"lost",1194.3,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",159,76,76.53
+"intermedio","singular","m1",1,"won",970.73,8,"",152,49,77.7
+"intermedio","singular","m1",2,"won",933.37,8,"",141,45,144.13
+"intermedio","colmena","m1",1,"won",769.97,8,"",152,32,42.33
+"intermedio","colmena","m1",2,"won",835.47,8,"",151,33,37.97
+"intermedio","axioma","m3",1,"lost",186.47,2,"Se agotó el tiempo del objetivo.",19,14,99.07
+"intermedio","axioma","m3",2,"lost",422.43,5,"",65,27,162.7
+"intermedio","vesper","m3",1,"lost",181.33,2,"Se agotó el tiempo del objetivo.",18,12,65.93
+"intermedio","vesper","m3",2,"lost",66.93,1,"",2,0,48.27
+"intermedio","micelio","m3",1,"lost",1221.47,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",315,65,85.77
+"intermedio","micelio","m3",2,"lost",1241.93,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",321,58,91.17
+"intermedio","umbra","m3",1,"lost",675.17,7,"",165,21,86.87
+"intermedio","umbra","m3",2,"lost",1178.37,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",303,57,42.1
+"intermedio","seraf","m3",1,"lost",580.53,6,"",126,21,67.13
+"intermedio","seraf","m3",2,"lost",423.7,5,"",65,8,57.67
+"intermedio","danzante","m3",1,"lost",355.4,4,"",43,17,45.4
+"intermedio","danzante","m3",2,"lost",1190.47,8,"",270,64,54.33
+"intermedio","singular","m3",1,"lost",1206.73,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",309,33,55.83
+"intermedio","singular","m3",2,"lost",1229.17,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",420,41,60.13
+"intermedio","colmena","m3",1,"lost",626.2,7,"",174,23,33.83
+"intermedio","colmena","m3",2,"lost",1138.67,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",355,46,34.7
+"intermedio","axioma","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,3,40.07
+"intermedio","axioma","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,2,32.97
+"intermedio","vesper","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",9,1,48.37
+"intermedio","vesper","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,7,96.97
+"intermedio","micelio","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,3,37.77
+"intermedio","micelio","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,2,19.07
+"intermedio","umbra","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",11,4,38.17
+"intermedio","umbra","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,0,24.17
+"intermedio","seraf","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",9,0,20.43
+"intermedio","seraf","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",11,5,37.2
+"intermedio","danzante","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",9,3,25.47
+"intermedio","danzante","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,5,21.63
+"intermedio","singular","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",12,1,16.5
+"intermedio","singular","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",8,2,13.27
+"intermedio","colmena","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",14,1,8.23
+"intermedio","colmena","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",14,3,15.1
+"intermedio","axioma","m5",1,"lost",314.47,5,"",49,17,81.17
+"intermedio","axioma","m5",2,"lost",379.07,5,"",54,18,91.37
+"intermedio","vesper","m5",1,"lost",379.3,5,"",50,21,102.77
+"intermedio","vesper","m5",2,"lost",408.07,5,"",50,15,69.8
+"intermedio","micelio","m5",1,"lost",1183.77,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",205,44,230.23
+"intermedio","micelio","m5",2,"lost",1160.97,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",236,26,127.13
+"intermedio","umbra","m5",1,"lost",289.77,5,"",41,9,49.43
+"intermedio","umbra","m5",2,"lost",452.2,6,"",85,21,89.1
+"intermedio","seraf","m5",1,"lost",1135.27,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",207,26,181.53
+"intermedio","seraf","m5",2,"lost",1142.63,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",216,33,86.7
+"intermedio","danzante","m5",1,"lost",567.4,7,"",123,23,31.6
+"intermedio","danzante","m5",2,"lost",298.03,5,"",42,17,45.87
+"intermedio","singular","m5",1,"lost",1118.07,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",239,29,54.73
+"intermedio","singular","m5",2,"lost",1090.67,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",278,24,31.67
+"intermedio","colmena","m5",1,"won",874.3,8,"",220,11,18.2
+"intermedio","colmena","m5",2,"won",846.73,8,"",200,14,22.93
+"intermedio","axioma","m6",1,"lost",557.97,7,"",81,21,42.5
+"intermedio","axioma","m6",2,"lost",722.73,8,"",132,24,55.2
+"intermedio","vesper","m6",1,"lost",428.8,6,"",68,9,54.07
+"intermedio","vesper","m6",2,"lost",344.63,6,"",39,13,45.17
+"intermedio","micelio","m6",1,"lost",1105.17,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",224,36,51.83
+"intermedio","micelio","m6",2,"lost",253.6,3,"Se agotó el tiempo del objetivo.",26,0,43.6
+"intermedio","umbra","m6",1,"lost",1062.8,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",220,21,55.73
+"intermedio","umbra","m6",2,"lost",1091.13,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",214,18,41.37
+"intermedio","seraf","m6",1,"lost",1059,8,"",159,31,45.93
+"intermedio","seraf","m6",2,"lost",1139.93,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",189,35,50.9
+"intermedio","danzante","m6",1,"lost",531.63,7,"",109,19,33.7
+"intermedio","danzante","m6",2,"lost",641.63,8,"",93,31,50.1
+"intermedio","singular","m6",1,"lost",1025.53,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",223,25,35.17
+"intermedio","singular","m6",2,"lost",1067.37,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",297,34,32.47
+"intermedio","colmena","m6",1,"lost",515.77,7,"",121,9,21.83
+"intermedio","colmena","m6",2,"lost",453.87,7,"",125,13,19.7
+"intermedio","axioma","m2",1,"lost",90.93,2,"",4,1,64.7
+"intermedio","axioma","m2",2,"lost",499.57,6,"",115,92,141.47
+"intermedio","vesper","m2",1,"lost",493.3,6,"",95,89,493.3
+"intermedio","vesper","m2",2,"lost",571.9,6,"",103,96,360.5
+"intermedio","micelio","m2",1,"lost",1182.13,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",525,116,142.33
+"intermedio","micelio","m2",2,"lost",1188.67,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",247,108,132.57
+"intermedio","umbra","m2",1,"lost",895.5,8,"",190,117,148.53
+"intermedio","umbra","m2",2,"lost",622.57,7,"",126,89,95.13
+"intermedio","seraf","m2",1,"lost",523.4,6,"",117,58,88.77
+"intermedio","seraf","m2",2,"lost",529.93,6,"",145,77,51.67
+"intermedio","danzante","m2",1,"lost",422.17,6,"",105,74,78.73
+"intermedio","danzante","m2",2,"lost",640.9,7,"",161,100,91.33
+"intermedio","singular","m2",1,"lost",1129.5,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",280,80,55.33
+"intermedio","singular","m2",2,"lost",1145.7,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",296,86,72.5
+"intermedio","colmena","m2",1,"lost",416.83,6,"",124,42,25.07
+"intermedio","colmena","m2",2,"lost",407.8,6,"",148,42,26.7
+"experto","axioma","m1",1,"won",828.7,8,"",114,56,142.1
+"experto","axioma","m1",2,"won",752.87,8,"",109,61,81.2
+"experto","vesper","m1",1,"won",861.1,8,"",110,69,123.03
+"experto","vesper","m1",2,"won",844.17,8,"",101,57,123.6
+"experto","micelio","m1",1,"won",778.5,8,"",107,42,94.4
+"experto","micelio","m1",2,"won",965.53,8,"",155,25,131.1
+"experto","umbra","m1",1,"won",660.27,8,"",116,19,52.77
+"experto","umbra","m1",2,"won",752.03,8,"",123,36,67.1
+"experto","seraf","m1",1,"won",1014.13,8,"",142,46,116.3
+"experto","seraf","m1",2,"lost",1158.67,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",164,61,121.6
+"experto","danzante","m1",1,"won",852.07,8,"",116,58,57.13
+"experto","danzante","m1",2,"lost",885.47,8,"",137,43,80.77
+"experto","singular","m1",1,"won",703.13,8,"",117,41,53.47
+"experto","singular","m1",2,"won",779.97,8,"",115,39,112.8
+"experto","colmena","m1",1,"won",582.97,8,"",117,16,40.4
+"experto","colmena","m1",2,"won",675.07,8,"",132,13,41.57
+"experto","axioma","m3",1,"lost",467.87,6,"",72,27,50.1
+"experto","axioma","m3",2,"lost",1155.2,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",298,59,38.57
+"experto","vesper","m3",1,"lost",497.4,6,"",71,31,51.17
+"experto","vesper","m3",2,"lost",671.77,7,"",171,34,81.03
+"experto","micelio","m3",1,"lost",1138.7,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",276,49,50.67
+"experto","micelio","m3",2,"lost",1124.13,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",432,51,36.27
+"experto","umbra","m3",1,"lost",1143.47,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",324,38,32.6
+"experto","umbra","m3",2,"lost",1094.9,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",342,18,50.5
+"experto","seraf","m3",1,"lost",1149.3,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",332,41,48.83
+"experto","seraf","m3",2,"lost",1207.83,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",290,45,75.73
+"experto","danzante","m3",1,"lost",468.9,6,"",90,21,35.9
+"experto","danzante","m3",2,"lost",527.1,6,"",114,10,44.97
+"experto","singular","m3",1,"lost",1146.83,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",330,48,30.73
+"experto","singular","m3",2,"lost",1203.63,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",284,37,83.23
+"experto","colmena","m3",1,"lost",1097.33,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",301,11,25.2
+"experto","colmena","m3",2,"lost",1094.73,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",323,13,59.8
+"experto","axioma","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",12,4,15.97
+"experto","axioma","m4",2,"lost",398.57,3,"",41,11,187.53
+"experto","vesper","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",11,1,14.43
+"experto","vesper","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",8,1,24.37
+"experto","micelio","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",11,2,19.2
+"experto","micelio","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,1,15.83
+"experto","umbra","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",11,1,17
+"experto","umbra","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",8,1,24.83
+"experto","seraf","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,2,20.93
+"experto","seraf","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",8,0,15.77
+"experto","danzante","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",13,1,18.27
+"experto","danzante","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",11,1,14.1
+"experto","singular","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",12,2,10.03
+"experto","singular","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",10,2,19.93
+"experto","colmena","m4",1,"lost",264.03,1,"Se agotó el tiempo del objetivo.",14,1,11.07
+"experto","colmena","m4",2,"lost",264.03,1,"Se agotó el tiempo del objetivo.",13,0,14.4
+"experto","axioma","m5",1,"won",810.4,8,"",170,35,41.5
+"experto","axioma","m5",2,"lost",319.43,5,"",49,14,62.6
+"experto","vesper","m5",1,"won",783.87,8,"",176,29,39.43
+"experto","vesper","m5",2,"won",792.47,8,"",198,24,48.87
+"experto","micelio","m5",1,"won",808.43,8,"",221,23,41.63
+"experto","micelio","m5",2,"lost",1049.67,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",276,20,34.33
+"experto","umbra","m5",1,"won",775.57,8,"",244,17,50.3
+"experto","umbra","m5",2,"won",760.07,8,"",168,12,26.4
+"experto","seraf","m5",1,"lost",1065.7,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",227,25,70.2
+"experto","seraf","m5",2,"won",890.93,8,"",220,22,30.73
+"experto","danzante","m5",1,"won",935.1,8,"",233,30,40.83
+"experto","danzante","m5",2,"lost",518,7,"",114,19,45.8
+"experto","singular","m5",1,"won",937.1,8,"",235,20,39.47
+"experto","singular","m5",2,"won",813.37,8,"",191,22,28.57
+"experto","colmena","m5",1,"won",712.83,8,"",167,8,19.4
+"experto","colmena","m5",2,"won",682.43,8,"",188,11,22.47
+"experto","axioma","m6",1,"lost",652.53,8,"",151,24,42.07
+"experto","axioma","m6",2,"lost",676.87,8,"",156,36,42.03
+"experto","vesper","m6",1,"lost",199.23,4,"",31,3,25.67
+"experto","vesper","m6",2,"lost",225.67,4,"",40,3,31.8
+"experto","micelio","m6",1,"lost",1030.47,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",250,25,37.97
+"experto","micelio","m6",2,"lost",1022.57,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",270,22,48.83
+"experto","umbra","m6",1,"lost",1022.83,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",279,19,31.7
+"experto","umbra","m6",2,"lost",1025.73,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",253,16,29.73
+"experto","seraf","m6",1,"lost",1063.43,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",239,32,33.77
+"experto","seraf","m6",2,"lost",1044.53,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",174,31,47.1
+"experto","danzante","m6",1,"lost",1053.47,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",229,26,41.97
+"experto","danzante","m6",2,"lost",1035.87,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",195,19,30.07
+"experto","singular","m6",1,"lost",1040.07,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",256,12,37.73
+"experto","singular","m6",2,"lost",920.8,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",264,12,28.87
+"experto","colmena","m6",1,"lost",1014.87,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",297,22,19.43
+"experto","colmena","m6",2,"won",947.07,8,"",237,4,26.8
+"experto","axioma","m2",1,"lost",644.23,7,"",138,94,109.63
+"experto","axioma","m2",2,"lost",1150.97,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",209,102,73.87
+"experto","vesper","m2",1,"lost",825.03,8,"",211,158,133.93
+"experto","vesper","m2",2,"lost",1125.03,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",202,153,101.93
+"experto","micelio","m2",1,"lost",1078.93,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",372,94,85.93
+"experto","micelio","m2",2,"lost",1082.13,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",204,74,81.17
+"experto","umbra","m2",1,"won",1046.07,8,"",317,91,44.1
+"experto","umbra","m2",2,"lost",1087.8,8,"Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.",261,76,58
+"experto","seraf","m2",1,"lost",665.63,7,"",171,92,90.63
+"experto","seraf","m2",2,"lost",475.63,6,"",135,51,55.1
+"experto","danzante","m2",1,"lost",608.37,7,"",153,73,47.1
+"experto","danzante","m2",2,"lost",748.1,8,"",221,134,97.23
+"experto","singular","m2",1,"won",985.2,8,"",345,79,57.87
+"experto","singular","m2",2,"won",990.23,8,"",300,95,39.63
+"experto","colmena","m2",1,"won",941.13,8,"",275,47,28.33
+"experto","colmena","m2",2,"won",1025.27,8,"",287,54,24.5

@@ -1,0 +1,19 @@
+✔ resume después del final recupera sólo el botín del jugador autenticado (136.148423ms)
+✔ la sala terminada y vacía se cierra sola (cierre limpio) (98.904206ms)
+# delta: 1333 snapshots, completo 4732 B → delta 1141 B por snapshot (76% menos), hasta 2 criaturas
+✔ delta de snapshots: aplicar(compactar(x)) reconstruye EXACTAMENTE el snapshot completo (4000 ticks, 4 jugadores) (1597.460667ms)
+✔ lobby: crear, unirse, elegir Huésped y modo, listo, sólo el anfitrión empieza, cuenta regresiva sincronizada (3181.875711ms)
+✔ errores claros: versión distinta, sala inexistente, sala llena, mensajes basura (438.029671ms)
+# 4 bots: oleada 4, estado playing, 19884 ticks (5.5 min de juego), pico 15 criaturas, 39/2/8 bajas
+# ancho de banda por jugador (bajada): 35.0 KB/s sin comprimir / 15.9 KB/s comprimido | 34.7 KB/s sin comprimir / 15.8 KB/s comprimido | 34.9 KB/s sin comprimir / 15.9 KB/s comprimido
+✔ 4 bots por WebSocket (200 ms de latencia en dos de ellos): 3+ oleadas sin desincronizar, reconexión y salida de un jugador (59004.182058ms)
+✔ fin de partida: cada jugador recibe SU botín del servidor; "otra vez" vuelve al lobby (3593.485917ms)
+✔ seguridad: sin salirse de las carpetas del juego, origen permitido, tope de conexiones por red y salud con CORS (90.40006ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 113877.379526

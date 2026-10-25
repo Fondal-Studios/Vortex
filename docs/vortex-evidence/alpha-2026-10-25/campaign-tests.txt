@@ -1,0 +1,31 @@
+✔ recuerdos: no hay spoilers antes de ganar; progreso inválido no salta revelaciones (5.493479ms)
+✔ revelación gradual: primero indicios, luego cautivos y por último origen compartido (0.798737ms)
+✔ recuerdos persisten con campaña y no cambian por botín independiente; reinicio no borra equipo (7.345827ms)
+✔ misiones independientes y coop: briefings e introducciones no revelan el origen de HERALDO (1.46989ms)
+✔ one six-chapter route provides causal links and ends at the exit (0.896525ms)
+✔ progress is sequential, idempotent, recoverable and rejects chapter skips (1.115655ms)
+✔ every chapter, campaign or individual, ends with its own final boss after all its waves (82.059821ms)
+✔ existing profiles keep inventory/currency; chapter checkpoint survives reload; restart only resets campaign (16.942884ms)
+✔ toda arena es una misión finita con definición válida, o un modo aparte declarado (11.401303ms)
+✔ ningún límite es infinito y el jefe se enfurece antes de su tope (0.434997ms)
+✔ las oleadas de cada misión son variadas: tipos, objetivos y composición (0.905768ms)
+✔ «Islas — Despertar» es el capítulo 1 y los demás conservan los nombres del repositorio (0.184058ms)
+✔ VICTORIA: recorrer todas las oleadas hasta el jefe termina en won y paga premio de misión (10.315473ms)
+✔ DERROTA: el equipo caído termina la misión; en coop basta que caigan todos (23.560811ms)
+✔ TIEMPO AGOTADO de la misión: derrota clara aunque nadie haga nada (13.391544ms)
+✔ TIEMPO AGOTADO del encuentro final: derrota por tiempo, no combate eterno (32.155965ms)
+✔ el tope del jefe crece con el equipo y el enfurecimiento llega antes que el tope (0.9998ms)
+✔ TIEMPO AGOTADO de una oleada de combate: la red se repliega y la misión sigue (no se queda trabada) (40.858326ms)
+✔ OBJETIVO sin cumplir: se agota su tiempo y la misión se pierde (sin esperas infinitas) (13.781013ms)
+✔ AFK: en solitario el intermedio NO se congela esperando la mejora; se elige sola (80.182164ms)
+✔ AFK en una misión completa: un jugador inactivo no la deja abierta más allá del tope de la misión (564.800639ms)
+✔ coop 1–4: la misión se arma igual y el jefe final escala con el equipo (2.287195ms)
+✔ la oleada declarada usa una composición propia: la etapa 6 de m4 incluye criaturas que la 1 no (3.50845ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1149.750176

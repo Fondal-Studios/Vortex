@@ -1,0 +1,8 @@
+{
+  "url": "https://shower-psico-coop.onrender.com",
+  "at": "2026-10-25T20:58:16.531Z",
+  "errors": [],
+  "checks": [],
+  "ok": false,
+  "failure": "page.goto: net::ERR_EMPTY_RESPONSE at https://shower-psico-coop.onrender.com/?q=low&autoq=0\nCall log:\n\u001b[2m  - navigating to \"https://shower-psico-coop.onrender.com/?q=low&autoq=0\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at /workspace/scratch/4402b08e3420/vortex/tools/audit/render-smoke.mjs:12:13"
+}

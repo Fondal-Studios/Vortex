@@ -1,0 +1,14 @@
+{
+  "service": "shower-psico-coop",
+  "serviceId": "srv-dbcmmass728c73fibb60",
+  "url": "https://shower-psico-coop.onrender.com",
+  "deployId": "dep-dbf6of67bikc73ccu5q0",
+  "commit": "691961a528014681136546983740317d372099b5",
+  "status": "live",
+  "finishedAt": "2026-10-25T20:54:18.16768Z",
+  "verification": "Render API plus HTTP health and exact source bytes; remote Chromium ERR_EMPTY_RESPONSE twice; local Chromium passed",
+  "githubCombinedStatus": {
+    "statuses": [],
+    "conclusion": "No acredita Actions verde"
+  }
+}

@@ -1,0 +1,686 @@
+{
+  "commit": "691961a528014681136546983740317d372099b5",
+  "at": "2026-10-25T21:03:48.589Z",
+  "overall": {
+    "n": 288,
+    "wins": 270,
+    "winPct": 93.8,
+    "winMinutesMean": 10.924926543209864,
+    "winMinutesMedian": 10.49475,
+    "winMinutesMin": 7.6899999999999995,
+    "winMinutesMax": 15.958833333333333,
+    "wins8to12": 201,
+    "lost": 18,
+    "censored": 0,
+    "failures": {
+      "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 11,
+      "death/other": 4,
+      "Se agotó el tiempo del objetivo.": 3
+    }
+  },
+  "profiles": {
+    "principiante": {
+      "n": 96,
+      "wins": 85,
+      "winPct": 88.5,
+      "winMinutesMean": 11.587119607843135,
+      "winMinutesMedian": 11.176166666666667,
+      "winMinutesMin": 7.8845,
+      "winMinutesMax": 15.958833333333333,
+      "wins8to12": 53,
+      "lost": 11,
+      "censored": 0,
+      "failures": {
+        "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 8,
+        "death/other": 2,
+        "Se agotó el tiempo del objetivo.": 1
+      }
+    },
+    "intermedio": {
+      "n": 96,
+      "wins": 93,
+      "winPct": 96.9,
+      "winMinutesMean": 10.848969534050182,
+      "winMinutesMedian": 10.499500000000001,
+      "winMinutesMin": 7.801666666666667,
+      "winMinutesMax": 15.151166666666667,
+      "wins8to12": 72,
+      "lost": 3,
+      "censored": 0,
+      "failures": {
+        "death/other": 2,
+        "Se agotó el tiempo del objetivo.": 1
+      }
+    },
+    "experto": {
+      "n": 96,
+      "wins": 92,
+      "winPct": 95.8,
+      "winMinutesMean": 10.389900362318846,
+      "winMinutesMedian": 10.077749999999998,
+      "winMinutesMin": 7.6899999999999995,
+      "winMinutesMax": 15.345,
+      "wins8to12": 76,
+      "lost": 4,
+      "censored": 0,
+      "failures": {
+        "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 3,
+        "Se agotó el tiempo del objetivo.": 1
+      }
+    }
+  },
+  "chapters": {
+    "m1": {
+      "principiante": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 9.782333333333334,
+        "winMinutesMedian": 9.809416666666667,
+        "winMinutesMin": 7.8845,
+        "winMinutesMax": 12.435,
+        "wins8to12": 14,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "intermedio": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 9.153812500000003,
+        "winMinutesMedian": 8.980583333333335,
+        "winMinutesMin": 7.801666666666667,
+        "winMinutesMax": 11.037166666666668,
+        "wins8to12": 15,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 8.836270833333336,
+        "winMinutesMedian": 8.780833333333334,
+        "winMinutesMin": 7.6899999999999995,
+        "winMinutesMax": 10.360000000000001,
+        "wins8to12": 14,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "m3": {
+      "principiante": {
+        "n": 16,
+        "wins": 11,
+        "winPct": 68.8,
+        "winMinutesMean": 12.851999999999999,
+        "winMinutesMedian": 12.676666666666668,
+        "winMinutesMin": 10.467166666666666,
+        "winMinutesMax": 15.66,
+        "wins8to12": 3,
+        "lost": 5,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 5
+        }
+      },
+      "intermedio": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 11.98684375,
+        "winMinutesMedian": 11.956666666666667,
+        "winMinutesMin": 10.192833333333335,
+        "winMinutesMax": 14.878833333333334,
+        "wins8to12": 8,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 16,
+        "wins": 15,
+        "winPct": 93.8,
+        "winMinutesMean": 11.197122222222221,
+        "winMinutesMedian": 11.076666666666666,
+        "winMinutesMin": 8.866666666666667,
+        "winMinutesMax": 14.187166666666666,
+        "wins8to12": 11,
+        "lost": 1,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 1
+        }
+      }
+    },
+    "m4": {
+      "principiante": {
+        "n": 16,
+        "wins": 13,
+        "winPct": 81.3,
+        "winMinutesMean": 13.62525641025641,
+        "winMinutesMedian": 14.66,
+        "winMinutesMin": 10.212166666666667,
+        "winMinutesMax": 15.958833333333333,
+        "wins8to12": 2,
+        "lost": 3,
+        "censored": 0,
+        "failures": {
+          "death/other": 2,
+          "Se agotó el tiempo del objetivo.": 1
+        }
+      },
+      "intermedio": {
+        "n": 16,
+        "wins": 13,
+        "winPct": 81.3,
+        "winMinutesMean": 12.41229487179487,
+        "winMinutesMedian": 12.357833333333334,
+        "winMinutesMin": 9.553333333333335,
+        "winMinutesMax": 15.151166666666667,
+        "wins8to12": 5,
+        "lost": 3,
+        "censored": 0,
+        "failures": {
+          "death/other": 2,
+          "Se agotó el tiempo del objetivo.": 1
+        }
+      },
+      "experto": {
+        "n": 16,
+        "wins": 15,
+        "winPct": 93.8,
+        "winMinutesMean": 11.261033333333334,
+        "winMinutesMedian": 10.8295,
+        "winMinutesMin": 9.467166666666666,
+        "winMinutesMax": 14.2045,
+        "wins8to12": 10,
+        "lost": 1,
+        "censored": 0,
+        "failures": {
+          "Se agotó el tiempo del objetivo.": 1
+        }
+      }
+    },
+    "m5": {
+      "principiante": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 10.442874999999999,
+        "winMinutesMedian": 10.225000000000001,
+        "winMinutesMin": 9.32,
+        "winMinutesMax": 12.281166666666667,
+        "wins8to12": 15,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "intermedio": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 10.166114583333334,
+        "winMinutesMedian": 9.925333333333334,
+        "winMinutesMin": 9.338333333333333,
+        "winMinutesMax": 11.618333333333334,
+        "wins8to12": 16,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 10.080760416666667,
+        "winMinutesMedian": 9.728,
+        "winMinutesMin": 9.242166666666666,
+        "winMinutesMax": 11.396166666666666,
+        "wins8to12": 16,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "m6": {
+      "principiante": {
+        "n": 16,
+        "wins": 13,
+        "winPct": 81.3,
+        "winMinutesMean": 12.03624358974359,
+        "winMinutesMedian": 11.752833333333333,
+        "winMinutesMin": 9.5045,
+        "winMinutesMax": 15.8255,
+        "wins8to12": 9,
+        "lost": 3,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 3
+        }
+      },
+      "intermedio": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 10.821458333333334,
+        "winMinutesMedian": 10.638916666666667,
+        "winMinutesMin": 8.879999999999999,
+        "winMinutesMax": 15.095,
+        "wins8to12": 14,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 16,
+        "wins": 14,
+        "winPct": 87.5,
+        "winMinutesMean": 10.409642857142858,
+        "winMinutesMedian": 9.979500000000002,
+        "winMinutesMin": 8.633833333333333,
+        "winMinutesMax": 15.345,
+        "wins8to12": 11,
+        "lost": 2,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 2
+        }
+      }
+    },
+    "m2": {
+      "principiante": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 11.645645833333333,
+        "winMinutesMedian": 11.071666666666667,
+        "winMinutesMin": 10.045,
+        "winMinutesMax": 14.389999999999999,
+        "wins8to12": 10,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "intermedio": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 10.846416666666666,
+        "winMinutesMedian": 10.695833333333333,
+        "winMinutesMin": 9.55,
+        "winMinutesMax": 13.593833333333333,
+        "wins8to12": 14,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 16,
+        "wins": 16,
+        "winPct": 100,
+        "winMinutesMean": 10.6619375,
+        "winMinutesMedian": 10.308583333333333,
+        "winMinutesMin": 9.356666666666666,
+        "winMinutesMax": 14.07,
+        "wins8to12": 14,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    }
+  },
+  "hosts": {
+    "axioma": {
+      "principiante": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 11.199319444444447,
+        "winMinutesMedian": 10.571416666666668,
+        "winMinutesMin": 8.906666666666666,
+        "winMinutesMax": 15.758333333333333,
+        "wins8to12": 9,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "intermedio": {
+        "n": 12,
+        "wins": 11,
+        "winPct": 91.7,
+        "winMinutesMean": 9.753136363636365,
+        "winMinutesMedian": 9.687166666666666,
+        "winMinutesMin": 7.801666666666667,
+        "winMinutesMax": 12.333833333333333,
+        "wins8to12": 9,
+        "lost": 1,
+        "censored": 0,
+        "failures": {
+          "death/other": 1
+        }
+      },
+      "experto": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 9.447763888888888,
+        "winMinutesMedian": 9.41975,
+        "winMinutesMin": 7.989999999999999,
+        "winMinutesMax": 10.646666666666667,
+        "wins8to12": 11,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "vesper": {
+      "principiante": {
+        "n": 12,
+        "wins": 11,
+        "winPct": 91.7,
+        "winMinutesMean": 11.389651515151515,
+        "winMinutesMedian": 10.947833333333334,
+        "winMinutesMin": 7.8845,
+        "winMinutesMax": 14.818333333333333,
+        "wins8to12": 6,
+        "lost": 1,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 1
+        }
+      },
+      "intermedio": {
+        "n": 12,
+        "wins": 11,
+        "winPct": 91.7,
+        "winMinutesMean": 10.071409090909093,
+        "winMinutesMedian": 9.751666666666667,
+        "winMinutesMin": 8.792833333333334,
+        "winMinutesMax": 12.357833333333334,
+        "wins8to12": 10,
+        "lost": 1,
+        "censored": 0,
+        "failures": {
+          "death/other": 1
+        }
+      },
+      "experto": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 9.258555555555555,
+        "winMinutesMedian": 9.433916666666667,
+        "winMinutesMin": 7.6899999999999995,
+        "winMinutesMax": 9.9605,
+        "wins8to12": 11,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "micelio": {
+      "principiante": {
+        "n": 12,
+        "wins": 9,
+        "winPct": 75,
+        "winMinutesMean": 12.743092592592593,
+        "winMinutesMedian": 12.361166666666666,
+        "winMinutesMin": 10.187833333333334,
+        "winMinutesMax": 15.958833333333333,
+        "wins8to12": 4,
+        "lost": 3,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 3
+        }
+      },
+      "intermedio": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 12.118569444444445,
+        "winMinutesMedian": 11.535250000000001,
+        "winMinutesMin": 9.218833333333333,
+        "winMinutesMax": 15.151166666666667,
+        "wins8to12": 8,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 11.626402777777779,
+        "winMinutesMedian": 11.621416666666667,
+        "winMinutesMin": 8.771666666666667,
+        "winMinutesMax": 14.2045,
+        "wins8to12": 6,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "umbra": {
+      "principiante": {
+        "n": 12,
+        "wins": 10,
+        "winPct": 83.3,
+        "winMinutesMean": 10.8321,
+        "winMinutesMedian": 10.967500000000001,
+        "winMinutesMin": 8.775,
+        "winMinutesMax": 12.562166666666666,
+        "wins8to12": 8,
+        "lost": 2,
+        "censored": 0,
+        "failures": {
+          "death/other": 2
+        }
+      },
+      "intermedio": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 10.671069444444443,
+        "winMinutesMedian": 10.683666666666666,
+        "winMinutesMin": 8.633833333333333,
+        "winMinutesMax": 12.227166666666667,
+        "wins8to12": 9,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 10.137694444444445,
+        "winMinutesMedian": 10.183333333333334,
+        "winMinutesMin": 8.092166666666666,
+        "winMinutesMax": 11.453833333333334,
+        "wins8to12": 12,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "seraf": {
+      "principiante": {
+        "n": 12,
+        "wins": 9,
+        "winPct": 75,
+        "winMinutesMean": 13.145666666666667,
+        "winMinutesMedian": 12.435,
+        "winMinutesMin": 11.107166666666666,
+        "winMinutesMax": 15.66,
+        "wins8to12": 2,
+        "lost": 3,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 3
+        }
+      },
+      "intermedio": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 12.251527777777776,
+        "winMinutesMedian": 11.718583333333333,
+        "winMinutesMin": 10.432166666666665,
+        "winMinutesMax": 14.652833333333332,
+        "wins8to12": 6,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 12.072736111111112,
+        "winMinutesMedian": 11.600833333333334,
+        "winMinutesMin": 10.246666666666666,
+        "winMinutesMax": 15.345,
+        "wins8to12": 7,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "danzante": {
+      "principiante": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 10.253347222222223,
+        "winMinutesMedian": 10.037749999999999,
+        "winMinutesMin": 9.421666666666665,
+        "winMinutesMax": 12.007833333333334,
+        "wins8to12": 11,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "intermedio": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 9.438944444444445,
+        "winMinutesMedian": 9.548916666666667,
+        "winMinutesMin": 8.017833333333334,
+        "winMinutesMax": 10.49,
+        "wins8to12": 12,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 9.319069444444445,
+        "winMinutesMedian": 9.452749999999998,
+        "winMinutesMin": 8.002166666666666,
+        "winMinutesMax": 10.231666666666666,
+        "wins8to12": 12,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "singular": {
+      "principiante": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 11.639444444444443,
+        "winMinutesMedian": 10.926416666666668,
+        "winMinutesMin": 9.925,
+        "winMinutesMax": 15.66,
+        "wins8to12": 8,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "intermedio": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 10.895416666666668,
+        "winMinutesMedian": 10.836666666666668,
+        "winMinutesMin": 9.248833333333332,
+        "winMinutesMax": 13.212833333333332,
+        "wins8to12": 10,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      },
+      "experto": {
+        "n": 12,
+        "wins": 12,
+        "winPct": 100,
+        "winMinutesMean": 10.54240277777778,
+        "winMinutesMedian": 10.381666666666668,
+        "winMinutesMin": 8.79,
+        "winMinutesMax": 12.012833333333333,
+        "wins8to12": 11,
+        "lost": 0,
+        "censored": 0,
+        "failures": {}
+      }
+    },
+    "colmena": {
+      "principiante": {
+        "n": 12,
+        "wins": 10,
+        "winPct": 83.3,
+        "winMinutesMean": 12.119383333333335,
+        "winMinutesMedian": 12.257833333333334,
+        "winMinutesMin": 9.32,
+        "winMinutesMax": 15.8255,
+        "wins8to12": 5,
+        "lost": 2,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 1,
+          "Se agotó el tiempo del objetivo.": 1
+        }
+      },
+      "intermedio": {
+        "n": 12,
+        "wins": 11,
+        "winPct": 91.7,
+        "winMinutesMean": 11.48889393939394,
+        "winMinutesMedian": 11.202833333333333,
+        "winMinutesMin": 8.721666666666666,
+        "winMinutesMax": 14.878833333333334,
+        "wins8to12": 8,
+        "lost": 1,
+        "censored": 0,
+        "failures": {
+          "Se agotó el tiempo del objetivo.": 1
+        }
+      },
+      "experto": {
+        "n": 12,
+        "wins": 8,
+        "winPct": 66.7,
+        "winMinutesMean": 10.876916666666666,
+        "winMinutesMedian": 10.638833333333334,
+        "winMinutesMin": 8.715,
+        "winMinutesMax": 14.07,
+        "wins8to12": 6,
+        "lost": 4,
+        "censored": 0,
+        "failures": {
+          "Tiempo agotado: el encuentro final duró más de 7.5 minutos y la salida se cerró.": 3,
+          "Se agotó el tiempo del objetivo.": 1
+        }
+      }
+    }
+  }
+}
