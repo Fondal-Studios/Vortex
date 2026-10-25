@@ -50,13 +50,14 @@ test('onboarding E2E: menú → elegir primer Huésped → cinemática saltable 
     await pg.waitForSelector('#transfer', { timeout: 60000 });
     await pg.waitForFunction(() => window.__transfer && window.__transfer.t > 2.5, null, { timeout: 120000 }); await pg.screenshot({ path: OUT + '04-cinematica-vacio.png' });
     assert.ok((await pg.textContent('#sub')).length > 5, 'subtítulos en pantalla');
-    await pg.waitForFunction(() => window.__transfer && (window.__transfer.t > 13 || window.__transfer.done), null, { timeout: 240000 }); await pg.screenshot({ path: OUT + '05-cinematica-cuerpo.png' });
-    await pg.waitForFunction(() => window.__transfer && (window.__transfer.t > 17.5 || window.__transfer.done), null, { timeout: 240000 }); await pg.screenshot({ path: OUT + '06-cinematica-transferencia.png' });
+    await pg.waitForFunction(() => window.__transfer && (window.__transfer.t > 8 || window.__transfer.done), null, { timeout: 240000 }); await pg.screenshot({ path: OUT + '05-cinematica-cuerpo.png' });
+    await pg.waitForFunction(() => window.__transfer && (window.__transfer.t > 16 || window.__transfer.done), null, { timeout: 240000 });
+    assert.equal(await pg.evaluate(() => window.__transfer.done), false, 'la cinemática sigue en curso a los 16 s'); await pg.screenshot({ path: OUT + '06-cinematica-transferencia.png' });
     assert.equal(await pg.evaluate(() => window.__transfer.cuerpoListo), true, 'el cuerpo 3D del Huésped (createHostBody) se cargó');
-    // saltable con confirmación mínima: el primer toque sólo pide confirmar, el segundo salta
-    await pg.click('#transfer .tr-skip'); assert.match(await pg.textContent('#transfer .tr-skip'), /de nuevo/); assert.equal(await pg.evaluate(() => window.__transfer.done), false, 'un toque no salta');
-    await pg.click('#transfer .tr-skip'); await pg.waitForFunction(() => !document.getElementById('transfer'), null, { timeout: 20000 });
-    assert.equal(await pg.evaluate(() => window.__transfer.skipped), true);
+    // saltable con confirmación mínima: el primer toque sólo pide confirmar, el segundo salta (todo en un mismo instante para no competir con el reloj)
+    const salto = await pg.evaluate(() => { const bt = document.querySelector('#transfer .tr-skip'); bt.click(); const r = { pide: bt.textContent, hecho1: window.__transfer.done }; bt.click(); r.hecho2 = window.__transfer.done; r.saltado = window.__transfer.skipped; return r; });
+    assert.match(salto.pide, /de nuevo/); assert.equal(salto.hecho1, false, 'un toque no salta'); assert.equal(salto.hecho2, true); assert.equal(salto.saltado, true);
+    await pg.waitForFunction(() => !document.getElementById('transfer'), null, { timeout: 20000 });
     // 4) tutorial jugable dentro de Islas
     await pg.waitForSelector('#tutpanel:not([hidden])', { timeout: 60000 }); await pg.waitForFunction(() => /Caminar/.test((document.getElementById('tutpanel') || {}).textContent || ''), null, { timeout: 60000 });
     assert.equal(await pg.evaluate(() => window.__api.session.game.wave), 0, 'el combate real no empezó');
@@ -82,6 +83,15 @@ test('onboarding E2E: menú → elegir primer Huésped → cinemática saltable 
     await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 90000 });
     assert.equal(await pg.locator('#primerhuesped').count(), 0); assert.equal(await pg.locator('#transfer').count(), 0); assert.equal(await pg.evaluate(() => !!window.__api.session.game.tutorial), false, 'sin tutorial la 2.ª vez');
     assert.equal(await pg.evaluate(() => window.__api.renderer.third), true, 'cámara en tercera persona por defecto');
+    // cámara (AC-05 en el navegador): el botón alterna sin frenar la simulación; cambiar de modo NO fuerza la cámara salvo «Cámara automática por modo»
+    const cam = await pg.evaluate(async () => {
+      const A = window.__api, r = {}; r.ini = A.renderer.third; const t0 = A.session.game.time;
+      window.__setCam(false); r.manual = A.renderer.third; A.setGameMode('combo'); r.modoNoForzo = A.renderer.third; A.setGameMode('shooter');
+      A.setSetting('camAuto', true); A.setGameMode('combo'); r.autoMele = A.renderer.third; A.setGameMode('shooter'); r.autoDisparo = A.renderer.third; A.setSetting('camAuto', false); window.__setCam(true);
+      await new Promise((ok) => setTimeout(ok, 1500)); r.avanza = A.session.game.time > t0; r.fin = A.renderer.third; return r;
+    });
+    assert.deepEqual(cam, { ini: true, manual: false, modoNoForzo: false, autoMele: true, autoDisparo: false, avanza: true, fin: true });
+    assert.equal(await pg.evaluate(() => !!document.getElementById('tutrep') && !!document.getElementById('camautosel')), true, 'Ajustes: «Repetir tutorial» y «Cámara automática»');
     await pg.screenshot({ path: OUT + '13-segunda-vez.png' });
   } finally { await b.close(); await srv.close(); }
 });
