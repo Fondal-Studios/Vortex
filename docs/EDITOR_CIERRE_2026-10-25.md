@@ -36,3 +36,5 @@ La publicación en Render se registra por separado: un merge a una rama de traba
 - Guardado fallido → borrador intacto → reintento → diseño correcto equipado → recarga: pasa en navegador.
 - HERALDO: captura revisada visualmente, 37 llamadas/12.710 triángulos en la escena aislada de previsualización.
 - Build estático: 49,1 MB. La suite global de 90 archivos se interrumpió durante simulaciones largas; no se declara verde.
+- Cooperativo general: 8 pruebas pasan, incluidas cuatro conexiones con latencia simulada, reconexión y recibos personales al terminar.
+- Pulido móvil: acciones sin textos cortados, selección con objetivos de 44 px y selector de cámara compacto para dejar visible el cuerpo. Panel más opaco para leer sin interferencia del escenario.

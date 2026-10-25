@@ -60,7 +60,7 @@ export function buildLaboratorioScreen(menu) {
           <button class="lb-btn lb-nav" type="button" id="lbundo" aria-label="Deshacer"><span aria-hidden="true">↶</span><i>Deshacer</i></button>
           <button class="lb-btn lb-nav" type="button" id="lbredo" aria-label="Rehacer"><span aria-hidden="true">↷</span><i>Rehacer</i></button>
           <button class="lb-btn lb-nav" type="button" id="lbcopias" aria-haspopup="dialog"><span aria-hidden="true">⧉</span><i>Copias</i></button>
-          <button class="lb-btn lb-nav" type="button" id="lbdisenos" aria-haspopup="dialog"><span aria-hidden="true">▤</span><i>Mis diseños</i></button>
+          <button class="lb-btn lb-nav" type="button" id="lbdisenos" aria-haspopup="dialog"><span aria-hidden="true">▤</span><i>Diseños</i></button>
           <button class="lb-btn lb-nav lb-probar" type="button" id="lbprobar"><span aria-hidden="true">▶</span><i>Probar</i></button>
           <button class="lb-btn lb-nav lb-guardar" type="button" id="lbguardar"><span aria-hidden="true">✓</span><i>Guardar</i></button>
         </footer>
@@ -314,8 +314,10 @@ export function buildLaboratorioScreen(menu) {
   $('#lbtabs').addEventListener('keydown', (e) => { const ts = [...root.querySelectorAll('.lb-tab')], i = ts.indexOf(document.activeElement); if (i < 0) return; const j = e.key === 'ArrowRight' ? (i + 1) % ts.length : e.key === 'ArrowLeft' ? (i + ts.length - 1) % ts.length : -1; if (j >= 0) { e.preventDefault(); e.stopPropagation(); ts[j].focus(); irTab(ts[j].dataset.tab); } });
   // cámaras
   $('#lbcams').innerHTML = ['frente', 'tres_cuartos', 'perfil', 'espalda', 'cabeza', 'manos', 'pies'].map((k, n) => `<button type="button" class="lb-cam lb-nav" data-cam="${k}" title="Cámara ${n + 1}" aria-label="Cámara ${['frente', '3/4', 'perfil', 'espalda', 'cabeza', 'manos', 'pies'][n]}" aria-pressed="false">${['Frente', '3/4', 'Perfil', 'Espalda', 'Cabeza', 'Manos', 'Pies'][n]}</button>`).join('');
+  $('#lbcams').insertAdjacentHTML('beforeend', `<select id="lbcamara" class="lb-nav lb-camara" aria-label="Cámara del editor">${['frente', 'tres_cuartos', 'perfil', 'espalda', 'cabeza', 'manos', 'pies'].map((k, i) => `<option value="${k}">Cámara: ${['Frente', '3/4', 'Perfil', 'Espalda', 'Cabeza', 'Manos', 'Pies'][i]}</option>`).join('')}</select>`);
+  $('#lbcamara').addEventListener('change', e => camara(e.target.value));
   $('#lbcams').addEventListener('click', (e) => { const b = e.target.closest('.lb-cam'); if (b) camara(b.dataset.cam); });
-  function camara(k) { L.cam = k; for (const b of root.querySelectorAll('.lb-cam')) b.setAttribute('aria-pressed', b.dataset.cam === k); L.V && L.V.camara(k); }
+  function camara(k) { L.cam = k; $('#lbcamara').value = k; for (const b of root.querySelectorAll('.lb-cam')) b.setAttribute('aria-pressed', b.dataset.cam === k); L.V && L.V.camara(k); }
 
   /* ───────────────── barra de acciones ───────────────── */
   $('#lbundo').addEventListener('click', () => { L.E.undo(); aviso('Deshecho.', 'ok'); });

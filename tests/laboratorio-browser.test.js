@@ -186,6 +186,7 @@ test('EH-16: contraste del texto (WCAG ≥ 4,5 el normal, ≥ 3 el grande), obje
   const SIZES = [['844x390', 844, 390, true], ['667x375', 667, 375, true], ['390x844', 390, 844, true], ['1280x720', 1280, 720, false]], problemas = [];
   for (const [vn, w, h, touch] of SIZES) {
     const { ctx, pg, errores } = await abrir(w, h, { touch }); await entrar(pg); if (w > 700) await pg.click('#lbmodo');
+    if (await pg.locator('#lbcamara').isVisible()) { await pg.selectOption('#lbcamara', 'frente'); assert.equal(await pg.evaluate(() => window.__lab.ui.cam), 'frente'); }
     for (const tab of ['cuerpo', 'piezas', 'aspecto', 'datos']) {
       await pg.click(`#lbtab-${tab}`); if (tab === 'piezas') { await pg.click('[data-ancla="cabeza"]'); await pg.click('[data-poner="cuerno_curvo"]'); await pg.waitForTimeout(500); } await pg.waitForTimeout(300);
       const r = await pg.evaluate(() => {
