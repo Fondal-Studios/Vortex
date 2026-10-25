@@ -77,7 +77,7 @@ No se debe volver a implementar la cinemática, el tutorial, el ledger ni el edi
 - Duración: 6 pruebas, 6 pasan (bot tirador, semilla 1, margen 7,5–13 min).
 - Editor aislado: host-build, lab-perfil, lab-sim, lab-sugeridor y laboratorio-coop: 162 pruebas, 161 pasan, 1 falla (`host-build.test.js`, huella golden; esperado `1a8a968cb1b80c`, obtenido `16f95819f49d11`). No se modificó esa rama.
 - Suite global unit: interrumpida, sin resultado completo. No usar los resultados parciales como aprobación.
-- Primer intento de navegador: inválido por falta de bibliotecas SwiftShader del ejecutable conservado en /tmp; WebGL=false. Se preparó un Chromium completo separado y se repite la prueba. Con el Chromium completo: la prueba del menú/códice en escritorio y móvil pasa. La cinemática se inspeccionó visualmente con cuerpo y subtítulos correctos. Resultados en navegador: 1/1 pasa (victoria/derrota, recarga, no duplicación y recuperación de guardado). La prueba larga de tutorial se registra al cerrar el bloque.
+- Primer intento de navegador: inválido por falta de bibliotecas SwiftShader del ejecutable conservado en /tmp; WebGL=false. Se preparó un Chromium completo separado y se repite la prueba. Con el Chromium completo: la prueba del menú/códice en escritorio y móvil pasa. La cinemática se inspeccionó visualmente con cuerpo y subtítulos correctos. Resultados en navegador: 1/1 pasa (victoria/derrota, recarga, no duplicación y recuperación de guardado). Onboarding E2E: pasa el flujo menú → primer Huésped → cinemática → nueve pasos del tutorial → combate → recarga sin repetirlo y cambio de cámara. Duración de la prueba: 337 s en Chromium por software.
 
 ## 5. Fuera de esta entrega
 

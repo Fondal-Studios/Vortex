@@ -27,9 +27,9 @@ test('campaña y códice: recuerdos por avance, sin spoilers en misiones libres,
   assert.equal(await p.locator('[data-campaign-memories] details').count(),0);
   if (width === 844) {
     await p.evaluate(async()=>{const P=await import('/src/client/perfil.js');P.elegirInicial('axioma');window.__api.ui.actions.arena('m2');});
-    await p.waitForFunction(()=>window.__api?.session?.intro);
-    const intro=await p.evaluate(()=>window.__api.subs.cur?.text || '');assert.match(intro,/Incursión independiente/);assert.doesNotMatch(intro,/comparten un origen|último humano/);
-    await p.evaluate(()=>window.__api.subs.skip());
+    await p.waitForFunction(()=>window.__api?.session?.game);
+    assert.equal(await p.evaluate(()=>!!window.__api.session.campaign),false);
+    assert.match(await p.locator('#tutorial').textContent(),/Incursión independiente/);
     assert.doesNotMatch(await p.locator('#tutorial').textContent(),/comparten un origen|se fragmentó|último humano/);
   }
   assert.deepEqual(errors,[]);await p.close();
