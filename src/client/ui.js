@@ -10,6 +10,7 @@ import { Equipo, saveEquipo, assignWeapon } from './equipo.js';
 import { WEAPON_COLORS } from './shotfx.js';
 import { buildHeroScreen, renderHeroScreen } from './heroes-ui.js';
 import { buildHuespedScreen, showHuesped } from './huespedes-ui.js';
+import { buildLaboratorioScreen, showLaboratorio, hideLaboratorio } from './laboratorio.js';   // Laboratorio: editor 3D del Híbrido (docs/EDITOR_HUESPEDES.md)
 import { buildEvolucionScreen, showEvolucion } from './evolucion-ui.js';
 import { buildTerritoriosScreen, showTerritorios } from './territorios-ui.js';
 import { buildInventarioScreen, showInventario } from './inventario-ui.js';
@@ -25,7 +26,7 @@ const $ = (id) => document.getElementById(id);
 export class MenuUI {
   constructor({ sound, actions }) {
     this.sound = sound; this.actions = actions; this.screen = 'title'; this.stack = []; this.idx = 0; this.active = true; this.relative = !location.pathname.endsWith('/') ? '' : '';
-    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); buildIdentityMenu(this); buildAccountMenu(this); buildOperations(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
+    this.root = $('menu'); aplicarMarca(); buildMain(this); buildBarra(this); buildIdentityMenu(this); buildAccountMenu(this); buildOperations(this); this.bindEvents(); this.buildBestiary(); this.buildLoadout(); buildHuespedScreen(this); buildLaboratorioScreen(this); buildEvolucionScreen(this); buildTerritoriosScreen(this); buildInventarioScreen(this); buildGraficosScreen(this); buildTiendaScreen(this); this.addBackButtons(); this.bv = crearBienvenida(this); this.vigilarPestanas(); this.refreshHuesped(); this.show('title'); this.updateStartLabel();
   }
   /** Botón «‹ Volver» visible en cada pantalla que no sea el título ni el menú principal (táctil, ratón y teclado). */
   addBackButtons() {
@@ -38,7 +39,7 @@ export class MenuUI {
   updateStartLabel() { const touch = matchMedia('(pointer: coarse)').matches; $('startlabel').textContent = touch ? 'Tocá la pantalla' : 'Presioná cualquier botón'; }
   /* ───── pantallas ───── */
   list(name = this.screen) {
-    const q = { mercado: '#mercado .market-nav:not(:disabled)', title: '#pressstart', modes: '#modes .card', story: '#story [data-campaign]:not(:disabled):not([hidden])', arenas: '#arenas .card', 'arena-codex': '#arena-codex .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
+    const q = { mercado: '#mercado .market-nav:not(:disabled)', title: '#pressstart', modes: '#modes .card', story: '#story [data-campaign]:not(:disabled):not([hidden])', arenas: '#arenas .card', 'arena-codex': '#arena-codex .card', coop: '#coopscr .panel:not([hidden]) select, #coopscr .panel:not([hidden]) .btn, #coopscr .panel:not([hidden]) input', bestiary: '#bgrid .bcell', loadout: '#chlist .chcard, #slotbar .slot, #wlist .wcell', huesped: '#huesped .hs-nav', laboratorio: '#laboratorio .lb-nav', inventario: '#inventario .iv-nav', evolucion: '#evolucion .ev-nav', territorios: '#territorios .tr-nav', graficos: '#graficos .gr-nav', tienda: '#tienda .tn-nav', main: '#continuar, #elegir, #proximo:not([hidden]), #mainlist .door', options: '#options .panel label, #options summary' }[name];
     if (name === 'tienda' && this.tn && this.tn.dialogoAbierto()) return [...this.root.querySelectorAll('#tnyes, #tnno')];   // con el cartel de confirmación abierto, sólo se navega entre Sí y No
     const l = [...this.root.querySelectorAll(q)];
     return name === 'options' ? l.filter((e) => e.getClientRects().length > 0) : l;   // (los ajustes táctiles plegados no cuentan)
@@ -47,15 +48,16 @@ export class MenuUI {
     if (this.screen === 'mercado') this.market?.leave();
     if (push && this.screen !== name && name !== 'title') this.stack.push(this.screen);
     if (['story', 'modes', 'main'].includes(name)) refreshCampaignMenu(this);
-    const antes = this.screen; this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';   // dirección de la transición corta (menu.css)
-    this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name));
+    const antes = this.screen; if (antes === 'laboratorio' && name !== 'laboratorio') hideLaboratorio(this); this.screen = name; this.root.dataset.dir = push ? 'fwd' : 'back';   // dirección de la transición corta (menu.css)
+    this.root.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.dataset.screen === name)); this.root.dataset.pantalla = name;
     dibujarBarra(this, name); this.root.dataset.inicio = name === 'main' ? '1' : '0';   // barra superior única: volver · pestañas · Modo · Gráficos · núcleos
     refrescarInicio(this);   // (núcleos y puntitos de la barra se recalculan en cada pantalla)
     this.idx = name === 'bestiary' ? 0 : 0; this.focus(this.idx, true);
-    $('prompts').style.opacity = name === 'mercado' || name === 'title' || name === 'tienda' || name === 'huesped' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
+    $('prompts').style.opacity = name === 'mercado' || name === 'title' || name === 'tienda' || name === 'huesped' || name === 'laboratorio' || name === 'evolucion' || name === 'territorios' || name === 'inventario' || name === 'graficos' ? 0 : 1;
     if (name === 'bestiary') this.selectBeast(0);
     if (name === 'loadout') this.renderLoadout();
     if (name === 'huesped') showHuesped(this);
+    if (name === 'laboratorio') showLaboratorio(this);
     if (name === 'territorios') showTerritorios(this);
     if (name === 'graficos') showGraficos(this);
     if (name === 'evolucion') showEvolucion(this);
@@ -162,6 +164,7 @@ export class MenuUI {
   stepRange(inp, d) { inp.value = Math.max(+inp.min, Math.min(+inp.max, +inp.value + d)); inp.dispatchEvent(new Event('input')); this.sound.ui('tick'); }
   handleKey(e) {
     if (!this.active || (this.root.classList.contains('hidden'))) return false;
+    if (this.screen === 'laboratorio' && this.lb && this.lb.tecla(e)) return true;   // el editor atiende sus propias teclas (deshacer, cámaras, gizmo…)
     if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.type !== 'range') { if (e.code === 'Escape' || e.code === 'Enter') { document.activeElement.blur(); e.preventDefault(); return true; } return false; }
     const m = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Enter: 'ok', Space: 'ok', Escape: 'back', Backspace: 'back', KeyQ: 'tabprev', PageUp: 'tabprev', KeyE: 'tabnext', PageDown: 'tabnext' }[e.code];
     if (this.screen === 'title') { this.act('any'); e.preventDefault(); return true; }

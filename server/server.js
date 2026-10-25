@@ -45,7 +45,7 @@ const nombreLimpio = (s) => { const t = String(s ?? '').replace(/[\u0000-\u001f\
 export function cargaDe(m = {}) {
   const char = CHARACTERS[m.char] ? m.char : undefined;
   const evo = Number.isInteger(m.evo) ? num(m.evo, 0, 4) : undefined;
-  // Híbrido de Laboratorio: `m.lab` es el texto VB1 (≤ 2 KB). Se decodifica, valida y recalcula acá; si algo falla, chasis por defecto + aviso (nunca se expulsa).
+  // Híbrido Genómico: `m.lab` es el texto VB1 (≤ 2 KB). Se decodifica, valida y recalcula acá; si algo falla, chasis por defecto + aviso (nunca se expulsa).
   const L = char === CHASIS_LAB ? labDe(typeof m.lab === 'string' || m.lab == null ? m.lab : '\u0000', { evo }) : null;   // solo se acepta TEXTO VB1; cualquier otra forma = diseño inválido
   return {
     lab: L && L.hay && !L.defecto ? L.vb1 : undefined, labH: L && !L.defecto ? L.h : '', labAviso: L ? L.aviso : '',

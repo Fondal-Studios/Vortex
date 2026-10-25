@@ -23,9 +23,9 @@ const mixC = (a, b, k) => new T.Color(a).lerp(new T.Color(b), k).getHex();
 
 /** Lugar natural de cada pieza en cada ancla: posición [x, y, z] en el marco del hueso (m, bind). Lo que no figura = [0,0,0]. */
 export const NAT = {
-  cuerno_curvo: { cabeza: [0.062, 0.135, 0.03] },
-  cresta_osea: { cabeza: [0, 0.178, 0.0] },
-  corona_espinas: { cabeza: [0, 0.145, 0.045] },
+  cuerno_curvo: { cabeza: [0.06, 0.1, 0.03] },
+  cresta_osea: { cabeza: [0, 0.135, 0.0] },
+  corona_espinas: { cabeza: [0, 0.11, 0.045] },
   gorguera: { cuello: [0, 0.0, 0.012] },
   hombrera_espinas: { hombros: [0.025, 0.05, 0.0] },
   placa_pectoral: { pecho: [0, 0.01, 0.05] },
@@ -37,12 +37,12 @@ export const NAT = {
   garras_mano: { manos: [0.05, -0.12, 0.15] },
   placas: { pecho: [0.075, 0.03, 0.115], espalda: [0.08, 0.2, -0.085], hombros: [0.03, 0.065, 0.0] },
   adrenal: { cintura: [0, -0.03, 0.105], espalda: [0, -0.03, -0.1] },
-  ojo_extra: { cabeza: [0, 0.178, 0.12], pecho: [0, 0.05, 0.16] },
+  ojo_extra: { cabeza: [0, 0.15, 0.125], pecho: [0, 0.05, 0.16] },
   saco_g: { espalda: [0, 0.02, -0.11], cintura: [0, -0.02, -0.1] },
   medula: { espalda: [0, -0.06, -0.09], pecho: [0, -0.07, 0.165] },
   tentaculo: { espalda: [0.07, 0.14, -0.1], hombros: [0.0, 0.07, -0.05], cintura: [0.12, -0.02, -0.02] },
   corazon_cristal: { pecho: [0, 0.03, 0.15] },
-  espiraculo: { cabeza: [0, 0.2, 0.03], espalda: [0, 0.14, -0.115] },
+  espiraculo: { cabeza: [0, 0.17, 0.03], espalda: [0, 0.14, -0.115] },
 };
 
 /** Color por vértice según el material del kit: el natural del material (blanco = textura tal cual) mezclado con la paleta del diseño. */
@@ -133,6 +133,7 @@ export const GEN = {
   placa_pectoral(f) {
     const { G, X } = f.t, half = [[0.0, 0.1], [0.03, 0.108], [0.06, 0.112], [0.09, 0.1], [0.115, 0.085], [0.13, 0.06], [0.138, 0.03], [0.14, 0.0], [0.135, -0.03], [0.12, -0.055], [0.1, -0.075], [0.075, -0.095], [0.045, -0.11], [0.02, -0.118], [0.0, -0.12]].map((q) => [q[0] * 0.86, q[1] * 0.86]), pts = f.t.platePts(half, true);
     const g = G.wrapE(G.plate(pts, 0.022, 0.007, { crease: 36, bsegs: bsegsDe(f) + 1 }), 0.17, 0.12); f.add('metal', g);
+    f.add('metal', X(G.wrapE(G.plate([[-0.08, 0.012], [0.0, 0.02], [0.08, 0.012], [0.08, -0.012], [0.0, -0.004], [-0.08, -0.012]], 0.014, 0.003, { crease: 36, bsegs: 1 }), 0.17, 0.12 + 0.012), { p: [0, 0.098, 0] }));
     f.add('metal', X(G.wrapE(G.plate([[0.004, 0.09], [0.012, 0.0], [0.004, -0.1], [-0.004, -0.1], [-0.012, 0.0], [-0.004, 0.09]], 0.012, 0.003), 0.17, 0.12 + 0.02), { p: [0, 0, 0] }));
     return { c: [0, 0, 0.12], r: 0.14 };
   },
@@ -175,7 +176,7 @@ export const GEN = {
     return { c: [0, -0.06, -0.3], r: 0.34, chain: ch };
   },
   cuchilla_antebrazo(f) {
-    const { G, X } = f.t, dir = V(0.5, -0.44, 0.69).normalize(), q = basisQ(dir, V(-1, 0, 0)), n = f.sg(13, 5);
+    const { G, X } = f.t, dir = V(0.5, -0.44, 0.69).normalize(), q = basisQ(dir, V(-1, 0, 0)), n = f.sg(15, 5);
     const bl = f.t.blade(0.36, 0.05, 0.012, { n, tipLean: 0.0 }); X(bl, { q }); f.add('metal', bl);
     const r0 = X(G.band(0.036, 0.022, 0.008, { seg: f.sg(14, 7), simple: true }), { q }); f.add('metal', r0);
     const r1 = X(G.band(0.04, 0.02, 0.008, { seg: f.sg(14, 7), simple: true, y0: 0.06 }), { q }); f.add('metal', r1);
@@ -196,7 +197,7 @@ export const GEN = {
 
   /* ───── funcionales (el efecto sale del órgano; esto es sólo el dibujo) ───── */
   placas(f) {
-    const { G, X } = f.t, n = 15, bs = bsegsDe(f);
+    const { G, X } = f.t, n = 17, bs = bsegsDe(f);
     const mk = (rx, ry, y, z, rz, rx2) => { const g = G.plate(blob(n, rx, ry, 0.1), 0.016, 0.005, { crease: 36, bsegs: bs }); X(g, { p: [0, y, z], r: [rx2, 0, rz] }); f.add('bone', g); };
     mk(0.075, 0.095, 0.0, 0.0, 0.1, -0.25); mk(0.062, 0.078, -0.07, 0.018, -0.05, -0.3); mk(0.05, 0.062, -0.13, 0.034, 0.15, -0.35); mk(0.04, 0.05, -0.18, 0.05, -0.1, -0.4);
     return { c: [0, -0.08, 0.03], r: 0.12 };

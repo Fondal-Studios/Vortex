@@ -27,7 +27,7 @@ import * as SERAF from './huesped/seraf.js';
 import * as COLMENA from './huesped/colmena.js';
 import * as DANZANTE from './huesped/danzante.js';
 import * as SINGULAR from './huesped/singular.js';
-import * as LABORATORIO from './huesped/laboratorio.js';   // Híbrido de Laboratorio: el diseño del jugador (docs/EDITOR_HUESPEDES.md)
+import * as LABORATORIO from './huesped/laboratorio.js';   // Híbrido Genómico: el diseño del jugador (docs/EDITOR_HUESPEDES.md)
 import { aplicarProporciones, elevacionViva } from './lab-prop.js';
 import { buildDe } from './lab-activo.js';
 import { defecto as labDefecto, huella as labHuella } from '../shared/host-build.js';
@@ -63,10 +63,10 @@ export function bodyScale(evo, path) { let w = 0, h = 0; for (const id of path.s
 
 export function createHostBody(THREE, kit, p, opts = {}) {
   const quality = opts.quality || kit.quality || 'low', D = DESIGN[p.char] || AXIOMA, esLab = p.char === 'laboratorio';
-  // Híbrido de Laboratorio: el diseño (CustomHostBuild) manda en el aspecto; las proporciones son escalas de hueso (no reconstruyen)
+  // Híbrido Genómico: el diseño (CustomHostBuild) manda en el aspecto; las proporciones son escalas de hueso (no reconstruyen)
   const hexN = (h) => parseInt(String(h).replace('#', ''), 16), mixHex = (a, b, k) => new T.Color(a).lerp(new T.Color(b), k).getHex();
   let lab = esLab ? (opts.lab || buildDe(p) || labDefecto()) : null, labK = lab ? labHuella({ ...lab, prop: {} }) : '', labShape = { x: 1, y: 1, z: 1, lift: 0 }, labLift = 0, baseShape = null;
-  const labLook = (b) => ({ ...LOOK.laboratorio, preset: b.base.preset, glow: hexN(b.pal.emisivo), ember: hexN(b.pal.emisivo), skin: mixHex(0x14121c, hexN(b.base.piel), 0.1) });
+  const labLook = (b) => ({ ...LOOK.laboratorio, preset: b.base.preset, glow: hexN(b.pal.emisivo), ember: hexN(b.pal.emisivo), skin: mixHex(0x14121c, hexN(b.base.piel), 0.04) });
   let L = lab ? labLook(lab) : (LOOK[p.char] || LOOK.axioma);
   const object = new T.Group(); object.name = 'huesped-' + p.char;
   const holder = new T.Group(); holder.scale.setScalar(L.scale); object.add(holder);
@@ -102,7 +102,8 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     const reg = addRegion(ak, ctx, { t: tools(ak) }), own = extra.update; extra.update = (dt, tt, c) => { if (own) own(dt, tt, c); reg.update(dt, tt, c); };
     ak.keepAll(); addEquipmentArmor(ak, eq);
     ak.finish({ bodyGeometry: bodyGeo });
-    applyCosmeticMaterials(ak, p.char, cosmetic);
+    applyCosmeticMaterials(ak, p.char, cosmetic); if (D.postFinish) D.postFinish(ak);   // ajustes de material propios del diseño (Laboratorio)
+    if (lab && lab.pal.acabado && lab.pal.acabado !== 'archivo') applyCosmeticMaterials(ak, 'axioma', 'axioma_' + lab.pal.acabado);   // acabado elegido en el Laboratorio (porcelana, obsidiana): sólo pinta los materiales del kit
     for (const r of ak.extraRoots) object.add(r);
     ak.setObject(object);
     if (evo >= 4) { // forma final: sello brillante en el suelo (2 anillos que giran)
@@ -153,7 +154,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     object, human: true, ready: readyP, get isReady() { return ready; }, get labelY() { return 1.95 * L.scale * shape.y + 0.45 + (shownEvo >= 4 ? 0.3 : 0); }, get person() { return human; }, get map() { return map; }, get kit() { return ak; },
     /** Metamorfosis: al comer, la transformación breve (≈ 0,8 s) con el color de la forma nueva. */
     formaEvent(e) { if (e.ph !== 'come') return; const F = formaPorIndice(e.f); presence.burst(F ? parseInt(F.color.slice(1), 16) : L.glow, 1.5); },
-    /** Híbrido de Laboratorio: cambia el diseño. Las proporciones se aplican al instante; si cambian piezas o colores, se reconstruye en el próximo cuadro (la huella sin proporciones es la clave). */
+    /** Híbrido Genómico: cambia el diseño. Las proporciones se aplican al instante; si cambian piezas o colores, se reconstruye en el próximo cuadro (la huella sin proporciones es la clave). */
     setLab(b) {
       if (!esLab || !b) return; lab = b; const k = labHuella({ ...b, prop: {} }), nl = labLook(b); if (nl.glow !== L.glow) { presence.setForma(nl.glow); } L = nl; labK = k; labApply();
     },

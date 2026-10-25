@@ -1,3 +1,5 @@
+import { decodificar } from '../shared/host-build.js';
+import { setActivo as setActivoLab } from './lab-activo.js';
 import { CAMPAIGN_ORDER, CAMPAIGN_BOSSES, campaignNext } from '../sim/campaign.js';
 import { nombreHuesped } from '../sim/desbloqueos.js';
 import { OPERATIONS } from '../sim/operations.js';
@@ -276,10 +278,13 @@ function startSolo(mapId, opts = {}) {
   const conCine = conTutorial && !Perfil.tutorialEstado().cine && !params.get('skipintro') && params.get('cine') !== '0';
   const intro = (opts.intro !== false && !params.get('auto') && !params.get('skipintro')) || conCine;
   const game = new Game({ mapId, campaign: !!opts.campaign, operation: !opts.practice && !opts.horde, seed: opts.seed || (Math.random() * 1e9) | 0, difficulty: opts.difficulty || 1, calm: intro ? 6 : 4, magazines: true, practice: !!opts.practice, jefeMem: leerMemoriaJefe(mapId), skillLevel: opts.practice ? null : Perfil.perfil().skillLevel || 0, tutorial: conTutorial ? { desde: Perfil.tutorialEstado().paso } : false });
-  const p = game.addPlayer(Story.NAME, null, { char: Equipo.char, slots: Equipo.slots, ...Perfil.paraPartida(Equipo.char), style: settings().style, mode: gameMode(), kit: opts.practice ? 0 : Tienda.usarBotiquin() }); // evolución y arma fusionada del perfil (perfil.js)
+  const charJ = opts.char || Equipo.char, ppJ = Perfil.paraPartida(charJ); if (opts.lab) ppJ.lab = opts.lab;   // Laboratorio › «Probar»: el diseño sin guardar entra al Campo de pruebas (opts.char = 'laboratorio', opts.lab = texto VB1)
+  if (charJ === 'laboratorio' && ppJ.lab) { try { const d = decodificar(ppJ.lab); if (d.ok) setActivoLab(d.build); } catch { /* sin diseño: aspecto por defecto */ } }
+  const p = game.addPlayer(Story.NAME, null, { char: charJ, slots: Equipo.slots, ...ppJ, style: settings().style, mode: gameMode(), kit: opts.practice ? 0 : Tienda.usarBotiquin() }); // evolución y arma fusionada del perfil (perfil.js)
   if (opts.wave) { game.wave = opts.wave - 1; game.phaseT = 0.1; }
   if (opts.god) p.godmode = true;
   session = { matchId: nuevoMatchId(), initialSkills: game.skillLevel, practice: !!opts.practice, horde: !!opts.horde, mode: 'solo', game, pid: p.id, acc: 0, touch: useTouch() && !opts.bot, bot: opts.bot ? makeBot(game, p.id, { seed: 5, skill: opts.skill || 1.2 }) : null, headless: !!opts.bot, ended: false, map: mapId, campaign: opts.campaign || null, intro: null, tutorial: conTutorial };
+  if (opts.practice && charJ === 'laboratorio') { if (window.__labMedidor) window.__labMedidor.parar(); import('./lab-prueba.js').then((m) => { window.__labMedidor = m.iniciarMedidor(() => session, { volver: () => { try { sessionStorage.setItem('vortex.lab.volver.v1', '1'); } catch { /* nada */ } location.reload(); } }); }); }   // Laboratorio › Probar: medidor de daño y regreso al editor
   enter(mapId);
   if (conCine) beginIntro('transfer'); else if (intro) beginIntro(opts.campaign && opts.campaign !== 'm1' ? 'short' : 'full'); else finishIntro();
 }
@@ -695,7 +700,7 @@ function audioAndHud(state, me, dt) {
   if (state.boss) { bb.classList.remove('hidden'); if (!state.boss.mc) $('bossname').textContent = state.boss.name; $('bossfill').style.width = `${Math.max(0, 100 * state.boss.hp / state.boss.max)}%`; } else bb.classList.add('hidden');
   try { hudDirector(state, me); } catch (err) { if (!window.__hudErr) { window.__hudErr = err; console.error("HUD:", err); } }   // un error de interfaz nunca debe detener el dibujo (pantalla negra)
   if (me) {
-    const portrait = $('hudportrait'); if (portrait.dataset.char !== me.char) { portrait.dataset.char = me.char; portrait.src = new URL(CHARACTERS[me.char]?.host ? `../../public/portraits/${me.char}.png` : '../../public/icon-180.png', import.meta.url).href; portrait.alt = CHARACTERS[me.char]?.name || 'Tu huésped'; }
+    const portrait = $('hudportrait'); if (portrait.dataset.char !== me.char) { portrait.dataset.char = me.char; portrait.src = new URL(CHARACTERS[me.char]?.host && !CHARACTERS[me.char].lab ? `../../public/portraits/${me.char}.png` : '../../public/icon-180.png', import.meta.url).href; portrait.alt = CHARACTERS[me.char]?.name || 'Tu huésped'; }
     $('hudname').textContent = CHARACTERS[me.char]?.name || 'Huésped';
     $('hpfill').style.width = `${me.hp}%`; $('shfill').style.width = `${me.sh}%`; $('hpnum').textContent = `Vida ${me.hp}`; $('shnum').textContent = `Escudo ${me.sh}`;
     $('score').textContent = `Puntos ${me.score} · Bajas ${me.kills}` + (me.dead ? ' · CAÍDO: un compañero cerca te reanima' : '');
@@ -1032,7 +1037,7 @@ else if (params.get('auto')) {
   startSolo(params.get('auto'), { bot: params.get('bot') === '1', wave: +params.get('wave') || 0, god: params.get('god') === '1', horde: params.get('horde') === '1', seed: +params.get('seed') || 7, skill: +params.get('skill') || 1.2, difficulty: +params.get('difficulty') || 1, intro: false });
   window.__session = session; window.__renderer = renderer;
 }
-window.__api = { ui, pad, setSetting, setGameMode, gameMode, settings, get session() { return session; }, get caida() { return caida; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
+window.__api = { probarHibrido: (vb1) => { loadAnd(() => startSolo('m1', { intro: false, practice: true, char: 'laboratorio', lab: vb1 })); }, ui, pad, setSetting, setGameMode, gameMode, settings, get session() { return session; }, get caida() { return caida; }, renderer, MONSTERS, touch, setQuality, get level() { return level; }, subs };
 window.__frame = frame; window.__step = (ms) => frame(last + ms); window.__ui = ui; if (!params.get('cap')) requestAnimationFrame(frame);
 
 // Cooperativo: la dirección del servidor sale de ?server=, de Opciones, de public/config.json o del propio sitio (src/client/servidor.js).

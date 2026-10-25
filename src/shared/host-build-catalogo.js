@@ -29,7 +29,7 @@ export const PRESETS = ['jugador1', 'jugador2', 'jugador3', 'jugador4'];
 
 export const CHASIS = Object.freeze({
   laboratorio: Object.freeze({
-    id: 'laboratorio', nombre: 'Híbrido de Laboratorio', etiqueta: 'Creación del jugador',
+    id: 'laboratorio', nombre: 'Híbrido Genómico', etiqueta: 'Creación del jugador',
     hp: 1, speed: 1,                                     // FIJOS: ninguna proporción los toca
     resumenBase: Object.freeze({ dano: 5, resistencia: 5, movilidad: 5, control: 4, utilidad: 4, dificultad: 3 }),
   }),
@@ -163,7 +163,7 @@ export const LIMITES_EFECTO = Object.freeze({ danoSalida: 1.12, salto: 1.25, ult
 export const MENSAJES = Object.freeze({
   'HB-01': 'Este diseño no se puede leer: es de una versión más nueva del juego o no tiene el formato correcto.',
   'HB-02': 'El nombre o el código del diseño no son válidos.',
-  'HB-03': 'El diseño usa un esqueleto o un chasis que esta versión no conoce. Solo existe el Híbrido de Laboratorio.',
+  'HB-03': 'El diseño usa un esqueleto o un chasis que esta versión no conoce. Solo existe el Híbrido Genómico.',
   'HB-04': 'Una proporción estaba fuera de su rango y se ajustó.',
   'HB-05': 'Las proporciones no combinan: {detalle}',
   'HB-06': 'La pieza «{pieza}» no existe en el catálogo o todavía no la tenés.',

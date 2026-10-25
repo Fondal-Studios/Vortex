@@ -1,4 +1,4 @@
-// EH-05 · Simulación del Híbrido de Laboratorio: chasis, applyLab, labDe, `lb` en el snapshot, y las garantías anti-trampa. node:test, sin navegador.
+// EH-05 · Simulación del Híbrido Genómico: chasis, applyLab, labDe, `lb` en el snapshot, y las garantías anti-trampa. node:test, sin navegador.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -68,7 +68,7 @@ test('(a) build ilegal: se juega con el chasis por defecto, con aviso en españo
     const p = g.addPlayer('x', null, { char: 'laboratorio', evo: 0, lab });
     if (!p) break;
     assert.deepEqual(p.corg, [], 'sin órganos'); assert.equal(p.lb, 0);
-    assert.ok(p.lbAviso.startsWith(ERRORES.lab.slice(0, 20)), p.lbAviso); assert.match(p.lbAviso, /Híbrido de Laboratorio/);
+    assert.ok(p.lbAviso.startsWith(ERRORES.lab.slice(0, 20)), p.lbAviso); assert.match(p.lbAviso, /Híbrido Genómico/);
   }
   const r = labDe(vb(conFuncionales(['placas', 'adrenal'])), { evo: 0 });
   assert.equal(r.ok, false); assert.equal(r.defecto, true); assert.equal(r.build.id, 'lab-defecto'); assert.equal(r.organos.length, 0);

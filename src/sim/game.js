@@ -21,7 +21,7 @@ import { applyMaestria } from './maestria.js';
 import { applyArbol, shapeArbolGun } from './progresion.js';   // árbol de combos y de disparo permanentes (docs/EVOLUCION.md)
 import { setMode } from './combos.js';
 import { cleanSkillLevel, earnedSkillLevel, gateSkills } from '../shared/skill-path.js';
-import { applyLab, clearLab, capLab, CHASIS_LAB } from './laboratorio.js';   // Híbrido de Laboratorio: diseños del jugador (docs/EDITOR_HUESPEDES.md)
+import { applyLab, clearLab, capLab, CHASIS_LAB } from './laboratorio.js';   // Híbrido Genómico: diseños del jugador (docs/EDITOR_HUESPEDES.md)
 import { enrutar } from './modos.js';   // slots de habilidad por modo (Disparo / Melé)
 import { initDrops, initPity, updateLoot, flushLoot, lootSnap, dropsKill, dropsJefe, dropsRespiro } from './drops.js';   // dropeo de objetos (docs/INVENTARIO.md): rng propio g.drRng
 import { applyEquip, itemsSnap, shapeItemGun, ensureGunSlot } from './items-fx.js';

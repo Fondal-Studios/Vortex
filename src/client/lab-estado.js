@@ -84,7 +84,8 @@ export function crearEstado({ build = null, ctx = () => ({}), azar = Math.random
       if (!A || !d.anclas.includes(a)) return { ok: false, motivo: `«${d.nombre}» no se puede poner en ${A ? A.nombre.toLowerCase() : 'ese lugar'}.` };
       const c = C(); if (c.poseidas && !(c.poseidas instanceof Set ? c.poseidas.has(p) : c.poseidas.includes(p))) return { ok: false, motivo: `Todavía no tenés «${d.nombre}»: se consigue jugando.`, codigo: 'HB-06' };
       if (d.cat === 'funcional' && cur.partes.some((e) => e.p === p)) return { ok: false, motivo: `Ya tenés «${d.nombre}»: una pieza funcional cuenta una sola vez.` };
-      const sim = o.sim || (d.lados === 'par' ? 'espejo' : 'ninguna'), e = { p, a, sim, ...(A.lados === 2 && sim === 'ninguna' ? { l: o.l || 'der' } : {}), t: { pos: o.pos || [0, 0, 0], rot: o.rot || [0, 0, 0], esc: o.esc || 1 }, c: { mat: o.mat || d.variantesMat[0], tinte: o.tinte || null } };
+      const sinDer = a === 'manos' && !o.sim, sim = o.sim || (sinDer ? 'ninguna' : d.lados === 'par' ? 'espejo' : 'ninguna'), e = { p, a, sim, ...(A.lados === 2 && sim === 'ninguna' ? { l: sinDer ? 'izq' : (o.l || 'der') } : {}),   // la mano derecha lleva tu arma (HB-12): las garras empiezan en la izquierda
+      t: { pos: o.pos || [0, 0, 0], rot: o.rot || [0, 0, 0], esc: o.esc || 1 }, c: { mat: o.mat || d.variantesMat[0], tinte: o.tinte || null } };
       const next = normalizar({ ...cur, partes: [...cur.partes, e] });
       if (next.partes.length !== cur.partes.length + 1) return { ok: false, motivo: 'No se pudo poner esa pieza.' };
       const antes = validar(cur, c), despues = validar(next, c), nuevos = nuevosBloqueos(antes, despues);

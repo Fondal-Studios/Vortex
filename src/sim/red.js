@@ -25,7 +25,7 @@ export const ERRORES = {
   falla: 'La sala tuvo un problema interno y se cerró. Creá una nueva.',
   token: 'No pudimos devolverte a tu lugar en la sala (pasó demasiado tiempo).',
   invalido: 'Mensaje inválido.',
-  lab: 'Tu diseño de Huésped no es válido en esta versión o en esta sala: se usa el Híbrido de Laboratorio por defecto.',
+  lab: 'Tu diseño de Huésped no es válido en esta versión o en esta sala: se usa el Híbrido Genómico por defecto.',
 };
 
 /* ───────── delta de snapshots ───────── */

@@ -6,7 +6,7 @@
 //    ANCLAS, ORDEN_ANCLAS, PARTES (= CATALOGO), ORDEN_PARTES, COSMETICAS, FUNCIONALES, PIEZAS_INICIALES,
 //    PROP_ORDEN, PROP_RANGOS, POSE_RANGOS, TOPES_RENDER, MATERIALES_KIT, ACABADOS, PRESETS, CHASIS, RIG, MENSAJES
 //  CONSTRUIR / LIMPIAR
-//    defecto()                  → build vacía del chasis «Híbrido de Laboratorio» (siempre válida).
+//    defecto()                  → build vacía del chasis «Híbrido Genómico» (siempre válida).
 //    idNuevo(azar?)             → 'lab-xxxxxxxx'.
 //    normalizar(raw)            → build LIMPIA y CANÓNICA (nunca lanza; idempotente: normalizar(normalizar(x)) ≡ normalizar(x)).
 //                                  Recorta rangos, cuantiza (prop 0,005 · pos 0,002 m · rot grados enteros · esc 0,01), quita duplicados

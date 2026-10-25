@@ -48,7 +48,7 @@ export function dibujarBarra(menu, pantalla) {
   const act = tabActiva(pantalla, { btab: menu.btab, ivtab: menu.iv && menu.iv.tab });
   if (tabs.dataset.sec !== sid) {
     tabs.dataset.sec = sid;
-    tabs.innerHTML = S.tabs.map((t, i) => `<button class="tb-tab" type="button" role="tab" data-i="${i}"${t.aviso ? ` data-aviso="${t.aviso}"` : ''}><span>${esc(t.t)}</span><i class="dot" hidden></i></button>`).join('');
+    tabs.innerHTML = S.tabs.map((t, i) => `<button class="tb-tab" type="button" role="tab" data-i="${i}"${t.aviso ? ` data-aviso="${t.aviso}"` : ''}${t.ayuda ? ` title="${esc(t.ayuda)}"` : ''}><span>${t.ico ? `<b aria-hidden="true">${t.ico}</b> ` : ''}${esc(t.t)}</span><i class="dot" hidden></i></button>`).join('');
     tabs.querySelectorAll('.tb-tab').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('tick'); menu.irTab(S.tabs[+b.dataset.i]); }));
   }
   tabs.querySelectorAll('.tb-tab').forEach((b, i) => { const on = i === act; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; if (on && b.scrollIntoView) { try { const t = tabs.getBoundingClientRect(), r = b.getBoundingClientRect(); if (r.left < t.left || r.right > t.right) tabs.scrollLeft += (r.left + r.right) / 2 - (t.left + t.right) / 2; } catch { /* sin medidas */ } } });

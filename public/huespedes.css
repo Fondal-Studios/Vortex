@@ -94,3 +94,6 @@
 .hs-pg-n button b { display: block; font-size: 13px; } .hs-pg-n button span span { display: block; font-size: 12px; opacity: .85; } .hs-pg-n button small { display: block; font-size: 11px; opacity: .65; margin-top: 2px; }
 .hs-pg-n.own button { border-color: #7fd6a2; } .hs-pg-n.own button > i { background: #7fd6a2; color: #000; } .hs-pg-n.buy button { border-color: #ffd23f; } .hs-pg-n.buy button > i { background: #ffd23f; color: #000; } .hs-pg-n.lock button, .hs-pg-n.poor button { cursor: default; opacity: .75; }
 .hs-pg-reset { min-height: 40px; border: 1px solid #ff5a8a; border-radius: 8px; background: transparent; color: #ff9ab5; font: inherit; cursor: pointer; padding: 0 12px; }
+
+.hs-genomico { flex: 0 0 auto; width: 100%; margin-top: 6px; border-color: #ff7a22; color: #ffd9b0; display: flex; align-items: center; justify-content: center; gap: 6px; } .hs-genomico small { font-weight: 400; opacity: .85; font-size: 11px; letter-spacing: 0; }
+@media (max-height: 460px) { .hs-genomico small { display: none; } }

@@ -71,6 +71,7 @@ export function buildHuespedScreen(menu) {
         </header>
         <div class="hs-stage" id="hsstage"><canvas id="hscanvas" aria-label="Modelo 3D del Huésped: arrastrá para girarlo"></canvas><iframe id="hsframe" title="Vista del veterano" tabindex="-1" hidden></iframe><div class="hs-fallback" id="hsfb" hidden></div><div class="hs-region" id="hsregion" aria-live="off"></div></div>
         <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
+        <button class="hs-btn hs-nav hs-genomico" type="button" id="hsgen" title="Diseñá tu propio cuerpo"><b aria-hidden="true">🧬</b> Editor Genómico <small>Diseñá tu propio cuerpo</small></button>
       </section>
       <aside class="hs-info" id="hsinfo" aria-label="Información del Huésped"></aside>
     </div>`;
@@ -246,6 +247,7 @@ export function buildHuespedScreen(menu) {
     if (poseeHuesped(Perfil.perfil(), hs.sel) && Equipo.char !== hs.sel) { Equipo.char = hs.sel; saveEquipo(); menu.sound.ui('ok'); root.querySelectorAll('.hs-chip').forEach((c) => c.classList.toggle('chosen', c.dataset.id === Equipo.char)); $('#hschosen').hidden = false; $('#hspick').textContent = 'Listo ✓'; menu.refreshHuesped && menu.refreshHuesped(); }
   }));
   $('#hsvettoggle').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('tick'); toggleVets(); });
+  $('#hsgen').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('ok'); menu.show('laboratorio', false); });
   $('#hsdemo').addEventListener('click', (e) => { e.stopPropagation(); demo('both'); });
   $('#hspick').addEventListener('click', (e) => {
     e.stopPropagation(); if (!poseeHuesped(Perfil.perfil(), hs.sel)) { menu.sound.ui(HUESPEDES_TIENDA.includes(hs.sel) ? 'ok' : 'back'); if (HUESPEDES_TIENDA.includes(hs.sel)) { if (menu.tn) menu.tn.host = hs.sel; menu.show('tienda'); } return; }   // no es tuyo: va a la Tienda

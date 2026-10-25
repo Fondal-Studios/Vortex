@@ -10,6 +10,11 @@ import { construirInstancia } from './lab-piezas.js';
 
 export const BELLY = 0;   // sin vientre de brasa propio: las piezas (adrenal, saco…) lo ponen si el jugador las elige
 
+/** Materiales del kit sólo de ESTE cuerpo (cada cuerpo crea los suyos): el metal más mate para que no se vea negro contra el cielo oscuro del visor. */
+export function postFinish(ak) {
+  const m = ak.mats.metal; if (m) { m.metalness = 0.55; m.roughness = 0.5; m.envMapIntensity = 1.6; m.needsUpdate = true; }
+}
+
 export function build(ak, ctx) {
   const lab = ctx.lab, proxies = [], geos = [], mats = [];
   if (lab && Array.isArray(lab.partes)) {

@@ -102,7 +102,7 @@ export const ESTACIONES = {
   forja: { id: 'forja', nombre: 'La Forja Biológica', icono: '🧬', x: 0, z: -30, r: 6.5, color: 0xff7ad9, pantalla: 'inventario', tab: 'for', frase: 'Cultivá piezas vivas en las cubas. Cuando la cuba brilla, ya se puede recoger.' },
   cambista: { id: 'cambista', nombre: 'El Cambista de Almas', icono: '◆', x: -26, z: -4, r: 5.5, color: 0xffd45a, pantalla: 'tienda', frase: 'Todo se cambia. Hasta lo que ya no tenés.' },
   armero: { id: 'armero', nombre: 'Los Capullos (Huéspedes)', icono: '🪞', x: 27, z: 0, r: 6.5, color: 0x6fe9ff, pantalla: 'huesped',
-    acciones: [{ id: 'huesped', texto: 'Elegir Huésped', pantalla: 'huesped' }, { id: 'evolucion', texto: 'Evolución', pantalla: 'evolucion' }, { id: 'loadout', texto: 'Equipo y armas', pantalla: 'loadout' }],
+    acciones: [{ id: 'huesped', texto: 'Elegir Huésped', pantalla: 'huesped' }, { id: 'evolucion', texto: 'Evolución', pantalla: 'evolucion' }, { id: 'loadout', texto: 'Equipo y armas', pantalla: 'loadout' }, { id: 'laboratorio', texto: 'Editor Genómico (crear tu Híbrido)', pantalla: 'laboratorio' }],
     frase: 'Cada Huésped que poseés duerme en un capullo. Mirá cuál querés ser hoy.' },
   territorios: { id: 'territorios', nombre: 'Mesa de Territorios', icono: '🗺', x: 0, z: 0, r: 5.5, color: 0xa0ff7a, pantalla: 'arenas',
     acciones: [{ id: 'arenas', texto: 'Elegir destino y jugar', pantalla: 'arenas' }, { id: 'territorios', texto: 'Territorios y bendiciones', pantalla: 'territorios' }, { id: 'story', texto: 'La Historia', pantalla: 'story' }],

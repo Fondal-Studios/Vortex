@@ -86,7 +86,7 @@ test('servidor manda: capacidad de más (2 funcionales con evo 0) ⇒ chasis por
     a.send({ t: 'create', map: 'm1', name: 'Ana', char: 'laboratorio', evo: 0, lab: exceso });
     a.welcomed = (m) => avisos.push(m.labAviso);
     assert.ok(await until(() => a.pid && a.buf.length > 3));
-    assert.ok(a.labAviso && a.labAviso.includes('Híbrido de Laboratorio'), 'aviso: ' + a.labAviso);
+    assert.ok(a.labAviso && a.labAviso.includes('Híbrido Genómico'), 'aviso: ' + a.labAviso);
     const s = a.buf[a.buf.length - 1].s, yo = s.players.find((p) => p.id === a.pid); assert.equal(yo.lb, undefined); assert.equal(a.labs.length, 0);
     assert.deepEqual(mem(srv).game.players[0].corg, []); assert.equal(a.estado, 'conectado');
     const n = a.buf.length; assert.ok(await until(() => a.buf.length > n + 3), 'la partida sigue');

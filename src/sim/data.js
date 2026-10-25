@@ -401,7 +401,7 @@ const AX_ID = 'axioma', CHASIS_LAB_STATS = { dano: 5, resistencia: 5, movilidad:
 {
   const AX = CHARACTERS.axioma;
   CHARACTERS.laboratorio = {
-    team: AX.team, name: 'Híbrido de Laboratorio', title: 'Creación del jugador', role: AX.role, host: true, lab: true, starter: false, preset: 'jugador3', seed: null, color: 0xff7a22, hp: 1, speed: 1, slots: [...AX.slots],
+    team: AX.team, name: 'Híbrido Genómico', title: 'Creación del jugador', role: AX.role, host: true, lab: true, starter: false, preset: 'jugador3', seed: null, color: 0xff7a22, hp: 1, speed: 1, slots: [...AX.slots],
     desc: 'Tu propia creación: elegís el aspecto y los órganos. Usa las habilidades de Axioma; el tamaño y la forma son solo estética.',
     story: 'Un cuerpo en blanco del Laboratorio de VORTEX. Lo que sea que seas, lo diseñaste vos.',
     stats: { ...CHASIS_LAB_STATS },

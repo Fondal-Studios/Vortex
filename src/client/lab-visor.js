@@ -12,7 +12,7 @@ import { ANCLAS, PARTES } from '../shared/host-build-catalogo.js';
 
 export const CAMARAS = {
   frente: { n: 'Frente', yaw: 0, pitch: 0.05, y: 0.52, d: 1 }, tres_cuartos: { n: '3/4', yaw: 0.75, pitch: 0.12, y: 0.52, d: 1 }, perfil: { n: 'Perfil', yaw: Math.PI / 2, pitch: 0.05, y: 0.52, d: 1 },
-  espalda: { n: 'Espalda', yaw: Math.PI, pitch: 0.08, y: 0.52, d: 1 }, cabeza: { n: 'Cabeza', yaw: 0.4, pitch: 0.06, y: 0.93, d: 0.3 }, manos: { n: 'Manos', yaw: 0.6, pitch: 0.3, y: 0.6, d: 0.45, x: 0.3 }, pies: { n: 'Pies', yaw: 0.5, pitch: 0.3, y: 0.08, d: 0.45 },
+  espalda: { n: 'Espalda', yaw: Math.PI, pitch: 0.08, y: 0.52, d: 1 }, cabeza: { n: 'Cabeza', yaw: 0.4, pitch: 0.06, y: 0.86, d: 0.3 }, manos: { n: 'Manos', yaw: 0.6, pitch: 0.3, y: 0.6, d: 0.45, x: 0.3 }, pies: { n: 'Pies', yaw: 0.5, pitch: 0.3, y: 0.08, d: 0.45 },
 };
 export const CAMARA_IDS = Object.keys(CAMARAS);
 /** Dónde se dibuja el punto de cada ancla (hueso + desplazamiento hacia la superficie, m del modelo, lado izquierdo +x) y hacia dónde «mira» (para atenuar los de atrás). */
@@ -55,7 +55,7 @@ export async function crearVisor(host, opts = {}) {
   let escalaY = 1, aspect = 1;
   const alto = () => 1.75 * escalaY;
   function objetivoCam(nombre) {
-    const c = CAMARAS[nombre] || CAMARAS.tres_cuartos, H = alto(), fov = THREE.MathUtils.degToRad(cam.fov), fitV = (H * 1.18) / 2 / Math.tan(fov / 2), fitH = (2.3 * escalaY) / 2 / (Math.tan(fov / 2) * aspect);
+    const c = CAMARAS[nombre] || CAMARAS.tres_cuartos, H = alto(), fov = THREE.MathUtils.degToRad(cam.fov), fitV = (H * 1.06) / 2 / Math.tan(fov / 2), fitH = (1.9 * escalaY) / 2 / (Math.tan(fov / 2) * aspect);
     const full = Math.max(fitV, fitH), d = c.d >= 1 ? full : Math.max(0.7, full * c.d + 0.2);
     return { yaw: c.yaw, pitch: c.pitch, dist: d, ty: c.y * H, tx: (c.x || 0) * escalaY * (c.yaw > 0 ? 1 : 1), tz: 0 };
   }
@@ -118,7 +118,7 @@ export async function crearVisor(host, opts = {}) {
     if (b.base.preset !== body.lab.base.preset) { crearCuerpo(b); return; }
     if (clave === claveGeo) { body.setLab(b); return; }   // sólo proporciones (u otros campos que no dibujan): al instante, sin reconstruir
     body.setLab({ ...b, partes: body.lab.partes, pal: body.lab.pal });   // las proporciones no esperan
-    const hacer = () => { timerGeo = 0; if (muerto || !body) return; claveGeo = JSON.stringify([buildAct.base.preset, buildAct.pal, buildAct.partes]); body.setLab(buildAct); marcarSel(); };
+    const hacer = () => { timerGeo = 0; if (muerto || !body) return; claveGeo = JSON.stringify([buildAct.base.preset, buildAct.pal, buildAct.partes]); body.setLab(buildAct); marcarSel(); opts.alListo && opts.alListo(); };
     clearTimeout(timerGeo); if (inmediato) hacer(); else timerGeo = setTimeout(hacer, 120);   // las piezas reconstruyen con un respiro de 120 ms
   }
   function marcarSel() {
@@ -141,7 +141,7 @@ export async function crearVisor(host, opts = {}) {
   }
   function actualizarPuntos(dt, t) {
     const P = pg.attributes.position, C = pg.attributes.aCol, S = pg.attributes.aSz, A = pg.attributes.aAl, ocup = new Set(); if (buildAct) for (const e of buildAct.partes) ocup.add(e.a);
-    const touch = matchMedia('(pointer: coarse)').matches, base = touch ? 30 : 22, em = hexN(buildAct ? buildAct.pal.emisivo : '#ff7a22'), c = new THREE.Color();
+    const touch = matchMedia('(pointer: coarse)').matches, base = touch ? 20 : 15, em = hexN(buildAct ? buildAct.pal.emisivo : '#ff7a22'), c = new THREE.Color();
     cam.getWorldPosition(_c);
     puntos.forEach((p, k) => {
       if (!posPunto(p, _v)) { A.setX(k, 0); return; }
@@ -171,8 +171,8 @@ export async function crearVisor(host, opts = {}) {
   }
   function ndc(e) { const r = canvas.getBoundingClientRect(); return new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); }
   const aPx = (v) => { const r = canvas.getBoundingClientRect(), p = v.clone().project(cam); return { x: (p.x * 0.5 + 0.5) * r.width, y: (-p.y * 0.5 + 0.5) * r.height }; };
-  function puntoMasCerca(e) {
-    if (!pts.visible) return null; const r = canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, P = pg.attributes.position, touch = e.pointerType === 'touch', lim = touch ? 30 : 20; let mejor = null, md = lim;
+  function puntoMasCerca(e, limite = 0) {
+    if (!pts.visible) return null; const r = canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, P = pg.attributes.position, touch = e.pointerType === 'touch', lim = limite || (touch ? 30 : 20); let mejor = null, md = lim;
     puntos.forEach((p, k) => { if (pg.attributes.aAl.getX(k) < 0.25) return; const s = aPx(_v.set(P.getX(k), P.getY(k), P.getZ(k))), d = Math.hypot(s.x - mx, s.y - my); if (d < md) { md = d; mejor = p; } });
     return mejor;
   }
@@ -240,8 +240,11 @@ export async function crearVisor(host, opts = {}) {
   function tocar(e) {
     if (!body) return;
     const punto = modo === 'piezas' ? puntoMasCerca(e) : null; ray.setFromCamera(ndc(e), cam);
-    const zonas = body.proxies.map((p) => p.mesh), h = modo === 'piezas' ? ray.intersectObjects(zonas, false) : [];
-    if (h.length && (!punto || h[0].distance < 99)) { const u = h[0].object.userData.lab; if (!punto || puntoMasCerca(e) === null) { ev.tapPieza && ev.tapPieza(u.i); return; } }
+    const h = modo === 'piezas' ? ray.intersectObjects(body.proxies.map((p) => p.mesh), false) : [];
+    const ocupada = punto && buildAct && buildAct.partes.some((x) => x.a === punto.ancla);
+    // una pieza tocada gana, salvo que el toque caiga justo sobre un punto de ancla todavía vacío (se quiere elegir el ancla)
+    const exacto = h.length && punto && !ocupada ? puntoMasCerca(e, 9) : null;   // un punto de ancla vacío justo bajo el dedo gana sobre la pieza
+    if (h.length && !exacto) { ev.tapPieza && ev.tapPieza(h[0].object.userData.lab.i); return; }
     if (punto) { ev.tapAncla && ev.tapAncla(punto.ancla, punto.lado); return; }
     if (modo === 'cuerpo') { const r = regionEn(ray); if (r) { ev.tapRegion && ev.tapRegion(r); return; } }
     ev.tapVacio && ev.tapVacio();
@@ -266,7 +269,7 @@ export async function crearVisor(host, opts = {}) {
   const api = {
     get body() { return body; }, get renderer() { return gl; }, get scene() { return scene; }, get camaraActual() { return O.nombre; }, get listo() { return !!body && body.isReady; },
     setBuild, setModo(m) { modo = m; pts.visible = m === 'piezas'; if (m !== 'piezas') gz.visible = false; hl.forEach((x) => { x.visible = false; }); },
-    seleccionar(s) { sel = { ancla: s.ancla ?? null, i: s.i ?? -1 }; marcarSel(); },
+    seleccionar(s) { sel = { ancla: s.ancla ?? null, i: s.i ?? -1 }; if (sel.i < 0) gz.visible = false; marcarSel(); },
     setGizmo(m) { if (m === gizmoModo) return; gizmoModo = m; armarGizmo(); },
     camara(n, instante = false) { O.nombre = n; O.usuario = false; irCam(n, instante); },
     reproducir(n) { const c = CLIPS_V[n] || CLIPS_V.idle; clipAct = n; velClip = c[0]; if (!body) return; if (['golpear', 'hechizo'].includes(n)) { body.event({ t: n === 'golpear' ? 'melee' : 'skill' }); return; } body.person.play(c[1], { fade: 0.16, restart: true }); },
@@ -276,6 +279,14 @@ export async function crearVisor(host, opts = {}) {
     info() { return { geometrias: gl.info.memory.geometries, texturas: gl.info.memory.textures, llamadas: gl.info.render.calls, tris: gl.info.render.triangles }; },
     pausar(v) { pausado = !!v; }, regionPunto(n) { return segmentosRegion(n); },
     render() { aplicarCam(); gl.render(scene, cam); },
+    /** Centro en pantalla (px relativos al canvas) de cada asa del gizmo (para pruebas y para el modo teclado). */
+    get gizmoVisible() { return gz.visible; },
+    gizmoPx() { if (!gz.visible) return []; const c = canvas.getBoundingClientRect(); return gobj.map((m) => { const p = aPx(m.getWorldPosition(new THREE.Vector3())); return { eje: m.userData.eje, x: p.x + c.left, y: p.y + c.top }; }); },
+    /** Centro en pantalla (px de la ventana) de una región del cuerpo o de un punto de ancla. */
+    regionPx(n) { const c = canvas.getBoundingClientRect(), s = segmentosRegion(n)[0]; if (!s) return null; const p = aPx(s.a.clone().lerp(s.b, 0.5)); return { x: p.x + c.left, y: p.y + c.top }; },
+    puntoPx(ancla, lado = null) { const k = puntos.findIndex((p) => p.ancla === ancla && (!lado || p.lado === lado)); if (k < 0) return null; const P = pg.attributes.position, c = canvas.getBoundingClientRect(), q = aPx(new THREE.Vector3(P.getX(k), P.getY(k), P.getZ(k))); return { x: q.x + c.left, y: q.y + c.top }; },
+    /** Qué hay bajo un punto de la ventana (para pruebas): { pieza: índice|null, ancla: nombre|null }. */
+    hitTest(x, y) { if (!body) return null; const e = { clientX: x, clientY: y, pointerType: 'mouse' }; ray.setFromCamera(ndc(e), cam); const h = ray.intersectObjects(body.proxies.map((p) => p.mesh), false), pu = puntoMasCerca(e); return { pieza: h.length ? h[0].object.userData.lab.i : null, ancla: pu ? pu.ancla : null, modo }; },
     proyectar(v) { return aPx(v); }, get proxies() { return body ? body.proxies : []; }, get puntos() { return puntos; }, posicionPunto(p) { const o = new THREE.Vector3(); return posPunto(p, o) ? o : null; },
     dispose() {
       muerto = true; cancelAnimationFrame(raf); clearTimeout(timerGeo); ro.disconnect(); creando++;
