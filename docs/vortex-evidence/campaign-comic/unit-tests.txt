@@ -1,0 +1,39 @@
+✔ apertura sensorial y seis cierres: subtítulos legibles, sin revelar el origen al entrar (3.843103ms)
+✔ extender campaña no muta los contratos ni hace más resistentes a los jefes (33.187081ms)
+✔ recuerdos: no hay spoilers antes de ganar; progreso inválido no salta revelaciones (3.49729ms)
+✔ revelación gradual: primero indicios, luego cautivos y por último origen compartido (0.579298ms)
+✔ recuerdos persisten con campaña y no cambian por botín independiente; reinicio no borra equipo (5.278959ms)
+✔ misiones independientes y coop: briefings e introducciones no revelan el origen de HERALDO (1.456417ms)
+✔ toda arena es una misión finita con definición válida, o un modo aparte declarado (11.049001ms)
+✔ ningún límite es infinito y el jefe se enfurece antes de su tope (0.585087ms)
+✔ las oleadas de cada misión son variadas: tipos, objetivos y composición (0.433938ms)
+✔ «Islas — Despertar» es el capítulo 1 y los demás conservan los nombres del repositorio (0.23064ms)
+✔ VICTORIA: recorrer todas las oleadas hasta el jefe termina en won y paga premio de misión (17.363885ms)
+✔ DERROTA: el equipo caído termina la misión; en coop basta que caigan todos (15.520332ms)
+✔ TIEMPO AGOTADO de la misión: derrota clara aunque nadie haga nada (3.657322ms)
+✔ TIEMPO AGOTADO del encuentro final: derrota por tiempo, no combate eterno (42.09273ms)
+✔ el tope del jefe crece con el equipo y el enfurecimiento llega antes que el tope (1.209823ms)
+✔ TIEMPO AGOTADO de una oleada de combate: la red se repliega y la misión sigue (no se queda trabada) (49.115497ms)
+✔ OBJETIVO sin cumplir: se agota su tiempo y la misión se pierde (sin esperas infinitas) (7.955365ms)
+✔ AFK: en solitario el intermedio NO se congela esperando la mejora; se elige sola (100.32435ms)
+✔ AFK en una misión completa: un jugador inactivo no la deja abierta más allá del tope de la misión (360.929643ms)
+✔ coop 1–4: la misión se arma igual y el jefe final escala con el equipo (2.365184ms)
+✔ la oleada declarada usa una composición propia: la etapa 6 de m4 incluye criaturas que la 1 no (3.273359ms)
+✔ capítulo m1: un bot tirador gana en 7,5–13 min tras todas las oleadas y el jefe final (1025.495464ms)
+✔ capítulo m3: un bot tirador gana en 7,5–13 min tras todas las oleadas y el jefe final (1245.905806ms)
+✔ capítulo m4: un bot tirador gana en 7,5–13 min tras todas las oleadas y el jefe final (2451.25629ms)
+✔ capítulo m5: un bot tirador gana en 7,5–13 min tras todas las oleadas y el jefe final (1398.073042ms)
+✔ capítulo m6: un bot tirador gana en 7,5–13 min tras todas las oleadas y el jefe final (1049.18829ms)
+✔ capítulo m2: un bot tirador gana en 7,5–13 min tras todas las oleadas y el jefe final (1324.468988ms)
+✔ canon: HERALDO afirma lo que cree; el final reconoce a los cautivos y las identidades independientes (2.404413ms)
+✔ todas las aperturas completas usan el despertar, sin rutas al atropello (1.743592ms)
+✔ introducción: cinemática de transferencia de lectura manual, sin tren ni atropello, con subtítulos y saltable (2.133974ms)
+✔ el tutorial conserva su estado y la campaña puede repetir el cómic y el stub del prólogo sigue sin tren (1.371448ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8870.773056

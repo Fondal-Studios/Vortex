@@ -1,0 +1,31 @@
+✔ one six-chapter route provides causal links and ends at the exit (1.555041ms)
+✔ progress is sequential, idempotent, recoverable and rejects chapter skips (1.980174ms)
+✔ every chapter, campaign or individual, ends with its own final boss after all its waves (73.138121ms)
+✔ existing profiles keep inventory/currency; chapter checkpoint survives reload; restart only resets campaign (5.211129ms)
+✔ V03: el mismo matchId cobrado 3 veces suma una sola vez (y también tras recargar) (8.591339ms)
+✔ sin matchId, repetir exactamente la misma llamada tampoco suma; partidas distintas sí (0.759888ms)
+✔ el ledger recuerda sólo las últimas 50 partidas (19.622219ms)
+✔ derrota: recompensa parcial; victoria: completa y con lo exclusivo (6.388268ms)
+✔ derrota: el botín raro, los planos y la firma NO se acreditan (3.72459ms)
+✔ coop: el multiplicador del servidor (base + bono) escala núcleos y XP (3.195761ms)
+✔ V01: almacenamiento lleno → se avisa, no queda nada a medias, la partida espera y se acredita al volver (sin duplicar) (2.112144ms)
+✔ V01: la cola sobrevive a recargar la página y se acredita luego (2.082859ms)
+✔ exportar / importar: restaura el progreso sin permitir cobrar de nuevo lo ya acreditado (3.237955ms)
+✔ perfiles viejos y dañados: abren, conservan y no se pisan en silencio (1.598026ms)
+✔ editor: fallo al guardar no confirma ni pierde el diseño anterior; reintento persiste (6.160763ms)
+✔ matchId: válido, único y estable en el hash (6.588981ms)
+✔ ledger: el mismo matchId no se acredita dos veces; conflicto de huella se detecta; tope de 50 (4.756301ms)
+✔ cola de pendientes: sin repetidos, acotada, se limpia (2.225414ms)
+✔ regla: victoria paga todo; derrota paga parte y NUNCA lo de sólo-victoria (0.764515ms)
+✔ regla: el botín de una derrota sólo conserva materiales y semillas (parte); la victoria lo conserva entero (0.748412ms)
+✔ coop: base para todos, bono moderado, el apoyo rinde igual que el daño, AFK sin bono (0.86051ms)
+✔ esquema: perfiles viejos migran sin perder nada; el futuro no se toca (1.529392ms)
+✔ copia de seguridad: ida y vuelta, y rechaza texto cortado, editado o ajeno (1.2896ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 508.97413

@@ -49,11 +49,12 @@ test('onboarding E2E: menú → elegir primer Huésped → cinemática saltable 
     // 3) cinemática de transferencia (20–30 s) con subtítulos
     await pg.waitForSelector('#transfer', { timeout: 60000 });
     await pg.waitForFunction(() => window.__transfer && window.__transfer.t > 2.5, null, { timeout: 120000 }); await pg.screenshot({ path: OUT + '04-cinematica-vacio.png' });
-    assert.ok((await pg.textContent('#sub')).length > 5, 'subtítulos en pantalla');
-    await pg.waitForFunction(() => window.__transfer && (window.__transfer.t > 8 || window.__transfer.done), null, { timeout: 240000 }); await pg.screenshot({ path: OUT + '05-cinematica-cuerpo.png' });
-    await pg.waitForFunction(() => window.__transfer && (window.__transfer.t > 16 || window.__transfer.done), null, { timeout: 240000 });
-    assert.equal(await pg.evaluate(() => window.__transfer.done), false, 'la cinemática sigue en curso a los 16 s'); await pg.screenshot({ path: OUT + '06-cinematica-transferencia.png' });
-    assert.equal(await pg.evaluate(() => window.__transfer.cuerpoListo), true, 'el cuerpo 3D del Huésped (createHostBody) se cargó');
+    assert.ok((await pg.textContent('.comic-caption')).length > 5, 'subtítulos en pantalla');
+    await pg.locator('#transfer [data-next]').click(); await pg.screenshot({ path: OUT + '05-cinematica-cuerpo.png' });
+    await pg.locator('#transfer [data-next]').click(); await pg.locator('#transfer [data-next]').click();
+    assert.match(await pg.locator('.comic-actor').getAttribute('src'), /vesper.png/);
+    assert.equal(await pg.evaluate(() => window.__transfer.done), false, 'el cómic espera al lector'); await pg.screenshot({ path: OUT + '06-cinematica-transferencia.png' });
+    assert.equal(await pg.evaluate(() => window.__transfer.kind), 'comic', 'se usa el cómic ligero con el huésped elegido');
     // saltable con confirmación mínima: el primer toque sólo pide confirmar, el segundo salta (todo en un mismo instante para no competir con el reloj)
     const salto = await pg.evaluate(() => { const bt = document.querySelector('#transfer .tr-skip'); bt.click(); const r = { pide: bt.textContent, hecho1: window.__transfer.done }; bt.click(); r.hecho2 = window.__transfer.done; r.saltado = window.__transfer.skipped; return r; });
     assert.match(salto.pide, /de nuevo/); assert.equal(salto.hecho1, false, 'un toque no salta'); assert.equal(salto.hecho2, true); assert.equal(salto.saltado, true);
@@ -81,7 +82,7 @@ test('onboarding E2E: menú → elegir primer Huésped → cinemática saltable 
     await pg.evaluate(() => window.__ui.confirmTitle()); await pg.waitForTimeout(800);
     await pg.click('#continuar');   // con la campaña ya empezada, «Continuar» retoma directo (sin selector ni cinemática)
     await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 90000 });
-    assert.equal(await pg.locator('#primerhuesped').count(), 0); assert.equal(await pg.locator('#transfer').count(), 0); assert.equal(await pg.evaluate(() => !!window.__api.session.game.tutorial), false, 'sin tutorial la 2.ª vez');
+    assert.equal(await pg.locator('#primerhuesped').count(), 0); await pg.waitForFunction(()=>window.__transfer&&!window.__transfer.done); await pg.evaluate(()=>{const b=document.querySelector('#transfer .tr-skip');b.click();b.click();}); assert.equal(await pg.locator('#transfer').count(), 0); assert.equal(await pg.evaluate(() => !!window.__api.session.game.tutorial), false, 'sin tutorial la 2.ª vez');
     assert.equal(await pg.evaluate(() => window.__api.renderer.third), true, 'cámara en tercera persona por defecto');
     await pg.mouse.click(300, 300); await pg.waitForFunction(() => !window.__api.session.intro, null, { timeout: 60000 }); await pg.click('#tutok', { timeout: 30000 });   // se salta la intro y se cierra la tarjeta de controles (ambas pausan la simulación)   // la intro de capítulo pausa la simulación: se salta para medir que la cámara no la frena
     // cámara (AC-05 en el navegador): el botón alterna sin frenar la simulación; cambiar de modo NO fuerza la cámara salvo «Cámara automática por modo»

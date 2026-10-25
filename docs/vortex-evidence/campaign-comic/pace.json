@@ -1,0 +1,86 @@
+[
+  {
+    "mapId": "m1",
+    "previous": true,
+    "state": "won",
+    "seconds": 495.87,
+    "kills": 119
+  },
+  {
+    "mapId": "m1",
+    "previous": false,
+    "state": "won",
+    "seconds": 541.33,
+    "kills": 132
+  },
+  {
+    "mapId": "m3",
+    "previous": true,
+    "state": "won",
+    "seconds": 618.2,
+    "kills": 152
+  },
+  {
+    "mapId": "m3",
+    "previous": false,
+    "state": "won",
+    "seconds": 646.73,
+    "kills": 177
+  },
+  {
+    "mapId": "m4",
+    "previous": true,
+    "state": "won",
+    "seconds": 603.6,
+    "kills": 180
+  },
+  {
+    "mapId": "m4",
+    "previous": false,
+    "state": "won",
+    "seconds": 634.13,
+    "kills": 208
+  },
+  {
+    "mapId": "m5",
+    "previous": true,
+    "state": "won",
+    "seconds": 556.33,
+    "kills": 139
+  },
+  {
+    "mapId": "m5",
+    "previous": false,
+    "state": "won",
+    "seconds": 631.3,
+    "kills": 139
+  },
+  {
+    "mapId": "m6",
+    "previous": true,
+    "state": "won",
+    "seconds": 580.67,
+    "kills": 149
+  },
+  {
+    "mapId": "m6",
+    "previous": false,
+    "state": "won",
+    "seconds": 628.73,
+    "kills": 157
+  },
+  {
+    "mapId": "m2",
+    "previous": true,
+    "state": "won",
+    "seconds": 595.47,
+    "kills": 180
+  },
+  {
+    "mapId": "m2",
+    "previous": false,
+    "state": "won",
+    "seconds": 646.77,
+    "kills": 193
+  }
+]
