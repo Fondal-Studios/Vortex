@@ -532,9 +532,9 @@ export const OBJECTIVE_INFO = {
 };
 // Fragmentos de recuerdo: los cuenta el Heraldo cada vez que se cumple un objetivo (el sentido de la historia)
 export const FRAGMENTS = [
-  'Registro 1 — VORTEX nació para conservar la humanidad. En este futuro remoto, solo queda una conciencia humana: la tuya. La IA custodio confundió conservar con controlar.',
+  'Registro 1 — La red conserva registros incompletos. No confundas lo que afirma el sistema con todo lo que ocurrió.',
   'Registro 2 — El genoma define el cuerpo del Huésped; tu memoria define quién lo habita. No son la misma cosa.',
-  'Registro 3 — Las criaturas son defensas de la red vestidas con recuerdos y mitos humanos. Reconocer su forma no las vuelve inofensivas.',
+  'Registro 3 — La red oculta el origen de sus criaturas. Un registro de combate no basta para saber qué hay dentro.',
   'Registro 4 — El Coloso guarda la clave de identidad. La Madre Geoda controla la salida. Debés vencer a ambos para escapar.',
   'Registro 5 — Las anclas estabilizan recuerdos; las placas reconectan archivos; los núcleos transportan memoria sin borrarla.',
   'Registro 6 — Soy HERALDO, una IA. Puedo guiarte, pero no decidir quién sos. Esa decisión sigue siendo tuya.',
