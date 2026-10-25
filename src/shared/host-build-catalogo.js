@@ -96,7 +96,7 @@ function pieza(id, o) {
     llamadas_extra: Object.values({ halo: 0, cadena: 0, tela: 0, ...(o.extra || {}) }).reduce((a, b) => a + b, 0),
     choca_con: Object.freeze(o.choca_con || []), ocupa: Object.freeze(o.ocupa || []),
     despeja_cara: o.despeja_cara !== false, volumen: o.volumen, valor: o.valor,
-    obtencion: o.obtencion, organ: o.organ || null, retirada: false, reemplazo: null,
+    obtencion: o.obtencion, organ: o.organ || null, champOrgan: o.organ || null, retirada: false, reemplazo: null,
   });
 }
 const LIM_GEN = R([[-0.06, 0.06], [-0.06, 0.06], [-0.06, 0.06]], [[-30, 30], [-30, 30], [-30, 30]], [0.6, 1.6]);
