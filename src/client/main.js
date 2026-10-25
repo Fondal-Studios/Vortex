@@ -1041,7 +1041,7 @@ const coopUI = createCoopUI({
   nombre: () => Story.NAME, charActual: () => Equipo.char, gesto: () => { try { sound.init(); sound.resume(); } catch { /* sin audio */ } },
   modoDe: (ch) => modoElegido(ch), ponerModo: (ch, m) => { const S = settings(); setSetting('modes', { ...(S.modes || {}), [ch]: m }); setSetting('mode', m); try { ui.refreshHuesped(); } catch { /* menú no listo */ } },
   elegirChar: (ch) => { if (ch !== Equipo.char) { Equipo.char = ch; saveEquipo(); try { ui.refreshHuesped(); } catch { /* menú no listo */ } } },
-  cargaDe: (modo) => { const ch = Equipo.char, P = Perfil.paraPartida(ch); return { name: Story.NAME, char: ch, slots: Equipo.slots, mode: modo || modoElegido(ch), fauna: Perfil.faunaDeLaSala(), arbol: P.arbol, equip: P.equip, pity: P.pity, sigs: P.sigs, melee: P.melee, evo: P.evo, path: P.path, bend: P.bend, herb: P.herb, maestria: P.maestria, style: settings().style }; },
+  cargaDe: (modo) => { const ch = Equipo.char, P = Perfil.paraPartida(ch); return { name: Story.NAME, char: ch, slots: Equipo.slots, mode: modo || modoElegido(ch), fauna: Perfil.faunaDeLaSala(), arbol: P.arbol, equip: P.equip, pity: P.pity, sigs: P.sigs, melee: P.melee, evo: P.evo, path: P.path, bend: P.bend, herb: P.herb, maestria: P.maestria, lab: P.lab, style: settings().style }; },
   onEmpezar: startCoopGame, banner, enPartida: () => !!(session && session.mode === 'coop'),
   volverAlLobby: () => location.reload(),   // «Otra vez» tras el final: se recarga y el enlace ?sala= devuelve a la sala de espera
 });

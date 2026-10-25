@@ -1,0 +1,567 @@
+{
+ "host": {
+  "calls": 13,
+  "tris": 15084,
+  "meshes": [
+   [
+    "kit-cuerpo",
+    3668
+   ],
+   [
+    "kit-metal",
+    3820
+   ],
+   [
+    "kit-gold",
+    1678
+   ],
+   [
+    "kit-bone",
+    2574
+   ],
+   [
+    "kit-dark",
+    84
+   ],
+   [
+    "kit-light",
+    206
+   ],
+   [
+    "kit-ember",
+    2490
+   ],
+   [
+    "kit-crystal",
+    8
+   ],
+   [
+    "kit-leather",
+    372
+   ],
+   [
+    "kit-spirit",
+    64
+   ]
+  ]
+ },
+ "combos": [
+  {
+   "nombre": "todo-mínimo",
+   "prop": {
+    "altura": 0.9,
+    "ancho": 0.9,
+    "hombros": 0.92,
+    "torso": 0.92,
+    "brazos": 0.9,
+    "piernas": 0.9,
+    "cabeza": 0.9,
+    "manos": 0.85,
+    "pies": 0.85
+   },
+   "lift": -0.0944,
+   "reglas": [],
+   "nan": 0,
+   "shearMax": 0.00005193637623214209,
+   "dSueloMax": 0.019787742477029656,
+   "dSueloPeor": "crouch",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "todo-máximo",
+   "prop": {
+    "altura": 1.15,
+    "ancho": 1.15,
+    "hombros": 1.12,
+    "torso": 1.1,
+    "brazos": 1.15,
+    "piernas": 1.15,
+    "cabeza": 1.2,
+    "manos": 1.3,
+    "pies": 1.25
+   },
+   "lift": 0.144,
+   "reglas": [
+    "La altura y las piernas juntas no pueden pasar de 1,30: bajá una de las dos."
+   ],
+   "nan": 0,
+   "shearMax": 0.00005191670715090853,
+   "dSueloMax": 0.0391270077546877,
+   "dSueloPeor": "crouch",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "alto+piernas-máx",
+   "prop": {
+    "altura": 1.15,
+    "ancho": 1,
+    "hombros": 1,
+    "torso": 1,
+    "brazos": 1,
+    "piernas": 1.15,
+    "cabeza": 1,
+    "manos": 1,
+    "pies": 1
+   },
+   "lift": 0.119,
+   "reglas": [
+    "La altura y las piernas juntas no pueden pasar de 1,30: bajá una de las dos."
+   ],
+   "nan": 0,
+   "shearMax": 0.1388047915750409,
+   "dSueloMax": 0.007179351445821186,
+   "dSueloPeor": "crouch",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "brazos-máx+hombros-mín",
+   "prop": {
+    "altura": 1,
+    "ancho": 1,
+    "hombros": 0.92,
+    "torso": 1,
+    "brazos": 1.15,
+    "piernas": 1,
+    "cabeza": 1,
+    "manos": 1,
+    "pies": 1
+   },
+   "lift": 0,
+   "reglas": [],
+   "nan": 0,
+   "shearMax": 0.00005192685287084371,
+   "dSueloMax": 0.0035604409803609853,
+   "dSueloPeor": "spellIdle",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "cabeza-máx+hombros-mín",
+   "prop": {
+    "altura": 1,
+    "ancho": 1,
+    "hombros": 0.92,
+    "torso": 1,
+    "brazos": 1,
+    "piernas": 1,
+    "cabeza": 1.2,
+    "manos": 1,
+    "pies": 1
+   },
+   "lift": 0,
+   "reglas": [
+    "La cabeza no puede ser más de un 20 % más grande que los hombros."
+   ],
+   "nan": 0,
+   "shearMax": 0.00005191952584952578,
+   "dSueloMax": 0.002107256043191585,
+   "dSueloPeor": "idle",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "manos-máx+pies-máx",
+   "prop": {
+    "altura": 1,
+    "ancho": 1,
+    "hombros": 1,
+    "torso": 1,
+    "brazos": 1,
+    "piernas": 1,
+    "cabeza": 1,
+    "manos": 1.3,
+    "pies": 1.25
+   },
+   "lift": 0.025,
+   "reglas": [],
+   "nan": 0,
+   "shearMax": 0.00005191902293073653,
+   "dSueloMax": 0.027780570703362033,
+   "dSueloPeor": "crouch",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "torso-mín+piernas-máx",
+   "prop": {
+    "altura": 1,
+    "ancho": 1,
+    "hombros": 1,
+    "torso": 0.92,
+    "brazos": 1,
+    "piernas": 1.15,
+    "cabeza": 1,
+    "manos": 1,
+    "pies": 1
+   },
+   "lift": 0.119,
+   "reglas": [],
+   "nan": 0,
+   "shearMax": 0.00005193513814492795,
+   "dSueloMax": 0.0014194710148574888,
+   "dSueloPeor": "talk",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "ancho-máx+altura-mín",
+   "prop": {
+    "altura": 0.9,
+    "ancho": 1.15,
+    "hombros": 1,
+    "torso": 1,
+    "brazos": 1,
+    "piernas": 1,
+    "cabeza": 1,
+    "manos": 1,
+    "pies": 1
+   },
+   "lift": 0,
+   "reglas": [],
+   "nan": 0,
+   "shearMax": 0.2402459348421065,
+   "dSueloMax": 0.004786234297214156,
+   "dSueloPeor": "crouch",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "alternado-A",
+   "prop": {
+    "altura": 1.15,
+    "ancho": 0.9,
+    "hombros": 1.12,
+    "torso": 0.92,
+    "brazos": 1.15,
+    "piernas": 0.9,
+    "cabeza": 1.2,
+    "manos": 0.85,
+    "pies": 1.25
+   },
+   "lift": -0.0543,
+   "reglas": [],
+   "nan": 0,
+   "shearMax": 0.24030211457440367,
+   "dSueloMax": 0.03912700775468745,
+   "dSueloPeor": "crouch",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  },
+  {
+   "nombre": "alternado-B",
+   "prop": {
+    "altura": 0.9,
+    "ancho": 1.15,
+    "hombros": 0.92,
+    "torso": 1.1,
+    "brazos": 0.9,
+    "piernas": 1.15,
+    "cabeza": 0.9,
+    "manos": 1.3,
+    "pies": 0.85
+   },
+   "lift": 0.104,
+   "reglas": [],
+   "nan": 0,
+   "shearMax": 0.24025289476386388,
+   "dSueloMax": 0.01978774247702971,
+   "dSueloPeor": "crouch",
+   "clipsConProblema": [],
+   "cadenasAcotadas": true
+  }
+ ],
+ "clips": [
+  "idle",
+  "walk",
+  "jog",
+  "sprint",
+  "crouch",
+  "crouchWalk",
+  "aim",
+  "aimIdle",
+  "shoot",
+  "reload",
+  "cast",
+  "punch",
+  "hit",
+  "jump",
+  "fall",
+  "land",
+  "death",
+  "talk",
+  "interact",
+  "dance",
+  "spellIdle",
+  "revive"
+ ],
+ "resumen": {},
+ "base": {
+  "idle": {
+   "nan": 0,
+   "shear": 0.00004205990711169924,
+   "minY": -0.004402974135563129,
+   "maxY": -0.0019874410703003055,
+   "cad": true
+  },
+  "walk": {
+   "nan": 0,
+   "shear": 0.000041078260796042147,
+   "minY": -0.022984309169437125,
+   "maxY": 0.004142036160821319,
+   "cad": true
+  },
+  "jog": {
+   "nan": 0,
+   "shear": 0.000046396099278460955,
+   "minY": -0.05196257500788728,
+   "maxY": 0.2562774101625021,
+   "cad": true
+  },
+  "sprint": {
+   "nan": 0,
+   "shear": 0.00004469643972859254,
+   "minY": -0.04036331596965408,
+   "maxY": 0.1777891041871194,
+   "cad": true
+  },
+  "crouch": {
+   "nan": 0,
+   "shear": 0.000020911787074591124,
+   "minY": -0.0478623429721416,
+   "maxY": -0.044623532211142604,
+   "cad": true
+  },
+  "crouchWalk": {
+   "nan": 0,
+   "shear": 0.000020740982029558127,
+   "minY": -0.04767742783749047,
+   "maxY": -0.04414704949643903,
+   "cad": true
+  },
+  "aim": {
+   "nan": 0,
+   "shear": 0.00004188729057032719,
+   "minY": -0.003084498413090372,
+   "maxY": -0.0013572120321357422,
+   "cad": true
+  },
+  "aimIdle": {
+   "nan": 0,
+   "shear": 0.00004199658457981545,
+   "minY": -0.004914692095291455,
+   "maxY": -0.002897437154955443,
+   "cad": true
+  },
+  "shoot": {
+   "nan": 0,
+   "shear": 0.000041976643360345934,
+   "minY": -0.00637912845308432,
+   "maxY": -0.004725324065772255,
+   "cad": true
+  },
+  "reload": {
+   "nan": 0,
+   "shear": 0.000043351898194083683,
+   "minY": -0.0053625057892026685,
+   "maxY": -0.0030935641022141963,
+   "cad": true
+  },
+  "cast": {
+   "nan": 0,
+   "shear": 0.000035705651824331263,
+   "minY": -0.0018748557824616707,
+   "maxY": -0.001711544844692344,
+   "cad": true
+  },
+  "punch": {
+   "nan": 0,
+   "shear": 0.000044905503307182475,
+   "minY": -0.02347044879563694,
+   "maxY": -0.020758561151790166,
+   "cad": true
+  },
+  "hit": {
+   "nan": 0,
+   "shear": 0.00003099002450751914,
+   "minY": -0.0048195764374305596,
+   "maxY": -0.002673608025626798,
+   "cad": true
+  },
+  "jump": {
+   "nan": 0,
+   "shear": 0.000028416022660035104,
+   "minY": -0.12381137060717375,
+   "maxY": 0.3163377232593238,
+   "cad": true
+  },
+  "fall": {
+   "nan": 0,
+   "shear": 0.000022013691053536115,
+   "minY": -0.12739516361153397,
+   "maxY": -0.0768752794033714,
+   "cad": true
+  },
+  "land": {
+   "nan": 0,
+   "shear": 0.000047758540084747994,
+   "minY": -0.02115761162894484,
+   "maxY": 0.007310573832162662,
+   "cad": true
+  },
+  "death": {
+   "nan": 0,
+   "shear": 0.000028512782667427275,
+   "minY": -0.03487311888938328,
+   "maxY": 0.007388969546809416,
+   "cad": true
+  },
+  "talk": {
+   "nan": 0,
+   "shear": 0.00002900046240776795,
+   "minY": -0.004953206723929439,
+   "maxY": -0.0033574565378352754,
+   "cad": true
+  },
+  "interact": {
+   "nan": 0,
+   "shear": 0.000041977675783520677,
+   "minY": -0.004285988352995057,
+   "maxY": -0.0016476140932411047,
+   "cad": true
+  },
+  "dance": {
+   "nan": 0,
+   "shear": 0.00004423531645503096,
+   "minY": -0.016703358523375962,
+   "maxY": 0.0030730124828013635,
+   "cad": true
+  },
+  "spellIdle": {
+   "nan": 0,
+   "shear": 0.00003258739441977331,
+   "minY": -0.002069029202042162,
+   "maxY": -0.0010221203543875972,
+   "cad": true
+  },
+  "revive": {
+   "nan": 0,
+   "shear": 0.00005190282577394759,
+   "minY": -0.041304854896093805,
+   "maxY": 0.0019915271339029576,
+   "cad": true
+  }
+ },
+ "ik": [
+  {
+   "nombre": "neutra",
+   "distAlObjetivo": 0.0149,
+   "alcance": 0.454,
+   "objetivoAlHombro": 0.441,
+   "finito": true,
+   "lift": 0
+  },
+  {
+   "nombre": "todo-mínimo",
+   "distAlObjetivo": 0.012,
+   "alcance": 0.368,
+   "objetivoAlHombro": 0.461,
+   "finito": true,
+   "lift": -0.094
+  },
+  {
+   "nombre": "todo-máximo",
+   "distAlObjetivo": 0.0125,
+   "alcance": 0.6,
+   "objetivoAlHombro": 0.448,
+   "finito": true,
+   "lift": 0.144
+  },
+  {
+   "nombre": "alto+piernas-máx",
+   "distAlObjetivo": 0.0277,
+   "alcance": 0.452,
+   "objetivoAlHombro": 0.453,
+   "finito": true,
+   "lift": 0.119
+  },
+  {
+   "nombre": "brazos-máx+hombros-mín",
+   "distAlObjetivo": 0.0099,
+   "alcance": 0.522,
+   "objetivoAlHombro": 0.444,
+   "finito": true,
+   "lift": 0
+  },
+  {
+   "nombre": "cabeza-máx+hombros-mín",
+   "distAlObjetivo": 0.0126,
+   "alcance": 0.454,
+   "objetivoAlHombro": 0.463,
+   "finito": true,
+   "lift": 0
+  },
+  {
+   "nombre": "manos-máx+pies-máx",
+   "distAlObjetivo": 0.0135,
+   "alcance": 0.454,
+   "objetivoAlHombro": 0.443,
+   "finito": true,
+   "lift": 0.025
+  },
+  {
+   "nombre": "torso-mín+piernas-máx",
+   "distAlObjetivo": 0.0082,
+   "alcance": 0.454,
+   "objetivoAlHombro": 0.454,
+   "finito": true,
+   "lift": 0.119
+  },
+  {
+   "nombre": "ancho-máx+altura-mín",
+   "distAlObjetivo": 0.015,
+   "alcance": 0.521,
+   "objetivoAlHombro": 0.456,
+   "finito": true,
+   "lift": 0
+  },
+  {
+   "nombre": "alternado-A",
+   "distAlObjetivo": 0.0481,
+   "alcance": 0.466,
+   "objetivoAlHombro": 0.453,
+   "finito": true,
+   "lift": -0.054
+  },
+  {
+   "nombre": "alternado-B",
+   "distAlObjetivo": 0.0133,
+   "alcance": 0.469,
+   "objetivoAlHombro": 0.445,
+   "finito": true,
+   "lift": 0.104
+  }
+ ],
+ "cadenasMs": 7206.699999999953,
+ "capturas": [
+  "todo-mínimo-frente",
+  "todo-mínimo-q34",
+  "todo-mínimo-perfil",
+  "todo-mínimo-espalda",
+  "todo-máximo-frente",
+  "todo-máximo-q34",
+  "todo-máximo-perfil",
+  "todo-máximo-espalda",
+  "alternado-A-frente",
+  "alternado-A-q34",
+  "alternado-A-perfil",
+  "alternado-A-espalda",
+  "neutra-frente",
+  "neutra-q34",
+  "neutra-perfil",
+  "neutra-espalda"
+ ],
+ "errores": []
+}

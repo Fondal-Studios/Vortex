@@ -27,6 +27,10 @@ import * as SERAF from './huesped/seraf.js';
 import * as COLMENA from './huesped/colmena.js';
 import * as DANZANTE from './huesped/danzante.js';
 import * as SINGULAR from './huesped/singular.js';
+import * as LABORATORIO from './huesped/laboratorio.js';   // Híbrido de Laboratorio: el diseño del jugador (docs/EDITOR_HUESPEDES.md)
+import { aplicarProporciones, elevacionViva } from './lab-prop.js';
+import { buildDe } from './lab-activo.js';
+import { defecto as labDefecto, huella as labHuella } from '../shared/host-build.js';
 
 /** Encuadre de cada Huésped para las pantallas de selección y evolución: [centro y, alto, ancho] (m, sin escala de pantalla). */
 export const FRAME = { axioma: [0.98, 2.5, 1.9], vesper: [0.98, 2.4, 1.8], micelio: [1.2, 3.5, 2.7], umbra: [1.0, 2.4, 1.8], seraf: [1.0, 2.45, 2.3], danzante: [1.05, 2.6, 2.0], singular: [1.1, 2.8, 2.6] };
@@ -49,6 +53,7 @@ const FADE_FAR = 1.6, FADE_NEAR = 0.7;
 export const GROW = 0.045;
 const PATH_SHAPE = { depredador: [0.03, 0.05], coraza: [0.1, 0.0], velocidad: [-0.04, 0.03], resonancia: [0.0, 0.02], simbiosis: [0.07, 0.03], artilleria: [0.05, 0.0], apoteosis: [0.0, 0.06], anomalia: [0.03, 0.04] };
 // COLMENA (invocadora de enjambre, caminos propios): diseño, aspecto, encuadre, forma y aura de cada camino; `pathOf` respeta los caminos propios de un Huésped (EVO_PATHS sólo vale para los demás)
+DESIGN.laboratorio = LABORATORIO; FRAME.laboratorio = [1.0, 2.45, 1.9]; LOOK.laboratorio = { preset: 'jugador3', scale: 1.0, glow: 0xff7a22, ember: 0xff7a22 };   // el aspecto real sale del diseño del jugador (paleta, base)
 DESIGN.colmena = COLMENA; FRAME.colmena = [1.0, 2.5, 2.3];
 LOOK.colmena = { preset: 'jugador3', scale: 1.0, glow: 0xff3a3a, ember: 0xffb83a };   // borde y charco de luz ROJOS (jalea real) con venas de miel ámbar sobre quitina burdeos: contrasta con las alas ámbar y con los pisos fríos (Danzante es fucsia, Seraf oro: Colmena es el ÚNICO rojo)
 Object.assign(PATH_SHAPE, { criador: [0.0, 0.02], aguijon: [0.0, 0.03], nidos: [0.04, 0.02], nube: [0.02, 0.0], cohabita: [0.05, 0.03], detonador: [0.03, 0.0], reina: [0.03, 0.07], plaga: [0.06, 0.04] });
@@ -57,10 +62,15 @@ function pathOf(char, evo, pth) { const EP = evoPathsFor(char); if (EP === EVO_P
 export function bodyScale(evo, path) { let w = 0, h = 0; for (const id of path.slice(0, evo)) { const q = PATH_SHAPE[id]; if (q) { w += q[0]; h += q[1]; } } const g = 1 + evo * GROW; return { g, x: g * (1 + w), y: g * (1 + h), z: g * (1 + w) }; }
 
 export function createHostBody(THREE, kit, p, opts = {}) {
-  const quality = opts.quality || kit.quality || 'low', L = LOOK[p.char] || LOOK.axioma, D = DESIGN[p.char] || AXIOMA;
+  const quality = opts.quality || kit.quality || 'low', D = DESIGN[p.char] || AXIOMA, esLab = p.char === 'laboratorio';
+  // Híbrido de Laboratorio: el diseño (CustomHostBuild) manda en el aspecto; las proporciones son escalas de hueso (no reconstruyen)
+  const hexN = (h) => parseInt(String(h).replace('#', ''), 16), mixHex = (a, b, k) => new T.Color(a).lerp(new T.Color(b), k).getHex();
+  let lab = esLab ? (opts.lab || buildDe(p) || labDefecto()) : null, labK = lab ? labHuella({ ...lab, prop: {} }) : '', labShape = { x: 1, y: 1, z: 1, lift: 0 }, labLift = 0, baseShape = null;
+  const labLook = (b) => ({ ...LOOK.laboratorio, preset: b.base.preset, glow: hexN(b.pal.emisivo), ember: hexN(b.pal.emisivo), skin: mixHex(0x14121c, hexN(b.base.piel), 0.1) });
+  let L = lab ? labLook(lab) : (LOOK[p.char] || LOOK.axioma);
   const object = new T.Group(); object.name = 'huesped-' + p.char;
   const holder = new T.Group(); holder.scale.setScalar(L.scale); object.add(holder);
-  const human = createHuman(kit, { char: p.char, name: p.name || p.char, color: L.glow, accent: L.glow, noGear: true, weapon: null, hands: false, overrides: { body: NEUTRAL } });
+  const human = createHuman(kit, { char: p.char, name: p.name || p.char, color: L.glow, accent: L.glow, noGear: true, weapon: null, hands: false, ...(lab ? { preset: L.preset } : {}), overrides: { body: NEUTRAL } });
   holder.add(human.object); holder.visible = false; // hasta que el kit esté armado no se muestra (si no, se vería el humano desnudo)
   let fk = 0, fkT = 0, fId = '', fHex = null, fVis = 0, itemW = [], shownEvo = -1, shape = { g: 1, x: 1, y: 1, z: 1 }, lean = 0, lastPath = '', ak = null, bodyGeo = null, map = opts.map || null, key = '', ready = false, disposed = false, time = Math.random() * 10, act = null, clip = '', fade = 1, fadeMats = [], weapon = null, organs = null, extra = {}, sigil = null;
   let cosmetic = opts.cosmetic || null;
@@ -71,21 +81,22 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     for (const [k, a] of Object.entries(m.attrs)) { if (k === 'index') g.setIndex(a.clone()); else g.setAttribute(k, a.clone()); }
     g.computeBoundingSphere(); return g;
   }
-  const keyOf = (pl, mp) => `${pl.mr | 0}|${pl.evo | 0}|${(pl.pth || []).join()}|${pl.mw || ''}|${(pl.cg || []).join()}|${mp}|${pl.eq || ''}|${cosmetic || ''}`;
+  const keyOf = (pl, mp) => `${pl.mr | 0}|${pl.evo | 0}|${(pl.pth || []).join()}|${pl.mw || ''}|${(pl.cg || []).join()}|${mp}|${pl.eq || ''}|${cosmetic || ''}${lab ? '|' + labK : ''}`;
   function teardown() {
     if (weapon) { weapon.dispose(); weapon = null; } for (const w of itemW) w.dispose(); itemW = []; if (organs) { organs.dispose(); organs = null; }
+    if (extra.dispose) { try { extra.dispose(); } catch (e) { /* zonas de selección */ } }
     if (ak) { ak.dispose(); ak = null; } extra = {};
     if (sigil) { object.remove(sigil); sigil.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); sigil = null; }
   }
   function assemble(pl) {
-    teardown();
+    teardown(); labApply();   // (el esqueleto ya está listo: las escalas de hueso del diseño se aplican acá y en setLab)
     const evo = pl.evo | 0, path = pathOf(p.char, evo, pl.pth), region = map ? (REGION[map] || null) : null;
     const rimC = new T.Color(L.glow).lerp(new T.Color(region ? region.accent : L.glow), 0.12); if (evo > 0) rimC.lerp(new T.Color(pathColor(path[evo - 1], L.glow)), 0.18); // la luz de borde toma el color del último camino
     ak = createArmorKit(human, kit, { quality, accent: L.ember, rim: rimC, crack: L.ember, belly: D.BELLY ?? 0, skin: L.skin });
-    curPath = path; shape = bodyScale(evo, path); holder.scale.set(L.scale * shape.x, L.scale * shape.y, L.scale * shape.z); // el cuerpo crece con cada nivel y cambia de proporciones según el camino
+    curPath = path; baseShape = bodyScale(evo, path); shape = labShapeOf(baseShape); holder.scale.set(L.scale * shape.x, L.scale * shape.y, L.scale * shape.z); // el cuerpo crece con cada nivel y cambia de proporciones según el camino
     const up = shownEvo >= 0 && evo > shownEvo; shownEvo = evo; lastPath = path[evo - 1] || '';
     presence.set({ evo, path, rank: Math.max(1, pl.mr | 0), scale: L.scale * shape.g });
-    const ctx = { evo, path, has: (id) => path.includes(id), region, map, glow: L.glow, ember: L.ember, char: p.char, quality, melee: pl.mw || '' };
+    const ctx = { evo, path, has: (id) => path.includes(id), region, map, glow: L.glow, ember: L.ember, char: p.char, quality, melee: pl.mw || '', lab };
     const eq = parseEq(pl.eq); ak.replaceSlots(armorSlots(eq));   // el equipo SUSTITUYE la geometría base de las zonas con armadura (items-vis.js)
     extra = D.build(ak, ctx) || {};
     const reg = addRegion(ak, ctx, { t: tools(ak) }), own = extra.update; extra.update = (dt, tt, c) => { if (own) own(dt, tt, c); reg.update(dt, tt, c); };
@@ -128,6 +139,9 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     fade = 1; ready = true; holder.visible = true;
     if (up) presence.burst(pathColor(lastPath, L.glow)); // transformación (≈ 1,2 s) al subir de nivel
   }
+  /** Proporciones del diseño: escalas de hueso (sin reconstruir) + escala global (ancho, altura) del contenedor. */
+  function labShapeOf(b) { return lab ? { g: b.g, x: b.x * labShape.x, y: b.y * labShape.y, z: b.z * labShape.z } : b; }
+  function labApply() { if (!lab) return; labShape = aplicarProporciones(human.bones, lab.prop, kit.store.boneWorld()); if (baseShape) shape = labShapeOf(baseShape); }
   function setFade(f) {
     if (Math.abs(f - fade) < 0.01) return; fade = f;
     for (const m of fadeMats) { const o0 = m.userData.o0, ghost = f < 0.999; m.transparent = ghost || m.userData.t0; m.opacity = o0 * (ghost ? 0.15 + 0.85 * f : 1); m.depthWrite = ghost ? false : m.userData.d0; m.needsUpdate = true; }
@@ -139,6 +153,11 @@ export function createHostBody(THREE, kit, p, opts = {}) {
     object, human: true, ready: readyP, get isReady() { return ready; }, get labelY() { return 1.95 * L.scale * shape.y + 0.45 + (shownEvo >= 4 ? 0.3 : 0); }, get person() { return human; }, get map() { return map; }, get kit() { return ak; },
     /** Metamorfosis: al comer, la transformación breve (≈ 0,8 s) con el color de la forma nueva. */
     formaEvent(e) { if (e.ph !== 'come') return; const F = formaPorIndice(e.f); presence.burst(F ? parseInt(F.color.slice(1), 16) : L.glow, 1.5); },
+    /** Híbrido de Laboratorio: cambia el diseño. Las proporciones se aplican al instante; si cambian piezas o colores, se reconstruye en el próximo cuadro (la huella sin proporciones es la clave). */
+    setLab(b) {
+      if (!esLab || !b) return; lab = b; const k = labHuella({ ...b, prop: {} }), nl = labLook(b); if (nl.glow !== L.glow) { presence.setForma(nl.glow); } L = nl; labK = k; labApply();
+    },
+    get lab() { return lab; }, get proxies() { return (extra && extra.proxies) || []; }, get holder() { return holder; },
     event(e) { if (e.t === 'evolve') { presence.burst(pathColor(e.path || lastPath, L.glow)); return; } act = { k: e.t === 'melee' ? 'punch' : 'cast', t: e.t === 'melee' ? 0.6 : 1.0 }; },
     pose(n) { if (n === 'melee' || n === 'skill') api.event({ t: n }); },
     setCosmetic(id) { cosmetic = id || null; },
@@ -156,6 +175,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
       if (an && !an.measured && human.bones && human.bones.upperarm01_R_h) { an.measured = true; an.measure(human.bones); }
       const post = an && an.w > 0.01 ? (b, g) => an.apply(b, g) : null;
       human.update(stop ? 0 : dt, { speed: spd, moveDir: vis > 1 ? { x: 0, z: 1 } : ctx.moveDir, pitch: ctx.pitch || 0, camera, post });
+      if (lab) labLift = elevacionViva(human.bones, lab.prop, holder);   // las piernas y los pies más largos o cortos: la planta sigue en el suelo
       { // metamorfosis (fauna): el MATERIAL del cuerpo y la armadura pasa a escarcha / brasa / arcos… (huesped-armor.js) y el aura toma su color; ≈ 0,8 s para entrar y salir
         const F = formaPorIndice(pl.mf); if (F) { if (F.id !== fId) { fId = F.id; fHex = parseInt(F.color.slice(1), 16); fVis = F.vis; presence.setForma(fHex); } fkT = 1; } else if (fId) { fkT = 0; if (fk <= 0.001) { fId = ''; presence.setForma(null); } }
         fk += Math.max(-dt * 1.25, Math.min(dt * 1.25, fkT - fk)); ak.setForma(fHex, fVis, settings().reducirGravedad ? fk * 0.7 : fk);
@@ -163,7 +183,7 @@ export function createHostBody(THREE, kit, p, opts = {}) {
       presence.update(dt, time, { speed: spd, moveDir: ctx.moveDir, viewH: ctx.viewH });
       const evoN = shownEvo, lev = ((has2('apoteosis') || has2('reina')) ? 0.2 + 0.05 * Math.sin(time * 1.6) : has2('anomalia') ? 0.07 + 0.03 * Math.sin(time * 1.2) : 0); // la forma final levita
       const ao = an && an.w > 0 ? an.off : null, jit = stop ? Math.sin(time * 140) * 0.012 * (ctx.freezeK || 1) : 0;   // el hit-stop vibra apenas: el golpe «traba»
-      holder.position.set((ao ? ao.lat || 0 : 0) + jit, (L.hover ? L.hover + 0.035 * Math.sin(time * 1.4) + 0.02 * Math.sin(time * 2.3) : 0) + lev * (L.scale) + (ao ? ao.up : 0), ao ? ao.fwd : 0);
+      holder.position.set((ao ? ao.lat || 0 : 0) + jit, (L.hover ? L.hover + 0.035 * Math.sin(time * 1.4) + 0.02 * Math.sin(time * 2.3) : 0) + lev * (L.scale) + (ao ? ao.up : 0) + labLift * holder.scale.y, ao ? ao.fwd : 0);
       lean += ((has2('velocidad') ? Math.min(1, spd / 7) * 0.16 : has2('depredador') ? 0.05 + Math.min(1, spd / 7) * 0.07 : 0) - lean) * Math.min(1, 6 * dt); holder.rotation.set(lean, (ao ? ao.yaw : 0) + (ctx.face || 0), 0, 'YXZ'); // postura: la Velocidad se inclina al correr, el Depredador va encorvado
       const br = 1 + 0.006 * evoN * Math.sin(time * 1.9), pp = presence.pop; holder.scale.set(L.scale * shape.x * pp * (2 - br), L.scale * shape.y * pp * br, L.scale * shape.z * pp * (2 - br)); holder.visible = !presence.hide;
       object.updateWorldMatrix(true, true);

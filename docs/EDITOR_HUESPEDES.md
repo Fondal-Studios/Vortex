@@ -2,7 +2,7 @@
 
 > **Estado del documento**
 > - Versión 0.1 · 2026-10-25 · Rama de trabajo `claude/vortex-editor-mvp` (creada desde `claude/vortex-fase0-sprint1`).
-> - **Nivel: DISEÑADO.** Nada de lo que describe este documento está implementado, probado, mergeado ni desplegado. No se tocó código del juego.
+> - **Nivel: DISEÑADO + NÚCLEO DE DATOS, SIMULACIÓN Y RED IMPLEMENTADO Y PROBADO CON `node:test` (2026-10-25, sin mergear ni desplegar).** El resto (pantalla del editor, visor 3D, piezas gráficas, medidor de render, «Probar», deshacer/rehacer, accesibilidad) **sigue sin implementar**. Ver §9 «Estado de implementación del núcleo» al final: qué hay, qué se probó y qué NO se probó.
 > - Prioridad declarada por el propietario: ALTA. Normativo: GDD §1, §2.2, §5, §9, §10 y [FUTURE_BACKLOG.md](FUTURE_BACKLOG.md) F1–F3 y «Monetización ética».
 > - Convención: **[V]** = ruta o símbolo comprobado con `ls`/`grep`/lectura en esta rama. **[NV]** = No verificado (hipótesis, estimación o dato que no se pudo comprobar aquí). Las cifras de tiempo y de triángulos de piezas nuevas son **objetivos de diseño o estimaciones gruesas, no mediciones**.
 > - Todo texto visible para el jugador va en español.
@@ -229,7 +229,7 @@ Un único módulo puro; el cliente muestra el mensaje en español, el servidor r
 | HB-02 | `id`, `nombre` saneados (longitud, sin control/`<>&"'`) | ambos | error |
 | HB-03 | `rig` y `chasis` conocidos (E1: `arcanum-mh326@1` y `laboratorio`) | ambos | error |
 | HB-04 | Cada `prop.*` numérico y dentro de rango (3.1); fuera de rango → se **recorta** y se avisa | ambos | aviso |
-| HB-05 | Relaciones entre proporciones (p. ej. `brazos` y `hombros` no más de ±0,25 de diferencia) | ambos | error |
+| HB-05 | Relaciones entre proporciones: `brazos` y `hombros` no más de ±0,15 de diferencia (con ±0,25 la regla no se podía incumplir nunca: los rangos de §3.1 solo dejan 0,23), `altura × piernas` ≤ 1,30 y `cabeza` ≤ 1,2 × `hombros` | ambos | error |
 | HB-06 | Cada `p` existe en catálogo y el jugador **posee** la pieza (perfil) | ambos* | error |
 | HB-07 | Cada `a` pertenece a `PARTES[p].anclas` | ambos | error |
 | HB-08 | `t.pos/rot/esc` dentro de `limites` de la pieza y del ancla | ambos | recorte |
@@ -545,3 +545,33 @@ Requisito previo a cualquier cobro: ledger de órdenes, catálogo en servidor y 
 - Umbral de FPS objetivo (el GDD §12 dice que se fija tras perfilar dispositivos).
 - Postura de reposo (`pose`) sobre los clips existentes.
 - Esta suite no se ejecutó (no se corrió ningún test; solo lectura de código y documentos).
+
+---
+
+## 9. Estado de implementación del núcleo (2026-10-25)
+
+**Implementado y probado con `node:test` (sin navegador, sin red real salvo los tests de WebSocket locales):**
+
+| Hito | Dónde | Pruebas |
+|---|---|---|
+| EH-01 núcleo compartido | `src/shared/host-build-catalogo.js` (datos: `ANCLAS`, `PARTES`/`CATALOGO`, rangos, topes, mensajes) y `src/shared/host-build.js` (`normalizar`, `validar`, `usable`, `derivarStats`, `huella`, `migrar`, `codificar`/`decodificar` VB1, `instancias`, `costeRender`, `conflictos`). La interfaz está documentada en la cabecera del archivo. | `tests/host-build.test.js` (74 casos + fuzz de 5 000 builds + 3 000 entradas basura) |
+| EH-05 simulación | `CHARACTERS.laboratorio` (`src/sim/data.js`), `src/sim/laboratorio.js` (`labDe`, `applyLab`, `capLab`, `labsDeRed`), ganchos en `src/sim/game.js` (`addPlayer`, `setLoadout`, `snapshot` → `lb`, `Game.labs`) | `tests/lab-sim.test.js` |
+| EH-11 sugeridor | `src/shared/host-build-sugeridor.js` (5 plantillas, `sugerir`, `reparar`, `sugerirPaleta`, `completarSimetria`, `explicar`) | `tests/lab-sugeridor.test.js` |
+| EH-12 persistencia | `src/sim/laboratorio-perfil.js`, `ESQUEMA` 1→2 en `src/sim/perfil-esquema.js`, ganchos en `src/client/perfil.js` (`lab` en el perfil, desbloqueo por recibo en `acreditar`, `paraPartida`) | `tests/lab-perfil.test.js` |
+| EH-14 coop | `server/server.js` (`cargaDe`, lobby/welcome/`labs`), `PROTOCOLO` 6 en `src/sim/red.js`, `src/client/net.js` (`labs`, `labAviso`) | `tests/laboratorio-coop.test.js` |
+| EH-15 oficiales | `src/shared/host-build-oficiales.js` (`describirOficial`, solo lectura, congelado) | `tests/lab-sugeridor.test.js` |
+
+**Decisiones de implementación que se apartan del texto de este documento (con motivo):**
+
+1. **Cosmético/funcional**: las 20 piezas del catálogo v1 son 12 cosméticas y 8 funcionales (las 8 de `CHAMP_ORGANS`). `pies` y `tentaculos` existen como anclas del contrato pero el catálogo E1 no trae piezas para ellas.
+2. **Lado de la pieza (`l`)**: en anclas de dos lados, una pieza sin espejo lleva `l: "izq" | "der"` (por defecto `der`); con `sim: "espejo"` no lleva `l`. En `t.pos`, +x es «hacia afuera» en cada lado. Campo añadido al esquema del §2.2.
+3. **HB-05** usa ±0,15 (ver la tabla de §2.6): con ±0,25 la regla era imposible de incumplir.
+4. **Ledger**: los recibos del ledger exigen ids `[A-Za-z0-9_-]{8,64}`, así que `pieza:<id>` no es válido. Los desbloqueos cuelgan del **recibo de la partida** (su `matchId`) y no de recibos propios por pieza; `perfil.lab.rec` recuerda los `matchId` ya contados (los 50 últimos), y la idempotencia viene del ledger **más** esa lista.
+5. **`derivarStats().bn`** contiene solo los efectos expresables como multiplicadores de `p.bn` y pasados por `capBn`. Los efectos de los órganos de campeón **no** se aplican a `p.bn`: la simulación ya los aplica con `hasC(p, id)` (ver `src/sim/huespedes.js`). Poner también el multiplicador en `p.bn` los contaría dos veces. El resto (`danoSalida`, `salto`, `ultDur`, `meleeAlcance`, `regenPorSeg`) va en `derivarStats().mult` con cotas en `LIMITES_EFECTO`.
+6. **`capLab(p)`**: el laboratorio recorta `p.bn` a `CAPS` al final de la cadena de bonos. Los oficiales **no** lo hacen (bendiciones + maestría pueden pasarse de `CAPS`: es su comportamiento de siempre y no se cambió), así que el laboratorio nunca los supera.
+7. **Las 16 comparaciones `p.char ===`** del §5.1 son 15 ramas por Huésped (solo `colmena`, `singular` y `danzante`) más un `typeof e.char !== 'string'` de `ledger.js`. Ninguna menciona al laboratorio; cae en la rama «sin efecto especial». Hay un test que falla si aparece una rama nueva por id.
+8. **`CHARACTERS.laboratorio`** se registra *después* de `CHARACTER_IDS` y `HOST_IDS` a propósito (no es uno de los 8 oficiales): usa las habilidades y tablas por Huésped de Axioma (`HABILIDADES`, `COMBO_SETS`, `COMBO_TUNE`, `NATIVE_MELEE`, `MELEE_AFFINITY`, `SUPPORT`, `BONOS`). No tiene árbol de talentos propio (`cleanArbol` devuelve vacío para un `char` desconocido).
+9. **Catálogo inicial**: se tienen de entrada `cuerno_curvo`, `cresta_osea`, `gorguera`, `hombrera_espinas`, `placa_pectoral`, `espinas_dorsales`, `cuchilla_antebrazo` (7 cosméticas) y `placas`, `adrenal` (2 funcionales). Se ganan jugando: `corona_espinas` (1 victoria), `alas_membrana` (3 victorias), `rodillera_placa` (2 partidas), `cola_larga` (150 bajas), `garras_mano` (300 bajas) y los órganos `ojo_extra`, `saco_g`, `medula`, `tentaculo`, `corazon_cristal`, `espiraculo` (al haber hecho crecer ese órgano en una partida). Los umbrales son una propuesta de diseño, no están equilibrados con datos de juego reales.
+10. **Cosméticos futuros sin cobro**: nada en E1 se vende. Lo monetizable en el futuro sigue siendo SOLO lo estético (§6): acabados/paletas, piezas cosméticas con arte especial, auras y marcos. Las piezas funcionales, las ranuras, `evo` y cualquier proporción con efecto **nunca**. Un test comprueba que ninguna `obtencion` del catálogo menciona dinero.
+
+**NO probado / no implementado (honesto):** nada del cliente 3D (pantalla, visor, gizmos, medidor de render real, «Probar», historial, accesibilidad) ni EH-00/02/03/04/06–10/13/16; los costes `tris` de las piezas son **estimaciones de diseño [NV]**, no mediciones con `renderer.info`; no se probó con humanos, ni con red real (solo WebSocket local), ni coop con 4 jugadores reales (se probó el tamaño del lobby con 4 conexiones locales); el servidor **no verifica** que el jugador posea las piezas ni su `evo` (acota, no verifica: límite de §3.3); el perfil de cuenta del servidor no se tocó (`server/accounts.js`), así que `perfil.lab` solo se guarda en el navegador y en la copia de seguridad.

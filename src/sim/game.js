@@ -21,6 +21,7 @@ import { applyMaestria } from './maestria.js';
 import { applyArbol, shapeArbolGun } from './progresion.js';   // árbol de combos y de disparo permanentes (docs/EVOLUCION.md)
 import { setMode } from './combos.js';
 import { cleanSkillLevel, earnedSkillLevel, gateSkills } from '../shared/skill-path.js';
+import { applyLab, clearLab, capLab, CHASIS_LAB } from './laboratorio.js';   // Híbrido de Laboratorio: diseños del jugador (docs/EDITOR_HUESPEDES.md)
 import { enrutar } from './modos.js';   // slots de habilidad por modo (Disparo / Melé)
 import { initDrops, initPity, updateLoot, flushLoot, lootSnap, dropsKill, dropsJefe, dropsRespiro } from './drops.js';   // dropeo de objetos (docs/INVENTARIO.md): rng propio g.drRng
 import { applyEquip, itemsSnap, shapeItemGun, ensureGunSlot } from './items-fx.js';
@@ -64,7 +65,7 @@ export class Game {
     this.rng = makeRng(seed); this.seed = seed;
     this.difficulty = difficulty * (mapId === 'm2' ? 1.35 : 1); // la Cámara Fractal es más exigente (el bot ganaba 8/8)
     this.tick = 0; this.time = 0; this.dt = 1 / 60;
-    this.players = []; this.monsters = []; this.projectiles = []; this.pickups = [];
+    this.players = []; this.monsters = []; this.projectiles = []; this.pickups = []; this.labs = [];   // labs = diseños del Laboratorio de la sala ({ h, vb1 }); el snapshot lleva solo el índice `lb`
     this.events = [];
     this.nextId = 1;
     this.state = 'playing'; // playing | won | lost
@@ -106,9 +107,9 @@ export class Game {
     };
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style] && opts.style !== 'combo') p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo, p.char); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     if (opts.mode === 'combo') p.mode = 'combo';
-    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyHerb(p, opts.herb); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
+    initHost(p); loadOrgans(p, p.char === CHASIS_LAB ? { ...opts, corg: undefined } : opts); if (p.char === CHASIS_LAB) applyLab(p, opts.lab, this); applyBend(p, opts.bend); applyHerb(p, opts.herb); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
     p.kit = Math.max(0, Math.min(2, opts.kit | 0));   // botiquines iniciales de la Tienda (docs/TIENDA.md): una segunda oportunidad cada uno
-    initFaunaPlayer(p, opts.fauna); initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
+    initFaunaPlayer(p, opts.fauna); initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this); capLab(p);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
     this.players.push(p);
     return p;
   }
@@ -133,7 +134,7 @@ export class Game {
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo, p.char); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); applyArbol(p, prof.arbol ?? p.arb); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
+  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); clearLab(p); if (char === CHASIS_LAB) applyLab(p, prof && prof.lab, this); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo, p.char); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, char === CHASIS_LAB ? { ...prof, corg: undefined } : prof); if (char === CHASIS_LAB) applyLab(p, prof.lab, this); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); applyArbol(p, prof.arbol ?? p.arb); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); capLab(p); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -928,7 +929,7 @@ export class Game {
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0, ...jefeSnap(boss) } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, sk: this.skillLevel, ac: r2(Math.max(0, p.mode === 'combo' ? p.cb?.cd || 0 : Math.max(p.cd || 0, p.reloadT || 0))), pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...(p.lb ? { lb: p.lb } : {}), ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, boss: !!m.def.boss, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,

@@ -42,7 +42,7 @@ export function migrarHuespedes(o, elegido = null) {
 }
 /** ¿Este perfil (objeto plano con `inicial` y `huespedes`) posee al Huésped? Los veteranos (no Huéspedes) no se compran.
  *  Sprint 1: se posee el Huésped inicial elegido + los desbloqueados (campaña, desafíos, Tienda). Un objeto legado (sin campo `inicial`) conserva los 3 iniciales de siempre. */
-export const poseeHuesped = (p, id) => !!CHARACTERS[id] && (!CHARACTERS[id].host || poseidos(p).includes(id));
+export const poseeHuesped = (p, id) => !!CHARACTERS[id] && (!CHARACTERS[id].host || CHARACTERS[id].lab === true || poseidos(p).includes(id));   // el Híbrido de Laboratorio (lab) es de todos: se desbloquea con el Laboratorio, no con la Tienda
 /** Rango de maestría más alto que tenés con un Huésped distinto de `excepto` (0 si ninguno). */
 export function mejorRango(p, excepto = null) {
   let r = 0; const mae = (p && p.mae) || {};

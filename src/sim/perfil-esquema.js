@@ -3,8 +3,9 @@
 //  · migrarEsquema(): lleva cualquier perfil viejo (sin esq, con `inv`, con núcleos como texto…) al esquema actual SIN perder nada.
 //  · empaquetar()/desempaquetar(): la copia que el jugador descarga o pega (texto con huella para detectar cortes o ediciones).
 import { limpiarLedger, limpiarCola, huella, estable } from './ledger.js';
+import { limpiarLab } from './laboratorio-perfil.js';   // Laboratorio (docs/EDITOR_HUESPEDES.md §3.5)
 
-export const ESQUEMA = 1;
+export const ESQUEMA = 2;
 export const PREFIJO_COPIA = 'VORTEX-COPIA-1:';
 
 /** Pasos de migración: cada uno sube el esquema en 1. `desde` = esquema que traía el perfil. */
@@ -16,6 +17,8 @@ const PASOS = [
     o.ledger = limpiarLedger(o.ledger);
     return o;
   },
+  // 1 → 2: aparece el Laboratorio (perfil.lab). Un perfil sin `lab` recibe el vacío (con las piezas iniciales); uno con `lab` se sanea. No se pierde nada.
+  (o) => { o.lab = limpiarLab(o.lab); return o; },
 ];
 
 /**
@@ -28,7 +31,7 @@ export function migrarEsquema(raw) {
   if (desde > ESQUEMA) return { perfil: o, desde, hasta: desde, futuro: true };
   let p = o;
   for (let v = desde; v < ESQUEMA; v++) p = PASOS[v](p);
-  p.esq = ESQUEMA; p.ledger = limpiarLedger(p.ledger);
+  p.esq = ESQUEMA; p.ledger = limpiarLedger(p.ledger); p.lab = limpiarLab(p.lab);
   return { perfil: p, desde, hasta: ESQUEMA, futuro: false };
 }
 

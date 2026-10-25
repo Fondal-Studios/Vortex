@@ -22,6 +22,7 @@ import { MAPS } from '../src/sim/maps.js';
 import { CHARACTERS } from '../src/sim/data.js';
 import { cleanEquip } from '../src/sim/items.js';
 import { cleanArbol } from '../src/sim/progresion.js';
+import { labDe, labsDeRed, CHASIS_LAB } from '../src/sim/laboratorio.js';   // diseños del Laboratorio: el servidor valida y recalcula todo (docs/EDITOR_HUESPEDES.md §3.3)
 import { repartoCoop } from '../src/sim/recompensas.js';   // recompensa base + bono por contribución (docs/RECOMPENSAS.md)
 import { PROTOCOLO, MAX_JUGADORES, ALFABETO_SALA, normalizarCodigo, ERRORES, compactar, crearEmisor } from '../src/sim/red.js';
 
@@ -43,9 +44,13 @@ const nombreLimpio = (s) => { const t = String(s ?? '').replace(/[\u0000-\u001f\
 /** Todo lo que un cliente puede decir de su personaje, ya limpio. Nada de lo que viene de afuera se usa sin pasar por acá. */
 export function cargaDe(m = {}) {
   const char = CHARACTERS[m.char] ? m.char : undefined;
+  const evo = Number.isInteger(m.evo) ? num(m.evo, 0, 4) : undefined;
+  // Híbrido de Laboratorio: `m.lab` es el texto VB1 (≤ 2 KB). Se decodifica, valida y recalcula acá; si algo falla, chasis por defecto + aviso (nunca se expulsa).
+  const L = char === CHASIS_LAB ? labDe(typeof m.lab === 'string' || m.lab == null ? m.lab : '\u0000', { evo }) : null;   // solo se acepta TEXTO VB1; cualquier otra forma = diseño inválido
   return {
+    lab: L && L.hay && !L.defecto ? L.vb1 : undefined, labH: L && !L.defecto ? L.h : '', labAviso: L ? L.aviso : '',
     char, fauna: faunaDeRed(m.fauna), style: typeof m.style === 'string' ? m.style.slice(0, 20) : undefined, melee: typeof m.melee === 'string' ? m.melee.slice(0, 30) : undefined,
-    evo: Number.isInteger(m.evo) ? num(m.evo, 0, 4) : undefined, bend: Array.isArray(m.bend) ? m.bend.slice(0, 6).filter((x) => typeof x === 'string') : undefined,
+    evo, bend: Array.isArray(m.bend) ? m.bend.slice(0, 6).filter((x) => typeof x === 'string') : undefined,
     herb: Array.isArray(m.herb) ? m.herb.slice(0, 12).filter((x) => typeof x === 'string') : undefined, equip: equipDe(char, m.equip), arbol: arbolDe(char, m.arbol),
     maestria: Number.isFinite(+m.maestria) ? num(m.maestria, 0, 10) : undefined,
     pity: m.pity && typeof m.pity === 'object' ? { l: num(m.pity.l, 0, 999), e: num(m.pity.e, 0, 999) } : undefined,
@@ -141,15 +146,17 @@ export async function startServer(opts = {}) {
     rooms.set(code, room); stats.salasCreadas++; log(`sala ${code} creada (${rooms.size} activas)`);
     return room;
   }
-  const publicLobby = (room) => ({ t: 'lobby', room: room.code, map: room.mapId, fase: room.phase, cuenta: room.cuenta > 0 ? Math.ceil(room.cuenta) : 0, max: MAX_JUGADORES, players: room.members.map((m) => ({ id: m.id, name: m.name, char: m.carga.char || null, mode: m.carga.mode, ready: m.ready, host: m === room.members[0], away: !m.ws })) });
+  const publicLobby = (room) => ({ t: 'lobby', room: room.code, map: room.mapId, fase: room.phase, cuenta: room.cuenta > 0 ? Math.ceil(room.cuenta) : 0, max: MAX_JUGADORES, players: room.members.map((m) => ({ id: m.id, name: m.name, char: m.carga.char || null, mode: m.carga.mode, ready: m.ready, host: m === room.members[0], away: !m.ws, ...(m.carga.lab ? { lab: { vb1: m.carga.lab, h: m.carga.labH } } : {}), ...(m.carga.labAviso ? { labAviso: m.carga.labAviso } : {}) })) });
   function difundirLobby(room) {
     const base = publicLobby(room);
     for (const m of room.members) send(m.ws, { ...base, yo: m.id, token: m.token });
   }
   function bienvenida(room, m, extra = {}) {
-    send(m.ws, { ...extra, t: 'welcome', pid: m.pid, room: room.code, map: room.mapId, dt: SIM_DT, token: m.token, yo: m.id, proto: PROTOCOLO, lobby: room.lobby });
+    send(m.ws, { ...extra, t: 'welcome', pid: m.pid, room: room.code, map: room.mapId, dt: SIM_DT, token: m.token, yo: m.id, proto: PROTOCOLO, lobby: room.lobby, ...(room.game && room.game.labs.length ? { labs: labsDeRed(room.game) } : {}), ...(m.carga.labAviso ? { labAviso: m.carga.labAviso } : {}) });
     room.forzarCompleto = true;
   }
+  /** Diseños del Laboratorio de la sala (lista completa, chica): se reenvía a todos cuando entra alguien o cambia un diseño, así nadie dibuja un `lb` que no conoce. */
+  function difundirLabs(room) { if (room.game && room.game.labs.length) todos(room, { t: 'labs', labs: labsDeRed(room.game) }); }
   function addAlJuego(room, m) {
     const c = m.carga;
     const p = room.game.addPlayer(m.name, null, { ...c, char: c.char });
@@ -176,7 +183,7 @@ export async function startServer(opts = {}) {
     if (room.members.length >= MAX_JUGADORES) return error(ws, 'sala_llena');
     if (room.phase === 'juego' && room.game.state !== 'playing') return error(ws, 'terminada');
     const m = nuevoMiembro(ws, name, carga); m.room = room; room.members.push(m); numerar(room);
-    if (room.phase === 'juego') { if (!addAlJuego(room, m)) { room.members.pop(); return error(ws, 'sala_llena'); } bienvenida(room, m); difundirLobby(room); }
+    if (room.phase === 'juego') { if (!addAlJuego(room, m)) { room.members.pop(); return error(ws, 'sala_llena'); } bienvenida(room, m); difundirLabs(room); difundirLobby(room); }
     else difundirLobby(room);
     room.ultimo = Date.now();
   }
@@ -284,8 +291,9 @@ export async function startServer(opts = {}) {
         if (room.phase !== 'juego' || !mem.pid) return;
         const g = room.game; if (g.phase !== 'intermission') return;
         const c = cargaDe(m); const p = g.players.find((q) => q.id === mem.pid); if (!p) return;
-        g.setLoadout(mem.pid, c.char, c.slots, { equip: c.equip, arbol: c.arbol });
-        mem.carga = { ...mem.carga, char: p.char, slots: p.slots, arbol: p.arb, equip: p.eqList };
+        g.setLoadout(mem.pid, c.char, c.slots, { equip: c.equip, arbol: c.arbol, lab: c.lab });
+        difundirLabs(room);
+        mem.carga = { ...mem.carga, char: p.char, slots: p.slots, arbol: p.arb, equip: p.eqList, lab: c.char === CHASIS_LAB ? c.lab : undefined, labH: c.labH, labAviso: c.labAviso };
         return;
       }
       case 'restart': {
