@@ -38,3 +38,4 @@ La publicación en Render se registra por separado: un merge a una rama de traba
 - Build estático: 49,1 MB. La suite global de 90 archivos se interrumpió durante simulaciones largas; no se declara verde.
 - Cooperativo general: 8 pruebas pasan, incluidas cuatro conexiones con latencia simulada, reconexión y recibos personales al terminar.
 - Pulido móvil: acciones sin textos cortados, selección con objetivos de 44 px y selector de cámara compacto para dejar visible el cuerpo. Panel más opaco para leer sin interferencia del escenario.
+- Editor en navegador, corrida final completa: 9/9 pasan, sin omisiones (621,8 s en Chromium por software). Incluye apertura/cierre ×20, cuerpo, gizmos, historial, borradores, validación/reparación, campo de pruebas y regreso, teclado, cuatro resoluciones y almacenamiento lleno/reintento. Se repitió además la accesibilidad con el selector compacto final: 0 incidencias.
