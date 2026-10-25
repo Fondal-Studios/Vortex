@@ -10,10 +10,11 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Una sola corrida por rama: una subida nueva cancela la anterior (en la rama canónica no se cancela, para que cada commit quede verificado).
+# Una subida nueva NUNCA cancela la corrida de una rama (push): cada commit queda verificado y la rama que se está validando no se pierde a mitad de camino.
+# Sólo se cancela la corrida obsoleta de un pull request (cuando se sube otro commit al mismo PR).
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/claude/larga-con-eso-s43nfe' && github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -22,7 +23,7 @@ jobs:
   unit:
     name: unit (simulación y servidor)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,9 +34,15 @@ jobs:
       - run: npm run test:unit
 
   browser:
-    name: browser (E2E con Chromium)
+    # El grupo `browser` (~25 archivos con WebGL por software) tardaba > 45 min en un solo trabajo: se reparte en 3 partes de peso parecido
+    # (tools/run-tests.mjs --shard=I/N). fail-fast desactivado: si una parte falla, las otras terminan y se ven todos los fallos.
+    name: browser ${{ matrix.shard }}/3 (E2E con Chromium)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       REQUIRE_BROWSER: '1'                                   # sin Chromium las pruebas FALLAN (tools/browser.js)
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
@@ -62,12 +69,12 @@ jobs:
           fi
       - name: Comprobar que hay navegador
         run: node -e "import('./tools/browser.js').then(m => { const p = m.findChromium(); if (!p) { console.error('No se encontró Chromium'); process.exit(1); } console.log('Chromium:', p); })"
-      - run: npm run test:browser
+      - run: node tools/run-tests.mjs browser --shard=${{ matrix.shard }}/3
       - name: Capturas y registros (si algo falla)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: shots-browser
+          name: shots-browser-${{ matrix.shard }}
           path: shots/
           if-no-files-found: ignore
           retention-days: 7
