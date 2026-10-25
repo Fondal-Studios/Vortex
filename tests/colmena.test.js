@@ -24,7 +24,7 @@ test('Colmena: ficha completa (invocadora, 6.º Huésped), se COMPRA en la tiend
   assert.ok(C && C.host && HOST_IDS.includes('colmena') && C.role === 'invocador' && C.name === 'Colmena');
   assert.equal(C.starter, false); assert.ok(C.unlock && C.unlock.precio > 0, 'unlock.precio en núcleos');
   for (const k of ['mov', 'esp', 's3']) assert.ok(C[k].id && C[k].name && C[k].cd > 0 && C[k].desc, k);
-  assert.ok(C.ult.id === 'marabunta' && C.ult.charge === 100 && C.passive.id && C.story && C.title && C.desc && C.melee.heavy.dmg > C.melee.light.dmg);
+  assert.ok(C.ult.id === 'marabunta' && C.ult.cd > 0 &&   /* las definitivas se recargan por TIEMPO (ultimate-cooldown.js), ya no por carga 0-100 */ C.passive.id && C.story && C.title && C.desc && C.melee.heavy.dmg > C.melee.light.dmg);
   for (const s of ['dano', 'resistencia', 'movilidad', 'control', 'utilidad', 'dificultad']) assert.ok(C.stats[s] >= 0 && C.stats[s] <= 10);
   assert.equal(COMBO_SETS.colmena.length, 8); assert.ok(HABILIDADES.colmena.name && HABILIDADES.colmena.cd > 5);
 });
@@ -56,7 +56,9 @@ test('invocaciones con LÍMITE: zánganos por jugador y en total, nidos por juga
 });
 
 test('los zánganos atacan SOLOS, el daño cuenta como del dueño y NO carga su definitiva', () => {
-  const c = mk(); spawnUnits(c.g, c.p, 3, {}); run(c, 4); assert.ok(dmg(c) > 60, `daño de las unidades ${dmg(c)}`); assert.equal(Math.round(c.p.ul), 0, 'sin carga de definitiva');
+  const c = mk(); spawnUnits(c.g, c.p, 3, {}); run(c, 4); assert.ok(dmg(c) > 60, `daño de las unidades ${dmg(c)}`); assert.equal(c.p.ul, undefined, 'ya no existe la barra de carga de la definitiva');
+  // Equivalente actual de «NO carga su definitiva»: el daño de los zánganos no acorta la recarga de la definitiva (solo corre el reloj normal)
+  { const d = mk(); d.p.ultCd = 50; d.p.ultCdMax = 50; d.p.ultRefundBudget = 0; spawnUnits(d.g, d.p, 3, {}); run(d, 4); assert.ok(dmg(d) > 60 && d.p.ultCd > 50 - 4 - 0.6, `la definitiva no se reembolsa por daño de zánganos (${d.p.ultCd})`); }
   const lost = c.g.snapshot().events.filter((e) => e.t === 'tshot').length; void lost;
   const far = mk({}, 80); spawnUnits(far.g, far.p, 3, {}); run(far, 3); assert.equal(dmg(far), 0, 'fuera de alcance no atacan');
 });

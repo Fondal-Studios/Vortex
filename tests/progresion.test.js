@@ -96,7 +96,8 @@ test('rango de estilo: D C B A S por puntos', () => {
 /* ───────── perfil (progreso persistente) ───────── */
 test('perfil: ganar puntos al cerrar partida, comprar, rama excluyente, reiniciar con costo y guardar', async () => {
   const store = new Map(); globalThis.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
-  const Perfil = await import('../src/client/perfil.js');
+  store.set('cristal.perfil.v1', JSON.stringify({ ver: 3, inicial: 'vesper' }));   // Sprint 1: el Huésped tiene que ser del jugador (su inicial)
+  const Perfil = await import('../src/client/perfil.js'); Perfil.recargar();
   assert.deepEqual(Perfil.arbol('vesper', 'combo'), { pc: 0, gastado: 0, libres: 0, nodos: [] });
   assert.match(Perfil.comprarNodo('vesper', 'combo', 'cadena1'), /faltan/i);
   const r = Perfil.cerrarPartida('vesper', { kills: 40, co: 0, pk: [400, 60, 12, 40, 0, 0, 9, 0] }, { wave: 8, won: false });

@@ -31,6 +31,7 @@ export const BONOS = {
   singular: [[2, { skill: 1.03 }, '+3 % daño de habilidades (pozos y satélites incluidos)'], [4, { cd: 0.97 }, '−3 % recarga de habilidades'], [6, { dmgIn: 0.98 }, '−2 % daño recibido'], [8, { skill: 1.03 }, '+3 % daño de habilidades'], [10, { ult: 1.05, cd: 0.97 }, 'la definitiva se recupera un 5 % más rápido y −3 % recarga']],
 };
 
+BONOS.laboratorio = BONOS.axioma;   // Híbrido Genómico: los mismos bonos genéricos de Axioma (nada propio que balancear)
 BONOS.colmena = [[2, { skill: 1.03 }, '+3 % daño de habilidades (también el de tus zánganos)'], [4, { cd: 0.97 }, '−3 % recarga de habilidades'], [6, { cores: 1.04 }, '+4 % de núcleos ganados'], [8, { skill: 1.03 }, '+3 % daño de habilidades'], [10, { ult: 1.05, skill: 1.02 }, 'la definitiva se recupera un 5 % más rápido y +2 % daño de habilidades']];
 export const clampRango = (r) => Math.max(1, Math.min(RANGO_MAX, Number.isFinite(r) ? Math.floor(r) : 1));
 export const rangoDeXp = (xp) => { let r = 1; for (let i = 2; i <= RANGO_MAX; i++) if ((xp || 0) >= XP_RANGO[i]) r = i; return r; };

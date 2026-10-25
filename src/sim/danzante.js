@@ -52,7 +52,7 @@ function perfect(g, p, kind, dmg) {
       g.damageMonster(m, base, p, m.pos); n++;
       if (!m.dead) { m.slowUntil = Math.max(m.slowUntil || 0, t + 1.5); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 16); }
     }
-    if (has(p, 'anomalia')) g.explode(clone(p.pos), 5, 0, 60, p, false);
+    if (has(p, 'anomalia')) g.explode(clone(p.pos), 5, 0, 60, p, false, true);
   } finally { g.dmgSrc = s0; }
   p.rplUntil = t + DZ.rep + (has(p, 'depredador') ? 2 : 0);
   p.shield = Math.min(PLAYER.shield, p.shield + 14); refundUltimate(p, 2);

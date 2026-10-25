@@ -7,6 +7,7 @@ import { OPERATIONS } from '../src/sim/operations.js';
 import { updateObjective } from '../src/sim/objectives.js';
 import { metaActual } from '../src/client/meta-texto.js';
 import { SECCIONES } from '../src/client/menu-nav.js';
+const g_cfg=(map)=>new Game({mapId:map,operation:true}).cfg.stages;
 function setup(map='m1', count=1) { const g=new Game({mapId:map,operation:true,seed:12}); for(let i=0;i<count;i++)g.addPlayer('P'+i); return g; }
 function complete(g) {
  const o=g.objective, p=g.players[0], objects=()=>o.ids.map(id=>g.objects.find(x=>x.id===id));
@@ -15,32 +16,40 @@ function complete(g) {
  if(o.type==='nucleo'){const [core,altar]=objects();p.pos={...core.pos};updateObjective(g,.1);p.pos={...altar.pos};updateObjective(g,.1);}
  if(o.type==='caza'){const m=g.spawnMonster('astilla',g.map.spots.anchor);g.killMonster(m,p);updateObjective(g,.1);}
  if(o.type==='cultivo'){for(const ob of objects())for(let i=0;i<20;i++)feedCapullo(g,ob,50,p);for(let i=0;i<4;i++)tickCultivo(g,5);updateObjective(g,.1);}
- assert.equal(o.state,'done',g.mapId+': '+o.type);
+ assert.equal(o.state,'done',g.mapId+': '+o.type+' etapa '+g.wave);
  g.monsters=g.monsters.filter(m=>!m.dead);
 }
-test('all six operations complete only after three objectives, solo and four players',()=>{
+// Las misiones son declarativas (src/sim/mision-config.js): cada etapa trae su tipo y objetivo. Se busca la primera etapa de un objetivo dado.
+const etapaDe = (map, obj) => OPERATIONS[map].stages.findIndex(s => s.objective === obj) + 1;
+test('all six operations complete only after every wave and the final boss, solo and four players',()=>{
  for(const map of Object.keys(OPERATIONS))for(const count of [1,4]){
- const g=setup(map,count);
- for(let n=1;n<=3;n++){
- g.startWave(n,WAVE_PLANS[map]);assert.equal(g.objective.type,OPERATIONS[map].steps[n-1].kind);
- g.queue=[];g.omens=[];g.updateWaves(.01);assert.equal(g.state,'playing');assert.equal(g.phase,'wave','empty combat does not complete objective');
- const s=JSON.parse(JSON.stringify(g.snapshot()));assert.equal(s.operation.title,OPERATIONS[map].title);assert.match(metaActual(s,s.players[0]).main,/Etapa/);
- complete(g);g.updateWaves(.01);assert.equal(g.state,n===3?'won':'playing');
+ const g=setup(map,count),stages=g_cfg(map);
+ for(let n=1;n<=g.waveTotal;n++){
+ if(n>1 && g.cult)g.cult.open=true;
+ g.startWave(n,WAVE_PLANS[map]);const st=stages[n-1];
+ g.queue=[];g.omens=[];g.monsters=[];
+ const s=JSON.parse(JSON.stringify(g.snapshot()));assert.equal(s.operation.title,OPERATIONS[map].title);assert.match(metaActual(s,s.players[0]).main,/Oleada/);
+ if(st.objective){
+  assert.equal(g.objective.type,st.objective);g.updateWaves(.01);assert.equal(g.state,'playing');assert.equal(g.phase,'wave','empty combat does not complete objective');
+  if(st.objective==='resistir'){g.players[0].pos={...g.map.playerSpawn(0)};updateObjective(g,st.dur+1);assert.equal(g.objective.state,'done');}
+  else complete(g);
+ } else { assert.equal(g.objective,null); }
+ g.updateWaves(.01);assert.equal(g.state,n===g.waveTotal?'won':'playing',map+' etapa '+n);
  }
  }
 });
 test('contested defense stops progress and destruction loses mission without rewards',()=>{
- const g=setup();g.startWave(2,WAVE_PLANS.m1);const o=g.objective,a=g.objects.find(x=>x.id===o.ids[0]);g.players[0].pos={...a.pos};
+ const g=setup();g.startWave(etapaDe('m1','ancla'),WAVE_PLANS.m1);const o=g.objective,a=g.objects.find(x=>x.id===o.ids[0]);g.players[0].pos={...a.pos};
  const m=g.spawnMonster('astilla',a.pos);updateObjective(g,1);assert.equal(o.prog,0);assert.ok(a.hp<a.maxhp);
  a.hp=1;const cores=g.players[0].cores;updateObjective(g,1);assert.equal(g.state,'lost');assert.equal(g.players[0].cores,cores);assert.match(g.snapshot().operation.failure,/destruida/);
 });
 test('timeout fails once and a new game resets operation progress',()=>{
- const g=setup();g.startWave(1,WAVE_PLANS.m1);updateObjective(g,151);assert.equal(g.state,'lost');assert.equal(g.objects.some(x=>x.objective),false);
+ const g=setup();g.startWave(etapaDe('m1','secuencia'),WAVE_PLANS.m1);updateObjective(g,151);assert.equal(g.state,'lost');assert.equal(g.objects.some(x=>x.objective),false);
  const count=g.events.length;updateObjective(g,100);assert.equal(g.events.length,count);assert.equal(setup().wave,0);
 });
 test('rescue survives carrier death and disconnection; no duplicate completion reward',()=>{
  for(const disconnect of [false,true]){
- const g=setup('m1',2);g.startWave(3,WAVE_PLANS.m1);const o=g.objective,[core,altar]=o.ids.map(id=>g.objects.find(x=>x.id===id));const [a,b]=g.players;
+ const g=setup('m1',2);g.startWave(etapaDe('m1','nucleo'),WAVE_PLANS.m1);const o=g.objective,[core,altar]=o.ids.map(id=>g.objects.find(x=>x.id===id));const [a,b]=g.players;
  a.pos={...core.pos};b.pos={x:999,y:999,z:999};updateObjective(g,.1);assert.equal(core.carrier,a.id);
  if(disconnect)g.removePlayer(a.id);else a.dead=true;
  updateObjective(g,.1);assert.equal(core.carrier,0);b.pos={...core.pos};updateObjective(g,.1);assert.equal(core.carrier,b.id);

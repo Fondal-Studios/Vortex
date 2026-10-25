@@ -49,22 +49,28 @@ test('mejoras: 3 tarjetas válidas al terminar la oleada; cada nivel sube daño/
 test('flujo de oleada: tras limpiar se ofrecen tarjetas; en solitario la partida ESPERA tu elección; en cooperativo, si nadie elige, se aplica la primera', () => {
   const g = new Game({ mapId: 'm1', seed: 1 }); const p = g.addPlayer(); p.hp = 1e9; run(g, 6.5);
   for (let i = 0; i < 6000 && g.phase === 'wave'; i++) { for (const m of g.monsters) g.damageMonster(m, 1e9, p); g.step(1 / 60); }
-  assert.equal(p.cards.length, 3); const first = p.cards[0]; run(g, 40); assert.equal(g.wave, 1, 'solo: espera'); assert.equal(p.cards.length, 3);
+  assert.equal(p.cards.length, 3); const first = p.cards[0]; run(g, 15); assert.equal(g.wave, 1, 'solo: espera (hasta L.elegirMejora = 20 s; después se elige sola, ver abajo)'); assert.equal(p.cards.length, 3);
   g.setInput(p.id, { pick: 0 }); run(g, 6); assert.equal(g.wave, 2); const u = p.upg[first.w]; assert.ok(u && (u[first.k] > 0 || u.mod === first.mod), 'se aplicó la tarjeta elegida');
+  // jugador AFK (límite duro nuevo de Sprint 1-A, mision-config LIMITES.elegirMejora): pasado el tope la partida sigue sola; no se congela para siempre
+  const afk = new Game({ mapId: 'm1', seed: 3 }); const pa = afk.addPlayer(); pa.hp = 1e9; run(afk, 6.5);
+  for (let i = 0; i < 6000 && afk.phase === 'wave'; i++) { for (const m of afk.monsters) afk.damageMonster(m, 1e9, pa); afk.step(1 / 60); }
+  assert.equal(pa.cards.length, 3); run(afk, 15); assert.equal(afk.wave, 1, 'AFK: aún espera dentro del tope'); run(afk, 40); assert.ok(afk.wave >= 2, 'AFK: pasado el tope la partida avanza');
   const c = new Game({ mapId: 'm1', seed: 2 }); const a = c.addPlayer('a'), b2 = c.addPlayer('b'); a.hp = b2.hp = 1e9; run(c, 6.5);
   for (let i = 0; i < 6000 && c.phase === 'wave'; i++) { for (const m of c.monsters) c.damageMonster(m, 1e9, a); c.step(1 / 60); }
   const f2 = a.cards[0]; run(c, 25); assert.equal(c.wave, 2, 'coop: no espera para siempre'); assert.equal(a.cards.length, 0); assert.ok(a.upg[f2.w]);
 });
 
-test('personajes: 10 (5 Huéspedes + 5 veteranos), cada uno con desplazamiento y disparo especial propios, con recarga', () => {
-  assert.equal(CHARACTER_IDS.length, 10);
+test('personajes: 13 (5 Huéspedes + 5 veteranos + Colmena, Singular y Danzante), cada uno con desplazamiento y disparo especial propios, con recarga', () => {
+  // Antes eran 10; se añadieron Colmena, Singular y Danzante (src/sim/data.js). El conteo exacto evita altas accidentales.
+  assert.equal(CHARACTER_IDS.length, 13);
+  for (const id of ['colmena', 'singular', 'danzante']) assert.ok(CHARACTER_IDS.includes(id), id);
   for (const id of CHARACTER_IDS) {
     const C = CHARACTERS[id]; assert.ok(C.mov.id && C.esp.id && C.mov.cd > 0 && C.esp.cd > 0 && C.desc);
     const { g, p } = arena(); g.setLoadout(p.id, id); const m = target(g, p, 'geoda', 9); const pos0 = { ...p.pos }, v0 = p.vel.y;
     g.setInput(p.id, { mov: true, esp: true }); g.step(1 / 60); g.setInput(p.id, { mov: false, esp: false });
     assert.ok(p.movCd > 0 && p.espCd > 0, `${id} recarga`);
     run(g, 0.4); const moved = dist(p.pos, pos0) > 1.5 || p.vel.y > v0 + 5 || p.invulUntil > g.time || g.objects.some((o) => o.type === 'wall'); assert.ok(moved, `${id}: el desplazamiento mueve`);
-    assert.ok(m.hp < 5000 || id === 'forja' || id === 'umbra' || id === 'lumen' || id === 'vesper' || id === 'micelio' || m.mark, `${id} dañó`);
+    assert.ok(m.hp < 5000 || id === 'forja' || id === 'umbra' || id === 'lumen' || id === 'vesper' || id === 'micelio' || id === 'danzante' /* Contrapaso solo devuelve daño si alguien te golpea */ || m.mark, `${id} dañó`);
   }
 });
 test('Fase da 1 s de invulnerabilidad; Paso no atraviesa muros', () => {

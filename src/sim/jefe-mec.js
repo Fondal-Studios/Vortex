@@ -16,7 +16,7 @@ const a3 = (v) => [Math.round(v.x * 10) / 10, Math.round(v.y * 10) / 10, Math.ro
 const UP = v3(0, 1, 0);
 const vivos = (g) => g.players.filter((p) => !p.dead);
 /** Daño del jefe a un jugador: crece con la oleada (como el de las criaturas) y con el enfurecimiento por tiempo. */
-const D = (g, m, v) => v * (1 + 0.04 * (g.wave - 1)) * (1 + IA.enrageDanio * (m.ia ? m.ia.enr : 0));
+const D = (g, m, v) => v * (1 + 0.04 * ((g.tier || g.wave) - 1)) * (1 + IA.enrageDanio * (m.ia ? m.ia.enr : 0));
 const rnd = (m) => iaRand(m.ia);
 const MAX_MARCAS = 16;
 

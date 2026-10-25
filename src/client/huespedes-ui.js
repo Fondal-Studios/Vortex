@@ -10,7 +10,8 @@ import { Equipo, saveEquipo } from './equipo.js';
 import { GLYPHS, HERO_LORE, HERO_STATS } from './heroes-ui.js';
 import { buildHostEvo, REGIONS } from './huespedes-evo.js';
 import * as Perfil from './perfil.js';
-import { poseeHuesped } from '../sim/tienda.js';   // los Huéspedes no iniciales se compran en la Tienda (docs/TIENDA.md)
+import { poseeHuesped, HUESPEDES_TIENDA } from '../sim/tienda.js';
+import { rutasDeHuesped, desafioCumplido } from '../sim/desbloqueos.js';   // Sprint 1: cómo se desbloquea cada Huésped   // los Huéspedes no iniciales se compran en la Tienda (docs/TIENDA.md)
 import { recompensas, proximaRecompensa, maestriaMods, TITULOS, TIER_MARCA, RANGO_MAX } from '../sim/maestria.js';
 import { RAMAS, PC_COSTE, nodosDe, errorNodo, costeReinicio } from '../sim/progresion.js';
 import { tickMenuBeat } from './shaders.js';
@@ -70,6 +71,7 @@ export function buildHuespedScreen(menu) {
         </header>
         <div class="hs-stage" id="hsstage"><canvas id="hscanvas" aria-label="Modelo 3D del Huésped: arrastrá para girarlo"></canvas><iframe id="hsframe" title="Vista del veterano" tabindex="-1" hidden></iframe><div class="hs-fallback" id="hsfb" hidden></div><div class="hs-region" id="hsregion" aria-live="off"></div></div>
         <div class="hs-actions"><button class="hs-btn hs-nav" type="button" id="hsdemo">Demostración</button><button class="hs-btn hs-main hs-nav" type="button" id="hspick">Elegir</button></div>
+        <button class="hs-btn hs-nav hs-genomico" type="button" id="hsgen" title="Diseñá tu propio cuerpo"><b aria-hidden="true">🧬</b> Editor Genómico <small>Diseñá tu propio cuerpo</small></button>
       </section>
       <aside class="hs-info" id="hsinfo" aria-label="Información del Huésped"></aside>
     </div>`;
@@ -195,7 +197,8 @@ export function buildHuespedScreen(menu) {
     const keys = C.host ? STAT_KEYS : ['dano', 'resistencia', 'movilidad', 'control', 'utilidad'].filter((k) => k in S);
     const bars = keys.map((k) => `<div class="hs-stat${k === 'dificultad' ? ' hs-sd' : ''}"><span class="hs-sl">${STAT_ES[k]}</span><span class="hs-bar"><b style="width:${S[k] * 10}%"></b>${C.host && k !== 'dificultad' ? `<u style="left:${avg[k] * 10}%" title="Promedio de los Huéspedes"></u>` : ''}</span><em>${S[k]}/10</em></div>`).join('');
     const abs = abilitiesOf(id).map(([tag, a, cd, kind]) => `<button class="hs-ab" type="button" data-kind="${kind}"><span class="hs-at">${tag}</span><span class="hs-ax"><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>${cd ? `<small>${esc(cd)}</small>` : ''}</span></button>`).join('');
-    $('#hsinfo').innerHTML = `${HOST_IDENTITY[id] ? `<section class="identity-summary"><b>${esc(HOST_IDENTITY[id].verb)}</b><p>${esc(HOST_IDENTITY[id].tip)}</p><small>${esc(HOST_IDENTITY[id].silhouette)}</small></section>` : ''}<p class="hs-story">${esc(story)}</p>${C.host ? maestriaHtml(id) + progresionHtml(id) : ''}<h4>Estadísticas</h4><div class="hs-stats">${bars}</div>${C.host ? '<p class="hs-legend"><u></u> promedio de los 5 Huéspedes</p>' : '<p class="hs-legend">Veterano: vista y datos del héroe anterior.</p>'}<h4>Habilidades</h4><div class="hs-abs">${abs}</div>`;
+    const bloqueo = C.host && !poseeHuesped(Perfil.perfil(), id) ? `<section class="identity-summary hs-bloqueo"><b>🔒 Bloqueado</b><ul>${rutasDeHuesped(id).map((r) => `<li>${esc(r.texto)}</li>`).join('')}</ul><small>Sólo se consigue jugando: no hay compras con dinero real.</small></section>` : (C.host && desafioCumplido(Perfil.perfil(), id) ? '<section class="identity-summary"><b>✓ Desafío cumplido</b></section>' : '');
+    $('#hsinfo').innerHTML = `${bloqueo}${HOST_IDENTITY[id] ? `<section class="identity-summary"><b>${esc(HOST_IDENTITY[id].verb)}</b><p>${esc(HOST_IDENTITY[id].tip)}</p><small>${esc(HOST_IDENTITY[id].silhouette)}</small></section>` : ''}<p class="hs-story">${esc(story)}</p>${C.host ? maestriaHtml(id) + progresionHtml(id) : ''}<h4>Estadísticas</h4><div class="hs-stats">${bars}</div>${C.host ? '<p class="hs-legend"><u></u> promedio de los 5 Huéspedes</p>' : '<p class="hs-legend">Veterano: vista y datos del héroe anterior.</p>'}<h4>Habilidades</h4><div class="hs-abs">${abs}</div>`;
     $('#hsinfo').scrollTop = 0;
     const keep = () => { const y = $('#hsinfo').scrollTop; renderInfo(id); $('#hsinfo').scrollTop = y; };
     root.querySelectorAll('[data-pgtab]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); hs.pgTab = b.dataset.pgtab; menu.sound.ui('tick'); keep(); }));
@@ -211,7 +214,7 @@ export function buildHuespedScreen(menu) {
     const d = C.stats ? C.stats.dificultad : null; const dd = $('#hsdiff'); dd.hidden = d == null;
     if (d != null) dd.innerHTML = `Dificultad: <b>${LEVEL(d)}</b> <span class="hs-pips" aria-hidden="true">${Array.from({ length: 5 }, (_, i) => `<i class="${i < Math.ceil(d / 2) ? 'on' : ''}"></i>`).join('')}</span>`;
     $('#hschosen').hidden = Equipo.char !== id;
-    const own = poseeHuesped(Perfil.perfil(), id), pk = $('#hspick'); pk.textContent = own ? (Equipo.char === id ? 'Listo ✓' : 'Elegir') : 'Comprar'; pk.dataset.locked = own ? '' : '1'; pk.title = own ? '' : `${C.name} no es tuyo todavía: el Cambista de Almas lo vende.`;   // se puede mirar y probar antes de comprar
+    const own = poseeHuesped(Perfil.perfil(), id), pk = $('#hspick'); const enTienda = HUESPEDES_TIENDA.includes(id); pk.textContent = own ? (Equipo.char === id ? 'Listo ✓' : 'Elegir') : enTienda ? 'Ver en la Tienda' : 'Bloqueado'; pk.dataset.locked = own ? '' : '1'; pk.title = own ? '' : `${C.name} está bloqueado: ${rutasDeHuesped(id).map((r) => r.texto).join(' · ')}`;   // se puede mirar y probar antes de comprar
     root.querySelectorAll('.hs-chip').forEach((b) => { const on = b.dataset.id === id; b.classList.toggle('sel', on); b.classList.toggle('chosen', b.dataset.id === Equipo.char); b.classList.toggle('locked', !poseeHuesped(Perfil.perfil(), b.dataset.id)); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     if (vet && $('#hsvets').hidden) toggleVets(true);
     renderInfo(id);
@@ -244,9 +247,10 @@ export function buildHuespedScreen(menu) {
     if (poseeHuesped(Perfil.perfil(), hs.sel) && Equipo.char !== hs.sel) { Equipo.char = hs.sel; saveEquipo(); menu.sound.ui('ok'); root.querySelectorAll('.hs-chip').forEach((c) => c.classList.toggle('chosen', c.dataset.id === Equipo.char)); $('#hschosen').hidden = false; $('#hspick').textContent = 'Listo ✓'; menu.refreshHuesped && menu.refreshHuesped(); }
   }));
   $('#hsvettoggle').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('tick'); toggleVets(); });
+  $('#hsgen').addEventListener('click', (e) => { e.stopPropagation(); menu.sound.ui('ok'); menu.show('laboratorio', false); });
   $('#hsdemo').addEventListener('click', (e) => { e.stopPropagation(); demo('both'); });
   $('#hspick').addEventListener('click', (e) => {
-    e.stopPropagation(); if (!poseeHuesped(Perfil.perfil(), hs.sel)) { menu.sound.ui('ok'); if (menu.tn) menu.tn.host = hs.sel; menu.show('tienda'); return; }   // no es tuyo: va a la Tienda
+    e.stopPropagation(); if (!poseeHuesped(Perfil.perfil(), hs.sel)) { menu.sound.ui(HUESPEDES_TIENDA.includes(hs.sel) ? 'ok' : 'back'); if (HUESPEDES_TIENDA.includes(hs.sel)) { if (menu.tn) menu.tn.host = hs.sel; menu.show('tienda'); } return; }   // no es tuyo: va a la Tienda
     Equipo.char = hs.sel; saveEquipo(); menu.sound.ui('ok');
     root.querySelectorAll('.hs-chip').forEach((b) => b.classList.toggle('chosen', b.dataset.id === Equipo.char)); $('#hschosen').hidden = false; menu.refreshHuesped && menu.refreshHuesped(); menu.back();
   });

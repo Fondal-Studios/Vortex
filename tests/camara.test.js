@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import { Game } from '../src/sim/game.js';
 import { startServer } from '../server/server.js';
 
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 
 test('snapshot: up es un vector unitario y las mejoras viajan en ug', () => {
   const g = new Game({ mapId: 'm1', seed: 1 }); const p = g.addPlayer('t'); p.upg[p.slots[1]] = { dmg: 1, rate: 0, mag: 0, mod: 'cadena', mut: 'sinapsis' };

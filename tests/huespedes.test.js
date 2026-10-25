@@ -298,5 +298,9 @@ test('las últimas criaturas vienen a buscarte (no hay que cazarlas por el mapa)
   const g = new Game({ mapId: 'm1', seed: 5 }); const p = g.addPlayer('t'); p.hp = 1e6; g.phase = 'wave'; g.queue = []; g.omens = []; g.phaseT = 0;
   let far = null; for (let i = 0; i < 40 && !far; i++) { const q = g.map.spawnGround(g.rng, { x: p.pos.x + 60 * Math.cos(i), y: p.pos.y, z: p.pos.z + 60 * Math.sin(i) }); if (dist(q, p.pos) > 40) far = q; }
   const m = g.spawnMonster('geoda', far); m.cd = 1e9; m.def = { ...m.def, speed: 0 }; const d0 = dist(m.pos, p.pos); assert.ok(d0 > 40, `empieza lejos (${d0.toFixed(0)})`);
-  run(g, 9); assert.ok(dist(m.pos, p.pos) < 60, `la rezagada se acercó (${dist(m.pos, p.pos).toFixed(0)})`);
+  // Política «sin teletransportes» (src/sim/rezagados.js): tras la gracia entra en ACOSO y marcha hacia el jugador. En esta semilla el camino
+  // recto cruza el vacío entre islas: la criatura cae y se DESINTEGRA a la vista (evento `desint`), que también cierra la oleada. Ambos desenlaces
+  // son válidos; lo que no puede pasar es que se quede lejos, viva y quieta.
+  run(g, 9); assert.ok(m.acoso, 'entró en acoso');
+  assert.ok(m.dead || dist(m.pos, p.pos) < 60, `la rezagada se acercó o se desintegró (${dist(m.pos, p.pos).toFixed(0)})`);
 });

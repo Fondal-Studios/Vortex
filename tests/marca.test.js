@@ -30,8 +30,8 @@ test('menú: 5 puertas, 4 secciones con pestañas, cada pantalla a ≤ 2 pasos d
   assert.equal(migasTexto('inventario'), 'Inicio › Huéspedes'); assert.equal(migasTexto('tienda'), 'Inicio › Huéspedes'); assert.equal(migasTexto('main'), 'Inicio'); assert.deepEqual(migas('title'), []);
   // cada pantalla del menú se alcanza desde una puerta (data-go) o desde una pestaña de la sección de esa puerta
   const destinos = new Set([...PUERTAS.map((d) => d.go), 'arenas', ...Object.values(SECCIONES).flatMap((S) => S.tabs.map((t) => t.go))]);
-  for (const d of ['story', 'arenas', 'coop', 'huesped', 'evolucion', 'inventario', 'loadout', 'territorios', 'bestiary', 'tienda', 'graficos', 'options', 'base']) assert.ok(destinos.has(d), `${d} se alcanza desde el inicio o una pestaña`);
-  for (const [sid, S] of Object.entries(SECCIONES)) { assert.ok(S.tabs.length >= 2 && S.tabs.length <= 6, sid); for (const t of S.tabs) { assert.ok(PANTALLAS[t.go], `${sid}/${t.t}: pantalla ${t.go} existe`); assert.ok(t.t.length <= 20, 'rótulo corto: ' + t.t); } }
+  for (const d of ['story', 'arenas', 'coop', 'huesped', 'laboratorio', 'evolucion', 'inventario', 'loadout', 'territorios', 'bestiary', 'tienda', 'graficos', 'options', 'base']) assert.ok(destinos.has(d), `${d} se alcanza desde el inicio o una pestaña`);
+  for (const [sid, S] of Object.entries(SECCIONES)) { assert.ok(S.tabs.length >= 2 && S.tabs.length <= (sid === 'huespedes' ? 7 : 6), sid); for (const t of S.tabs) { assert.ok(PANTALLAS[t.go], `${sid}/${t.t}: pantalla ${t.go} existe`); assert.ok(t.t.length <= 20, 'rótulo corto: ' + t.t); } }
   for (const p of Object.keys(PANTALLAS)) if (p !== 'main') { assert.equal(PANTALLAS[p].padre, 'main', p + ' cuelga del inicio (un solo nivel)'); assert.ok(SECCION_DE[p], p + ' pertenece a una sección con pestañas'); }
   for (const d of PUERTAS) { assert.ok(d.desc.length > 15 && d.desc.length < 60, 'una línea de ayuda: ' + d.id); assert.ok(d.icono && d.color, d.id); }
   // pestaña activa: Inventario y Forja comparten pantalla; Criaturas / Fauna / Herbario también

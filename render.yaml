@@ -1,24 +1,28 @@
 # Plano ("Blueprint") para Render.com: crea el servidor cooperativo GRATIS con un solo clic.
-# Pasos completos (con cada botón a tocar) en docs/COOP_ONLINE.md.
+# Pasos completos (con cada botón a tocar) en docs/COOP_ONLINE.md. Operación y compuertas de despliegue: docs/OPERATIONS.md.
+# SIN SECRETOS EN ESTE ARCHIVO: DATABASE_URL y cualquier clave se definen en el panel de Render (sync: false).
 services:
   - type: web
-    name: arcanum-coop
+    name: shower-psico-coop         # nombre REAL del servicio en Render (docs/TACTICAL_ACCOUNTS.md). Renombrarlo aquí crearía un servicio nuevo: no tocar sin decidirlo.
     runtime: node
+    branch: claude/larga-con-eso-s43nfe   # rama canónica
     plan: free                      # plan gratuito: se duerme tras 15 min sin tráfico y tarda ~1 min en despertar
-    buildCommand: npm ci --omit=dev # instala sólo lo que el servidor necesita (three y ws)
+    buildCommand: npm ci --omit=dev # instala sólo lo que el servidor necesita (three, ws, pg)
     startCommand: node server/server.js
     healthCheckPath: /health        # Render lo consulta para saber que el servidor está sano
-    autoDeploy: true                # cada vez que subís cambios a la rama, se actualiza solo
-    # Cuentas: definir DATABASE_URL como secreto con la URL interna de una base persistente.
-    # Propuesta y costo pendientes: docs/TACTICAL_ACCOUNTS.md. No usar disco efímero.
+    autoDeployTrigger: checksPass   # despliega SOLO cuando los checks del commit (CI: unit + browser) pasan. Alternativa manual: `off`.
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: NODE_ENV
+        value: production           # activa el modo restrictivo de orígenes si ALLOWED_ORIGINS se borrara por error
       - key: TRUST_PROXY            # Render está delante del servidor: la dirección real del visitante viene en X-Forwarded-For
         value: "1"
-      - key: ALLOWED_ORIGINS        # ⚠ Completalo en el panel de Render: tu página de GitHub Pages, sin barra final.
-        sync: false                 #   Ejemplo: https://tuusuario.github.io   (varias separadas por coma; vacío = cualquiera)
+      - key: ALLOWED_ORIGINS        # Solo la página de GitHub Pages (sin barra final). Varias, separadas por coma. Nunca vacío en producción.
+        value: https://fondal-studios.github.io
       - key: MAX_SALAS
         value: "10"
       - key: MAX_POR_IP
         value: "8"
+      - key: DATABASE_URL           # Cuentas (docs/TACTICAL_ACCOUNTS.md): URL interna de la base persistente, SOLO en el panel de Render.
+        sync: false

@@ -151,7 +151,7 @@ export function iaTick(g, boss, dt) {
   const sec = Math.floor(ia.t);
   if (sec !== ia.sec) { ia.sec = sec; for (const id in ia.pl) ia.pl[id].b[sec % NB].fill(0); }
   // enfurecimiento por tiempo
-  const T = IA.enrageT + IA.enrageCoop * (g.players.length - 1);
+  const bc = g.cfg && g.cfg.boss, T = (bc ? bc.enrageT : IA.enrageT) + (bc ? bc.enrageCoop : IA.enrageCoop) * (g.players.length - 1);   // en misiones, el enfurecimiento llega mucho antes (mision-config.js)
   if (ia.t > T) { ia.enr = clamp((ia.t - T) / IA.enrageRampa, 0, 1); if (!ia.enrOn) { ia.enrOn = true; g.emit({ t: 'jia', k: 'enr', id: boss.id }); } }
   // rampa de la postura
   if (ia.lag > 0) ia.lvl = Math.max(0, ia.lvl - dt * 0.08); else if (ia.st !== 'neutro') ia.lvl = Math.min(ia.cambios === 0 && ia.pistaMax ? ia.pistaMax : 1, ia.lvl + dt / IA.rampa);

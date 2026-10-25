@@ -122,7 +122,7 @@ function colapso(g, o, by) {
   const s0 = g.dmgSrc; g.dmgSrc = 'skill';
   try {
     const rad = o.cRad ?? (o.big ? 14 : o.mini ? 4 : 8), dmg = (o.cDmg ?? (o.big ? 300 : o.mini ? 40 : 120)) * (by ? evoK(by) : 1) * (by && hasPath(by, 'artilleria') ? 1.5 : 1) * (by ? mk(g, by) : 1);
-    g.explode(o.pos, rad, 0, dmg, by || null, false);
+    g.explode(o.pos, rad, 0, dmg, by || null, false, true);
     if (o.hab || o.big) for (const m of g.monsters) if (!m.dead && dist(m.pos, o.pos) < rad + m.r) { m.slowUntil = Math.max(m.slowUntil || 0, g.time + 2); if (!m.def.boss) m.vel = mul(m.vel, 0.4); }
     g.emit({ t: 'pozoend', pid: o.owner, p: a3(o.pos), r: r2(rad), kind: o.kind || 'normal' });
   } finally { g.dmgSrc = s0; }
@@ -159,13 +159,14 @@ export function singularReflujo(g, p) {
   const centers = pozos.length ? pozos.map((q) => ({ pos: q.pos, r: q.r * 1.15 })) : [{ pos: p.pos, r: 7 * k }];
   const hurt = new Set();
   for (const c of centers) {
+    let nc = 0;
     for (const m of g.monsters) {
       if (m.dead || hurt.has(m.id)) continue;
       const d = dist(m.pos, c.pos); if (d > c.r + m.r) continue;
-      hurt.add(m.id); g.damageMonster(m, dmg * (pozos.length ? 1 : 0.7), p, m.pos);
+      hurt.add(m.id); nc++; g.damageMonster(m, dmg * (pozos.length ? 1 : 0.7), p, m.pos);
       if (!m.dead) { m.slowUntil = Math.max(m.slowUntil || 0, g.time + 1.5); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, c.pos)), 30); }
     }
-    g.emit({ t: 'boom', p: a3(c.pos), r: r2(c.r) });
+    g.emit({ t: 'boom', p: a3(c.pos), r: r2(c.r), hit: nc });
   }
   g.emit({ t: 'reflujo', pid: p.id, p: a3(p.pos), n: centers.length });
   return true;
@@ -184,8 +185,9 @@ export function singularFx(g, p, fx, dmg, big) {
   if (fx.includes('pozo')) addPozo(g, p, madd(madd(clone(p.pos), flat(p), 4.5), p.up, 0.6), { mini: true, life: SING.miniLife * (big ? 1.4 : 1), r: SING.miniR * k, core: SING.miniCore * k });
   if (fx.includes('orbita')) {
     const n = orbN(p), R = 7.5 * k;
-    for (const m of g.monsters) if (!m.dead && dist(m.pos, p.pos) < R + m.r) g.damageMonster(m, dmg * 0.3 * (n / 3), p, m.pos);
-    g.emit({ t: 'orbburst', pid: p.id, p: a3(p.pos), n, r: r2(R) });
+    let nh = 0;
+    for (const m of g.monsters) if (!m.dead && dist(m.pos, p.pos) < R + m.r) { nh++; g.damageMonster(m, dmg * 0.3 * (n / 3), p, m.pos); }
+    g.emit({ t: 'orbburst', pid: p.id, p: a3(p.pos), n, r: r2(R), hit: nh });
   }
 }
 /** Habilidad principal del Combo («Colapso gravitatorio»): un pozo grande delante que dura 2,6 s y al cerrarse implosiona y frena. */

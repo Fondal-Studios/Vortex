@@ -6,7 +6,8 @@ import { startServer } from '../server/server.js';
 import { ESP_IDS } from '../src/sim/flora-data.js';
 
 // Pestaña «Herbario» del Bestiario y opciones de vegetación del menú Gráficos, en un navegador real (Chromium por software).
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 let srv, browser, base;
 test.before(async () => { if (!hasChromium) return; srv = await startServer({ port: 0 }); browser = await launch(); base = `http://localhost:${srv.port}`; });
 test.after(async () => { if (browser) await browser.close(); if (srv) await srv.close(); });

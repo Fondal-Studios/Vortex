@@ -8,7 +8,8 @@ import os from 'node:os';
 import { launch } from '../tools/browser.js';
 import { startServer } from '../server/server.js';
 
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const PRESUPUESTO = { calls: 60, tris: 40000 };   // escenario de Baja (mapa + NPC), sin el Huésped
 const OUT = process.env.BASE_SHOTS || fs.mkdtempSync(`${os.tmpdir()}/base-`);
 let srv, browser, base;

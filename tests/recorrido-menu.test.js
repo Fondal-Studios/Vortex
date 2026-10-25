@@ -7,7 +7,8 @@ import { debeSaludar, PASOS } from '../src/client/menu-bienvenida.js';
 
 // «Recorrido»: desde el inicio, llegar a CADA función contando los toques/clics reales (docs/MENU.md). Lo frecuente (jugar, cambiar de Huésped, Tienda, Inventario/Forja) en ≤ 2.
 // Se corre en celular horizontal (táctil) y en PC; los toques son clics de verdad sobre los botones visibles (nada de ui.show a mano).
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const KEY = 'cristal.perfil.v1';
 let srv, browser, base;
 test.before(async () => { if (!hasChromium) return; srv = await startServer({ port: 0 }); browser = await launch(); base = `http://localhost:${srv.port}`; });

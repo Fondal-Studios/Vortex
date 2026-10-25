@@ -392,6 +392,26 @@ for (const k of Object.keys(CHARACTERS)) if (!CHARACTERS[k].host) CHARACTERS[k].
 export const CHARACTER_IDS = Object.keys(CHARACTERS);
 export const HOST_IDS = Object.keys(HOSTS);
 
+/* ───────── EL HÍBRIDO DE LABORATORIO (Editor de Huéspedes, E1: docs/EDITOR_HUESPEDES.md §3.2) ─────────
+   Chasis de las creaciones del jugador. Se registra DESPUÉS de CHARACTER_IDS y HOST_IDS a propósito: NO es uno de los 8 Huéspedes oficiales
+   (no aparece en sus listas, ni en la Tienda, ni en la selección inicial, ni gana desafíos de colección). Se juega con `char: 'laboratorio'`.
+   Habilidades: las de Axioma, ya probadas (nada nuevo que balancear). hp y speed FIJOS en 1: ninguna proporción los toca.
+   El poder sale SOLO de los órganos de campeón que traiga el diseño (src/sim/laboratorio.js), con la misma capacidad (1 + evo) que un oficial. */
+const AX_ID = 'axioma', CHASIS_LAB_STATS = { dano: 5, resistencia: 5, movilidad: 5, control: 4, utilidad: 4, dificultad: 3 };
+{
+  const AX = CHARACTERS.axioma;
+  CHARACTERS.laboratorio = {
+    team: AX.team, name: 'Híbrido Genómico', title: 'Creación del jugador', role: AX.role, host: true, lab: true, starter: false, preset: 'jugador3', seed: null, color: 0xff7a22, hp: 1, speed: 1, slots: [...AX.slots],
+    desc: 'Tu propia creación: elegís el aspecto y los órganos. Usa las habilidades de Axioma; el tamaño y la forma son solo estética.',
+    story: 'Un cuerpo en blanco del Laboratorio de VORTEX. Lo que sea que seas, lo diseñaste vos.',
+    stats: { ...CHASIS_LAB_STATS },
+    melee: { light: { ...AX.melee.light }, heavy: { ...AX.melee.heavy } },
+    mov: { ...AX.mov }, esp: { ...AX.esp }, s3: { ...AX.s3 }, ult: { ...AX.ult }, passive: { ...AX.passive },
+  };
+  // tablas por Huésped que la simulación consulta con p.char: las del chasis son las de Axioma (misma lógica, mismos números)
+  for (const T of [HABILIDADES, COMBO_SETS, COMBO_TUNE, NATIVE_MELEE, MELEE_AFFINITY]) if (T[AX_ID] !== undefined) T.laboratorio = T[AX_ID];
+}
+
 /* ───────── Mejoras de armas: tras cada oleada se ofrecen 3 tarjetas; cada nivel se ve en el modelo del arma ───────── */
 export const UPGRADE_KINDS = {
   dmg:  { name: 'Más daño',          desc: '+22 % de daño por nivel', max: 5 },
@@ -526,14 +546,15 @@ export const OBJECTIVE_INFO = {
   caza: { title: 'CAZA DEL CUSTODIO', desc: 'Eliminá al custodio marcado. Al caer, sus defensas se apagan y termina la oleada.', limit: 110 },
   ancla:    { title: 'ANCLA DE REALIDAD', desc: 'Quedate dentro del círculo para estabilizar el recuerdo. Defendé el ancla de las criaturas.', limit: 110 },
   sintonia: { title: 'SINTONÍA', desc: 'Pisá todas las placas a la vez durante 3 s. Solo: cada placa queda viva 10 s tras salir.', limit: 110 },
+  resistir: { title: 'RESISTIR EL ASEDIO', desc: 'Sobreviví hasta que termine la cuenta regresiva. La red envía criaturas sin pausa.', limit: 120 },
   cultivo:  { title: 'CULTIVO: PUENTE VIVO', desc: 'Alimentá los 3 capullos disparándoles hasta que florezcan: cada uno hace crecer un tramo del puente al Umbral. Las criaturas los roen: defendelos.', limit: 260 },
   nucleo:   { title: 'NÚCLEO DE MEMORIA', desc: 'Acercate al núcleo para recogerlo y llevalo al altar. Mientras lo llevás caminás más lento y no podés disparar.', limit: 150 },
 };
 // Fragmentos de recuerdo: los cuenta el Heraldo cada vez que se cumple un objetivo (el sentido de la historia)
 export const FRAGMENTS = [
-  'Registro 1 — VORTEX nació para conservar la humanidad. En este futuro remoto, solo queda una conciencia humana: la tuya. La IA custodio confundió conservar con controlar.',
+  'Registro 1 — La red conserva registros incompletos. No confundas lo que afirma el sistema con todo lo que ocurrió.',
   'Registro 2 — El genoma define el cuerpo del Huésped; tu memoria define quién lo habita. No son la misma cosa.',
-  'Registro 3 — Las criaturas son defensas de la red vestidas con recuerdos y mitos humanos. Reconocer su forma no las vuelve inofensivas.',
+  'Registro 3 — La red oculta el origen de sus criaturas. Un registro de combate no basta para saber qué hay dentro.',
   'Registro 4 — El Coloso guarda la clave de identidad. La Madre Geoda controla la salida. Debés vencer a ambos para escapar.',
   'Registro 5 — Las anclas estabilizan recuerdos; las placas reconectan archivos; los núcleos transportan memoria sin borrarla.',
   'Registro 6 — Soy HERALDO, una IA. Puedo guiarte, pero no decidir quién sos. Esa decisión sigue siendo tuya.',

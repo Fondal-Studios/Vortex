@@ -19,17 +19,15 @@ test('progress is sequential, idempotent, recoverable and rejects chapter skips'
  assert.deepEqual(cleanCampaign({completed:['m1','m5','bad',null]}),{completed:['m1']});
  assert.deepEqual(cleanCampaign({completed:'m1'}),{completed:[]});
 });
-test('campaign retains its two guardians; individual versions end at the third objective',()=>{
+test('every chapter, campaign or individual, ends with its own final boss after all its waves',()=>{
  for(const id of CAMPAIGN_ORDER){
- const g=new Game({mapId:id,campaign:true,seed:4});g.addPlayer('P');assert.ok(g.operation);assert.equal(g.waveTotal,CAMPAIGN_BOSSES[id]?4:3);
- for(let n=1;n<=3;n++){if(n===3 && g.cult)g.cult.open=true;g.startWave(n,WAVE_PLANS[id]);assert.ok(g.objective);assert.equal(g.objective.type,OPERATIONS[id].steps[n-1].kind);g.objects=g.objects.filter(o=>!g.objective.ids.includes(o.id));}
- if(CAMPAIGN_BOSSES[id]){
- g.startWave(4,WAVE_PLANS[id]);assert.equal(g.objective,null);assert.equal(g.queue[0],BOSS_OF[id]);g.spawnFromQueue();
+ const g=new Game({mapId:id,campaign:true,seed:4});g.addPlayer('P');assert.ok(g.operation);assert.equal(g.waveTotal,OPERATIONS[id].stages.length);assert.ok(CAMPAIGN_BOSSES[id],'jefe final en '+id);
+ for(let n=1;n<g.waveTotal;n++){if(g.cult)g.cult.open=true;g.startWave(n,WAVE_PLANS[id]);const st=OPERATIONS[id].stages[n-1];assert.equal(g.objective?g.objective.type:null,st.objective);g.objects=g.objects.filter(o=>!(g.objective&&g.objective.ids.includes(o.id)));}
+ g.startWave(g.waveTotal,WAVE_PLANS[id]);assert.equal(g.objective,null);assert.equal(g.queue[0],g.cfg.boss.kind);g.spawnFromQueue();
  const s=g.snapshot();assert.equal(s.operation.boss,true);assert.equal(metaActual(s,s.players[0]).kind,'jefe');
  g.queue=[];g.omens=[];g.updateWaves(.01);assert.equal(g.state,'playing','guardian must still be defeated');
  g.killMonster(g.monsters.find(m=>m.def.boss),g.players[0]);g.monsters=g.monsters.filter(m=>!m.dead);g.updateWaves(.01);assert.equal(g.state,'won');
- }
- const solo=new Game({mapId:id,operation:true});assert.equal(solo.waveTotal,3);assert.equal(solo.campaign,false);
+ const solo=new Game({mapId:id,operation:true});assert.equal(solo.waveTotal,g.waveTotal,'la misión individual tiene el mismo jefe final');assert.equal(solo.campaign,false);
  }
 });
 test('existing profiles keep inventory/currency; chapter checkpoint survives reload; restart only resets campaign',()=>{

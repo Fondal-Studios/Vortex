@@ -35,6 +35,8 @@ export function marcarAcoso(g, m) {
 /** Desintegración visible: no es una muerte normal (sin botín, sin esencia), pero cuenta como baja para cerrar la oleada. */
 export function desintegrar(g, m, why = 'atascada') {
   if (m.dead) return;
+  // Si el custodio MARCADO de una Caza se desintegra (atascado o inalcanzable), el bloqueo cae: antes la misión se perdía por algo que el jugador no pudo evitar.
+  if (g.objective && g.objective.type === 'caza' && g.objective.state === 'active' && g.objective.target === m.id) g.objective.prog = 1;
   m.dead = true; g.stats.kills++; g.stats.desint = (g.stats.desint || 0) + 1;
   if (m.parent) { const par = g.monsters.find((q) => q.id === m.parent); if (par) par.kids = Math.max(0, par.kids - 1); }
   g.emit({ t: 'desint', id: m.id, k: m.kind, why, p: [m.pos.x, m.pos.y, m.pos.z] });

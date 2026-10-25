@@ -489,9 +489,10 @@ export class CombatFx {
   boom(e) {
     const fx = this.fx, p = V(e.p), r = e.r || 5, up = this.up;
     // Host shockwaves are ground cuts, not fireball explosions. Preserve targets inside the radius.
-    if (e.src === 'host') {
+    if (e.src === 'host' || e.hit === 0) {
       const c = CHARACTERS[e.char]?.color || 0x66ffee;
       fx.ring(p, up, c, r, 0.38, { r0: 0.4, th: 0.08, op: 0.5, shock: true });
+      if (e.hit === 0) return;   // AC-07: habilidad de área SIN blancos: sólo la onda que marca el alcance; nada de chispas, destello ni sacudida de impacto
       fx.sparks(p, c, this.tier === 0 || this.reduced ? 5 : 10, Math.min(16, r * 2), 0.35, { dir: up, cone: 1.6, c2: c });
       fx.flash(p, c, Math.min(1.4, r * 0.25), 0.1, { op: 0.35 });
       if (!this.reduced && this.cam) this.addShake(0.12 * clamp(12 / (this.cam.position.distanceTo(p) + 6), 0.1, 1));

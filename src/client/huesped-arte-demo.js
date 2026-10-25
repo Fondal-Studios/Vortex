@@ -34,7 +34,8 @@ const env = loadEnvHDRI(gl, hdri).then((t) => { scene.environment = t; scene.env
 const kit = await loadHumanKit({ quality });
 const pl = { char, name: char, evo: Number(qs.get('evo')) || 0, pth: (qs.get('pth') || '').split(',').filter(Boolean), cg: (qs.get('cg') || '').split(',').filter(Boolean), mw: qs.get('mw') || '', mr: Number(qs.get('mr')) || 1, eq: qs.get('eq') || '', dead: false };
 if (qs.get('forma')) pl.mf = formaIndice(qs.get('forma'));
-const body = createHostBody(THREE, kit, pl, { quality, camera: cam, map: qs.get('map') || null });
+let labB = null; if (char === 'laboratorio') { const { decodificar, defecto } = await import('../shared/host-build.js'); labB = qs.get('lab') ? decodificar(qs.get('lab')).build : defecto(); }   // lab=VB1:… (Laboratorio, docs/EDITOR_HUESPEDES.md)
+const body = createHostBody(THREE, kit, pl, { quality, camera: cam, map: qs.get('map') || null, lab: labB });
 scene.add(body.object); await body.ready; await env;
 body.object.rotation.y = THREE.MathUtils.degToRad(Number(qs.get('yaw')) || 0);
 const CAMS = { // [x, y, z, mirax, miray, miraz, fov] relativos a la escala
@@ -50,7 +51,7 @@ function tick(dt) { time += dt; tickMenuBeat(time); body.update(dt, pl, ctxm); r
 window.__advance = (s, dt = 1 / 30) => { for (let t = 0; t < s; t += dt) tick(dt); };
 window.__render = () => { frame(); composer ? composer.render() : gl.render(scene, cam); };
 window.__evolve = (pth, evo) => { pl.pth = pth.split(',').filter(Boolean); pl.evo = evo; }; window.__mr = (r) => { pl.mr = r; };
-window.__THREE = THREE; window.__body = body; window.__gl = gl; window.__scene = scene; window.__pl = pl; window.__cam = cam;
+window.__lab = labB; window.__THREE = THREE; window.__body = body; window.__gl = gl; window.__scene = scene; window.__pl = pl; window.__cam = cam;
 window.__info = () => ({ ...body.stats(), calls: gl.info.render.calls, tris: gl.info.render.triangles, geometries: gl.info.memory.geometries });
 if (frozen) { window.__advance(Number(qs.get('t')) || 2); window.__render(); hud.textContent = ''; }
 else { let last = performance.now(); (function loop(now) { requestAnimationFrame(loop); const dt = Math.min(0.05, (now - last) / 1000); last = now; body.object.rotation.y += qs.get('spin') ? dt * 0.5 : 0; tick(dt); window.__render(); })(last); hud.textContent = `${char} · evo ${pl.evo} · ${quality}`; }

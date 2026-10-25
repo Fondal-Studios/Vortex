@@ -5,6 +5,7 @@
 import { CHARACTERS, HOST_IDS } from './data.js';
 import { ITEMS, ITEM_IDS, PLANOS, MATERIAL_IDS, MATERIALS, RARITIES, CALIDADES } from './items.js';
 import { rangoDeXp } from './maestria.js';
+import { poseidos, INICIALES } from './desbloqueos.js';   // Sprint 1: un solo Huésped inicial; el resto se desbloquea (docs/ONBOARDING.md)
 
 export const CAMBISTA = {
   nombre: 'El Cambista de Almas',   // el mismo mercader que aparece en las partidas (src/sim/npcs.js)
@@ -39,8 +40,9 @@ export function migrarHuespedes(o, elegido = null) {
   }
   return [...out];
 }
-/** ¿Este perfil (objeto plano con `huespedes`) posee al Huésped? Los iniciales siempre; los veteranos (no Huéspedes) no se compran. */
-export const poseeHuesped = (p, id) => !!CHARACTERS[id] && (!CHARACTERS[id].host || esInicial(id) || (p && Array.isArray(p.huespedes) && p.huespedes.includes(id)));
+/** ¿Este perfil (objeto plano con `inicial` y `huespedes`) posee al Huésped? Los veteranos (no Huéspedes) no se compran.
+ *  Sprint 1: se posee el Huésped inicial elegido + los desbloqueados (campaña, desafíos, Tienda). Un objeto legado (sin campo `inicial`) conserva los 3 iniciales de siempre. */
+export const poseeHuesped = (p, id) => !!CHARACTERS[id] && (!CHARACTERS[id].host || CHARACTERS[id].lab === true || poseidos(p).includes(id));   // el Híbrido Genómico (lab) es de todos: se desbloquea con el Laboratorio, no con la Tienda
 /** Rango de maestría más alto que tenés con un Huésped distinto de `excepto` (0 si ninguno). */
 export function mejorRango(p, excepto = null) {
   let r = 0; const mae = (p && p.mae) || {};
@@ -53,9 +55,10 @@ export function reqHuesped(p, id) {
   const ok = q.rango ? mejorRango(p, id) >= q.rango : true;
   return { ok, texto: q.texto || (q.rango ? `Rango ${q.rango} de maestría con otro Huésped.` : '') };
 }
-/** Estado de un Huésped en la tienda: 'poseido' · 'comprable' · 'sin nucleos' · 'falta requisito'. */
+/** Estado de un Huésped en la tienda: 'poseido' · 'comprable' · 'sin nucleos' · 'falta requisito' · 'bloqueado' (inicial no elegido: sólo campaña y desafíos, no se vende). */
 export function estadoHuesped(p, id) {
   if (poseeHuesped(p, id)) return 'poseido';
+  if (INICIALES.includes(id) && !(CHARACTERS[id] && CHARACTERS[id].unlock)) return 'bloqueado';
   if (!reqHuesped(p, id).ok) return 'falta requisito';
   return (p.cores | 0) >= precioHuesped(id) ? 'comprable' : 'sin nucleos';
 }

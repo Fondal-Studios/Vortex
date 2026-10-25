@@ -11,7 +11,7 @@ test('two real WebSocket clients receive identical operation and objective snaps
   await b.connect(`ws://127.0.0.1:${server.port}/ws`);b.send({t:'join',room:a.room,name:'B'});assert.ok(await until(()=>b.pid));
   const game=server.rooms.get(a.room).game;
   // Fixture jumps to the relevant waves; it does not represent human completion.
-  for(const [wave,type] of [[1,'secuencia'],[2,'caza'],[3,'ancla']]){
+  for(const [wave,type] of [[1,'secuencia'],[2,'caza'],[4,'ancla']]){
    game.startWave(wave,WAVE_PLANS.m3);
    assert.ok(await until(()=>a.buf.some(x=>x.s.obj?.type===type)&&b.buf.some(x=>x.s.obj?.type===type)));
    const common=a.buf.map(x=>x.s).find(s=>s.obj?.type===type&&b.buf.some(y=>y.s.tick===s.tick));

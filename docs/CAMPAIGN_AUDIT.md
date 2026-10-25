@@ -5,7 +5,7 @@
 | Antes | Ahora |
 |---|---|
 | Seis operaciones enumeradas por identificador de mapa; la salida aparecía segunda. | Una cronología común: Islas → Laberinto → Jardín → Plaza → Osario → Cámara Fractal. |
-| La campaña seguía usando las oleadas antiguas y solo dos capítulos por defecto. | La campaña juega las tres etapas de cada misión. El Coloso cierra el capítulo 1 y la Madre Geoda el 6. |
+| La campaña seguía usando las oleadas antiguas y solo dos capítulos por defecto. | La campaña juega las ocho oleadas de cada misión (src/sim/mision-config.js, docs/MISIONES.md) y cada capítulo cierra con un jefe final: Coloso (1), Argos (2, Laberinto), Ojo Primordial (3, Jardín), Mandinga del Reloj (4, Plaza), Basilisco (5, Osario) y Madre Geoda (6). |
 | «Continuar» arrancaba siempre m1. No había avance de capítulos persistente. | El perfil guarda capítulos consecutivos ganados. Continuar inicia el siguiente pendiente; derrota y salida no lo avanzan. |
 | Las misiones parecían alternativas sueltas sin causa ni consecuencia narrativa. | Cada misión tiene situación previa, objetivo, resultado y transición al siguiente archivo; los briefings comparten los mismos datos. |
 | Elegir partida abría directamente Misiones. | Modos de juego ofrece Campaña, Misiones individuales, Cooperativo y Campo de pruebas. |
@@ -13,7 +13,7 @@
 
 ## Recorrido
 
-1. **Refugio de identidades — Islas:** reconectar, defender y recuperar identidad; derrotar al Coloso para obtener la clave.
+1. **Islas — Despertar:** reconectar, defender y recuperar identidad; derrotar al Coloso para obtener la clave.
 2. **Apagar los ojos — Laberinto:** usar la clave para desactivar vigilancia y abrir el acceso al Jardín.
 3. **El camino que respira — Jardín:** hacer crecer el puente y evacuar memoria hacia la Plaza.
 4. **Voces de la plaza — Plaza:** romper el bucle de recuerdos y localizar un cuerpo compatible en el Osario.

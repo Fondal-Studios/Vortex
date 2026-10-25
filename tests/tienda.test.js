@@ -53,11 +53,11 @@ test('requisitos: Colmena pide rango 3 con otro Huésped; Singular también; Dan
   p.cores = 10; p.mae = { vesper: { xp: 999 } }; assert.equal(T.estadoHuesped(p, 'danzante'), 'sin nucleos');
 });
 
-test('perfil: un perfil previo con maestría abre con ese Huésped incluido; uno nuevo sólo con los 3 iniciales', () => {
+test('perfil: un perfil previo con maestría abre con ese Huésped incluido; uno nuevo no posee ninguno hasta elegir su primer Huésped', () => {
   const p = reset({ cores: 40, mae: { umbra: { xp: 30, partidas: 1, kills: 4, oleada: 2 } } });
   assert.equal(TM.poseeHuesped('umbra'), true); assert.equal(TM.poseeHuesped('seraf'), false); assert.equal(TM.poseeHuesped('micelio'), true);
-  assert.deepEqual(p.huespedes, ['umbra']);
-  const q = reset({}); assert.deepEqual(q.huespedes, []); assert.equal(TM.poseeHuesped('colmena'), false); assert.equal(TM.poseeHuesped('nova'), true, 'los veteranos no se compran');
+  assert.deepEqual(p.huespedes, ['vesper', 'micelio', 'umbra'], 'veterano: conserva los iniciales (axioma es su inicial) y lo que usaba');
+  const q = reset({}); assert.deepEqual(q.huespedes, []); assert.equal(TM.poseeHuesped('axioma'), false, 'Sprint 1: sin Huésped inicial elegido no hay ninguno'); assert.equal(TM.poseeHuesped('colmena'), false); assert.equal(TM.poseeHuesped('nova'), true, 'los veteranos no se compran');
 });
 test('comprar Huésped: gasta el precio justo, no se repite, respeta el requisito y nunca deja núcleos negativos', () => {
   const p = reset({ cores: 700 });

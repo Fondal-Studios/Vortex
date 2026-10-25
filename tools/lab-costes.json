@@ -1,0 +1,165 @@
+{
+ "cuerno_curvo": {
+  "low": 228,
+  "mats": [
+   "bone"
+  ],
+  "medium": 400,
+  "high": 748
+ },
+ "cresta_osea": {
+  "low": 300,
+  "mats": [
+   "bone"
+  ],
+  "medium": 488,
+  "high": 780
+ },
+ "corona_espinas": {
+  "low": 364,
+  "mats": [
+   "metal"
+  ],
+  "medium": 592,
+  "high": 1002
+ },
+ "gorguera": {
+  "low": 288,
+  "mats": [
+   "bone"
+  ],
+  "medium": 384,
+  "high": 528
+ },
+ "hombrera_espinas": {
+  "low": 496,
+  "mats": [
+   "bone"
+  ],
+  "medium": 906,
+  "high": 1554
+ },
+ "placa_pectoral": {
+  "low": 420,
+  "mats": [
+   "metal"
+  ],
+  "medium": 532,
+  "high": 644
+ },
+ "espinas_dorsales": {
+  "low": 450,
+  "mats": [
+   "bone"
+  ],
+  "medium": 756,
+  "high": 1296
+ },
+ "alas_membrana": {
+  "low": 1056,
+  "mats": [
+   "bone",
+   "leather"
+  ],
+  "medium": 1784,
+  "high": 3336
+ },
+ "cola_larga": {
+  "low": 852,
+  "mats": [
+   "bone"
+  ],
+  "medium": 1427,
+  "high": 2651
+ },
+ "cuchilla_antebrazo": {
+  "low": 344,
+  "mats": [
+   "metal"
+  ],
+  "medium": 448,
+  "high": 616
+ },
+ "rodillera_placa": {
+  "low": 284,
+  "mats": [
+   "metal"
+  ],
+  "medium": 570,
+  "high": 996
+ },
+ "garras_mano": {
+  "low": 300,
+  "mats": [
+   "bone"
+  ],
+  "medium": 560,
+  "high": 900
+ },
+ "placas": {
+  "low": 528,
+  "mats": [
+   "bone"
+  ],
+  "medium": 800,
+  "high": 1072
+ },
+ "adrenal": {
+  "low": 306,
+  "mats": [
+   "flesh"
+  ],
+  "medium": 568,
+  "high": 1044
+ },
+ "ojo_extra": {
+  "low": 264,
+  "mats": [
+   "flesh",
+   "crystal"
+  ],
+  "medium": 466,
+  "high": 920
+ },
+ "saco_g": {
+  "low": 320,
+  "mats": [
+   "flesh"
+  ],
+  "medium": 600,
+  "high": 1140
+ },
+ "medula": {
+  "low": 360,
+  "mats": [
+   "bone",
+   "flesh"
+  ],
+  "medium": 588,
+  "high": 936
+ },
+ "tentaculo": {
+  "low": 720,
+  "mats": [
+   "flesh"
+  ],
+  "medium": 1210,
+  "high": 2250
+ },
+ "corazon_cristal": {
+  "low": 320,
+  "mats": [
+   "crystal"
+  ],
+  "medium": 480,
+  "high": 880
+ },
+ "espiraculo": {
+  "low": 308,
+  "mats": [
+   "dark"
+  ],
+  "medium": 460,
+  "high": 724
+ }
+}

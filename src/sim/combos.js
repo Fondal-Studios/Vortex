@@ -188,6 +188,9 @@ function resolve(g, p, mv0, power, W, last, fin) {
         else if (ac.mark && !m.dead && !(g.time < (m.markUntil || 0) && (m.markMul || 0) >= 1.15)) { m.markUntil = g.time + 4; m.markMul = 1.15; }   // Marca de sentencia
       }
       for (const [m] of sel) if (m.dead) killed.push(m);
+      // Objetos hostiles (capullos del Cultivo, ojos de Argos, huevos de la Madre): el Combo los ignoraba y sólo el golpe rápido (huespedes.js) los alcanzaba.
+      // Un jugador Melé quedaba sin poder completar el Cultivo del Jardín.
+      for (const ob of [...g.objects]) if (ob.hostile && ob.hp > 0 && dist(ob.pos, o) < range + ob.r && dot(norm(sub(ob.pos, o)), dir0) > cosT) { g.damageObject(ob, dmg, p, ob.pos); hits++; }
       if ((M.item || (p.evo || 0) >= 1) && M.special) meleeAfter(g, p, M.special, heavy || last, dir0, o, dmg, strong);
       if (IS.onda) meleeAfter(g, p, 'onda', true, dir0, o, dmg, strong);
       if (mv.dash) p.ext = madd(p.ext, h, mv.dash * 2.2);
@@ -232,22 +235,22 @@ function finisherArea(g, p, kind, bud, dmg, o, dir) {
   if (kind === 'cono' || kind === 'abanico') {   // cono: corto y empuja fuerte · abanico (Danzante): ancho, largo y suave
     const ab = kind === 'abanico', cosT = ab ? 0.1 : 0.5, rr = ab ? 11 : 9, kn = ab ? 7 : 16, k = ab ? 0.8 : 0.9;
     for (const m of g.monsters) { if (m.dead || n >= 14) continue; const to = sub(m.pos, o), l = len(to); if (l > rr + m.r || (dot(norm(to), dir) < cosT && l > m.r + 1)) continue; if (extra(g, p, bud, m, dmg * k, kn, p.pos)) n++; }
-    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(madd(p.pos, h, 4)), r: ab ? 6 : 5 });
+    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(madd(p.pos, h, 4)), r: ab ? 6 : 5, hit: n });
   } else if (kind === 'torbellino') {
     for (const m of cercanos(g, p.pos, 5.5, 14)) if (extra(g, p, bud, m, dmg * 0.9, 8, p.pos)) n++;
-    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 5.5 });
+    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 5.5, hit: n });
   } else if (kind === 'sismo') {
     for (const m of cercanos(g, p.pos, 7, 14)) { if (extra(g, p, bud, m, dmg * 0.7, 9, p.pos)) n++; if (!m.dead) { m.slowUntil = g.time + 2; if (!m.def.boss) m.vel = mul(m.vel, 0.5); } }
-    g.addObject('spores', clone(p.pos), { owner: p.id, life: 2, r: 4 }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 7 });
+    g.addObject('spores', clone(p.pos), { owner: p.id, life: 2, r: 4 }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r: 7, hit: n });
   } else if (kind === 'vacio') {
     const c = madd(p.pos, h, 3.5);   // el punto hacia el que se arrastra a todos
     for (const m of cercanos(g, c, 11, 14)) { if (!m.def.boss) m.vel = madd(m.vel, norm(sub(c, m.pos)), 22); if (extra(g, p, bud, m, dmg * 0.6, 0, c)) n++; }
-    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(c), r: 4 });
+    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(c), r: 4, hit: n });
   } else if (kind === 'pozo') {   // Singular: arrastra a todos hacia un punto adelante y deja un pozo chico que los retiene
     const c = madd(p.pos, h, 3);
     for (const m of cercanos(g, c, 12, 14)) { if (!m.def.boss) m.vel = madd(m.vel, norm(sub(c, m.pos)), 20); if (extra(g, p, bud, m, dmg * 0.55, 0, c)) n++; }
     addPozo(g, p, madd(c, p.up, 0.6), { mini: true, life: SING.miniLife, r: SING.miniR, core: SING.miniCore });
-    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(c), r: 4 });
+    g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(c), r: 4, hit: n });
   } else if (kind === 'enjambre') {   // Colmena: el remate manda a todo el enjambre y suelta una nube
     n += ordenar(g, p, dmg * 1.6, madd(o, dir, 3)); n += nubeArea(g, p, dmg, 1.2);
   } else if (kind === 'rayos') {
@@ -278,8 +281,9 @@ function shoot(g, p, mv, dmg, range, M, o, d) {
 
 /** Onda en el suelo alrededor del jugador (daño y empuje). */
 function ring(g, p, r, dmg, kn) {
-  for (const m of g.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < r + m.r) { g.damageMonster(m, dmg, p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), kn); } }
-  g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r });
+  let n = 0;
+  for (const m of g.monsters) { if (m.dead) continue; const d = dist(m.pos, p.pos); if (d < r + m.r) { g.damageMonster(m, dmg, p, m.pos); n++; if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), kn); } }
+  g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r, hit: n });   // hit = criaturas golpeadas (AC-07: sin blancos no suena a impacto)
 }
 function applyFx(g, p, mv, dmg, o, dir) {
   const fx = mv.fx || '', big = mv.big ? 1.6 : 1;
@@ -316,9 +320,10 @@ function resolveHab(g, p, id) {
   const near = (rr) => g.monsters.filter((m) => !m.dead && dist(m.pos, p.pos) < rr + m.r);
   try {
     if (id === 'baluarte') {
-      for (const m of near(r)) { g.damageMonster(m, 35 * habScale(p), p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 16); }
+      let nb = 0;
+      for (const m of near(r)) { nb++; g.damageMonster(m, 35 * habScale(p), p, m.pos); if (!m.def.boss) m.vel = madd(m.vel, norm(sub(m.pos, p.pos)), 16); }
       p.shield = Math.min(PLAYER.shield, p.shield + 25 + (hasPath(p, 'coraza') ? 20 : 0));
-      g.emit({ t: 'skill', pid: p.id, k: 's3', id: 'caparazon', p: a3(p.pos) }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r });
+      g.emit({ t: 'skill', pid: p.id, k: 's3', id: 'caparazon', p: a3(p.pos) }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r, hit: nb });
     } else if (id === 'caza') {
       const h = flat(p); p.invulUntil = Math.max(p.invulUntil, g.time + 0.4); p.ext = madd(p.ext, h, 40);
       for (const m of g.monsters) {
@@ -334,7 +339,7 @@ function resolveHab(g, p, id) {
       const amt = 30 + 4 * Math.min(n, 6);
       for (const q of g.players) if (!q.dead && dist(q.pos, p.pos) < r + 4) { heal(q, amt * (q === p ? 1.3 : 1)); q.shield = Math.min(PLAYER.shield, q.shield + 25); }
       g.addObject('spores', clone(p.pos), { owner: p.id, life: 4, r: r * 0.7 });
-      g.emit({ t: 'skill', pid: p.id, k: 's3', id: 'biomasa', p: a3(p.pos) }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r });
+      g.emit({ t: 'skill', pid: p.id, k: 's3', id: 'biomasa', p: a3(p.pos) }); g.emit({ t: 'boom', src: 'host', char: p.char, p: a3(p.pos), r, hit: n });
     } else if (id === 'eclipse') {
       const pos = madd(p.pos, flat(p), 4); p.invulUntil = Math.max(p.invulUntil, g.time + 0.4);
       g.addObject('chrono', clone(pos), { owner: p.id, life: 6, r }); p.eclipse = { pos: clone(pos), until: g.time + 6, r };
@@ -348,7 +353,8 @@ function resolveHab(g, p, id) {
     } else if (id === 'bendicion') {
       for (const q of g.players) {
         if (dist(q.pos, p.pos) > r) continue;
-        if (q.dead) { if (!q.lost && q !== p) { g.reviveInPlace(q); q.hp = 60; } continue; }
+        if (q.dead) { if (!q.lost && q !== p) { g.reviveInPlace(q, p); q.hp = 60; } continue; }
+        if (q !== p && p.st) p.st.sup++;
         heal(q, PLAYER.hp * (0.4 + 0.05 * (p.evo || 0))); q.shield = PLAYER.shield; q.blessUntil = g.time + 6;
       }
       g.emit({ t: 'skill', pid: p.id, k: 'esp', id: 'pulso', p: a3(p.pos) });

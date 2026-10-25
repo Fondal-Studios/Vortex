@@ -1,5 +1,6 @@
 import { CAMPAIGN_BOSSES } from './campaign.js';
 import { OPERATIONS } from './operations.js';
+import { misionConfig, premioEtapa, PREMIO_MISION, LIMITES } from './mision-config.js';   // misiones declarativas y límites duros de tiempo (docs/MISIONES.md)
 import { BOSS_NAMES } from './campaign-names.js';
 import { reviveTarget } from '../shared/tactical.js';
 import { v3, add, sub, mul, madd, dot, cross, len, dist, norm, clamp, project, rotAround, makeRng, clone, finite } from './math.js';
@@ -20,6 +21,7 @@ import { applyMaestria } from './maestria.js';
 import { applyArbol, shapeArbolGun } from './progresion.js';   // árbol de combos y de disparo permanentes (docs/EVOLUCION.md)
 import { setMode } from './combos.js';
 import { cleanSkillLevel, earnedSkillLevel, gateSkills } from '../shared/skill-path.js';
+import { applyLab, clearLab, capLab, CHASIS_LAB } from './laboratorio.js';   // Híbrido Genómico: diseños del jugador (docs/EDITOR_HUESPEDES.md)
 import { enrutar } from './modos.js';   // slots de habilidad por modo (Disparo / Melé)
 import { initDrops, initPity, updateLoot, flushLoot, lootSnap, dropsKill, dropsJefe, dropsRespiro } from './drops.js';   // dropeo de objetos (docs/INVENTARIO.md): rng propio g.drRng
 import { applyEquip, itemsSnap, shapeItemGun, ensureGunSlot } from './items-fx.js';
@@ -29,7 +31,8 @@ import { Director } from './director.js';
 import { initArenas, tickArenas, arSnap, arTargets, arExplosion, arKill, arVel, arDanio, danarOrgano } from './arenas-vivas.js'; // arenas vivas (src/sim/arenas-vivas.js)
 import { initNieblas, tickNieblas, ngSnap, ngVel, ngDanio, ngRecibe, ngOculta, ngMonstruoRecibe, ngDeforma } from './nieblas.js';   // nieblas de colores con función (src/sim/nieblas.js)
 import { initFlora, tickFlora, flSnap, flVel, flRecibe, floraRayo, floraExplosion, applyHerb } from './flora.js';   // flora interactiva (src/sim/flora.js)
-import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, limitarCaida } from './eventos.js';
+import { crearTutorial, tickTutorial } from './tutorial.js';
+import { initEventos, planOleada, finOleada, tickEventos, evSnap, factorFlip, limitarCaida, forzarEvento } from './eventos.js';
 import { initFauna, initFaunaPlayer, tickFauna, shapeFauna, faunaSnap, faunaPlayerSnap } from './fauna.js';   // fauna consumible y metamorfosis (src/sim/fauna.js, docs/FAUNA.md)
 import { iniciarMision, misionKill, misionHurt, misionFin, misionSnap, puntoObjetivo } from './metas.js';
 import { tickRezagados, tickAcoso, marcarAcoso, desintegrar } from './rezagados.js';   // sin teletransportes: acoso, marcas y desintegración visible
@@ -47,7 +50,8 @@ const a3 = (v) => [r2(v.x), r2(v.y), r2(v.z)];
  * en solitario o el servidor en cooperativo. Entrada: setInput(); salida: snapshot().
  */
 export class Game {
-  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null, operation = false, campaign = false } = {}) {
+  constructor({ mapId = 'm1', seed = 1, difficulty = 1, calm = 4, practice = false, magazines = false, jefeMem = null, skillLevel = null, operation = false, campaign = false, tutorial = false } = {}) {
+    this.tutorial = null; this.tutorialT = 0;   // Sprint 1: tutorial jugable de Islas (src/sim/tutorial.js); mientras dura no empiezan las oleadas
     this.skillLevel = skillLevel === null ? null : cleanSkillLevel(skillLevel);
     this.jefeMem = jefeMem;   // memoria del intento anterior contra el jefe (jefeMemoria): adaptación suave entre intentos
     this.magazines = !!magazines;   // cargadores y recarga (el juego real los usa; las pruebas viejas no)
@@ -61,16 +65,19 @@ export class Game {
     this.rng = makeRng(seed); this.seed = seed;
     this.difficulty = difficulty * (mapId === 'm2' ? 1.35 : 1); // la Cámara Fractal es más exigente (el bot ganaba 8/8)
     this.tick = 0; this.time = 0; this.dt = 1 / 60;
-    this.players = []; this.monsters = []; this.projectiles = []; this.pickups = [];
+    this.players = []; this.monsters = []; this.projectiles = []; this.pickups = []; this.labs = [];   // labs = diseños del Laboratorio de la sala ({ h, vb1 }); el snapshot lleva solo el índice `lb`
     this.events = [];
     this.nextId = 1;
     this.state = 'playing'; // playing | won | lost
-    this.wave = 0; this.waveTotal = this.operation ? this.operation.steps.length + (this.campaign && CAMPAIGN_BOSSES[mapId] ? 1 : 0) : (WAVE_PLANS[mapId] || []).length + 1;
+    this.cfg = this.operation ? misionConfig(mapId) : null;   // definición declarativa de la misión (src/sim/mision-config.js): etapas, jefe y límites
+    this.wave = 0; this.waveTotal = this.cfg ? this.cfg.stages.length : (WAVE_PLANS[mapId] || []).length + 1;
+    this.tier = 0; this.stageT = 0; this.stageLimit = Infinity; this.pickWait = 0;   // tier = intensidad de la etapa; stageT = tiempo en la etapa; pickWait = espera por la elección de mejora
     this.phase = 'intermission'; this.phaseT = calm; // calma inicial (la historia usa más)
     this.queue = []; this.omens = []; this.spawnT = 0; this.spawnGap = 1.5;
     this.boss = null; this.mision = null; this.forceElite = false;
     this.objects = []; this.pings = []; this.objective = null; this.fragments = 0; this.teamBuffUntil = 0; this.director = new Director(); this.curTypes = [];
     this.stats = { kills: 0, spawned: 0, maxAlive: 0 };
+    this.hitos = { obj: 0, objFalla: 0, sec: 0, elite: 0 };   // hitos de la misión para las recompensas parciales (src/sim/recompensas.js)
     this.cult = this.map.cultivo ? initCult(this) : null; // acertijo del mapa 4 (src/sim/cultivo.js)
     initArenas(this);                                     // arenas vivas: cada mapa es un organismo (src/sim/arenas-vivas.js; rng propio g.arRng)
     initFlora(this);                                      // flora interactiva (src/sim/flora.js; rng propio g.flRng)
@@ -79,6 +86,7 @@ export class Game {
     initDrops(this, seed);                                // botín: g.drRng derivado de la semilla (nunca usa g.rng)
     if (this.map.base) initBase(this);                    // La Base: estaciones y personajes fijos (src/sim/base.js)
     initEventos(this);                                    // eventos de oleada (src/sim/eventos.js): la gravedad invertida vive dentro de uno de ellos
+    if (tutorial && !practice && mapId !== 'base') this.tutorial = crearTutorial(this, typeof tutorial === 'object' ? tutorial : {});   // sólo en misiones de combate
   }
 
   /* ─────────── jugadores ─────────── */
@@ -94,14 +102,14 @@ export class Game {
     const p = {
       id: this.nextId++, name, role, char: char || null, slots: cleanSlots(opts.slots || (char && CHARACTERS[char] && CHARACTERS[char].slots)), upg: {}, cards: [], movCd: 0, espCd: 0, movPrev: false, espPrev: false, invulUntil: 0, abilityCd: 0, carry: 0, bleed: 0, lost: false, abilityPrev: false, interactPrev: false, interactEdge: false, pingPrev: false, pos, vel: v3(), up, heading: norm(project(v3(0, 0, -1), up), v3(1, 0, 0)), pitch: 0,
       hp: PLAYER.hp, shield: PLAYER.shield, dead: false, weapon: 0, ammo: WEAPONS.map((w) => w.start), clip: WEAPONS.map(() => 1e9), reloadT: 0, reloadW: -1, reloadPrev: false,
-      cd: 0, ext: v3(), reviveT: 0, lastHurt: -99, flipUntil: 0, portalCd: 0, grounded: false, kills: 0, score: 0, respawnAt: 0,
+      cd: 0, ext: v3(), reviveT: 0, lastHurt: -99, flipUntil: 0, portalCd: 0, grounded: false, kills: 0, score: 0, respawnAt: 0, st: { dmg: 0, obj: 0, sup: 0, rev: 0, elite: 0, t0: this.time },   // st = aporte del jugador (daño, objetivos, apoyo, reanimaciones, élites)
       input: { mx: 0, mz: 0, dyaw: 0, dpitch: 0, jump: false, fire: false, dash: false, weapon: -1, ability: false, interact: false, ping: false, mov: false, esp: false, pick: -1, ads: false, crouch: false, melee: false, s3: false, ult: false, evo: 0, reload: false },
     };
     if (MELEE_WEAPONS[opts.melee]) p.melee = opts.melee; if (STYLES[opts.style] && opts.style !== 'combo') p.style = opts.style; if (Number.isInteger(opts.evo)) p.evo = Math.max(0, Math.min(4, opts.evo)); if (Array.isArray(opts.path)) p.path = cleanPath(opts.path, p.evo, p.char); if (opts.cores > 0) p.cores = Math.min(5000, Math.floor(opts.cores));
     if (opts.mode === 'combo') p.mode = 'combo';
-    initHost(p); loadOrgans(p, opts); applyBend(p, opts.bend); applyHerb(p, opts.herb); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
+    initHost(p); loadOrgans(p, p.char === CHASIS_LAB ? { ...opts, corg: undefined } : opts); if (p.char === CHASIS_LAB) applyLab(p, opts.lab, this); applyBend(p, opts.bend); applyHerb(p, opts.herb); applyMaestria(p, opts.maestria); applyArbol(p, opts.arbol); // bendiciones de territorio (src/sim/bendiciones.js) y maestría del Huésped (src/sim/maestria.js)
     p.kit = Math.max(0, Math.min(2, opts.kit | 0));   // botiquines iniciales de la Tienda (docs/TIENDA.md): una segunda oportunidad cada uno
-    initFaunaPlayer(p, opts.fauna); initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
+    initFaunaPlayer(p, opts.fauna); initPity(p, opts.pity); p.sigPlan = Array.isArray(opts.sigs) && opts.sigs.includes(p.char); applyEquip(p, opts.equip, this); capLab(p);   // objetos equipados (src/sim/items-fx.js) y garantía de legendaria (drops.js)
     this.players.push(p);
     return p;
   }
@@ -126,7 +134,7 @@ export class Game {
   }
   /** Cambia de arma activa por id (campo de pruebas) y la deja en la ranura `slot` (1..4). */
   setSlotWeapon(id, slot, wid) { const p = this.players.find((q) => q.id === id); if (!p || slot < 1 || slot > 4 || wid < 1 || wid >= WEAPONS.length) return; p.slots = cleanSlots(p.slots.map((w, i) => (i === slot ? wid : w))); p.weapon = wid; }
-  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo, p.char); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, prof); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); applyArbol(p, prof.arbol ?? p.arb); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
+  setLoadout(id, char, slots, prof = null) { const p = this.players.find((q) => q.id === id); if (!p) return; if (CHARACTERS[char]) { p.char = char; p.role = CHARACTERS[char].team || CHARACTERS[char].role; initHost(p); clearLab(p); if (char === CHASIS_LAB) applyLab(p, prof && prof.lab, this); if (prof) { if (MELEE_WEAPONS[prof.melee]) p.melee = prof.melee; if (Number.isInteger(prof.evo)) p.evo = Math.max(0, Math.min(4, prof.evo)); if (Array.isArray(prof.path)) p.path = cleanPath(prof.path, p.evo, p.char); if (prof.cores > 0) p.cores = Math.min(5000, Math.floor(prof.cores)); loadOrgans(p, char === CHASIS_LAB ? { ...prof, corg: undefined } : prof); if (char === CHASIS_LAB) applyLab(p, prof.lab, this); if (prof.bend) applyBend(p, prof.bend); applyMaestria(p, prof.maestria ?? p.mastery); applyArbol(p, prof.arbol ?? p.arb); if (prof.pity) initPity(p, prof.pity); if (Array.isArray(prof.sigs)) p.sigPlan = prof.sigs.includes(p.char); } applyEquip(p, prof && prof.equip !== undefined ? prof.equip : p.eqList, this); capLab(p); } if (Array.isArray(slots)) p.slots = cleanSlots(slots); else if (CHARACTERS[char] && CHARACTERS[char].slots) p.slots = cleanSlots(CHARACTERS[char].slots); ensureGunSlot(p); }
   setRole(id, role) { const p = this.players.find((q) => q.id === id); if (p && ROLE_IDS.includes(role)) p.role = role; }
   alivePlayers() { return this.players.filter((p) => !p.dead); }
   eyePos(p) { return madd(p.pos, p.up, PLAYER.eye - (p.input.crouch ? 0.3 : 0)); }
@@ -159,8 +167,10 @@ export class Game {
     this.tick++; this.time += dt; this.dt = dt;
     if (this.state !== 'playing') { if (this.loot.length) flushLoot(this); return; }
     this.director.update(this, dt);
+    if (this.cfg && this.time - this.tutorialT > this.cfg.limites.mision) { this.agotarTiempo('mision', `Tiempo agotado: la misión superó el límite de ${Math.round(this.cfg.limites.mision / 60)} minutos.`); return; }
     this.updateWaves(dt); this.updateOmens(); tickArenas(this, dt); tickNieblas(this, dt); tickFlora(this, dt); tickFauna(this, dt);
     for (const p of this.players) this.updatePlayer(p, dt);
+    if (this.tutorial) tickTutorial(this, dt);
     updateObjective(this, dt); this.updateObjects(dt); if (this.cult) tickCultivo(this, dt);
     if (this.pings.length) this.pings = this.pings.filter((q) => q.until > this.time);
     for (const m of this.monsters) this.updateMonster(m, dt);
@@ -189,16 +199,20 @@ export class Game {
   updateWaves(dt) {
     if (this.map.base) return stepBase(this);
     if (this.practice) return this.updatePractice(dt);
+    if (this.tutorial && !this.tutorial.fin) return;   // tutorial en curso: el combate real espera
     const plan = WAVE_PLANS[this.mapId];
     if (this.phase === 'intermission') {
-      const choosing = this.wave > 0 && this.players.some((p) => !p.dead && p.cards.length);
-      if (!(choosing && this.players.length === 1 && this.phaseT <= 3.5)) this.phaseT -= dt; // en solitario la partida espera tu elección
-      if (this.phaseT > 4 && this.wave > 0 && this.players.every((p) => !p.cards.length)) this.phaseT = 4; // todos eligieron su mejora
+      const choosing = this.wave > 0 && this.players.some((p) => !p.dead && p.cards.length), L = this.cfg ? this.cfg.limites : LIMITES, quick = this.cfg ? this.cfg.descanso.rapido : 4;
+      // en solitario la partida espera tu elección, pero NO para siempre: pasados `elegirMejora` s se elige sola (un jugador AFK no puede congelar la misión)
+      if (choosing && this.players.length === 1 && this.phaseT <= 3.5 && this.pickWait < L.elegirMejora) this.pickWait += dt; else this.phaseT -= dt;
+      if (this.phaseT > quick && this.wave > 0 && this.players.every((p) => !p.cards.length)) this.phaseT = quick; // todos eligieron su mejora
       if (this.phaseT <= 0) this.startWave(this.wave + 1, plan);
       return;
     }
     // fase 'wave': spawnear en goteo
     tickEventos(this, dt);
+    this.stageT += dt; this.limitesDeEtapa();
+    if (this.state !== 'playing') return;
     this.spawnT -= dt;
     const cap = Math.min(LIMITS.monsters - 12, 44 + 10 * (this.players.length - 1));
     if (this.queue.length && this.spawnT <= 0 && this.monsters.length < cap) {
@@ -210,19 +224,50 @@ export class Game {
     // rezagados: las últimas criaturas YA NO se teletransportan; se las acosa hacia el jugador y se las marca (src/sim/rezagados.js)
     tickRezagados(this, dt);
     if (!this.queue.length && !this.omens.length && !this.monsters.some((m) => !m.dead) && !(this.objective && this.objective.state === 'active')) {
-      if (this.wave >= this.waveTotal) { if (this.skillLevel !== null) this.skillLevel = Math.max(this.skillLevel, earnedSkillLevel(this.wave)); this.state = 'won'; this.emit({ t: 'won' }); return; }
+      if (this.wave >= this.waveTotal) {
+        if (this.skillLevel !== null) this.skillLevel = Math.max(this.skillLevel, earnedSkillLevel(this.wave));
+        if (this.cfg) for (const p of this.players) addCores(this, p, PREMIO_MISION);   // premio por completar la misión (sólo al vencer)
+        this.state = 'won'; this.emit({ t: 'won' }); return;
+      }
       misionFin(this); finOleada(this);
-      this.phase = 'intermission'; this.phaseT = this.players.length > 1 ? 22 : 12; this.objective = null;
+      this.phase = 'intermission'; this.phaseT = this.cfg ? (this.players.length > 1 ? this.cfg.descanso.coop : this.cfg.descanso.solo) : (this.players.length > 1 ? 22 : 12); this.objective = null; this.pickWait = 0;
       if (this.skillLevel !== null) this.skillLevel = Math.max(this.skillLevel, earnedSkillLevel(this.wave));
       for (const p of this.players) p.cards = this.wave < this.waveTotal ? makeCards(this, p) : [];
       this.emit({ t: 'clear', wave: this.wave }); spawnNpc(this); dropsRespiro(this);
-      for (const p of this.players) addCores(this, p, CORES.wave + this.wave * 2);
+      { const st = this.cfg && this.cfg.stages[this.wave - 1], premio = st ? premioEtapa(st, CORES.wave + this.wave * 2) : CORES.wave + this.wave * 2; for (const p of this.players) addCores(this, p, premio); }
       for (const p of this.alivePlayers()) {
         p.hp = Math.min(PLAYER.hp, p.hp + 40 + (p.bn ? p.bn.heal : 0)); // respiro entre oleadas (+ bendición Raíz)
         this.dropPickup('hp', madd(p.pos, p.up, 2));
         for (const [i, w] of [p.slots[2], p.slots[1], p.slots[3]].entries()) this.dropPickup('ammo', madd(madd(p.pos, p.up, 2), p.heading, 4 + i), w);
       }
     }
+  }
+
+  /** Resumen de la misión para el HUD y la pantalla final: etapa actual y siguiente, tipo, límites y motivo de derrota. */
+  operationSnap() {
+    const st = this.cfg.stages, cur = st[this.wave - 1], nx = st[this.wave], bossName = BOSS_NAMES[this.mapId] || CAMPAIGN_BOSSES[this.mapId] || 'el jefe';
+    return {
+      campaign: this.campaign, boss: !!cur && cur.kind === 'jefe', chapter: this.operation.chapter, title: this.operation.title,
+      step: cur ? (cur.kind === 'jefe' ? `Derrotá a ${bossName}` : cur.title) : '', next: nx ? (nx.kind === 'jefe' ? `Derrotá a ${bossName}` : nx.title) : '',
+      kind: cur ? cur.kind : '', failure: this.operationFailure || null, limit: this.cfg.limites.mision, bonus: this.stageBonusSnap(),
+    };
+  }
+  /** Tiempo restante del tope duro de la etapa en curso (s), o null si la etapa sólo tiene el límite de su objetivo. */
+  stageBonusSnap() { return this.stageLimit < Infinity ? r2(Math.max(0, this.stageLimit - this.stageT)) : null; }
+
+  /** Derrota por tiempo (límite duro de la etapa final o de la misión): mensaje claro y fin inequívoco. */
+  agotarTiempo(motivo, texto) {
+    this.operationFailure = texto; this.state = 'lost'; this.queue = []; this.omens = [];
+    this.emit({ t: 'lost', timeout: motivo }); flushLoot(this);
+  }
+  /** Límites duros por etapa (sólo en misiones). Jefe: derrota por tiempo agotado. Combate/evento sin objetivo: pasado el tope la red se repliega y se sigue. */
+  limitesDeEtapa() {
+    if (!this.cfg || this.stageT <= this.stageLimit) return;
+    const st = this.cfg.stages[this.wave - 1]; if (!st) return;
+    if (st.kind === 'jefe') return this.agotarTiempo('jefe', `Tiempo agotado: el encuentro final duró más de ${Math.round(this.stageLimit / 60 * 10) / 10} minutos y la salida se cerró.`);
+    this.queue = []; this.omens = []; this.stageLimit = Infinity;
+    for (const m of this.monsters) if (!m.dead && !m.def.boss) desintegrar(this, m, 'custodio');
+    this.emit({ t: 'stagecap', wave: this.wave });
   }
 
   startWave(n, plan) {
@@ -232,13 +277,17 @@ export class Game {
     for (const p of this.players) { if (p.dead) this.revive(p); if (p.role === 'ingeniero' && !p.dead) { for (const w of [2, 1, 3]) this.dropPickup('ammo', madd(madd(p.pos, p.up, 1.5), p.heading, 2 + w), w); } }
     const n_pl = Math.max(1, this.players.length);
     this.queue = [];
-    const isBoss = n === this.waveTotal && (!this.operation || (this.campaign && !!CAMPAIGN_BOSSES[this.mapId]));
-    const types = plan[Math.min(n, plan.length) - 1]; this.curTypes = types;
-    this.objective = isBoss ? null : makeObjective(this, n, this.operation?.steps[n - 1]); this.objective0 = this.objective;
-    iniciarMision(this, n, isBoss);
-    let budget = (8 + 8 * n + 1.3 * n * n) * (1 + 0.6 * (n_pl - 1)) * this.difficulty;
-    if (isBoss) { budget *= 0.45; this.queue.push(BOSS_OF[this.mapId]); }
-    const cap = { geoda: 1 + Math.floor(n / 2), graviton: 1 + Math.floor(n / 3), cuarzo: 1 + Math.floor(n / 3), espejo: 2 + n, obelisco: 1 + Math.floor(n / 3), aurora: 1 + Math.floor(n / 3), espiral: 1 + Math.floor(n / 4), ariete: 1 + Math.floor(n / 2) };
+    const stage = this.cfg ? this.cfg.stages[n - 1] : null, t = stage ? stage.tier : n;   // t = intensidad de la etapa (presupuesto, vida de las criaturas)
+    const isBoss = stage ? stage.kind === 'jefe' : n === this.waveTotal;
+    const types = plan[(stage ? Math.min(stage.plan, plan.length - 1) : Math.min(n, plan.length) - 1)]; this.curTypes = types;
+    this.tier = t; this.stageT = 0; this.pickWait = 0;
+    const L = this.cfg ? this.cfg.limites : LIMITES;
+    this.stageLimit = !stage ? Infinity : isBoss ? L.jefe + 60 * (n_pl - 1) : stage.objective ? Infinity : (stage.cap || L.etapa);   // los objetivos ya traen su propio límite (OBJECTIVE_INFO.limit)
+    this.objective = isBoss ? null : makeObjective(this, n, stage && stage.objective ? { kind: stage.objective, title: stage.title, desc: stage.desc, dur: stage.dur } : null); this.objective0 = this.objective;
+    iniciarMision(this, n, isBoss, stage && stage.bonus);
+    let budget = (8 + 8 * t + 1.3 * t * t) * (1 + 0.6 * (n_pl - 1)) * this.difficulty * (stage ? stage.budget : 1);
+    if (isBoss) { if (!stage) budget *= 0.45; this.queue.push(this.cfg ? this.cfg.boss.kind : BOSS_OF[this.mapId]); }
+    const cap = { geoda: 1 + Math.floor(t / 2), graviton: 1 + Math.floor(t / 3), cuarzo: 1 + Math.floor(t / 3), espejo: 2 + Math.floor(t), obelisco: 1 + Math.floor(t / 3), aurora: 1 + Math.floor(t / 3), espiral: 1 + Math.floor(t / 4), ariete: 1 + Math.floor(t / 2) };
     const counts = {};
     const SHOOT = { ranged: 2, sniper: 1.6, gravitron: 1.2 };   // los tiradores pesan más: no todo es melee
     const weights = types.map((t) => (SHOOT[MONSTERS[t].ai] || 1) / MONSTERS[t].cost);
@@ -255,14 +304,16 @@ export class Game {
     const boss = isBoss ? this.queue.shift() : null;
     for (let i = this.queue.length - 1; i > 0; i--) { const j = Math.floor(this.rng.next() * (i + 1)); [this.queue[i], this.queue[j]] = [this.queue[j], this.queue[i]]; }
     if (boss) this.queue.unshift(boss);
-    this.spawnGap = Math.min(Math.max(0.45, 1.9 - 0.12 * n), Math.max(0.16, 42 / Math.max(1, this.queue.length))); // la oleada dura ~40 s sin importar el tamaño
+    this.spawnGap = stage ? Math.min(4, Math.max(0.16, stage.span / Math.max(1, this.queue.length)))   // misión: la oleada se reparte en `span` s sin importar el tamaño (ritmo declarado en mision-config.js)
+      : Math.min(Math.max(0.45, 1.9 - 0.12 * t), Math.max(0.16, 42 / Math.max(1, this.queue.length))); // legado: la oleada dura ~40 s sin importar el tamaño
     planOleada(this, n, isBoss);
+    if (stage && stage.kind === 'evento') forzarEvento(this, n);   // etapa de evento: la anomalía ocurre sí o sí (con su aviso de siempre)
     this.emit({ t: 'wave', n, boss: isBoss });
   }
 
   /** Oleada de castigo (objetivo fallido): suma criaturas extra a la cola. */
   surge(frac) {
-    const types = this.curTypes.length ? this.curTypes : ['astilla']; let budget = (8 + 8 * this.wave + 1.3 * this.wave * this.wave) * frac * this.difficulty;
+    const t = this.tier || this.wave, types = this.curTypes.length ? this.curTypes : ['astilla']; let budget = (8 + 8 * t + 1.3 * t * t) * frac * this.difficulty;
     let guard = 0; while (budget >= 1 && guard++ < 80) { const t = this.rng.pick(types); if (MONSTERS[t].cost <= budget && !MONSTERS[t].boss) { this.queue.push(t); budget -= MONSTERS[t].cost; } }
     this.spawnGap = Math.min(this.spawnGap, 0.6);
   }
@@ -300,7 +351,7 @@ export class Game {
   spawnMonster(kind, pos, extra = {}) {
     if (this.monsters.length >= LIMITS.monsters) return null;
     const baseDef = MONSTERS[kind], def = baseDef.boss ? { ...baseDef, name: BOSS_NAMES[this.mapId] || baseDef.name } : baseDef;
-    const w = Math.max(1, this.wave);
+    const w = Math.max(1, this.tier || this.wave);
     const pm = def.boss ? 1 + 0.7 * (this.players.length - 1) : 1;
     let elite = !def.boss && !extra.noElite && w >= 3 && this.rng.next() < WAVE_SCALE.elite * (w - 2) * 0.5 + (this.evEliteBoost || 0);
     const hunted = !def.boss && !extra.noElite && this.objective?.type === 'caza' && this.objective.state === 'active' && this.objective.target == null;
@@ -334,17 +385,19 @@ export class Game {
     p.heading = norm(project(p.heading, p.up), v3(1, 0, 0));
   }
 
-  reviveInPlace(p) {
+  reviveInPlace(p, by) {
+    if (by && by.st && by !== p) by.st.rev++;
     p.dead = false; p.lost = false; p.bleed = 0; p.hp = 50; p.shield = 0; p.reviveT = 0; p.lastHurt = this.time; p.vel = v3(); p.ext = v3();
     this.emit({ t: 'revive', pid: p.id, p: a3(p.pos) });
   }
   /** Un compañero vivo manteniendo USAR cerca (3,5 u) reanima al caído en el lugar: 3 s (el Soporte, 1,5 s). Si se agota la cuenta de desangrado, queda fuera hasta la próxima oleada. */
   updateRevive(p, dt) {
     if (p.lost) return;
-    let rate = 0; for (const q of this.players) if (q.input.interact && reviveTarget(this.players, q)?.id === p.id) rate = Math.max(rate, reviveRate(q));
+    let rate = 0, quien = null; for (const q of this.players) if (q.input.interact && reviveTarget(this.players, q)?.id === p.id) { const r = reviveRate(q); if (r > rate) { rate = r; quien = q; } }
+    if (quien) p.reviverId = quien.id;
     p.reviveT = rate ? p.reviveT + dt * rate : Math.max(0, p.reviveT - dt * 0.5);
     p.bleed -= dt;
-    if (p.reviveT >= 3) return this.reviveInPlace(p);
+    if (p.reviveT >= 3) return this.reviveInPlace(p, quien || this.players.find((q) => q.id === p.reviverId));
     if (p.bleed <= 0 && this.players.some((q) => !q.dead)) { p.lost = true; this.emit({ t: 'bleed', pid: p.id }); }
   }
   /** Empuje externo (embestidas, atracción): se suma a la velocidad y decae. */
@@ -615,6 +668,7 @@ export class Game {
     if (by && by.input) mul_ *= ngDanio(this, by);   // nieblas ámbar y magenta: daño que hace el jugador de adentro
     mul_ *= ngMonstruoRecibe(this, m, by);           // niebla ámbar: la criatura de adentro también recibe +30 % · niebla blanca: disparar desde adentro te delata
     if (this.time < (m.shieldUntil || 0)) mul_ *= 0.5;
+    if (by && by.st) by.st.dmg += Math.max(0, Math.min(m.hp, dmg * mul_));
     m.hp -= dmg * mul_; m.hurt = 0.12;
     if (by && by.input && this.boss) jefeGolpe(this, m, by, dmg * mul_);   // perfil de estilo del jugador (jefe-ia.js)
     if (by && by.input) { hostHit(this, by, m, dmg * mul_); if (wstat(by, by.weapon).forma === 'ocaso' && this.time >= (m.markUntil || 0) - 2.5) { m.markUntil = this.time + 3; m.markMul = 1.15; } }
@@ -626,6 +680,7 @@ export class Game {
   killMonster(m, by) {
     if (m.dead) return;
     if (this.objective?.type === 'caza' && this.objective.state === 'active' && this.objective.target === m.id) this.objective.prog = 1;
+    if (m.elite) { this.hitos.elite++; if (by && by.st) by.st.elite++; }
     m.dead = true; this.stats.kills++; this.straggleT = 0; arKill(this, m);   // alimenta a las Bocas cercanas (arenas vivas)
     if (by && by.input) hostKill(this, by, m);
     if (by) { by.kills++; by.score += m.def.score; if (wstat(by, by.weapon).mod === 'vampirica' && !by.dead) { const mu = wstat(by, by.weapon).mut; by.hp = Math.min(PLAYER.hp, by.hp + (mu === 'simbiosis' ? 10 : 6)); if (mu === 'simbiosis') by.shield = Math.min(PLAYER.shield, by.shield + 8); if (mu === 'parasito') { const w0 = WEAPONS[by.weapon]; if (w0.per > 0) by.ammo[by.weapon] = Math.min(ammoMax(by, by.weapon), by.ammo[by.weapon] + w0.per * 3); } }
@@ -649,8 +704,10 @@ export class Game {
   }
 
   /** Daño en área: a jugadores (pd) y criaturas (md). */
-  explode(pos, radius, pd, md, by, hurtPlayers = true) {
-    this.emit({ t: 'boom', p: a3(pos), r: radius }); if (by) arExplosion(this, pos, radius, md, by); floraExplosion(this, pos, radius, md, by);
+  explode(pos, radius, pd, md, by, hurtPlayers = true, habilidad = false) {
+    // `habilidad`: explosión de una habilidad de área (no de una colisión de proyectil): el boom lleva `hit` = blancos alcanzados y, con 0, no suena a impacto (AC-07)
+    const hit = habilidad ? this.monsters.reduce((a, m) => a + (!m.dead && dist(m.pos, pos) < radius + m.r ? 1 : 0), 0) : undefined;
+    this.emit(habilidad ? { t: 'boom', p: a3(pos), r: radius, hit } : { t: 'boom', p: a3(pos), r: radius }); if (by) arExplosion(this, pos, radius, md, by); floraExplosion(this, pos, radius, md, by);
     if (hurtPlayers) for (const p of this.players) {
       const d = dist(p.pos, pos);
       if (!p.dead && d < radius + PLAYER.radius) this.hurtPlayer(p, pd * (1 - 0.6 * d / (radius + 1)));
@@ -852,17 +909,27 @@ export class Game {
     const w = WEAPONS[p.weapon], cap = clipOf(p, p.weapon), cl = Math.min(p.clip[p.weapon], cap);
     return { cl, cm: cap, rs: w.per > 0 ? Math.max(0, Math.floor(p.ammo[p.weapon] / w.per) - cl) : -1, rl: p.reloadT > 0 ? r2(1 - p.reloadT / (p.reloadTotal || 1)) : 0 };
   }
+  /** Resumen de la misión para el resultado y las recompensas (lo leen el servidor y el modo solitario; src/sim/recompensas.js). */
+  resumen() {
+    const won = this.state === 'won', etapas = won ? this.waveTotal : Math.max(0, this.phase === 'intermission' && this.wave > 0 ? this.wave : this.wave - 1);
+    return {
+      estado: this.state, mapa: this.mapId, oleada: this.wave, total: this.waveTotal, etapas, tiempo: Math.round(this.time), operacion: this.operation ? this.operation.title : '',
+      hitos: { ...this.hitos }, fallo: this.operationFailure || '',
+      jugadores: this.players.map((p) => ({ id: p.id, nombre: p.name, bajas: p.kills | 0, puntos: p.score | 0, cores: Math.max(0, Math.floor(p.cores || 0)), st: { dmg: Math.round(p.st.dmg), obj: p.st.obj, sup: p.st.sup, rev: p.st.rev, elite: p.st.elite }, t: Math.max(0, Math.round(this.time - p.st.t0)), aw: !!p.aw })),
+    };
+  }
   snapshot() {
     const boss = this.monsters.find((m) => m.def.boss && !m.dead);
     return {
       tick: this.tick, time: r2(this.time), map: this.mapId, state: this.state, phase: this.phase,
-      operation: this.operation ? { campaign: this.campaign, boss: this.campaign && !!CAMPAIGN_BOSSES[this.mapId] && this.wave === this.waveTotal, chapter: this.operation.chapter, title: this.operation.title, step: this.operation.steps[this.wave - 1]?.title || '', next: this.operation.steps[this.wave]?.title || (this.campaign && CAMPAIGN_BOSSES[this.mapId] ? `Derrotá a ${CAMPAIGN_BOSSES[this.mapId]}` : ''), failure: this.operationFailure || null } : null,
+      tut: this.tutorial ? this.tutorial.snap() : undefined,
+      operation: this.operation ? this.operationSnap() : null,
       wave: this.wave, waveTotal: this.waveTotal, left: this.queue.length + this.omens.length + this.monsters.length, om: this.omens.map((o) => [...a3(o.pos), o.k, r2(o.at - this.time)]), intermission: r2(Math.max(0, this.phaseT)),
       fx: this.map.fx(this.time),
       boss: boss ? { hp: Math.round(boss.hp), max: Math.round(boss.maxhp), name: boss.def.name, shield: !!boss.shield, stagger: r2(boss.stagger || 0), pressure: r2(boss.pressure || 0), ray: boss.ray ? r2(boss.ray.t) : 0, eyes: boss.eyesAlive || 0, gaze: boss.gaze ? r2(boss.gaze.t) : 0, ...jefeSnap(boss) } : null,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, sk: this.skillLevel, ac: r2(Math.max(0, p.mode === 'combo' ? p.cb?.cd || 0 : Math.max(p.cd || 0, p.reloadT || 0))), pos: a3(p.pos), up: a3(p.up), h: a3(p.heading), pitch: r2(p.pitch), hp: Math.round(p.hp), sh: Math.round(p.shield),
-        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
+        dead: p.dead, rv: r2(p.reviveT), role: p.role, ab: r2(p.abilityCd / ROLES[p.role].cd), carry: p.carry, bleed: r2(Math.max(0, p.bleed)), lost: p.lost, char: p.char, ...(p.lb ? { lb: p.lb } : {}), ...hostSnap(this, p), ...faunaPlayerSnap(this, p), ...itemsSnap(this, p), ...this.clipSnap(p), ...orgSnap(p), sl: p.slots, ug: p.slots.map((w) => { const u = p.upg[w]; return u ? [u.dmg, u.rate, u.mag, u.mod, u.mut, u.forma || null] : 0; }), cards: p.cards.map((c) => [c.w, c.k, c.forma || c.mut || c.mod || c.id || '', c.mod || c.t || '']), mv: r2(p.movCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].mov.cd : 1)), es: r2(p.espCd / (CHARACTERS[p.char] ? CHARACTERS[p.char].esp.cd : 1)), w: p.weapon, ammo: p.ammo.map((a) => (a === Infinity ? -1 : a)), kills: p.kills, score: p.score, flip: this.time < p.flipUntil, ads: p.input.ads ? 1 : 0, cr: p.input.crouch ? 1 : 0,
       })),
       monsters: this.monsters.map((m) => ({
         id: m.id, boss: !!m.def.boss, ac: m.acoso ? 1 : undefined, k: m.kind, p: a3(m.pos), u: a3(m.up), f: a3(m.fwd), hp: Math.round(m.hp), mh: Math.round(m.maxhp), r: m.r,

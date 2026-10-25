@@ -9,7 +9,8 @@ import { MAP_IDS } from '../src/sim/maps.js';
 // el máximo de bichos (12) vivos y a la vista, los rastros del suelo al tope y chispas en el aire.
 // Presupuesto del pedido: ≤ 12 llamadas de dibujo y ≤ 3 000 triángulos (bichos + halos + rastros + chispas).
 // Las formas del Huésped (sólo materiales) se miden en tests/huesped-cuerpo.test.js. Para ver las imágenes: node tools/shot-fauna.mjs
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const PRESUPUESTO = { calls: 12, tris: 3000 };
 
 let srv, browser, base;

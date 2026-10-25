@@ -3,7 +3,7 @@
 // 2) compactar / aplicar: los snapshots viajan como "delta" (sólo lo que cambió) para gastar poco internet.
 
 /** Subí este número cada vez que cambie el formato de los mensajes. Cliente y servidor deben coincidir. */
-export const PROTOCOLO = 5; // ud/ux replace ultimate charge with cooldown seconds; client/server ship together
+export const PROTOCOLO = 6; // 6: lobby/welcome/pick/create/join llevan el diseño del Laboratorio en formato VB1 (+ mensaje `labs`); 5: ud/ux replace ultimate charge with cooldown seconds
 /** Tope de jugadores por sala. */
 export const MAX_JUGADORES = 4;
 /** Alfabeto del código de sala: sin 0/O/1/I para que no se confunda al dictarlo. */
@@ -25,6 +25,7 @@ export const ERRORES = {
   falla: 'La sala tuvo un problema interno y se cerró. Creá una nueva.',
   token: 'No pudimos devolverte a tu lugar en la sala (pasó demasiado tiempo).',
   invalido: 'Mensaje inválido.',
+  lab: 'Tu diseño de Huésped no es válido en esta versión o en esta sala: se usa el Híbrido Genómico por defecto.',
 };
 
 /* ───────── delta de snapshots ───────── */

@@ -8,10 +8,16 @@ import { organError } from '../sim/organos.js';
 import { xpPartida, progreso, rangoDeXp, RANGO_MAX } from '../sim/maestria.js';
 import { MODOS_ARBOL, cleanNodos, nodosDe, gastado, errorNodo, costeReinicio, puntosCombo, puntosDisparo } from '../sim/progresion.js';
 import { migrarHuespedes, poseeHuesped } from '../sim/tienda.js';
+import { migrarPerfil, esElegibleInicial, desbloquearPorCapitulo, evaluarDesafios, darHuespedes } from '../sim/desbloqueos.js';   // Sprint 1: Huésped inicial, campaña y desafíos (docs/ONBOARDING.md)
 import { limpiarFauna, registrarComida, faunaParaPartida, ESPECIES, HITOS as HITOS_FAUNA } from '../sim/fauna-data.js';   // Códice de Fauna (docs/FAUNA.md)
 import { ESTACION_IDS, PLANTAS, macetaEstado } from '../sim/base.js';   // La Base (docs/BASE.md): estaciones y jardín
 import { ITEMS, SLOTS, SIGNATURES, LIMITE_INVENTARIO, MATERIAL_IDS, TODOS_MAT_IDS, CONSUMIBLES, MAT_STOCK_MAX, PLANOS, PLANOS_INICIALES, RECETAS, qForja, cleanEquip, equipError, desguaceValor, faseDe, poder } from '../sim/items.js';
-const KEY = 'cristal.perfil.v1';
+import { nuevoMatchId, matchIdValido, hashResultado, huella, estable, evaluar, agregar, limpiarLedger, limpiarCola, encolar, quitarDeCola } from '../sim/ledger.js';   // ledger de recompensas (docs/RECOMPENSAS.md)
+import { reglaDe, filtrarBotin, ajustarCores } from '../sim/recompensas.js';   // qué se paga al ganar y qué (parcial) al perder
+import { codificar } from '../shared/host-build.js';
+import { limpiarLab, otorgarPorRecibo, disenoParaJugar } from '../sim/laboratorio-perfil.js';   // Laboratorio: diseños y piezas ganadas jugando (docs/EDITOR_HUESPEDES.md)
+import { migrarEsquema, empaquetar, desempaquetar, ESQUEMA } from '../sim/perfil-esquema.js';   // esquema de guardado y copia de seguridad
+const KEY = 'cristal.perfil.v1', KEY_PEND = 'cristal.pendientes.v1', KEY_CORRUPTO = 'cristal.perfil.v1.corrupto';
 let cache = null;
 /** terr = { m1: { bend: null|'id' } }: la clave existe = territorio liberado; bend = bendición elegida (null = liberado pero sin elegir). Se sanea al cargar. */
 function limpiarTerr(t) {
@@ -28,7 +34,7 @@ function limpiarBase(b) {
   if (Array.isArray(o.jardin)) o.jardin.slice(0, 6).forEach((m, i) => { if (m && typeof m === 'object' && PLANTAS[m.p]) jardin[i] = { p: m.p, t0: nn(m.t0, 4e12) }; });
   return { vis, tut: o.tut === true, jardin };
 }
-const fresh = () => ({ ver: 2, campaign: cleanCampaign(null), cosmetics: cleanCosmetics(null), cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1, huespedes: [], tienda: { clave: '', comp: [], rot: 0 }, consum: { botiquin: 0 }, herbario: { vistas: {}, cosechas: {}, hitos: [] }, flora: { semillas: {}, cebos: 0 }, menu: { iv: 0, tv: '' }, base: { vis: {}, tut: false, jardin: [null, null, null, null, null, null] } });
+const fresh = () => ({ lab: limpiarLab(null), ver: 3, inicial: null, desafios: {}, tut: { hecho: false, cine: false, paso: 0 }, campaign: cleanCampaign(null), cosmetics: cleanCosmetics(null), cores: 0, evo: {}, path: {}, melee: {}, owned: [], ess: { carne: 0, cristal: 0, ojo: 0, vacio: 0 }, worg: {}, corg: {}, terr: {}, guia: { off: false, vistos: [] }, mae: {}, arb: {}, inventario: [], materiales: matsVacios(), planos: [], cultivo: null, nf: 1, eq: {}, pity: { l: 0, e: 0 }, sigs: {}, nu: 1, huespedes: [], tienda: { clave: '', comp: [], rot: 0 }, consum: { botiquin: 0 }, herbario: { vistas: {}, cosechas: {}, hitos: [] }, flora: { semillas: {}, cebos: 0 }, menu: { iv: 0, tv: '' }, base: { vis: {}, tut: false, jardin: [null, null, null, null, null, null] } });
 /* ───── inventario (docs/INVENTARIO.md): v2 del perfil. Los perfiles anteriores (sin `ver`) se abren igual: sólo les falta el inventario, que arranca vacío. ───── */
 const nn = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 /** inv = [{ u (id propio), id (plantilla), q (tirada 0..1), k (bajas), lk (bloqueado), fv (favorito), t }]. Se sanea al cargar: ids desconocidos, uid repetidos y exceso se descartan. */
@@ -75,32 +81,163 @@ function limpiarArb(a) { // progresión permanente por Huésped: { combo: { pc, 
 function huespedElegido() { try { return localStorage.getItem('cristal.huesped.v1') || (JSON.parse(localStorage.getItem('cristal.equipo.v1') || 'null') || {}).char || null; } catch { return null; } }
 /** tienda = { clave (oferta vigente), comp (renglones ya comprados de esa oferta), rot (partidas terminadas: cambia el stock) }. */
 function limpiarTienda(t) { const o = t && typeof t === 'object' ? t : {}; return { clave: typeof o.clave === 'string' ? o.clave.slice(0, 24) : '', comp: Array.isArray(o.comp) ? o.comp.filter((x) => /^[mpo][0-9]$/.test(x)).slice(0, 12) : [], rot: nn(o.rot, 1e6) }; }
-function load() {
-  let o = {}; try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { o = {}; }
+/** tut = { hecho (tutorial de Islas completado o saltado), cine (ya vio la cinemática de transferencia), paso (último paso del tutorial, para retomar) }. Un veterano no repite nada. */
+function limpiarTut(t, veterano) {
+  if (veterano) return { hecho: true, cine: true, paso: 0 };
+  const o = t && typeof t === 'object' ? t : {};
+  return { hecho: o.hecho === true, cine: o.cine === true, paso: nn(o.paso, 99) };
+}
+let estadoCarga = { corrupto: false, futuro: false };
+function leerAlmacen(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function load(texto) {
+  let o = {}; estadoCarga = { corrupto: false, futuro: false };
+  const crudo = texto !== undefined ? texto : leerAlmacen(KEY);
+  try { o = JSON.parse(crudo || '{}') || {}; if (typeof o !== 'object' || Array.isArray(o)) throw new Error('forma'); }
+  catch { o = {}; if (crudo) { estadoCarga.corrupto = true; try { localStorage.setItem(KEY_CORRUPTO, String(crudo)); } catch { /* sin espacio para la copia del dañado */ } } }   // un guardado ilegible NO se pisa en silencio: queda una copia aparte
+  { const m = migrarEsquema(o); o = m.perfil; estadoCarga.futuro = m.futuro; }
   const inv = limpiarInv(o.inventario || o.inv);
-  cache = { ...fresh(), ...o, campaign: cleanCampaign(o.campaign), skillLevel: Number.isInteger(o.skillLevel) && o.skillLevel >= 0 && o.skillLevel <= 2 ? o.skillLevel : 0, cores: Number.isFinite(Number(o.cores)) ? nn(o.cores, Number.MAX_SAFE_INTEGER) : 0, ver: 2, cosmetics: cleanCosmetics(o.cosmetics), inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), fauna: limpiarFauna(o.fauna), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb), huespedes: migrarHuespedes(o, huespedElegido()), tienda: limpiarTienda(o.tienda), consum: { botiquin: nn(o.consum && o.consum.botiquin, 5) }, herbario: limpiarHerbario(o.herbario), flora: limpiarFlora(o.flora), menu: { iv: nn(o.menu && o.menu.iv, 1e9), tv: typeof (o.menu && o.menu.tv) === 'string' ? o.menu.tv.slice(0, 24) : '' }, base: limpiarBase(o.base) };
+  const mg = migrarPerfil(o, huespedElegido(), migrarHuespedes);   // jugador nuevo (inicial null) · veterano (conserva los 3 iniciales) · perfil ya migrado
+  cache = { ...fresh(), ...o, inicial: mg.inicial, desafios: mg.desafios, tut: limpiarTut(o.tut, mg.veterano), campaign: cleanCampaign(o.campaign), skillLevel: Number.isInteger(o.skillLevel) && o.skillLevel >= 0 && o.skillLevel <= 2 ? o.skillLevel : 0, cores: Number.isFinite(Number(o.cores)) ? nn(o.cores, Number.MAX_SAFE_INTEGER) : 0, ver: 3, esq: estadoCarga.futuro ? o.esq : ESQUEMA, ledger: limpiarLedger(o.ledger), lab: limpiarLab(o.lab), cosmetics: cleanCosmetics(o.cosmetics), inventario: inv, materiales: limpiarMats(o.materiales), planos: limpiarPlanos(o.planos), cultivo: limpiarCultivo(o.cultivo), nf: Math.max(1, nn(o.nf, 1e9)), fauna: limpiarFauna(o.fauna), eq: limpiarEq(o.eq, inv), pity: { l: nn(o.pity && o.pity.l, 999), e: nn(o.pity && o.pity.e, 999) }, sigs: limpiarSigs(o.sigs), nu: Math.max(1, nn(o.nu, 1e9)), evo: { ...(o.evo || {}) }, path: { ...(o.path || {}) }, melee: { ...(o.melee || {}) }, owned: Array.isArray(o.owned) ? o.owned.filter((k) => MELEE_WEAPONS[k]) : [], ess: { ...fresh().ess, ...(o.ess || {}) }, worg: { ...(o.worg || {}) }, corg: { ...(o.corg || {}) }, terr: limpiarTerr(o.terr), guia: limpiarGuia(o.guia), mae: limpiarMae(o.mae), arb: limpiarArb(o.arb), huespedes: mg.huespedes, tienda: limpiarTienda(o.tienda), consum: { botiquin: nn(o.consum && o.consum.botiquin, 5) }, herbario: limpiarHerbario(o.herbario), flora: limpiarFlora(o.flora), menu: { iv: nn(o.menu && o.menu.iv, 1e9), tv: typeof (o.menu && o.menu.tv) === 'string' ? o.menu.tv.slice(0, 24) : '' }, base: limpiarBase(o.base) };
+  cola = limpiarCola(cola.concat(leerCola()));   // recompensas que no se pudieron guardar antes (sesión anterior o esta)
   return cache;
 }
 export const perfil = () => cache || load();
 /** Vuelve a leer el guardado (las pruebas lo usan después de cambiar el almacenamiento). */
-export const recargar = () => { cache = null; return load(); };
+export const recargar = () => { cache = null; cola = []; return load(); };
 export function guardarHabilidades(level) { const p = perfil(); const n = Number.isInteger(level) && level >= 0 && level <= 2 ? level : 0; if (n > (p.skillLevel || 0)) { p.skillLevel = n; guardar(); } }
-export function guardar() { try { localStorage.setItem(KEY, JSON.stringify(perfil())); } catch { /* sin almacenamiento */ } }
+/* ───── GUARDADO CON RESULTADO (V01): nunca falla en silencio. guardar() devuelve { ok, motivo?, mensaje?, at } y avisa a quien escuche (alGuardar). ───── */
+let ultimoGuardado = { ok: true, at: 0 }; const oyentes = new Set();
+const MENSAJES = { lleno: 'El almacenamiento del navegador está lleno: tu progreso nuevo NO se guardó.', bloqueado: 'El navegador no deja guardar (modo privado o datos del sitio bloqueados): tu progreso nuevo NO se guardó.', verificacion: 'El navegador no confirmó el guardado: tu progreso nuevo puede no haberse guardado.', version: 'Este progreso lo guardó una versión más nueva del juego: no se sobrescribe. Actualizá el juego.', desconocido: 'No se pudo guardar tu progreso.' };
+function motivoDe(e) { const n = String((e && e.name) || ''), m = String((e && e.message) || '').toLowerCase(); return n === 'QuotaExceededError' || n === 'NS_ERROR_DOM_QUOTA_REACHED' || (e && (e.code === 22 || e.code === 1014)) || m.includes('quota') ? 'lleno' : n === 'SecurityError' || m.includes('denied') || m.includes('not available') || m.includes('access') ? 'bloqueado' : 'desconocido'; }
+function escribir(clave, texto, verificar = false) {
+  try {
+    if (typeof localStorage === 'undefined') throw Object.assign(new Error('no disponible'), { name: 'SecurityError' });
+    localStorage.setItem(clave, texto);
+    if (verificar && localStorage.getItem(clave) !== texto) return { ok: false, motivo: 'verificacion', mensaje: MENSAJES.verificacion, at: Date.now() };
+    return { ok: true, at: Date.now(), bytes: texto.length };
+  } catch (e) { const motivo = motivoDe(e); return { ok: false, motivo, error: String((e && e.name) || 'Error'), mensaje: MENSAJES[motivo], at: Date.now() }; }
+}
+function avisar(r) { ultimoGuardado = r; for (const f of [...oyentes]) { try { f(r, estadoGuardado()); } catch { /* un oyente roto no frena el guardado */ } } return r; }
+let enTransaccion = 0;   // >0 mientras se cobra una partida: los guardados intermedios (agregarItem…) esperan al guardado final, así nunca queda un cobro a medias en disco
+export function guardar() {
+  if (enTransaccion) return { ok: true, diferido: true, at: Date.now() };
+  if (estadoCarga.futuro) return avisar({ ok: false, motivo: 'version', mensaje: MENSAJES.version, at: Date.now() });
+  return avisar(escribir(KEY, JSON.stringify(perfil()), true));
+}
+/** Confirma cambios del editor sólo cuando el navegador los guardó. */
+export function guardarLaboratorio(lab) {
+  const p = perfil(), anterior = p.lab;
+  p.lab = limpiarLab(lab);
+  const r = guardar();
+  if (!r.ok) p.lab = anterior;
+  return r;
+}
+/** Para la interfaz: { ok (el último guardado salió bien), motivo, mensaje, pendientes (recompensas esperando), corrupto, at }. */
+export const estadoGuardado = () => ({ ...ultimoGuardado, pendientes: cola.length, corrupto: estadoCarga.corrupto });
+/** Escucha cada guardado (la interfaz muestra el aviso cuando falla). Devuelve la función para dejar de escuchar. */
+export function alGuardar(fn) { oyentes.add(fn); return () => oyentes.delete(fn); }
+/** Reintenta guardar y, si el almacenamiento volvió, acredita lo pendiente (sin duplicar: el ledger lo impide). */
+export function reintentarGuardado() { const antes = cola.length; const r = guardar(); if (r.ok && cola.length) { const x = procesarPendientes(); return { ...x.guardado, acreditadas: x.acreditadas, pendientes: cola.length, antes }; } return { ...r, acreditadas: 0, pendientes: cola.length, antes }; }
+
+/* ───── COLA DE RECOMPENSAS PENDIENTES: lo que no se pudo guardar espera acá (memoria + copia aparte) y se acredita al volver el almacenamiento ───── */
+let cola = [];
+function leerCola() { try { return limpiarCola(JSON.parse(leerAlmacen(KEY_PEND) || '[]')); } catch { return []; } }
+function guardarCola() {
+  try { if (!cola.length) { localStorage.removeItem(KEY_PEND); return true; } } catch { /* nada */ }
+  return cola.length ? escribir(KEY_PEND, JSON.stringify(cola)).ok : true;
+}
+export const pendientes = () => cola.map((e) => ({ matchId: e.matchId, char: e.char, at: e.at }));
+export function procesarPendientes() {
+  let acreditadas = 0, guardado = { ok: true };
+  for (const e of [...cola]) {
+    const r = acreditar(e.char, e.jugador, { ...e.info, matchId: e.matchId }, true);
+    if (r.guardado) { acreditadas++; cola = quitarDeCola(cola, e.matchId); } else { guardado = r; break; }   // si vuelve a fallar, se corta: quedan en cola
+  }
+  guardarCola(); return { acreditadas, pendientes: cola.length, guardado };
+}
+
+/* ───── COPIA DE SEGURIDAD: texto para pegar o archivo para descargar; importarProgreso() lo restaura sin repetir premios ───── */
+export function exportarProgreso() { return empaquetar(JSON.parse(JSON.stringify(perfil())), cola); }
+export function nombreCopia(ahora = Date.now()) { return `vortex-progreso-${new Date(ahora).toISOString().slice(0, 10)}.txt`; }
+/** Restaura una copia. Mantiene lo ya acreditado (une los ledgers) para que importar una copia vieja no permita cobrar dos veces. → { ok, mensaje }. */
+export function importarProgreso(texto) {
+  const d = desempaquetar(texto); if (!d.ok) return d;
+  const previo = JSON.stringify(perfil()), ledgerAct = perfil().ledger, colaPrev = cola;
+  const m = migrarEsquema(d.perfil), unido = limpiarLedger([...(m.perfil.ledger || []), ...ledgerAct.filter((r) => !(m.perfil.ledger || []).some((x) => x.id === r.id))]);
+  const nuevo = { ...m.perfil, ledger: unido };
+  load(JSON.stringify(nuevo));
+  cola = limpiarCola([...colaPrev, ...d.cola]).filter((e) => !unido.some((r) => r.id === e.matchId));
+  const r = guardar();
+  if (!r.ok) { load(previo); cola = colaPrev; return { ok: false, mensaje: r.mensaje + ' La copia no se aplicó.' }; }
+  guardarCola(); const x = procesarPendientes();
+  return { ok: true, mensaje: 'Progreso restaurado.' + (x.acreditadas ? ` Se acreditaron ${x.acreditadas} recompensa(s) pendiente(s).` : '') };
+}
 /** Datos que recibe la simulación al empezar una partida con este Huésped. */
-export const paraPartida = (char) => { const p = perfil(); return { equip: equipoParaPartida(char), pity: { ...p.pity }, sigs: Object.keys(p.sigs), melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas(), herb: [...perfil().herbario.hitos], maestria: rangoMaestria(char), arbol: arbolParaPartida(char), fauna: faunaParaPartida(p.fauna) }; };
-/** Al terminar (o pasar de oleada): guarda núcleos ganados y el nivel de evolución alcanzado. */
+export const paraPartida = (char) => { const p = perfil(); return { equip: equipoParaPartida(char), pity: { ...p.pity }, sigs: Object.keys(p.sigs), melee: p.melee[char] || undefined, evo: p.evo[char] || 0, path: p.path[char] || [], worg: p.worg, corg: p.corg[char] || [], ess: p.ess, bend: bendicionesActivas(), herb: [...perfil().herbario.hitos], maestria: rangoMaestria(char), arbol: arbolParaPartida(char), fauna: faunaParaPartida(p.fauna), lab: char === 'laboratorio' ? labParaPartida(p, char) : undefined }; };
+/** Diseño activo del Laboratorio en formato VB1 (texto) para la partida y la red; undefined = chasis por defecto. Solo si el jugador POSEE todas las piezas y le alcanzan las ranuras. */
+function labParaPartida(p, char) { const d = disenoParaJugar(p.lab, p.evo[char] || 0); return d.build ? codificar(d.build) : undefined; }
+/**
+ * Cobra una partida terminada. IDEMPOTENTE y TRANSACCIONAL (docs/RECOMPENSAS.md):
+ *  · info.matchId identifica la partida; cobrar el mismo matchId otra vez NO suma (devuelve el recibo guardado, duplicado: true).
+ *    Sin matchId se deriva uno del contenido (pruebas viejas): repetir EXACTAMENTE la misma llamada tampoco suma.
+ *  · o se guarda todo (premios + recibo en el ledger) o no se marca como acreditado: si el almacenamiento falla se deshace en memoria y
+ *    la partida queda en la cola de pendientes (se acredita al volver el almacenamiento, ver reintentarGuardado()).
+ *  · info.resumen (Game.resumen()) activa la regla de derrota PARCIAL (src/sim/recompensas.js); sin resumen se paga completo (sólo pruebas viejas).
+ *  · info.coop = { mult } viene del servidor (base + bono por contribución).
+ * Devuelve la maestría ganada (si hay) más { guardado, motivo, mensaje, pendiente, duplicado, matchId, recibo }.
+ */
 export function cerrarPartida(char, jugador, info = {}) {
-  if (!jugador) return null; const p = perfil(); const mae = ganarMaestria(char, jugador, info), arb = ganarArbol(char, jugador, info); if (mae && arb) mae.arbol = arb;
-  try { cerrarBotin(char, jugador, info); } catch (err) { console.warn('Inventario: no se pudo cerrar el botín', err.message); }
-  p.cores += Math.max(0, Math.floor(jugador.co || 0));
-  p.tienda.rot = Math.min(1e6, p.tienda.rot + 1);   // cada partida terminada cambia el stock del Cambista (src/sim/tienda.js)
-  p.evo[char] = Math.max(p.evo[char] || 0, jugador.evo || 0);
-  if (Array.isArray(jugador.pth) && jugador.pth.length >= (p.path[char] || []).length) p.path[char] = jugador.pth.slice();
-  // evolución orgánica: lo que sobra de esencias vuelve al banco; los órganos quedan crecidos para la próxima partida
-  if (Array.isArray(jugador.ess)) ['carne', 'cristal', 'ojo', 'vacio'].forEach((k, i) => { p.ess[k] = Math.min(999, jugador.ess[i] || 0); });
-  if (Array.isArray(jugador.wg) && Array.isArray(jugador.sl)) jugador.sl.forEach((w, i) => { if ((jugador.wg[i] || []).length) p.worg[w] = jugador.wg[i].slice(); });
-  if (Array.isArray(jugador.cg)) p.corg[char] = jugador.cg.slice();
-  guardar(); return mae;
+  if (!jugador) return null;
+  return acreditar(char, jugador, info, false);
+}
+let recibo = null;
+/** Recibo de la última partida cobrada: lo que se acreditó (o quedó pendiente), para la pantalla de resultados. */
+export const ultimoRecibo = () => recibo;
+function acreditar(char, jugador, info, desdeCola) {
+  perfil();
+  const sinBolsa = { ...info, bag: undefined, resumen: undefined };
+  const id = matchIdValido(info.matchId) ? info.matchId : 'h' + huella(estable({ char, jugador, info: sinBolsa, bag: info.bag }));
+  const hash = hashResultado({ char, co: jugador.co | 0, kills: jugador.kills | 0, wave: info.wave | 0, won: !!info.won, bag: info.bag || jugador.bag || [] });
+  const ev = evaluar(perfil().ledger, id, hash);
+  if (ev.accion === 'duplicado') {
+    recibo = { ...ev.recibo, duplicado: true, conflicto: ev.conflicto, guardado: true, pendiente: false };
+    return { ...(ev.recibo.mae || {}), guardado: true, pendiente: false, duplicado: true, matchId: id, recibo };
+  }
+  const antes = JSON.stringify(perfil()), botinAntes = botin;
+  let mae = null, rec;
+  enTransaccion++;
+  try {
+    const regla = info.resumen ? reglaDe(!!info.won, info.resumen) : null, mult = info.coop && Number.isFinite(+info.coop.mult) ? Math.max(0, Math.min(2, +info.coop.mult)) : 1;
+    const p = perfil(), cores0 = p.cores, xp0 = (p.mae[char] || {}).xp || 0;
+    mae = ganarMaestria(char, jugador, info, regla, mult); const arb = ganarArbol(char, jugador, info, regla); if (mae && arb) mae.arbol = arb;
+    try { cerrarBotin(char, jugador, { ...info, regla }); } catch (err) { console.warn('Inventario: no se pudo cerrar el botín', err.message); }
+    const ganados = ajustarCores(jugador.co, regla, mult);
+    p.cores += ganados;
+    p.tienda.rot = Math.min(1e6, p.tienda.rot + 1);   // cada partida terminada cambia el stock del Cambista (src/sim/tienda.js)
+    p.evo[char] = Math.max(p.evo[char] || 0, jugador.evo || 0);
+    if (Array.isArray(jugador.pth) && jugador.pth.length >= (p.path[char] || []).length) p.path[char] = jugador.pth.slice();
+    // evolución orgánica: lo que sobra de esencias vuelve al banco; los órganos quedan crecidos para la próxima partida
+    if (Array.isArray(jugador.ess)) ['carne', 'cristal', 'ojo', 'vacio'].forEach((k, i) => { p.ess[k] = Math.min(999, jugador.ess[i] || 0); });
+    if (Array.isArray(jugador.wg) && Array.isArray(jugador.sl)) jugador.sl.forEach((w, i) => { if ((jugador.wg[i] || []).length) p.worg[w] = jugador.wg[i].slice(); });
+    if (Array.isArray(jugador.cg)) p.corg[char] = jugador.cg.slice();
+    rec = { id, h: hash, at: Date.now(), char, won: !!info.won, parcial: !!(regla && !regla.won), cores: p.cores - cores0, coresBrutos: Math.max(0, Math.floor(jugador.co || 0)), xp: ((p.mae[char] || {}).xp || 0) - xp0, mult, mae: mae ? { ganada: mae.ganada, rangoAntes: mae.rangoAntes, rangoDespues: mae.rangoDespues, subio: mae.subio, max: mae.max, arbol: mae.arbol || null } : null };
+    p.lab = otorgarPorRecibo(p.lab, rec, { kills: jugador.kills | 0, organos: Array.isArray(jugador.cg) ? jugador.cg : [] }).lab;   // piezas del Laboratorio ganadas jugando (idempotente por matchId)
+    p.ledger = agregar(p.ledger, rec);
+  } catch (err) {
+    enTransaccion--; load(antes); botin = botinAntes; console.warn('Perfil: la partida no se pudo cobrar', err && err.message);
+    recibo = { id, error: String((err && err.message) || err), guardado: false, pendiente: false }; return { guardado: false, pendiente: false, motivo: 'error', mensaje: 'No se pudo calcular la recompensa de esta partida.', matchId: id, recibo };
+  }
+  enTransaccion--;
+  const w = guardar();
+  if (!w.ok) {   // transacción fallida: se deshace todo y la partida espera en la cola
+    load(antes); botin = botinAntes;
+    if (!desdeCola) { cola = encolar(cola, { matchId: id, char, jugador: JSON.parse(JSON.stringify(jugador)), info: JSON.parse(JSON.stringify({ ...info, matchId: id })), at: Date.now() }); guardarCola(); }
+    recibo = { ...rec, guardado: false, pendiente: true, motivo: w.motivo, mensaje: w.mensaje };
+    return { ...(mae || {}), guardado: false, pendiente: true, motivo: w.motivo, mensaje: w.mensaje, matchId: id, recibo };
+  }
+  if (cola.some((e) => e.matchId === id)) { cola = quitarDeCola(cola, id); guardarCola(); }
+  recibo = { ...rec, guardado: true, pendiente: false };
+  return { ...(mae || {}), guardado: true, pendiente: false, duplicado: false, matchId: id, recibo };
 }
 export const costeSiguiente = (char) => { const t = perfil().evo[char] || 0; return t >= 4 ? 0 : EVO_COST[t + 1]; };
 export function evolucionar(char, pick = 0) {
@@ -177,10 +314,12 @@ export const maestria = (char) => (perfil().mae[char] || { xp: 0, partidas: 0, k
 export const rangoMaestria = (char) => rangoDeXp(maestria(char).xp);
 export const progresoMaestria = (char) => ({ ...progreso(maestria(char).xp), ...maestria(char) });
 /** Suma la XP de una partida (jugador = snapshot; info = { wave, won }). Devuelve { xp, ganada, rangoAntes, rangoDespues, subio } (no guarda: lo hace cerrarPartida). */
-function ganarMaestria(char, jugador, info) {
+function ganarMaestria(char, jugador, info, regla = null, mult = 1) {
   if (!CHARACTERS[char] || !CHARACTERS[char].host) return null;
   const m = (perfil().mae[char] ||= { xp: 0, partidas: 0, kills: 0, oleada: 0 }), antes = rangoDeXp(m.xp);
-  const kills = Math.max(0, jugador.kills | 0), wave = Math.max(0, info.wave | 0), ganada = xpPartida({ kills, wave, won: !!info.won });
+  const kills = Math.max(0, jugador.kills | 0), wave = Math.max(0, info.wave | 0); let ganada = xpPartida({ kills, wave: regla ? regla.etapas : wave, won: !!info.won });
+  if (regla && !regla.won) ganada = Math.floor(ganada * regla.xp) + regla.xpHitos;   // derrota: parte de la XP + hitos de la misión
+  ganada = Math.floor(ganada * mult);   // cooperativo: base y bono por contribución
   m.xp = Math.min(99999, m.xp + ganada); m.partidas++; m.kills += kills; m.oleada = Math.max(m.oleada, wave);
   const despues = rangoDeXp(m.xp); return { xp: m.xp, ganada, rangoAntes: antes, rangoDespues: despues, subio: despues > antes, max: despues >= RANGO_MAX };
 }
@@ -209,12 +348,13 @@ export function reiniciarArbol(char, modo) {
   const g = gastado(modo, char, e.nodos), costo = costeReinicio(modo, char, e.nodos); e.pc = Math.max(0, e.pc - costo); e.nodos = []; guardar(); return { costo, devuelto: g - costo };
 }
 /** Suma los puntos de la partida al árbol del modo jugado (jugador = snapshot con pk; info = { wave }). Devuelve { combo, disparo } ganados o null. No guarda: lo hace cerrarPartida. */
-function ganarArbol(char, jugador, info) {
+function ganarArbol(char, jugador, info, regla = null) {
   if (!CHARACTERS[char] || !CHARACTERS[char].host || !Array.isArray(jugador.pk)) return null;
   const [h, f, m, k, sm, sk, mm, smm] = jugador.pk.map((x) => Math.max(0, Math.floor(Number(x) || 0))), wave = Math.max(0, (info && info.wave) | 0);
   const jugoC = h + f + m + k > 0, jugoS = sk + sm > 0;   // ¿se jugó en modo Combo y/o Shooter?
   const olC = jugoC && (!jugoS || h + k >= sk) ? wave : 0, olS = jugoS && !olC ? wave : 0;   // las oleadas cuentan una sola vez, para el modo más jugado
-  const cc = jugoC ? puntosCombo({ h, f, m, mm }, olC) : 0, ss = jugoS ? puntosDisparo({ k: sk, m: sm, mm: smm }, olS) : 0;
+  let cc = jugoC ? puntosCombo({ h, f, m, mm }, olC) : 0, ss = jugoS ? puntosDisparo({ k: sk, m: sm, mm: smm }, olS) : 0;
+  if (regla && !regla.won) { cc = Math.floor(cc * regla.arbol); ss = Math.floor(ss * regla.arbol); }   // derrota: parte de los puntos
   if (cc) arbDe(char, 'combo').pc = Math.min(99999, arbDe(char, 'combo').pc + cc);
   if (ss) arbDe(char, 'disparo').pc = Math.min(99999, arbDe(char, 'disparo').pc + ss);
   return { combo: cc, disparo: ss };
@@ -275,7 +415,8 @@ export const ultimoBotin = () => botin;
 /** Cierra el botín de la partida: guarda lo recogido, suma la maduración y el pity, y registra las armas firma cumplidas. */
 function cerrarBotin(char, jugador, info) {
   const p = perfil(); botin = { items: [], madura: [], firma: [], pity: null };
-  const bolsa = Array.isArray(info.bag) && info.bag.length ? info.bag : (Array.isArray(jugador.bag) ? jugador.bag.map((s) => { const [id, q, n] = String(s).split('|'); return { id, q: Number(q), n: Number(n) || 1 }; }) : []);
+  const bolsa0 = Array.isArray(info.bag) && info.bag.length ? info.bag : (Array.isArray(jugador.bag) ? jugador.bag.map((s) => { const [id, q, n] = String(s).split('|'); return { id, q: Number(q), n: Number(n) || 1 }; }) : []);
+  const fb = filtrarBotin(bolsa0, info.regla), bolsa = fb.bag; botin.perdido = fb.perdido;   // derrota: sólo materiales y semillas (parte); equipo, planos y firma son de victoria
   // maduración: las bajas de la partida suben las piezas que llevaba puestas
   const eq = p.eq[char] || {};
   if (jugador.ik && typeof jugador.ik === 'object') for (const s of SLOTS) { const n = nn(jugador.ik[s], 5000), it = instDe(eq[s]); if (!n || !it) continue; const a = faseDe(ITEMS[it.id], it.k); it.k = Math.min(99999, it.k + n); const b = faseDe(ITEMS[it.id], it.k); if (b > a) botin.madura.push({ id: it.id, fase: b }); }
@@ -288,9 +429,11 @@ function cerrarBotin(char, jugador, info) {
     else { const r = agregarItem(d); if (r.ok) botin.items.push({ id: d.id, q: d.q, ...r }); }
   }
   if (Array.isArray(jugador.pt)) p.pity = { l: nn(jugador.pt[0], 999), e: nn(jugador.pt[1], 999) };
-  if (jugador.sg && SIGNATURES[char]) { if (!p.sigs[char]) botin.firma.push(SIGNATURES[char]); p.sigs[char] = 1; }
+  if (jugador.sg && SIGNATURES[char] && (!info.regla || info.regla.firma)) { if (!p.sigs[char]) botin.firma.push(SIGNATURES[char]); p.sigs[char] = 1; }
   botin.pity = { ...p.pity };
 }
+/** Líneas del botín de la última partida para la pantalla de resultados (sin el encabezado). */
+export const botinLineas = () => botinTexto().split('\n').map((x) => x.trim()).filter((x) => x && !x.startsWith('BOTÍN'));
 /** Texto en español del botín de la última partida (pantalla final). */
 export function botinTexto() {
   const b = botin, nm = b ? Object.keys(b.mats || {}) : []; if (!b || (!b.items.length && !b.madura.length && !nm.length && !(b.planos || []).length)) return '';
@@ -458,5 +601,35 @@ export function registrarFauna(espId, hibrido = null) {
 /** Lo que viaja a una sala cooperativa: { especie: veces }. */
 export const faunaDeLaSala = () => faunaParaPartida(fauna());
 
-export function completarCapitulo(id) { const p = perfil(); p.campaign = completeChapter(p.campaign, id); guardar(); return p.campaign; }
+let ultimosDesbloqueos = [];
+/** Marca el capítulo como completado y entrega su Huésped (RECOMPENSAS_CAMPANA). Repetir un capítulo ya completado no entrega nada nuevo. */
+export function completarCapitulo(id) {
+  const p = perfil(), antes = p.campaign.completed.length; p.campaign = completeChapter(p.campaign, id);
+  ultimosDesbloqueos = p.campaign.completed.length > antes ? desbloquearPorCapitulo(p, id) : [];
+  guardar(); return p.campaign;
+}
+/** Huéspedes que entregó el último capítulo completado (para el cartel «¡Desbloqueaste a …!»). */
+export const desbloqueosRecientes = () => ultimosDesbloqueos.slice();
 export function nuevaCampana() { const p = perfil(); p.campaign = cleanCampaign(null); guardar(); }
+
+/* ───── Sprint 1 · primer Huésped, desafíos y tutorial (docs/ONBOARDING.md) ───── */
+/** Huésped inicial elegido (null = jugador nuevo que todavía no eligió). */
+export const inicial = () => perfil().inicial;
+export const necesitaPrimerHuesped = () => !perfil().inicial;
+/** Guarda el primer Huésped (una sola vez; después sólo se desbloquean más). Devuelve true si lo guardó. */
+export function elegirInicial(id) {
+  const p = perfil(); if (p.inicial || !esElegibleInicial(id)) return false;
+  p.inicial = id; p.huespedes = p.huespedes.filter((x) => x !== id); guardar(); return true;
+}
+/** Entrega Huéspedes sueltos (eventos, pruebas, regalos de la historia). Devuelve los realmente nuevos. */
+export function desbloquearHuespedes(ids) { const nuevos = darHuespedes(perfil(), ids); if (nuevos.length) guardar(); return nuevos; }
+/** Resultado de una partida → desafíos cumplidos (y sus Huéspedes). `info` = { won, map, boss, kills, mode, time, wave, campaign }. Devuelve los ids de Huésped desbloqueados por desafío. */
+export function registrarDesafios(info) { const nuevos = evaluarDesafios(perfil(), info); if (nuevos.length) guardar(); return nuevos; }
+export const tutorialEstado = () => ({ ...perfil().tut });
+export const tutorialPendiente = () => !perfil().tut.hecho;
+export function cineVista() { const t = perfil().tut; if (!t.cine) { t.cine = true; guardar(); } }
+export function tutorialPaso(n) { const t = perfil().tut; if (!t.hecho && n > t.paso) { t.paso = Math.min(99, n | 0); guardar(); } }
+/** El tutorial terminó (o se saltó): no se vuelve a mostrar. */
+export function tutorialListo() { const t = perfil().tut; t.hecho = true; t.cine = true; guardar(); }
+/** Vuelve a ofrecer el tutorial (Opciones › «Repetir tutorial»): no toca nada más del perfil. */
+export function tutorialReiniciar() { const t = perfil().tut; t.hecho = false; t.paso = 0; guardar(); }

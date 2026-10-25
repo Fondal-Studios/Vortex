@@ -7,7 +7,8 @@ import { startServer } from '../server/server.js';
 // Evolución y armas cuerpo a cuerpo (src/client/evolucion-ui.js, huespedes-evo.js, melee-models.js, hud-evolucion.js, perfil.js):
 // pantalla sin errores ni recortes en 4 tamaños · comprar / equipar / evolucionar con núcleos de prueba cambia el perfil y persiste ·
 // el Huésped llega a la partida con el arma y el nivel elegidos · la tecla de evolucionar funciona en partida · presupuesto 3D en Baja.
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const SIZES = [['844x390', 844, 390, true], ['667x375', 667, 375, true], ['390x844', 390, 844, true], ['1280x720', 1280, 720, false]];
 const KEY = 'cristal.perfil.v1';
 const SEED = { cores: 500, evo: { axioma: 1, seraf: 3 }, melee: {}, owned: ['sable_plasma'] };

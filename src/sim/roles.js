@@ -15,8 +15,8 @@ export function useAbility(g, p) {
     case 'soporte':
       for (const q of g.players) {
         const d = dist(q.pos, p.pos);
-        if (!q.dead && d < 12) { q.hp = Math.min(PLAYER.hp, q.hp + 40); q.shield = PLAYER.shield; }
-        else if (q.dead && !q.lost && d < 4) g.reviveInPlace(q);
+        if (!q.dead && d < 12) { q.hp = Math.min(PLAYER.hp, q.hp + 40); q.shield = PLAYER.shield; if (q !== p && p.st) p.st.sup++; }
+        else if (q.dead && !q.lost && d < 4) g.reviveInPlace(q, p);
       }
       g.emit({ t: 'pulse', pid: p.id, p: [p.pos.x, p.pos.y, p.pos.z] });
       break;

@@ -3,7 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { startServer } from '../server/server.js';
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const simWait = (pg, secs) => pg.evaluate((d) => new Promise((r) => { const g = window.__api.session.game, t0 = g.time; const iv = setInterval(() => { if (g.time - t0 >= d) { clearInterval(iv); r(); } }, 30); }), secs);
 
 test('modo simple: dispara solo al enemigo en la mira y golpea solo de cerca; apagado no hace nada', { skip: !hasChromium, timeout: 120000 }, async () => {

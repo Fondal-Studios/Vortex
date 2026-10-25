@@ -30,7 +30,7 @@ export const SECCIONES = {
     { go: 'story', t: 'Campaña' }, { go: 'arenas', t: 'Misiones', aviso: 'mision' }, { go: 'coop', t: 'Cooperativo' },
   ] },
   huespedes: { titulo: 'Huéspedes', tabs: [
-    { go: 'huesped', t: 'Huésped', aviso: 'puntos' }, { go: 'evolucion', t: 'Evolución' }, { go: 'inventario', t: 'Inventario', ivtab: 'obj', aviso: 'botin' },
+    { go: 'huesped', t: 'Huésped', aviso: 'puntos' }, { go: 'laboratorio', t: 'Editor Genómico', ico: '🧬', ayuda: 'Diseñá tu propio cuerpo' }, { go: 'evolucion', t: 'Evolución' }, { go: 'inventario', t: 'Inventario', ivtab: 'obj', aviso: 'botin' },
     { go: 'inventario', t: 'Forja', ivtab: 'for' }, { go: 'tienda', t: 'Tienda', aviso: 'huesped' }, { go: 'loadout', t: 'Equipo' },
   ] },
   coleccion: { titulo: 'Códice', tabs: [
@@ -49,7 +49,7 @@ SECCION_DE.coop = 'partidas';   // Cooperativo: puerta del inicio, pero vive jun
 export const PANTALLAS = {
   main: { nombre: 'Inicio', padre: null },
   modes: { nombre: 'Modos de juego', padre: 'main' }, story: { nombre: 'Campaña', padre: 'main' }, arenas: { nombre: 'Misiones', padre: 'main' }, 'arena-codex': { nombre: 'Arenas', padre: 'main' }, coop: { nombre: 'Cooperativo', padre: 'main' },
-  huesped: { nombre: 'Huésped', padre: 'main' }, evolucion: { nombre: 'Evolución', padre: 'main' }, inventario: { nombre: 'Inventario', padre: 'main' }, tienda: { nombre: 'Tienda', padre: 'main' }, loadout: { nombre: 'Equipo', padre: 'main' },
+  huesped: { nombre: 'Huésped', padre: 'main' }, laboratorio: { nombre: 'Editor Genómico', padre: 'main' }, evolucion: { nombre: 'Evolución', padre: 'main' }, inventario: { nombre: 'Inventario', padre: 'main' }, tienda: { nombre: 'Tienda', padre: 'main' }, loadout: { nombre: 'Equipo', padre: 'main' },
   bestiary: { nombre: 'Colección', padre: 'main' }, territorios: { nombre: 'Territorios', padre: 'main' },
   options: { nombre: 'Controles y sonido', padre: 'main' }, graficos: { nombre: 'Gráficos', padre: 'main' },
 };

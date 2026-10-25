@@ -66,6 +66,7 @@ export class NetClient {
     if (m.t === 'welcome') {
       this.pid = m.pid; this.room = m.room; this.map = m.map; this.token = m.token || this.token; this.cur = null; this.buf = []; this._loc = null; this.fin = null;
       if (this.estado !== 'conectado') { this.estado = 'conectado'; this.onEstado && this.onEstado('conectado'); }
+      this.labs = Array.isArray(m.labs) ? m.labs : []; this.labAviso = m.labAviso || '';   // diseños del Laboratorio de la sala ([{ i, h, vb1 }]; el snapshot trae `lb` = i)
       this.welcomed && this.welcomed(m);
     } else if (m.t === 'lobby') {
       this.room = m.room; this.token = m.token || this.token; this.lobby = m;
@@ -80,6 +81,7 @@ export class NetClient {
       this.rtt = Math.max(0, Math.round(performance.now() - m.c)); this.jugadores = m.j;
     } else if (m.t === 'fin') { this.fin = m; this.onFin && this.onFin(m); }
     else if (m.t === 'aviso') { this.onAviso && this.onAviso(m.msg); }
+    else if (m.t === 'labs') { this.labs = Array.isArray(m.labs) ? m.labs : []; this.onLabs && this.onLabs(this.labs); }
     else if (m.t === 'error') {
       if (m.code === 'token' || m.code === 'sala_inexistente') { if (this.estado === 'reconectando') { this.estado = 'caido'; this.onEstado && this.onEstado('caido'); } }
       if (m.code === 'cierre' || m.code === 'falla') this.salida = true;

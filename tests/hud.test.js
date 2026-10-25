@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 
 // El nuevo contrato son cuatro acciones táctiles; el preset completo queda opcional.
 test('HUD esencial: cuatro acciones y cámara por modo en PC y viewports móviles', { skip: !hasChromium, timeout: 300000 }, () => {

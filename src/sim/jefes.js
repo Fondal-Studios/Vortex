@@ -11,7 +11,7 @@ export function jefeInit(g, m) { iaInit(g, m, g.jefeMem || null); mecInit(g, m);
 /** Un paso del jefe (lo llama su comportamiento en ai.js antes de sus ataques de siempre). Devuelve la fase para los ataques viejos (1..3). */
 export function jefeTick(g, m, dt) { if (!m.ia) jefeInit(g, m); iaTick(g, m, dt); mecTick(g, m, dt); return Math.min(3, m.mec.f); }
 /** Multiplicador del daño recibido por el jefe (ventanas + adaptación). */
-export function jefeMult(g, m, by) { if (!m.ia) return 1; const s = fuenteDanio(g, by); return Math.max(0.2, iaMult(g, m, s) * mecMult(g, m, s, by)); }
+export function jefeMult(g, m, by) { if (!m.ia) return 1; const s = fuenteDanio(g, by); return Math.max(0.2, iaMult(g, m, s) * mecMult(g, m, s, by) * (1 + 1.5 * (m.ia.enr || 0))); }   // enfurecido = imprudente: recibe hasta +150 % (el enrage acelera el final, nunca lo alarga)
 /** Anota un golpe (a cualquier criatura) para el perfil del jugador y aplica los efectos colaterales de las posturas. */
 export function jefeGolpe(g, victim, by, dealt) {
   const b = g.boss; if (!b || b.dead || !b.ia || !by || !by.input) return;

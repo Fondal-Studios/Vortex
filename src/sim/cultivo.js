@@ -14,7 +14,7 @@
 import { dropsCofre } from './drops.js';   // capullo florecido → cofre (docs/INVENTARIO.md)
 import { v3, dist, clone, clamp } from './math.js';
 
-export const CULT = { gainDiv: 900, maxHit: 50, decay: 0.02, decayAfter: 4, gnaw: 0.05, gnawR: 5.5, growSecs: 5, hint: 45, hintMax: 3 };
+export const CULT = { gainDiv: 900, maxHit: 50, meleeHit: 0.06, decay: 0.02, decayAfter: 4, gnaw: 0.05, gnawR: 5.5, growSecs: 5, hint: 45, hintMax: 3 };
 
 export function initCult(g) {
   const map = g.map, n = map.layout.sections.length;
@@ -41,7 +41,9 @@ export function startCultivo(g, o) {
 /** Un impacto sobre un capullo (llamado desde Game.damageObject). */
 export function feedCapullo(g, ob, dmg, by, at) {
   if (ob.on || !g.cult) return;
-  const gain = clamp(dmg, 0, CULT.maxHit) / CULT.gainDiv;
+  // Un golpe cuerpo a cuerpo (daño ≈ 35, más lento y arriesgado) alimentaba la mitad que un tiro del Haz: en Melé el Cultivo era casi imposible
+  // (los bichos roen más rápido de lo que se alimenta). Ahora un golpe vale como un tiro a tope.
+  const gain = Math.max(clamp(dmg, 0, CULT.maxHit) / CULT.gainDiv, by && by.inMelee ? CULT.meleeHit : 0);
   ob.nut = Math.min(1, ob.nut + gain); ob.v = ob.nut; ob.fedT = g.time;
   if (g.objective && g.objective.type === 'cultivo') { g.objective.noProg = 0; g.objective.hintLvl = 0; }
   g.emit({ t: 'feed', id: ob.id, p: [ob.pos.x, ob.pos.y, ob.pos.z], v: Math.round(ob.nut * 100) / 100, at: at ? [at.x, at.y, at.z] : undefined });

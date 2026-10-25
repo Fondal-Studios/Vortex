@@ -11,7 +11,7 @@ const nearest = (targets, pos) => {
   for (const p of targets) { const d = dist(p.pos, pos); if (d < bd) { bd = d; best = p; } }
   return best;
 };
-const dmgMul = (g) => 1 + 0.04 * (g.wave - 1);
+const dmgMul = (g) => 1 + 0.04 * ((g.tier || g.wave) - 1);
 
 function groundMove(game, m, dt, wish, speed, accel = 10) {
   if (game.map.steer && m.grounded) wish = game.map.steer(game, m, wish); // mapas con rutas (limbo, mapa 3, mapa 4): seguir la ruta y no caminar al vacío

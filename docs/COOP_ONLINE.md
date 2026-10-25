@@ -64,12 +64,12 @@ El repositorio ya trae listos estos archivos (no tenés que escribirlos):
 3. Ya adentro (se llama *Dashboard*), tocá el botón **+ New** (arriba a la derecha) → **Blueprint**.
 4. Te lista tus repositorios. Si no ves `Shower-psico`, tocá **Configure account** y dale permiso a ese repositorio. Elegí `Shower-psico` → **Connect**.
 5. **Rama (Branch):** elegí la rama donde está el juego (hoy `claude/larga-con-eso-s43nfe`; cuando se una a `main`, usá `main`).
-6. Render lee `render.yaml` y te muestra el servicio **arcanum-coop** (plan *Free*). Te pide completar una variable:
+6. Render lee `render.yaml` y te muestra el servicio **shower-psico-coop** (plan *Free*). Te pide completar una variable:
    * **ALLOWED_ORIGINS** → escribí `https://drmarianojimenez94-sudo.github.io` (sin barra al final, sin `/Shower-psico`).
      Es la «lista de invitados»: sólo esa página puede conectarse. (Si querés probar desde otras páginas, agregalas separadas por coma.)
 7. Tocá **Apply** / **Deploy Blueprint**. Esperá 3–6 minutos: verás los registros (*Logs*) y al final **Your service is live**.
-8. Arriba a la izquierda del servicio aparece su dirección, parecida a `https://arcanum-coop.onrender.com`. **Copiala.**
-9. Probá que vive: abrí en el navegador `https://arcanum-coop.onrender.com/health`. Tiene que mostrar algo así:
+8. Arriba a la izquierda del servicio aparece su dirección, parecida a `https://shower-psico-coop.onrender.com`. **Copiala.**
+9. Probá que vive: abrí en el navegador `https://shower-psico-coop.onrender.com/health`. Tiene que mostrar algo así:
    `{"ok":true,"proto":2,"salas":0,"jugadores":0,...}`.
    (Si tarda un minuto en mostrar algo, estaba dormido: es normal.)
 
@@ -81,11 +81,11 @@ Hay tres formas; la primera es la que conviene:
 
 1. **Para todos los que juegan desde GitHub Pages:** editá el archivo `public/config.json` y poné tu dirección:
    ```json
-   { "servidor": "https://arcanum-coop.onrender.com" }
+   { "servidor": "https://shower-psico-coop.onrender.com" }
    ```
    (En GitHub: abrí el archivo → ícono del lápiz → cambiá → **Commit changes**.) En 1–2 minutos Pages se actualiza solo.
 2. **Cada jugador por su cuenta:** menú → **Opciones › Cooperativo › Servidor**, pegar la dirección y tocar **Probar conexión**.
-3. **Dentro de un enlace:** agregando `?server=https://arcanum-coop.onrender.com` a la dirección del juego.
+3. **Dentro de un enlace:** agregando `?server=https://shower-psico-coop.onrender.com` a la dirección del juego.
 
 El mensaje de la pantalla Cooperativo te dice en qué estado está:
 * **Servidor encendido** (verde): listo.

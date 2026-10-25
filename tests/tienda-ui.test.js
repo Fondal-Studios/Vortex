@@ -5,7 +5,8 @@ import { launch } from '../tools/browser.js';
 import { startServer } from '../server/server.js';
 
 // Pantalla Tienda y menú en 4 puertas (src/client/tienda-ui.js, menu-hubs.js): navegación, compra con confirmación, Esc, migas, sin desbordes en 4 tamaños.
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const KEY = 'cristal.perfil.v1';
 const SIZES = [['390x844', 390, 844, true], ['844x390', 844, 390, true], ['820x1180', 820, 1180, true], ['1280x720', 1280, 720, false]];
 let srv, browser, base;

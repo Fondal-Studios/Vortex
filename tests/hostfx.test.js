@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { startServer } from '../server/server.js';
 
-const hasChromium = fs.existsSync('/opt/pw-browsers') && fs.readdirSync('/opt/pw-browsers').some((d) => d.startsWith('chromium-'));
+import { browserAvailable } from '../tools/browser.js';
+const hasChromium = browserAvailable();
 const SKILLS = {
   axioma: [['mov', 'impulso'], ['esp', 'espinas'], ['s3', 'caparazon'], ['ult', 'sobrecarga']],
   vesper: [['mov', 'paso'], ['esp', 'camuflaje'], ['s3', 'marca'], ['ult', 'frenesi']],

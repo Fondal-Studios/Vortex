@@ -4,7 +4,9 @@ import { createAccounts } from './accounts.js';
 //
 // Se configura con variables de entorno (ver docs/COOP_ONLINE.md):
 //   PORT / HOST             puerto y dirección (Render, Koyeb, Fly... ponen PORT solos)
-//   ALLOWED_ORIGINS         páginas que pueden conectarse, separadas por coma. Ej: https://tuusuario.github.io  (vacío = cualquiera)
+//   ALLOWED_ORIGINS         páginas que pueden conectarse, separadas por coma. Ej: https://tuusuario.github.io
+//                           Vacío: en desarrollo/pruebas acepta cualquiera; en PRODUCCIÓN (NODE_ENV=production o Render) solo acepta
+//                           la página de GitHub Pages del proyecto y el propio sitio del servidor (ver origenesPorDefecto y docs/OPERATIONS.md)
 //   MAX_SALAS, MAX_POR_IP   topes de salas y de conexiones por red
 //   SERVIR_JUEGO=0          no servir los archivos del juego (sólo WebSocket + /health)
 //   TRUST_PROXY=1           detrás de un proxy (Render, Fly, cloudflared): la IP real viene en X-Forwarded-For
@@ -20,6 +22,8 @@ import { MAPS } from '../src/sim/maps.js';
 import { CHARACTERS } from '../src/sim/data.js';
 import { cleanEquip } from '../src/sim/items.js';
 import { cleanArbol } from '../src/sim/progresion.js';
+import { labDe, labsDeRed, CHASIS_LAB } from '../src/sim/laboratorio.js';   // diseños del Laboratorio: el servidor valida y recalcula todo (docs/EDITOR_HUESPEDES.md §3.3)
+import { repartoCoop } from '../src/sim/recompensas.js';   // recompensa base + bono por contribución (docs/RECOMPENSAS.md)
 import { PROTOCOLO, MAX_JUGADORES, ALFABETO_SALA, normalizarCodigo, ERRORES, compactar, crearEmisor } from '../src/sim/red.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -40,9 +44,13 @@ const nombreLimpio = (s) => { const t = String(s ?? '').replace(/[\u0000-\u001f\
 /** Todo lo que un cliente puede decir de su personaje, ya limpio. Nada de lo que viene de afuera se usa sin pasar por acá. */
 export function cargaDe(m = {}) {
   const char = CHARACTERS[m.char] ? m.char : undefined;
+  const evo = Number.isInteger(m.evo) ? num(m.evo, 0, 4) : undefined;
+  // Híbrido Genómico: `m.lab` es el texto VB1 (≤ 2 KB). Se decodifica, valida y recalcula acá; si algo falla, chasis por defecto + aviso (nunca se expulsa).
+  const L = char === CHASIS_LAB ? labDe(typeof m.lab === 'string' || m.lab == null ? m.lab : '\u0000', { evo }) : null;   // solo se acepta TEXTO VB1; cualquier otra forma = diseño inválido
   return {
+    lab: L && L.hay && !L.defecto ? L.vb1 : undefined, labH: L && !L.defecto ? L.h : '', labAviso: L ? L.aviso : '',
     char, fauna: faunaDeRed(m.fauna), style: typeof m.style === 'string' ? m.style.slice(0, 20) : undefined, melee: typeof m.melee === 'string' ? m.melee.slice(0, 30) : undefined,
-    evo: Number.isInteger(m.evo) ? num(m.evo, 0, 4) : undefined, bend: Array.isArray(m.bend) ? m.bend.slice(0, 6).filter((x) => typeof x === 'string') : undefined,
+    evo, bend: Array.isArray(m.bend) ? m.bend.slice(0, 6).filter((x) => typeof x === 'string') : undefined,
     herb: Array.isArray(m.herb) ? m.herb.slice(0, 12).filter((x) => typeof x === 'string') : undefined, equip: equipDe(char, m.equip), arbol: arbolDe(char, m.arbol),
     maestria: Number.isFinite(+m.maestria) ? num(m.maestria, 0, 10) : undefined,
     pity: m.pity && typeof m.pity === 'object' ? { l: num(m.pity.l, 0, 999), e: num(m.pity.e, 0, 999) } : undefined,
@@ -69,6 +77,13 @@ function resolveFile(url) {
   return f;
 }
 
+/** Orígenes permitidos si ALLOWED_ORIGINS está vacío. Fuera de producción: [] = cualquiera (desarrollo y pruebas).
+ *  En producción (NODE_ENV=production, o Render con RENDER=true) NO se acepta cualquiera: solo la página de Pages del proyecto. */
+export const ORIGEN_PAGES = 'https://fondal-studios.github.io';
+export function origenesPorDefecto(env = process.env) {
+  const prod = env.NODE_ENV === 'production' || env.RENDER === 'true';
+  return prod ? [ORIGEN_PAGES] : [];
+}
 const csv = (s) => String(s || '').split(',').map((x) => x.trim().replace(/\/$/, '')).filter(Boolean);
 
 export async function startServer(opts = {}) {
@@ -76,7 +91,7 @@ export async function startServer(opts = {}) {
   const cfg = {
     port: opts.port ?? 8080, host: opts.host ?? '0.0.0.0', autoTick: opts.autoTick ?? true,
     maxSalas: opts.maxSalas ?? (+env.MAX_SALAS || 20), maxPorIp: opts.maxPorIp ?? (+env.MAX_POR_IP || 8),
-    origenes: opts.origenes ?? csv(env.ALLOWED_ORIGINS), servirJuego: opts.servirJuego ?? env.SERVIR_JUEGO !== '0',
+    origenes: opts.origenes ?? (csv(env.ALLOWED_ORIGINS).length ? csv(env.ALLOWED_ORIGINS) : origenesPorDefecto(env)), servirJuego: opts.servirJuego ?? env.SERVIR_JUEGO !== '0',
     trustProxy: opts.trustProxy ?? env.TRUST_PROXY === '1', graciaMs: opts.graciaMs ?? (+env.RECONEXION_MS || 45000),
     maxMsgSeg: opts.maxMsgSeg ?? 90, silencio: opts.silencio ?? !!process.env.NODE_TEST_CONTEXT, velocidad: opts.velocidad ?? 1,   // velocidad: sólo para pruebas (simula más rápido que el reloj)
   };
@@ -84,14 +99,15 @@ export async function startServer(opts = {}) {
   const rooms = new Map(), porIp = new Map();
   const arranque = Date.now();
   const stats = { conexiones: 0, salasCreadas: 0, partidas: 0 };
-  const origenOk = (o) => !cfg.origenes.length || !o || cfg.origenes.includes(String(o).replace(/\/$/, ''));
+  // El propio sitio del servidor (el juego servido desde aquí mismo) siempre puede conectarse: su Origin coincide con el Host de la petición.
+  const origenOk = (o, host) => { if (!cfg.origenes.length || !o) return true; const limpio = String(o).replace(/\/$/, ''); if (cfg.origenes.includes(limpio)) return true; try { return !!host && new URL(limpio).host === host; } catch { return false; } };
   const jugadores = () => { let n = 0; for (const r of rooms.values()) n += r.members.length; return n; };
 
   const accounts = await createAccounts({ databaseUrl: opts.databaseUrl, db: opts.accountDb, trustProxy: cfg.trustProxy });
   const server = http.createServer((req, res) => {
     if (String(req.url).split('?')[0].startsWith('/api/account/')) { void accounts.handle(req, res); return; }
     const url = String(req.url || '/');
-    const cors = {}; const o = req.headers.origin; if (o && origenOk(o)) { cors['Access-Control-Allow-Origin'] = o; cors.Vary = 'Origin'; }
+    const cors = {}; const o = req.headers.origin; if (o && origenOk(o, req.headers.host)) { cors['Access-Control-Allow-Origin'] = o; cors.Vary = 'Origin'; }
     if (req.method === 'OPTIONS') { res.writeHead(204, { ...cors, 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Max-Age': '600' }); return res.end(); }
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
     const ruta = url.split('?')[0];
@@ -112,7 +128,7 @@ export async function startServer(opts = {}) {
   server.on('upgrade', (req, socket, head) => {
     const rechazar = (code, txt) => { socket.write(`HTTP/1.1 ${code} ${txt}\r\nConnection: close\r\n\r\n`); socket.destroy(); };
     if (String(req.url).split('?')[0] !== '/ws') return rechazar(404, 'Not Found');
-    if (!origenOk(req.headers.origin)) return rechazar(403, 'Forbidden');
+    if (!origenOk(req.headers.origin, req.headers.host)) return rechazar(403, 'Forbidden');
     const ip = ipDe(req), n = porIp.get(ip) || 0;
     if (n >= cfg.maxPorIp) return rechazar(429, 'Too Many Requests');
     wss.handleUpgrade(req, socket, head, (ws) => { ws.ip = ip; porIp.set(ip, n + 1); wss.emit('connection', ws, req); });
@@ -130,15 +146,17 @@ export async function startServer(opts = {}) {
     rooms.set(code, room); stats.salasCreadas++; log(`sala ${code} creada (${rooms.size} activas)`);
     return room;
   }
-  const publicLobby = (room) => ({ t: 'lobby', room: room.code, map: room.mapId, fase: room.phase, cuenta: room.cuenta > 0 ? Math.ceil(room.cuenta) : 0, max: MAX_JUGADORES, players: room.members.map((m) => ({ id: m.id, name: m.name, char: m.carga.char || null, mode: m.carga.mode, ready: m.ready, host: m === room.members[0], away: !m.ws })) });
+  const publicLobby = (room) => ({ t: 'lobby', room: room.code, map: room.mapId, fase: room.phase, cuenta: room.cuenta > 0 ? Math.ceil(room.cuenta) : 0, max: MAX_JUGADORES, players: room.members.map((m) => ({ id: m.id, name: m.name, char: m.carga.char || null, mode: m.carga.mode, ready: m.ready, host: m === room.members[0], away: !m.ws, ...(m.carga.lab ? { lab: { vb1: m.carga.lab, h: m.carga.labH } } : {}), ...(m.carga.labAviso ? { labAviso: m.carga.labAviso } : {}) })) });
   function difundirLobby(room) {
     const base = publicLobby(room);
     for (const m of room.members) send(m.ws, { ...base, yo: m.id, token: m.token });
   }
   function bienvenida(room, m, extra = {}) {
-    send(m.ws, { ...extra, t: 'welcome', pid: m.pid, room: room.code, map: room.mapId, dt: SIM_DT, token: m.token, yo: m.id, proto: PROTOCOLO, lobby: room.lobby });
+    send(m.ws, { ...extra, t: 'welcome', pid: m.pid, room: room.code, map: room.mapId, dt: SIM_DT, token: m.token, yo: m.id, proto: PROTOCOLO, lobby: room.lobby, ...(room.game && room.game.labs.length ? { labs: labsDeRed(room.game) } : {}), ...(m.carga.labAviso ? { labAviso: m.carga.labAviso } : {}) });
     room.forzarCompleto = true;
   }
+  /** Diseños del Laboratorio de la sala (lista completa, chica): se reenvía a todos cuando entra alguien o cambia un diseño, así nadie dibuja un `lb` que no conoce. */
+  function difundirLabs(room) { if (room.game && room.game.labs.length) todos(room, { t: 'labs', labs: labsDeRed(room.game) }); }
   function addAlJuego(room, m) {
     const c = m.carga;
     const p = room.game.addPlayer(m.name, null, { ...c, char: c.char });
@@ -148,7 +166,7 @@ export async function startServer(opts = {}) {
   }
   function empezar(room) {
     room.game = new Game({ mapId: room.mapId, operation: true, seed: crypto.randomInt(1e9), calm: room.lobby ? 10 : 16, magazines: true });
-    room.finEnviado = false; room.em = crearEmisor(); room.acc = 0; room.last = Date.now(); stats.partidas++;
+    room.finEnviado = false; room.fin = null; room.matchId = crypto.randomUUID(); room.em = crearEmisor(); room.acc = 0; room.last = Date.now(); stats.partidas++;
     const keep = [];
     for (const m of room.members) { if (addAlJuego(room, m)) keep.push(m); else if (m.ws) error(m.ws, 'sala_llena'); }
     room.members = keep; room.phase = 'juego'; room.cuenta = 0;
@@ -165,7 +183,7 @@ export async function startServer(opts = {}) {
     if (room.members.length >= MAX_JUGADORES) return error(ws, 'sala_llena');
     if (room.phase === 'juego' && room.game.state !== 'playing') return error(ws, 'terminada');
     const m = nuevoMiembro(ws, name, carga); m.room = room; room.members.push(m); numerar(room);
-    if (room.phase === 'juego') { if (!addAlJuego(room, m)) { room.members.pop(); return error(ws, 'sala_llena'); } bienvenida(room, m); difundirLobby(room); }
+    if (room.phase === 'juego') { if (!addAlJuego(room, m)) { room.members.pop(); return error(ws, 'sala_llena'); } bienvenida(room, m); difundirLabs(room); difundirLobby(room); }
     else difundirLobby(room);
     room.ultimo = Date.now();
   }
@@ -235,7 +253,7 @@ export async function startServer(opts = {}) {
         if (!me) return error(ws, 'token');
         if (me.ws && me.ws !== ws) { const viejo = me.ws; viejo.miembro = null; me.ws = null; try { viejo.close(1000, 'reemplazado'); } catch { /* ya cerrado */ } }
         me.ws = ws; ws.miembro = me; me.away = 0; if (r.game) { const p = r.game.players.find(p => p.id === me.pid); if (p) p.aw = false; }
-        if (r.phase === 'juego') bienvenida(r, me, { reanudado: true }); difundirLobby(r);
+        if (r.phase === 'juego') { bienvenida(r, me, { reanudado: true }); if (r.finEnviado && r.fin) send(me.ws, finDe(r, me)); } difundirLobby(r);   // si la partida ya terminó, el resultado (mismo matchId) se reenvía: no se pierde por un corte
         log(`sala ${r.code}: un jugador volvió`);
         return;
       }
@@ -273,8 +291,9 @@ export async function startServer(opts = {}) {
         if (room.phase !== 'juego' || !mem.pid) return;
         const g = room.game; if (g.phase !== 'intermission') return;
         const c = cargaDe(m); const p = g.players.find((q) => q.id === mem.pid); if (!p) return;
-        g.setLoadout(mem.pid, c.char, c.slots, { equip: c.equip, arbol: c.arbol });
-        mem.carga = { ...mem.carga, char: p.char, slots: p.slots, arbol: p.arb, equip: p.eqList };
+        g.setLoadout(mem.pid, c.char, c.slots, { equip: c.equip, arbol: c.arbol, lab: c.lab });
+        difundirLabs(room);
+        mem.carga = { ...mem.carga, char: p.char, slots: p.slots, arbol: p.arb, equip: p.eqList, lab: c.char === CHASIS_LAB ? c.lab : undefined, labH: c.labH, labAviso: c.labAviso };
         return;
       }
       case 'restart': {
@@ -297,10 +316,16 @@ export async function startServer(opts = {}) {
     const msg = JSON.stringify({ t: 'snap', s: snapshotDe(room, completo) }); room.forzarCompleto = false;
     for (const m of room.members) send(m.ws, msg);
   }
+  /** Mensaje `fin` de UN jugador: su botín (nunca el de otro), el matchId de la partida y su parte de la recompensa. Se reenvía al reanudar (V02). */
+  function finDe(room, m) {
+    const F = room.fin, p = room.game.players.find((q) => q.id === m.pid);
+    return { t: 'fin', matchId: F.matchId, estado: F.estado, oleada: F.oleada, total: F.resumen.total, bag: p ? botinDe(p) : (m.botinFin || []), resumen: F.resumen, recompensa: F.reparto[m.pid] || { base: 1, bono: 0, mult: 1, aporte: 0, afk: false }, yo: m.pid };
+  }
   function terminar(room) {
-    room.finEnviado = true; difundirSnap(room, true);
-    const g = room.game;
-    for (const m of room.members) { const p = g.players.find((q) => q.id === m.pid); send(m.ws, { t: 'fin', estado: g.state, oleada: g.wave, bag: p ? botinDe(p) : [] }); }
+    room.finEnviado = true; difundirSnap(room, true); room.ultimo = Date.now();
+    const g = room.game, resumen = g.resumen();
+    room.fin = { matchId: room.matchId, estado: g.state, oleada: g.wave, resumen, reparto: repartoCoop(resumen.jugadores) };
+    for (const m of room.members) send(m.ws, finDe(room, m));
     log(`sala ${room.code}: terminó (${g.state}, oleada ${g.wave})`);
   }
   function pasoSala(room) {
@@ -341,7 +366,7 @@ export async function startServer(opts = {}) {
   latido = setInterval(() => {
     for (const ws of wss.clients) { if (!ws.vivo && (ws.perdidos = (ws.perdidos || 0) + 1) >= 3) { ws.terminate(); continue; } if (ws.vivo) ws.perdidos = 0; ws.vivo = false; try { ws.ping(); } catch { /* cerrado */ } }   // 3 pings sin respuesta (~1 min) = conexión muerta
     const now = Date.now();
-    for (const room of [...rooms.values()]) if (room.phase !== 'juego' && !conectados(room).length && now - room.ultimo > cfg.graciaMs) { rooms.delete(room.code); log(`sala ${room.code} cerrada (sin nadie conectado)`); }
+    for (const room of [...rooms.values()]) if ((room.phase !== 'juego' || room.finEnviado) && !conectados(room).length && now - room.ultimo > cfg.graciaMs) { rooms.delete(room.code); log(`sala ${room.code} cerrada (sin nadie conectado)`); }
   }, 20000);
   latido.unref && latido.unref();
 

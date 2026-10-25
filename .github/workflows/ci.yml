@@ -1,13 +1,101 @@
 name: CI
+# Dos trabajos en paralelo:
+#   unit    · simulación, servidor, datos y contratos de código (sin navegador).
+#   browser · E2E con Chromium real (WebGL por software). Si falta el navegador el trabajo FALLA (REQUIRE_BROWSER=1), nunca se omite.
+# El trabajo `pages` (publicar en GitHub Pages) depende de `unit` y `browser` (needs) y solo corre en un push a la rama canónica.
+# (Va dentro de este mismo flujo porque `workflow_run` solo se dispara si el archivo está en la rama por defecto, que no es la canónica.)
+# Detalle en docs/OPERATIONS.md.
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+# Una subida nueva NUNCA cancela la corrida de una rama (push): cada commit queda verificado y la rama que se está validando no se pierde a mitad de camino.
+# Sólo se cancela la corrida obsoleta de un pull request (cuando se sube otro commit al mismo PR).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 jobs:
-  test:
+  unit:
+    name: unit (simulación y servidor)
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+        with:
+          node-version: 22
+          cache: npm            # caché de ~/.npm según package-lock.json
       - run: npm ci
-      - run: npm test
+      - run: npm run test:unit
+
+  browser:
+    # El grupo `browser` (~25 archivos con WebGL por software) tardaba > 45 min en un solo trabajo: se reparte en 3 partes de peso parecido
+    # (tools/run-tests.mjs --shard=I/N). fail-fast desactivado: si una parte falla, las otras terminan y se ven todos los fallos.
+    name: browser ${{ matrix.shard }}/3 (E2E con Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      REQUIRE_BROWSER: '1'                                   # sin Chromium las pruebas FALLAN (tools/browser.js)
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Caché de Chromium
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: .pw-browsers
+          key: pw-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Instalar Chromium
+        # Con caché solo se instalan las librerías del sistema (rápido); sin caché se baja también el binario.
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - name: Comprobar que hay navegador
+        run: node -e "import('./tools/browser.js').then(m => { const p = m.findChromium(); if (!p) { console.error('No se encontró Chromium'); process.exit(1); } console.log('Chromium:', p); })"
+      - run: node tools/run-tests.mjs browser --shard=${{ matrix.shard }}/3
+      - name: Capturas y registros (si algo falla)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shots-browser-${{ matrix.shard }}
+          path: shots/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  pages:
+    name: pages (publicar si todo está verde)
+    needs: [unit, browser]                                     # GATE: si cualquiera falla, no se publica
+    if: github.event_name == 'push' && github.ref == 'refs/heads/claude/larga-con-eso-s43nfe'   # rama canónica (si pasa a `main`, cambiar aquí)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: { contents: read, pages: write, id-token: write }
+    concurrency: { group: pages, cancel-in-progress: false }
+    environment: { name: github-pages, url: '${{ steps.deploy.outputs.page_url }}' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: node tools/build-static.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: dist }
+      - id: deploy
+        uses: actions/deploy-pages@v4

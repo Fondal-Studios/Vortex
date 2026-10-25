@@ -131,7 +131,7 @@ export function createComboFx(renderer) {
     else P = o.clone().addScaledVector(up, 1.0).addScaledVector(h, 2.4);
     C.P = P;
     const R2 = renderer, snd = sound;
-    const near = hit || C.ranged;
+    const near = hit;   // AC-07: sonido, destello, hit-stop, cámara y reacción SOLO con contacto confirmado por la simulación (e.hit > 0); un tiro a distancia que no pega no cuenta
     if (near && R2.hostfx && R2.hostfx.melee && R2.hostfx.melee.worldImpact) {
       const n = _d.copy(h).negate().clone(); // el estilo propio de cada Huésped (chispas, garras, anillos…)
       R2.hostfx.melee.worldImpact(p.char, P, n, pal, peso >= 1.4, C.e.kind === 'exec' || !!C.e.execAlso, up);
@@ -154,7 +154,7 @@ export function createComboFx(renderer) {
         fx.line(point(a), point(z), pal.c, 0.10, 0.32, { a0: 0.65, a1: 0.1, shrink: 0.8 });
       }
     }
-    if (C.fin) { // REMATE: onda grande en el suelo, columna de chispas y destello del color del Huésped
+    if (C.fin && hit) { // REMATE (sólo si pegó): onda grande en el suelo, columna de chispas y destello del color del Huésped
       fx.ring(o.clone().addScaledVector(up, 0.05), up, pal.c, 4 + peso, 0.4, { th: 0.10, shock: true, op: 0.45 }); fx.ring(o.clone().addScaledVector(up, 0.05), up, pal.c, 3.2, 0.36, { th: 0.1 });
       fx.flash(P, pal.c, 1.4, 0.14, { burst: true, op: 0.55 }); fx.sparks(P, pal.a, Math.round(10 * b), 14, 0.55, { c2: 0xffffff }); fx.spray(P, pal.c, Math.round(6 * b), 6, 0.6, 0.6, { c2: pal.a, up: 3, grow: -0.4 });
     }
