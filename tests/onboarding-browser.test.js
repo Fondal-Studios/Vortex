@@ -83,7 +83,7 @@ test('onboarding E2E: menú → elegir primer Huésped → cinemática saltable 
     await pg.waitForFunction(() => window.__api.session && window.__api.session.game, null, { timeout: 90000 });
     assert.equal(await pg.locator('#primerhuesped').count(), 0); assert.equal(await pg.locator('#transfer').count(), 0); assert.equal(await pg.evaluate(() => !!window.__api.session.game.tutorial), false, 'sin tutorial la 2.ª vez');
     assert.equal(await pg.evaluate(() => window.__api.renderer.third), true, 'cámara en tercera persona por defecto');
-    await pg.keyboard.press('Enter'); await pg.waitForFunction(() => !window.__api.session.intro, null, { timeout: 60000 });   // la intro de capítulo pausa la simulación: se salta para medir que la cámara no la frena
+    await pg.mouse.click(300, 300); await pg.waitForFunction(() => !window.__api.session.intro, null, { timeout: 60000 }); await pg.click('#tutok', { timeout: 30000 });   // se salta la intro y se cierra la tarjeta de controles (ambas pausan la simulación)   // la intro de capítulo pausa la simulación: se salta para medir que la cámara no la frena
     // cámara (AC-05 en el navegador): el botón alterna sin frenar la simulación; cambiar de modo NO fuerza la cámara salvo «Cámara automática por modo»
     const cam = await pg.evaluate(async () => {
       const A = window.__api, r = {}; r.ini = A.renderer.third; const t0 = A.session.game.time;
