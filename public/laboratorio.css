@@ -74,5 +74,5 @@
 
 #menu[data-pantalla="laboratorio"] .account-launch { display: none; }
 .lb-cab .lb-chip { min-height: 44px; } .lb-nombre input { min-height: 44px; }
-@media (max-height: 460px) and (min-aspect-ratio: 1/1) { .lb-tab, .lb-nombre input, .lb-cab .lb-chip { min-height: 40px; } .lb-panel { padding: 6px; gap: 4px; } .lb-bar .lb-btn { min-height: 44px; } .lb-cab { gap: 4px; } .lb-fila input[type=range] { min-height: 40px; } .lb-body h4 { margin: 8px 0 4px; } }
+@media (max-height: 460px) and (min-aspect-ratio: 1/1) { .lb-tab, .lb-nombre input, .lb-cab .lb-chip { min-height: 44px; } .lb-panel { padding: 6px; gap: 4px; } .lb-bar .lb-btn { min-height: 44px; } .lb-cab { gap: 4px; } .lb-fila input[type=range] { min-height: 44px; } .lb-body h4 { margin: 8px 0 4px; } }
 @media (max-height: 460px) and (min-aspect-ratio: 1/1) { .lb-body .lb-sec > .lb-nota:first-child { display: none; } }

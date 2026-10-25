@@ -205,6 +205,6 @@ test('EH-16: contraste del texto (WCAG ≥ 4,5 el normal, ≥ 3 el grande), obje
     }
     assert.deepEqual(errores, [], vn); await ctx.close();
   }
-  console.log('problemas de accesibilidad/diseño:', problemas.length, problemas.slice(0, 25));
+  console.log('problemas de accesibilidad/diseño:', problemas.length, problemas.slice(0, 80));
   assert.deepEqual(problemas, []);
 });

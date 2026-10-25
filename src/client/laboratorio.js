@@ -151,7 +151,7 @@ export function buildLaboratorioScreen(menu) {
   const textoReal = () => (L.ultimaMed ? `${L.ultimaMed.tris} triángulos y ${L.ultimaMed.llamadas} llamadas de dibujo medidos en pantalla` : 'Midiendo…');
 
   function pintarBarra() {
-    const E = L.E; $('#lbundo').disabled = !E.puedeUndo; $('#lbredo').disabled = !E.puedeRedo; $('#lbcopias').querySelector('i').textContent = `Copias ${E.snapshots.length}/5`;
+    const E = L.E; $('#lbundo').disabled = !E.puedeUndo; $('#lbredo').disabled = !E.puedeRedo; $('#lbcopias').setAttribute('aria-label', `Copias del diseño: ${E.snapshots.length} de 5`); $('#lbcopias').title = `${E.snapshots.length} de 5 copias`;
   }
   function pintarEstado() {
     const v = L.E.validacion, el = $('#lbestado'), n = v.errores.length;
