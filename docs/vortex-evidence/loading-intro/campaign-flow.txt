@@ -1,0 +1,10 @@
+✔ cómic: lectura manual, viñetas, teclado, salida única y cuatro tamaños sin desbordes (49362.537339ms)
+✔ campaña: victoria → cómic → siguiente capítulo exactamente una vez; final vuelve a resultados (40564.601982ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 90825.334232

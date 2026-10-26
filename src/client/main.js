@@ -465,6 +465,7 @@ function frame(now) {
   if (!CAP && now - last < 1000 / Graficos.fpsTope() - 4) return;   // límite de FPS del menú Gráficos (30 / 60): se salta el cuadro sin perder tiempo de simulación
   const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; // nunca negativo (carga lenta)
   if (CAP) { capT += dt; window.__capT = capT; for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= capT * 1000) { const f = timers[i].fn; timers.splice(i, 1); f(); } if (cine && cine.tick) cine.tick(dt); }
+  if (window.__loadingIntro?.active) return; // La intro es estática; no renderizar el menú 3D debajo.
   document.body.classList.toggle('cam3', !!renderer.third);   // en 3.ª persona el contador de combo se corre a un costado (no tapa al héroe)
   { const q = $('camquick'); if (q) { q.classList.toggle('hidden', !session || !!session.intro || !!session.paused); q.classList.toggle('third', !!renderer.third); } }
   window.__fps = (window.__fps || 60) * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;

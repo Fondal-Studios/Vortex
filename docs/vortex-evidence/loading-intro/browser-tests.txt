@@ -1,0 +1,11 @@
+✔ carga real: viñetas antes del motor, 20 s, menú listo y móvil legible (25730.331076ms)
+✔ carga: saltar espera al motor; error recuperable; teclado no alcanza al juego; sin solapamientos (21782.171751ms)
+✔ intro: cuatro viñetas de cinco segundos, legibles y sin spoilers del Heraldo (2.594129ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 48650.529449

@@ -1,0 +1,23 @@
+{
+  "principiante": {
+    "runs": 48,
+    "wins": 41,
+    "medianMinutes": 11.93,
+    "within8to12": 21,
+    "open": 0
+  },
+  "intermedio": {
+    "runs": 48,
+    "wins": 46,
+    "medianMinutes": 11.52,
+    "within8to12": 28,
+    "open": 0
+  },
+  "experto": {
+    "runs": 48,
+    "wins": 46,
+    "medianMinutes": 10.85,
+    "within8to12": 33,
+    "open": 0
+  }
+}
