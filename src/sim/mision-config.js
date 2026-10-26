@@ -36,10 +36,10 @@ export const TEXTO = Object.freeze({
   combate: ['Despejar la zona', 'Eliminá a todas las criaturas que envía la red. Mantenete en movimiento y aprovechá la cobertura.'],
   evento: ['Anomalía del vórtice', 'Un evento ambiental altera la arena mientras la red ataca. Leé el aviso, aprovechá su contrapartida y eliminá a todas las criaturas.'],
   cronometrada: ['Resistir el asedio', 'Sobreviví hasta que termine la cuenta regresiva: la red envía criaturas sin pausa. Al llegar a cero el asedio se rompe.'],
-  secuencia: ['Reconectar el archivo', 'Seguí la flecha: ocupá cada terminal indicado durante 2 segundos.'],
+  secuencia: ['Recuperar archivos · terminales', 'Localizá las computadoras señalizadas y conectá cada terminal durante 2 segundos para recuperar el archivo.'],
   sintonia: ['Sintonizar las placas', 'Pisá todas las placas a la vez durante 3 segundos. Solo: cada placa queda viva 10 s tras salir.'],
-  ancla: ['Proteger la zona segura', 'Permanecé en el círculo y mantenelo libre de enemigos durante 35 segundos acumulados. Si destruyen el ancla, la misión fracasa.'],
-  nucleo: ['Extraer el archivo de memoria', 'Recogé el núcleo de memoria y transportalo al altar de salida. No podés disparar mientras lo llevás; si caés, otro jugador puede recuperarlo.'],
+  ancla: ['Defender la estructura', 'Protegé el dispositivo señalado en el HUD: permanecé cerca y eliminá las amenazas. Completá 35 segundos de estabilización; si lo destruyen, perdés.'],
+  nucleo: ['Insertar núcleo en reactor', 'Recogé el núcleo señalado y transportalo hasta el receptáculo del reactor. No podés disparar mientras lo llevás; si caés, otro jugador puede recuperarlo.'],
   caza: ['Romper el bloqueo', 'Eliminá al custodio marcado para desactivar las defensas de la IA.'],
   cultivo: ['Abrir el puente vivo', 'Alimentá a los tres capullos (disparándoles o golpeándolos) hasta que florezcan y defendelos de las criaturas.'],
 });
