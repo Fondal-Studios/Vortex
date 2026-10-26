@@ -137,3 +137,11 @@ test('P0: un melee o combo sin hit explícito no acredita contacto', () => {
     assert.equal(contactoConfirmado({ t, hit: 1 }), true);
   }
 });
+
+test('P0: la cancelación durante anticipación no debe invocar contacto anticipado', async () => {
+  const fs = await import('node:fs');
+  const url = await import('node:url');
+  const source = fs.readFileSync(url.fileURLToPath(new URL('../src/client/combo-fx.js', import.meta.url)), 'utf8');
+  assert.ok(source.includes('R.cur.done = true;   // cancelación antes del contacto'), 'la cancelación desactiva el golpe anterior');
+  assert.ok(!source.includes('contact(R, state, true);   // el golpe anterior se cancela'), 'no hay contacto anticipado en cancelación');
+});
