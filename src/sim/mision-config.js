@@ -112,7 +112,7 @@ export const MISIONES = Object.freeze({
   },
   m5: {
     duracion: [8, 12], boss: { kind: 'coloso', enrageT: 90, enrageCoop: 30 },
-    victoria: 'Restaurá la grabación de Praga, superá las ocho oleadas y derrotá al Mandinga del Reloj.',
+    victoria: 'Restaurá el archivo de recuerdos de la Plaza, superá las ocho oleadas y derrotá al Mandinga del Reloj.',
     derrota: DERROTA,
     stages: [
       mecanismo('secuencia', { plan: 0, tier: 1.0 }),
