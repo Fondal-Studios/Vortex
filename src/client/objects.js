@@ -27,6 +27,40 @@ function upAt(map, p) {
   return new THREE.Vector3(0, p[1] > 20 ? -1 : 1, 0);
 }
 
+
+/** Mobiliario de misión de bajo costo: geometría compartida, sin luces dinámicas nuevas. */
+function objectiveFurniture(g, type, color) {
+  const metal = new THREE.MeshStandardMaterial({ color: 0x253442, metalness: 0.55, roughness: 0.48 });
+  const screen = add(color, 0.88);
+  const part = (geo, mat, pos, scale) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(...pos); m.scale.set(...scale); g.add(m); return m;
+  };
+  if (type === 'terminal') {
+    part(GEO.box, metal, [0, 0.65, 0], [1.25, 1.3, 0.65]);
+    part(GEO.box, metal, [0, 1.55, -0.15], [1.65, 1.05, 0.28]);
+    part(GEO.box, screen, [0, 1.57, 0.012], [1.4, 0.77, 0.035]);
+    for (let i = 0; i < 3; i++) part(GEO.box, screen, [-0.43 + i * 0.43, 1.53, 0.045], [0.27, 0.08 + i * 0.16, 0.02]);
+  } else if (type === 'reactor') {
+    part(GEO.cyl, metal, [0, 0.55, 0], [1.7, 1.1, 1.7]);
+    part(GEO.cyl, metal, [0, 1.75, 0], [1.05, 1.25, 1.05]);
+    const socket = part(GEO.ring, screen, [0, 2.43, 0], [0.75, 0.75, 0.75]);
+    socket.rotation.x = Math.PI / 2;
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2;
+      part(GEO.box, metal, [Math.cos(a) * 1.35, 1.4, Math.sin(a) * 1.35], [0.24, 2.8, 0.24]);
+    }
+  } else if (type === 'defense') {
+    part(GEO.cyl, metal, [0, 0.55, 0], [1.45, 1.1, 1.45]);
+    part(GEO.cyl, metal, [0, 1.65, 0], [0.55, 1.5, 0.55]);
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2;
+      part(GEO.box, metal, [Math.cos(a) * 1.0, 1.6, Math.sin(a) * 1.0], [0.25, 2.1, 0.25]);
+    }
+    part(GEO.ico, screen, [0, 2.65, 0], [0.58, 0.75, 0.58]);
+  }
+}
+
 const BUILD = {
   ancla(o) {
     const g = new THREE.Group();
@@ -35,6 +69,7 @@ const BUILD = {
     const floor = new THREE.Mesh(GEO.disc, add(0xffe27a, 0.12)); floor.rotation.x = -Math.PI / 2; floor.position.y = 0.05; floor.scale.setScalar(o.r); g.add(floor);
     const beam = new THREE.Mesh(GEO.cyl, add(0xffe27a, 0.28)); beam.position.y = 9; beam.scale.set(0.8, 18, 0.8); g.add(beam);
     const core = new THREE.Mesh(GEO.ico, add(0xfff3b0, 0.9)); core.position.y = 2.4; core.scale.setScalar(0.8); g.add(core);
+    objectiveFurniture(g, 'defense', 0xffe27a);
     g.userData = { ring, inner, beam, core, floor };
     return g;
   },
@@ -43,6 +78,7 @@ const BUILD = {
     const disc = new THREE.Mesh(GEO.disc, add(0x7a5cff, 0.55)); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.08; disc.scale.setScalar(o.r); g.add(disc);
     const ring = new THREE.Mesh(GEO.ring, add(0xb9a4ff, 0.9)); ring.rotation.x = Math.PI / 2; ring.scale.setScalar(o.r); g.add(ring);
     const beam = new THREE.Mesh(GEO.cyl, add(0x7a5cff, 0.22)); beam.position.y = 5; beam.scale.set(o.r * 0.55, 10, o.r * 0.55); g.add(beam);
+    objectiveFurniture(g, 'terminal', 0x9b8cff);
     g.userData = { disc, ring, beam };
     return g;
   },
@@ -59,6 +95,7 @@ const BUILD = {
     const g = new THREE.Group();
     for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(GEO.ring, add(0x7dfcff, 0.85 - i * 0.2)); r.rotation.x = Math.PI / 2; r.position.y = 0.1 + i * 0.5; r.scale.setScalar(o.r * (1 - i * 0.22)); g.add(r); }
     const beam = new THREE.Mesh(GEO.cyl, add(0x7dfcff, 0.24)); beam.position.y = 8; beam.scale.set(1.2, 16, 1.2); g.add(beam);
+    objectiveFurniture(g, 'reactor', 0x7dfcff);
     g.userData = { beam };
     return g;
   },

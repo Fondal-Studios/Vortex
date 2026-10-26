@@ -126,3 +126,22 @@ test('despachador sonarImpacto: sólo contacto confirmado', () => {
   assert.equal(contactoConfirmado({ t: 'melee', kind: 'light', hit: 0 }), false); assert.equal(contactoConfirmado({ t: 'melee', kind: 'light', hit: 1 }), true);
   assert.deepEqual([s.c.hit, s.c.boom], [2, 1 + 1]);
 });
+
+test('P0: un melee o combo sin hit explícito no acredita contacto', () => {
+  for (const t of ['melee', 'combo']) {
+    assert.equal(contactoConfirmado({ t }), false);
+    assert.equal(contactoConfirmado({ t, hit: null }), false);
+    assert.equal(contactoConfirmado({ t, hit: 0 }), false);
+    assert.equal(contactoConfirmado({ t, hit: -1 }), false);
+    assert.equal(contactoConfirmado({ t, hit: Number.NaN }), false);
+    assert.equal(contactoConfirmado({ t, hit: 1 }), true);
+  }
+});
+
+test('P0: la cancelación durante anticipación no debe invocar contacto anticipado', async () => {
+  const fs = await import('node:fs');
+  const url = await import('node:url');
+  const source = fs.readFileSync(url.fileURLToPath(new URL('../src/client/combo-fx.js', import.meta.url)), 'utf8');
+  assert.ok(source.includes('R.cur.done = true;   // cancelación antes del contacto'), 'la cancelación desactiva el golpe anterior');
+  assert.ok(!source.includes('contact(R, state, true);   // el golpe anterior se cancela'), 'no hay contacto anticipado en cancelación');
+});

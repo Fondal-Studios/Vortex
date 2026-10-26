@@ -8,7 +8,9 @@
 export function contactoConfirmado(e) {
   if (!e) return false;
   if (e.t === 'hit' || e.t === 'arhit') return e.d === undefined || e.d > 0;
-  if (e.t === 'boom' || e.t === 'orbburst' || e.t === 'melee' || e.t === 'combo') return e.hit === undefined || e.hit > 0;
+  if (e.t === 'boom' || e.t === 'orbburst') return e.hit === undefined || e.hit > 0;
+  // Un swing/combo sin recuento explícito nunca demuestra contacto.
+  if (e.t === 'melee' || e.t === 'combo') return Number.isFinite(e.hit) && e.hit > 0;
   return false;
 }
 
