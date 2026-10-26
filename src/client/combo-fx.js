@@ -89,7 +89,7 @@ export function createComboFx(renderer) {
         R.cur = { d, e, p, hab: true, P: null }; continue;
       }
       // golpe
-      if (R.cur && R.pose.arq && !R.pose.hit && !R.cur.hab) contact(R, state, true);   // el golpe anterior se cancela antes de su contacto: que igual se sienta
+      if (R.cur && R.pose.arq && !R.pose.hit && !R.cur.hab) R.cur.done = true;   // cancelación antes del contacto: conserva el barrido, pero nunca fabrica impacto, hit-stop ni sonido
       const m1 = e.t === 'melee1', fin = m1 ? (e.kind === 'exec' || e.execAlso || (e.kind === 'light' && e.cmb === 3)) : !!e.fin && (e.n | 0) >= 2;
       const d = m1 ? { ...animMelee(p.char, e.kind, { cmb: e.cmb }), ...(fin ? { fin: true, peso: Math.max(1.9, animMelee(p.char, e.kind, { cmb: e.cmb }).peso * 1.2), hs: 5 } : {}) } : animDe(p.char, e.id, { fin, n: e.n | 0 });
       const ranged = !m1 && !!(melee.size === 0 && beams.has(e.pid)) || d.a === 'arco' || d.a === 'carga' || d.a === 'apertura';
