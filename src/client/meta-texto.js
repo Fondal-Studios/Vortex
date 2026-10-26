@@ -9,11 +9,11 @@ export function textoObjetivo(o, me, solo = false) {
   if (!o) return '';
   const carga = me && me.carry;
   switch (o.type) {
-    case 'secuencia': return `Reconectá terminal ${Math.min((o.stage || 0) + 1, o.total || 3)}/${o.total || 3} · quedate 2 s`;
+    case 'secuencia': return `COMPUTADORA ${Math.min((o.stage || 0) + 1, o.total || 3)}/${o.total || 3} · conectá 2 s`;
     case 'caza': return o.target == null ? 'Localizá al custodio cuando aparezca' : 'Eliminá al custodio marcado para terminar la oleada';
-    case 'ancla': return `Cargá el Ancla: quedate dentro del círculo (${pct(o.prog)})`;
+    case 'ancla': return `DEFENDÉ LA ESTRUCTURA · estabilización ${pct(o.prog)}`;
     case 'sintonia': return solo ? `Pisá cada placa antes de que se apague (${pct(o.prog)})` : `Ocupen todas las placas a la vez (${pct(o.prog)})`;
-    case 'nucleo': return carga ? 'Llevá el núcleo al altar' : (o.prog > 0.02 ? 'Llevá el núcleo al altar (alguien lo lleva)' : 'Recogé el núcleo y llevalo al altar');
+    case 'nucleo': return carga ? 'Llevá el núcleo al REACTOR' : (o.prog > 0.02 ? 'Llevá el núcleo al altar (alguien lo lleva)' : 'Recogé el núcleo y llevalo al REACTOR');
     case 'cultivo': return 'Alimentá los capullos (disparo o golpes) hasta que florezcan';
     case 'resistir': return `Resistí el asedio: faltan ${Math.ceil(o.left - 15)} s`;
     default: return o.title || 'Cumplí el objetivo';
