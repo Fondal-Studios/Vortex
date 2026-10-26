@@ -1,0 +1,9 @@
+✔ carga: saltar espera al motor; error recuperable; teclado no alcanza al juego; sin solapamientos (13323.20811ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14020.265272
