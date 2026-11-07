@@ -8,7 +8,7 @@ export class Sound {
     this.master = this.ctx.createGain(); this.master.gain.value = 0.55;
     const comp = this.ctx.createDynamicsCompressor(); this.master.connect(comp); comp.connect(this.ctx.destination);
     this.sfxBus = this.ctx.createGain(); this.sfxBus.gain.value = 0.9; this.sfxBus.connect(this.master);
-    this.musBus = this.ctx.createGain(); this.musBus.gain.value = 0.32; this.musBus.connect(this.master);
+    this.musBus = this.ctx.createGain(); this.musBus.gain.value = 0.32 * ((this.musVol == null ? 0.6 : this.musVol) / 0.6); this.musBus.connect(this.master);
     // eco largo para la música
     this.delay = this.ctx.createDelay(1); this.delay.delayTime.value = 0.375;
     const fb = this.ctx.createGain(); fb.gain.value = 0.42; this.delay.connect(fb); fb.connect(this.delay); this.delay.connect(this.musBus);
@@ -217,6 +217,8 @@ export class Sound {
     else if (kind === 'back') this.tone({ f: 900, f2: 450, type: 'triangle', dur: 0.12, vol: 0.14 });
     else if (kind === 'trophy') [0, 7, 12, 19].forEach((s, i) => this.tone({ f: 784 * 2 ** (s / 12), type: 'sine', dur: 0.4, vol: 0.14, delay: i * 0.09 }));
   }
+  /** Volumen de la música (0..1) aparte de los efectos; 0.6 = nivel original (musBus 0.32). */
+  setMusicVolume(v) { this.musVol = v; if (this.musBus) this.musBus.gain.value = 0.32 * (v / 0.6); }
   setVolume(v) { if (this.master) this.master.gain.value = 0.9 * v; }
   /** Chirrido del Heraldo al hablar (una nota corta por letra). */
   chirp(n) { const f = 700 + (n * 53) % 500; this.tone({ f, f2: f * (1.2 + (n % 3) * 0.1), type: 'sine', dur: 0.07, vol: 0.12 }); }

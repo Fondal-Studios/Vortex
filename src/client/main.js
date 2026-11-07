@@ -943,6 +943,7 @@ $('resume').addEventListener('click', () => { if (session && session.touch) paus
 $('sens').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.value; });
 $('sens0').addEventListener('input', (e) => { mouseSens = 0.00044 * +e.target.value; });
 $('vol').addEventListener('input', (e) => sound.setVolume(+e.target.value / 10));
+{ const mv = $('musvol'); if (mv) { mv.value = Math.round((settings().musVol ?? 0.6) * 10); sound.setMusicVolume(+mv.value / 10); mv.addEventListener('input', () => { sound.setMusicVolume(+mv.value / 10); setSetting('musVol', +mv.value / 10); }); } }
 $('subsel').addEventListener('change', (e) => { $('sub').style.display = e.target.value === '1' ? '' : 'none'; });
 $('evoopen').addEventListener('click', (e) => { e.stopPropagation(); if (!evoMenu) evoMenu = createEvoMenu(document.body, { getMe: () => session && session.lastMe, request: (o) => { organReq = o; organReqT = performance.now(); }, sound }); evoMenu.open(); });
 $('quit').addEventListener('click', () => { bankProfile(session && session.lastMe); if (session && session.net) { try { session.net.salir(); } catch { /* ya cerrado */ } try { sessionStorage.removeItem('arcanum.sala.v1'); } catch { /* nada */ } const u = new URL(location.href); u.searchParams.delete('sala'); location.replace(u.href); return; } location.reload(); });

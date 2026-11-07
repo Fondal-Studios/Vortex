@@ -26,6 +26,7 @@ export const DEFAULTS = Object.freeze({
   camAuto: false,      // «Cámara automática por modo» (Sprint 1): si está activo, Melé pasa a 3.ª persona y Disparo a 1.ª al cambiar de modo; apagado = la cámara sólo la cambia el botón
   third: true,        // cámara en tercera persona sobre el hombro (verte a vos mismo)
   camDist: 3.6, camSide: 1, camFov: 78,   // distancia, hombro (1 derecha / -1 izquierda) y campo de visión de la 3ª persona
+  musVol: 0.6,        // volumen de la música (0..1), aparte del volumen general
   adsMode: 'mantener', // 'mantener' | 'alternar'
   layout: {},         // { botón: { dx, dy, s } }: posiciones y tamaños personalizados
 });
