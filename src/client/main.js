@@ -138,6 +138,8 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' && session && !session.intro) { renderer.setThird(!renderer.third); setSetting('third', renderer.third); const b = $('camtoggle'); if (b) b.querySelector('b').textContent = `Cámara: ${renderer.third ? 'tercera persona (te ves)' : 'primera persona'}`; } // cámara en tercera persona (V ahora es melee)
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
+const soltarTodo = () => { keys.clear(); mouse.fire = mouse.esp = mouse.ping = mouse.ads = false; };   // alt-tab / pérdida de foco: sin esto el personaje seguía caminando o disparando solo
+addEventListener('blur', soltarTodo); document.addEventListener('visibilitychange', () => { if (document.hidden) soltarTodo(); });
 addEventListener('mousedown', (e) => { if (e.button === 1) { mouse.ping = true; e.preventDefault(); } if (e.button === 0) mouse.fire = true; if (e.button === 2) { mouse.esp = true; e.preventDefault(); } if (session && session.intro) skipIntro(); });
 addEventListener('mouseup', (e) => { if (e.button === 0) mouse.fire = false; if (e.button === 1) mouse.ping = false; if (e.button === 2) mouse.esp = false; });
 addEventListener('contextmenu', (e) => { if (session) e.preventDefault(); });
