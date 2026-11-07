@@ -5,6 +5,7 @@ import { skyMaterial, crystalMaterial, groundMaterial, shellMaterial, zoneMateri
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GradePass, sceneTarget } from './post.js';
@@ -143,6 +144,9 @@ export class Renderer {
     if (usesComposer()) {
       const c = new EffectComposer(this.gl, sceneTarget(q.msaa == null ? 4 : q.msaa)); c.setPixelRatio(this.gl.getPixelRatio());
       c.addPass(new RenderPass(this.scene, this.camera));
+      // Saneado HDR: el buffer es de media precisión y los fogonazos son aditivos; un valor infinito/NaN que entre al bloom se esparce como una mancha negra («todo oscuro» al disparar).
+      c.addPass(new ShaderPass({ uniforms: { tDiffuse: { value: null } }, vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 t = texture2D(tDiffuse, vUv); vec3 c = t.rgb; if (!(c.r == c.r) || !(c.g == c.g) || !(c.b == c.b)) c = vec3(0.0); gl_FragColor = vec4(clamp(c, 0.0, 48.0), 1.0); }' }));
       if (q.post) { this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), q.bloom || 0.5, 0.55, 0.85); c.addPass(this.bloom); } else this.bloom = null;
       this.grade = new GradePass(this.level, { layers: q.fogLayers }); if (this.mapId) this.grade.preset(this.mapId); this.grade.clarity(this.clar || claridad()); c.addPass(this.grade);
       this.composer = c;

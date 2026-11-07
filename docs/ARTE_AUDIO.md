@@ -13,3 +13,7 @@
 - Cada arma y cada criatura tiene timbre propio; posicionamiento por distancia y paneo estéreo.
 - **Música generativa por mapa**: Mapa 1 escala lidia, pads + arpegios con eco; Mapa 2 frigia con bajo pulsante. La intensidad (densidad de notas, pulso) sube con la cantidad de criaturas vivas.
 - Pendiente (honesto): mezcla no calibrada en altavoces reales; sólo se verificó que no lanza errores.
+
+
+## Música psicodélica (audio.js › startMusic)
+Motor generativo en vivo: drone tipo tanpura, pad de sierras desafinadas con filtro que respira, arpegios tipo sitar con eco modulado (efecto fase), bajo/bombo/tabla/hi-hat que entran con la intensidad del combate y un swell invertido cada 8 compases. Modo y tempo por mapa (Islas: mixolidio 100 bpm · Cámara Fractal: frigio 92 bpm · Base: lidio 70 bpm). Sin archivos ni licencias.

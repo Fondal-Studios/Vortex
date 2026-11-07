@@ -584,3 +584,12 @@ body.touch-ui #estilohud, body.touch-ui.cam3 #estilohud { top: calc(env(safe-are
  .touch-ui .tactical-map{top:60px;width:90px}
  .touch-ui .tactical-title,.touch-ui .tactical-map details{display:none}
 }
+
+/* ── Guías permanentes de los joysticks táctiles (la palanca real es flotante: aparece donde apoyás el pulgar) ── */
+.tc-guide { position: absolute; pointer-events: none; width: 104px; height: 104px; border-radius: 50%; border: 2px dashed rgba(102,255,238,.45); background: radial-gradient(rgba(102,255,238,.12), rgba(102,255,238,.02)); display: flex; align-items: center; justify-content: center; transition: opacity .15s; }
+.tc-guide i { width: 42px; height: 42px; border-radius: 50%; background: rgba(102,255,238,.35); box-shadow: 0 0 14px rgba(102,255,238,.5); }
+.tc-guide small { position: absolute; bottom: -16px; left: 0; right: 0; text-align: center; font: 700 10px/1 "Trebuchet MS", system-ui; letter-spacing: .16em; color: rgba(255,255,255,.6); }
+.tc-guide-move { left: calc(env(safe-area-inset-left, 0px) + 7vw); bottom: calc(env(safe-area-inset-bottom, 0px) + 12vh); }
+.tc-guide-look { right: 30vw; bottom: calc(env(safe-area-inset-bottom, 0px) + 30vh); border-color: rgba(255,102,196,.4); background: radial-gradient(rgba(255,102,196,.1), rgba(255,102,196,.02)); }
+.tc-guide-look i { background: rgba(255,102,196,.3); box-shadow: 0 0 14px rgba(255,102,196,.45); }
+#touch.stick-on .tc-guide-move, #touch.look-on .tc-guide-look, #touch.editing .tc-guide { opacity: 0; }

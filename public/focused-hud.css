@@ -11,7 +11,6 @@ body.hud-focused #bossbar { top:104px; }
 body.hud-focused #banner { font-size:clamp(15px,3vw,25px); letter-spacing:.02em; }
 body.hud-focused .bar.hp b { background:#e75468; }
 body.hud-focused .bar.sh b { background:#65bce0; }
-body.hud-focused #camquick { display:none; }
 #touch.essential .tc-fire { right:calc(20px + env(safe-area-inset-right)); bottom:calc(24px + env(safe-area-inset-bottom)); width:88px; height:88px; }
 #touch.essential .tc-jump { right:calc(124px + env(safe-area-inset-right)); bottom:calc(24px + env(safe-area-inset-bottom)); width:62px; height:62px; }
 #touch.essential .tc-esp, #touch.essential .tc-s3, #touch.essential .tc-use { right:calc(26px + env(safe-area-inset-right)); left:auto; top:auto; bottom:calc(128px + env(safe-area-inset-bottom)); width:62px; height:62px; }

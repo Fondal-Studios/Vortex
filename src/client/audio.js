@@ -332,27 +332,69 @@ export class Sound {
     if (kind === 'exec') { this.thump(55, 24, 0.7, 0.8, at, 0.08); [880, 1175, 1760].forEach((f, i) => T({ f, f2: f * 1.02, dur: 0.35, vol: 0.1, delay: 0.1 + i * 0.07 })); N({ dur: 0.5, vol: 0.3, freq: 3000, freq2: 100, delay: 0.06 }); }
   }
 
-  /* ───── música generativa ───── */
+  /* ───── música generativa psicodélica ─────
+   *  Raga-rock de los 60 hecho de cero con WebAudio: drone tipo tanpura, pad de sierras desafinadas con filtro que «respira»,
+   *  arpegios tipo sitar con eco que flota (delay modulado = efecto fase), bajo y tambores que entran con la intensidad del combate,
+   *  y un swell invertido cada 8 compases. Cada mapa tiene su modo y su tempo. Todo se genera en vivo; sin archivos ni licencias. */
   startMusic(mapId) {
     if (!this.ctx || this.mapId === mapId) return; this.mapId = mapId; this.step = 0;
-    clearInterval(this.musTimer);
-    const base = mapId === 'base';   // La Base (docs/BASE.md): música calma y cálida (pentatónica mayor, sin pulso de combate)
-    const sc = base ? [0, 2, 4, 7, 9, 12, 14] : mapId === 'm1' ? [0, 2, 4, 6, 7, 9, 11] : [0, 1, 4, 5, 7, 8, 10];
-    const root = base ? 52 : mapId === 'm1' ? 55 : 49;
+    clearInterval(this.musTimer); const ctx = this.ctx;
+    // «flotar» del eco: el tiempo del delay oscila lentamente (se oye como una fase giratoria)
+    if (!this.musLfo) {
+      this.musLfo = ctx.createOscillator(); const g = ctx.createGain(); this.musLfo.frequency.value = 0.13; g.gain.value = 0.012; this.musLfo.connect(g); g.connect(this.delay.delayTime); this.musLfo.start();
+      this.musPad = ctx.createGain(); this.musPad.gain.value = 1; this.musPad.connect(this.musBus); this.musPad.connect(this.delay);
+    }
+    const base = mapId === 'base';
+    const MODES = { dorian: [0, 2, 3, 5, 7, 9, 10], lydian: [0, 2, 4, 6, 7, 9, 11], phryg: [0, 1, 4, 5, 7, 8, 10], mixo: [0, 2, 4, 5, 7, 9, 10] };
+    const P = base ? { sc: MODES.lydian, root: 52, bpm: 70, prog: [0, 3, 4, 3] }
+      : mapId === 'm1' ? { sc: MODES.mixo, root: 55, bpm: 100, prog: [0, 6, 3, 4] }
+      : mapId === 'm2' ? { sc: MODES.phryg, root: 49, bpm: 92, prog: [0, 1, 0, 6] }
+      : { sc: MODES.dorian, root: 50, bpm: 96, prog: [0, 3, 6, 4] };
+    const { sc, root, prog } = P, SPB = 60 / P.bpm / 4;                 // duración de una semicorchea
+    const freq = (deg, oct) => root * 2 ** oct * 2 ** (sc[((deg % 7) + 7) % 7] / 12 + Math.floor(deg / 7));
+    let next = ctx.currentTime + 0.1, lead = 4, lastDeg = 0;
+    const R = Math.random;
+    const env = (g, t, a, d, v) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, v), t + a); g.gain.setTargetAtTime(0.0001, t + a, d / 3); };
+    const osc = (type, f, t, dur, vol, a, dst, echo, detune = 0) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f; o.detune.value = detune; env(g, t, a, dur, vol); o.connect(g); g.connect(dst); if (echo) g.connect(this.delay); o.start(t); o.stop(t + dur + a + 0.4); return o;
+    };
+    const pad = (f, t, dur, vol) => {   // sierras desafinadas + filtro pasabajos que sube y baja (el «respirar» psicodélico)
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 3; lp.frequency.setValueAtTime(380, t); lp.frequency.exponentialRampToValueAtTime(1500 + 900 * this.intensity, t + dur * 0.55); lp.frequency.exponentialRampToValueAtTime(420, t + dur);
+      const g = ctx.createGain(); env(g, t, dur * 0.35, dur * 0.7, vol); lp.connect(g); g.connect(this.musPad);
+      for (const d of [-9, 0, 8]) { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = d; o.connect(lp); o.start(t); o.stop(t + dur + dur * 0.35 + 0.6); }
+    };
+    const pluck = (f, t, vol) => {      // sitar: sierra con arranque desafinado hacia arriba, banda estrecha y cola larga con eco
+      const o = ctx.createOscillator(), bp = ctx.createBiquadFilter(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 1.04, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.06);
+      bp.type = 'bandpass'; bp.Q.value = 5; bp.frequency.setValueAtTime(f * 5, t); bp.frequency.exponentialRampToValueAtTime(f * 1.6, t + 0.5);
+      env(g, t, 0.004, 0.7, vol); o.connect(bp); bp.connect(g); g.connect(this.musBus); g.connect(this.delay); o.start(t); o.stop(t + 1.2);
+    };
+    const kick = (t, v) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.14); env(g, t, 0.003, 0.28, v); o.connect(g); g.connect(this.musBus); o.start(t); o.stop(t + 0.4); };
+    const tabla = (t, v, f) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(f * 1.5, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.09); env(g, t, 0.002, 0.2, v); o.connect(g); g.connect(this.musBus); g.connect(this.delay); o.start(t); o.stop(t + 0.35); };
+    const hat = (t, v) => { const s = ctx.createBufferSource(), hp = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = this.noiseBuf; hp.type = 'highpass'; hp.frequency.value = 7000; env(g, t, 0.001, 0.05, v); s.connect(hp); hp.connect(g); g.connect(this.musBus); s.start(t, R() * 0.5, 0.12); };
+    const swell = (t, dur, v) => { const s = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = this.noiseBuf; s.loop = true; bp.type = 'bandpass'; bp.Q.value = 2.5; bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(6000, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + dur); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.08); s.connect(bp); bp.connect(g); g.connect(this.musPad); s.start(t); s.stop(t + dur + 0.15); };
+    const schedule = (i, t) => {
+      const inten = base ? 0.05 : this.intensity, bar = Math.floor(i / 16), st = i % 16, chord = prog[Math.floor(bar / 2) % prog.length];
+      // ── cama armónica: drone tanpura (tónica + quinta) y pad del acorde, cambia cada 2 compases
+      if (i % 128 === 0) { osc('triangle', root * 0.5 * 2, t, SPB * 140, 0.22, 2, this.musBus, true); osc('sine', root * 1.5, t, SPB * 140, 0.14, 3, this.musBus, true); }
+      if (i % 32 === 0) { const d = SPB * 36; pad(freq(chord, 1), t, d, 0.05); pad(freq(chord + 2, 1), t, d, 0.04); pad(freq(chord + 4, 1), t, d, 0.04); }
+      if (i % 64 === 48 && !base) swell(t, SPB * 16, 0.07 + 0.05 * inten);
+      // ── bajo: redondo, sigue la fundamental del acorde (desde que hay un poco de combate)
+      if (inten > 0.12 && (st === 0 || st === 6 || st === 10 || (inten > 0.55 && st === 14))) osc('sine', freq(chord, -1), t, SPB * 3.2, 0.3, 0.012, this.musBus, false);
+      // ── percusión: bombo + tabla + hi-hat según la intensidad
+      if (inten > 0.2) { if (st === 0 || st === 8 || (inten > 0.6 && st === 11)) kick(t, 0.38); if (st === 4 || st === 12) tabla(t, 0.12 + 0.1 * inten, 180); if (inten > 0.45 && st % 2 === 0) hat(t, 0.04 + 0.04 * inten); }
+      if (inten > 0.5 && (st === 3 || st === 7 || st === 14)) tabla(t, 0.08, 260 + (st * 13 % 90));
+      // ── melodía tipo sitar: camino aleatorio por la escala, favorece los tonos del acorde; más densa con la intensidad
+      const dens = base ? 0.18 : 0.3 + 0.45 * inten;
+      if (R() < dens && (st % 2 === 0 || R() < 0.4)) {
+        const tone = [chord, chord + 2, chord + 4][(R() * 3) | 0], target = R() < 0.55 ? tone + 7 : lastDeg + ((R() * 5) | 0) - 2; lead = Math.max(-2, Math.min(11, target));
+        if (R() < 0.15) lead = chord + 7; lastDeg = lead; pluck(freq(lead, 1) * (R() < 0.12 ? 2 : 1), t + (R() - 0.5) * 0.012, 0.07 + 0.05 * inten);
+      }
+    };
     this.musTimer = setInterval(() => {
-      if (!this.enabled || this.ctx.state !== 'running') return;
-      const t = this.ctx.currentTime + 0.05, i = this.step++, inten = base ? 0.05 : this.intensity;
-      const note = (deg, oct, dur, vol, type = 'sine', bus = this.musBus, echo = true) => {
-        const o = this.ctx.createOscillator(), e = this.ctx.createGain();
-        o.type = type; o.frequency.value = root * 2 ** oct * 2 ** (sc[((deg % 7) + 7) % 7] / 12 + Math.floor(deg / 7));
-        e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(vol, t + 0.02); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        o.connect(e); e.connect(bus); if (echo) e.connect(this.delay); o.start(t); o.stop(t + dur + 0.1);
-      };
-      if (i % 16 === 0) { note(0, 0, 4.5, 0.5, 'sawtooth', this.musBus, false); note(4, 1, 4.5, 0.18, 'triangle'); }
-      if (i % 4 === 0 && inten > 0.15) note(0, 1, 0.3, 0.35 * inten + 0.1, 'sine', this.musBus, false); // pulso grave
-      const prob = 0.35 + 0.5 * inten;
-      if (Math.random() < (base ? 0.3 : prob)) note(Math.floor(Math.random() * 10), 3, 0.5, 0.22, i % 3 ? 'triangle' : 'sine');
-      if (inten > 0.4 && i % 2 === 0) note(Math.floor(Math.random() * 5) * 2, 4, 0.18, 0.1, 'square');
-    }, 220);
+      if (ctx.state !== 'running') { next = Math.max(next, ctx.currentTime + 0.1); return; }
+      if (!this.enabled) { next = Math.max(next, ctx.currentTime + 0.1); return; }
+      while (next < ctx.currentTime + 0.25) { schedule(this.step++, next); next += SPB * (this.step % 2 ? 1.08 : 0.92); }   // ligero «swing» de ida y vuelta
+    }, 60);
   }
 }

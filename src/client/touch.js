@@ -67,7 +67,7 @@ export class TouchControls {
     this.st = { fire: false, fireL: false, ads: false, jump: false, crouch: false, dash: false, mov: false, esp: false, s3: false, ult: false, melee: false, reload: false, evo: false, ability: false, use: false, ping: false, };
     this.heldSince = {}; this.jumpUntil = 0; this.lastMoveTap = -1000;
     this.dashStick = false; this.adsToggled = false; this.ctx = this.ctx || {};
-    if (!first) { this.ptrs.clear(); this.stick.classList.add('hidden'); this.host.querySelectorAll('.on').forEach((b) => b.classList.remove('on')); }
+    if (!first) { this.ptrs.clear(); this.stick.classList.add('hidden'); this.host.classList.remove('stick-on', 'look-on'); this.host.querySelectorAll('.on').forEach((b) => b.classList.remove('on')); }
   }
   get fire() { return this.st.fire || this.st.fireL; }
   /** Compatibilidad: sensibilidad base horizontal (rad/px). */
@@ -76,7 +76,7 @@ export class TouchControls {
   /* ───── construcción ───── */
   build() {
     const h = this.host;
-    h.innerHTML = `<div class="tc-zone tc-left"></div><div class="tc-zone tc-right"></div><div class="tc-stick hidden"><i></i></div>` +
+    h.innerHTML = `<div class="tc-zone tc-left"></div><div class="tc-zone tc-right"></div><div class="tc-stick hidden"><i></i></div><div class="tc-guide tc-guide-move" aria-hidden="true"><i></i><small>MOVER</small></div><div class="tc-guide tc-guide-look" aria-hidden="true"><i></i><small>MIRAR</small></div>` +
       BTN.map(([id, cls, ic, label]) => `<button class="tc-btn ${cls}" data-a="${id}" type="button" aria-label="${label || id}"><span class="ic">${ic}</span>${label ? `<small>${label}</small>` : ''}</button>`).join('') +
       `<div class="tc-tip hidden"></div><div class="tc-edit hidden"><b>EDITAR CONTROLES</b><span>Arrastrá un botón · tocá para elegirlo</span>
         <label>Tamaño <input type="range" id="tcSize" min="60" max="180" value="100"></label>
@@ -179,10 +179,10 @@ export class TouchControls {
       if (now - (this.lastMoveTap || -1000) < 300 && Math.hypot(e.clientX - (this.lastMoveX || 0), e.clientY - (this.lastMoveY || 0)) < 55) this.jumpUntil = performance.now() + 160;
       this.lastMoveTap = now; this.lastMoveX = e.clientX; this.lastMoveY = e.clientY;
       p.kind = 'move'; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ }
-      this.stick.style.left = `${e.clientX}px`; this.stick.style.top = `${e.clientY}px`; this.stick.classList.remove('hidden'); this.knob.style.transform = 'translate(-50%,-50%)'; return;
+      this.stick.style.left = `${e.clientX}px`; this.stick.style.top = `${e.clientY}px`; this.stick.classList.remove('hidden'); this.host.classList.add('stick-on'); this.knob.style.transform = 'translate(-50%,-50%)'; return;
     }
     if ([...this.ptrs.values()].some((q) => q.kind === 'look')) return; // un solo dedo de cámara a la vez
-    p.kind = 'look'; this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ }
+    p.kind = 'look'; this.host.classList.add('look-on'); this.ptrs.set(id, p); try { this.host.setPointerCapture(id); } catch { /* ok */ }
   }
   /** Casilla de la barra de armas (#weapons) bajo el punto, o -1. `loose`: al deslizar, sólo cuenta la posición horizontal. */
   weaponAt(x, y, loose) {
@@ -233,7 +233,8 @@ export class TouchControls {
   }
   up(e) {
     const p = this.ptrs.get(e.pointerId); if (!p) return; this.ptrs.delete(e.pointerId);
-    if (p.kind === 'move') { this.mx = this.mz = 0; this.dashStick = false; this.stick.classList.add('hidden'); }
+    if (p.kind === 'move') { this.mx = this.mz = 0; this.dashStick = false; this.stick.classList.add('hidden'); this.host.classList.remove('stick-on'); }
+    if (p.kind === 'look') this.host.classList.remove('look-on');
     if (p.kind === 'btn') {
       const a = p.act; delete this.heldSince[a]; if (!TAP.has(a)) {
         const stays = p.type === 'toggle' || (a === 'ads' && settings().adsMode === 'alternar');

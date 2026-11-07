@@ -7,6 +7,8 @@
 4. **Eventos perdidos** → se usan eventos de puntero fusionados (coalesced) y se acumula el giro hasta el siguiente paso de simulación (60 Hz fijo, independiente de los FPS).
 
 ## Cómo funciona
+- **Cámara 1.ª ↔ 3.ª persona:** tecla `P` en PC y botón 👁 (arriba a la izquierda) en PC y celular. Antes el botón quedaba oculto por el HUD enfocado.
+- **Guías de joystick:** la palanca sigue siendo flotante, pero ahora se ven dos guías permanentes (MOVER a la izquierda, MIRAR a la derecha) que se apagan al tocar.
 - Mitad izquierda: SÓLO palanca de movimiento (flotante). Mitad derecha: cámara libre en ambos ejes, sin palanca fija.
 - El giro es proporcional al desplazamiento relativo del dedo (rad/px). Velocidad fija por defecto; aceleración opcional.
 - Arrastrar desde el gatillo también apunta. Los botones tienen función propia (disparo, ADS, salto, agacharse, dash, habilidad, usar, ping).

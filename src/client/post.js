@@ -49,6 +49,7 @@ const FRAG = `
     #else
       hdr = texture2D(tDiffuse, uv).rgb;
     #endif
+    if (!(hdr.r == hdr.r) || !(hdr.g == hdr.g) || !(hdr.b == hdr.b)) hdr = vec3(0.0); hdr = clamp(hdr, 0.0, 48.0);
     float lum = dot(hdr, vec3(0.2126, 0.7152, 0.0722)), keep = smoothstep(0.9, 2.6, lum); // lo muy brillante se respeta
     float d = uHasDepth > 0.5 ? texture2D(tDepth, uv).x : 1.0, sky = step(0.99999, d);
     vec3 P = viewPos(uv, min(d, 0.99999)); float dist = length(P);
