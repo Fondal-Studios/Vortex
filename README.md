@@ -14,12 +14,18 @@ Elegí **▶ Historia** (campaña con la intro del tren) o una **Arena**, y hac�
 
 | Tecla | Acción | | Tecla | Acción |
 |---|---|---|---|---|
-| `WASD` | mover | | `SHIFT` | correr |
-| ratón | apuntar | | `1–5` / rueda | cambiar de arma |
-| `Q` | habilidad de tu rol | | `E` | usar / pasar el núcleo |
-| `G` o rueda (clic) | señalar (ping) | | | |
-| clic izq. | disparar | | `ESC` | pausa |
-| `ESPACIO` | saltar | | `Enter`/clic | saltar la intro |
+| `WASD` | mover | | `SHIFT` | dash / esquiva |
+| ratón | apuntar | | `1–5` / rueda | cambiar de arma (Disparo) |
+| clic izq. | atacar / disparar | | clic der. | habilidad 2 (apoyo) |
+| `F` | defensa o movilidad | | `Q` / `G` | apoyo |
+| `T` | ulti (tras la 3.ª oleada) | | `E` | usar / interactuar |
+| `R` | recargar | | `V` | golpe cuerpo a cuerpo |
+| `X` | apuntar (ADS) | | `C` / `CTRL` | agacharse |
+| `ESPACIO` | saltar | | `B` / clic central | señalar (ping) |
+| `TAB` | cambiar modo Disparo ↔ Melé | | `P` | cámara 1.ª ↔ 3.ª persona |
+| `K` | mostrar/ocultar pista de teclas | | `ESC` | pausa (liberar el ratón) |
+
+En **Melé** `1/2/3` son las habilidades 1/2/3. La calidad gráfica arranca en **Media** en PC; se cambia en *Ajustes › Gráficos* (y la calidad automática baja sola si los FPS caen). El volumen de la **música** tiene su propio control en Ajustes.
 
 ### En iPhone
 - **Con tu PC:** corré `npm start` y abrí `http://IP-DE-TU-PC:8080` en Safari (misma Wi-Fi). Funciona **solo y cooperativo**. Compartir ▸ *Agregar a pantalla de inicio* lo deja a pantalla completa.

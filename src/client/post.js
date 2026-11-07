@@ -24,7 +24,7 @@ export const GRADE = {
 const VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 const FRAG = `
   #include <packing>
-  uniform sampler2D tDiffuse, tDepth; uniform vec2 uRes; uniform float uTime, uExposure, uNear, uFar, uFogD, uFogH, uFogMode, uFogR, uSat, uContrast, uLift, uCA, uGrain, uVig, uInfect, uAO, uHasDepth, uFloor, uFogCap, uOutline;
+  uniform sampler2D tDiffuse, tDepth; uniform vec2 uRes; uniform float uDetail; uniform float uTime, uExposure, uNear, uFar, uFogD, uFogH, uFogMode, uFogR, uSat, uContrast, uLift, uCA, uGrain, uVig, uInfect, uAO, uHasDepth, uFloor, uFogCap, uOutline;
   uniform vec3 uFogCol, uSunDir, uSunCol, uShadow, uHigh, uCamPos; uniform mat4 uProjInv, uCamMat; uniform mat4 uProj;
   varying vec2 vUv;
   float h12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -67,6 +67,28 @@ const FRAG = `
       }
       float ao = 1.0 - clamp(occ / float(AO) * 1.6, 0.0, 0.75);
       hdr *= mix(1.0, ao, uAO * (1.0 - keep));
+    }
+    #endif
+    // CAPA DE DETALLE «megaestructura» (inspirada en Blame!): paneles de 5 m y juntas mayores de 25 m proyectados en el mundo, mugre y goteras, y escasas luces frías en las juntas.
+    // Sólo en superficies PLANAS y lejos de la cámara (no toca cuerpos, criaturas ni el arma). Todo en GPU, una sola pasada.
+    #if DETAIL
+    { vec3 Nv = cross(dFdx(P), dFdy(P)); float nl = length(Nv); vec3 Nw = normalize(mat3(uCamMat) * (Nv / max(nl, 1e-6))); float curv = length(fwidth(Nw));
+      if (sky < 0.5 && uDetail > 0.0 && nl > 1e-6) {
+        float fade = (1.0 - smoothstep(0.015, 0.1, curv)) * uDetail * (1.0 - smoothstep(35.0, 110.0, dist)) * smoothstep(1.5, 3.5, dist) * (1.0 - keep);
+        if (fade > 0.01) {
+          vec3 Wp = uCamPos + mat3(uCamMat) * P, an = abs(Nw);
+          vec2 g = (an.y > an.x && an.y > an.z) ? Wp.xz : (an.x > an.z ? Wp.yz : Wp.xy);
+          float wpx = max(length(fwidth(g)), 1e-4);
+          vec2 c1 = g / 5.0, f1 = abs(fract(c1) - 0.5); float d1 = 0.5 - max(f1.x, f1.y), seam = 1.0 - smoothstep(0.004, 0.004 + wpx / 5.0 * 1.5, d1);
+          vec2 c2 = g / 25.0, f2 = abs(fract(c2) - 0.5); float d2 = 0.5 - max(f2.x, f2.y), mega = 1.0 - smoothstep(0.003, 0.003 + wpx / 25.0 * 1.5, d2);
+          float tone = h12(floor(c1) * 1.7 + 3.1);
+          float grime = vn(vec3(g * 0.9, 1.0)) * 0.6 + vn(vec3(g * 3.7, 7.0)) * 0.4, streak = vn(vec3(g.x * 5.0, g.y * 0.35, 2.0));
+          float shade = (0.86 + 0.2 * tone) * (0.78 + 0.34 * grime) * (1.0 - 0.22 * smoothstep(0.55, 0.9, streak)) * (1.0 - 0.45 * seam - 0.35 * mega);
+          hdr *= mix(1.0, shade, fade);
+          hdr += vec3(0.20, 0.55, 0.85) * (seam * 0.05 + mega * 0.09) * fade;   // juntas con un hilo de luz fría: se leen también sobre suelos oscuros
+          hdr += vec3(0.25, 0.7, 1.0) * step(0.93, tone) * seam * fade * 0.9 * (0.7 + 0.3 * sin(uTime * 1.3 + tone * 40.0));
+        }
+      }
     }
     #endif
     // niebla volumétrica falsa: LAYERS muestras a lo largo del rayo, densidad por altura y ruido que deriva
@@ -118,18 +140,18 @@ const FRAG = `
 export class GradePass extends Pass {
   constructor(level = 'high', { layers = null } = {}) {
     super();
-    const L = level === 'high' ? { ao: 8, layers: 3, ca: 1 } : level === 'medium' ? { ao: 4, layers: 2, ca: 1 } : { ao: 0, layers: 1, ca: 0 };
+    const L = level === 'high' ? { ao: 8, layers: 3, ca: 1, det: 1 } : level === 'medium' ? { ao: 4, layers: 2, ca: 1, det: 0.65 } : { ao: 0, layers: 1, ca: 0, det: 0 };
     if (layers != null) L.layers = Math.max(0, Math.min(3, layers | 0));   // «Niebla de aire» del menú Gráficos (0 = sin niebla volumétrica)
     this.level = level; this.noFog = L.layers === 0;
     this.uniforms = {
-      tDiffuse: { value: null }, tDepth: { value: null }, uHasDepth: { value: 1 }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uExposure: { value: 1.9 },
+      uDetail: { value: L.det }, tDiffuse: { value: null }, tDepth: { value: null }, uHasDepth: { value: 1 }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uExposure: { value: 1.9 },
       uNear: { value: 0.1 }, uFar: { value: 2000 }, uProjInv: { value: new THREE.Matrix4() }, uProj: { value: new THREE.Matrix4() }, uCamMat: { value: new THREE.Matrix4() }, uCamPos: { value: new THREE.Vector3() },
       uFogCol: { value: new THREE.Color() }, uFogD: { value: 0.01 }, uFogH: { value: 0.05 }, uFogMode: { value: 0 }, uFogR: { value: 80 },
       uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color(0xffd9a0) },
       uShadow: { value: new THREE.Vector3(1, 1, 1) }, uHigh: { value: new THREE.Vector3(1, 1, 1) }, uSat: { value: 1 }, uContrast: { value: 1 }, uLift: { value: 0 },
       uCA: { value: level === 'high' ? 0.0028 : 0.002 }, uGrain: { value: level === 'low' ? 0.018 : 0.024 }, uVig: { value: 0.42 }, uInfect: { value: 0 }, uAO: { value: L.ao ? 1 : 0 }, uFloor: { value: 0 }, uFogCap: { value: 0.72 }, uOutline: { value: 0 },
     };
-    this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader: FRAG, defines: { AO: L.ao, LAYERS: Math.max(1, L.layers), CA: L.ca, OUTLINE: 1 }, depthTest: false, depthWrite: false });
+    this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader: FRAG, defines: { DETAIL: L.det > 0 ? 1 : 0, AO: L.ao, LAYERS: Math.max(1, L.layers), CA: L.ca, OUTLINE: 1 }, depthTest: false, depthWrite: false });
     this.quad = new FullScreenQuad(this.material);
     this.preset('def');
   }

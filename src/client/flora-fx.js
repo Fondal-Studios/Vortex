@@ -25,7 +25,7 @@ const hex = (s) => parseInt(s.slice(1), 16);
 const V4 = () => new THREE.Vector4(), V3 = () => new THREE.Vector3();
 const Y = new THREE.Vector3(0, 1, 0), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _w = new THREE.Vector3();
 const hashStr = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
-const DENS = { 1: { grass: 60, deco: 0.45, motes: 36, det: 0 }, 2: { grass: 220, deco: 1, motes: 90, det: 1 }, 3: { grass: 520, deco: 1.6, motes: 180, det: 2 } };
+const DENS = { 1: { grass: 60, deco: 0.45, motes: 36, det: 0 }, 2: { grass: 300, deco: 1.25, motes: 110, det: 1 }, 3: { grass: 680, deco: 1.9, motes: 220, det: 2 } };
 const FLAG_ES = [[1, 'Frenado'], [2, 'Atrapado'], [4, 'Con escudo'], [8, 'Envenenado'], [16, 'Dormido'], [32, 'Curándose']];
 
 /* ───────── shaders ───────── */
