@@ -166,9 +166,19 @@ export class Renderer {
   }
 
   /* ───────── mapas ───────── */
+  /** PRECALENTADO de shaders: compila de una vez todos los materiales de la escena (también los ocultos: pools de efectos, cuerpo del Huésped, armas)
+   *  para que el primer disparo, habilidad o aparición no provoque un tirón de compilación en pleno combate. Se llama tras cargar el mapa y de nuevo
+   *  cuando ya entró el cuerpo del jugador. Es idempotente: lo ya compilado sale de la caché. */
+  warmShaders() {
+    if (this.lost || !this.gl.compile) return;
+    const hidden = []; this.scene.traverse((o) => { if (!o.visible && o.material) hidden.push(o); });
+    const rt = this.composer ? this.composer.readBuffer : null;   // las variantes de programa dependen del destino de render: compilar contra el mismo que usa la escena (HDR del compositor)
+    try { for (const o of hidden) o.visible = true; this.camera.updateMatrixWorld(); if (rt) this.gl.setRenderTarget(rt); this.gl.compile(this.scene, this.camera); } catch (err) { console.warn('warmShaders', err.message); }
+    finally { if (rt) this.gl.setRenderTarget(null); for (const o of hidden) o.visible = false; }
+  }
   setMap(mapId) {
     if (this.mapId === mapId) return;
-    this.mapId = mapId;
+    this.mapId = mapId; this.warmN = 0; this.warmT = 0.6;   // precalentar en ~0,6 s, ~2 s y ~5 s (render() baja warmT; hasta 5 pasadas)
     for (const c of [...this.mapRoot.children]) { this.mapRoot.remove(c); c.traverse((o) => { o.geometry && o.geometry.dispose(); o.material && o.material.dispose && o.material.dispose(); }); }
     for (const m of Object.values(this.ents)) { for (const o of m.values()) this.entRoot.remove(o.object || o); m.clear(); }
     this.dyn = []; this.baseFx = null; this.objects.npcLite = null;
@@ -271,6 +281,7 @@ export class Renderer {
     if (this.ffx) { try { this.ffx.update(dt, state, me); } catch (err) { console.warn('ffx', err.message); this.ffx = null; } }   // fauna consumible
     this.updateDying(dt); this.updateAvisos(dt); this.updateGuide(dt, me);
     this.fx.update(dt);
+    if (this.warmT != null && this.warmN < 5) { this.warmT -= dt; if (this.warmT <= 0) { this.warmShaders(); this.warmN++; this.warmT = this.warmN === 1 ? 1.4 : 3.5; } }
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 220); // luz de fogonazo: destello seco (la fija combatfx por arma)
     if (me) this.updateCamera(me, dt, look);
     if (this.jfx && this.jfx.cine) { try { this.jfx.postCamera(dt); } catch (err) { this.jfx.cine = null; } }   // presentación del jefe (cine breve)
